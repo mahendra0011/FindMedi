@@ -187,6 +187,22 @@ const mock = {
     return { id: u.id, name, email: u.email, role: u.role, phone };
   },
 
+  async resendVerification({ email }) {
+    await delay();
+    const u = Object.values(MOCK_USERS).find(x => x.email === email);
+    if (!u) throw new Error('User not found');
+    if (u.isVerified) throw new Error('Email already verified');
+    console.log(`[MOCK] Resent verification email to ${email}`);
+    return { message: 'Verification email sent' };
+  },
+
+  async verifyEmail(token) {
+    await delay();
+    // In mock, tokens are not actually used; mark first user as verified for demo
+    console.log('[MOCK] Email verified');
+    return { success: true, message: 'Email verified', user: { id: '1', name: 'Demo User', email: 'demo@example.com', role: 'patient', isVerified: true } };
+  },
+
   // Users (admin)
   async getUsers({ search, role } = {}) {
     await delay();
@@ -668,6 +684,8 @@ export const api = {
   register:      (body)    => dispatch(() => mock.register(body),                      '/auth/register',    { method:'POST', body: JSON.stringify(body) }),
   me:            ()        => dispatch(() => mock.me(),                                '/auth/me'),
   updateProfile: (body)    => dispatch(() => mock.updateProfile(body),                 '/auth/profile',     { method:'PUT',  body: JSON.stringify(body) }),
+  resendVerification: (body) => dispatch(() => mock.resendVerification(body),          '/auth/resend-verification', { method:'POST', body: JSON.stringify(body) }),
+  verifyEmail:   (token)   => dispatch(() => mock.verifyEmail(token),                  `/auth/verify-email/${token}`, { method:'GET' }),
   dashboardStats:()        => dispatch(() => mock.dashboardStats(),                    '/dashboard/stats'),
 
   getUsers:      (p={})    => dispatch(() => mock.getUsers(p),                         '/users?'             + new URLSearchParams(p)),

@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { useNavigate, Navigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Activity, ArrowRight, Shield, Stethoscope, UserRound } from 'lucide-react';
+import { Activity, ArrowRight, Stethoscope, UserRound, Mail, RefreshCw, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/context/AuthContext';
+import { toast } from 'sonner';
 
 const roles = [
-  { key: 'admin',   label: 'Admin',   desc: 'Full system access',            icon: Shield,      color: 'text-primary', bg: 'bg-primary/10' },
   { key: 'doctor',  label: 'Doctor',  desc: 'Manage patients & schedule',    icon: Stethoscope, color: 'text-info',    bg: 'bg-info/10'    },
   { key: 'patient', label: 'Patient', desc: 'Book appointments & view records', icon: UserRound, color: 'text-success', bg: 'bg-success/10' },
 ];
@@ -22,6 +23,8 @@ export default function Signup() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [registered, setRegistered] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState('');
 
   if (user) return <Navigate to="/dashboard" replace />;
 
@@ -38,14 +41,62 @@ export default function Signup() {
     }
     setLoading(true);
     try {
-      await register({ name, email, password, role });
-      navigate('/login');
+      const result = await register({ name, email, password, role });
+      setRegistered(true);
+      setRegisteredEmail(email);
+      toast.success('Account created! Please verify your email.');
     } catch (err) {
       setError(err.message || 'Signup failed');
     } finally {
       setLoading(false);
     }
   };
+
+  const handleResendVerification = async () => {
+    try {
+      await fetch(`${import.meta.env.VITE_API_URL}/auth/resend-verification`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: registeredEmail }),
+      });
+      toast.success('Verification email sent again!');
+    } catch (err) {
+      toast.error('Failed to resend email');
+    }
+  };
+
+  if (registered) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md">
+          <Card className="text-center">
+            <CardHeader>
+              <div className="w-20 h-20 rounded-full bg-success/10 flex items-center justify-center mx-auto mb-4">
+                <Mail className="w-10 h-10 text-success" />
+              </div>
+              <CardTitle className="text-2xl">Check Your Email</CardTitle>
+              <CardDescription>
+                We've sent a verification link to <strong>{registeredEmail}</strong>
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Click the link in the email to verify your account. The link expires in 24 hours.
+              </p>
+              <Button onClick={handleResendVerification} variant="outline" className="w-full gap-2">
+                <Activity className="w-4 h-4" />
+                Resend Verification Email
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                Already verified?{' '}
+                <Link to="/login" className="text-primary hover:underline">Sign in</Link>
+              </p>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex">

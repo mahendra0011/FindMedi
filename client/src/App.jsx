@@ -18,6 +18,7 @@ import Billing from './pages/Billing';
 import Settings from './pages/Settings';
 import NotFound from './pages/NotFound';
 import Notifications from './pages/Notifications';
+import VerifyEmail from './pages/VerifyEmail';
 
 // Patient pages
 import PatientDoctors from './pages/patient/PatientDoctors';
@@ -90,6 +91,7 @@ const App = () => (
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/verify-email" element={<VerifyEmail />} />
 
             {/* Dashboard - role-based content */}
             <Route path="/dashboard" element={<ProtectedRoute><DashboardPage><RoleDashboard /></DashboardPage></ProtectedRoute>} />

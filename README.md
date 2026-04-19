@@ -211,6 +211,26 @@ A comprehensive, production-ready Hospital Management System (HMS) built with th
 
 ---
 
+### ✉️ Email Verification
+
+**Secure Registration Flow:**
+- New users must verify email before account activation
+- Automated verification email sent via SMTP (Nodemailer)
+- Token-based verification with 24-hour expiry
+- Resend verification email option
+- Unverified accounts cannot log in
+- Verification status tracked in user profile
+
+**Workflow:**
+1. User registers → account created with `isVerified: false`
+2. Verification email sent with unique link
+3. User clicks link → account verified → can log in
+4. If link expires → "Resend verification" option available
+
+**Security:** Prevents fake/abusive registrations and ensures valid contact information.
+
+---
+
 ### 📄 PDF Report Generation
 
 **Prescriptions**

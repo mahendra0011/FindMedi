@@ -26,18 +26,18 @@ async function seed() {
     Review.deleteMany(), Notification.deleteMany(),
   ]);
 
-  // Create Users first
-  const adminUser = await User.create({ name: 'Admin User', email: 'admin@medicare.com', password: await hash('password'), role: 'admin' });
-  const doctorUser1 = await User.create({ name: 'Dr. Sarah Smith', email: 'sarah.smith@medicare.com', password: await hash('password'), role: 'doctor', specialization: 'Cardiology' });
-  const doctorUser2 = await User.create({ name: 'Dr. Raj Patel', email: 'raj.patel@medicare.com', password: await hash('password'), role: 'doctor', specialization: 'Neurology' });
-  const doctorUser3 = await User.create({ name: 'Dr. Emily Lee', email: 'emily.lee@medicare.com', password: await hash('password'), role: 'doctor', specialization: 'Orthopedics' });
-  const doctorUser4 = await User.create({ name: 'Dr. Carlos Garcia', email: 'carlos.garcia@medicare.com', password: await hash('password'), role: 'doctor', specialization: 'Pediatrics' });
+  // Create Users first (all verified by default)
+  const adminUser = await User.create({ name: 'Admin User', email: 'admin@medicare.com', password: await hash('password'), role: 'admin', isVerified: true });
+  const doctorUser1 = await User.create({ name: 'Dr. Sarah Smith', email: 'sarah.smith@medicare.com', password: await hash('password'), role: 'doctor', specialization: 'Cardiology', isVerified: true });
+  const doctorUser2 = await User.create({ name: 'Dr. Raj Patel', email: 'raj.patel@medicare.com', password: await hash('password'), role: 'doctor', specialization: 'Neurology', isVerified: true });
+  const doctorUser3 = await User.create({ name: 'Dr. Emily Lee', email: 'emily.lee@medicare.com', password: await hash('password'), role: 'doctor', specialization: 'Orthopedics', isVerified: true });
+  const doctorUser4 = await User.create({ name: 'Dr. Carlos Garcia', email: 'carlos.garcia@medicare.com', password: await hash('password'), role: 'doctor', specialization: 'Pediatrics', isVerified: true });
   
-  const patientUser1 = await User.create({ name: 'Sarah Johnson', email: 'sarah.johnson@email.com', password: await hash('password'), role: 'patient', phone: '+1 555-0101' });
-  const patientUser2 = await User.create({ name: 'Mike Chen', email: 'mike.chen@email.com', password: await hash('password'), role: 'patient', phone: '+1 555-0102' });
-  const patientUser3 = await User.create({ name: 'Emma Wilson', email: 'emma.wilson@email.com', password: await hash('password'), role: 'patient', phone: '+1 555-0103' });
-  const patientUser4 = await User.create({ name: 'James Brown', email: 'james.brown@email.com', password: await hash('password'), role: 'patient', phone: '+1 555-0104' });
-  const patientUser5 = await User.create({ name: 'John Patient', email: 'patient@medicare.com', password: await hash('password'), role: 'patient', phone: '+1 555-0100' });
+  const patientUser1 = await User.create({ name: 'Sarah Johnson', email: 'sarah.johnson@email.com', password: await hash('password'), role: 'patient', phone: '+1 555-0101', isVerified: true });
+  const patientUser2 = await User.create({ name: 'Mike Chen', email: 'mike.chen@email.com', password: await hash('password'), role: 'patient', phone: '+1 555-0102', isVerified: true });
+  const patientUser3 = await User.create({ name: 'Emma Wilson', email: 'emma.wilson@email.com', password: await hash('password'), role: 'patient', phone: '+1 555-0103', isVerified: true });
+  const patientUser4 = await User.create({ name: 'James Brown', email: 'james.brown@email.com', password: await hash('password'), role: 'patient', phone: '+1 555-0104', isVerified: true });
+  const patientUser5 = await User.create({ name: 'John Patient', email: 'patient@medicare.com', password: await hash('password'), role: 'patient', phone: '+1 555-0100', isVerified: true });
 
   console.log('Created users...');
 

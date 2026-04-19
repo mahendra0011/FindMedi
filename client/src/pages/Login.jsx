@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { useNavigate, Navigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Activity, ArrowRight, Shield, Stethoscope, UserRound } from 'lucide-react';
+import { Activity, ArrowRight, Shield, Stethoscope, UserRound, Mail, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/context/AuthContext';
+import { toast } from 'sonner';
 
 const roles = [
   { key: 'admin',   label: 'Admin',   desc: 'Full system access',              icon: Shield,      color: 'text-primary',     bg: 'bg-primary/10'     },
@@ -27,6 +29,8 @@ export default function Login() {
   const [secretKey, setSecretKey] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState('');
 
   if (user) return <Navigate to="/dashboard" replace />;
 
@@ -36,6 +40,7 @@ export default function Login() {
     setPassword('password');
     setSecretKey('');
     setError('');
+    setNeedsVerification(false);
   };
 
   const handleLogin = async (e) => {
@@ -51,11 +56,67 @@ export default function Login() {
       await login(email, password, role);
       navigate('/dashboard');
     } catch (err) {
-      setError(err.message || 'Login failed');
+      // Check if error indicates email not verified
+      if (err.message?.includes('not verified') || err.message?.includes('verification')) {
+        setNeedsVerification(true);
+        setPendingEmail(email);
+      } else {
+        setError(err.message || 'Login failed');
+      }
     } finally {
       setLoading(false);
     }
   };
+
+  const handleResendVerification = async () => {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/resend-verification`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: pendingEmail }),
+      });
+      if (res.ok) {
+        toast.success('Verification email sent! Check your inbox.');
+      } else {
+        toast.error('Failed to send. Please try again.');
+      }
+    } catch (err) {
+      toast.error('Network error');
+    }
+  };
+
+  if (needsVerification) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md">
+          <Card className="text-center">
+            <CardHeader>
+              <div className="w-20 h-20 rounded-full bg-warning/10 flex items-center justify-center mx-auto mb-4">
+                <Mail className="w-10 h-10 text-warning" />
+              </div>
+              <CardTitle className="text-2xl">Verify Your Email</CardTitle>
+              <CardDescription>
+                Your email <strong>{pendingEmail}</strong> hasn't been verified yet.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Click the verification link sent to your email to activate your account.
+                The link expires after 24 hours.
+              </p>
+              <Button onClick={handleResendVerification} className="w-full gap-2" variant="outline">
+                <RefreshCw className="w-4 h-4" />
+                Resend Verification Email
+              </Button>
+              <Button onClick={() => setNeedsVerification(false)} variant="ghost" className="w-full">
+                Back to Login
+              </Button>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex">
