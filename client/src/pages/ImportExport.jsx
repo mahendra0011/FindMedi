@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Upload, Download, FileSpreadsheet, Users, Stethoscope, CreditCard, CalendarDays, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { getStoredAuthToken } from '@/lib/api';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
 export default function ImportExport() {
   const { user } = useAuth();

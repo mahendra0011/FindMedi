@@ -62,10 +62,13 @@ const corsOptions = {
 
 // In production, restrict origins. In development, allow all.
 if (process.env.NODE_ENV === 'production') {
-  corsOptions.origin = [
-    process.env.CLIENT_URL,
-    'https://medicore-main-1.onrender.com'
-  ].filter(Boolean);
+  const allowedOrigins = [];
+  if (process.env.CLIENT_URL) {
+    allowedOrigins.push(process.env.CLIENT_URL);
+  }
+  // Add the production frontend URL
+  allowedOrigins.push('https://medicore-main-1.onrender.com');
+  corsOptions.origin = allowedOrigins.filter(Boolean);
 } else {
   corsOptions.origin = true; // Allow all in development
 }

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { api, getStoredAuthToken } from '@/lib/api';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 const statusColors = { Paid: 'bg-success/10 text-success', Pending: 'bg-warning/10 text-warning', Overdue: 'bg-destructive/10 text-destructive', Partial: 'bg-info/10 text-info' };
 
 export default function PatientBilling() {
