@@ -9,10 +9,37 @@ import Record from './models/Record.js';
 import Billing from './models/Billing.js';
 import Review from './models/Review.js';
 import Notification from './models/Notification.js';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 dotenv.config();
 
-const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://mahendrapi0053_db_user:34NGMDlJC8Dk7pv3@cluster0.avvnhcg.mongodb.net/medicore?appName=Cluster0';
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// Build proper MongoDB URI with database name
+let MONGO_URI = process.env.MONGO_URI;
+
+// Check if URI contains placeholders and warn
+if (MONGO_URI && (MONGO_URI.includes('<username>') || MONGO_URI.includes('<password>'))) {
+  console.warn('⚠️  MONGO_URI appears to contain placeholders. Please set your actual MongoDB Atlas connection string in the environment variables.');
+  console.warn('   Get your connection string from MongoDB Atlas -> Clusters -> Connect -> Driver');
+}
+
+// Parse URI to ensure database name is present
+if (MONGO_URI) {
+  try {
+    const url = new URL(MONGO_URI);
+    // If pathname is empty or just '/', add '/medicore'
+    if (!url.pathname || url.pathname === '/') {
+      url.pathname = '/medicore';
+      MONGO_URI = url.toString();
+    }
+  } catch (e) {
+    console.warn('⚠️ Could not parse MONGO_URI, using as-is');
+  }
+} else {
+  MONGO_URI = 'mongodb://localhost:27017/medicore';
+}
 
 const hash = (p) => bcrypt.hash(p, 10);
 

@@ -27,8 +27,14 @@ const PORT = process.env.PORT || 5001;
 // Build proper MongoDB URI with database name
 let MONGO_URI = process.env.MONGO_URI;
 
+// Check if URI contains placeholders and warn
+if (MONGO_URI && (MONGO_URI.includes('<username>') || MONGO_URI.includes('<password>'))) {
+  console.warn('⚠️  MONGO_URI appears to contain placeholders. Please set your actual MongoDB Atlas connection string in the environment variables.');
+  console.warn('   Get your connection string from MongoDB Atlas -> Clusters -> Connect -> Driver');
+}
+
+// Parse URI to ensure database name is present
 if (MONGO_URI) {
-  // Parse URI to ensure database name is present
   try {
     const url = new URL(MONGO_URI);
     // If pathname is empty or just '/', add '/medicore'
@@ -100,9 +106,11 @@ app.get('/api/health', (_, res) => res.json({ status: 'ok', time: new Date() }))
 const mongooseOptions = {
   // New URL parser and unified topology
   maxPoolSize: 10, // Maximum number of sockets in the pool
-  serverSelectionTimeoutMS: 5000, // Keep trying to connect for 5 seconds
+  serverSelectionTimeoutMS: 30000, // Keep trying to connect for 30 seconds
   socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
-  family: 4 // Use IPv4, skip trying IPv6
+  family: 4, // Use IPv4, skip trying IPv6
+  // Fail fast if not connected, don't buffer commands
+  bufferCommands: false
 };
 
 console.log('🔄 Attempting MongoDB connection...');
@@ -122,6 +130,10 @@ mongoose.connect(MONGO_URI, mongooseOptions)
     console.error('   Error code:', err.code);
     console.error('   Error name:', err.name);
     console.error('   Full URI used (redacted):', MONGO_URI.replace(/\/\/([^:]+):([^@]+)/, '//***:***'));
+    // Log stack trace in development only
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('   Stack trace:', err.stack);
+    }
     process.exit(1);
   });
 
