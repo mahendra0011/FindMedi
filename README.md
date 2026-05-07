@@ -830,3 +830,5 @@ MIT License — feel free to use this project for your healthcare facility or as
   <p>Built with ❤️ using MERN Stack</p>
   <p>© 2026 MediCore Hospital Management System</p>
 </div>
+#   U p d a t e   t i m e s t a m p :   0 5 / 0 8 / 2 0 2 6   0 2 : 0 3 : 1 7  
+ 
