@@ -54,12 +54,23 @@ console.log('🔍 Environment check:', {
 });
 
 // Middleware
-app.use(cors({ 
-  origin: true,
+const corsOptions = {
   credentials: true,
   allowedHeaders: ['Authorization', 'Content-Type', 'X-Requested-With'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
-}));
+};
+
+// In production, restrict origins. In development, allow all.
+if (process.env.NODE_ENV === 'production') {
+  corsOptions.origin = [
+    process.env.CLIENT_URL,
+    'https://medicore-main-1.onrender.com'
+  ].filter(Boolean);
+} else {
+  corsOptions.origin = true; // Allow all in development
+}
+
+app.use(cors(corsOptions));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
