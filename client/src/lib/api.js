@@ -588,7 +588,7 @@ async function request(path, options = {}) {
 }
 
 // Try backend health on load; fall back silently to mock
-fetch(`${BASE}/health`, { signal: AbortSignal.timeout(10000) })
+fetch(`${BASE}/health`, { signal: AbortSignal.timeout(20000) })
   .then(r => {
     if (r.ok) {
       useBackend = true;
