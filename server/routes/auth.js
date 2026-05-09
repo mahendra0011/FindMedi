@@ -17,18 +17,21 @@ router.post('/register', async (req, res) => {
   try {
     const { name, email, password, role, secretKey } = req.body;
 
+    // Convert email to lowercase
+    const lowerEmail = email.toLowerCase();
+
     if (role === 'admin' && secretKey !== 'medicore2580') {
       return res.status(403).json({ message: 'Invalid secret key for admin registration' });
     }
 
-    if (await User.findOne({ email })) {
+    if (await User.findOne({ email: lowerEmail })) {
       return res.status(400).json({ message: 'Email already in use' });
     }
 
     // Create user (unverified, without OTP fields)
     const user = await User.create({
       name,
-      email,
+      email: lowerEmail,
       password,
       role: role || 'patient',
       isVerified: false
@@ -37,7 +40,7 @@ router.post('/register', async (req, res) => {
     // Send OTP via new OTP service
     const otpResult = await createAndSendOTP({
       userId: user._id,
-      email,
+      email: lowerEmail,
       type: 'email'
     });
 
@@ -147,7 +150,8 @@ router.post('/resend-otp', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const { email, password, role } = req.body;
-    const user = await User.findOne({ email });
+    const lowerEmail = email.toLowerCase();
+    const user = await User.findOne({ email: lowerEmail });
 
     if (!user || !(await user.comparePassword(password))) {
       return res.status(401).json({ message: 'Invalid credentials' });
@@ -157,34 +161,32 @@ router.post('/login', async (req, res) => {
       return res.status(403).json({ message: `This account is not a ${role}` });
     }
 
-      // If email not verified, require OTP verification
-      if (!user.isVerified) {
-        const otpResult = await createAndSendOTP({
-          userId: user._id,
-          email,
-          type: 'email'
-        });
+    // If email not verified, require OTP verification
+    if (!user.isVerified) {
+      const otpResult = await createAndSendOTP({
+        userId: user._id,
+        email: lowerEmail,
+        type: 'email'
+      });
 
-        if (!otpResult.success) {
-          // Return appropriate status: 429 if rate limited, 500 otherwise
-          const statusCode = otpResult.rateLimited ? 429 : 500;
-          return res.status(statusCode).json({
-            message: 'Please verify your email first',
-            requiresVerification: true,
-            email: user.email,
-            otpError: otpResult.message,
-            ...(otpResult.rateLimited && { waitSeconds: otpResult.waitSeconds })
-          });
-        }
-
-        return res.status(403).json({
+      if (!otpResult.success) {
+        // Return appropriate status: 429 if rate limited, 500 otherwise
+        const statusCode = otpResult.rateLimited ? 429 : 500;
+        return res.status(statusCode).json({
           message: 'Please verify your email first',
           requiresVerification: true,
-          email: user.email
+          email: user.email,
+          otpError: otpResult.message,
+          ...(otpResult.rateLimited && { waitSeconds: otpResult.waitSeconds })
         });
       }
 
-
+      return res.status(403).json({
+        message: 'Please verify your email first',
+        requiresVerification: true,
+        email: user.email
+      });
+    }
 
     return res.json({
       token: sign(user),

@@ -39,29 +39,6 @@ router.get('/download/:fileId', protect, async (req, res) => {
   }
 });
 
-// Test Cloudinary configuration
-router.get('/test-cloudinary', protect, async (req, res) => {
-  try {
-    const testBuffer = Buffer.from('Cloudinary connection test');
-    const result = await uploadFileToCloudinary(
-      testBuffer,
-      'cloudinary-test.txt',
-      'text/plain'
-    );
-    res.json({
-      success: true,
-      message: 'Cloudinary connection works!',
-      sample: { url: result.url, publicId: result.publicId },
-    });
-  } catch (error) {
-    console.error('Cloudinary test error:', error);
-    res.status(500).json({
-      error: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-    });
-  }
-});
-
 router.post('/', protect, upload.single('file'), async (req, res) => {
   console.log('Upload request received:', {
     user: req.user?.name,
