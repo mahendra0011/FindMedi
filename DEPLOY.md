@@ -30,15 +30,11 @@ services:
         value: https://your-client-app.onrender.com
       - key: PORT
         value: 5000
-      - key: SMTP_HOST
-        value: smtp.gmail.com
-      - key: SMTP_PORT
-        value: "587"
-      - key: SMTP_USER
-        value: your-email@gmail.com
-      - key: SMTP_PASS
-        value: your-app-password
-```
+      - key: BREVO_API_KEY
+        fromSecret: your_brevo_api_key
+      - key: BREVO_SENDER_EMAIL
+        value: mahendrapra0077@gmail.com
+  ```
 
 ### 1.2 Update server/package.json (already done - has start script)
 
@@ -81,7 +77,8 @@ In Render dashboard for your service, go to **"Environment"** tab and add:
 - `MONGO_URI` - Your MongoDB connection string
 - `JWT_SECRET` - Generate a secure random string
 - `CLIENT_URL` - Your frontend URL (after deploying client)
-- `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` - Email settings
+- `BREVO_API_KEY` - Brevo (Sendinblue) API key for email
+   - `BREVO_SENDER_EMAIL` - Sender email address for Brevo
 
 ---
 

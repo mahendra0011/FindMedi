@@ -4,14 +4,9 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const envPath = path.join(__dirname, '.env');
-console.log('🔍 Loading .env from:', envPath);
-const result = dotenv.config({ path: envPath });
-if (result.error) {
-  console.error('❌ Error loading .env file:', result.error);
-} else {
-  console.log('✅ .env file loaded successfully');
-}
+
+dotenv.config({ path: path.join(__dirname, '.env') });
+
 import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
@@ -19,29 +14,26 @@ import mongoose from 'mongoose';
 const app = express();
 
 console.log('🔍 Environment check:', {
-  PORT: process.env.PORT,
+  PORT: process.env.PORT || 'not set',
   MONGO_URI: process.env.MONGO_URI ? 'set' : 'NOT SET',
-  SMTP_USER: process.env.SMTP_USER ? 'set' : 'NOT SET',
-  SMTP_PASS: process.env.SMTP_PASS ? 'set' : 'NOT SET',
-  SMTP_HOST: process.env.SMTP_HOST || 'smtp.gmail.com',
-  SMTP_PORT: process.env.SMTP_PORT || 465,
-  CLIENT_URL: process.env.CLIENT_URL || 'NOT SET'
+  BREVO_API_KEY: process.env.BREVO_API_KEY ? 'set' : 'NOT SET',
+  BREVO_SENDER_EMAIL: process.env.BREVO_SENDER_EMAIL || 'mahendrapra0077@gmail.com',
+  CLIENT_URL: process.env.CLIENT_URL || 'NOT SET',
+  NODE_ENV: process.env.NODE_ENV || 'development'
 });
 
-// Build proper MongoDB URI with database name
-let MONGO_URI = process.env.MONGO_URI;
+// Load MONGO_URI with environment fallback
+let MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/medicore';
 
 // Check if URI contains placeholders and warn
-if (MONGO_URI && (MONGO_URI.includes('<username>') || MONGO_URI.includes('<password>'))) {
-  console.warn('⚠️  MONGO_URI appears to contain placeholders. Please set your actual MongoDB Atlas connection string in the environment variables.');
-  console.warn('   Get your connection string from MongoDB Atlas -> Clusters -> Connect -> Driver');
+if (MONGO_URI.includes('<username>') || MONGO_URI.includes('<password>')) {
+  console.warn('⚠️  MONGO_URI appears to contain placeholders. Please set your actual MongoDB Atlas connection string.');
 }
 
 // Parse URI to ensure database name is present
-if (MONGO_URI) {
+if (MONGO_URI.startsWith('mongodb')) {
   try {
     const url = new URL(MONGO_URI);
-    // If pathname is empty or just '/', add '/medicore'
     if (!url.pathname || url.pathname === '/') {
       url.pathname = '/medicore';
       MONGO_URI = url.toString();
@@ -49,8 +41,6 @@ if (MONGO_URI) {
   } catch (e) {
     console.warn('⚠️ Could not parse MONGO_URI, using as-is');
   }
-} else {
-  MONGO_URI = 'mongodb://localhost:27017/medicore';
 }
 
 // Middleware

@@ -1,101 +1,50 @@
-import nodemailer from 'nodemailer';
-
-let transporter = null;
-
-const getTransporter = () => {
-  if (transporter) return transporter;
-   
-  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    console.warn('⚠️ SMTP not configured. Email features will be simulated.');
-    return null;
-  }
-   
-  console.log('🔧 Creating SMTP transporter with:', {
-    host: process.env.SMTP_HOST || 'smtp.gmail.com',
-    port: process.env.SMTP_PORT || 465,
-    user: process.env.SMTP_USER,
-    from: process.env.SMTP_FROM
-  });
-
-  const port = parseInt(process.env.SMTP_PORT, 10) || 465;
-  const secure = port === 465;
-
-  transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'smtp.gmail.com',
-    port,
-    secure,
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-    // Force IPv4 to avoid IPv6 connectivity issues (ENETUNREACH)
-    // This helps resolve network connectivity problems
-    // Add connection timeout to prevent hanging
-    connectionTimeout: 15000, // 15 seconds
-    // Add greeting timeout
-    greetingTimeout: 15000, // 15 seconds
-    // Add socket timeout
-    socketTimeout: 30000, // 30 seconds
-  });
-   
-  transporter.verify((error, success) => {
-    if (error) {
-      console.error('❌ SMTP verification error:', error.message);
-      console.error('❌ SMTP error code:', error.code);
-      // Log additional network error details
-      if (error.code === 'ENETUNREACH' || error.code === 'ENOTFOUND' || error.code === 'EAI_AGAIN') {
-        console.error('🌐 Network connectivity issue detected. Check internet connection and DNS settings.');
-      }
-    } else {
-      console.log('✅ SMTP connection verified');
-    }
-  });
-
-  return transporter;
-};
+const BREVO_API_KEY = process.env.BREVO_API_KEY;
+const BREVO_SENDER_EMAIL = process.env.BREVO_SENDER_EMAIL || 'mahendrapra0077@gmail.com';
+const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email';
 
 export const sendEmail = async ({ to, subject, text, html, attachments }) => {
-  const transporter = getTransporter();
-   
-  if (!transporter) {
+  if (!BREVO_API_KEY) {
     console.log(`📧 Email (simulated): ${to} - ${subject}`);
-    return { success: true, simulated: true, message: 'Email simulated (SMTP not configured)' };
+    return { success: true, simulated: true, message: 'Email simulated (Brevo not configured)' };
   }
 
   try {
-    const mailOptions = {
-      // Defaulting to SMTP user avoids domain mismatch rejections by many providers.
-      from: process.env.SMTP_FROM || process.env.SMTP_USER,
-      to,
+    const payload = {
+      sender: { email: BREVO_SENDER_EMAIL, name: 'MediCore Hospital' },
+      to: [{ email: to }],
       subject,
       text,
       html,
-      attachments,
     };
-    
-    // Add timeout to the sendMail operation
-    const info = await Promise.race([
-      transporter.sendMail(mailOptions),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('Email sending timeout')), 30000)) // 30 seconds
-    ]);
-    
-    console.log(`✅ Email sent: ${info.messageId}`);
-    return { success: true, messageId: info.messageId };
+
+    if (attachments && attachments.length > 0) {
+      payload.attachment = attachments.map(att => ({
+        filename: att.filename,
+        content: att.content,
+        contentType: att.contentType || 'application/octet-stream',
+      }));
+    }
+
+    const response = await fetch(BREVO_API_URL, {
+      method: 'POST',
+      headers: {
+        'accept': 'application/json',
+        'api-key': BREVO_API_KEY,
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Brevo API error: ${response.status} - ${error}`);
+    }
+
+    const result = await response.json();
+    console.log(`✅ Email sent to ${to}: ${result.messageId}`);
+    return { success: true, messageId: result.messageId };
   } catch (error) {
     console.error('❌ Email send error:', error.message);
-    console.error('❌ Error details:', error);
-    // Provide more user-friendly error messages for common issues
-    if (error.code === 'ENETUNREACH') {
-      return { success: false, error: 'Unable to connect to email server. Please check your internet connection and try again later.' };
-    } else if (error.code === 'ENOTFOUND') {
-      return { success: false, error: 'Email server hostname not found. Please contact support.' };
-    } else if (error.code === 'EAI_AGAIN') {
-      return { success: false, error: 'DNS lookup failed for email server. Please try again later.' };
-    } else if (error.code === 'ETIMEDOUT') {
-      return { success: false, error: 'Connection to email server timed out. Please try again later.' };
-    } else if (error.code === 'ECONNREFUSED') {
-      return { success: false, error: 'Connection to email server was refused. Please contact support.' };
-    }
     return { success: false, error: error.message };
   }
 };
@@ -146,6 +95,8 @@ export const sendPrescriptionEmail = async (patient, prescription, pdfBuffer) =>
     </div>
   `;
   
+  const base64Content = pdfBuffer.toString('base64');
+  
   return sendEmail({
     to: patient.email,
     subject,
@@ -153,7 +104,8 @@ export const sendPrescriptionEmail = async (patient, prescription, pdfBuffer) =>
     html,
     attachments: [{
       filename: 'prescription.pdf',
-      content: pdfBuffer,
+      content: base64Content,
+      contentType: 'application/pdf',
     }],
   });
 };
@@ -185,4 +137,3 @@ export const sendAppointmentReminderSMS = async (phone, patientName, doctorName,
   const message = `Dear ${patientName}, reminder for your appointment with Dr. ${doctorName} on ${date} at ${time}. Please arrive 15 mins early. - MediCore Hospital`;
   return sendSMS(phone, message);
 };
-
