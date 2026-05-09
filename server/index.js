@@ -1,4 +1,5 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
+dotenv.config({ path: require('path').resolve('./.env') });
 import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
@@ -6,6 +7,16 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+console.log('🔍 Environment check:', {
+  PORT: process.env.PORT,
+  MONGO_URI: process.env.MONGO_URI ? 'set' : 'NOT SET',
+  SMTP_USER: process.env.SMTP_USER ? 'set' : 'NOT SET',
+  SMTP_PASS: process.env.SMTP_PASS ? 'set' : 'NOT SET',
+  SMTP_HOST: process.env.SMTP_HOST || 'smtp.gmail.com',
+  SMTP_PORT: process.env.SMTP_PORT || 587,
+  CLIENT_URL: process.env.CLIENT_URL || 'NOT SET'
+});
 
 import authRoutes from './routes/auth.js';
 import userRoutes from './routes/users.js';
