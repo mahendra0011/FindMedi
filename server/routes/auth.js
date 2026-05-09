@@ -45,13 +45,25 @@ router.post('/register', async (req, res) => {
     });
 
     if (!otpResult.success) {
-      // If OTP sending fails, we still created the user but OTP failed
-      return res.status(500).json({
-        message: 'Registration successful but OTP sending failed. Please try resending OTP.',
-        user: { id: user._id, name: user.name, email: user.email, role: user.role, isVerified: false },
-        otpError: otpResult.message
-      });
-    }
+       // If OTP sending fails, we still created the user but OTP failed
+       // Check if it's a rate limit error
+       if (otpResult.rateLimited) {
+         return res.status(429).json({
+           message: `Registration successful but please wait ${otpResult.waitSeconds} seconds before requesting OTP verification.`,
+           user: { id: user._id, name: user.name, email: user.email, role: user.role, isVerified: false },
+           requiresVerification: true,
+           email: user.email,
+           waitSeconds: otpResult.waitSeconds
+         });
+       }
+       
+       // For other OTP failures
+       return res.status(201).json({
+         message: 'Registration successful. Please verify your email with the OTP sent.',
+         user: { id: user._id, name: user.name, email: user.email, role: user.role, isVerified: false },
+         otpWarning: 'There was a temporary issue sending the OTP. You can try resending it.'
+       });
+     }
 
     res.status(201).json({
       message: 'Registration successful. Please verify your email with the OTP sent.',
@@ -161,32 +173,34 @@ router.post('/login', async (req, res) => {
       return res.status(403).json({ message: `This account is not a ${role}` });
     }
 
-    // If email not verified, require OTP verification
-    if (!user.isVerified) {
-      const otpResult = await createAndSendOTP({
-        userId: user._id,
-        email: lowerEmail,
-        type: 'email'
-      });
+     // If email not verified, require OTP verification
+     if (!user.isVerified) {
+       const otpResult = await createAndSendOTP({
+         userId: user._id,
+         email: lowerEmail,
+         type: 'email'
+       });
 
-      if (!otpResult.success) {
-        // Return appropriate status: 429 if rate limited, 500 otherwise
-        const statusCode = otpResult.rateLimited ? 429 : 500;
-        return res.status(statusCode).json({
-          message: 'Please verify your email first',
-          requiresVerification: true,
-          email: user.email,
-          otpError: otpResult.message,
-          ...(otpResult.rateLimited && { waitSeconds: otpResult.waitSeconds })
-        });
-      }
+       if (!otpResult.success) {
+         // Return appropriate status: 429 if rate limited, 500 otherwise
+         const statusCode = otpResult.rateLimited ? 429 : 500;
+         return res.status(statusCode).json({
+           message: 'Please verify your email first',
+           requiresVerification: true,
+           email: user.email,
+           otpError: otpResult.message,
+           ...(otpResult.rateLimited && { waitSeconds: otpResult.waitSeconds })
+         });
+       }
 
-      return res.status(403).json({
-        message: 'Please verify your email first',
-        requiresVerification: true,
-        email: user.email
-      });
-    }
+       return res.status(403).json({
+         message: 'Please verify your email first',
+         requiresVerification: true,
+         email: user.email,
+         // Don't expose internal OTP errors to the user for security
+         otpWarning: 'We have sent a new OTP to your email. Please check your inbox.'
+       });
+     }
 
     return res.json({
       token: sign(user),

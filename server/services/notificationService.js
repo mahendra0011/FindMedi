@@ -4,12 +4,12 @@ let transporter = null;
 
 const getTransporter = () => {
   if (transporter) return transporter;
-  
+   
   if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
     console.warn('⚠️ SMTP not configured. Email features will be simulated.');
     return null;
   }
-  
+   
   console.log('🔧 Creating SMTP transporter with:', {
     host: process.env.SMTP_HOST || 'smtp.gmail.com',
     port: process.env.SMTP_PORT || 587,
@@ -28,8 +28,14 @@ const getTransporter = () => {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
     },
+    // Add connection timeout to prevent hanging
+    connectionTimeout: 10000, // 10 seconds
+    // Add greeting timeout
+    greetingTimeout: 10000, // 10 seconds
+    // Add socket timeout
+    socketTimeout: 20000, // 20 seconds
   });
-  
+   
   transporter.verify((error, success) => {
     if (error) {
       console.error('❌ SMTP verification error:', error.message);
@@ -44,7 +50,7 @@ const getTransporter = () => {
 
 export const sendEmail = async ({ to, subject, text, html, attachments }) => {
   const transporter = getTransporter();
-  
+   
   if (!transporter) {
     console.log(`📧 Email (simulated): ${to} - ${subject}`);
     return { success: true, simulated: true, message: 'Email simulated (SMTP not configured)' };
@@ -61,7 +67,12 @@ export const sendEmail = async ({ to, subject, text, html, attachments }) => {
       attachments,
     };
     
-    const info = await transporter.sendMail(mailOptions);
+    // Add timeout to the sendMail operation
+    const info = await Promise.race([
+      transporter.sendMail(mailOptions),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Email sending timeout')), 30000)) // 30 seconds
+    ]);
+    
     console.log(`✅ Email sent: ${info.messageId}`);
     return { success: true, messageId: info.messageId };
   } catch (error) {
