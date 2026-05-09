@@ -12,12 +12,12 @@ const getTransporter = () => {
    
   console.log('🔧 Creating SMTP transporter with:', {
     host: process.env.SMTP_HOST || 'smtp.gmail.com',
-    port: process.env.SMTP_PORT || 587,
+    port: process.env.SMTP_PORT || 465,
     user: process.env.SMTP_USER,
     from: process.env.SMTP_FROM
   });
 
-  const port = parseInt(process.env.SMTP_PORT, 10) || 587;
+  const port = parseInt(process.env.SMTP_PORT, 10) || 465;
   const secure = port === 465;
 
   transporter = nodemailer.createTransport({
@@ -28,18 +28,24 @@ const getTransporter = () => {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
     },
+    // Force IPv4 to avoid IPv6 connectivity issues (ENETUNREACH)
+    // This helps resolve network connectivity problems
     // Add connection timeout to prevent hanging
-    connectionTimeout: 10000, // 10 seconds
+    connectionTimeout: 15000, // 15 seconds
     // Add greeting timeout
-    greetingTimeout: 10000, // 10 seconds
+    greetingTimeout: 15000, // 15 seconds
     // Add socket timeout
-    socketTimeout: 20000, // 20 seconds
+    socketTimeout: 30000, // 30 seconds
   });
    
   transporter.verify((error, success) => {
     if (error) {
       console.error('❌ SMTP verification error:', error.message);
       console.error('❌ SMTP error code:', error.code);
+      // Log additional network error details
+      if (error.code === 'ENETUNREACH' || error.code === 'ENOTFOUND' || error.code === 'EAI_AGAIN') {
+        console.error('🌐 Network connectivity issue detected. Check internet connection and DNS settings.');
+      }
     } else {
       console.log('✅ SMTP connection verified');
     }
@@ -78,6 +84,18 @@ export const sendEmail = async ({ to, subject, text, html, attachments }) => {
   } catch (error) {
     console.error('❌ Email send error:', error.message);
     console.error('❌ Error details:', error);
+    // Provide more user-friendly error messages for common issues
+    if (error.code === 'ENETUNREACH') {
+      return { success: false, error: 'Unable to connect to email server. Please check your internet connection and try again later.' };
+    } else if (error.code === 'ENOTFOUND') {
+      return { success: false, error: 'Email server hostname not found. Please contact support.' };
+    } else if (error.code === 'EAI_AGAIN') {
+      return { success: false, error: 'DNS lookup failed for email server. Please try again later.' };
+    } else if (error.code === 'ETIMEDOUT') {
+      return { success: false, error: 'Connection to email server timed out. Please try again later.' };
+    } else if (error.code === 'ECONNREFUSED') {
+      return { success: false, error: 'Connection to email server was refused. Please contact support.' };
+    }
     return { success: false, error: error.message };
   }
 };
