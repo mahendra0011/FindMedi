@@ -48,14 +48,16 @@ export default function Login() {
         setLoading(false);
         return;
       }
-      await login(email, password, role);
+      await login(email, password, role, secretKey);
       navigate('/dashboard');
     } catch (err) {
-      if (err.message === 'Please verify your email first') {
+      if (err.requiresVerification || err.message?.toLowerCase().includes('verify your email')) {
         // Store credentials for auto-login after OTP verification
         localStorage.setItem('temp_password', password);
         localStorage.setItem('temp_role', role);
         navigate(`/verify-otp?email=${encodeURIComponent(email)}`);
+      } else if (err.approvalPending || err.approvalRejected) {
+        navigate(`/pending-approval?email=${encodeURIComponent(email)}&status=${err.approvalRejected ? 'rejected' : 'pending'}`);
       } else {
         setError(err.message || 'Login failed');
       }
@@ -123,6 +125,9 @@ export default function Login() {
             <div>
               <label className="text-sm font-medium text-foreground mb-1.5 block">Password</label>
               <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter your password" required />
+            </div>
+            <div className="text-right -mt-2">
+              <Link to="/forgot-password" className="text-xs text-primary font-medium hover:underline">Forgot password?</Link>
             </div>
             {role === 'admin' && (
               <div>

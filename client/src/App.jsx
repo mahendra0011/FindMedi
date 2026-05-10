@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import { Toaster as Sonner } from '@/components/ui/sonner';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -9,6 +10,8 @@ import DashboardLayout from './components/DashboardLayout';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import ForgotPassword from './pages/ForgotPassword';
+import PendingApproval from './pages/PendingApproval';
 import Dashboard from './pages/Dashboard';
 import Doctors from './pages/Doctors';
 import Patients from './pages/Patients';
@@ -56,6 +59,16 @@ import FileUpload from './pages/FileUpload';
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1, staleTime: 30_000 } } });
 
+function BlockedAccountRedirect() {
+  const { logout } = useAuth();
+
+  useEffect(() => {
+    logout();
+  }, [logout]);
+
+  return <Navigate to="/login" replace />;
+}
+
 function ProtectedRoute({ children, allowedRoles }) {
   const { user, loading } = useAuth();
   if (loading) return (
@@ -64,6 +77,11 @@ function ProtectedRoute({ children, allowedRoles }) {
     </div>
   );
   if (!user) return <Navigate to="/login" replace />;
+  if (user.status === 'blocked') return <BlockedAccountRedirect />;
+  if (!user.isVerified) return <Navigate to={`/verify-otp?email=${encodeURIComponent(user.email)}`} replace />;
+  if (user.role === 'doctor' && !user.doctorApproved) {
+    return <Navigate to={`/pending-approval?email=${encodeURIComponent(user.email)}&status=${user.approvalStatus === 'rejected' ? 'rejected' : 'pending'}`} replace />;
+  }
   if (allowedRoles && !allowedRoles.includes(user.role)) return <Navigate to="/dashboard" replace />;
   return children;
 }
@@ -93,7 +111,9 @@ function RoleDashboard() {
                 <Route path="/" element={<Home />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<Signup />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/verify-otp" element={<OTPVerification />} />
+                <Route path="/pending-approval" element={<PendingApproval />} />
 
                 {/* Dashboard - role-based content */}
                 <Route path="/dashboard" element={<ProtectedRoute><DashboardPage><RoleDashboard /></DashboardPage></ProtectedRoute>} />

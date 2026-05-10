@@ -55,8 +55,7 @@ export default function OTPVerification() {
     const pastedData = e.clipboardData.getData('text').slice(0, 6);
     if (!/^\d+$/.test(pastedData)) return;
 
-    const newOtp = pastedData.split('').padEnd(6, '');
-    setOtp(newOtp.split(''));
+    setOtp([...pastedData.padEnd(6, '')]);
   };
 
   const handleSubmit = async (e) => {
@@ -72,6 +71,13 @@ export default function OTPVerification() {
     try {
       // Verify OTP on backend
       const data = await api.verifyOTP({ email, otp: otpValue });
+      if (data?.approvalPending) {
+        localStorage.removeItem('temp_password');
+        localStorage.removeItem('temp_role');
+        navigate(`/pending-approval?email=${encodeURIComponent(email)}&status=pending`);
+        return;
+      }
+
       if (data?.token && data?.user) {
         completeOtpLogin({ token: data.token, user: data.user });
       }

@@ -21,6 +21,14 @@ export default function Signup() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [phone, setPhone] = useState('');
+  const [gender, setGender] = useState('Male');
+  const [dateOfBirth, setDateOfBirth] = useState('');
+  const [specialization, setSpecialization] = useState('');
+  const [experience, setExperience] = useState('');
+  const [qualification, setQualification] = useState('');
+  const [licenseNumber, setLicenseNumber] = useState('');
+  const [consultationFee, setConsultationFee] = useState('');
   const [secretKey, setSecretKey] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -42,10 +50,32 @@ export default function Signup() {
       setError('Invalid secret key for admin registration');
       return;
     }
+    if (!phone || !gender || !dateOfBirth) {
+      setError('Phone number, gender and date of birth are required');
+      return;
+    }
+    if (role === 'doctor' && (!specialization || !experience || !qualification || !licenseNumber || !consultationFee)) {
+      setError('Please complete all doctor registration details');
+      return;
+    }
     setLoading(true);
     try {
       // Register using API directly (do not set auth state yet)
-      await api.register({ name, email, password, role, secretKey });
+      await api.register({
+        name,
+        email,
+        password,
+        role,
+        secretKey,
+        phone,
+        gender,
+        dateOfBirth,
+        specialization,
+        experience,
+        qualification,
+        licenseNumber,
+        consultationFee: Number(consultationFee) || 0,
+      });
       // Store credentials for auto-login after OTP
       localStorage.setItem('temp_password', password);
       localStorage.setItem('temp_role', role);
@@ -119,6 +149,25 @@ export default function Signup() {
               <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Enter your email" required />
             </div>
             <div>
+              <label className="text-sm font-medium text-foreground mb-1.5 block">Phone Number</label>
+              <Input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="Enter your phone number" required />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm font-medium text-foreground mb-1.5 block">Gender</label>
+                <select value={gender} onChange={e => setGender(e.target.value)}
+                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring">
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-foreground mb-1.5 block">Date of Birth</label>
+                <Input type="date" value={dateOfBirth} onChange={e => setDateOfBirth(e.target.value)} required />
+              </div>
+            </div>
+            <div>
               <label className="text-sm font-medium text-foreground mb-1.5 block">Password</label>
               <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Create a password" required />
             </div>
@@ -126,6 +175,32 @@ export default function Signup() {
               <label className="text-sm font-medium text-foreground mb-1.5 block">Confirm Password</label>
               <Input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Confirm your password" required />
             </div>
+            {role === 'doctor' && (
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-1.5 block">Specialization</label>
+                  <Input value={specialization} onChange={e => setSpecialization(e.target.value)} placeholder="e.g. Cardiology" required />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-1.5 block">Experience</label>
+                    <Input value={experience} onChange={e => setExperience(e.target.value)} placeholder="e.g. 8 years" required />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-1.5 block">Consultation Fee</label>
+                    <Input type="number" min="0" value={consultationFee} onChange={e => setConsultationFee(e.target.value)} placeholder="500" required />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-1.5 block">Qualification</label>
+                  <Input value={qualification} onChange={e => setQualification(e.target.value)} placeholder="e.g. MBBS, MD" required />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-1.5 block">License Number</label>
+                  <Input value={licenseNumber} onChange={e => setLicenseNumber(e.target.value)} placeholder="Medical license number" required />
+                </div>
+              </div>
+            )}
             {role === 'admin' && (
               <div>
                 <label className="text-sm font-medium text-foreground mb-1.5 block">Secret Key</label>

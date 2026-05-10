@@ -583,7 +583,11 @@ async function request(path, options = {}) {
   const res = await fetch(`${BASE}${path}`, { ...options, headers });
   console.log('API Response status:', res.status, path);
   const data = await res.json();
-  if (!res.ok) throw new Error(data.message || 'Request failed');
+  if (!res.ok) {
+    const error = new Error(data.message || 'Request failed');
+    Object.assign(error, data, { status: res.status });
+    throw error;
+  }
   return data;
 }
 
@@ -601,7 +605,7 @@ fetch(`${BASE}/health`, { signal: AbortSignal.timeout(20000) })
 
 // Smart dispatcher: tries backend first, falls back to mock only for non-critical ops
 // Auth operations must use backend - fail if backend is unavailable (don't silently use mock)
-const AUTH_PATHS = ['/auth/login', '/auth/register', '/auth/me', '/auth/profile', '/auth/verify-otp', '/auth/resend-otp'];
+const AUTH_PATHS = ['/auth/login', '/auth/register', '/auth/me', '/auth/profile', '/auth/verify-otp', '/auth/resend-otp', '/auth/forgot-password', '/auth/reset-password'];
 function isAuthPath(path) {
   return AUTH_PATHS.some(p => path.startsWith(p));
 }
@@ -686,6 +690,8 @@ export const api = {
   register:      (body)    => dispatch(() => mock.register(body),                      '/auth/register',    { method:'POST', body: JSON.stringify(body) }),
   verifyOTP:     (body)    => dispatch(() => mock.verifyOTP(body),                     '/auth/verify-otp',  { method:'POST', body: JSON.stringify(body) }),
   resendOTP:     (body)    => dispatch(() => mock.resendOTP(body),                     '/auth/resend-otp',  { method:'POST', body: JSON.stringify(body) }),
+  forgotPassword:(body)    => dispatch(() => Promise.resolve({ message: 'Password reset OTP sent to your email.' }), '/auth/forgot-password', { method:'POST', body: JSON.stringify(body) }),
+  resetPassword: (body)    => dispatch(() => Promise.resolve({ message: 'Password updated successfully. You can now login.' }), '/auth/reset-password', { method:'POST', body: JSON.stringify(body) }),
   me:            ()        => dispatch(() => mock.me(),                                '/auth/me'),
   updateProfile: (body)    => dispatch(() => mock.updateProfile(body),                 '/auth/profile',     { method:'PUT',  body: JSON.stringify(body) }),
   dashboardStats:()        => dispatch(() => mock.dashboardStats(),                    '/dashboard/stats'),

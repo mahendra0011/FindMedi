@@ -8,8 +8,21 @@ const userSchema = new mongoose.Schema({
   role: { type: String, enum: ['admin', 'doctor', 'patient'], default: 'patient', index: true },
   avatar: { type: String, default: '' },
   phone: { type: String, default: '' },
+  gender: { type: String, enum: ['', 'Male', 'Female', 'Other'], default: '' },
+  dateOfBirth: { type: Date },
   specialization: { type: String, default: '' }, // for doctors
+  experience: { type: String, default: '' },
+  qualification: { type: String, default: '' },
+  licenseNumber: { type: String, default: '' },
+  consultationFee: { type: Number, default: 0 },
   isVerified: { type: Boolean, default: false, index: true },
+  status: { type: String, enum: ['active', 'blocked'], default: 'active', index: true },
+  approvalStatus: {
+    type: String,
+    enum: ['not_required', 'pending', 'approved', 'rejected'],
+    default: 'not_required',
+    index: true,
+  },
   createdAt: { type: Date, default: Date.now, index: true },
 });
 

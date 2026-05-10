@@ -12,15 +12,9 @@ export function AuthProvider({ children }) {
     if (token) {
       api.me()
         .then(u => setUser(u))
-        .catch((err) => {
-          const isAuthError = err?.message?.includes('401') || 
-                           err?.message?.toLowerCase().includes('not authorized') ||
-                           err?.message?.toLowerCase().includes('token') ||
-                           err?.message?.toLowerCase().includes('unauthorized');
-          if (isAuthError) {
-            localStorage.removeItem('hms_token');
-            localStorage.removeItem('token');
-          }
+        .catch(() => {
+          localStorage.removeItem('hms_token');
+          localStorage.removeItem('token');
         })
         .finally(() => setLoading(false));
     } else {
@@ -28,16 +22,16 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  const login = async (email, password, role) => {
-    const data = await api.login({ email, password, role });
+  const login = async (email, password, role, secretKey = '') => {
+    const data = await api.login({ email, password, role, secretKey });
     localStorage.removeItem('token');
     localStorage.setItem('hms_token', data.token);
     setUser(data.user);
     return data.user;
   };
 
-  const register = async ({ name, email, password, role }) => {
-    const data = await api.register({ name, email, password, role });
+  const register = async (body) => {
+    const data = await api.register(body);
     localStorage.removeItem('token');
     localStorage.setItem('hms_token', data.token);
     setUser(data.user);

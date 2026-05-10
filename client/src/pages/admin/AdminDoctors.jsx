@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Stethoscope, Search, Trash2, Plus, Star, Phone, Mail, Save, X } from 'lucide-react';
+import { Stethoscope, Search, Trash2, Plus, Star, Phone, Mail, Save, CheckCircle, Ban } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
@@ -18,7 +18,7 @@ export default function AdminDoctors() {
   const loadDoctors = async () => {
     setLoading(true);
     try {
-      const data = await api.getDoctors({ search });
+      const data = await api.getDoctors({ search, includeAll: 'true' });
       setDoctors(data);
     } catch (e) { console.error(e); }
     setLoading(false);
@@ -50,6 +50,14 @@ export default function AdminDoctors() {
 
   const handleToggleAvailability = async (doc) => {
     try { await api.updateDoctor(doc._id, { available: !doc.available }); loadDoctors(); } catch (e) { console.error(e); }
+  };
+
+  const handleApprove = async (id) => {
+    try { await api.approveDoctor(id); loadDoctors(); } catch (e) { console.error(e); }
+  };
+
+  const handleReject = async (id) => {
+    try { await api.rejectDoctor(id); loadDoctors(); } catch (e) { console.error(e); }
   };
 
   return (
@@ -91,15 +99,28 @@ export default function AdminDoctors() {
                   {doc.available ? 'Available' : 'Unavailable'}
                 </button>
               </div>
+              <div className={`mb-4 px-3 py-2 rounded-lg text-xs font-semibold ${doc.approved ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'}`}>
+                {doc.approved ? 'Admin approved' : 'Pending admin approval'}
+              </div>
               <div className="space-y-1.5 text-sm text-muted-foreground mb-4">
                 <div className="flex items-center gap-2"><Stethoscope className="w-3.5 h-3.5" /><span>{doc.experience} experience</span></div>
                 <div className="flex items-center gap-2"><Star className="w-3.5 h-3.5 text-warning fill-warning" /><span>{doc.rating} rating ({doc.patients} patients)</span></div>
                 <div className="flex items-center gap-2"><Phone className="w-3.5 h-3.5" /><span>{doc.phone}</span></div>
                 <div className="flex items-center gap-2"><Mail className="w-3.5 h-3.5" /><span>{doc.email}</span></div>
               </div>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" className="flex-1" onClick={() => handleEdit(doc)}>Edit</Button>
-                <Button variant="outline" size="sm" className="flex-1 gap-1 text-destructive hover:text-destructive" onClick={() => handleDelete(doc._id)}>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" className="flex-1 min-w-[88px]" onClick={() => handleEdit(doc)}>Edit</Button>
+                {!doc.approved && (
+                  <Button variant="outline" size="sm" className="flex-1 min-w-[88px] gap-1 text-success hover:text-success" onClick={() => handleApprove(doc._id)}>
+                    <CheckCircle className="w-3.5 h-3.5" /> Approve
+                  </Button>
+                )}
+                {doc.approved && (
+                  <Button variant="outline" size="sm" className="flex-1 min-w-[88px] gap-1 text-warning hover:text-warning" onClick={() => handleReject(doc._id)}>
+                    <Ban className="w-3.5 h-3.5" /> Reject
+                  </Button>
+                )}
+                <Button variant="outline" size="sm" className="flex-1 min-w-[88px] gap-1 text-destructive hover:text-destructive" onClick={() => handleDelete(doc._id)}>
                   <Trash2 className="w-3.5 h-3.5" /> Remove
                 </Button>
               </div>

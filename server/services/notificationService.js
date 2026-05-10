@@ -135,6 +135,123 @@ export const sendLabResultAlert = async (patient, report) => {
   return sendEmail({ to: patient.email, subject, text, html });
 };
 
+export const sendAccountVerifiedEmail = async (user) => {
+  const dashboardLabel = user.role === 'admin'
+    ? 'Admin Dashboard'
+    : user.role === 'doctor'
+      ? 'Doctor Dashboard'
+      : 'Patient Dashboard';
+
+  return sendEmail({
+    to: user.email,
+    subject: 'Your MediCore Email Is Verified',
+    text: `Hi ${user.name}, your MediCore email has been verified. ${user.role === 'doctor' ? 'Your doctor account is now waiting for admin approval.' : `You can now access your ${dashboardLabel}.`}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2>Email Verified</h2>
+        <p>Hi <strong>${user.name}</strong>,</p>
+        <p>Your MediCore email has been verified successfully.</p>
+        <p>${user.role === 'doctor' ? 'Your doctor account is now waiting for admin approval.' : `You can now access your <strong>${dashboardLabel}</strong>.`}</p>
+        <p>Thank you,<br>MediCore Hospital</p>
+      </div>
+    `,
+  });
+};
+
+export const sendDoctorPendingReviewEmail = async (doctorUser) => {
+  return sendEmail({
+    to: doctorUser.email,
+    subject: 'MediCore Doctor Account Pending Approval',
+    text: `Hi ${doctorUser.name}, your email is verified. Your doctor profile is pending admin approval.`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2>Doctor Approval Pending</h2>
+        <p>Hi <strong>${doctorUser.name}</strong>,</p>
+        <p>Your email is verified. Your doctor profile is now waiting for admin review.</p>
+        <p>You will receive an email when your account is approved.</p>
+        <p>Thank you,<br>MediCore Hospital</p>
+      </div>
+    `,
+  });
+};
+
+export const sendDoctorApprovalEmail = async (doctorUser) => {
+  return sendEmail({
+    to: doctorUser.email,
+    subject: 'Your MediCore Doctor Account Is Approved',
+    text: `Hi ${doctorUser.name}, your doctor account has been approved. You can now login to your Doctor Dashboard.`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2>Doctor Account Approved</h2>
+        <p>Hi <strong>${doctorUser.name}</strong>,</p>
+        <p>Your doctor account has been approved.</p>
+        <p>You can now login and access your Doctor Dashboard.</p>
+        <p>Thank you,<br>MediCore Hospital</p>
+      </div>
+    `,
+  });
+};
+
+export const sendDoctorRejectionEmail = async (doctorUser) => {
+  return sendEmail({
+    to: doctorUser.email,
+    subject: 'MediCore Doctor Account Review Update',
+    text: `Hi ${doctorUser.name}, your doctor account was not approved. Please contact the hospital administrator for details.`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2>Doctor Account Review Update</h2>
+        <p>Hi <strong>${doctorUser.name}</strong>,</p>
+        <p>Your doctor account was not approved at this time.</p>
+        <p>Please contact the hospital administrator for details.</p>
+        <p>Thank you,<br>MediCore Hospital</p>
+      </div>
+    `,
+  });
+};
+
+export const sendAccountBlockedEmail = async (user) => {
+  return sendEmail({
+    to: user.email,
+    subject: 'MediCore Account Access Blocked',
+    text: `Hi ${user.name}, your MediCore account has been blocked. Please contact the administrator.`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2>Account Blocked</h2>
+        <p>Hi <strong>${user.name}</strong>,</p>
+        <p>Your MediCore account has been blocked.</p>
+        <p>Please contact the administrator if you believe this is a mistake.</p>
+        <p>Thank you,<br>MediCore Hospital</p>
+      </div>
+    `,
+  });
+};
+
+export const sendHostNotificationEmail = async ({ subject, text, html }) => {
+  const hostEmail = process.env.HOST_NOTIFICATION_EMAIL || process.env.ADMIN_EMAIL || BREVO_SENDER_EMAIL;
+  return sendEmail({
+    to: hostEmail,
+    subject,
+    text,
+    html: html || `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;"><p>${text}</p></div>`,
+  });
+};
+
+export const sendPasswordChangedEmail = async (user) => {
+  return sendEmail({
+    to: user.email,
+    subject: 'Your MediCore Password Was Updated',
+    text: `Hi ${user.name}, your MediCore password was updated successfully. If this was not you, contact the administrator immediately.`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2>Password Updated</h2>
+        <p>Hi <strong>${user.name}</strong>,</p>
+        <p>Your MediCore password was updated successfully.</p>
+        <p>If this was not you, contact the administrator immediately.</p>
+      </div>
+    `,
+  });
+};
+
 export const sendSMS = async (phone, message) => {
   console.log(`SMS to ${phone}: ${message}`);
   return { success: true, message: 'SMS simulated (integrate with Twilio/Africastalking)' };

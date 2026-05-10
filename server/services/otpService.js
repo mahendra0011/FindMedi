@@ -50,8 +50,10 @@ export const checkRateLimit = async (email) => {
  */
 export const createAndSendOTP = async ({ userId, email, type = 'email', phone = '' }) => {
   try {
+    const normalizedEmail = email.toLowerCase();
+
     // Check rate limit
-    const rateLimitCheck = await checkRateLimit(email);
+    const rateLimitCheck = await checkRateLimit(normalizedEmail);
     if (!rateLimitCheck.allowed) {
       return {
         success: false,
@@ -69,7 +71,7 @@ export const createAndSendOTP = async ({ userId, email, type = 'email', phone = 
     // Create OTP record
     const otpRecord = await OTP.create({
       user: userId,
-      email,
+      email: normalizedEmail,
       otpHash,
       type,
       phone,
@@ -83,14 +85,25 @@ export const createAndSendOTP = async ({ userId, email, type = 'email', phone = 
     if (type === 'sms' && phone) {
       sendResult = await sendSMS(phone, `Your MediCore OTP is: ${otpPlain}. Valid for ${OTP_VALIDITY_MINUTES} minutes.`);
     } else {
+      const isPasswordReset = type === 'password_reset';
+      const subject = isPasswordReset
+        ? 'Reset Your MediCore Password'
+        : 'Your OTP Verification - MediCore Hospital';
+      const intro = isPasswordReset
+        ? 'Your password reset verification code is:'
+        : 'Your One-Time Password (OTP) is:';
+      const text = isPasswordReset
+        ? `Your password reset OTP is: ${otpPlain}. This OTP will expire in ${OTP_VALIDITY_MINUTES} minutes.`
+        : `Your OTP for verification is: ${otpPlain}. This OTP will expire in ${OTP_VALIDITY_MINUTES} minutes.`;
+
       sendResult = await sendEmail({
-        to: email,
-        subject: 'Your OTP Verification - MediCore Hospital',
-        text: `Your OTP for verification is: ${otpPlain}. This OTP will expire in ${OTP_VALIDITY_MINUTES} minutes.`,
+        to: normalizedEmail,
+        subject,
+        text,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2>OTP Verification</h2>
-            <p>Your One-Time Password (OTP) is:</p>
+            <h2>${isPasswordReset ? 'Password Reset' : 'OTP Verification'}</h2>
+            <p>${intro}</p>
             <div style="font-size: 32px; font-weight: bold; letter-spacing: 5px; margin: 20px 0; padding: 20px; background: #f5f5f5; text-align: center;">
               ${otpPlain}
             </div>
@@ -110,11 +123,22 @@ export const createAndSendOTP = async ({ userId, email, type = 'email', phone = 
       };
     }
 
+    // Only the newest delivered OTP for this email/purpose should remain valid.
+    await OTP.updateMany(
+      {
+        email: normalizedEmail,
+        type,
+        used: false,
+        _id: { $ne: otpRecord._id },
+      },
+      { used: true }
+    );
+
     return {
       success: true,
       message: 'OTP sent successfully',
       otpId: otpRecord._id,
-      sentTo: type === 'sms' ? phone : email
+      sentTo: type === 'sms' ? phone : normalizedEmail
     };
 
   } catch (error) {
@@ -132,11 +156,14 @@ export const createAndSendOTP = async ({ userId, email, type = 'email', phone = 
  * @param {Object} params - { email, otp } or { phone, otp }
  * @returns {Promise<{success: boolean, message: string, otpRecord?: Object}>}
  */
-export const verifyOTP = async ({ email, otp }) => {
+export const verifyOTP = async ({ email, otp, type = 'email' }) => {
   try {
+    const normalizedEmail = email.toLowerCase();
+
     // Find valid, unused OTP for this email
     const otpRecord = await OTP.findOne({
-      email,
+      email: normalizedEmail,
+      type,
       used: false,
       expiresAt: { $gt: new Date() }
     }).sort({ createdAt: -1 }); // Get the most recent
@@ -160,6 +187,15 @@ export const verifyOTP = async ({ email, otp }) => {
     // Mark as used (single-use)
     otpRecord.used = true;
     await otpRecord.save();
+    await OTP.updateMany(
+      {
+        email: normalizedEmail,
+        type,
+        used: false,
+        _id: { $ne: otpRecord._id },
+      },
+      { used: true }
+    );
 
     return {
       success: true,

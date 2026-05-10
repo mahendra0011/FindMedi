@@ -1,6 +1,5 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import bcrypt from 'bcryptjs';
 import User from './models/User.js';
 import Doctor from './models/Doctor.js';
 import Patient from './models/Patient.js';
@@ -41,8 +40,6 @@ if (MONGO_URI) {
   MONGO_URI = 'mongodb://localhost:27017/medicore';
 }
 
-const hash = (p) => bcrypt.hash(p, 10);
-
 async function seed() {
   await mongoose.connect(MONGO_URI);
   console.log('Connected. Clearing old data...');
@@ -54,17 +51,17 @@ async function seed() {
   ]);
 
   // Create Users first
-  const adminUser = await User.create({ name: 'Admin User', email: 'admin@mediCore.com', password: await hash('password'), role: 'admin' });
-  const doctorUser1 = await User.create({ name: 'Dr. Sarah Smith', email: 'sarah.smith@mediCore.com', password: await hash('password'), role: 'doctor', specialization: 'Cardiology' });
-  const doctorUser2 = await User.create({ name: 'Dr. Raj Patel', email: 'raj.patel@mediCore.com', password: await hash('password'), role: 'doctor', specialization: 'Neurology' });
-  const doctorUser3 = await User.create({ name: 'Dr. Emily Lee', email: 'emily.lee@mediCore.com', password: await hash('password'), role: 'doctor', specialization: 'Orthopedics' });
-  const doctorUser4 = await User.create({ name: 'Dr. Carlos Garcia', email: 'carlos.garcia@mediCore.com', password: await hash('password'), role: 'doctor', specialization: 'Pediatrics' });
+  const adminUser = await User.create({ name: 'Admin User', email: 'admin@mediCore.com', password: 'password', role: 'admin', isVerified: true, status: 'active', approvalStatus: 'not_required' });
+  const doctorUser1 = await User.create({ name: 'Dr. Sarah Smith', email: 'sarah.smith@mediCore.com', password: 'password', role: 'doctor', specialization: 'Cardiology', isVerified: true, status: 'active', approvalStatus: 'approved' });
+  const doctorUser2 = await User.create({ name: 'Dr. Raj Patel', email: 'raj.patel@mediCore.com', password: 'password', role: 'doctor', specialization: 'Neurology', isVerified: true, status: 'active', approvalStatus: 'approved' });
+  const doctorUser3 = await User.create({ name: 'Dr. Emily Lee', email: 'emily.lee@mediCore.com', password: 'password', role: 'doctor', specialization: 'Orthopedics', isVerified: true, status: 'active', approvalStatus: 'approved' });
+  const doctorUser4 = await User.create({ name: 'Dr. Carlos Garcia', email: 'carlos.garcia@mediCore.com', password: 'password', role: 'doctor', specialization: 'Pediatrics', isVerified: true, status: 'active', approvalStatus: 'approved' });
   
-  const patientUser1 = await User.create({ name: 'Sarah Johnson', email: 'sarah.johnson@email.com', password: await hash('password'), role: 'patient', phone: '+1 555-0101' });
-  const patientUser2 = await User.create({ name: 'Mike Chen', email: 'mike.chen@email.com', password: await hash('password'), role: 'patient', phone: '+1 555-0102' });
-  const patientUser3 = await User.create({ name: 'Emma Wilson', email: 'emma.wilson@email.com', password: await hash('password'), role: 'patient', phone: '+1 555-0103' });
-  const patientUser4 = await User.create({ name: 'James Brown', email: 'james.brown@email.com', password: await hash('password'), role: 'patient', phone: '+1 555-0104' });
-  const patientUser5 = await User.create({ name: 'John Patient', email: 'patient@mediCore.com', password: await hash('password'), role: 'patient', phone: '+1 555-0100' });
+  const patientUser1 = await User.create({ name: 'Sarah Johnson', email: 'sarah.johnson@email.com', password: 'password', role: 'patient', phone: '+1 555-0101', isVerified: true, status: 'active', approvalStatus: 'not_required' });
+  const patientUser2 = await User.create({ name: 'Mike Chen', email: 'mike.chen@email.com', password: 'password', role: 'patient', phone: '+1 555-0102', isVerified: true, status: 'active', approvalStatus: 'not_required' });
+  const patientUser3 = await User.create({ name: 'Emma Wilson', email: 'emma.wilson@email.com', password: 'password', role: 'patient', phone: '+1 555-0103', isVerified: true, status: 'active', approvalStatus: 'not_required' });
+  const patientUser4 = await User.create({ name: 'James Brown', email: 'james.brown@email.com', password: 'password', role: 'patient', phone: '+1 555-0104', isVerified: true, status: 'active', approvalStatus: 'not_required' });
+  const patientUser5 = await User.create({ name: 'John Patient', email: 'patient@mediCore.com', password: 'password', role: 'patient', phone: '+1 555-0100', isVerified: true, status: 'active', approvalStatus: 'not_required' });
 
   console.log('Created users...');
 
