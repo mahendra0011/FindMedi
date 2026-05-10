@@ -71,13 +71,6 @@ router.put('/:id/read', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.delete('/:id', protect, async (req, res) => {
-  try {
-    await Notification.findByIdAndDelete(req.params.id);
-    res.json({ message: 'Deleted' });
-  } catch (err) { res.status(500).json({ message: err.message }); }
-});
-
 router.delete('/clear-all', protect, async (req, res) => {
   try {
     let filter = {};
@@ -85,6 +78,13 @@ router.delete('/clear-all', protect, async (req, res) => {
     if (effectiveUserId) filter.userId = effectiveUserId;
     await Notification.deleteMany(filter);
     res.json({ message: 'All notifications cleared' });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+router.delete('/:id', protect, async (req, res) => {
+  try {
+    await Notification.findByIdAndDelete(req.params.id);
+    res.json({ message: 'Deleted' });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 

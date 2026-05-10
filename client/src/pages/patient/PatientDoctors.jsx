@@ -103,8 +103,10 @@ export default function PatientDoctors() {
             <motion.div key={doc._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
               className="bg-card rounded-2xl border border-border/60 p-5 hover:shadow-lg hover:shadow-primary/5 transition-all">
               <div className="flex items-start gap-3 mb-4">
-                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-bold text-lg flex-shrink-0">
-                  {doc.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-bold text-lg flex-shrink-0 overflow-hidden">
+                  {doc.profile_photo
+                    ? <img src={doc.profile_photo} alt="" className="w-full h-full object-cover" />
+                    : doc.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
                 </div>
                 <div className="min-w-0 flex-1">
                   <h3 className="font-heading font-semibold text-foreground truncate">{doc.name}</h3>
@@ -139,8 +141,10 @@ export default function PatientDoctors() {
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
             className="bg-card rounded-2xl border border-border w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center gap-4 mb-6">
-              <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-bold text-2xl">
-                {viewProfile.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+              <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-bold text-2xl overflow-hidden">
+                {viewProfile.profile_photo
+                  ? <img src={viewProfile.profile_photo} alt="" className="w-full h-full object-cover" />
+                  : viewProfile.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
               </div>
               <div>
                 <h3 className="font-heading text-xl font-bold text-foreground">{viewProfile.name}</h3>

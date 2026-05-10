@@ -23,21 +23,81 @@ const categoryColors = {
   Cardiac: 'bg-red-500/10 text-red-500 border-red-500/20',
 };
 
+const statusColors = {
+  Paid: 'bg-success/10 text-success',
+  Pending: 'bg-warning/10 text-warning',
+  Overdue: 'bg-destructive/10 text-destructive',
+  Partial: 'bg-info/10 text-info',
+};
+
+const splitServiceNames = (service = '') => service
+  .split(',')
+  .map(item => item.trim())
+  .filter(Boolean);
+
+const isPatientBill = (bill, user) => {
+  const userId = String(user?.id || user?._id || '');
+  const patientId = bill?.patientId?._id || bill?.patientId;
+  if (userId && patientId && String(patientId) === userId) return true;
+  if (user?.name && (bill?.patient === user.name || bill?.patientId?.name === user.name)) return true;
+  return false;
+};
+
+const isLabBill = (bill, catalog) => {
+  if (bill?.source === 'lab') return true;
+  if (Array.isArray(bill?.services) && bill.services.length > 0) return true;
+  if (String(bill?.doctor || '').toLowerCase() === 'lab services') return true;
+  const serviceText = String(bill?.service || '').toLowerCase();
+  return catalog.some(service => serviceText.includes(String(service.name || '').toLowerCase()));
+};
+
+const buildLabBookings = (bills, catalog, user) => (bills || [])
+  .filter(bill => isPatientBill(bill, user))
+  .filter(bill => isLabBill(bill, catalog))
+  .map((bill) => {
+    const serviceNames = splitServiceNames(bill.service);
+    const services = Array.isArray(bill.services) && bill.services.length > 0
+      ? bill.services
+      : serviceNames.map((name) => {
+        const match = catalog.find(service => service.name === name);
+        return match || { name, price: 0, category: 'Lab' };
+      });
+
+    return {
+      id: bill._id || bill.invoiceId || bill.service,
+      invoiceId: bill.invoiceId,
+      date: bill.date,
+      status: bill.status || 'Pending',
+      amount: Number(bill.amount) || services.reduce((sum, service) => sum + (Number(service.price) || 0), 0),
+      paid: Number(bill.paid) || 0,
+      services,
+    };
+  });
+
 export default function PatientServices() {
   const { user } = useAuth();
   const [services, setServices] = useState([]);
   const [selectedServices, setSelectedServices] = useState([]);
+  const [bookedServices, setBookedServices] = useState([]);
+  const [lastBooking, setLastBooking] = useState(null);
   const [loading, setLoading] = useState(true);
   const [booking, setBooking] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  useEffect(() => { loadServices(); }, []);
+  useEffect(() => {
+    if (user) loadServices();
+  }, [user?.id, user?._id, user?.name]);
 
   const loadServices = async () => {
     setLoading(true);
     try {
-      const data = await api.getLabServices();
+      const [data, billingData] = await Promise.all([
+        api.getLabServices(),
+        api.getBilling(),
+      ]);
       setServices(data);
+      const bills = billingData?.bills || billingData || [];
+      setBookedServices(buildLabBookings(bills, data || [], user));
     } catch (e) { console.error(e); }
     setLoading(false);
   };
@@ -58,7 +118,7 @@ export default function PatientServices() {
     if (selectedServices.length === 0) return;
     setBooking(true);
     try {
-      await api.createBill({
+      const bill = await api.createBill({
         patient: user?.name,
         patientId: user?.id || user?._id,
         doctor: 'Lab Services',
@@ -69,6 +129,11 @@ export default function PatientServices() {
         date: new Date().toISOString().split('T')[0],
         status: 'Pending'
       });
+      const bookingInfo = buildLabBookings([bill], services, user)[0];
+      if (bookingInfo) {
+        setBookedServices(current => [bookingInfo, ...current.filter(item => item.id !== bookingInfo.id)]);
+        setLastBooking(bookingInfo);
+      }
       setSuccess(true);
       setSelectedServices([]);
     } catch (e) { console.error(e); }
@@ -81,25 +146,29 @@ export default function PatientServices() {
     </div>
   );
 
-  if (success) {
-    return (
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-20">
-        <div className="w-20 h-20 rounded-full bg-success/20 flex items-center justify-center mx-auto mb-6">
-          <CheckCircle className="w-10 h-10 text-success" />
-        </div>
-        <h2 className="font-heading text-2xl font-bold text-foreground mb-2">Service Booked!</h2>
-        <p className="text-muted-foreground mb-6">Your lab services have been booked. Check billing for payment.</p>
-        <Button onClick={() => setSuccess(false)}>Book More Services</Button>
-      </motion.div>
-    );
-  }
-
   return (
     <div className="space-y-6">
       <div>
         <h1 className="font-heading text-2xl font-bold text-foreground">Lab Services</h1>
         <p className="text-muted-foreground">Book lab tests and diagnostics</p>
       </div>
+
+      {success && lastBooking && (
+        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="bg-success/10 border border-success/20 rounded-2xl p-5">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-success/15 flex items-center justify-center flex-shrink-0">
+              <CheckCircle className="w-5 h-5 text-success" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="font-heading font-semibold text-foreground">Lab services booked</h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                {lastBooking.services.map(service => service.name).join(', ')}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">Invoice {lastBooking.invoiceId || 'created'} is available in billing.</p>
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       {/* Selected Services Summary */}
       {selectedServices.length > 0 && (
@@ -123,6 +192,55 @@ export default function PatientServices() {
           </div>
         </div>
       )}
+
+      {/* Booked Services */}
+      <div className="bg-card rounded-2xl border border-border/60 p-5">
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <div>
+            <h2 className="font-heading font-semibold text-foreground">Your Booked Lab Services</h2>
+            <p className="text-sm text-muted-foreground">Recently booked lab tests and diagnostic services</p>
+          </div>
+          <Button variant="outline" size="sm" onClick={loadServices}>Refresh</Button>
+        </div>
+
+        {bookedServices.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground border border-dashed rounded-xl">
+            <TestTube className="w-10 h-10 mx-auto mb-2 opacity-30" />
+            <p>No lab services booked yet</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {bookedServices.slice(0, 5).map(booking => (
+              <div key={booking.id} className="rounded-xl border border-border/60 bg-muted/20 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-xs font-mono text-muted-foreground">{booking.invoiceId || 'Lab booking'}</p>
+                    <p className="font-medium text-foreground">{booking.services.map(service => service.name).join(', ')}</p>
+                    <p className="text-xs text-muted-foreground">Booked on {booking.date || 'Today'}</p>
+                  </div>
+                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${statusColors[booking.status] || 'bg-muted text-muted-foreground'}`}>
+                    {booking.status}
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {booking.services.map((service, index) => (
+                    <span key={`${booking.id}-${service.id || service.name || index}`} className="px-2.5 py-1 rounded-full bg-background text-xs text-foreground border border-border/60">
+                      {service.name}{service.price ? ` - Rs ${service.price}` : ''}
+                    </span>
+                  ))}
+                </div>
+                <div className="flex items-center justify-between mt-3 text-sm">
+                  <span className="text-muted-foreground">Outstanding</span>
+                  <span className="font-semibold text-warning flex items-center gap-1">
+                    <IndianRupee className="w-3.5 h-3.5" />
+                    {Math.max(booking.amount - booking.paid, 0).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Services Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

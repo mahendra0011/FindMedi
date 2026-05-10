@@ -1,11 +1,16 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
+import multer from 'multer';
+import fs from 'fs/promises';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import User from '../models/User.js';
 import Doctor from '../models/Doctor.js';
 import Patient from '../models/Patient.js';
 import Notification from '../models/Notification.js';
 import { protect } from '../middleware/auth.js';
 import { createAndSendOTP, verifyOTP, resendOTP } from '../services/otpService.js';
+import { uploadFileToCloudinary } from '../services/cloudinaryService.js';
 import {
   sendAccountVerifiedEmail,
   sendDoctorPendingReviewEmail,
@@ -15,6 +20,44 @@ import {
 
 const router = express.Router();
 const ADMIN_SECRET_KEY = process.env.ADMIN_SECRET_KEY || 'medicore2580';
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const avatarUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+});
+const allowedAvatarTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+
+const handleAvatarUpload = (req, res, next) => {
+  avatarUpload.single('file')(req, res, (err) => {
+    if (!err) return next();
+    const message = err.code === 'LIMIT_FILE_SIZE'
+      ? 'Profile photo must be 5MB or smaller'
+      : err.message;
+    return res.status(400).json({ message });
+  });
+};
+
+const saveAvatarLocally = async (file, req) => {
+  const uploadDir = path.join(__dirname, '../public/uploads/avatars');
+  await fs.mkdir(uploadDir, { recursive: true });
+
+  const extFromName = path.extname(file.originalname || '').toLowerCase();
+  const extFromMime = file.mimetype === 'image/png'
+    ? '.png'
+    : file.mimetype === 'image/webp'
+      ? '.webp'
+      : file.mimetype === 'image/gif'
+        ? '.gif'
+        : '.jpg';
+  const ext = ['.jpg', '.jpeg', '.png', '.webp', '.gif'].includes(extFromName) ? extFromName : extFromMime;
+  const filename = `${req.user.id}-${Date.now()}${ext}`;
+  await fs.writeFile(path.join(uploadDir, filename), file.buffer);
+
+  return {
+    url: `${req.protocol}://${req.get('host')}/uploads/avatars/${filename}`,
+    storedIn: 'local',
+  };
+};
 
 const sign = (user) => jwt.sign(
   { id: user._id, role: user.role, name: user.name, email: user.email },
@@ -530,6 +573,58 @@ router.put('/change-password', protect, async (req, res) => {
   }
 });
 
+// POST /api/auth/avatar
+router.post('/avatar', protect, handleAvatarUpload, async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'Profile photo is required' });
+    }
+
+    if (!allowedAvatarTypes.has(req.file.mimetype)) {
+      return res.status(400).json({ message: 'Only JPG, PNG, WEBP, or GIF images are allowed' });
+    }
+
+    let uploaded;
+    try {
+      uploaded = await uploadFileToCloudinary(
+        req.file.buffer,
+        req.file.originalname,
+        req.file.mimetype,
+        'medicore/avatars'
+      );
+    } catch (error) {
+      console.warn('Avatar Cloudinary upload failed, using local storage:', error.message);
+      uploaded = await saveAvatarLocally(req.file, req);
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    user.avatar = uploaded.url;
+    await user.save();
+
+    if (user.role === 'doctor') {
+      await Doctor.findOneAndUpdate(
+        { $or: [{ user_id: user._id.toString() }, { email: user.email }] },
+        { profile_photo: uploaded.url },
+        { new: true }
+      );
+    }
+
+    res.json({
+      message: 'Profile photo updated successfully',
+      avatar: uploaded.url,
+      storedIn: uploaded.storedIn || 'cloudinary',
+      user: await userResponse(user),
+    });
+  } catch (err) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ message: 'Profile photo must be 5MB or smaller' });
+    }
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // PUT /api/auth/profile
 router.put('/profile', protect, async (req, res) => {
   try {
@@ -577,6 +672,7 @@ router.put('/profile', protect, async (req, res) => {
           qualifications: user.qualification,
           fees: Number(user.consultationFee) || 500,
           consultation_fees: Number(user.consultationFee) || 500,
+          profile_photo: user.avatar,
         },
         { new: true }
       );

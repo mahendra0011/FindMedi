@@ -392,8 +392,10 @@ export default function PatientDashboard() {
                 whileHover={{ scale: 1.02 }}
                 className="p-4 bg-muted/30 rounded-xl text-center cursor-pointer"
               >
-                <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
-                  <User className="w-7 h-7 text-primary" />
+                <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3 overflow-hidden">
+                  {doc.profile_photo
+                    ? <img src={doc.profile_photo} alt="" className="w-full h-full object-cover" />
+                    : <User className="w-7 h-7 text-primary" />}
                 </div>
                 <p className="font-medium text-foreground">{doc.name}</p>
                 <p className="text-xs text-muted-foreground">{doc.specialization}</p>

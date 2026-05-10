@@ -223,6 +223,44 @@ const mock = {
       settings: { ...DEFAULT_USER_SETTINGS, ...(u.settings || {}) },
     };
   },
+  async uploadAvatar(file) {
+    await delay();
+    const raw = localStorage.getItem('hms_token');
+    const payload = JSON.parse(atob(raw));
+    const u = Object.values(MOCK_USERS).find(x => x.id === payload.id);
+    if (!u) throw new Error('User not found');
+
+    const avatar = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(new Error('Unable to read image file'));
+      reader.readAsDataURL(file);
+    });
+
+    u.avatar = avatar;
+    return {
+      message: 'Profile photo updated successfully',
+      avatar,
+      user: {
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        role: u.role,
+        phone: u.phone || '',
+        address: u.address || '',
+        gender: u.gender || '',
+        dateOfBirth: u.dateOfBirth || '',
+        avatar: u.avatar || '',
+        specialization: u.specialization || '',
+        experience: u.experience || '',
+        qualification: u.qualification || '',
+        licenseNumber: u.licenseNumber || '',
+        consultationFee: u.consultationFee || 0,
+        isVerified: u.isVerified,
+        settings: { ...DEFAULT_USER_SETTINGS, ...(u.settings || {}) },
+      },
+    };
+  },
   async changePassword({ currentPassword, newPassword }) {
     await delay();
     const raw = localStorage.getItem('hms_token');
@@ -621,8 +659,9 @@ export function getStoredAuthToken() {
 async function request(path, options = {}) {
   console.log('API Request:', path);
   const token = getStoredAuthToken();
+  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
   const headers = {
-    'Content-Type': 'application/json',
+    ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...options.headers,
   };
@@ -652,7 +691,7 @@ fetch(`${BASE}/health`, { signal: AbortSignal.timeout(20000) })
 
 // Smart dispatcher: tries backend first, falls back to mock only for non-critical ops
 // Auth operations must use backend - fail if backend is unavailable (don't silently use mock)
-const AUTH_PATHS = ['/auth/login', '/auth/register', '/auth/me', '/auth/profile', '/auth/change-password', '/auth/verify-otp', '/auth/resend-otp', '/auth/forgot-password', '/auth/reset-password'];
+const AUTH_PATHS = ['/auth/login', '/auth/register', '/auth/me', '/auth/profile', '/auth/avatar', '/auth/change-password', '/auth/verify-otp', '/auth/resend-otp', '/auth/forgot-password', '/auth/reset-password'];
 function isAuthPath(path) {
   return AUTH_PATHS.some(p => path.startsWith(p));
 }
@@ -769,6 +808,11 @@ export const api = {
   resetPassword: (body)    => dispatch(() => Promise.resolve({ message: 'Password updated successfully. You can now login.' }), '/auth/reset-password', { method:'POST', body: JSON.stringify(body) }),
   me:            ()        => dispatch(() => mock.me(),                                '/auth/me'),
   updateProfile: (body)    => dispatch(() => mock.updateProfile(body),                 '/auth/profile',     { method:'PUT',  body: JSON.stringify(body) }),
+  uploadAvatar:  (file)    => {
+    const body = new FormData();
+    body.append('file', file);
+    return dispatch(() => mock.uploadAvatar(file), '/auth/avatar', { method:'POST', body });
+  },
   changePassword:(body)    => dispatch(() => mock.changePassword(body),                '/auth/change-password', { method:'PUT', body: JSON.stringify(body) }),
   dashboardStats:()        => dispatch(() => mock.dashboardStats(),                    '/dashboard/stats'),
 

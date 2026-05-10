@@ -87,8 +87,10 @@ export default function AdminDoctors() {
             <motion.div key={doc._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
               className="bg-card rounded-2xl border border-border/60 p-5 hover:shadow-lg transition-all">
               <div className="flex items-start gap-3 mb-4">
-                <div className="w-12 h-12 rounded-xl bg-info/10 flex items-center justify-center text-info font-bold text-lg flex-shrink-0">
-                  {doc.initials || doc.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                <div className="w-12 h-12 rounded-xl bg-info/10 flex items-center justify-center text-info font-bold text-lg flex-shrink-0 overflow-hidden">
+                  {doc.profile_photo
+                    ? <img src={doc.profile_photo} alt="" className="w-full h-full object-cover" />
+                    : doc.initials || doc.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
                 </div>
                 <div className="min-w-0 flex-1">
                   <h3 className="font-heading font-semibold text-foreground truncate">{doc.name}</h3>

@@ -475,8 +475,10 @@ const Home = () => {
                     transition={{ delay: i * 0.05 }}
                     className="bg-card rounded-2xl border border-border/60 p-4 hover:shadow-lg transition-all flex items-center gap-4"
                   >
-                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/30 to-blue-500/30 flex items-center justify-center shrink-0">
-                      <UserRound className="w-7 h-7 text-primary" />
+                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/30 to-blue-500/30 flex items-center justify-center shrink-0 overflow-hidden">
+                      {doc.profile_photo
+                        ? <img src={doc.profile_photo} alt="" className="w-full h-full object-cover" />
+                        : <UserRound className="w-7 h-7 text-primary" />}
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2">

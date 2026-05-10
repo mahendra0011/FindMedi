@@ -51,8 +51,10 @@ export default function Doctors() {
           {doctors.map(doctor => (
             <div key={doctor._id} className="bg-card rounded-xl border shadow-sm hover:shadow-lg hover:border-primary/20 transition-all duration-300 p-6 group">
               <div className="flex items-start gap-4 mb-4">
-                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-primary-foreground font-heading font-bold text-lg flex-shrink-0 shadow-lg shadow-primary/20">
-                  {doctor.initials || doctor.name?.charAt(0)}
+                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-primary-foreground font-heading font-bold text-lg flex-shrink-0 shadow-lg shadow-primary/20 overflow-hidden">
+                  {doctor.profile_photo
+                    ? <img src={doctor.profile_photo} alt="" className="w-full h-full object-cover" />
+                    : doctor.initials || doctor.name?.charAt(0)}
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="font-heading font-semibold text-card-foreground truncate">{doctor.name}</h3>

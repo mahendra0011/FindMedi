@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import {
   AlertCircle,
@@ -110,6 +110,7 @@ function Notice({ notice }) {
 
 export default function Settings() {
   const { user, updateUser } = useAuth();
+  const fileInputRef = useRef(null);
   const [tab, setTab] = useState('profile');
   const [profile, setProfile] = useState(() => buildProfile(user));
   const [settings, setSettings] = useState(() => mergeSettings(user?.settings));
@@ -147,8 +148,38 @@ export default function Settings() {
     onError: (error) => setNotice({ type: 'error', text: error.message || tr('settings.passwordError') }),
   });
 
+  const avatarMut = useMutation({
+    mutationFn: (file) => api.uploadAvatar(file),
+    onSuccess: (data) => {
+      const avatar = data?.user?.avatar || data?.avatar || '';
+      if (data?.user) updateUser(data.user);
+      else updateUser({ avatar });
+      setProfile((current) => ({ ...current, avatar }));
+      setNotice({ type: 'success', text: tr('settings.photoUploadSuccess') });
+    },
+    onError: (error) => setNotice({ type: 'error', text: error.message || tr('settings.photoUploadError') }),
+  });
+
   const updateProfile = (key, value) => setProfile((current) => ({ ...current, [key]: value }));
   const updateSetting = (key, value) => setSettings((current) => ({ ...current, [key]: value }));
+
+  const handleAvatarSelect = (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    setNotice(null);
+    if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type)) {
+      setNotice({ type: 'error', text: tr('settings.photoTypeError') });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setNotice({ type: 'error', text: tr('settings.photoSizeError') });
+      return;
+    }
+
+    avatarMut.mutate(file);
+  };
 
   const saveAccount = () => {
     setNotice(null);
@@ -215,7 +246,14 @@ export default function Settings() {
             <>
               <div className="bg-card rounded-xl border shadow-sm p-6">
                 <h3 className="font-heading font-semibold text-lg text-card-foreground mb-5">{tr('settings.profilePhoto')}</h3>
-                <div className="flex items-center gap-5">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  className="hidden"
+                  onChange={handleAvatarSelect}
+                />
+                <div className="flex flex-col sm:flex-row sm:items-center gap-5">
                   <div className="relative">
                     <div className="w-20 h-20 rounded-xl bg-primary flex items-center justify-center text-primary-foreground font-heading font-bold text-2xl shadow-lg shadow-primary/20 overflow-hidden">
                       {profile.avatar ? <img src={profile.avatar} alt="" className="w-full h-full object-cover" /> : initials}
@@ -230,6 +268,20 @@ export default function Settings() {
                     <span className={`text-xs font-semibold px-2 py-0.5 rounded-full mt-1 inline-block capitalize ${roleBadge[user?.role] || 'bg-muted text-muted-foreground'}`}>
                       {t(`role.${user?.role}`, language)}
                     </span>
+                    <div className="flex flex-wrap items-center gap-2 mt-3">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="gap-2"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={avatarMut.isPending}
+                      >
+                        <Camera className="w-4 h-4" />
+                        {avatarMut.isPending ? tr('common.updating') : tr('settings.uploadPhoto')}
+                      </Button>
+                      <span className="text-xs text-muted-foreground">{tr('settings.photoHint')}</span>
+                    </div>
                   </div>
                 </div>
               </div>
