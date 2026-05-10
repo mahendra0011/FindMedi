@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { CalendarDays, Clock, User, CheckCircle, Star, FileText, CreditCard, TestTube, Activity, Heart, Bell, ChevronRight, Search, Plus } from 'lucide-react';
+import { CalendarDays, User, Star, FileText, CreditCard, TestTube, Activity, Bell, Search, AlertTriangle, IndianRupee, ClipboardList } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/AuthContext';
@@ -13,22 +14,25 @@ export default function PatientDashboard() {
   const [bills, setBills] = useState([]);
   const [doctors, setDoctors] = useState([]);
   const [notifications, setNotifications] = useState([]);
+  const [labServices, setLabServices] = useState([]);
+  const [emergencies, setEmergencies] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
     const load = async () => {
       setLoading(true);
       try {
-        const [a, r, b, d, n] = await Promise.all([
+        const [a, r, b, d, n, services, emergencyList] = await Promise.all([
           api.getAppointments(),
           api.getRecords(),
           api.getBilling(),
           api.getDoctors({ available: 'true' }),
           api.getNotifications(),
+          api.getLabServices(),
+          api.getEmergencies({ status: 'All' }),
         ]);
         setAppointments(a?.slice(0, 5) || []);
-        setRecords(r?.records?.slice(0, 3) || r?.slice(0, 3) || []);
+        setRecords(r?.records || r || []);
         
         const billsArray = b?.bills || b || [];
         setBills(billsArray.filter(bill => bill.status === 'Pending').slice(0, 3));
@@ -36,16 +40,24 @@ export default function PatientDashboard() {
         setDoctors(d?.slice(0, 4) || []);
         
         setNotifications(n?.slice(0, 5) || []);
+
+        setLabServices(services?.slice(0, 4) || []);
+
+        const userId = user?.id || user?._id;
+        setEmergencies((emergencyList || [])
+          .filter(e => String(e.patientId || '') === String(userId || '') || e.patientName === user?.name)
+          .slice(0, 4));
       } catch (e) { console.error(e); }
       setLoading(false);
     };
     load();
-  }, []);
+  }, [user]);
 
   const today = new Date().toISOString().split('T')[0];
   const upcomingAppts = appointments.filter(a => a.date >= today && a.status !== 'Completed');
   const pendingBills = bills.length;
   const unreadNotifs = notifications.filter(n => !n.read).length;
+  const activeEmergencies = emergencies.filter(e => !['Discharged', 'Transferred', 'Rejected'].includes(e.status));
 
   if (loading) return (
     <div className="flex justify-center py-20">
@@ -62,7 +74,7 @@ export default function PatientDashboard() {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <motion.div whileHover={{ scale: 1.02 }} className="bg-card rounded-2xl border border-border/60 p-5 cursor-pointer">
           <div className="flex items-center gap-3 mb-2">
             <div className="w-10 h-10 rounded-xl bg-success/10 flex items-center justify-center">
@@ -101,6 +113,16 @@ export default function PatientDashboard() {
           </div>
           <p className="font-heading text-2xl font-bold text-foreground">{unreadNotifs}</p>
           <p className="text-sm text-muted-foreground">Notifications</p>
+        </motion.div>
+
+        <motion.div whileHover={{ scale: 1.02 }} className="bg-card rounded-2xl border border-border/60 p-5 cursor-pointer">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center">
+              <AlertTriangle className="w-5 h-5 text-destructive" />
+            </div>
+          </div>
+          <p className="font-heading text-2xl font-bold text-foreground">{activeEmergencies.length}</p>
+          <p className="text-sm text-muted-foreground">Emergencies</p>
         </motion.div>
       </div>
 
@@ -181,25 +203,106 @@ export default function PatientDashboard() {
         </div>
       </div>
 
+      {/* Lab Services and Emergency Status */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-card rounded-2xl border border-border/60 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-heading text-lg font-semibold text-foreground flex items-center gap-2">
+              <TestTube className="w-5 h-5 text-warning" /> Lab Services
+            </h2>
+            <Button asChild variant="ghost" size="sm" className="text-primary">
+              <Link to="/patient/services">View All</Link>
+            </Button>
+          </div>
+
+          {labServices.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <TestTube className="w-12 h-12 mx-auto mb-2 opacity-30" />
+              <p>No lab services available</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {labServices.map(service => (
+                <Link key={service.id} to="/patient/services" className="p-4 bg-muted/30 rounded-xl border border-border/40 hover:bg-muted/50 transition-colors">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-medium text-foreground">{service.name}</p>
+                      <p className="text-xs text-muted-foreground">{service.category}</p>
+                    </div>
+                    <span className="flex items-center gap-1 text-sm font-semibold text-success">
+                      <IndianRupee className="w-3.5 h-3.5" />{service.price}
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="bg-card rounded-2xl border border-border/60 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-heading text-lg font-semibold text-foreground flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-destructive" /> Emergency Status
+            </h2>
+            <Button asChild variant="ghost" size="sm" className="text-primary">
+              <Link to="/patient/emergency">View All</Link>
+            </Button>
+          </div>
+
+          {emergencies.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Activity className="w-12 h-12 mx-auto mb-2 opacity-30" />
+              <p>No emergency cases reported</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {emergencies.map(item => (
+                <Link key={item._id} to="/patient/emergency" className="block p-4 bg-muted/30 rounded-xl border border-border/40 hover:bg-muted/50 transition-colors">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-medium text-foreground">{item.condition}</p>
+                      <p className="text-xs text-muted-foreground">{new Date(item.createdAt).toLocaleString()}</p>
+                      {item.assignedDoctorName && <p className="text-xs text-info mt-1">Doctor: {item.assignedDoctorName}</p>}
+                    </div>
+                    <div className="text-right space-y-1">
+                      <Badge className="bg-destructive/10 text-destructive">{item.severity}</Badge>
+                      <p className="text-xs font-medium text-foreground">{item.status}</p>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Quick Actions */}
       <div className="bg-card rounded-2xl border border-border/60 p-6">
         <h2 className="font-heading text-lg font-semibold text-foreground mb-4">Quick Actions</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Button variant="outline" className="h-20 flex-col gap-2 py-4">
+          <Button asChild variant="outline" className="h-20 flex-col gap-2 py-4">
+            <Link to="/patient/doctors">
             <Search className="w-6 h-6 text-primary" />
             <span className="text-sm">Find Doctors</span>
+            </Link>
           </Button>
-          <Button variant="outline" className="h-20 flex-col gap-2 py-4">
+          <Button asChild variant="outline" className="h-20 flex-col gap-2 py-4">
+            <Link to="/patient/services">
             <TestTube className="w-6 h-6 text-warning" />
             <span className="text-sm">Lab Services</span>
+            </Link>
           </Button>
-          <Button variant="outline" className="h-20 flex-col gap-2 py-4">
+          <Button asChild variant="outline" className="h-20 flex-col gap-2 py-4">
+            <Link to="/patient/billing">
             <CreditCard className="w-6 h-6 text-success" />
             <span className="text-sm">My Bills</span>
+            </Link>
           </Button>
-          <Button variant="outline" className="h-20 flex-col gap-2 py-4">
-            <FileText className="w-6 h-6 text-info" />
+          <Button asChild variant="outline" className="h-20 flex-col gap-2 py-4">
+            <Link to="/patient/records">
+            <ClipboardList className="w-6 h-6 text-info" />
             <span className="text-sm">Medical History</span>
+            </Link>
           </Button>
         </div>
       </div>

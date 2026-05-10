@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,8 +11,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 export default function ImportExport() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [importResult, setImportResult] = useState(null);
-  const fileInputRef = useRef(null);
+  const [importResults, setImportResults] = useState({});
 
   const handleExport = async (type, format = 'excel') => {
     setLoading(true);
@@ -37,14 +36,12 @@ export default function ImportExport() {
     setLoading(false);
   };
 
-  const handleImport = async (type) => {
-    const fileInput = fileInputRef.current;
-    if (!fileInput?.files?.length) return;
+  const handleImport = async (type, file) => {
+    if (!file) return;
     
     setLoading(true);
-    setImportResult(null);
+    setImportResults(prev => ({ ...prev, [type]: null }));
     
-    const file = fileInput.files[0];
     const formData = new FormData();
     formData.append('file', file);
 
@@ -56,15 +53,20 @@ export default function ImportExport() {
       });
       
       const data = await res.json();
-      setImportResult(data);
+      if (!res.ok) {
+        throw new Error(data.message || data.error || 'Import failed');
+      }
+      setImportResults(prev => ({ ...prev, [type]: data }));
     } catch (error) {
-      setImportResult({ success: false, error: error.message });
+      setImportResults(prev => ({ ...prev, [type]: { success: false, error: error.message } }));
     }
     setLoading(false);
-    fileInput.value = '';
   };
 
-  const ImportCard = ({ type, title, description, icon: Icon }) => (
+  const ImportCard = ({ type, title, description, icon: Icon }) => {
+    const importResult = importResults[type];
+
+    return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2"><Icon className="w-5 h-5" /> Import {title}</CardTitle>
@@ -73,10 +75,13 @@ export default function ImportExport() {
       <CardContent>
         <div className="space-y-4">
           <input
-            ref={fileInputRef}
             type="file"
-            accept=".xlsx,.xls,.csv"
-            onChange={() => handleImport(type)}
+            accept=".xlsx,.xls"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              handleImport(type, file);
+              event.target.value = '';
+            }}
             className="hidden"
             id={`import-${type}`}
           />
@@ -109,7 +114,8 @@ export default function ImportExport() {
         </div>
       </CardContent>
     </Card>
-  );
+    );
+  };
 
   const ExportCard = ({ type, title, description, icon: Icon }) => (
     <Card>

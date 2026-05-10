@@ -717,7 +717,7 @@ export const api = {
   deleteAppointment:(id)   => dispatch(() => mock.deleteAppointment(id),               `/appointments/${id}`,{ method:'DELETE' }),
 
   getRecords:    (p={})    => dispatch(() => mock.getRecords(p),                       '/records?'           + new URLSearchParams(p)),
-  getPatientRecords:(pid)  => dispatch(() => mock.getRecords(p),                       `/records/patient/${pid}`),
+  getPatientRecords:(pid)  => dispatch(() => mock.getRecords({}),                      `/records/patient/${pid}`),
   createRecord:  (body)    => dispatch(() => mock.createRecord(body),                  '/records',           { method:'POST',   body: JSON.stringify(body) }),
   deleteRecord:  (id)      => dispatch(() => mock.deleteRecord(id),                    `/records/${id}`,     { method:'DELETE' }),
 

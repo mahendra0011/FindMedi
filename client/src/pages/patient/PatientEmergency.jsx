@@ -27,7 +27,8 @@ export default function PatientEmergency() {
     setLoading(true);
     try {
       const list = await api.getEmergencies({ status: 'All' });
-      setMyCases((list || []).filter(e => e.patientId === user?._id || e.patientName === user?.name));
+      const userId = user?.id || user?._id;
+      setMyCases((list || []).filter(e => String(e.patientId || '') === String(userId || '') || e.patientName === user?.name));
     } catch (e) { console.error(e); }
     setLoading(false);
   };
@@ -38,7 +39,7 @@ export default function PatientEmergency() {
     try {
       await api.createEmergency({
         patientName: user?.name || 'Patient',
-        patientId: user?._id,
+        patientId: user?.id || user?._id,
         condition: form.condition,
         severity: form.severity,
         phone: form.phone || user?.phone,

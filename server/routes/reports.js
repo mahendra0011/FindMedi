@@ -11,7 +11,8 @@ const __dirname = path.dirname(__filename);
 import { 
   sendAppointmentReminder, 
   sendPrescriptionEmail, 
-  sendLabResultAlert,
+  sendLabReportEmail,
+  sendDischargeSummaryEmail,
   sendAppointmentReminderSMS
 } from '../services/notificationService.js';
 import { processMedicalFile, validateFile } from '../utils/imageUtils.js';
@@ -34,7 +35,7 @@ import Appointment from '../models/Appointment.js';
 import Record from '../models/Record.js';
 import User from '../models/User.js';
 import Notification from '../models/Notification.js';
-import { protect } from '../middleware/auth.js';
+import { protect, adminOnly } from '../middleware/auth.js';
 
 const router = express.Router();
 const upload = multer({ 
@@ -67,6 +68,62 @@ const createNotification = async (userId, title, message, type = 'records') => {
     await Notification.create({ title, message, type, read: false, userId: userId.toString(), date: new Date().toISOString().split('T')[0] });
   }
 };
+
+const buildPrescriptionData = (patient, prescription) => (
+  prescription?.patient
+    ? prescription
+    : {
+        patient,
+        doctor: {
+          name: prescription?.doctorName,
+          specialization: prescription?.doctorSpecialization,
+        },
+        chiefComplaints: prescription?.chiefComplaints,
+        diagnosis: prescription?.diagnosis,
+        advice: prescription?.advice,
+        followUp: prescription?.followUp,
+        medications: prescription?.medications || [],
+      }
+);
+
+const buildLabReportData = (patient, report) => (
+  report?.patient
+    ? report
+    : {
+        patient,
+        doctor: {
+          name: report?.doctorName,
+          specialization: report?.doctorSpecialization,
+        },
+        reportId: report?.reportId,
+        testDate: report?.testDate,
+        reportDate: report?.reportDate,
+        notes: report?.notes,
+        tests: report?.tests || [],
+      }
+);
+
+const buildDischargeData = (patient, summary) => (
+  summary?.patient
+    ? summary
+    : {
+        patient,
+        doctor: {
+          name: summary?.doctorName,
+          specialization: summary?.doctorSpecialization,
+        },
+        admissionId: summary?.admissionId,
+        admissionDate: summary?.admissionDate,
+        dischargeDate: summary?.dischargeDate,
+        chiefComplaints: summary?.chiefComplaints,
+        diagnosis: summary?.diagnosis,
+        treatment: summary?.treatment,
+        surgery: summary?.surgery,
+        dischargeAdvice: summary?.dischargeAdvice,
+        followUpInstructions: summary?.followUpInstructions,
+        medications: summary?.medications || [],
+      }
+);
 
 router.post('/generate-prescription', async (req, res) => {
   try {
@@ -191,8 +248,20 @@ router.post('/email/appointment-reminder', async (req, res) => {
 router.post('/email/prescription', async (req, res) => {
   try {
     const { patient, prescription } = req.body;
-    const pdfBuffer = await generatePrescriptionPDF(prescription);
-    const result = await sendPrescriptionEmail(patient, prescription, pdfBuffer);
+    if (!patient?.email) return res.status(400).json({ message: 'Patient email is required' });
+
+    const pdfData = buildPrescriptionData(patient, prescription);
+    const pdfBuffer = await generatePrescriptionPDF(pdfData);
+    const result = await sendPrescriptionEmail(patient, {
+      ...pdfData,
+      doctorName: pdfData.doctor?.name || prescription?.doctorName || '',
+    }, pdfBuffer);
+
+    const patientUser = await findPatientByName(patient.name);
+    if (patientUser?._id) {
+      await createNotification(patientUser._id, 'Prescription Emailed', 'Your prescription has been sent to your email.', 'records');
+    }
+
     res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -202,7 +271,37 @@ router.post('/email/prescription', async (req, res) => {
 router.post('/email/lab-result', async (req, res) => {
   try {
     const { patient, report } = req.body;
-    const result = await sendLabResultAlert(patient, report);
+    if (!patient?.email) return res.status(400).json({ message: 'Patient email is required' });
+
+    const pdfData = buildLabReportData(patient, report);
+    const pdfBuffer = await generateLabReportPDF(pdfData);
+    const result = await sendLabReportEmail(patient, pdfData, pdfBuffer);
+
+    const patientUser = await findPatientByName(patient.name);
+    if (patientUser?._id) {
+      await createNotification(patientUser._id, 'Lab Report Emailed', 'Your lab report has been sent to your email.', 'records');
+    }
+
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.post('/email/discharge-summary', async (req, res) => {
+  try {
+    const { patient, summary } = req.body;
+    if (!patient?.email) return res.status(400).json({ message: 'Patient email is required' });
+
+    const pdfData = buildDischargeData(patient, summary);
+    const pdfBuffer = await generateDischargeSummaryPDF(pdfData);
+    const result = await sendDischargeSummaryEmail(patient, pdfData, pdfBuffer);
+
+    const patientUser = await findPatientByName(patient.name);
+    if (patientUser?._id) {
+      await createNotification(patientUser._id, 'Discharge Summary Emailed', 'Your discharge summary has been sent to your email.', 'records');
+    }
+
     res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -369,7 +468,7 @@ router.post('/upload/document', optionalAuth, upload.single('file'), async (req,
   }
 });
 
-router.post('/import/patients', upload.single('file'), async (req, res) => {
+router.post('/import/patients', protect, adminOnly, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
@@ -394,7 +493,7 @@ router.post('/import/patients', upload.single('file'), async (req, res) => {
   }
 });
 
-router.post('/import/doctors', upload.single('file'), async (req, res) => {
+router.post('/import/doctors', protect, adminOnly, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
@@ -419,7 +518,7 @@ router.post('/import/doctors', upload.single('file'), async (req, res) => {
   }
 });
 
-router.post('/import/billing', upload.single('file'), async (req, res) => {
+router.post('/import/billing', protect, adminOnly, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
@@ -429,7 +528,25 @@ router.post('/import/billing', upload.single('file'), async (req, res) => {
     const { validRecords, errors } = validateBillingData(data);
     
     if (validRecords.length > 0) {
-      const imported = await Billing.insertMany(validRecords);
+      const count = await Billing.countDocuments();
+      const normalizedRecords = validRecords.map((record, index) => {
+        const statusMap = {
+          paid: 'Paid',
+          pending: 'Pending',
+          overdue: 'Overdue',
+          partial: 'Partial',
+        };
+        const normalized = {
+          ...record,
+          status: statusMap[String(record.status || 'Pending').toLowerCase()] || 'Pending',
+          invoiceId: record.invoiceId || `IMP-${String(count + index + 1).padStart(4, '0')}`,
+        };
+        if (normalized.patientId && !/^[a-f\d]{24}$/i.test(String(normalized.patientId))) {
+          delete normalized.patientId;
+        }
+        return normalized;
+      });
+      const imported = await Billing.insertMany(normalizedRecords);
       res.json({ 
         success: true, 
         imported: imported.length, 

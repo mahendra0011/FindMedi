@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,15 +7,17 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileText, Download, Loader2, Send, Printer } from 'lucide-react';
+import { FileText, Download, Loader2, Send } from 'lucide-react';
+import { getStoredAuthToken } from '@/lib/api';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
 export default function PDFReports() {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('prescription');
+  const [statusMessage, setStatusMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
   const [prescription, setPrescription] = useState({
     patientName: '', patientAge: '', patientGender: '', patientPhone: '', patientEmail: '', patientAddress: '',
@@ -80,37 +81,55 @@ export default function PDFReports() {
     setDischarge({ ...discharge, medications: updated });
   };
 
-  const generatePDF = async (type) => {
-    setLoading(true);
-    try {
-      const endpoint = type === 'prescription' ? '/reports/generate-prescription' 
-        : type === 'lab' ? '/reports/generate-lab-report' 
-        : '/reports/generate-discharge-summary';
-      
-      const payload = type === 'prescription' ? {
+  const buildReportPayload = (type) => {
+    if (type === 'prescription') {
+      return {
         patient: { name: prescription.patientName, age: prescription.patientAge, gender: prescription.patientGender, phone: prescription.patientPhone, email: prescription.patientEmail, address: prescription.patientAddress },
         doctor: { name: prescription.doctorName, specialization: prescription.doctorSpecialization },
         chiefComplaints: prescription.chiefComplaints, diagnosis: prescription.diagnosis, advice: prescription.advice, followUp: prescription.followUp,
         medications: prescription.medications.filter(m => m.name)
-      } : type === 'lab' ? {
+      };
+    }
+
+    if (type === 'lab') {
+      return {
         patient: { name: labReport.patientName, age: labReport.patientAge, gender: labReport.patientGender, phone: labReport.patientPhone, email: labReport.patientEmail },
         doctor: { name: labReport.doctorName, specialization: labReport.doctorSpecialization },
         reportId: labReport.reportId, testDate: labReport.testDate, reportDate: labReport.reportDate, notes: labReport.notes,
         tests: labReport.tests.filter(t => t.name)
-      } : {
-        patient: { name: discharge.patientName, age: discharge.patientAge, gender: discharge.patientGender, phone: discharge.patientPhone, email: discharge.patientEmail, address: discharge.patientAddress },
-        doctor: { name: discharge.doctorName, specialization: discharge.doctorSpecialization },
-        admissionId: discharge.admissionId, admissionDate: discharge.admissionDate, dischargeDate: discharge.dischargeDate,
-        chiefComplaints: discharge.chiefComplaints, diagnosis: discharge.diagnosis, treatment: discharge.treatment, surgery: discharge.surgery,
-        dischargeAdvice: discharge.dischargeAdvice, followUpInstructions: discharge.followUpInstructions,
-        medications: discharge.medications.filter(m => m.name)
       };
+    }
+
+    return {
+      patient: { name: discharge.patientName, age: discharge.patientAge, gender: discharge.patientGender, phone: discharge.patientPhone, email: discharge.patientEmail, address: discharge.patientAddress },
+      doctor: { name: discharge.doctorName, specialization: discharge.doctorSpecialization },
+      admissionId: discharge.admissionId, admissionDate: discharge.admissionDate, dischargeDate: discharge.dischargeDate,
+      chiefComplaints: discharge.chiefComplaints, diagnosis: discharge.diagnosis, treatment: discharge.treatment, surgery: discharge.surgery,
+      dischargeAdvice: discharge.dischargeAdvice, followUpInstructions: discharge.followUpInstructions,
+      medications: discharge.medications.filter(m => m.name)
+    };
+  };
+
+  const generatePDF = async (type) => {
+    setLoading(true);
+    setStatusMessage('');
+    setErrorMessage('');
+    try {
+      const endpoint = type === 'prescription' ? '/reports/generate-prescription'
+        : type === 'lab' ? '/reports/generate-lab-report'
+        : '/reports/generate-discharge-summary';
+      const payload = buildReportPayload(type);
 
       const res = await fetch(`${API_URL}${endpoint}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${getStoredAuthToken()}`,
+        },
         body: JSON.stringify(payload)
       });
+
+      if (!res.ok) throw new Error('PDF generation failed');
 
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
@@ -121,32 +140,56 @@ export default function PDFReports() {
       a.click();
       window.URL.revokeObjectURL(url);
       a.remove();
+      setStatusMessage('PDF downloaded successfully.');
     } catch (error) {
       console.error('Error generating PDF:', error);
+      setErrorMessage(error.message || 'Error generating PDF');
     }
     setLoading(false);
   };
 
   const sendViaEmail = async (type) => {
     setLoading(true);
+    setStatusMessage('');
+    setErrorMessage('');
     try {
-      const endpoint = type === 'prescription' ? '/reports/email/prescription' : '/reports/email/lab-result';
+      const reportPayload = buildReportPayload(type);
+      if (!reportPayload.patient?.email) {
+        throw new Error('Patient email is required before sending.');
+      }
+
+      const endpoint = type === 'prescription' ? '/reports/email/prescription'
+        : type === 'lab' ? '/reports/email/lab-result'
+        : '/reports/email/discharge-summary';
       const payload = type === 'prescription' ? {
-        patient: { name: prescription.patientName, email: prescription.patientEmail },
-        prescription: { doctorName: prescription.doctorName, chiefComplaints: prescription.chiefComplaints, diagnosis: prescription.diagnosis, medications: prescription.medications, advice: prescription.advice, followUp: prescription.followUp }
+        patient: reportPayload.patient,
+        prescription: reportPayload
+      } : type === 'lab' ? {
+        patient: reportPayload.patient,
+        report: reportPayload
       } : {
-        patient: { name: labReport.patientName, email: labReport.patientEmail },
-        report: { reportId: labReport.reportId }
+        patient: reportPayload.patient,
+        summary: reportPayload
       };
 
-      await fetch(`${API_URL}${endpoint}`, {
+      const res = await fetch(`${API_URL}${endpoint}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${getStoredAuthToken()}`,
+        },
         body: JSON.stringify(payload)
       });
-      alert('Email sent successfully!');
+
+      const data = await res.json();
+      if (!res.ok || data.success === false) {
+        throw new Error(data.message || data.error || 'Email send failed');
+      }
+
+      setStatusMessage('Report emailed successfully.');
     } catch (error) {
       console.error('Error sending email:', error);
+      setErrorMessage(error.message || 'Error sending email');
     }
     setLoading(false);
   };
@@ -177,6 +220,9 @@ export default function PDFReports() {
         <h1 className="text-3xl font-bold">Reports Generation</h1>
         <p className="text-muted-foreground">Generate prescriptions, lab reports, and discharge summaries</p>
       </div>
+
+      {statusMessage && <div className="rounded-lg border border-success/20 bg-success/10 px-4 py-3 text-sm text-success">{statusMessage}</div>}
+      {errorMessage && <div className="rounded-lg border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">{errorMessage}</div>}
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-3">
@@ -319,7 +365,10 @@ export default function PDFReports() {
               <div><Label>Discharge Advice</Label><Textarea value={discharge.dischargeAdvice} onChange={(e) => setDischarge({...discharge, dischargeAdvice: e.target.value})} placeholder="Discharge advice" /></div>
               <div><Label>Follow-up Instructions</Label><Textarea value={discharge.followUpInstructions} onChange={(e) => setDischarge({...discharge, followUpInstructions: e.target.value})} placeholder="Follow-up instructions" /></div>
 
-              <Button onClick={() => generatePDF('discharge')} disabled={loading}><Download className="w-4 h-4 mr-2" />Download PDF</Button>
+              <div className="flex gap-2">
+                <Button onClick={() => generatePDF('discharge')} disabled={loading}><Download className="w-4 h-4 mr-2" />Download PDF</Button>
+                <Button variant="outline" onClick={() => sendViaEmail('discharge')} disabled={loading}><Send className="w-4 h-4 mr-2" />Send via Email</Button>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

@@ -3,9 +3,7 @@ import { motion } from 'framer-motion';
 import { Activity, TestTube, Heart, Droplets, Thermometer, Calendar, CheckCircle, Loader2, IndianRupee } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
-import { api, getStoredAuthToken } from '@/lib/api';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+import { api } from '@/lib/api';
 
 const serviceIcons = {
   bp_check: Thermometer,
@@ -60,21 +58,14 @@ export default function PatientServices() {
     if (selectedServices.length === 0) return;
     setBooking(true);
     try {
-      await fetch(`${API_URL}/billing`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${getStoredAuthToken()}`
-        },
-        body: JSON.stringify({
-          patient: user?.name,
-          patientId: user?._id,
-          service: selectedServices.map(s => s.name).join(', '),
-          amount: totalAmount,
-          services: selectedServices,
-          date: new Date().toISOString().split('T')[0],
-          status: 'Pending'
-        })
+      await api.createBill({
+        patient: user?.name,
+        patientId: user?.id || user?._id,
+        service: selectedServices.map(s => s.name).join(', '),
+        amount: totalAmount,
+        services: selectedServices,
+        date: new Date().toISOString().split('T')[0],
+        status: 'Pending'
       });
       setSuccess(true);
       setSelectedServices([]);

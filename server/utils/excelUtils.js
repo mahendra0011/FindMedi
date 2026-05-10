@@ -46,8 +46,8 @@ export const validatePatientData = (patients) => {
         name: patient.name || patient.Name,
         email: patient.email || patient.Email,
         phone: patient.phone || patient.Phone || patient.mobile || patient.Mobile,
-        age: patient.age || patient.Age,
-        gender: patient.gender || patient.Gender,
+        age: Number(patient.age || patient.Age) || 0,
+        gender: patient.gender || patient.Gender || 'Other',
         address: patient.address || patient.Address,
       });
     }
@@ -69,6 +69,9 @@ export const validateDoctorData = (doctors) => {
     if (!doctor.specialization && !doctor.speciality && !doctor.Specialization) {
       rowErrors.push('Specialization is required');
     }
+    if (!doctor.email && !doctor.Email) {
+      rowErrors.push('Email is required');
+    }
     
     if (rowErrors.length > 0) {
       errors.push({ row: index + 2, errors: rowErrors });
@@ -79,7 +82,17 @@ export const validateDoctorData = (doctors) => {
         email: doctor.email || doctor.Email,
         phone: doctor.phone || doctor.Phone,
         experience: doctor.experience || doctor.Experience || 0,
-        qualification: doctor.qualification || doctor.Qualification,
+        qualifications: doctor.qualifications || doctor.Qualifications || doctor.qualification || doctor.Qualification,
+        fees: Number(doctor.fees || doctor.Fees || doctor.consultation_fees || doctor.ConsultationFee) || 500,
+        consultation_fees: Number(doctor.consultation_fees || doctor.ConsultationFee || doctor.fees || doctor.Fees) || 500,
+        approved: String(doctor.approved || doctor.Approved || '').toLowerCase() === 'true',
+        initials: (doctor.name || doctor.Name || '')
+          .split(' ')
+          .filter(Boolean)
+          .map(part => part[0])
+          .join('')
+          .slice(0, 2)
+          .toUpperCase(),
       });
     }
   });
@@ -94,8 +107,8 @@ export const validateBillingData = (records) => {
   records.forEach((record, index) => {
     const rowErrors = [];
     
-    if (!record.patientId && !record.patient_id && !record.PatientId) {
-      rowErrors.push('Patient ID is required');
+    if (!record.patient && !record.Patient && !record.patientName && !record.PatientName && !record.patientId && !record.patient_id && !record.PatientId) {
+      rowErrors.push('Patient name or patient ID is required');
     }
     if (!record.amount && !record.Amount) {
       rowErrors.push('Amount is required');
@@ -105,11 +118,15 @@ export const validateBillingData = (records) => {
       errors.push({ row: index + 2, errors: rowErrors });
     } else {
       validRecords.push({
-        patientId: record.patientId || record.patient_id || record.PatientId,
+        patient: record.patient || record.Patient || record.patientName || record.PatientName || record.patientId || record.patient_id || record.PatientId,
+        patientId: record.patientId || record.patient_id || record.PatientId || undefined,
+        doctor: record.doctor || record.Doctor || 'Imported Billing',
+        service: record.service || record.Service || record.description || record.Description || 'Imported service',
         amount: parseFloat(record.amount || record.Amount),
         description: record.description || record.Description,
-        status: record.status || record.Status || 'pending',
-        date: record.date || record.Date || new Date().toISOString(),
+        status: record.status || record.Status || 'Pending',
+        date: record.date || record.Date || new Date().toISOString().split('T')[0],
+        dueDate: record.dueDate || record.DueDate || '',
       });
     }
   });

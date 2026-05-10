@@ -117,6 +117,58 @@ export const sendPrescriptionEmail = async (patient, prescription, pdfBuffer) =>
   });
 };
 
+export const sendLabReportEmail = async (patient, report, pdfBuffer) => {
+  const subject = 'Your Lab Report - MediCore Hospital';
+  const text = `Dear ${patient.name},\n\nPlease find attached your lab report${report.reportId ? ` (Report ID: ${report.reportId})` : ''}.\n\nThank you,\nMediCore Hospital`;
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2>Lab Report</h2>
+      <p>Dear <strong>${patient.name}</strong>,</p>
+      <p>Please find attached your lab report.</p>
+      ${report.reportId ? `<p><strong>Report ID:</strong> ${report.reportId}</p>` : ''}
+      <p>Thank you,<br>MediCore Hospital</p>
+    </div>
+  `;
+
+  return sendEmail({
+    to: patient.email,
+    subject,
+    text,
+    html,
+    attachments: [{
+      filename: `lab-report-${report.reportId || Date.now()}.pdf`,
+      content: pdfBuffer.toString('base64'),
+      contentType: 'application/pdf',
+    }],
+  });
+};
+
+export const sendDischargeSummaryEmail = async (patient, summary, pdfBuffer) => {
+  const subject = 'Your Discharge Summary - MediCore Hospital';
+  const text = `Dear ${patient.name},\n\nPlease find attached your discharge summary${summary.admissionId ? ` for admission ${summary.admissionId}` : ''}.\n\nThank you,\nMediCore Hospital`;
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2>Discharge Summary</h2>
+      <p>Dear <strong>${patient.name}</strong>,</p>
+      <p>Please find attached your discharge summary.</p>
+      ${summary.admissionId ? `<p><strong>Admission ID:</strong> ${summary.admissionId}</p>` : ''}
+      <p>Thank you,<br>MediCore Hospital</p>
+    </div>
+  `;
+
+  return sendEmail({
+    to: patient.email,
+    subject,
+    text,
+    html,
+    attachments: [{
+      filename: `discharge-summary-${summary.admissionId || Date.now()}.pdf`,
+      content: pdfBuffer.toString('base64'),
+      contentType: 'application/pdf',
+    }],
+  });
+};
+
 export const sendLabResultAlert = async (patient, report) => {
   const subject = 'Lab Results Available - MediCore Hospital';
   const text = `Dear ${patient.name},\n\nYour lab results (Report ID: ${report.reportId}) are now available. Please log in to view or download them.\n\nThank you,\nMediCore Hospital`;
