@@ -457,6 +457,10 @@ export default function Settings() {
                     { value: 'system', label: tr('settings.system') },
                     { value: 'light', label: tr('settings.light') },
                     { value: 'dark', label: tr('settings.dark') },
+                    { value: 'calm', label: 'Calm' },
+                    { value: 'sage', label: 'Sage' },
+                    { value: 'sky', label: 'Sky' },
+                    { value: 'blush', label: 'Blush' },
                   ]}
                 />
                 <SelectField

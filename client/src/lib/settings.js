@@ -41,6 +41,7 @@ export function applyUserSettings(settings = {}) {
   const prefersDark = typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches;
 
   root.classList.toggle('dark', next.theme === 'dark' || (next.theme === 'system' && prefersDark));
+  root.dataset.theme = next.theme;
   root.dataset.density = next.density;
   root.dataset.language = next.language;
   root.lang = next.language || 'en';
