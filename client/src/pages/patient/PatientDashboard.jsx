@@ -7,6 +7,58 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 
+const statusColors = {
+  Paid: 'bg-success/10 text-success',
+  Pending: 'bg-warning/10 text-warning',
+  Overdue: 'bg-destructive/10 text-destructive',
+  Partial: 'bg-info/10 text-info',
+};
+
+const isPatientBill = (bill, user) => {
+  const userId = String(user?.id || user?._id || '');
+  const patientId = bill?.patientId?._id || bill?.patientId;
+  if (userId && patientId && String(patientId) === userId) return true;
+  if (user?.name && (bill?.patient === user.name || bill?.patientId?.name === user.name)) return true;
+  return !bill?.patient && !patientId;
+};
+
+const splitServiceNames = (service = '') => service
+  .split(',')
+  .map(item => item.trim())
+  .filter(Boolean);
+
+const isLabBill = (bill, catalog) => {
+  if (bill?.source === 'lab') return true;
+  if (Array.isArray(bill?.services) && bill.services.length > 0) return true;
+  if (String(bill?.doctor || '').toLowerCase() === 'lab services') return true;
+
+  const serviceText = String(bill?.service || '').toLowerCase();
+  return catalog.some(service => serviceText.includes(String(service.name || '').toLowerCase()));
+};
+
+const buildLabBookings = (bills, catalog, user) => bills
+  .filter(bill => isPatientBill(bill, user))
+  .filter(bill => isLabBill(bill, catalog))
+  .map((bill) => {
+    const serviceNames = splitServiceNames(bill.service);
+    const services = Array.isArray(bill.services) && bill.services.length > 0
+      ? bill.services
+      : (catalog.filter(service => serviceNames.includes(service.name)).length > 0
+        ? catalog.filter(service => serviceNames.includes(service.name))
+        : serviceNames.map(name => ({ name, price: serviceNames.length === 1 ? bill.amount : 0, category: 'Lab' })));
+
+    return {
+      id: bill._id || bill.invoiceId || bill.service,
+      invoiceId: bill.invoiceId,
+      date: bill.date,
+      dueDate: bill.dueDate,
+      status: bill.status,
+      amount: bill.amount || services.reduce((sum, service) => sum + (Number(service.price) || 0), 0),
+      paid: bill.paid || 0,
+      services,
+    };
+  });
+
 export default function PatientDashboard() {
   const { user } = useAuth();
   const [appointments, setAppointments] = useState([]);
@@ -14,7 +66,7 @@ export default function PatientDashboard() {
   const [bills, setBills] = useState([]);
   const [doctors, setDoctors] = useState([]);
   const [notifications, setNotifications] = useState([]);
-  const [labServices, setLabServices] = useState([]);
+  const [labBookings, setLabBookings] = useState([]);
   const [emergencies, setEmergencies] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -35,13 +87,14 @@ export default function PatientDashboard() {
         setRecords(r?.records || r || []);
         
         const billsArray = b?.bills || b || [];
-        setBills(billsArray.filter(bill => bill.status === 'Pending').slice(0, 3));
+        const patientBills = billsArray.filter(bill => isPatientBill(bill, user));
+        const serviceCatalog = services || [];
+        setBills(patientBills.filter(bill => bill.status === 'Pending').slice(0, 3));
+        setLabBookings(buildLabBookings(patientBills, serviceCatalog, user).slice(0, 4));
         
         setDoctors(d?.slice(0, 4) || []);
         
         setNotifications(n?.slice(0, 5) || []);
-
-        setLabServices(services?.slice(0, 4) || []);
 
         const userId = user?.id || user?._id;
         setEmergencies((emergencyList || [])
@@ -208,29 +261,45 @@ export default function PatientDashboard() {
         <div className="bg-card rounded-2xl border border-border/60 p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-heading text-lg font-semibold text-foreground flex items-center gap-2">
-              <TestTube className="w-5 h-5 text-warning" /> Lab Services
+              <TestTube className="w-5 h-5 text-warning" /> Booked Lab Services
             </h2>
             <Button asChild variant="ghost" size="sm" className="text-primary">
-              <Link to="/patient/services">View All</Link>
+              <Link to="/patient/billing">View Billing</Link>
             </Button>
           </div>
 
-          {labServices.length === 0 ? (
+          {labBookings.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <TestTube className="w-12 h-12 mx-auto mb-2 opacity-30" />
-              <p>No lab services available</p>
+              <p>No lab services booked yet</p>
+              <Button asChild variant="outline" size="sm" className="mt-4">
+                <Link to="/patient/services">Book Lab Services</Link>
+              </Button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {labServices.map(service => (
-                <Link key={service.id} to="/patient/services" className="p-4 bg-muted/30 rounded-xl border border-border/40 hover:bg-muted/50 transition-colors">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-medium text-foreground">{service.name}</p>
-                      <p className="text-xs text-muted-foreground">{service.category}</p>
+            <div className="space-y-3">
+              {labBookings.map(booking => (
+                <Link key={booking.id} to="/patient/billing" className="block p-4 bg-muted/30 rounded-xl border border-border/40 hover:bg-muted/50 transition-colors">
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="min-w-0">
+                      <p className="text-xs font-mono text-muted-foreground">{booking.invoiceId || 'Lab booking'}</p>
+                      <p className="font-medium text-foreground">{booking.services.map(service => service.name).join(', ')}</p>
+                      <p className="text-xs text-muted-foreground">Booked on {booking.date || 'Today'}{booking.dueDate ? ` | Due ${booking.dueDate}` : ''}</p>
                     </div>
-                    <span className="flex items-center gap-1 text-sm font-semibold text-success">
-                      <IndianRupee className="w-3.5 h-3.5" />{service.price}
+                    <Badge className={`text-xs ${statusColors[booking.status] || 'bg-muted text-muted-foreground'}`}>{booking.status || 'Pending'}</Badge>
+                  </div>
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {booking.services.map((service, index) => (
+                      <span key={`${booking.id}-${service.id || service.name || index}`} className="px-2.5 py-1 rounded-full bg-background text-xs text-foreground border border-border/60">
+                        {service.name}
+                        {service.price ? ` - Rs ${service.price}` : ''}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Outstanding</span>
+                    <span className="font-semibold text-warning flex items-center gap-1">
+                      <IndianRupee className="w-3.5 h-3.5" />{Math.max((booking.amount || 0) - (booking.paid || 0), 0).toLocaleString()}
                     </span>
                   </div>
                 </Link>

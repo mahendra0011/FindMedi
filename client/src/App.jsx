@@ -90,8 +90,38 @@ function DashboardPage({ children }) {
   return <DashboardLayout>{children}</DashboardLayout>;
 }
 
+function getDefaultDashboardPath(user) {
+  const value = user?.settings?.defaultDashboard || 'overview';
+  if (value === 'overview') return '';
+
+  const paths = {
+    admin: {
+      reports: '/reports',
+      billing: '/billing',
+      emergency: '/admin/emergency',
+    },
+    doctor: {
+      appointments: '/doctor/appointments',
+      patients: '/doctor/patients',
+      reports: '/reports',
+      earnings: '/doctor/earnings',
+      schedule: '/doctor/schedule',
+      emergency: '/doctor/emergency',
+    },
+    patient: {
+      appointments: '/patient/appointments',
+      records: '/patient/records',
+      billing: '/patient/billing',
+    },
+  };
+
+  return paths[user?.role]?.[value] || '';
+}
+
 function RoleDashboard() {
   const { user } = useAuth();
+  const defaultPath = getDefaultDashboardPath(user);
+  if (defaultPath) return <Navigate to={defaultPath} replace />;
   if (user?.role === 'doctor') return <DoctorDashboard />;
   if (user?.role === 'admin') return <Dashboard />;
   return <PatientDashboard />;

@@ -107,7 +107,7 @@ router.get('/', protect, async (req, res) => {
 
 router.post('/', protect, async (req, res) => {
   try {
-    const { doctorId, doctor, service, amount, date, patient, patientId, services } = req.body;
+    const { doctorId, doctor, service, amount, date, patient, patientId, services, source } = req.body;
     
     const count = await Billing.countDocuments();
     const invoiceId = `INV-${String(count + 1).padStart(4, '0')}`;
@@ -134,16 +134,28 @@ router.post('/', protect, async (req, res) => {
       return res.status(400).json({ message: 'Patient not found. Please select a valid patient.' });
     }
     
+    const selectedServices = Array.isArray(services)
+      ? services
+        .filter(item => item?.name)
+        .map(item => ({
+          id: item.id || '',
+          name: item.name,
+          price: Number(item.price) || 0,
+          category: item.category || '',
+        }))
+      : [];
+    const isLabBooking = source === 'lab' || selectedServices.length > 0;
+
     // Calculate total from services if provided
     let finalAmount = amount;
     let finalService = service;
-    if (services && services.length > 0) {
-      finalAmount = services.reduce((sum, s) => sum + (s.price || 0), 0);
-      finalService = services.map(s => s.name).join(', ');
+    if (selectedServices.length > 0) {
+      finalAmount = selectedServices.reduce((sum, s) => sum + (s.price || 0), 0);
+      finalService = selectedServices.map(s => s.name).join(', ');
     }
 
     let finalDoctorId = doctorId;
-    let finalDoctor = doctor || req.user?.name || 'Lab Services';
+    let finalDoctor = doctor || (isLabBooking ? 'Lab Services' : req.user?.name || 'Hospital Services');
     if (!finalDoctorId && req.user?.role === 'doctor') {
       const doctorProfile = await Doctor.findOne({
         $or: [
@@ -163,6 +175,8 @@ router.post('/', protect, async (req, res) => {
       doctor: finalDoctor,
       doctorId: finalDoctorId,
       service: finalService,
+      services: selectedServices,
+      source: isLabBooking ? 'lab' : source || 'manual',
       amount: finalAmount,
       date: date || new Date().toISOString().split('T')[0],
       dueDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],

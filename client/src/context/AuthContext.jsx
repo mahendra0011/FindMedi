@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { api } from '@/lib/api';
+import { applyUserSettings, mergeSettings, readStoredSettings } from '@/lib/settings';
 
 const AuthContext = createContext(null);
 
@@ -8,10 +9,14 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    applyUserSettings(mergeSettings(readStoredSettings(), user?.settings));
+  }, [user?.settings]);
+
+  useEffect(() => {
     const token = localStorage.getItem('hms_token');
     if (token) {
       api.me()
-        .then(u => setUser(u))
+        .then(u => setUser({ ...u, settings: mergeSettings(readStoredSettings(), u.settings) }))
         .catch(() => {
           localStorage.removeItem('hms_token');
           localStorage.removeItem('token');
@@ -26,16 +31,18 @@ export function AuthProvider({ children }) {
     const data = await api.login({ email, password, role, secretKey });
     localStorage.removeItem('token');
     localStorage.setItem('hms_token', data.token);
-    setUser(data.user);
-    return data.user;
+    const nextUser = { ...data.user, settings: mergeSettings(readStoredSettings(), data.user?.settings) };
+    setUser(nextUser);
+    return nextUser;
   };
 
   const register = async (body) => {
     const data = await api.register(body);
     localStorage.removeItem('token');
     localStorage.setItem('hms_token', data.token);
-    setUser(data.user);
-    return data.user;
+    const nextUser = { ...data.user, settings: mergeSettings(readStoredSettings(), data.user?.settings) };
+    setUser(nextUser);
+    return nextUser;
   };
 
   const logout = () => {
@@ -47,10 +54,14 @@ export function AuthProvider({ children }) {
   const completeOtpLogin = ({ token, user }) => {
     localStorage.removeItem('token');
     localStorage.setItem('hms_token', token);
-    setUser(user);
+    setUser({ ...user, settings: mergeSettings(readStoredSettings(), user?.settings) });
   };
 
-  const updateUser = (updates) => setUser(u => ({ ...u, ...updates }));
+  const updateUser = (updates) => setUser(u => ({
+    ...u,
+    ...updates,
+    settings: mergeSettings(u?.settings, updates?.settings),
+  }));
 
   return (
     <AuthContext.Provider value={{ user, login, register, logout, loading, updateUser, completeOtpLogin }}>

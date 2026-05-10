@@ -9,7 +9,7 @@ export function NotificationProvider({ children }) {
   const [count, setCount] = useState(0);
 
   const refreshCount = useCallback(async () => {
-    if (!user) { setCount(0); return; }
+    if (!user || user.settings?.systemNotifications === false) { setCount(0); return; }
     try {
       const list = await api.getNotifications({});
       const userId = (user._id || user.id)?.toString();
@@ -29,11 +29,12 @@ export function NotificationProvider({ children }) {
   }, [user]);
 
   useEffect(() => {
-    if (user) {
+    if (user && user.settings?.systemNotifications !== false) {
       refreshCount();
       const interval = setInterval(refreshCount, 5000);
       return () => clearInterval(interval);
     }
+    setCount(0);
   }, [user, refreshCount]);
 
   return (

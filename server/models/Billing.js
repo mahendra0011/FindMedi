@@ -8,6 +8,13 @@ const billingSchema = new mongoose.Schema({
   doctorId: { type: mongoose.Schema.Types.ObjectId, ref: 'Doctor' },
   appointmentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Appointment' },
   service: { type: String, required: true },
+  services: [{
+    id: { type: String, default: '' },
+    name: { type: String, default: '' },
+    price: { type: Number, default: 0 },
+    category: { type: String, default: '' },
+  }],
+  source: { type: String, enum: ['manual', 'appointment', 'lab'], default: 'manual' },
   amount: { type: Number, required: true },
   paid: { type: Number, default: 0 },
   status: { type: String, enum: ['Paid', 'Pending', 'Overdue', 'Partial'], default: 'Pending' },

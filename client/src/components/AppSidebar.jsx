@@ -6,53 +6,54 @@ import {
   Home, Search, Star, Users, Shield, BarChart3, Bell, Building2, Clock, DollarSign, FileUp, Download, TestTube, AlertTriangle
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { t } from '@/lib/settings';
 import NotificationBell from './NotificationBell';
 
 const navConfig = {
   admin: [
-    { icon: LayoutDashboard, label: 'Dashboard',        path: '/dashboard'        },
-    { icon: Users,           label: 'Manage Users',     path: '/admin/users'      },
-    { icon: Stethoscope,     label: 'Manage Doctors',   path: '/admin/doctors'    },
-    { icon: UserRound,       label: 'Manage Patients',  path: '/patients'         },
-    { icon: CalendarDays,    label: 'Appointments',     path: '/appointments'     },
-    { icon: FileText,        label: 'Medical Records',  path: '/records'          },
-    { icon: CreditCard,      label: 'Billing',          path: '/billing'          },
-    { icon: Building2,       label: 'Departments',      path: '/admin/departments'},
-    { icon: Star,            label: 'Reviews',          path: '/admin/reviews'    },
-    { icon: BarChart3,       label: 'Analytics',        path: '/admin/analytics'  },
-    { icon: AlertTriangle,  label: 'Emergency',        path: '/admin/emergency' },
-    { icon: FileUp,          label: 'Import/Export',    path: '/import-export'    },
-    { icon: Download,        label: 'Reports',          path: '/reports'          },
-    { icon: Bell,            label: 'Notifications',    path: '/notifications'    },
-    { icon: Settings,        label: 'Settings',         path: '/settings'         },
+    { icon: LayoutDashboard, labelKey: 'nav.dashboard',        path: '/dashboard'        },
+    { icon: Users,           labelKey: 'nav.manageUsers',      path: '/admin/users'      },
+    { icon: Stethoscope,     labelKey: 'nav.manageDoctors',    path: '/admin/doctors'    },
+    { icon: UserRound,       labelKey: 'nav.managePatients',   path: '/patients'         },
+    { icon: CalendarDays,    labelKey: 'nav.appointments',     path: '/appointments'     },
+    { icon: FileText,        labelKey: 'nav.medicalRecords',   path: '/records'          },
+    { icon: CreditCard,      labelKey: 'nav.billing',          path: '/billing'          },
+    { icon: Building2,       labelKey: 'nav.departments',      path: '/admin/departments'},
+    { icon: Star,            labelKey: 'nav.reviews',          path: '/admin/reviews'    },
+    { icon: BarChart3,       labelKey: 'nav.analytics',        path: '/admin/analytics'  },
+    { icon: AlertTriangle,   labelKey: 'nav.emergency',        path: '/admin/emergency'  },
+    { icon: FileUp,          labelKey: 'nav.importExport',     path: '/import-export'    },
+    { icon: Download,        labelKey: 'nav.reports',          path: '/reports'          },
+    { icon: Bell,            labelKey: 'nav.notifications',    path: '/notifications'    },
+    { icon: Settings,        labelKey: 'nav.settings',         path: '/settings'         },
   ],
   doctor: [
-    { icon: LayoutDashboard, label: 'Dashboard',        path: '/dashboard'           },
-    { icon: CalendarDays,    label: 'My Appointments',  path: '/doctor/appointments' },
-    { icon: UserRound,       label: 'My Patients',      path: '/doctor/patients'     },
-    { icon: FileText,        label: 'Consultations',    path: '/doctor/consultations'},
-    { icon: Clock,           label: 'My Schedule',      path: '/doctor/schedule'     },
-    { icon: Download,        label: 'Reports',          path: '/reports'             },
-    { icon: Star,            label: 'My Reviews',       path: '/doctor/reviews'      },
-    { icon: DollarSign,      label: 'My Earnings',      path: '/doctor/earnings'     },
-    { icon: AlertTriangle,  label: 'Emergency',        path: '/doctor/emergency'   },
-    { icon: Bell,            label: 'Notifications',    path: '/notifications'       },
-    { icon: Settings,        label: 'Settings',         path: '/settings'            },
+    { icon: LayoutDashboard, labelKey: 'nav.dashboard',       path: '/dashboard'           },
+    { icon: CalendarDays,    labelKey: 'nav.myAppointments',  path: '/doctor/appointments' },
+    { icon: UserRound,       labelKey: 'nav.myPatients',      path: '/doctor/patients'     },
+    { icon: FileText,        labelKey: 'nav.consultations',   path: '/doctor/consultations'},
+    { icon: Clock,           labelKey: 'nav.mySchedule',      path: '/doctor/schedule'     },
+    { icon: Download,        labelKey: 'nav.reports',         path: '/reports'             },
+    { icon: Star,            labelKey: 'nav.myReviews',       path: '/doctor/reviews'      },
+    { icon: DollarSign,      labelKey: 'nav.myEarnings',      path: '/doctor/earnings'     },
+    { icon: AlertTriangle,   labelKey: 'nav.emergency',       path: '/doctor/emergency'    },
+    { icon: Bell,            labelKey: 'nav.notifications',   path: '/notifications'       },
+    { icon: Settings,        labelKey: 'nav.settings',        path: '/settings'            },
   ],
   patient: [
-    { icon: LayoutDashboard, label: 'Dashboard',         path: '/dashboard'            },
-    { icon: Search,          label: 'Find Doctors',      path: '/patient/doctors'      },
-    { icon: CalendarDays,    label: 'My Appointments',   path: '/patient/appointments' },
-    { icon: TestTube,       label: 'Lab Services',    path: '/patient/services'    },
-    { icon: AlertTriangle,  label: 'Emergency',        path: '/patient/emergency'   },
-    { icon: FileText,        label: 'Medical Records', path: '/patient/records'    },
-    { icon: FileUp,          label: 'Upload Files',     path: '/upload'              },
-    { icon: Download,        label: 'My Reports',        path: '/patient/reports'      },
-    { icon: CreditCard,      label: 'My Billing',        path: '/patient/billing'      },
-    { icon: DollarSign,      label: 'Payments',          path: '/patient/payment'      },
-    { icon: Star,            label: 'My Reviews',        path: '/patient/reviews'      },
-    { icon: Bell,            label: 'Notifications',     path: '/notifications'        },
-    { icon: Settings,        label: 'Settings',          path: '/settings'             },
+    { icon: LayoutDashboard, labelKey: 'nav.dashboard',       path: '/dashboard'            },
+    { icon: Search,          labelKey: 'nav.findDoctors',     path: '/patient/doctors'      },
+    { icon: CalendarDays,    labelKey: 'nav.myAppointments',  path: '/patient/appointments' },
+    { icon: TestTube,        labelKey: 'nav.labServices',     path: '/patient/services'     },
+    { icon: AlertTriangle,   labelKey: 'nav.emergency',       path: '/patient/emergency'    },
+    { icon: FileText,        labelKey: 'nav.medicalRecords',  path: '/patient/records'      },
+    { icon: FileUp,          labelKey: 'nav.uploadFiles',     path: '/upload'               },
+    { icon: Download,        labelKey: 'nav.myReports',       path: '/patient/reports'      },
+    { icon: CreditCard,      labelKey: 'nav.myBilling',       path: '/patient/billing'      },
+    { icon: DollarSign,      labelKey: 'nav.payments',        path: '/patient/payment'      },
+    { icon: Star,            labelKey: 'nav.myReviews',       path: '/patient/reviews'      },
+    { icon: Bell,            labelKey: 'nav.notifications',   path: '/notifications'        },
+    { icon: Settings,        labelKey: 'nav.settings',        path: '/settings'             },
   ],
 };
 
@@ -67,6 +68,7 @@ export default function AppSidebar() {
   const handleLogout = () => { logout(); navigate('/login'); };
 
   const navItems = navConfig[user?.role] || navConfig.patient;
+  const language = user?.settings?.language || 'en';
 
   return (
     <aside className={`fixed left-0 top-0 h-screen bg-sidebar text-sidebar-foreground flex flex-col transition-all duration-300 z-50 shadow-2xl ${collapsed ? 'w-[72px]' : 'w-64'}`}>
@@ -93,7 +95,7 @@ export default function AppSidebar() {
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-sidebar-foreground truncate">{user.name}</p>
               <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full capitalize ${roleBadgeColor[user.role] || 'bg-muted text-muted-foreground'}`}>
-                {user.role}
+                {t(`role.${user.role}`, language)}
               </span>
             </div>
             <NotificationBell />
@@ -103,8 +105,9 @@ export default function AppSidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 py-3 px-2 space-y-0.5 overflow-y-auto">
-        {navItems.map(({ icon: Icon, label, path }) => {
+        {navItems.map(({ icon: Icon, labelKey, path }) => {
           const isActive = location.pathname === path;
+          const label = t(labelKey, language);
           return (
             <Link key={path} to={path}
               title={collapsed ? label : undefined}
@@ -119,10 +122,10 @@ export default function AppSidebar() {
       {/* Footer */}
       <div className={`px-2 pb-4 border-t border-sidebar-border pt-3 ${collapsed ? 'flex justify-center' : ''}`}>
         <button onClick={handleLogout}
-          title={collapsed ? 'Logout' : undefined}
+          title={collapsed ? t('common.logout', language) : undefined}
           className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors w-full ${collapsed ? 'justify-center' : ''}`}>
           <LogOut className="w-[18px] h-[18px] flex-shrink-0" />
-          {!collapsed && <span className="text-sm">Logout</span>}
+          {!collapsed && <span className="text-sm">{t('common.logout', language)}</span>}
         </button>
       </div>
 

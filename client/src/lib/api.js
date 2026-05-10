@@ -1,4 +1,6 @@
 // ─── Mock data for offline / no-backend mode ───────────────────────────────
+import { DEFAULT_USER_SETTINGS } from './settings';
+
 const LAB_SERVICES = [
   { id: 'bp_check', name: 'Blood Pressure Check', price: 100, category: 'Basic' },
   { id: 'blood_sugar', name: 'Blood Sugar Test', price: 150, category: 'Lab' },
@@ -9,27 +11,6 @@ const LAB_SERVICES = [
   { id: 'lipid_profile', name: 'Lipid Profile', price: 450, category: 'Lab' },
   { id: 'thyroid', name: 'Thyroid Panel', price: 500, category: 'Lab' },
 ];
-
-const DEFAULT_USER_SETTINGS = {
-  emailNotifications: true,
-  smsAlerts: true,
-  systemNotifications: true,
-  weeklyReports: false,
-  appointmentReminders: true,
-  labResultEmails: true,
-  criticalAlerts: true,
-  adminDigest: true,
-  doctorScheduleAlerts: true,
-  patientRecordSharing: false,
-  theme: 'system',
-  density: 'comfortable',
-  language: 'en',
-  timezone: 'Asia/Calcutta',
-  defaultDashboard: 'overview',
-  twoFactorEnabled: false,
-  dataSharing: false,
-  profileVisibility: 'care_team',
-};
 
 let MOCK_USERS = {
   'admin@medicare.com':       { id: '1', name: 'Admin User',      email: 'admin@medicare.com',       role: 'admin',   password: 'password', phone: '', status: 'active', isVerified: true },

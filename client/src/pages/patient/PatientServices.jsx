@@ -61,9 +61,11 @@ export default function PatientServices() {
       await api.createBill({
         patient: user?.name,
         patientId: user?.id || user?._id,
+        doctor: 'Lab Services',
         service: selectedServices.map(s => s.name).join(', '),
         amount: totalAmount,
         services: selectedServices,
+        source: 'lab',
         date: new Date().toISOString().split('T')[0],
         status: 'Pending'
       });
