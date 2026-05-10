@@ -1,9 +1,0 @@
-(node:3892) [MONGOOSE] Warning: Duplicate schema index on {"createdAt":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
-(Use `node --trace-warnings ...` to show where the warning was created)
-⚠️ Mongoose disconnected
-❌ MongoDB connection error: querySrv ECONNREFUSED _mongodb._tcp.cluster0.avvnhcg.mongodb.net
-   Error code: ECONNREFUSED
-   Error name: Error
-   Full URI used (redacted): mongodb+srv://***:***@cluster0.avvnhcg.mongodb.net/medicore?retryWrites=true&w=majority&appName=Cluster0
-   Stack trace: Error: querySrv ECONNREFUSED _mongodb._tcp.cluster0.avvnhcg.mongodb.net
-    at QueryReqWrap.onresolve [as oncomplete] (node:internal/dns/promises:294:17)
