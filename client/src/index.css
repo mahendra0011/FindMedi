@@ -73,6 +73,14 @@
     --sidebar-border: 210 25% 15%;
     --sidebar-ring: 174 62% 48%;
   }
+
+  :root[data-density='compact'] {
+    --radius: 0.5rem;
+  }
+
+  :root[data-density='spacious'] {
+    --radius: 1rem;
+  }
 }
 
 @layer base {
@@ -88,4 +96,9 @@
   .page-header { @apply mb-8; }
   .page-title  { @apply text-3xl font-bold tracking-tight text-foreground; font-family: var(--font-heading); }
   .page-subtitle { @apply text-muted-foreground mt-1; }
+
+  :root[data-density='compact'] .page-header { @apply mb-5; }
+  :root[data-density='compact'] .stat-card { @apply p-4; }
+  :root[data-density='spacious'] .page-header { @apply mb-10; }
+  :root[data-density='spacious'] .stat-card { @apply p-8; }
 }

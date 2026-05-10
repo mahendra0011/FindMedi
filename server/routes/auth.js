@@ -61,6 +61,7 @@ const userResponse = async (user) => {
     role: user.role,
     avatar: user.avatar,
     phone: user.phone,
+    address: user.address,
     gender: user.gender,
     dateOfBirth: user.dateOfBirth,
     specialization: user.specialization,
@@ -75,6 +76,7 @@ const userResponse = async (user) => {
       : 'not_required',
     doctorApproved,
     doctorProfileId: doctorProfile?._id,
+    settings: user.settings || {},
   };
 };
 
@@ -500,15 +502,86 @@ router.get('/me', protect, async (req, res) => {
   res.json(await userResponse(user));
 });
 
+// PUT /api/auth/change-password
+router.put('/change-password', protect, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: 'Current password and new password are required' });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: 'New password must be at least 6 characters' });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user || !(await user.comparePassword(currentPassword))) {
+      return res.status(400).json({ message: 'Current password is incorrect' });
+    }
+
+    user.password = newPassword;
+    await user.save();
+    await sendPasswordChangedEmail(user);
+
+    res.json({ message: 'Password updated successfully' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // PUT /api/auth/profile
 router.put('/profile', protect, async (req, res) => {
   try {
-    const { name, phone, avatar, gender, dateOfBirth } = req.body;
-    const user = await User.findByIdAndUpdate(
-      req.user.id,
-      { name, phone, avatar, gender, dateOfBirth },
-      { new: true, runValidators: true }
-    ).select('-password');
+    const {
+      name,
+      phone,
+      avatar,
+      address,
+      gender,
+      dateOfBirth,
+      specialization,
+      experience,
+      qualification,
+      licenseNumber,
+      consultationFee,
+      settings,
+    } = req.body;
+
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    if (name !== undefined) user.name = name;
+    if (phone !== undefined) user.phone = phone;
+    if (avatar !== undefined) user.avatar = avatar;
+    if (address !== undefined) user.address = address;
+    if (gender !== undefined) user.gender = gender;
+    if (dateOfBirth !== undefined) user.dateOfBirth = dateOfBirth || undefined;
+    if (specialization !== undefined) user.specialization = specialization;
+    if (experience !== undefined) user.experience = experience;
+    if (qualification !== undefined) user.qualification = qualification;
+    if (licenseNumber !== undefined) user.licenseNumber = licenseNumber;
+    if (consultationFee !== undefined) user.consultationFee = Number(consultationFee) || 0;
+    if (settings && typeof settings === 'object') user.settings = { ...(user.settings || {}), ...settings };
+
+    await user.save();
+
+    if (user.role === 'doctor') {
+      await Doctor.findOneAndUpdate(
+        { $or: [{ user_id: user._id.toString() }, { email: user.email }] },
+        {
+          name: user.name,
+          phone: user.phone,
+          specialization: user.specialization,
+          experience: user.experience || '1 year',
+          qualifications: user.qualification,
+          fees: Number(user.consultationFee) || 500,
+          consultation_fees: Number(user.consultationFee) || 500,
+        },
+        { new: true }
+      );
+    }
+
     res.json(await userResponse(user));
   } catch (err) {
     res.status(500).json({ message: err.message });

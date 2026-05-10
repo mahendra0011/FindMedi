@@ -1,18 +1,15 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { CreditCard, Search, Calendar, CheckCircle, AlertCircle, XCircle, IndianRupee, Loader2, Download, Printer } from 'lucide-react';
+import { Search, Calendar, Download } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/context/AuthContext';
-import { api, getStoredAuthToken } from '@/lib/api';
+import { downloadInvoicePdf, getStoredAuthToken } from '@/lib/api';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 const statusColors = { Paid: 'bg-success/10 text-success', Pending: 'bg-warning/10 text-warning', Overdue: 'bg-destructive/10 text-destructive', Partial: 'bg-info/10 text-info' };
 
 export default function PatientBilling() {
-  const { user } = useAuth();
   const [bills, setBills] = useState([]);
-  const [summary, setSummary] = useState({ total: 0, paid: 0 });
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -29,7 +26,6 @@ export default function PatientBilling() {
       const data = await res.json();
       if (data.bills) {
         setBills(data.bills);
-        setSummary(data.summary || { total: 0, paid: 0 });
       }
     } catch (error) {
       console.error('Error fetching billing:', error);
@@ -37,62 +33,20 @@ export default function PatientBilling() {
     setLoading(false);
   };
 
-  const handlePayBill = async (billId) => {
+  const downloadInvoice = async (bill) => {
     try {
-      await fetch(`${API_URL}/billing/${billId}/pay`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${getStoredAuthToken()}`
-        },
-        body: JSON.stringify({ paymentMethod: 'card' })
-      });
-      loadBilling();
+      await downloadInvoicePdf(bill._id, `${bill.invoiceId || 'invoice'}.pdf`);
     } catch (error) {
-      console.error('Error paying bill:', error);
+      alert(error.message || 'Unable to download invoice');
     }
   };
 
-  const downloadInvoice = (bill) => {
-    const content = `
-========================================
-          MEDICORE HOSPITAL
-========================================
-INVOICE: ${bill.invoiceId}
-Date: ${bill.date || new Date().toISOString().split('T')[0]}
-Due Date: ${bill.dueDate || 'N/A'}
-----------------------------------------
-PATIENT DETAILS
-----------------------------------------
-Name: ${user?.name || bill.patient}
-Email: ${bill.patientId?.email || 'N/A'}
-Phone: ${bill.patientId?.phone || 'N/A'}
-----------------------------------------
-APPOINTMENT DETAILS
-----------------------------------------
-Service: ${bill.service}
-Doctor: ${bill.doctorId?.name || bill.doctor || 'N/A'}
-Specialization: ${bill.doctorId?.specialization || 'General'}
-----------------------------------------
-PAYMENT DETAILS
-----------------------------------------
-Amount: Rs ${bill.amount}
-Paid: Rs ${bill.paid}
-Outstanding: Rs ${bill.amount - bill.paid}
-Status: ${bill.status}
-Payment Method: ${bill.paymentMethod || 'Pending'}
-Transaction ID: ${bill.transactionId || 'N/A'}
-========================================
-    `.trim();
-    
-    const blob = new Blob([content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `invoice_${bill.invoiceId}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+  const filteredBills = bills.filter((bill) => {
+    const query = search.trim().toLowerCase();
+    if (!query) return true;
+    return [bill.invoiceId, bill.service, bill.doctor, bill.doctorId?.name, bill.status]
+      .some((value) => String(value || '').toLowerCase().includes(query));
+  });
 
   useEffect(() => { loadBilling(); }, []);
 
@@ -112,11 +66,11 @@ Transaction ID: ${bill.transactionId || 'N/A'}
       {/* Bills */}
       {loading ? (
         <div className="flex justify-center py-12"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>
-      ) : bills.length === 0 ? (
+      ) : filteredBills.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">No billing records found</div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {bills.map((bill, i) => (
+          {filteredBills.map((bill, i) => (
             <motion.div key={bill._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
               className="bg-card rounded-2xl border border-border/60 p-5 hover:shadow-lg transition-all">
               <div className="flex items-start justify-between mb-3">

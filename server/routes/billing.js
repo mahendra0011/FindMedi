@@ -4,6 +4,7 @@ import Notification from '../models/Notification.js';
 import User from '../models/User.js';
 import Doctor from '../models/Doctor.js';
 import { protect } from '../middleware/auth.js';
+import { generateInvoicePDF } from '../services/pdfService.js';
 
 const router = express.Router();
 
@@ -140,13 +141,27 @@ router.post('/', protect, async (req, res) => {
       finalAmount = services.reduce((sum, s) => sum + (s.price || 0), 0);
       finalService = services.map(s => s.name).join(', ');
     }
+
+    let finalDoctorId = doctorId;
+    let finalDoctor = doctor || req.user?.name || 'Lab Services';
+    if (!finalDoctorId && req.user?.role === 'doctor') {
+      const doctorProfile = await Doctor.findOne({
+        $or: [
+          { user_id: req.user._id.toString() },
+          { email: req.user.email },
+          { name: new RegExp(req.user.name, 'i') },
+        ],
+      });
+      finalDoctorId = doctorProfile?._id || null;
+      finalDoctor = doctorProfile?.name || finalDoctor;
+    }
     
     const bill = await Billing.create({
       invoiceId,
       patient: finalPatient,
       patientId: finalPatientId,
-      doctor: doctor || req.user?.name || 'Lab Services',
-      doctorId: doctorId || (req.user?.role === 'doctor' ? req.user._id : null),
+      doctor: finalDoctor,
+      doctorId: finalDoctorId,
       service: finalService,
       amount: finalAmount,
       date: date || new Date().toISOString().split('T')[0],
@@ -155,11 +170,42 @@ router.post('/', protect, async (req, res) => {
     });
     
     if (finalPatientId) {
-      await createNotification(finalPatientId.toString(), 'New Invoice', `Invoice ${invoiceId} of Rs ${amount} for ${service}`, 'payment');
+      await createNotification(finalPatientId.toString(), 'New Invoice', `Invoice ${invoiceId} of Rs ${finalAmount} for ${finalService}`, 'payment');
     }
     
     res.status(201).json(bill);
   } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+router.get('/:id/invoice', protect, async (req, res) => {
+  try {
+    const bill = await Billing.findById(req.params.id)
+      .populate('patientId', 'name email phone')
+      .populate('doctorId', 'name specialization email user_id');
+
+    if (!bill) return res.status(404).json({ message: 'Invoice not found' });
+
+    const isPatientOwner = req.user.role === 'patient' && (
+      String(bill.patientId?._id || bill.patientId || '') === String(req.user._id)
+      || bill.patient === req.user.name
+    );
+    const isDoctorOwner = req.user.role === 'doctor' && (
+      bill.doctor === req.user.name
+      || String(bill.doctorId?._id || '') === String(req.user._id)
+      || String(bill.doctorId?.user_id || '') === String(req.user._id)
+    );
+
+    if (req.user.role !== 'admin' && !isPatientOwner && !isDoctorOwner) {
+      return res.status(403).json({ message: 'Not authorized to download this invoice' });
+    }
+
+    const pdfBuffer = await generateInvoicePDF(bill);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=${bill.invoiceId || 'invoice'}.pdf`);
+    res.send(pdfBuffer);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
 router.post('/:id/pay', protect, async (req, res) => {

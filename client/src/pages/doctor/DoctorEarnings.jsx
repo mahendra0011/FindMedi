@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/AuthContext';
-import { api } from '@/lib/api';
+import { api, downloadInvoicePdf } from '@/lib/api';
 
 const statusColors = { 
   Paid: 'bg-success/10 text-success', 
@@ -45,6 +45,14 @@ export default function DoctorEarnings() {
     const matchesStatus = statusFilter === 'All' || b.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  const downloadInvoice = async (bill) => {
+    try {
+      await downloadInvoicePdf(bill._id, `${bill.invoiceId || 'invoice'}.pdf`);
+    } catch (error) {
+      alert(error.message || 'Unable to download invoice');
+    }
+  };
 
   const totalBilled = bills.reduce((s, b) => s + (b.amount || 0), 0);
   const totalEarned = bills.reduce((s, b) => s + (b.paid || 0), 0);
@@ -177,6 +185,7 @@ export default function DoctorEarnings() {
                   <th className="text-right text-xs font-medium text-muted-foreground px-4 py-3">Amount</th>
                   <th className="text-right text-xs font-medium text-muted-foreground px-4 py-3">Paid</th>
                   <th className="text-center text-xs font-medium text-muted-foreground px-4 py-3">Status</th>
+                  <th className="text-right text-xs font-medium text-muted-foreground px-4 py-3">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -192,6 +201,12 @@ export default function DoctorEarnings() {
                       <Badge className={statusColors[bill.status] || 'bg-muted text-muted-foreground'}>
                         {bill.status}
                       </Badge>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <Button size="sm" variant="outline" onClick={() => downloadInvoice(bill)} className="gap-2">
+                        <Download className="w-3.5 h-3.5" />
+                        PDF
+                      </Button>
                     </td>
                   </tr>
                 ))}

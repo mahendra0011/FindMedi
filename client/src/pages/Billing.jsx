@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, Plus, IndianRupee, TrendingUp, AlertCircle, CheckCircle, X, Trash2 } from 'lucide-react';
+import { Search, Plus, IndianRupee, AlertCircle, CheckCircle, X, Trash2, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { api } from '@/lib/api';
+import { api, downloadInvoicePdf } from '@/lib/api';
 
 const statusCls = {
   Paid:    'bg-success/10 text-success',
@@ -33,6 +33,13 @@ export default function Billing() {
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const submit = (e) => { e.preventDefault(); createMut.mutate({ ...form, amount: Number(form.amount), paid: Number(form.paid) }); };
+  const downloadInvoice = async (bill) => {
+    try {
+      await downloadInvoicePdf(bill._id, `${bill.invoiceId || 'invoice'}.pdf`);
+    } catch (error) {
+      alert(error.message || 'Unable to download invoice');
+    }
+  };
 
   const outstanding = (summary.total ?? 0) - (summary.paid ?? 0);
 
@@ -123,6 +130,10 @@ export default function Billing() {
                   <td className="px-4 py-3 text-xs text-muted-foreground">{b.dueDate}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => downloadInvoice(b)}
+                        className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors" title="Download Invoice">
+                        <Download className="w-4 h-4" />
+                      </button>
                       {b.status !== 'Paid' && (
                         <button onClick={() => markPaidMut.mutate({ id: b._id, amount: b.amount })}
                           className="p-1.5 rounded-lg text-muted-foreground hover:text-success hover:bg-success/10 transition-colors" title="Mark Paid">

@@ -10,6 +10,27 @@ const LAB_SERVICES = [
   { id: 'thyroid', name: 'Thyroid Panel', price: 500, category: 'Lab' },
 ];
 
+const DEFAULT_USER_SETTINGS = {
+  emailNotifications: true,
+  smsAlerts: true,
+  systemNotifications: true,
+  weeklyReports: false,
+  appointmentReminders: true,
+  labResultEmails: true,
+  criticalAlerts: true,
+  adminDigest: true,
+  doctorScheduleAlerts: true,
+  patientRecordSharing: false,
+  theme: 'system',
+  density: 'comfortable',
+  language: 'en',
+  timezone: 'Asia/Calcutta',
+  defaultDashboard: 'overview',
+  twoFactorEnabled: false,
+  dataSharing: false,
+  profileVisibility: 'care_team',
+};
+
 let MOCK_USERS = {
   'admin@medicare.com':       { id: '1', name: 'Admin User',      email: 'admin@medicare.com',       role: 'admin',   password: 'password', phone: '', status: 'active', isVerified: true },
   'sarah.smith@medicare.com': { id: '2', name: 'Dr. Sarah Smith', email: 'sarah.smith@medicare.com', role: 'doctor',  password: 'password', phone: '', status: 'active', isVerified: true },
@@ -176,15 +197,60 @@ const mock = {
     const payload = JSON.parse(atob(raw));
     const u = Object.values(MOCK_USERS).find(x => x.id === payload.id);
     if (!u) throw new Error('User not found');
-    return { id: u.id, name: u.name, email: u.email, role: u.role, phone: u.phone || '', isVerified: u.isVerified };
+    return {
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      role: u.role,
+      phone: u.phone || '',
+      address: u.address || '',
+      gender: u.gender || '',
+      dateOfBirth: u.dateOfBirth || '',
+      avatar: u.avatar || '',
+      specialization: u.specialization || '',
+      experience: u.experience || '',
+      qualification: u.qualification || '',
+      licenseNumber: u.licenseNumber || '',
+      consultationFee: u.consultationFee || 0,
+      isVerified: u.isVerified,
+      settings: { ...DEFAULT_USER_SETTINGS, ...(u.settings || {}) },
+    };
   },
-  async updateProfile({ name, phone }) {
+  async updateProfile(body) {
     await delay();
     const raw = localStorage.getItem('hms_token');
     const payload = JSON.parse(atob(raw));
     const u = Object.values(MOCK_USERS).find(x => x.id === payload.id);
-    if (u) { u.name = name; u.phone = phone; }
-    return { id: u.id, name, email: u.email, role: u.role, phone };
+    if (!u) throw new Error('User not found');
+    Object.assign(u, body, { settings: { ...DEFAULT_USER_SETTINGS, ...(u.settings || {}), ...(body.settings || {}) } });
+    return {
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      role: u.role,
+      phone: u.phone || '',
+      address: u.address || '',
+      gender: u.gender || '',
+      dateOfBirth: u.dateOfBirth || '',
+      avatar: u.avatar || '',
+      specialization: u.specialization || '',
+      experience: u.experience || '',
+      qualification: u.qualification || '',
+      licenseNumber: u.licenseNumber || '',
+      consultationFee: u.consultationFee || 0,
+      isVerified: u.isVerified,
+      settings: { ...DEFAULT_USER_SETTINGS, ...(u.settings || {}) },
+    };
+  },
+  async changePassword({ currentPassword, newPassword }) {
+    await delay();
+    const raw = localStorage.getItem('hms_token');
+    const payload = JSON.parse(atob(raw));
+    const u = Object.values(MOCK_USERS).find(x => x.id === payload.id);
+    if (!u || u.password !== currentPassword) throw new Error('Current password is incorrect');
+    if (!newPassword || newPassword.length < 6) throw new Error('New password must be at least 6 characters');
+    u.password = newPassword;
+    return { message: 'Password updated successfully' };
   },
 
   async verifyOTP({ email, otp }) {
@@ -605,7 +671,7 @@ fetch(`${BASE}/health`, { signal: AbortSignal.timeout(20000) })
 
 // Smart dispatcher: tries backend first, falls back to mock only for non-critical ops
 // Auth operations must use backend - fail if backend is unavailable (don't silently use mock)
-const AUTH_PATHS = ['/auth/login', '/auth/register', '/auth/me', '/auth/profile', '/auth/verify-otp', '/auth/resend-otp', '/auth/forgot-password', '/auth/reset-password'];
+const AUTH_PATHS = ['/auth/login', '/auth/register', '/auth/me', '/auth/profile', '/auth/change-password', '/auth/verify-otp', '/auth/resend-otp', '/auth/forgot-password', '/auth/reset-password'];
 function isAuthPath(path) {
   return AUTH_PATHS.some(p => path.startsWith(p));
 }
@@ -684,6 +750,34 @@ async function dispatch(mockFn, realPath, realOpts) {
   return mockFn();
 }
 
+export async function downloadInvoicePdf(billId, filename = 'invoice.pdf') {
+  const token = getStoredAuthToken();
+  const res = await fetch(`${BASE}/billing/${billId}/invoice`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+
+  if (!res.ok) {
+    let message = 'Unable to download invoice';
+    try {
+      const data = await res.json();
+      message = data.message || message;
+    } catch {
+      // Keep the generic message for non-JSON failures.
+    }
+    throw new Error(message);
+  }
+
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 // ─── Public API surface ────────────────────────────────────────────────────
 export const api = {
   login:         (body)    => dispatch(() => mock.login(body),                         '/auth/login',       { method:'POST', body: JSON.stringify(body) }),
@@ -694,6 +788,7 @@ export const api = {
   resetPassword: (body)    => dispatch(() => Promise.resolve({ message: 'Password updated successfully. You can now login.' }), '/auth/reset-password', { method:'POST', body: JSON.stringify(body) }),
   me:            ()        => dispatch(() => mock.me(),                                '/auth/me'),
   updateProfile: (body)    => dispatch(() => mock.updateProfile(body),                 '/auth/profile',     { method:'PUT',  body: JSON.stringify(body) }),
+  changePassword:(body)    => dispatch(() => mock.changePassword(body),                '/auth/change-password', { method:'PUT', body: JSON.stringify(body) }),
   dashboardStats:()        => dispatch(() => mock.dashboardStats(),                    '/dashboard/stats'),
 
   getUsers:      (p={})    => dispatch(() => mock.getUsers(p),                         '/users?'             + new URLSearchParams(p)),
