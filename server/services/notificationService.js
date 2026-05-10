@@ -9,12 +9,19 @@ export const sendEmail = async ({ to, subject, text, html, attachments }) => {
   }
 
   try {
+    if (!html && !text) {
+      return {
+        success: false,
+        error: 'Email requires either html or text content before sending to Brevo',
+      };
+    }
+
     const payload = {
       sender: { email: BREVO_SENDER_EMAIL, name: 'MediCore Hospital' },
       to: [{ email: to }],
       subject,
-      text,
-      html,
+      textContent: text,
+      htmlContent: html,
     };
 
     if (attachments && attachments.length > 0) {
