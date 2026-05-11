@@ -46,18 +46,18 @@ router.get('/', async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.get('/:id', protect, async (req, res) => {
-  try {
-    const doctor = await Doctor.findById(req.params.id);
-    if (!doctor) return res.status(404).json({ message: 'Doctor not found' });
-    res.json(doctor);
-  } catch (err) { res.status(500).json({ message: err.message }); }
-});
-
 router.get('/user/:userId', protect, async (req, res) => {
   try {
     const doctor = await Doctor.findOne({ user_id: req.params.userId });
     if (!doctor) return res.status(404).json({ message: 'Doctor profile not found' });
+    res.json(doctor);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+router.get('/:id', protect, async (req, res) => {
+  try {
+    const doctor = await Doctor.findById(req.params.id);
+    if (!doctor) return res.status(404).json({ message: 'Doctor not found' });
     res.json(doctor);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });

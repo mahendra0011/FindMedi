@@ -10,8 +10,12 @@ dotenv.config({ path: path.join(__dirname, '.env') });
 import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
+import { configureMongoDns } from './config/mongoDns.js';
 
 const app = express();
+configureMongoDns();
+
+const redactMongoUri = (uri) => uri.replace(/\/\/([^:]+):([^@]+)@/, '//***:***@');
 
 console.log('🔍 Environment check:', {
   PORT: process.env.PORT || 'not set',
@@ -114,7 +118,7 @@ const mongooseOptions = {
 };
 
 console.log('🔄 Attempting MongoDB connection...');
-console.log('   URI (first 50 chars):', MONGO_URI.substring(0, 50) + '...');
+console.log('   URI:', redactMongoUri(MONGO_URI));
 
 mongoose.connect(MONGO_URI, mongooseOptions)
   .then(() => {
@@ -129,7 +133,7 @@ mongoose.connect(MONGO_URI, mongooseOptions)
     console.error('❌ MongoDB connection error:', err.message);
     console.error('   Error code:', err.code);
     console.error('   Error name:', err.name);
-    console.error('   Full URI used (redacted):', MONGO_URI.replace(/\/\/([^:]+):([^@]+)/, '//***:***'));
+    console.error('   Full URI used (redacted):', redactMongoUri(MONGO_URI));
     // Log stack trace in development only
     if (process.env.NODE_ENV !== 'production') {
       console.error('   Stack trace:', err.stack);
