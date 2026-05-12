@@ -12,7 +12,7 @@ const StatCard = ({
     negative: "text-destructive",
     neutral: "text-muted-foreground"
   };
-  return <div className="stat-card group">
+  return <div data-motion-reveal className="stat-card group">
       <div className="flex items-start justify-between">
         <div>
           <p className="text-sm text-muted-foreground font-medium">{title}</p>

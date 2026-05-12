@@ -21,7 +21,7 @@ export default function DashboardLayout({ children }) {
     <div className="min-h-screen bg-background">
       <AppSidebar />
       <main
-        className="min-h-screen p-6 md:p-8 transition-all duration-300 animate-fade-in"
+        className="dashboard-main min-h-screen p-6 md:p-8 transition-all duration-300"
         style={{ marginLeft: sidebarWidth }}
       >
         {children}

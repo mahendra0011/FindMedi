@@ -7,6 +7,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { NotificationProvider } from '@/context/NotificationContext';
 import DashboardLayout from './components/DashboardLayout';
+import AppMotion from './components/AppMotion';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
@@ -136,62 +137,64 @@ function RoleDashboard() {
           <Sonner />
           <LenisScroll>
             <BrowserRouter>
-              <Routes>
-                {/* Public routes */}
-                <Route path="/" element={<Home />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/signup" element={<Signup />} />
-                <Route path="/forgot-password" element={<ForgotPassword />} />
-                <Route path="/verify-otp" element={<OTPVerification />} />
-                <Route path="/pending-approval" element={<PendingApproval />} />
+              <AppMotion>
+                <Routes>
+                  {/* Public routes */}
+                  <Route path="/" element={<Home />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/signup" element={<Signup />} />
+                  <Route path="/forgot-password" element={<ForgotPassword />} />
+                  <Route path="/verify-otp" element={<OTPVerification />} />
+                  <Route path="/pending-approval" element={<PendingApproval />} />
 
-                {/* Dashboard - role-based content */}
-                <Route path="/dashboard" element={<ProtectedRoute><DashboardPage><RoleDashboard /></DashboardPage></ProtectedRoute>} />
+                  {/* Dashboard - role-based content */}
+                  <Route path="/dashboard" element={<ProtectedRoute><DashboardPage><RoleDashboard /></DashboardPage></ProtectedRoute>} />
 
-                {/* Notifications - all roles */}
-                <Route path="/notifications" element={<ProtectedRoute><DashboardPage><Notifications /></DashboardPage></ProtectedRoute>} />
+                  {/* Notifications - all roles */}
+                  <Route path="/notifications" element={<ProtectedRoute><DashboardPage><Notifications /></DashboardPage></ProtectedRoute>} />
 
-                {/* Settings - all roles */}
-                <Route path="/settings" element={<ProtectedRoute><DashboardPage><Settings /></DashboardPage></ProtectedRoute>} />
+                  {/* Settings - all roles */}
+                  <Route path="/settings" element={<ProtectedRoute><DashboardPage><Settings /></DashboardPage></ProtectedRoute>} />
 
-                {/* Admin routes */}
-                <Route path="/admin/users" element={<ProtectedRoute allowedRoles={['admin']}><DashboardPage><AdminUsers /></DashboardPage></ProtectedRoute>} />
-                <Route path="/admin/doctors" element={<ProtectedRoute allowedRoles={['admin']}><DashboardPage><AdminDoctors /></DashboardPage></ProtectedRoute>} />
-                <Route path="/admin/analytics" element={<ProtectedRoute allowedRoles={['admin']}><DashboardPage><AdminAnalytics /></DashboardPage></ProtectedRoute>} />
-                <Route path="/admin/departments" element={<ProtectedRoute allowedRoles={['admin']}><DashboardPage><AdminDepartments /></DashboardPage></ProtectedRoute>} />
-                <Route path="/admin/emergency" element={<ProtectedRoute allowedRoles={['admin']}><DashboardPage><AdminEmergency /></DashboardPage></ProtectedRoute>} />
-                <Route path="/admin/reviews" element={<ProtectedRoute allowedRoles={['admin']}><DashboardPage><AdminReviews /></DashboardPage></ProtectedRoute>} />
-                <Route path="/doctors" element={<ProtectedRoute allowedRoles={['admin']}><DashboardPage><Doctors /></DashboardPage></ProtectedRoute>} />
-                <Route path="/patients" element={<ProtectedRoute allowedRoles={['admin']}><DashboardPage><Patients /></DashboardPage></ProtectedRoute>} />
-                <Route path="/appointments" element={<ProtectedRoute allowedRoles={['admin']}><DashboardPage><Appointments /></DashboardPage></ProtectedRoute>} />
-                <Route path="/records" element={<ProtectedRoute allowedRoles={['admin']}><DashboardPage><MedicalRecords /></DashboardPage></ProtectedRoute>} />
-                <Route path="/billing" element={<ProtectedRoute allowedRoles={['admin']}><DashboardPage><Billing /></DashboardPage></ProtectedRoute>} />
-                <Route path="/reports" element={<ProtectedRoute allowedRoles={['admin', 'doctor']}><DashboardPage><PDFReports /></DashboardPage></ProtectedRoute>} />
-                <Route path="/import-export" element={<ProtectedRoute allowedRoles={['admin']}><DashboardPage><ImportExport /></DashboardPage></ProtectedRoute>} />
-                <Route path="/upload" element={<ProtectedRoute><DashboardPage><FileUpload /></DashboardPage></ProtectedRoute>} />
+                  {/* Admin routes */}
+                  <Route path="/admin/users" element={<ProtectedRoute allowedRoles={['admin']}><DashboardPage><AdminUsers /></DashboardPage></ProtectedRoute>} />
+                  <Route path="/admin/doctors" element={<ProtectedRoute allowedRoles={['admin']}><DashboardPage><AdminDoctors /></DashboardPage></ProtectedRoute>} />
+                  <Route path="/admin/analytics" element={<ProtectedRoute allowedRoles={['admin']}><DashboardPage><AdminAnalytics /></DashboardPage></ProtectedRoute>} />
+                  <Route path="/admin/departments" element={<ProtectedRoute allowedRoles={['admin']}><DashboardPage><AdminDepartments /></DashboardPage></ProtectedRoute>} />
+                  <Route path="/admin/emergency" element={<ProtectedRoute allowedRoles={['admin']}><DashboardPage><AdminEmergency /></DashboardPage></ProtectedRoute>} />
+                  <Route path="/admin/reviews" element={<ProtectedRoute allowedRoles={['admin']}><DashboardPage><AdminReviews /></DashboardPage></ProtectedRoute>} />
+                  <Route path="/doctors" element={<ProtectedRoute allowedRoles={['admin']}><DashboardPage><Doctors /></DashboardPage></ProtectedRoute>} />
+                  <Route path="/patients" element={<ProtectedRoute allowedRoles={['admin']}><DashboardPage><Patients /></DashboardPage></ProtectedRoute>} />
+                  <Route path="/appointments" element={<ProtectedRoute allowedRoles={['admin']}><DashboardPage><Appointments /></DashboardPage></ProtectedRoute>} />
+                  <Route path="/records" element={<ProtectedRoute allowedRoles={['admin']}><DashboardPage><MedicalRecords /></DashboardPage></ProtectedRoute>} />
+                  <Route path="/billing" element={<ProtectedRoute allowedRoles={['admin']}><DashboardPage><Billing /></DashboardPage></ProtectedRoute>} />
+                  <Route path="/reports" element={<ProtectedRoute allowedRoles={['admin', 'doctor']}><DashboardPage><PDFReports /></DashboardPage></ProtectedRoute>} />
+                  <Route path="/import-export" element={<ProtectedRoute allowedRoles={['admin']}><DashboardPage><ImportExport /></DashboardPage></ProtectedRoute>} />
+                  <Route path="/upload" element={<ProtectedRoute><DashboardPage><FileUpload /></DashboardPage></ProtectedRoute>} />
 
-                {/* Patient routes */}
-                <Route path="/patient/doctors" element={<ProtectedRoute allowedRoles={['patient']}><DashboardPage><PatientDoctors /></DashboardPage></ProtectedRoute>} />
-                <Route path="/patient/appointments" element={<ProtectedRoute allowedRoles={['patient']}><DashboardPage><PatientAppointments /></DashboardPage></ProtectedRoute>} />
-                <Route path="/patient/records" element={<ProtectedRoute allowedRoles={['patient']}><DashboardPage><PatientRecords /></DashboardPage></ProtectedRoute>} />
-                <Route path="/patient/reports" element={<ProtectedRoute allowedRoles={['patient']}><DashboardPage><PatientReports /></DashboardPage></ProtectedRoute>} />
-                <Route path="/patient/reviews" element={<ProtectedRoute allowedRoles={['patient']}><DashboardPage><PatientReviews /></DashboardPage></ProtectedRoute>} />
-                <Route path="/patient/billing" element={<ProtectedRoute allowedRoles={['patient']}><DashboardPage><PatientBilling /></DashboardPage></ProtectedRoute>} />
-                <Route path="/patient/payment" element={<ProtectedRoute allowedRoles={['patient']}><DashboardPage><PatientPayment /></DashboardPage></ProtectedRoute>} />
-                <Route path="/patient/services" element={<ProtectedRoute allowedRoles={['patient']}><DashboardPage><PatientServices /></DashboardPage></ProtectedRoute>} />
-                <Route path="/patient/emergency" element={<ProtectedRoute allowedRoles={['patient']}><DashboardPage><PatientEmergency /></DashboardPage></ProtectedRoute>} />
+                  {/* Patient routes */}
+                  <Route path="/patient/doctors" element={<ProtectedRoute allowedRoles={['patient']}><DashboardPage><PatientDoctors /></DashboardPage></ProtectedRoute>} />
+                  <Route path="/patient/appointments" element={<ProtectedRoute allowedRoles={['patient']}><DashboardPage><PatientAppointments /></DashboardPage></ProtectedRoute>} />
+                  <Route path="/patient/records" element={<ProtectedRoute allowedRoles={['patient']}><DashboardPage><PatientRecords /></DashboardPage></ProtectedRoute>} />
+                  <Route path="/patient/reports" element={<ProtectedRoute allowedRoles={['patient']}><DashboardPage><PatientReports /></DashboardPage></ProtectedRoute>} />
+                  <Route path="/patient/reviews" element={<ProtectedRoute allowedRoles={['patient']}><DashboardPage><PatientReviews /></DashboardPage></ProtectedRoute>} />
+                  <Route path="/patient/billing" element={<ProtectedRoute allowedRoles={['patient']}><DashboardPage><PatientBilling /></DashboardPage></ProtectedRoute>} />
+                  <Route path="/patient/payment" element={<ProtectedRoute allowedRoles={['patient']}><DashboardPage><PatientPayment /></DashboardPage></ProtectedRoute>} />
+                  <Route path="/patient/services" element={<ProtectedRoute allowedRoles={['patient']}><DashboardPage><PatientServices /></DashboardPage></ProtectedRoute>} />
+                  <Route path="/patient/emergency" element={<ProtectedRoute allowedRoles={['patient']}><DashboardPage><PatientEmergency /></DashboardPage></ProtectedRoute>} />
 
-                {/* Doctor routes */}
-                <Route path="/doctor/appointments" element={<ProtectedRoute allowedRoles={['doctor']}><DashboardPage><DoctorAppointments /></DashboardPage></ProtectedRoute>} />
-                <Route path="/doctor/patients" element={<ProtectedRoute allowedRoles={['doctor']}><DashboardPage><DoctorPatients /></DashboardPage></ProtectedRoute>} />
-                <Route path="/doctor/consultations" element={<ProtectedRoute allowedRoles={['doctor']}><DashboardPage><DoctorConsultations /></DashboardPage></ProtectedRoute>} />
-                <Route path="/doctor/reviews" element={<ProtectedRoute allowedRoles={['doctor']}><DashboardPage><DoctorReviews /></DashboardPage></ProtectedRoute>} />
-                <Route path="/doctor/earnings" element={<ProtectedRoute allowedRoles={['doctor']}><DashboardPage><DoctorEarnings /></DashboardPage></ProtectedRoute>} />
-                <Route path="/doctor/schedule" element={<ProtectedRoute allowedRoles={['doctor']}><DashboardPage><DoctorSchedule /></DashboardPage></ProtectedRoute>} />
-                <Route path="/doctor/emergency" element={<ProtectedRoute allowedRoles={['doctor']}><DashboardPage><DoctorEmergency /></DashboardPage></ProtectedRoute>} />
+                  {/* Doctor routes */}
+                  <Route path="/doctor/appointments" element={<ProtectedRoute allowedRoles={['doctor']}><DashboardPage><DoctorAppointments /></DashboardPage></ProtectedRoute>} />
+                  <Route path="/doctor/patients" element={<ProtectedRoute allowedRoles={['doctor']}><DashboardPage><DoctorPatients /></DashboardPage></ProtectedRoute>} />
+                  <Route path="/doctor/consultations" element={<ProtectedRoute allowedRoles={['doctor']}><DashboardPage><DoctorConsultations /></DashboardPage></ProtectedRoute>} />
+                  <Route path="/doctor/reviews" element={<ProtectedRoute allowedRoles={['doctor']}><DashboardPage><DoctorReviews /></DashboardPage></ProtectedRoute>} />
+                  <Route path="/doctor/earnings" element={<ProtectedRoute allowedRoles={['doctor']}><DashboardPage><DoctorEarnings /></DashboardPage></ProtectedRoute>} />
+                  <Route path="/doctor/schedule" element={<ProtectedRoute allowedRoles={['doctor']}><DashboardPage><DoctorSchedule /></DashboardPage></ProtectedRoute>} />
+                  <Route path="/doctor/emergency" element={<ProtectedRoute allowedRoles={['doctor']}><DashboardPage><DoctorEmergency /></DashboardPage></ProtectedRoute>} />
 
-                <Route path="*" element={<NotFound />} />
-              </Routes>
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </AppMotion>
             </BrowserRouter>
           </LenisScroll>
           </TooltipProvider>

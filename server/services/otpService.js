@@ -1,5 +1,6 @@
 import OTP from '../models/OTP.js';
 import { sendEmail, sendSMS } from './notificationService.js';
+import { renderEmailTemplate, renderPlainText } from './emailTemplates.js';
 
 // OTP validity: 10 minutes
 const OTP_VALIDITY_MINUTES = 10;
@@ -90,27 +91,31 @@ export const createAndSendOTP = async ({ userId, email, type = 'email', phone = 
         ? 'Reset Your MediCore Password'
         : 'Your OTP Verification - MediCore Hospital';
       const intro = isPasswordReset
-        ? 'Your password reset verification code is:'
-        : 'Your One-Time Password (OTP) is:';
-      const text = isPasswordReset
-        ? `Your password reset OTP is: ${otpPlain}. This OTP will expire in ${OTP_VALIDITY_MINUTES} minutes.`
-        : `Your OTP for verification is: ${otpPlain}. This OTP will expire in ${OTP_VALIDITY_MINUTES} minutes.`;
+        ? 'Use this code to reset your MediCore password.'
+        : 'Use this code to verify your MediCore account.';
+      const template = {
+        title: isPasswordReset ? 'Reset your password' : 'Verify your email',
+        subtitle: intro,
+        badge: isPasswordReset ? 'Password Reset' : 'Email Verification',
+        paragraphs: [
+          `This secure code will expire in ${OTP_VALIDITY_MINUTES} minutes.`,
+          'For your safety, never share this code with anyone.',
+        ],
+        code: otpPlain,
+        details: [
+          { label: 'Purpose', value: isPasswordReset ? 'Password reset' : 'Email verification' },
+          { label: 'Expires in', value: `${OTP_VALIDITY_MINUTES} minutes` },
+        ],
+        note: "If you didn't request this code, you can safely ignore this email.",
+        tone: isPasswordReset ? 'warning' : 'default',
+        preheader: `Your MediCore verification code is ${otpPlain}.`,
+      };
 
       sendResult = await sendEmail({
         to: normalizedEmail,
         subject,
-        text,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2>${isPasswordReset ? 'Password Reset' : 'OTP Verification'}</h2>
-            <p>${intro}</p>
-            <div style="font-size: 32px; font-weight: bold; letter-spacing: 5px; margin: 20px 0; padding: 20px; background: #f5f5f5; text-align: center;">
-              ${otpPlain}
-            </div>
-            <p>This OTP will expire in <strong>${OTP_VALIDITY_MINUTES} minutes</strong>.</p>
-            <p>If you didn't request this, please ignore this email.</p>
-          </div>
-        `
+        text: renderPlainText(template),
+        html: renderEmailTemplate(template)
       });
     }
 

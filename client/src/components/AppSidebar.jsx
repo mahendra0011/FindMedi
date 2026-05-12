@@ -71,7 +71,7 @@ export default function AppSidebar() {
   const language = user?.settings?.language || 'en';
 
   return (
-    <aside className={`fixed left-0 top-0 h-screen bg-sidebar text-sidebar-foreground flex flex-col transition-all duration-300 z-50 shadow-2xl ${collapsed ? 'w-[72px]' : 'w-64'}`}>
+    <aside className={`sidebar-motion fixed left-0 top-0 h-screen bg-sidebar text-sidebar-foreground flex flex-col transition-all duration-300 z-50 shadow-2xl ${collapsed ? 'w-[72px]' : 'w-64'}`}>
       {/* Logo */}
       <div className={`flex items-center gap-3 px-4 py-5 border-b border-sidebar-border ${collapsed ? 'justify-center' : ''}`}>
         <div className="w-9 h-9 rounded-xl bg-sidebar-primary flex items-center justify-center flex-shrink-0 shadow-lg shadow-sidebar-primary/30">
@@ -111,7 +111,7 @@ export default function AppSidebar() {
           return (
             <Link key={path} to={path}
               title={collapsed ? label : undefined}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${isActive ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-lg shadow-sidebar-primary/20' : 'text-sidebar-foreground/65 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'} ${collapsed ? 'justify-center' : ''}`}>
+              className={`sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${isActive ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-lg shadow-sidebar-primary/20' : 'text-sidebar-foreground/65 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'} ${collapsed ? 'justify-center' : ''}`}>
               <Icon className={`w-[18px] h-[18px] flex-shrink-0 ${!isActive ? 'group-hover:scale-110 transition-transform' : ''}`} />
               {!collapsed && <span className="text-sm font-medium">{label}</span>}
             </Link>
@@ -123,7 +123,7 @@ export default function AppSidebar() {
       <div className={`px-2 pb-4 border-t border-sidebar-border pt-3 ${collapsed ? 'flex justify-center' : ''}`}>
         <button onClick={handleLogout}
           title={collapsed ? t('common.logout', language) : undefined}
-          className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors w-full ${collapsed ? 'justify-center' : ''}`}>
+          className={`sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-all duration-200 w-full ${collapsed ? 'justify-center' : ''}`}>
           <LogOut className="w-[18px] h-[18px] flex-shrink-0" />
           {!collapsed && <span className="text-sm">{t('common.logout', language)}</span>}
         </button>
