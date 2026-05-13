@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { useState, useEffect, useRef } from "react";
 import { api } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
 
 const heroImage = "https://cdn.hms.hospital/123/01KNC4WSYHF1637VJ39K3KVJ2M.png";
 const doctorImage = "https://alliedsoftech89.wordpress.com/wp-content/uploads/2013/06/medical-doctor-jobs-in-china-expat-jobs-in-china.jpg";
@@ -81,6 +82,7 @@ const doctors = [
 
 const Home = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [doctorsList, setDoctorsList] = useState([]);
   const [counters, setCounters] = useState(statsData.map(() => 0));
   const [countersVisible, setCountersVisible] = useState(false);
@@ -133,6 +135,13 @@ const Home = () => {
 
   const { scrollY } = useScroll();
   const heroY = useTransform(scrollY, [0, 500], [0, 150]);
+  const dashboardLabel = user?.role === 'admin'
+    ? 'Admin Dashboard'
+    : user?.role === 'doctor'
+      ? 'Doctor Dashboard'
+      : 'User Dashboard';
+  const primaryActionLabel = user ? dashboardLabel : 'Book Appointment';
+  const primaryActionPath = user ? '/dashboard' : '/signup';
 
   return (
     <div className="min-h-screen bg-background overflow-hidden">
@@ -170,11 +179,13 @@ const Home = () => {
               <a href="#testimonials" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Testimonials</a>
             </div>
             <div className="flex items-center gap-3">
-              <Button variant="ghost" size="sm" onClick={() => navigate("/login")} className="hidden sm:flex">
-                Sign In
-              </Button>
-              <Button size="sm" className="gap-2 shadow-lg shadow-primary/20" onClick={() => navigate("/signup")}>
-                Book Appointment <ArrowRight className="w-4 h-4" />
+              {!user && (
+                <Button variant="ghost" size="sm" onClick={() => navigate("/login")} className="hidden sm:flex">
+                  Sign In
+                </Button>
+              )}
+              <Button size="sm" className="gap-2 shadow-lg shadow-primary/20" onClick={() => navigate(primaryActionPath)}>
+                {primaryActionLabel} <ArrowRight className="w-4 h-4" />
               </Button>
             </div>
           </div>
@@ -223,8 +234,8 @@ const Home = () => {
               </div>
 
               <div className="flex flex-wrap gap-4 mt-8">
-                <Button size="lg" className="gap-2 text-base px-8 h-14 shadow-xl shadow-primary/25" onClick={() => navigate("/signup")}>
-                  Book Appointment Now <ArrowRight className="w-5 h-5" />
+                <Button size="lg" className="gap-2 text-base px-8 h-14 shadow-xl shadow-primary/25" onClick={() => navigate(primaryActionPath)}>
+                  {user ? `Open ${dashboardLabel}` : 'Book Appointment Now'} <ArrowRight className="w-5 h-5" />
                 </Button>
                 <Button size="lg" variant="outline" className="gap-2 text-base px-8 h-14">
                   <Phone className="w-4 h-4" /> Emergency Call
@@ -624,8 +635,8 @@ about their experience with MediCore</p>
               Our network of certified healthcare professionals is here to provide you with the best care possible.
             </p>
             <Button size="lg" className="gap-2 text-base px-10 h-12 bg-white text-primary hover:bg-white/90 shadow-xl"
-              onClick={() => navigate("/signup")}>
-              Book Appointment <ArrowRight className="w-5 h-5" />
+              onClick={() => navigate(primaryActionPath)}>
+              {user ? `Open ${dashboardLabel}` : 'Book Appointment'} <ArrowRight className="w-5 h-5" />
             </Button>
           </div>
         </motion.div>

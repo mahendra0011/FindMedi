@@ -257,11 +257,12 @@ router.post('/register', async (req, res) => {
       }
 
       return res.status(201).json({
-        message: 'Registration successful. Please verify your email with the OTP sent.',
+        message: 'Registration successful, but the verification email could not be sent. Please use Resend OTP.',
         user: responseUser,
         requiresVerification: true,
         email: user.email,
-        otpWarning: 'There was a temporary issue sending the OTP. You can try resending it.',
+        emailDeliveryFailed: true,
+        otpWarning: otpResult.message || 'There was a temporary issue sending the OTP. You can try resending it.',
       });
     }
 
@@ -270,6 +271,9 @@ router.post('/register', async (req, res) => {
       user: responseUser,
       requiresVerification: true,
       email: user.email,
+      sentTo: otpResult.sentTo,
+      messageId: otpResult.messageId,
+      simulated: otpResult.simulated,
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -366,9 +370,10 @@ router.post('/resend-otp', async (req, res) => {
     });
 
     if (!otpResult.success) {
-      return res.status(429).json({
+      return res.status(otpResult.rateLimited ? 429 : 502).json({
         message: otpResult.message,
         rateLimited: otpResult.rateLimited,
+        emailDeliveryFailed: !otpResult.rateLimited,
         waitSeconds: otpResult.waitSeconds,
       });
     }
@@ -376,6 +381,8 @@ router.post('/resend-otp', async (req, res) => {
     res.json({
       message: 'OTP resent to your email',
       sentTo: otpResult.sentTo,
+      messageId: otpResult.messageId,
+      simulated: otpResult.simulated,
     });
   } catch (err) {
     res.status(500).json({ message: err.message });

@@ -61,7 +61,7 @@ export default function Signup() {
     setLoading(true);
     try {
       // Register using API directly (do not set auth state yet)
-      await api.register({
+      const data = await api.register({
         name,
         email,
         password,
@@ -80,7 +80,10 @@ export default function Signup() {
       localStorage.setItem('temp_password', password);
       localStorage.setItem('temp_role', role);
       // Navigate to OTP verification page
-      navigate(`/verify-otp?email=${encodeURIComponent(email)}`);
+      const params = new URLSearchParams({ email });
+      if (data?.emailDeliveryFailed || data?.otpWarning) params.set('delivery', 'failed');
+      if (data?.sentTo) params.set('sentTo', data.sentTo);
+      navigate(`/verify-otp?${params.toString()}`);
     } catch (err) {
       setError(err.message || 'Signup failed');
     } finally {

@@ -124,7 +124,7 @@ export const createAndSendOTP = async ({ userId, email, type = 'email', phone = 
       await otpRecord.deleteOne();
       return {
         success: false,
-        message: `Failed to send OTP: ${sendResult.error || sendResult.message}`
+        message: `Failed to send OTP email: ${sendResult.error || sendResult.message}`
       };
     }
 
@@ -143,7 +143,9 @@ export const createAndSendOTP = async ({ userId, email, type = 'email', phone = 
       success: true,
       message: 'OTP sent successfully',
       otpId: otpRecord._id,
-      sentTo: type === 'sms' ? phone : normalizedEmail
+      sentTo: type === 'sms' ? phone : normalizedEmail,
+      messageId: sendResult.messageId,
+      simulated: sendResult.simulated === true,
     };
 
   } catch (error) {

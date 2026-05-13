@@ -26,8 +26,16 @@ const attachmentFromPdf = (filename, pdfBuffer) => ({
 
 export const sendEmail = async ({ to, subject, text, html, attachments }) => {
   if (!BREVO_API_KEY) {
-    console.log(`Email simulated: ${to} - ${subject}`);
-    return { success: true, simulated: true, message: 'Email simulated (Brevo not configured)' };
+    const allowSimulation = process.env.ALLOW_EMAIL_SIMULATION === 'true' || process.env.EMAIL_SIMULATION === 'true';
+    if (allowSimulation) {
+      console.log(`Email simulated: ${to} - ${subject}`);
+      return { success: true, simulated: true, message: 'Email simulated (Brevo not configured)' };
+    }
+
+    return {
+      success: false,
+      error: 'Brevo API key is not configured. Set BREVO_API_KEY on the server to send real emails.',
+    };
   }
 
   try {
@@ -45,6 +53,10 @@ export const sendEmail = async ({ to, subject, text, html, attachments }) => {
       textContent: safeText,
       htmlContent: safeHtml,
     };
+
+    if (process.env.BREVO_REPLY_TO || BREVO_SENDER_EMAIL) {
+      payload.replyTo = { email: process.env.BREVO_REPLY_TO || BREVO_SENDER_EMAIL };
+    }
 
     if (attachments && attachments.length > 0) {
       payload.attachment = attachments.map(att => ({
@@ -64,12 +76,21 @@ export const sendEmail = async ({ to, subject, text, html, attachments }) => {
       body: JSON.stringify(payload),
     });
 
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Brevo API error: ${response.status} - ${error}`);
+    const responseText = await response.text();
+    let result = {};
+    if (responseText) {
+      try {
+        result = JSON.parse(responseText);
+      } catch {
+        result = { raw: responseText };
+      }
     }
 
-    const result = await response.json();
+    if (!response.ok) {
+      const providerMessage = result?.message || result?.raw || responseText || 'Unknown Brevo error';
+      throw new Error(`Brevo API error: ${response.status} - ${providerMessage}`);
+    }
+
     console.log(`Email sent to ${to}: ${result.messageId}`);
     return { success: true, messageId: result.messageId };
   } catch (error) {

@@ -55,7 +55,9 @@ export default function Login() {
         // Store credentials for auto-login after OTP verification
         localStorage.setItem('temp_password', password);
         localStorage.setItem('temp_role', role);
-        navigate(`/verify-otp?email=${encodeURIComponent(email)}`);
+        const params = new URLSearchParams({ email });
+        if (err.otpError || err.emailDeliveryFailed) params.set('delivery', 'failed');
+        navigate(`/verify-otp?${params.toString()}`);
       } else if (err.approvalPending || err.approvalRejected) {
         navigate(`/pending-approval?email=${encodeURIComponent(email)}&status=${err.approvalRejected ? 'rejected' : 'pending'}`);
       } else {
