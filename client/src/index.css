@@ -310,6 +310,30 @@
 
   .sidebar-motion {
     animation: sidebar-enter 500ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    height: 100dvh;
+    max-height: 100dvh;
+  }
+
+  .sidebar-nav {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--sidebar-border)) transparent;
+  }
+
+  .sidebar-nav::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .sidebar-nav::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .sidebar-nav::-webkit-scrollbar-thumb {
+    background: hsl(var(--sidebar-border));
+    border-radius: 999px;
+  }
+
+  .sidebar-nav::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--sidebar-foreground) / 0.35);
   }
 
   .sidebar-link {

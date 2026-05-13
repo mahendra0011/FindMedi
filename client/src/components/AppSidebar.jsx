@@ -72,7 +72,7 @@ export default function AppSidebar() {
   const language = user?.settings?.language || 'en';
 
   return (
-    <aside className={`sidebar-motion fixed left-0 top-0 h-screen bg-sidebar text-sidebar-foreground flex flex-col transition-all duration-300 z-50 shadow-2xl ${collapsed ? 'w-[72px]' : 'w-64'}`}>
+    <aside className={`sidebar-motion fixed left-0 top-0 h-screen bg-sidebar text-sidebar-foreground flex flex-col overflow-hidden transition-all duration-300 z-50 shadow-2xl ${collapsed ? 'w-[72px]' : 'w-64'}`}>
       {/* Logo */}
       <div className={`flex items-center gap-3 px-4 py-5 border-b border-sidebar-border ${collapsed ? 'justify-center' : ''}`}>
         <div className="w-9 h-9 rounded-xl bg-sidebar-primary flex items-center justify-center flex-shrink-0 shadow-lg shadow-sidebar-primary/30">
@@ -105,7 +105,7 @@ export default function AppSidebar() {
       )}
 
       {/* Navigation */}
-      <nav className="flex-1 py-3 px-2 space-y-0.5 overflow-y-auto">
+      <nav className="sidebar-nav min-h-0 flex-1 py-3 px-2 space-y-0.5 overflow-y-auto overscroll-contain">
         {navItems.map(({ icon: Icon, labelKey, path }) => {
           const isActive = location.pathname === path;
           const label = t(labelKey, language);
