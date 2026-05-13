@@ -167,6 +167,10 @@ const Home = () => {
   const primaryActionPath = user ? '/dashboard' : '/signup';
   const themeToggleLabel = isDarkMode ? 'Switch to light mode' : 'Switch to dark mode';
 
+  const scrollToSection = (id) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   const toggleDarkMode = () => {
     const nextTheme = isDarkMode ? 'light' : 'dark';
     const nextSettings = applyUserSettings({ ...readStoredSettings(), theme: nextTheme });
@@ -206,10 +210,10 @@ const Home = () => {
               <span className="font-heading text-xl font-bold">MediCore</span>
             </div>
             <div className="hidden md:flex items-center gap-6">
-              <a href="#specialties" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Specialties</a>
-              <a href="#doctors" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Top Doctors</a>
-              <a href="#why-choose-us" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Why Choose Us</a>
-              <a href="#testimonials" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Testimonials</a>
+              <button type="button" onClick={() => scrollToSection('specialties')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">Specialties</button>
+              <button type="button" onClick={() => scrollToSection('doctors')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">Top Doctors</button>
+              <button type="button" onClick={() => scrollToSection('why-choose-us')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">Why Choose Us</button>
+              <button type="button" onClick={() => scrollToSection('testimonials')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">Testimonials</button>
             </div>
             <div className="flex items-center gap-3">
               <Tooltip>
@@ -757,9 +761,9 @@ about their experience with MediCore</p>
               <ul className="space-y-3">
                 {["Home", "Doctors", "Services", "Contact", "Appointments", "Medical Records", "Billing", "Emergency"].map((link, i) => (
                   <li key={link}>
-                    <a href="#" className="text-muted-foreground hover:text-primary transition-colors text-sm flex items-center gap-2">
+                    <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="text-muted-foreground hover:text-primary transition-colors text-sm flex items-center gap-2">
                       <ChevronRight className="w-3 h-3" /> {link}
-                    </a>
+                    </button>
                   </li>
                 ))}
               </ul>

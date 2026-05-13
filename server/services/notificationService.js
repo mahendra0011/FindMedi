@@ -5,7 +5,11 @@ const BREVO_SENDER_EMAIL = process.env.BREVO_SENDER_EMAIL || 'mahendrapra0077@gm
 const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email';
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
 
-const dashboardUrl = (path = '/dashboard') => `${CLIENT_URL.replace(/\/$/, '')}${path}`;
+const dashboardUrl = (path = '/dashboard') => {
+  const baseUrl = CLIENT_URL.replace(/\/$/, '');
+  const routePath = path.startsWith('/') ? path : `/${path}`;
+  return `${baseUrl}/#${routePath}`;
+};
 
 const doctorLabel = (doctor = {}) => {
   const name = doctor.name || doctor.doctorName || doctor;
