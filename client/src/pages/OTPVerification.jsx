@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams, Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowRight, RefreshCw, CheckCircle, AlertCircle, ArrowLeft, ShieldCheck } from 'lucide-react';
+import { ArrowRight, RefreshCw, CheckCircle, AlertCircle, ArrowLeft, ShieldCheck, MailCheck, TimerReset, LockKeyhole } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
@@ -116,13 +116,14 @@ export default function OTPVerification() {
 
   return (
     <div data-motion-ignore className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background p-4">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_18%,hsl(var(--primary)/0.14),transparent_30%),radial-gradient(circle_at_82%_78%,hsl(var(--info)/0.12),transparent_28%),linear-gradient(180deg,hsl(var(--background)),hsl(var(--muted)/0.35))]" />
-      <div className="absolute inset-0 bg-background/30 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-[linear-gradient(135deg,hsl(var(--background))_0%,hsl(var(--muted)/0.78)_48%,hsl(var(--accent)/0.7)_100%)]" />
+      <div className="absolute inset-0 opacity-[0.18] [background-image:linear-gradient(hsl(var(--foreground)/0.18)_1px,transparent_1px),linear-gradient(90deg,hsl(var(--foreground)/0.18)_1px,transparent_1px)] [background-size:42px_42px]" />
+      <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-primary/10 to-transparent" />
 
       <button
         type="button"
         onClick={() => navigate('/login')}
-        className="absolute left-4 top-4 z-10 inline-flex h-10 w-10 items-center justify-center rounded-full border border-border/70 bg-card/90 text-muted-foreground shadow-sm transition-colors hover:text-foreground sm:left-6 sm:top-6"
+        className="absolute left-4 top-4 z-10 inline-flex h-10 w-10 items-center justify-center rounded-full border border-border/70 bg-card/90 text-muted-foreground shadow-sm backdrop-blur transition-colors hover:text-foreground sm:left-6 sm:top-6"
         aria-label="Back to sign in"
       >
         <ArrowLeft className="h-4 w-4" />
@@ -132,27 +133,39 @@ export default function OTPVerification() {
         initial={{ opacity: 0, y: 18, scale: 0.96 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
-        className="relative w-full max-w-md"
+        className="relative w-full max-w-[440px]"
       >
-        <div className="overflow-hidden rounded-3xl border border-border/70 bg-card shadow-2xl shadow-primary/10">
-          <div className="border-b border-border/60 bg-muted/30 px-6 py-5 text-center">
-            <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-              <ShieldCheck className="h-7 w-7" />
+        <div className="overflow-hidden rounded-[2rem] border border-border/70 bg-card/95 shadow-2xl shadow-primary/15 backdrop-blur-xl">
+          <div className="h-1.5 bg-gradient-to-r from-primary via-info to-success" />
+          <div className="relative overflow-hidden border-b border-border/60 bg-muted/30 px-6 py-6 text-center">
+            <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-primary/10 to-transparent" />
+            <div className="relative mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-xl shadow-primary/25">
+              <ShieldCheck className="h-8 w-8" />
             </div>
-            <p className="font-heading text-lg font-bold text-foreground">MediCore Verification</p>
-            <p className="mt-1 text-xs text-muted-foreground">Secure OTP check</p>
+            <p className="relative font-heading text-xl font-bold text-foreground">MediCore Verification</p>
+            <p className="relative mt-1 text-xs font-medium uppercase tracking-[0.28em] text-primary">Secure email OTP</p>
           </div>
 
-          <div className="p-6 sm:p-7">
+          <div className="p-6 sm:p-8">
             <div className="mb-6 text-center">
-              <h1 className="font-heading text-2xl font-bold text-foreground">Enter OTP</h1>
+              <h1 className="font-heading text-3xl font-bold text-foreground">Enter OTP</h1>
               <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-muted-foreground">
                 We sent a 6-digit code to <span className="font-semibold text-foreground">{sentTo}</span>.
               </p>
+              <div className="mt-4 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-background/70 px-3 py-1">
+                  <MailCheck className="h-3.5 w-3.5 text-primary" />
+                  Email sent
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-background/70 px-3 py-1">
+                  <TimerReset className="h-3.5 w-3.5 text-primary" />
+                  10 min
+                </span>
+              </div>
             </div>
 
             {(notice || deliveryProblem) && !error && (
-              <div className={`mb-5 flex gap-3 rounded-2xl border p-4 text-sm ${
+              <div className={`mb-5 flex gap-3 rounded-2xl border px-4 py-3 text-sm ${
                 deliveryProblem
                   ? 'border-warning/25 bg-warning/10 text-warning'
                   : 'border-primary/20 bg-primary/10 text-primary'
@@ -189,7 +202,7 @@ export default function OTPVerification() {
                     aria-label="Enter 6-digit verification code"
                     autoFocus
                   />
-                  <div className="grid grid-cols-6 gap-2">
+                  <div className="grid grid-cols-6 gap-2.5">
                     {Array.from({ length: OTP_LENGTH }).map((_, index) => {
                       const digit = otp[index] || '';
                       const activeSlot = Math.min(otp.length, OTP_LENGTH - 1);
@@ -201,12 +214,12 @@ export default function OTPVerification() {
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 0.05 * index }}
-                          className={`pointer-events-none flex aspect-square min-h-12 items-center justify-center rounded-xl border-2 bg-muted/40 text-xl font-bold transition-all sm:min-h-14 sm:text-2xl ${
+                          className={`pointer-events-none flex aspect-square min-h-12 items-center justify-center rounded-2xl border-2 text-xl font-bold transition-all sm:min-h-14 sm:text-2xl ${
                             digit
-                              ? 'border-primary/60 bg-primary/10 text-foreground shadow-sm shadow-primary/10'
+                              ? 'border-primary/60 bg-gradient-to-br from-primary/15 to-info/10 text-foreground shadow-lg shadow-primary/10'
                               : isActive
-                                ? 'border-primary bg-background ring-4 ring-primary/15'
-                                : 'border-border text-muted-foreground'
+                                ? 'border-primary bg-background text-foreground ring-4 ring-primary/15'
+                                : 'border-border bg-background/70 text-muted-foreground'
                           }`}
                         >
                           {digit || (isActive ? <span className="h-7 w-0.5 animate-pulse rounded-full bg-primary" /> : '')}
@@ -215,7 +228,8 @@ export default function OTPVerification() {
                     })}
                   </div>
                 </div>
-                <p id="otp-help" className="mt-3 text-center text-xs text-muted-foreground">
+                <p id="otp-help" className="mt-3 flex items-center justify-center gap-1.5 text-center text-xs text-muted-foreground">
+                  <LockKeyhole className="h-3.5 w-3.5 text-primary" />
                   Type or paste the OTP in the six boxes.
                 </p>
               </div>
@@ -233,7 +247,7 @@ export default function OTPVerification() {
 
               <Button
                 type="submit"
-                className="h-12 w-full gap-2"
+                className="h-12 w-full gap-2 rounded-xl shadow-lg shadow-primary/20"
                 size="lg"
                 disabled={loading || otp.length !== OTP_LENGTH}
               >
@@ -247,7 +261,7 @@ export default function OTPVerification() {
               </Button>
             </form>
 
-            <div className="mt-6 flex flex-col items-center justify-center gap-3 text-center">
+            <div className="mt-6 rounded-2xl border border-border/60 bg-muted/25 p-4 text-center">
               <p className="text-xs text-muted-foreground">Didn&apos;t receive the OTP?</p>
               <Button
                 type="button"
@@ -255,7 +269,7 @@ export default function OTPVerification() {
                 size="sm"
                 onClick={handleResendOTP}
                 disabled={resendCooldown > 0 || resendLoading}
-                className="gap-2"
+                className="mt-3 gap-2 rounded-full px-4"
               >
                 <RefreshCw className={`h-4 w-4 ${resendLoading ? 'animate-spin' : ''}`} />
                 {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend OTP'}
