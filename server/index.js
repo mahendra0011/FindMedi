@@ -87,6 +87,8 @@ import notificationRoutes from './routes/notifications.js';
 import reportRoutes from './routes/reports.js';
 import uploadRoutes from './routes/upload.js';
 import emergencyRoutes from './routes/emergency.js';
+import departmentRoutes from './routes/departments.js';
+import paymentRoutes from './routes/payments.js';
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -102,6 +104,8 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/emergency', emergencyRoutes);
+app.use('/api/departments', departmentRoutes);
+app.use('/api/payments', paymentRoutes);
 
 app.get('/api/health', (_, res) => res.json({ status: 'ok', time: new Date() }));
 

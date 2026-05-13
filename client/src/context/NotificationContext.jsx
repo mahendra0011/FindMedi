@@ -13,12 +13,9 @@ export function NotificationProvider({ children }) {
     try {
       const list = await api.getNotifications({});
       const userId = (user._id || user.id)?.toString();
-      console.log('[NotificationContext] user.role:', user.role, 'userId:', userId);
-      console.log('[NotificationContext] all notifications from API:', list.map(n => ({ id: n._id, userId: n.userId, title: n.title })));
       let filtered = list;
       if (user.role !== 'admin') {
         filtered = list.filter(n => n.userId === userId);
-        console.log('[NotificationContext] after filter userId check:', filtered.map(n => ({ id: n._id, userId: n.userId, title: n.title })));
       }
       const unread = filtered.filter(n => !n.read).length;
       setCount(unread);

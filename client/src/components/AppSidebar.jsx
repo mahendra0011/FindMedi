@@ -65,6 +65,7 @@ export default function AppSidebar() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
 
+  const handleGoHome = () => { navigate('/'); };
   const handleLogout = () => { logout(); navigate('/login'); };
 
   const navItems = navConfig[user?.role] || navConfig.patient;
@@ -120,7 +121,13 @@ export default function AppSidebar() {
       </nav>
 
       {/* Footer */}
-      <div className={`px-2 pb-4 border-t border-sidebar-border pt-3 ${collapsed ? 'flex justify-center' : ''}`}>
+      <div className={`px-2 pb-4 border-t border-sidebar-border pt-3 space-y-1 ${collapsed ? 'flex flex-col items-center' : ''}`}>
+        <button onClick={handleGoHome}
+          title={collapsed ? t('nav.home', language) : undefined}
+          className={`sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sidebar-foreground/65 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-all duration-200 w-full ${collapsed ? 'justify-center' : ''}`}>
+          <Home className="w-[18px] h-[18px] flex-shrink-0" />
+          {!collapsed && <span className="text-sm">{t('nav.home', language)}</span>}
+        </button>
         <button onClick={handleLogout}
           title={collapsed ? t('common.logout', language) : undefined}
           className={`sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-all duration-200 w-full ${collapsed ? 'justify-center' : ''}`}>

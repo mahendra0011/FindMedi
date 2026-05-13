@@ -161,6 +161,7 @@ If you change `ADMIN_SECRET_KEY` in `server/.env`, use that value instead of `me
 npm run install:all   # install server and client dependencies
 npm run dev           # run Express and Vite together
 npm run seed          # reset and seed MongoDB demo data
+npm run seed:cluster  # safely upsert demo data into a MongoDB cluster
 npm run build         # build the React frontend
 ```
 
@@ -169,6 +170,7 @@ npm run build         # build the React frontend
 npm run dev --prefix server
 npm run start --prefix server
 npm run seed --prefix server
+npm run seed:cluster --prefix server
 ```
 
 ### Client scripts:
@@ -241,6 +243,8 @@ verification, health check, and approved doctor listing.
 | Records | `/records`, `/records/patient/:patientId`, `/records/:id` | Medical records, prescriptions, lab reports, and discharge summaries. |
 | Billing | `/billing/services`, `/billing`, `/billing/:id/invoice`, `/billing/:id/pay` | Lab services, invoices, payments, and invoice PDF download. |
 | Reports | `/reports/generate-*`, `/reports/email/*`, `/reports/import/*`, `/reports/export/*` | PDF generation, email delivery, Excel import, and exports. |
+| Departments | `/departments` | Department listing and admin department management. |
+| Payments | `/payments` | Patient payment history and payment records. |
 | Uploads | `/upload`, `/upload/download/:fileId`, `/reports/upload/*` | Medical file, image, X-ray, and document uploads. |
 | Emergency | `/emergency`, `/emergency/:id/assign`, `/emergency/:id/status`, `/emergency/:id/notes`, `/emergency/stats` | Emergency case creation, assignment, status, notes, and stats. |
 | Other | `/dashboard/stats`, `/notifications`, `/reviews`, `/health` | Dashboard data, notifications, reviews, and API health. |

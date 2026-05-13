@@ -561,7 +561,7 @@ router.post('/import/billing', protect, adminOnly, upload.single('file'), async 
   }
 });
 
-router.get('/export/patients', async (req, res) => {
+router.get('/export/patients', protect, adminOnly, async (req, res) => {
   try {
     const patients = await Patient.find().sort({ createdAt: -1 });
     const data = formatPatientsForExport(patients);
@@ -584,7 +584,7 @@ router.get('/export/patients', async (req, res) => {
   }
 });
 
-router.get('/export/doctors', async (req, res) => {
+router.get('/export/doctors', protect, adminOnly, async (req, res) => {
   try {
     const doctors = await Doctor.find().sort({ createdAt: -1 });
     const data = formatDoctorsForExport(doctors);
@@ -607,7 +607,7 @@ router.get('/export/doctors', async (req, res) => {
   }
 });
 
-router.get('/export/billing', async (req, res) => {
+router.get('/export/billing', protect, adminOnly, async (req, res) => {
   try {
     const billing = await Billing.find().sort({ date: -1 });
     const data = formatBillingForExport(billing);
@@ -630,7 +630,7 @@ router.get('/export/billing', async (req, res) => {
   }
 });
 
-router.get('/export/appointments', async (req, res) => {
+router.get('/export/appointments', protect, adminOnly, async (req, res) => {
   try {
     const appointments = await Appointment.find()
       .populate('patient', 'name email phone')

@@ -20,12 +20,9 @@ export default function Notifications() {
     try {
       const data = await api.getNotifications({});
       const userId = (user?._id || user?.id)?.toString();
-      console.log('[Notifications] user.role:', user?.role, 'userId:', userId);
-      console.log('[Notifications] raw data from API:', data.map(n => ({ id: n._id, userId: n.userId, title: n.title })));
       let filtered = data;
       if (user?.role !== 'admin') {
         filtered = data.filter(n => n.userId === userId);
-        console.log('[Notifications] after client filter:', filtered.map(n => ({ id: n._id, userId: n.userId, title: n.title })));
       }
       setNotifications(filtered);
     } catch (e) { 
