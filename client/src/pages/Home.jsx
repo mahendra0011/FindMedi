@@ -1,12 +1,14 @@
 import { useNavigate } from "react-router-dom";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { Activity, ArrowRight, Stethoscope, UserRound, CalendarDays, FileText, CreditCard, Shield, Clock, HeartPulse, ChevronRight, Zap, BarChart3, FileUp, Download, Mail, Image, Users, Bell, Laptop, Database, Cloud, Star, Quote, Play, CheckCircle, Phone, Search, MapPin, Award, Heart, Baby, Brain, Bone, Eye, Microscope, Syringe, Ambulance, Check, Circle, Send, Droplets, TestTube, Thermometer, Sparkles, Building2, CalendarCheck, TrendingUp, BadgeCheck, Video, FileCheck, Wallet, Lock, CircleDollarSign, Truck } from "lucide-react";
+import { Activity, ArrowRight, Stethoscope, UserRound, CalendarDays, FileText, CreditCard, Shield, Clock, HeartPulse, ChevronRight, Zap, BarChart3, FileUp, Download, Mail, Image, Users, Bell, Laptop, Database, Cloud, Star, Quote, Play, CheckCircle, Phone, Search, MapPin, Award, Heart, Baby, Brain, Bone, Eye, Microscope, Syringe, Ambulance, Check, Circle, Send, Droplets, TestTube, Thermometer, Sparkles, Building2, CalendarCheck, TrendingUp, BadgeCheck, Video, FileCheck, Wallet, Lock, CircleDollarSign, Truck, Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useState, useEffect, useRef } from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
+import { applyUserSettings, readStoredSettings } from "@/lib/settings";
 
 const heroImage = "https://cdn.hms.hospital/123/01KNC4WSYHF1637VJ39K3KVJ2M.png";
 const doctorImage = "https://alliedsoftech89.wordpress.com/wp-content/uploads/2013/06/medical-doctor-jobs-in-china-expat-jobs-in-china.jpg";
@@ -80,12 +82,17 @@ const doctors = [
   { name: "Dr. Andrew Williams", specialty: "Gastroenterologist", available: true, rating: 4.9, patients: 580 },
 ];
 
+const isDocumentDark = () => (
+  typeof document !== 'undefined' && document.documentElement.classList.contains('dark')
+);
+
 const Home = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const [doctorsList, setDoctorsList] = useState([]);
   const [counters, setCounters] = useState(statsData.map(() => 0));
   const [countersVisible, setCountersVisible] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(() => isDocumentDark());
   const statsRef = useRef(null);
 
   useEffect(() => {
@@ -133,6 +140,22 @@ const Home = () => {
     return () => observer.disconnect();
   }, [countersVisible]);
 
+  useEffect(() => {
+    const syncThemeState = () => setIsDarkMode(isDocumentDark());
+    syncThemeState();
+
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleSystemThemeChange = () => {
+      if ((readStoredSettings().theme || 'system') === 'system') {
+        applyUserSettings(readStoredSettings());
+        syncThemeState();
+      }
+    };
+
+    mediaQuery.addEventListener?.('change', handleSystemThemeChange);
+    return () => mediaQuery.removeEventListener?.('change', handleSystemThemeChange);
+  }, []);
+
   const { scrollY } = useScroll();
   const heroY = useTransform(scrollY, [0, 500], [0, 150]);
   const dashboardLabel = user?.role === 'admin'
@@ -142,6 +165,16 @@ const Home = () => {
       : 'User Dashboard';
   const primaryActionLabel = user ? dashboardLabel : 'Book Appointment';
   const primaryActionPath = user ? '/dashboard' : '/signup';
+  const themeToggleLabel = isDarkMode ? 'Switch to light mode' : 'Switch to dark mode';
+
+  const toggleDarkMode = () => {
+    const nextTheme = isDarkMode ? 'light' : 'dark';
+    const nextSettings = applyUserSettings({ ...readStoredSettings(), theme: nextTheme });
+    setIsDarkMode(isDocumentDark());
+    if (user) {
+      updateUser({ settings: { ...user.settings, ...nextSettings } });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background overflow-hidden">
@@ -163,7 +196,7 @@ const Home = () => {
 
       {/* Navbar */}
       <motion.nav initial={{ y: -100 }} animate={{ y: 0 }} transition={{ duration: 0.6 }}
-        className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-2xl border-b border-border/40 shadow-sm">
+        className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-2xl border-b border-border/40 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate("/")}>
@@ -179,6 +212,21 @@ const Home = () => {
               <a href="#testimonials" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Testimonials</a>
             </div>
             <div className="flex items-center gap-3">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={toggleDarkMode}
+                    aria-label={themeToggleLabel}
+                    className="h-9 w-9 rounded-full border-border/70 bg-background/80 shadow-sm"
+                  >
+                    {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{themeToggleLabel}</TooltipContent>
+              </Tooltip>
               {!user && (
                 <Button variant="ghost" size="sm" onClick={() => navigate("/login")} className="hidden sm:flex">
                   Sign In
@@ -265,7 +313,7 @@ const Home = () => {
               <motion.div 
                 animate={{ y: [-10, 10, -10] }}
                 transition={{ duration: 3, repeat: Infinity }}
-                className="absolute -bottom-4 -left-4 bg-white rounded-2xl p-4 shadow-xl"
+                className="absolute -bottom-4 -left-4 bg-card rounded-2xl border border-border/60 p-4 shadow-xl"
               >
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center">
@@ -282,7 +330,7 @@ const Home = () => {
               <motion.div 
                 animate={{ x: [0, 8, 0] }}
                 transition={{ duration: 3, repeat: Infinity, delay: 1 }}
-                className="absolute -top-4 -right-4 bg-white rounded-2xl p-4 shadow-xl"
+                className="absolute -top-4 -right-4 bg-card rounded-2xl border border-border/60 p-4 shadow-xl"
               >
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
@@ -456,7 +504,7 @@ const Home = () => {
               <motion.div 
                 animate={{ y: [-10, 10, -10] }}
                 transition={{ duration: 4, repeat: Infinity }}
-                className="absolute -bottom-6 -right-6 bg-white rounded-2xl p-6 shadow-2xl"
+                className="absolute -bottom-6 -right-6 bg-card rounded-2xl border border-border/60 p-6 shadow-2xl"
               >
                 <div className="flex items-center gap-4">
                   <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center">

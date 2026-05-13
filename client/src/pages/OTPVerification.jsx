@@ -1,11 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams, Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Shield, Mail, ArrowRight, RefreshCw, CheckCircle, AlertCircle, Clock, ArrowLeft } from 'lucide-react';
+import { ArrowRight, RefreshCw, CheckCircle, AlertCircle, ArrowLeft, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
+
+const OTP_LENGTH = 6;
+const sanitizeOtp = (value) => value.replace(/\D/g, '').slice(0, OTP_LENGTH);
 
 export default function OTPVerification() {
   const navigate = useNavigate();
@@ -14,8 +16,10 @@ export default function OTPVerification() {
   const email = searchParams.get('email') || user?.email || '';
   const deliveryState = searchParams.get('delivery');
   const sentTo = searchParams.get('sentTo') || email;
+  const otpInputRef = useRef(null);
 
-  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [otp, setOtp] = useState('');
+  const [isOtpFocused, setIsOtpFocused] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [deliveryProblem, setDeliveryProblem] = useState(deliveryState === 'failed');
@@ -24,7 +28,6 @@ export default function OTPVerification() {
     : 'Enter the 6-digit code sent to your email.');
   const [resendLoading, setResendLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
-  const otpValue = useMemo(() => otp.join(''), [otp]);
 
   useEffect(() => {
     if (resendCooldown <= 0) return undefined;
@@ -41,50 +44,25 @@ export default function OTPVerification() {
     return <Navigate to="/login" replace />;
   }
 
-  const handleOtpChange = (index, value) => {
-    if (value.length > 1) {
-      const digits = value.replace(/\D/g, '').slice(0, 6);
-      if (!digits) return;
-      const nextOtp = Array.from({ length: 6 }, (_, i) => digits[i] || '');
-      setOtp(nextOtp);
-      const focusIndex = Math.min(digits.length, 5);
-      document.getElementById(`otp-${focusIndex}`)?.focus();
-      return;
-    }
-
-    if (!/^\d*$/.test(value)) return;
-
-    const newOtp = [...otp];
-    newOtp[index] = value;
-    setOtp(newOtp);
-
-    // Auto-focus next input
-    if (value && index < 5) {
-      const nextInput = document.getElementById(`otp-${index + 1}`);
-      nextInput?.focus();
-    }
-  };
-
-  const handleKeyDown = (index, e) => {
-    if (e.key === 'Backspace' && !otp[index] && index > 0) {
-      const prevInput = document.getElementById(`otp-${index - 1}`);
-      prevInput?.focus();
-    }
+  const handleOtpChange = (value) => {
+    setOtp(sanitizeOtp(value));
+    if (error) setError('');
   };
 
   const handlePaste = (e) => {
     e.preventDefault();
-    const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
-    if (!/^\d+$/.test(pastedData)) return;
+    const pastedData = sanitizeOtp(e.clipboardData.getData('text'));
+    if (!pastedData) return;
 
-    setOtp(Array.from({ length: 6 }, (_, i) => pastedData[i] || ''));
-    document.getElementById(`otp-${Math.min(pastedData.length, 5)}`)?.focus();
+    setOtp(pastedData);
+    if (error) setError('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (otpValue.length !== 6) {
+    if (otp.length !== OTP_LENGTH) {
       setError('Please enter the complete 6-digit OTP');
+      otpInputRef.current?.focus();
       return;
     }
 
@@ -93,7 +71,7 @@ export default function OTPVerification() {
     setNotice('');
     try {
       // Verify OTP on backend
-      const data = await api.verifyOTP({ email, otp: otpValue });
+      const data = await api.verifyOTP({ email, otp });
       if (data?.approvalPending) {
         localStorage.removeItem('temp_password');
         localStorage.removeItem('temp_role');
@@ -137,71 +115,39 @@ export default function OTPVerification() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4 relative overflow-hidden">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,hsl(var(--primary)/0.12),transparent_32%),radial-gradient(circle_at_80%_30%,hsl(var(--info)/0.10),transparent_28%),linear-gradient(180deg,hsl(var(--background)),hsl(var(--muted)/0.35))]" />
+    <div data-motion-ignore className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background p-4">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_18%,hsl(var(--primary)/0.14),transparent_30%),radial-gradient(circle_at_82%_78%,hsl(var(--info)/0.12),transparent_28%),linear-gradient(180deg,hsl(var(--background)),hsl(var(--muted)/0.35))]" />
+      <div className="absolute inset-0 bg-background/30 backdrop-blur-sm" />
+
+      <button
+        type="button"
+        onClick={() => navigate('/login')}
+        className="absolute left-4 top-4 z-10 inline-flex h-10 w-10 items-center justify-center rounded-full border border-border/70 bg-card/90 text-muted-foreground shadow-sm transition-colors hover:text-foreground sm:left-6 sm:top-6"
+        aria-label="Back to sign in"
+      >
+        <ArrowLeft className="h-4 w-4" />
+      </button>
 
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.4 }}
-        className="relative w-full max-w-5xl"
+        initial={{ opacity: 0, y: 18, scale: 0.96 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+        className="relative w-full max-w-md"
       >
-        <button
-          type="button"
-          onClick={() => navigate('/login')}
-          className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to sign in
-        </button>
-
-        <div className="grid overflow-hidden rounded-3xl border border-border/60 bg-card shadow-2xl lg:grid-cols-[0.95fr_1.05fr]">
-          <div className="relative hidden bg-sidebar p-10 text-sidebar-foreground lg:flex lg:flex-col lg:justify-between">
-            <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--sidebar-primary)),transparent_34%),radial-gradient(circle_at_80%_80%,hsl(var(--info)),transparent_28%)]" />
-            <div className="relative">
-              <div className="mb-8 flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-sidebar-primary text-sidebar-primary-foreground shadow-lg">
-                  <Shield className="h-6 w-6" />
-                </div>
-                <div>
-                  <p className="font-heading text-xl font-bold">MediCore</p>
-                  <p className="text-xs text-sidebar-foreground/60">Secure email verification</p>
-                </div>
-              </div>
-              <h1 className="font-heading text-3xl font-bold leading-tight">
-                One quick check before opening your dashboard.
-              </h1>
-              <p className="mt-4 text-sm leading-6 text-sidebar-foreground/70">
-                Your account is created. Verify your email address to activate protected MediCore access.
-              </p>
+        <div className="overflow-hidden rounded-3xl border border-border/70 bg-card shadow-2xl shadow-primary/10">
+          <div className="border-b border-border/60 bg-muted/30 px-6 py-5 text-center">
+            <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+              <ShieldCheck className="h-7 w-7" />
             </div>
-
-            <div className="relative grid gap-3 text-sm">
-              <div className="flex items-center gap-3 rounded-2xl border border-sidebar-border bg-sidebar-accent/40 p-4">
-                <Mail className="h-5 w-5 text-sidebar-primary" />
-                <div>
-                  <p className="font-medium">Code destination</p>
-                  <p className="text-xs text-sidebar-foreground/60">{sentTo}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 rounded-2xl border border-sidebar-border bg-sidebar-accent/40 p-4">
-                <Clock className="h-5 w-5 text-sidebar-primary" />
-                <div>
-                  <p className="font-medium">Code expires in 10 minutes</p>
-                  <p className="text-xs text-sidebar-foreground/60">Use the newest OTP after every resend.</p>
-                </div>
-              </div>
-            </div>
+            <p className="font-heading text-lg font-bold text-foreground">MediCore Verification</p>
+            <p className="mt-1 text-xs text-muted-foreground">Secure OTP check</p>
           </div>
 
-          <div className="p-6 sm:p-8 lg:p-10">
-            <div className="mb-8 text-center lg:text-left">
-              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 lg:mx-0">
-                <Mail className="h-7 w-7 text-primary" />
-              </div>
-              <h2 className="font-heading text-2xl font-bold text-foreground">Verify your email</h2>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                Enter the 6-digit OTP sent to <span className="font-semibold text-foreground">{email}</span>.
+          <div className="p-6 sm:p-7">
+            <div className="mb-6 text-center">
+              <h1 className="font-heading text-2xl font-bold text-foreground">Enter OTP</h1>
+              <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-muted-foreground">
+                We sent a 6-digit code to <span className="font-semibold text-foreground">{sentTo}</span>.
               </p>
             </div>
 
@@ -218,32 +164,60 @@ export default function OTPVerification() {
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
-                <label className="mb-3 block text-sm font-medium text-foreground">Verification code</label>
-                <div className="grid grid-cols-6 gap-2 sm:gap-3">
-                  {otp.map((digit, index) => (
-                    <motion.div
-                      key={index}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.05 * index }}
-                    >
-                      <Input
-                        id={`otp-${index}`}
-                        type="text"
-                        inputMode="numeric"
-                        autoComplete={index === 0 ? 'one-time-code' : 'off'}
-                        maxLength={1}
-                        value={digit}
-                        onChange={(e) => handleOtpChange(index, e.target.value)}
-                        onKeyDown={(e) => handleKeyDown(index, e)}
-                        onPaste={handlePaste}
-                        className="h-14 w-full rounded-xl border-2 bg-muted/40 text-center text-xl font-bold tracking-wider focus:border-primary focus:ring-2 focus:ring-primary/20 sm:h-16 sm:text-2xl"
-                        autoFocus={index === 0}
-                        aria-label={`OTP digit ${index + 1}`}
-                      />
-                    </motion.div>
-                  ))}
+                <label htmlFor="otp-code" className="sr-only">
+                  Enter 6-digit OTP
+                </label>
+                <div
+                  className="relative"
+                  onClick={() => otpInputRef.current?.focus()}
+                >
+                  <input
+                    ref={otpInputRef}
+                    id="otp-code"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    pattern="[0-9]*"
+                    maxLength={OTP_LENGTH}
+                    value={otp}
+                    onChange={(e) => handleOtpChange(e.target.value)}
+                    onPaste={handlePaste}
+                    onFocus={() => setIsOtpFocused(true)}
+                    onBlur={() => setIsOtpFocused(false)}
+                    className="absolute inset-0 z-10 h-full w-full cursor-text border-0 bg-transparent text-transparent caret-transparent outline-none"
+                    aria-describedby="otp-help"
+                    aria-label="Enter 6-digit verification code"
+                    autoFocus
+                  />
+                  <div className="grid grid-cols-6 gap-2">
+                    {Array.from({ length: OTP_LENGTH }).map((_, index) => {
+                      const digit = otp[index] || '';
+                      const activeSlot = Math.min(otp.length, OTP_LENGTH - 1);
+                      const isActive = isOtpFocused && index === activeSlot && otp.length < OTP_LENGTH;
+
+                      return (
+                        <motion.div
+                          key={index}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.05 * index }}
+                          className={`pointer-events-none flex aspect-square min-h-12 items-center justify-center rounded-xl border-2 bg-muted/40 text-xl font-bold transition-all sm:min-h-14 sm:text-2xl ${
+                            digit
+                              ? 'border-primary/60 bg-primary/10 text-foreground shadow-sm shadow-primary/10'
+                              : isActive
+                                ? 'border-primary bg-background ring-4 ring-primary/15'
+                                : 'border-border text-muted-foreground'
+                          }`}
+                        >
+                          {digit || (isActive ? <span className="h-7 w-0.5 animate-pulse rounded-full bg-primary" /> : '')}
+                        </motion.div>
+                      );
+                    })}
+                  </div>
                 </div>
+                <p id="otp-help" className="mt-3 text-center text-xs text-muted-foreground">
+                  Type or paste the OTP in the six boxes.
+                </p>
               </div>
 
               {error && (
@@ -261,7 +235,7 @@ export default function OTPVerification() {
                 type="submit"
                 className="h-12 w-full gap-2"
                 size="lg"
-                disabled={loading || otpValue.length !== 6}
+                disabled={loading || otp.length !== OTP_LENGTH}
               >
                 {loading ? (
                   <span className="h-5 w-5 rounded-full border-2 border-white border-t-transparent animate-spin" />
@@ -273,41 +247,22 @@ export default function OTPVerification() {
               </Button>
             </form>
 
-            <div className="mt-6 rounded-2xl border border-border/60 bg-muted/30 p-4">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-sm font-medium text-foreground">Didn&apos;t receive the email?</p>
-                  <p className="text-xs text-muted-foreground">Check spam, promotions, or request a fresh code.</p>
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleResendOTP}
-                  disabled={resendCooldown > 0 || resendLoading}
-                  className="gap-2"
-                >
-                  <RefreshCw className={`h-4 w-4 ${resendLoading ? 'animate-spin' : ''}`} />
-                  {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend OTP'}
-                </Button>
-              </div>
+            <div className="mt-6 flex flex-col items-center justify-center gap-3 text-center">
+              <p className="text-xs text-muted-foreground">Didn&apos;t receive the OTP?</p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleResendOTP}
+                disabled={resendCooldown > 0 || resendLoading}
+                className="gap-2"
+              >
+                <RefreshCw className={`h-4 w-4 ${resendLoading ? 'animate-spin' : ''}`} />
+                {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend OTP'}
+              </Button>
             </div>
-
-            <p className="mt-5 text-center text-xs leading-5 text-muted-foreground">
-              Still no email? Confirm that your email address is correct and ask the admin to verify Brevo sender configuration.
-            </p>
           </div>
         </div>
-
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.6 }}
-          className="mt-5 flex items-center justify-center gap-2 text-xs text-muted-foreground"
-        >
-          <Shield className="h-4 w-4" />
-          <span>Secure verification for MediCore accounts</span>
-        </motion.div>
       </motion.div>
     </div>
   );
