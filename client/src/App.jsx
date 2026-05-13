@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom';
+import { BrowserRouter, Route, Routes, Navigate, Outlet } from 'react-router-dom';
 import { useEffect } from 'react';
 import { Toaster as Sonner } from '@/components/ui/sonner';
 import { Toaster } from '@/components/ui/toaster';
@@ -87,8 +87,20 @@ function ProtectedRoute({ children, allowedRoles }) {
   return children;
 }
 
-function DashboardPage({ children }) {
-  return <DashboardLayout>{children}</DashboardLayout>;
+function DashboardShell() {
+  return (
+    <ProtectedRoute>
+      <DashboardLayout>
+        <Outlet />
+      </DashboardLayout>
+    </ProtectedRoute>
+  );
+}
+
+function RoleRoute({ children, allowedRoles }) {
+  const { user } = useAuth();
+  if (allowedRoles && !allowedRoles.includes(user?.role)) return <Navigate to="/dashboard" replace />;
+  return children;
 }
 
 function getDefaultDashboardPath(user) {
@@ -128,15 +140,15 @@ function RoleDashboard() {
   return <PatientDashboard />;
 }
 
-  const App = () => (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <NotificationProvider>
-          <TooltipProvider>
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <AuthProvider>
+      <NotificationProvider>
+        <TooltipProvider>
           <Toaster />
           <Sonner />
-          <LenisScroll>
-            <BrowserRouter>
+          <BrowserRouter>
+            <LenisScroll>
               <AppMotion>
                 <Routes>
                   {/* Public routes */}
@@ -147,60 +159,58 @@ function RoleDashboard() {
                   <Route path="/verify-otp" element={<OTPVerification />} />
                   <Route path="/pending-approval" element={<PendingApproval />} />
 
-                  {/* Dashboard - role-based content */}
-                  <Route path="/dashboard" element={<ProtectedRoute><DashboardPage><RoleDashboard /></DashboardPage></ProtectedRoute>} />
+                  {/* Authenticated dashboard shell */}
+                  <Route element={<DashboardShell />}>
+                    <Route path="/dashboard" element={<RoleDashboard />} />
+                    <Route path="/notifications" element={<Notifications />} />
+                    <Route path="/settings" element={<Settings />} />
+                    <Route path="/upload" element={<FileUpload />} />
 
-                  {/* Notifications - all roles */}
-                  <Route path="/notifications" element={<ProtectedRoute><DashboardPage><Notifications /></DashboardPage></ProtectedRoute>} />
+                    {/* Admin routes */}
+                    <Route path="/admin/users" element={<RoleRoute allowedRoles={['admin']}><AdminUsers /></RoleRoute>} />
+                    <Route path="/admin/doctors" element={<RoleRoute allowedRoles={['admin']}><AdminDoctors /></RoleRoute>} />
+                    <Route path="/admin/analytics" element={<RoleRoute allowedRoles={['admin']}><AdminAnalytics /></RoleRoute>} />
+                    <Route path="/admin/departments" element={<RoleRoute allowedRoles={['admin']}><AdminDepartments /></RoleRoute>} />
+                    <Route path="/admin/emergency" element={<RoleRoute allowedRoles={['admin']}><AdminEmergency /></RoleRoute>} />
+                    <Route path="/admin/reviews" element={<RoleRoute allowedRoles={['admin']}><AdminReviews /></RoleRoute>} />
+                    <Route path="/doctors" element={<RoleRoute allowedRoles={['admin']}><Doctors /></RoleRoute>} />
+                    <Route path="/patients" element={<RoleRoute allowedRoles={['admin']}><Patients /></RoleRoute>} />
+                    <Route path="/appointments" element={<RoleRoute allowedRoles={['admin']}><Appointments /></RoleRoute>} />
+                    <Route path="/records" element={<RoleRoute allowedRoles={['admin']}><MedicalRecords /></RoleRoute>} />
+                    <Route path="/billing" element={<RoleRoute allowedRoles={['admin']}><Billing /></RoleRoute>} />
+                    <Route path="/reports" element={<RoleRoute allowedRoles={['admin', 'doctor']}><PDFReports /></RoleRoute>} />
+                    <Route path="/import-export" element={<RoleRoute allowedRoles={['admin']}><ImportExport /></RoleRoute>} />
 
-                  {/* Settings - all roles */}
-                  <Route path="/settings" element={<ProtectedRoute><DashboardPage><Settings /></DashboardPage></ProtectedRoute>} />
+                    {/* Patient routes */}
+                    <Route path="/patient/doctors" element={<RoleRoute allowedRoles={['patient']}><PatientDoctors /></RoleRoute>} />
+                    <Route path="/patient/appointments" element={<RoleRoute allowedRoles={['patient']}><PatientAppointments /></RoleRoute>} />
+                    <Route path="/patient/records" element={<RoleRoute allowedRoles={['patient']}><PatientRecords /></RoleRoute>} />
+                    <Route path="/patient/reports" element={<RoleRoute allowedRoles={['patient']}><PatientReports /></RoleRoute>} />
+                    <Route path="/patient/reviews" element={<RoleRoute allowedRoles={['patient']}><PatientReviews /></RoleRoute>} />
+                    <Route path="/patient/billing" element={<RoleRoute allowedRoles={['patient']}><PatientBilling /></RoleRoute>} />
+                    <Route path="/patient/payment" element={<RoleRoute allowedRoles={['patient']}><PatientPayment /></RoleRoute>} />
+                    <Route path="/patient/services" element={<RoleRoute allowedRoles={['patient']}><PatientServices /></RoleRoute>} />
+                    <Route path="/patient/emergency" element={<RoleRoute allowedRoles={['patient']}><PatientEmergency /></RoleRoute>} />
 
-                  {/* Admin routes */}
-                  <Route path="/admin/users" element={<ProtectedRoute allowedRoles={['admin']}><DashboardPage><AdminUsers /></DashboardPage></ProtectedRoute>} />
-                  <Route path="/admin/doctors" element={<ProtectedRoute allowedRoles={['admin']}><DashboardPage><AdminDoctors /></DashboardPage></ProtectedRoute>} />
-                  <Route path="/admin/analytics" element={<ProtectedRoute allowedRoles={['admin']}><DashboardPage><AdminAnalytics /></DashboardPage></ProtectedRoute>} />
-                  <Route path="/admin/departments" element={<ProtectedRoute allowedRoles={['admin']}><DashboardPage><AdminDepartments /></DashboardPage></ProtectedRoute>} />
-                  <Route path="/admin/emergency" element={<ProtectedRoute allowedRoles={['admin']}><DashboardPage><AdminEmergency /></DashboardPage></ProtectedRoute>} />
-                  <Route path="/admin/reviews" element={<ProtectedRoute allowedRoles={['admin']}><DashboardPage><AdminReviews /></DashboardPage></ProtectedRoute>} />
-                  <Route path="/doctors" element={<ProtectedRoute allowedRoles={['admin']}><DashboardPage><Doctors /></DashboardPage></ProtectedRoute>} />
-                  <Route path="/patients" element={<ProtectedRoute allowedRoles={['admin']}><DashboardPage><Patients /></DashboardPage></ProtectedRoute>} />
-                  <Route path="/appointments" element={<ProtectedRoute allowedRoles={['admin']}><DashboardPage><Appointments /></DashboardPage></ProtectedRoute>} />
-                  <Route path="/records" element={<ProtectedRoute allowedRoles={['admin']}><DashboardPage><MedicalRecords /></DashboardPage></ProtectedRoute>} />
-                  <Route path="/billing" element={<ProtectedRoute allowedRoles={['admin']}><DashboardPage><Billing /></DashboardPage></ProtectedRoute>} />
-                  <Route path="/reports" element={<ProtectedRoute allowedRoles={['admin', 'doctor']}><DashboardPage><PDFReports /></DashboardPage></ProtectedRoute>} />
-                  <Route path="/import-export" element={<ProtectedRoute allowedRoles={['admin']}><DashboardPage><ImportExport /></DashboardPage></ProtectedRoute>} />
-                  <Route path="/upload" element={<ProtectedRoute><DashboardPage><FileUpload /></DashboardPage></ProtectedRoute>} />
-
-                  {/* Patient routes */}
-                  <Route path="/patient/doctors" element={<ProtectedRoute allowedRoles={['patient']}><DashboardPage><PatientDoctors /></DashboardPage></ProtectedRoute>} />
-                  <Route path="/patient/appointments" element={<ProtectedRoute allowedRoles={['patient']}><DashboardPage><PatientAppointments /></DashboardPage></ProtectedRoute>} />
-                  <Route path="/patient/records" element={<ProtectedRoute allowedRoles={['patient']}><DashboardPage><PatientRecords /></DashboardPage></ProtectedRoute>} />
-                  <Route path="/patient/reports" element={<ProtectedRoute allowedRoles={['patient']}><DashboardPage><PatientReports /></DashboardPage></ProtectedRoute>} />
-                  <Route path="/patient/reviews" element={<ProtectedRoute allowedRoles={['patient']}><DashboardPage><PatientReviews /></DashboardPage></ProtectedRoute>} />
-                  <Route path="/patient/billing" element={<ProtectedRoute allowedRoles={['patient']}><DashboardPage><PatientBilling /></DashboardPage></ProtectedRoute>} />
-                  <Route path="/patient/payment" element={<ProtectedRoute allowedRoles={['patient']}><DashboardPage><PatientPayment /></DashboardPage></ProtectedRoute>} />
-                  <Route path="/patient/services" element={<ProtectedRoute allowedRoles={['patient']}><DashboardPage><PatientServices /></DashboardPage></ProtectedRoute>} />
-                  <Route path="/patient/emergency" element={<ProtectedRoute allowedRoles={['patient']}><DashboardPage><PatientEmergency /></DashboardPage></ProtectedRoute>} />
-
-                  {/* Doctor routes */}
-                  <Route path="/doctor/appointments" element={<ProtectedRoute allowedRoles={['doctor']}><DashboardPage><DoctorAppointments /></DashboardPage></ProtectedRoute>} />
-                  <Route path="/doctor/patients" element={<ProtectedRoute allowedRoles={['doctor']}><DashboardPage><DoctorPatients /></DashboardPage></ProtectedRoute>} />
-                  <Route path="/doctor/consultations" element={<ProtectedRoute allowedRoles={['doctor']}><DashboardPage><DoctorConsultations /></DashboardPage></ProtectedRoute>} />
-                  <Route path="/doctor/reviews" element={<ProtectedRoute allowedRoles={['doctor']}><DashboardPage><DoctorReviews /></DashboardPage></ProtectedRoute>} />
-                  <Route path="/doctor/earnings" element={<ProtectedRoute allowedRoles={['doctor']}><DashboardPage><DoctorEarnings /></DashboardPage></ProtectedRoute>} />
-                  <Route path="/doctor/schedule" element={<ProtectedRoute allowedRoles={['doctor']}><DashboardPage><DoctorSchedule /></DashboardPage></ProtectedRoute>} />
-                  <Route path="/doctor/emergency" element={<ProtectedRoute allowedRoles={['doctor']}><DashboardPage><DoctorEmergency /></DashboardPage></ProtectedRoute>} />
+                    {/* Doctor routes */}
+                    <Route path="/doctor/appointments" element={<RoleRoute allowedRoles={['doctor']}><DoctorAppointments /></RoleRoute>} />
+                    <Route path="/doctor/patients" element={<RoleRoute allowedRoles={['doctor']}><DoctorPatients /></RoleRoute>} />
+                    <Route path="/doctor/consultations" element={<RoleRoute allowedRoles={['doctor']}><DoctorConsultations /></RoleRoute>} />
+                    <Route path="/doctor/reviews" element={<RoleRoute allowedRoles={['doctor']}><DoctorReviews /></RoleRoute>} />
+                    <Route path="/doctor/earnings" element={<RoleRoute allowedRoles={['doctor']}><DoctorEarnings /></RoleRoute>} />
+                    <Route path="/doctor/schedule" element={<RoleRoute allowedRoles={['doctor']}><DoctorSchedule /></RoleRoute>} />
+                    <Route path="/doctor/emergency" element={<RoleRoute allowedRoles={['doctor']}><DoctorEmergency /></RoleRoute>} />
+                  </Route>
 
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </AppMotion>
-            </BrowserRouter>
-          </LenisScroll>
-          </TooltipProvider>
-        </NotificationProvider>
-      </AuthProvider>
-    </QueryClientProvider>
-  );
+            </LenisScroll>
+          </BrowserRouter>
+        </TooltipProvider>
+      </NotificationProvider>
+    </AuthProvider>
+  </QueryClientProvider>
+);
 
 export default App;

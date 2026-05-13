@@ -85,7 +85,7 @@ export default function AppMotion({ children }) {
   }, [location.pathname, location.search]);
 
   return (
-    <div key={location.pathname} className="motion-route-shell">
+    <div className="motion-route-shell">
       {children}
     </div>
   );
