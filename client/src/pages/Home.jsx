@@ -9,6 +9,7 @@ import { useState, useEffect, useRef } from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { applyUserSettings, readStoredSettings } from "@/lib/settings";
+import ElectricBorder from "@/components/reactbits/ElectricBorder";
 
 const heroImage = "https://cdn.hms.hospital/123/01KNC4WSYHF1637VJ39K3KVJ2M.png";
 const doctorImage = "https://alliedsoftech89.wordpress.com/wp-content/uploads/2013/06/medical-doctor-jobs-in-china-expat-jobs-in-china.jpg";
@@ -300,18 +301,27 @@ const Home = () => {
               transition={{ duration: 0.8, delay: 0.3 }} className="relative">
               
               {/* Main Hero Image */}
-              <div className="relative rounded-3xl overflow-hidden shadow-2xl">
-                <img 
-                  src={heroImage} 
-                  alt="MediCore Healthcare" 
-                  className="w-full h-[400px] object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                <div className="absolute bottom-6 left-6 right-6">
-                  <p className="text-white text-lg font-semibold">Excellence in Healthcare Since 2010</p>
-                  <p className="text-white/80 text-sm">Trusted by 20,000+ patients</p>
+              <ElectricBorder
+                color="#7df9ff"
+                speed={0.85}
+                chaos={0.1}
+                thickness={2}
+                borderRadius={28}
+                style={{ borderRadius: 28 }}
+              >
+                <div className="relative overflow-hidden rounded-[28px] shadow-2xl">
+                  <img
+                    src={heroImage}
+                    alt="MediCore Healthcare"
+                    className="w-full h-[400px] object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                  <div className="absolute bottom-6 left-6 right-6">
+                    <p className="text-white text-lg font-semibold">Excellence in Healthcare Since 2010</p>
+                    <p className="text-white/80 text-sm">Trusted by 20,000+ patients</p>
+                  </div>
                 </div>
-              </div>
+              </ElectricBorder>
 
               {/* Floating badge */}
               <motion.div 
