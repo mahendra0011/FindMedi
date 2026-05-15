@@ -1,0 +1,66 @@
+.parallax {
+  position: relative;
+  overflow: hidden;
+}
+
+.scroller {
+  display: flex;
+  white-space: nowrap;
+  text-align: center;
+  font-family: sans-serif;
+  font-size: 2.25rem;
+  font-weight: bold;
+  letter-spacing: 0;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.1));
+}
+
+.scroller span {
+  flex-shrink: 0;
+}
+
+.medicore-velocity-row {
+  position: relative;
+  overflow: hidden;
+  padding: 0.85rem 0;
+  border-block: 1px solid hsl(var(--border) / 0.55);
+  background:
+    linear-gradient(90deg, hsl(var(--primary) / 0.08), hsl(var(--background)), hsl(var(--primary) / 0.08));
+}
+
+.medicore-velocity-row + .medicore-velocity-row {
+  border-top: 0;
+}
+
+.medicore-velocity-scroller {
+  display: flex;
+  white-space: nowrap;
+  align-items: center;
+  text-align: center;
+  font-family: inherit;
+  font-size: clamp(1.8rem, 5vw, 4.8rem);
+  line-height: 1.08;
+  font-weight: 800;
+  letter-spacing: 0;
+  color: hsl(var(--foreground));
+  text-transform: uppercase;
+  filter: drop-shadow(0 16px 34px hsl(var(--primary) / 0.12));
+}
+
+.medicore-velocity-text {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  padding-right: 1.6rem;
+  color: hsl(var(--foreground));
+}
+
+.medicore-velocity-text:nth-child(even) {
+  color: hsl(var(--primary));
+}
+
+@media (min-width: 768px) {
+  .scroller {
+    font-size: 5rem;
+    line-height: 5rem;
+  }
+}

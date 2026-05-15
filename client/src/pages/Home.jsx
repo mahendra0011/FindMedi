@@ -10,10 +10,36 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { applyUserSettings, readStoredSettings } from "@/lib/settings";
 import ElectricBorder from "@/components/reactbits/ElectricBorder";
+import CircularGallery from "@/components/reactbits/CircularGallery";
+import FlowingMenu from "@/components/reactbits/FlowingMenu";
+import ScrollVelocity from "@/components/reactbits/ScrollVelocity";
+import SplitText from "@/components/reactbits/SplitText";
+import BlurText from "@/components/reactbits/BlurText";
 
 const heroImage = "https://cdn.hms.hospital/123/01KNC4WSYHF1637VJ39K3KVJ2M.png";
 const doctorImage = "https://alliedsoftech89.wordpress.com/wp-content/uploads/2013/06/medical-doctor-jobs-in-china-expat-jobs-in-china.jpg";
 const doctorImage2 = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSjPqcWATF_Dr7kcC-DSSbsfzCtcFZDdeI-pQ&s";
+
+const careGalleryItems = [
+  { image: "https://images.unsplash.com/photo-1584515933487-779824d29309?auto=format&fit=crop&w=900&q=80", text: "Specialist Care" },
+  { image: "https://images.unsplash.com/photo-1579154204601-01588f351e67?auto=format&fit=crop&w=900&q=80", text: "Digital Records" },
+  { image: "https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=900&q=80", text: "Lab Diagnostics" },
+  { image: "https://images.unsplash.com/photo-1532938911079-1b06ac7ceec7?auto=format&fit=crop&w=900&q=80", text: "Emergency Care" },
+  { image: "https://images.unsplash.com/photo-1551076805-e1869033e561?auto=format&fit=crop&w=900&q=80", text: "Smart Pharmacy" },
+  { image: "https://images.unsplash.com/photo-1559757175-0eb30cd8c063?auto=format&fit=crop&w=900&q=80", text: "Patient Support" },
+];
+
+const flowingMenuItems = [
+  { link: "#specialties", text: "Specialties", image: "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?auto=format&fit=crop&w=900&q=80" },
+  { link: "#doctors", text: "Top Doctors", image: doctorImage },
+  { link: "#services", text: "Lab Services", image: "https://images.unsplash.com/photo-1576086213369-97a306d36557?auto=format&fit=crop&w=900&q=80" },
+  { link: "#testimonials", text: "Patient Stories", image: "https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=900&q=80" },
+];
+
+const velocityMessages = [
+  "24/7 emergency care  verified doctors  digital records  secure billing  lab reports",
+  "book appointments  prescriptions  diagnostics  patient support  discharge summaries",
+];
 
 const fadeUp = {
   hidden: { opacity: 0, y: 50 },
@@ -258,18 +284,60 @@ const Home = () => {
               </motion.div>
 
               <h1 className="font-heading text-4xl sm:text-5xl lg:text-6xl font-extrabold text-foreground leading-[1.1] tracking-tight">
-                 MediCore
-                <span className="block text-transparent bg-clip-text bg-gradient-to-r from-primary via-blue-500 to-violet-500">
-                  Healthcare Solutions
-                </span>
-                At Your Fingertips
+                <SplitText
+                  tag="span"
+                  text="MediCore"
+                  className="block"
+                  delay={34}
+                  duration={0.72}
+                  ease="power3.out"
+                  splitType="chars"
+                  from={{ opacity: 0, y: 46, rotateX: -80 }}
+                  to={{ opacity: 1, y: 0, rotateX: 0 }}
+                  threshold={0.2}
+                  rootMargin="0px"
+                  textAlign="left"
+                />
+                <SplitText
+                  tag="span"
+                  text="Healthcare Solutions"
+                  className="block medicore-split-gradient"
+                  delay={24}
+                  duration={0.7}
+                  ease="power3.out"
+                  splitType="words,chars"
+                  from={{ opacity: 0, y: 42 }}
+                  to={{ opacity: 1, y: 0 }}
+                  threshold={0.2}
+                  rootMargin="0px"
+                  textAlign="left"
+                />
+                <SplitText
+                  tag="span"
+                  text="At Your Fingertips"
+                  className="block"
+                  delay={26}
+                  duration={0.7}
+                  ease="power3.out"
+                  splitType="words,chars"
+                  from={{ opacity: 0, y: 42 }}
+                  to={{ opacity: 1, y: 0 }}
+                  threshold={0.2}
+                  rootMargin="0px"
+                  textAlign="left"
+                />
               </h1>
 
-              <p className="text-lg sm:text-xl text-muted-foreground mt-6 leading-relaxed max-w-xl">
-                Experience world-class healthcare from the comfort of your home. 
-                Book appointments with certified specialists, get instant consultations, 
-                and manage your health records securely.
-              </p>
+              <BlurText
+                text="Experience world-class healthcare from the comfort of your home. Book appointments with certified specialists, get instant consultations, and manage your health records securely."
+                delay={55}
+                animateBy="words"
+                direction="bottom"
+                threshold={0.2}
+                rootMargin="0px"
+                stepDuration={0.34}
+                className="text-lg sm:text-xl text-muted-foreground mt-6 leading-relaxed max-w-xl"
+              />
 
               {/* Features badges */}
               <div className="flex flex-wrap gap-3 mt-6">
@@ -391,6 +459,20 @@ const Home = () => {
         </div>
       </section>
 
+      {/* Scroll Velocity Strip */}
+      <section className="overflow-hidden bg-background py-8">
+        <ScrollVelocity
+          texts={velocityMessages}
+          velocity={78}
+          damping={48}
+          stiffness={360}
+          numCopies={7}
+          className="medicore-velocity-text"
+          parallaxClassName="medicore-velocity-row"
+          scrollerClassName="medicore-velocity-scroller"
+        />
+      </section>
+
       {/* Quick Actions */}
       <section className="py-12 px-4 sm:px-6">
         <div className="max-w-4xl mx-auto">
@@ -429,6 +511,39 @@ const Home = () => {
               </motion.div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Circular Care Gallery */}
+      <section className="py-20 px-4 sm:px-6 bg-gradient-to-b from-background via-muted/20 to-background">
+        <div className="max-w-7xl mx-auto">
+          <motion.div initial="hidden" whileInView="visible" variants={fadeUp} className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-cyan-500/10 text-cyan-600 dark:text-cyan-300 text-sm font-medium mb-4">
+              <Sparkles className="w-4 h-4" />
+              Interactive Care Gallery
+            </div>
+            <h2 className="font-heading text-3xl sm:text-4xl font-bold text-foreground">Explore MediCore in Motion</h2>
+            <p className="text-muted-foreground mt-3 max-w-2xl mx-auto">
+              A quick visual tour through the hospital workflows patients use every day.
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 28 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7 }}
+            className="relative h-[480px] sm:h-[560px] overflow-hidden rounded-[28px] border border-border/60 bg-slate-950 shadow-2xl"
+          >
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_10%,rgba(125,249,255,0.18),transparent_34%),linear-gradient(135deg,rgba(15,23,42,0.72),rgba(14,165,233,0.12))]" />
+            <CircularGallery
+              items={careGalleryItems}
+              bend={3}
+              textColor="#ffffff"
+              borderRadius={0.06}
+              scrollSpeed={1.7}
+              scrollEase={0.035}
+            />
+          </motion.div>
         </div>
       </section>
 
@@ -588,7 +703,7 @@ const Home = () => {
       </section>
 
       {/* Services Section */}
-      <section className="py-20 px-4 sm:px-6">
+      <section id="services" className="py-20 px-4 sm:px-6">
         <div className="max-w-7xl mx-auto">
           <motion.div initial="hidden" whileInView="visible" variants={fadeUp} className="text-center mb-14">
             <h2 className="font-heading text-3xl sm:text-4xl font-bold text-foreground">Our Services</h2>
@@ -617,6 +732,42 @@ const Home = () => {
               </motion.div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Flowing Menu Section */}
+      <section className="py-20 px-4 sm:px-6 bg-gradient-to-b from-muted/10 via-background to-muted/10">
+        <div className="max-w-7xl mx-auto grid lg:grid-cols-[0.75fr_1.25fr] gap-10 lg:gap-14 items-center">
+          <motion.div initial="hidden" whileInView="visible" variants={fadeUp}>
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
+              <Activity className="w-4 h-4" />
+              Fast Navigation
+            </div>
+            <h2 className="font-heading text-3xl sm:text-4xl font-bold text-foreground">Move Through Care Faster</h2>
+            <p className="text-muted-foreground mt-4 leading-relaxed">
+              Hover over each workflow to bring it alive, then jump straight to the right part of the home screen.
+            </p>
+            <Button className="mt-8 gap-2" onClick={() => scrollToSection("services")}>
+              View Lab Services <ArrowRight className="w-4 h-4" />
+            </Button>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, x: 36 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.7 }}
+            className="h-[460px] sm:h-[540px] overflow-hidden rounded-[28px] border border-border/60 shadow-2xl"
+          >
+            <FlowingMenu
+              items={flowingMenuItems}
+              speed={13}
+              bgColor="hsl(var(--sidebar-background))"
+              textColor="hsl(var(--sidebar-foreground))"
+              marqueeBgColor="#7df9ff"
+              marqueeTextColor="#0f172a"
+              borderColor="rgba(255,255,255,0.16)"
+            />
+          </motion.div>
         </div>
       </section>
 

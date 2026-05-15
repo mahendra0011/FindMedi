@@ -1,0 +1,21 @@
+.split-parent {
+  letter-spacing: 0;
+}
+
+.split-line {
+  overflow: hidden;
+}
+
+.split-word,
+.split-char {
+  display: inline-block;
+  will-change: transform, opacity;
+}
+
+.medicore-split-gradient .split-word,
+.medicore-split-gradient .split-char {
+  background: linear-gradient(90deg, hsl(var(--primary)), #3b82f6, #8b5cf6);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
