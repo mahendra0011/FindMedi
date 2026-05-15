@@ -359,27 +359,18 @@ const Home = () => {
               transition={{ duration: 0.8, delay: 0.3 }} className="relative">
               
               {/* Main Hero Image */}
-              <ElectricBorder
-                color="#7df9ff"
-                speed={0.85}
-                chaos={0.1}
-                thickness={2}
-                borderRadius={28}
-                style={{ borderRadius: 28 }}
-              >
-                <div className="relative overflow-hidden rounded-[28px] shadow-2xl">
-                  <img
-                    src={heroImage}
-                    alt="MediCore Healthcare"
-                    className="w-full h-[400px] object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                  <div className="absolute bottom-6 left-6 right-6">
-                    <p className="text-white text-lg font-semibold">Excellence in Healthcare Since 2010</p>
-                    <p className="text-white/80 text-sm">Trusted by 20,000+ patients</p>
-                  </div>
+              <div className="relative overflow-hidden rounded-[28px] shadow-2xl">
+                <img
+                  src={heroImage}
+                  alt="MediCore Healthcare"
+                  className="w-full h-[400px] object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                <div className="absolute bottom-6 left-6 right-6">
+                  <p className="text-white text-lg font-semibold">Excellence in Healthcare Since 2010</p>
+                  <p className="text-white/80 text-sm">Trusted by 20,000+ patients</p>
                 </div>
-              </ElectricBorder>
+              </div>
 
               {/* Floating badge */}
               <motion.div 
@@ -536,16 +527,31 @@ const Home = () => {
       {/* Why Choose Us Section */}
       <section id="why-choose-us" className="py-20 px-4 sm:px-6">
         <div className="max-w-7xl mx-auto">
-          <motion.div initial="hidden" whileInView="visible" variants={fadeUp} className="text-center mb-14">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
-              <Zap className="w-4 h-4" />
-              Why Choose Us
-            </div>
-            <h2 className="font-heading text-3xl sm:text-4xl font-bold text-foreground">The MediCore Difference</h2>
-            <p className="text-muted-foreground mt-3 max-w-2xl mx-auto">
-              We combine cutting-edge technology with compassionate care to deliver an exceptional healthcare experience
-            </p>
-          </motion.div>
+          <ElectricBorder
+            color="#7df9ff"
+            speed={0.9}
+            chaos={0.1}
+            thickness={2}
+            borderRadius={28}
+            className="mx-auto mb-14 max-w-4xl"
+            style={{ borderRadius: 28 }}
+          >
+            <motion.div
+              initial="hidden"
+              whileInView="visible"
+              variants={fadeUp}
+              className="rounded-[28px] border border-primary/10 bg-card/80 px-6 py-10 text-center shadow-xl backdrop-blur sm:px-10"
+            >
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
+                <Zap className="w-4 h-4" />
+                Why Choose Us
+              </div>
+              <h2 className="font-heading text-3xl sm:text-4xl font-bold text-foreground">The MediCore Difference</h2>
+              <p className="text-muted-foreground mt-3 max-w-2xl mx-auto">
+                We combine cutting-edge technology with compassionate care to deliver an exceptional healthcare experience
+              </p>
+            </motion.div>
+          </ElectricBorder>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {whyChooseUs.map((item, i) => (
