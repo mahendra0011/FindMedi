@@ -526,22 +526,17 @@ const Home = () => {
 
       {/* Why Choose Us Section */}
       <section id="why-choose-us" className="py-20 px-4 sm:px-6">
-        <div className="max-w-7xl mx-auto">
-          <ElectricBorder
-            color="#7df9ff"
-            speed={0.9}
-            chaos={0.1}
-            thickness={2}
-            borderRadius={28}
-            className="mx-auto mb-14 max-w-4xl"
-            style={{ borderRadius: 28 }}
-          >
-            <motion.div
-              initial="hidden"
-              whileInView="visible"
-              variants={fadeUp}
-              className="rounded-[28px] border border-primary/10 bg-card/80 px-6 py-10 text-center shadow-xl backdrop-blur sm:px-10"
-            >
+        <ElectricBorder
+          color="#7df9ff"
+          speed={0.9}
+          chaos={0.1}
+          thickness={2}
+          borderRadius={32}
+          className="mx-auto max-w-7xl"
+          style={{ borderRadius: 32 }}
+        >
+          <div className="rounded-[32px] px-4 py-10 sm:px-8 lg:px-10">
+            <motion.div initial="hidden" whileInView="visible" variants={fadeUp} className="text-center mb-14">
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
                 <Zap className="w-4 h-4" />
                 Why Choose Us
@@ -551,27 +546,27 @@ const Home = () => {
                 We combine cutting-edge technology with compassionate care to deliver an exceptional healthcare experience
               </p>
             </motion.div>
-          </ElectricBorder>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {whyChooseUs.map((item, i) => (
-              <motion.div 
-                key={item.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.1 }}
-                whileHover={{ scale: 1.03, y: -5 }}
-                className={`bg-card rounded-2xl border border-border/60 p-6 hover:shadow-xl transition-all`}
-              >
-                <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${item.color} flex items-center justify-center mb-4`}>
-                  <item.icon className={`w-7 h-7 ${item.iconColor}`} />
-                </div>
-                <h3 className="font-heading font-bold text-xl text-foreground mb-2">{item.title}</h3>
-                <p className="text-muted-foreground">{item.desc}</p>
-              </motion.div>
-            ))}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {whyChooseUs.map((item, i) => (
+                <motion.div
+                  key={item.title}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.1 }}
+                  whileHover={{ scale: 1.03, y: -5 }}
+                  className={`bg-card rounded-2xl border border-border/60 p-6 hover:shadow-xl transition-all`}
+                >
+                  <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${item.color} flex items-center justify-center mb-4`}>
+                    <item.icon className={`w-7 h-7 ${item.iconColor}`} />
+                  </div>
+                  <h3 className="font-heading font-bold text-xl text-foreground mb-2">{item.title}</h3>
+                  <p className="text-muted-foreground">{item.desc}</p>
+                </motion.div>
+              ))}
+            </div>
           </div>
-        </div>
+        </ElectricBorder>
       </section>
 
       {/* Top Doctors Section with Image */}
