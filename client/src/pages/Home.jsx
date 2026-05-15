@@ -10,7 +10,6 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { applyUserSettings, readStoredSettings } from "@/lib/settings";
 import ElectricBorder from "@/components/reactbits/ElectricBorder";
-import CircularGallery from "@/components/reactbits/CircularGallery";
 import FlowingMenu from "@/components/reactbits/FlowingMenu";
 import ScrollVelocity from "@/components/reactbits/ScrollVelocity";
 import SplitText from "@/components/reactbits/SplitText";
@@ -19,15 +18,6 @@ import BlurText from "@/components/reactbits/BlurText";
 const heroImage = "https://cdn.hms.hospital/123/01KNC4WSYHF1637VJ39K3KVJ2M.png";
 const doctorImage = "https://alliedsoftech89.wordpress.com/wp-content/uploads/2013/06/medical-doctor-jobs-in-china-expat-jobs-in-china.jpg";
 const doctorImage2 = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSjPqcWATF_Dr7kcC-DSSbsfzCtcFZDdeI-pQ&s";
-
-const careGalleryItems = [
-  { image: "https://images.unsplash.com/photo-1584515933487-779824d29309?auto=format&fit=crop&w=900&q=80", text: "Specialist Care" },
-  { image: "https://images.unsplash.com/photo-1579154204601-01588f351e67?auto=format&fit=crop&w=900&q=80", text: "Digital Records" },
-  { image: "https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=900&q=80", text: "Lab Diagnostics" },
-  { image: "https://images.unsplash.com/photo-1532938911079-1b06ac7ceec7?auto=format&fit=crop&w=900&q=80", text: "Emergency Care" },
-  { image: "https://images.unsplash.com/photo-1551076805-e1869033e561?auto=format&fit=crop&w=900&q=80", text: "Smart Pharmacy" },
-  { image: "https://images.unsplash.com/photo-1559757175-0eb30cd8c063?auto=format&fit=crop&w=900&q=80", text: "Patient Support" },
-];
 
 const flowingMenuItems = [
   { link: "#specialties", text: "Specialties", image: "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?auto=format&fit=crop&w=900&q=80" },
@@ -511,39 +501,6 @@ const Home = () => {
               </motion.div>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* Circular Care Gallery */}
-      <section className="py-20 px-4 sm:px-6 bg-gradient-to-b from-background via-muted/20 to-background">
-        <div className="max-w-7xl mx-auto">
-          <motion.div initial="hidden" whileInView="visible" variants={fadeUp} className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-cyan-500/10 text-cyan-600 dark:text-cyan-300 text-sm font-medium mb-4">
-              <Sparkles className="w-4 h-4" />
-              Interactive Care Gallery
-            </div>
-            <h2 className="font-heading text-3xl sm:text-4xl font-bold text-foreground">Explore MediCore in Motion</h2>
-            <p className="text-muted-foreground mt-3 max-w-2xl mx-auto">
-              A quick visual tour through the hospital workflows patients use every day.
-            </p>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 28 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7 }}
-            className="relative h-[480px] sm:h-[560px] overflow-hidden rounded-[28px] border border-border/60 bg-slate-950 shadow-2xl"
-          >
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_10%,rgba(125,249,255,0.18),transparent_34%),linear-gradient(135deg,rgba(15,23,42,0.72),rgba(14,165,233,0.12))]" />
-            <CircularGallery
-              items={careGalleryItems}
-              bend={3}
-              textColor="#ffffff"
-              borderRadius={0.06}
-              scrollSpeed={1.7}
-              scrollEase={0.035}
-            />
-          </motion.div>
         </div>
       </section>
 
