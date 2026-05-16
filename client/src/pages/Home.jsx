@@ -58,12 +58,12 @@ const services = [
 ];
 
 const specialties = [
-  { icon: Stethoscope, name: "General Physician", color: "from-emerald-500", count: "45+" },
-  { icon: Baby, name: "Gynecologist", color: "from-pink-500", count: "32+" },
-  { icon: Heart, name: "Dermatologist", color: "from-rose-500", count: "28+" },
-  { icon: Brain, name: "Pediatricians", color: "from-violet-500", count: "25+" },
-  { icon: Eye, name: "Neurologist", color: "from-blue-500", count: "20+" },
-  { icon: Bone, name: "Gastroenterologist", color: "from-amber-500", count: "18+" },
+  { icon: Stethoscope, name: "General Physician", color: "bg-emerald-500/10 text-emerald-600", count: "45+" },
+  { icon: Baby, name: "Gynecologist", color: "bg-pink-500/10 text-pink-600", count: "32+" },
+  { icon: Heart, name: "Dermatologist", color: "bg-rose-500/10 text-rose-600", count: "28+" },
+  { icon: Brain, name: "Pediatricians", color: "bg-violet-500/10 text-violet-600", count: "25+" },
+  { icon: Eye, name: "Neurologist", color: "bg-blue-500/10 text-blue-600", count: "20+" },
+  { icon: Bone, name: "Gastroenterologist", color: "bg-amber-500/10 text-amber-600", count: "18+" },
 ];
 
 const whyChooseUs = [
@@ -110,6 +110,7 @@ const Home = () => {
   const [counters, setCounters] = useState(statsData.map(() => 0));
   const [countersVisible, setCountersVisible] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(() => isDocumentDark());
+  const [ctaPointer, setCtaPointer] = useState({ x: 50, y: 50 });
   const statsRef = useRef(null);
 
   useEffect(() => {
@@ -197,6 +198,14 @@ const Home = () => {
     }
   };
 
+  const handleCtaPointerMove = (event) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    setCtaPointer({
+      x: ((event.clientX - rect.left) / rect.width) * 100,
+      y: ((event.clientY - rect.top) / rect.height) * 100,
+    });
+  };
+
   return (
     <div className="min-h-screen bg-background overflow-hidden">
       {/* Emergency Banner */}
@@ -226,11 +235,11 @@ const Home = () => {
               </div>
               <span className="font-heading text-xl font-bold">MediCore</span>
             </div>
-            <div className="hidden md:flex items-center gap-6">
-              <button type="button" onClick={() => scrollToSection('specialties')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">Specialties</button>
-              <button type="button" onClick={() => scrollToSection('doctors')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">Top Doctors</button>
-              <button type="button" onClick={() => scrollToSection('why-choose-us')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">Why Choose Us</button>
-              <button type="button" onClick={() => scrollToSection('testimonials')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">Testimonials</button>
+            <div className="hidden md:flex items-center gap-2 rounded-full border border-border/50 bg-muted/30 p-1">
+              <button type="button" onClick={() => scrollToSection('specialties')} className="rounded-full px-3 py-1.5 text-sm text-muted-foreground hover:bg-background hover:text-foreground hover:shadow-sm transition-all">Specialties</button>
+              <button type="button" onClick={() => scrollToSection('doctors')} className="rounded-full px-3 py-1.5 text-sm text-muted-foreground hover:bg-background hover:text-foreground hover:shadow-sm transition-all">Top Doctors</button>
+              <button type="button" onClick={() => scrollToSection('why-choose-us')} className="rounded-full px-3 py-1.5 text-sm text-muted-foreground hover:bg-background hover:text-foreground hover:shadow-sm transition-all">Why Choose Us</button>
+              <button type="button" onClick={() => scrollToSection('testimonials')} className="rounded-full px-3 py-1.5 text-sm text-muted-foreground hover:bg-background hover:text-foreground hover:shadow-sm transition-all">Testimonials</button>
             </div>
             <div className="flex items-center gap-3">
               <Tooltip>
@@ -505,16 +514,16 @@ const Home = () => {
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             {specialties.map((spec, i) => (
-              <motion.div 
+              <motion.div
                 key={spec.name}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
                 whileHover={{ scale: 1.05 }}
-                className="bg-card rounded-2xl border border-border/60 p-6 text-center cursor-pointer hover:shadow-lg hover:border-primary/30 transition-all"
+                className="group bg-card rounded-2xl border border-border/60 p-6 text-center cursor-pointer hover:shadow-lg hover:border-primary/30 transition-all"
               >
-                <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${spec.color}/20 flex items-center justify-center mx-auto mb-4`}>
-                  <spec.icon className={`w-7 h-7 text-${spec.color.split('-')[1]}-500`} />
+                <div className={`w-14 h-14 rounded-2xl ${spec.color} flex items-center justify-center mx-auto mb-4 transition-transform group-hover:scale-110`}>
+                  <spec.icon className="w-7 h-7" />
                 </div>
                 <h3 className="font-semibold text-foreground">{spec.name}</h3>
                 <p className="text-sm text-muted-foreground mt-1">{spec.count} Doctors</p>
@@ -614,12 +623,12 @@ const Home = () => {
 
               <div className="grid grid-cols-1 gap-4">
                 {(doctorsList.length > 0 ? doctorsList : doctors).map((doc, i) => (
-                  <motion.div 
+                  <motion.div
                     key={doc.name || i}
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.05 }}
-                    className="bg-card rounded-2xl border border-border/60 p-4 hover:shadow-lg transition-all flex items-center gap-4"
+                    className="group bg-card rounded-2xl border border-border/60 p-4 hover:shadow-lg hover:border-primary/30 transition-all flex items-center gap-4"
                   >
                     <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/30 to-blue-500/30 flex items-center justify-center shrink-0 overflow-hidden">
                       {doc.profile_photo
@@ -639,12 +648,12 @@ const Home = () => {
                           <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
                           <span className="text-sm font-medium">{doc.rating || "4.8"}</span>
                         </div>
-                        <span className="text-xs text-muted-foreground">•</span>
+                        <span className="text-xs text-muted-foreground">|</span>
                         <span className="text-xs text-muted-foreground">{doc.patients || "500+"}+ patients</span>
                       </div>
                     </div>
-                    <Button size="sm" variant="outline">
-                      Book
+                    <Button size="sm" variant="outline" className="group-hover:border-primary/50" onClick={() => navigate(primaryActionPath)}>
+                      Book <ArrowRight className="w-3 h-3" />
                     </Button>
                   </motion.div>
                 ))}
@@ -664,11 +673,15 @@ const Home = () => {
       <section id="services" className="py-20 px-4 sm:px-6">
         <div className="max-w-7xl mx-auto">
           <motion.div initial="hidden" whileInView="visible" variants={fadeUp} className="text-center mb-14">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
+              <TestTube className="w-4 h-4" />
+              Care Services
+            </div>
             <h2 className="font-heading text-3xl sm:text-4xl font-bold text-foreground">Our Services</h2>
             <p className="text-muted-foreground mt-3">Comprehensive healthcare services for you and your family</p>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
             {services.map((service, i) => (
               <motion.div
                 key={service.name}
@@ -676,16 +689,18 @@ const Home = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
                 whileHover={{ scale: 1.03 }}
-                className="bg-card rounded-xl border border-border/60 p-5 hover:shadow-lg hover:border-primary/30 transition-all flex items-center justify-between"
+                className="group bg-card rounded-2xl border border-border/60 p-5 hover:shadow-xl hover:border-primary/30 transition-all"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                    <service.icon className="w-6 h-6 text-primary" />
+                <div className="flex items-start justify-between gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center transition-colors group-hover:bg-primary">
+                    <service.icon className="w-6 h-6 text-primary transition-colors group-hover:text-primary-foreground" />
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-foreground">{service.name}</h3>
-                    <p className="text-sm text-primary font-medium">{service.price}</p>
-                  </div>
+                  <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">{service.price}</span>
+                </div>
+                <h3 className="font-heading mt-5 font-bold text-foreground">{service.name}</h3>
+                <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
+                  <span>Same-day slot</span>
+                  <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-1 group-hover:text-primary" />
                 </div>
               </motion.div>
             ))}
@@ -738,8 +753,7 @@ const Home = () => {
               Testimonials
             </div>
             <h2 className="font-heading text-3xl sm:text-4xl font-bold text-foreground">What Our Patients Say</h2>
-<p className="text-muted-foreground mt-3">Real stories from real patients 
-about their experience with MediCore</p>
+            <p className="text-muted-foreground mt-3">Real stories from real patients about their experience with MediCore</p>
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -789,25 +803,40 @@ about their experience with MediCore</p>
       </section>
 
       {/* CTA Section with Third Image */}
-      <section className="py-16 px-4 sm:px-6 relative overflow-hidden">
+      <section
+        className="py-16 px-4 sm:px-6 relative overflow-hidden"
+        onMouseMove={handleCtaPointerMove}
+        onMouseLeave={() => setCtaPointer({ x: 50, y: 50 })}
+      >
         <div className="absolute inset-0">
           <img src={doctorImage2} alt="" className="w-full h-full object-cover opacity-20" />
           <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary/90 to-blue-600" />
+          <div
+            className="absolute inset-0 transition-opacity duration-200"
+            style={{
+              background: `radial-gradient(circle at ${ctaPointer.x}% ${ctaPointer.y}%, rgba(255,255,255,0.34), rgba(255,255,255,0.1) 18%, transparent 42%)`,
+            }}
+          />
+          <div className="absolute inset-x-0 top-1/2 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent" />
         </div>
         <motion.div initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }}
+          whileHover={{ scale: 1.015 }}
           viewport={{ once: true }} transition={{ duration: 0.6 }}
-          className="max-w-4xl mx-auto rounded-3xl p-8 sm:p-12 text-center relative z-10">
-          
-          <div>
+          className="max-w-4xl mx-auto rounded-3xl border border-white/20 bg-white/10 p-8 sm:p-12 text-center relative z-10 overflow-hidden shadow-2xl backdrop-blur">
+          <div
+            className="pointer-events-none absolute h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/25 blur-3xl transition-[left,top] duration-100"
+            style={{ left: `${ctaPointer.x}%`, top: `${ctaPointer.y}%` }}
+          />
+          <div className="relative">
             <h2 className="font-heading text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-4">
               With 100+ Trusted Doctors
             </h2>
             <p className="text-white/80 text-lg max-w-xl mx-auto mb-8">
               Our network of certified healthcare professionals is here to provide you with the best care possible.
             </p>
-            <Button size="lg" className="gap-2 text-base px-10 h-12 bg-white text-primary hover:bg-white/90 shadow-xl"
+            <Button size="lg" className="group gap-2 text-base px-10 h-12 bg-white text-primary hover:bg-white/90 shadow-xl"
               onClick={() => navigate(primaryActionPath)}>
-              {user ? `Open ${dashboardLabel}` : 'Book Appointment'} <ArrowRight className="w-5 h-5" />
+              {user ? `Open ${dashboardLabel}` : 'Book Appointment'} <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
             </Button>
           </div>
         </motion.div>
