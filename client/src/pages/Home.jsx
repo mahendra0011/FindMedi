@@ -31,12 +31,6 @@ const velocityMessages = [
   "book appointments  prescriptions  diagnostics  patient support  discharge summaries",
 ];
 
-const heroHighlights = [
-  { icon: CalendarCheck, value: "2 min", label: "Average booking" },
-  { icon: BadgeCheck, value: "50+", label: "Verified doctors" },
-  { icon: FileCheck, value: "100%", label: "Secure records" },
-];
-
 const fadeUp = {
   hidden: { opacity: 0, y: 50 },
   visible: i => ({
@@ -64,12 +58,12 @@ const services = [
 ];
 
 const specialties = [
-  { icon: Stethoscope, name: "General Physician", color: "bg-emerald-500/10 text-emerald-600", count: "45+" },
-  { icon: Baby, name: "Gynecologist", color: "bg-pink-500/10 text-pink-600", count: "32+" },
-  { icon: Heart, name: "Dermatologist", color: "bg-rose-500/10 text-rose-600", count: "28+" },
-  { icon: Brain, name: "Pediatricians", color: "bg-violet-500/10 text-violet-600", count: "25+" },
-  { icon: Eye, name: "Neurologist", color: "bg-blue-500/10 text-blue-600", count: "20+" },
-  { icon: Bone, name: "Gastroenterologist", color: "bg-amber-500/10 text-amber-600", count: "18+" },
+  { icon: Stethoscope, name: "General Physician", color: "from-emerald-500", count: "45+" },
+  { icon: Baby, name: "Gynecologist", color: "from-pink-500", count: "32+" },
+  { icon: Heart, name: "Dermatologist", color: "from-rose-500", count: "28+" },
+  { icon: Brain, name: "Pediatricians", color: "from-violet-500", count: "25+" },
+  { icon: Eye, name: "Neurologist", color: "from-blue-500", count: "20+" },
+  { icon: Bone, name: "Gastroenterologist", color: "from-amber-500", count: "18+" },
 ];
 
 const whyChooseUs = [
@@ -203,45 +197,22 @@ const Home = () => {
     }
   };
 
-  const quickActionItems = [
-    {
-      icon: Search,
-      title: "Find the right specialist",
-      desc: "Browse departments, doctors, availability, and patient ratings.",
-      action: () => scrollToSection('specialties'),
-      color: "bg-blue-500/10 text-blue-600",
-    },
-    {
-      icon: CalendarDays,
-      title: user ? `Open ${dashboardLabel}` : "Book a visit",
-      desc: "Start an appointment flow with verified doctors in a few clicks.",
-      action: () => navigate(primaryActionPath),
-      color: "bg-primary/10 text-primary",
-    },
-    {
-      icon: Ambulance,
-      title: "Emergency support",
-      desc: "Reach the 24/7 response team when care cannot wait.",
-      action: () => window.location.href = "tel:+918299431275",
-      color: "bg-red-500/10 text-red-600",
-    },
-  ];
-
   return (
     <div className="min-h-screen bg-background overflow-hidden">
       {/* Emergency Banner */}
-      <div className="bg-gradient-to-r from-red-600 via-rose-600 to-red-600 text-white py-2 px-4 text-center text-sm shadow-lg shadow-red-900/10">
+      <div className="bg-red-600 text-white py-2 px-4 text-center text-sm">
         <span className="flex items-center justify-center gap-2">
           <Ambulance className="w-4 h-4" />
           <span className="font-semibold">Emergency:</span> Call +91 8299431275 for 24/7 medical assistance
-          <span className="hidden sm:inline-flex rounded-full bg-white/15 px-2 py-0.5 text-xs font-medium">Rapid response line</span>
         </span>
       </div>
 
-      {/* Background texture */}
+      {/* Animated Background */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/0.24)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.2)_1px,transparent_1px)] bg-[size:56px_56px] opacity-35" />
-        <div className="absolute inset-x-0 top-0 h-[560px] bg-gradient-to-b from-primary/10 via-info/5 to-transparent" />
+        <motion.div animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }} transition={{ duration: 8, repeat: Infinity }}
+          className="absolute -top-1/4 -left-1/4 w-[800px] h-[800px] rounded-full bg-gradient-to-br from-primary/20 to-transparent blur-3xl" />
+        <motion.div animate={{ scale: [1.2, 1, 1.2], opacity: [0.2, 0.4, 0.2] }} transition={{ duration: 10, repeat: Infinity }}
+          className="absolute top-1/3 -right-1/4 w-[600px] h-[600px] rounded-full bg-gradient-to-bl from-blue-500/20 to-transparent blur-3xl" />
       </div>
 
       {/* Navbar */}
@@ -255,11 +226,11 @@ const Home = () => {
               </div>
               <span className="font-heading text-xl font-bold">MediCore</span>
             </div>
-            <div className="hidden md:flex items-center gap-2 rounded-full border border-border/50 bg-muted/30 p-1">
-              <button type="button" onClick={() => scrollToSection('specialties')} className="rounded-full px-3 py-1.5 text-sm text-muted-foreground hover:bg-background hover:text-foreground hover:shadow-sm transition-all">Specialties</button>
-              <button type="button" onClick={() => scrollToSection('doctors')} className="rounded-full px-3 py-1.5 text-sm text-muted-foreground hover:bg-background hover:text-foreground hover:shadow-sm transition-all">Top Doctors</button>
-              <button type="button" onClick={() => scrollToSection('why-choose-us')} className="rounded-full px-3 py-1.5 text-sm text-muted-foreground hover:bg-background hover:text-foreground hover:shadow-sm transition-all">Why Choose Us</button>
-              <button type="button" onClick={() => scrollToSection('testimonials')} className="rounded-full px-3 py-1.5 text-sm text-muted-foreground hover:bg-background hover:text-foreground hover:shadow-sm transition-all">Testimonials</button>
+            <div className="hidden md:flex items-center gap-6">
+              <button type="button" onClick={() => scrollToSection('specialties')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">Specialties</button>
+              <button type="button" onClick={() => scrollToSection('doctors')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">Top Doctors</button>
+              <button type="button" onClick={() => scrollToSection('why-choose-us')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">Why Choose Us</button>
+              <button type="button" onClick={() => scrollToSection('testimonials')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">Testimonials</button>
             </div>
             <div className="flex items-center gap-3">
               <Tooltip>
@@ -373,27 +344,11 @@ const Home = () => {
                 ))}
               </div>
 
-              <div className="mt-7 grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-xl">
-                {heroHighlights.map((item) => (
-                  <div key={item.label} className="rounded-xl border border-border/60 bg-card/80 p-4 shadow-sm backdrop-blur">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-                        <item.icon className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <p className="font-heading text-xl font-bold text-foreground">{item.value}</p>
-                        <p className="text-xs text-muted-foreground">{item.label}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
               <div className="flex flex-wrap gap-4 mt-8">
                 <Button size="lg" className="gap-2 text-base px-8 h-14 shadow-xl shadow-primary/25" onClick={() => navigate(primaryActionPath)}>
                   {user ? `Open ${dashboardLabel}` : 'Book Appointment Now'} <ArrowRight className="w-5 h-5" />
                 </Button>
-                <Button size="lg" variant="outline" className="gap-2 text-base px-8 h-14 bg-background/70 backdrop-blur" onClick={() => window.location.href = "tel:+918299431275"}>
+                <Button size="lg" variant="outline" className="gap-2 text-base px-8 h-14">
                   <Phone className="w-4 h-4" /> Emergency Call
                 </Button>
               </div>
@@ -411,13 +366,6 @@ const Home = () => {
                   className="w-full h-[400px] object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                <div className="absolute left-5 top-5 rounded-xl border border-white/20 bg-white/90 px-4 py-3 text-slate-900 shadow-xl backdrop-blur">
-                  <p className="text-xs font-semibold uppercase">Live care desk</p>
-                  <div className="mt-1 flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                    <span className="text-sm font-semibold">18 doctors online</span>
-                  </div>
-                </div>
                 <div className="absolute bottom-6 left-6 right-6">
                   <p className="text-white text-lg font-semibold">Excellence in Healthcare Since 2010</p>
                   <p className="text-white/80 text-sm">Trusted by 20,000+ patients</p>
@@ -463,7 +411,7 @@ const Home = () => {
       </section>
 
       {/* Stats Counter Section */}
-      <section ref={statsRef} className="py-16 px-4 sm:px-6 bg-gradient-to-r from-primary/10 via-info/10 to-violet-500/10">
+      <section ref={statsRef} className="py-20 px-4 sm:px-6 bg-gradient-to-r from-primary/10 via-blue-500/10 to-violet-500/10">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
             {statsData.map((stat, i) => (
@@ -473,19 +421,19 @@ const Home = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.15, type: "spring", stiffness: 100 }}
                 whileHover={{ scale: 1.05 }}
-                className="group rounded-2xl border border-border/60 bg-background/75 p-6 text-center shadow-sm backdrop-blur hover:border-primary/30 hover:shadow-xl transition-all"
+                className="text-center group"
               >
-                <div className="w-16 h-16 rounded-2xl bg-primary/15 flex items-center justify-center mx-auto mb-4 group-hover:bg-primary/25 transition-colors">
+                <div className="w-20 h-20 rounded-2xl bg-primary/20 flex items-center justify-center mx-auto mb-4 group-hover:bg-primary/30 transition-colors">
                   <stat.icon className="w-10 h-10 text-primary" />
                 </div>
                 <motion.p
-                  className="font-heading text-4xl lg:text-5xl font-bold text-foreground"
+                  className="text-5xl lg:text-6xl font-bold text-foreground"
                   initial={{ opacity: 0 }}
                   animate={countersVisible ? { opacity: 1 } : {}}
                 >
                   {counters[i].toLocaleString()}{stat.suffix}
                 </motion.p>
-                <p className="text-sm text-muted-foreground mt-2 font-medium">{stat.label}</p>
+                <p className="text-lg text-muted-foreground mt-2 font-medium">{stat.label}</p>
               </motion.div>
             ))}
           </div>
@@ -507,30 +455,18 @@ const Home = () => {
       </section>
 
       {/* Quick Actions */}
-      <section className="py-14 px-4 sm:px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {quickActionItems.map((item, i) => (
-              <motion.button
-                key={item.title}
-                type="button"
-                onClick={item.action}
-                initial={{ opacity: 0, y: 18 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.08 }}
-                whileHover={{ y: -4 }}
-                className="group text-left rounded-2xl border border-border/60 bg-card p-5 shadow-sm hover:border-primary/30 hover:shadow-xl transition-all"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className={`w-12 h-12 rounded-xl ${item.color} flex items-center justify-center`}>
-                    <item.icon className="w-6 h-6" />
-                  </div>
-                  <ArrowRight className="w-5 h-5 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary" />
-                </div>
-                <h3 className="font-heading mt-5 text-lg font-bold text-foreground">{item.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{item.desc}</p>
-              </motion.button>
-            ))}
+      <section className="py-12 px-4 sm:px-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Button variant="outline" className="h-16 text-lg gap-3 py-4">
+              <Search className="w-5 h-5" /> Find by Speciality
+            </Button>
+            <Button variant="outline" className="h-16 text-lg gap-3 py-4">
+              <MapPin className="w-5 h-5" /> Find by Location
+            </Button>
+            <Button variant="outline" className="h-16 text-lg gap-3 py-4">
+              <CalendarDays className="w-5 h-5" /> Book Appointment
+            </Button>
           </div>
         </div>
       </section>
@@ -546,10 +482,10 @@ const Home = () => {
                 whileInView={{ opacity: 1, scale: 1 }}
                 transition={{ delay: i * 0.08, type: "spring", stiffness: 200 }}
                 whileHover={{ scale: 1.08, y: -5 }}
-                className="group bg-card rounded-xl border border-border/60 p-4 text-center hover:shadow-lg hover:border-primary/30 transition-all"
+                className="bg-card rounded-xl border border-border/60 p-4 text-center hover:shadow-lg hover:border-primary/30 transition-all"
               >
-                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-3 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                  <feature.icon className="w-6 h-6 text-primary transition-colors group-hover:text-primary-foreground" />
+                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-3">
+                  <feature.icon className="w-6 h-6 text-primary" />
                 </div>
                 <h3 className="font-semibold text-foreground text-sm">{feature.title}</h3>
                 <p className="text-xs text-muted-foreground mt-1">{feature.desc}</p>
@@ -575,10 +511,10 @@ const Home = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
                 whileHover={{ scale: 1.05 }}
-                className="group bg-card rounded-2xl border border-border/60 p-6 text-center cursor-pointer hover:shadow-lg hover:border-primary/30 transition-all"
+                className="bg-card rounded-2xl border border-border/60 p-6 text-center cursor-pointer hover:shadow-lg hover:border-primary/30 transition-all"
               >
-                <div className={`w-14 h-14 rounded-2xl ${spec.color} flex items-center justify-center mx-auto mb-4 transition-transform group-hover:scale-110`}>
-                  <spec.icon className="w-7 h-7" />
+                <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${spec.color}/20 flex items-center justify-center mx-auto mb-4`}>
+                  <spec.icon className={`w-7 h-7 text-${spec.color.split('-')[1]}-500`} />
                 </div>
                 <h3 className="font-semibold text-foreground">{spec.name}</h3>
                 <p className="text-sm text-muted-foreground mt-1">{spec.count} Doctors</p>
@@ -678,12 +614,12 @@ const Home = () => {
 
               <div className="grid grid-cols-1 gap-4">
                 {(doctorsList.length > 0 ? doctorsList : doctors).map((doc, i) => (
-                  <motion.div
+                  <motion.div 
                     key={doc.name || i}
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.05 }}
-                    className="group bg-card rounded-2xl border border-border/60 p-4 hover:shadow-lg hover:border-primary/30 transition-all flex items-center gap-4"
+                    className="bg-card rounded-2xl border border-border/60 p-4 hover:shadow-lg transition-all flex items-center gap-4"
                   >
                     <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/30 to-blue-500/30 flex items-center justify-center shrink-0 overflow-hidden">
                       {doc.profile_photo
@@ -703,12 +639,12 @@ const Home = () => {
                           <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
                           <span className="text-sm font-medium">{doc.rating || "4.8"}</span>
                         </div>
-                        <span className="text-xs text-muted-foreground">|</span>
+                        <span className="text-xs text-muted-foreground">•</span>
                         <span className="text-xs text-muted-foreground">{doc.patients || "500+"}+ patients</span>
                       </div>
                     </div>
-                    <Button size="sm" variant="outline" className="group-hover:border-primary/50" onClick={() => navigate(primaryActionPath)}>
-                      Book <ArrowRight className="w-3 h-3" />
+                    <Button size="sm" variant="outline">
+                      Book
                     </Button>
                   </motion.div>
                 ))}
@@ -728,15 +664,11 @@ const Home = () => {
       <section id="services" className="py-20 px-4 sm:px-6">
         <div className="max-w-7xl mx-auto">
           <motion.div initial="hidden" whileInView="visible" variants={fadeUp} className="text-center mb-14">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
-              <TestTube className="w-4 h-4" />
-              Care Services
-            </div>
             <h2 className="font-heading text-3xl sm:text-4xl font-bold text-foreground">Our Services</h2>
             <p className="text-muted-foreground mt-3">Comprehensive healthcare services for you and your family</p>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {services.map((service, i) => (
               <motion.div
                 key={service.name}
@@ -744,18 +676,16 @@ const Home = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
                 whileHover={{ scale: 1.03 }}
-                className="group bg-card rounded-2xl border border-border/60 p-5 hover:shadow-xl hover:border-primary/30 transition-all"
+                className="bg-card rounded-xl border border-border/60 p-5 hover:shadow-lg hover:border-primary/30 transition-all flex items-center justify-between"
               >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center transition-colors group-hover:bg-primary">
-                    <service.icon className="w-6 h-6 text-primary transition-colors group-hover:text-primary-foreground" />
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <service.icon className="w-6 h-6 text-primary" />
                   </div>
-                  <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">{service.price}</span>
-                </div>
-                <h3 className="font-heading mt-5 font-bold text-foreground">{service.name}</h3>
-                <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
-                  <span>Same-day slot</span>
-                  <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-1 group-hover:text-primary" />
+                  <div>
+                    <h3 className="font-semibold text-foreground">{service.name}</h3>
+                    <p className="text-sm text-primary font-medium">{service.price}</p>
+                  </div>
                 </div>
               </motion.div>
             ))}
@@ -808,7 +738,8 @@ const Home = () => {
               Testimonials
             </div>
             <h2 className="font-heading text-3xl sm:text-4xl font-bold text-foreground">What Our Patients Say</h2>
-            <p className="text-muted-foreground mt-3">Real stories from real patients about their experience with MediCore</p>
+<p className="text-muted-foreground mt-3">Real stories from real patients 
+about their experience with MediCore</p>
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

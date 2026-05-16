@@ -21,7 +21,7 @@
 .medicore-velocity-row {
   position: relative;
   overflow: hidden;
-  padding: 0.6rem 0;
+  padding: 0.85rem 0;
   border-block: 1px solid hsl(var(--border) / 0.55);
   background:
     linear-gradient(90deg, hsl(var(--primary) / 0.08), hsl(var(--background)), hsl(var(--primary) / 0.08));
@@ -37,7 +37,7 @@
   align-items: center;
   text-align: center;
   font-family: inherit;
-  font-size: clamp(1.35rem, 3.4vw, 3.35rem);
+  font-size: clamp(1.8rem, 5vw, 4.8rem);
   line-height: 1.08;
   font-weight: 800;
   letter-spacing: 0;
