@@ -1,70 +1,35 @@
-import { createContext, useContext, useState, useEffect } from 'react';
-import { api } from '@/lib/api';
-import { applyUserSettings, mergeSettings, readStoredSettings } from '@/lib/settings';
+import { createContext, useContext } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { loginUser, registerUser, logoutUser, updateUser as updateUserAction, selectCurrentUser, selectAuthLoading, selectIsAuthenticated } from '@/store/slices/authSlice';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const dispatch = useDispatch();
+  const user = useSelector(selectCurrentUser);
+  const loading = useSelector(selectAuthLoading);
+  const isAuthenticated = useSelector(selectIsAuthenticated);
 
-  useEffect(() => {
-    applyUserSettings(mergeSettings(readStoredSettings(), user?.settings));
-  }, [user?.settings]);
-
-  useEffect(() => {
-    const token = localStorage.getItem('hms_token');
-    if (token) {
-      api.me()
-        .then(u => setUser({ ...u, settings: mergeSettings(readStoredSettings(), u.settings) }))
-        .catch(() => {
-          localStorage.removeItem('hms_token');
-          localStorage.removeItem('token');
-        })
-        .finally(() => setLoading(false));
-    } else {
-      setLoading(false);
-    }
-  }, []);
-
-  const login = async (email, password, role, secretKey = '') => {
-    const data = await api.login({ email, password, role, secretKey });
-    localStorage.removeItem('token');
-    localStorage.setItem('hms_token', data.token);
-    const nextUser = { ...data.user, settings: mergeSettings(readStoredSettings(), data.user?.settings) };
-    setUser(nextUser);
-    return nextUser;
+  const login = async (email, password, role) => {
+    const result = await dispatch(loginUser({ email, password, role }));
+    return result.payload;
   };
 
   const register = async (body) => {
-    const data = await api.register(body);
-    localStorage.removeItem('token');
-    localStorage.setItem('hms_token', data.token);
-    const nextUser = { ...data.user, settings: mergeSettings(readStoredSettings(), data.user?.settings) };
-    setUser(nextUser);
-    return nextUser;
+    const result = await dispatch(registerUser(body));
+    return result.payload;
   };
 
   const logout = () => {
-    localStorage.removeItem('hms_token');
-    localStorage.removeItem('token');
-    setUser(null);
+    dispatch(logoutUser());
   };
 
-  const completeOtpLogin = ({ token, user }) => {
-    localStorage.removeItem('token');
-    localStorage.setItem('hms_token', token);
-    setUser({ ...user, settings: mergeSettings(readStoredSettings(), user?.settings) });
+  const updateUser = (updates) => {
+    dispatch(updateUserAction(updates));
   };
-
-  const updateUser = (updates) => setUser(u => ({
-    ...u,
-    ...updates,
-    settings: mergeSettings(u?.settings, updates?.settings),
-  }));
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, loading, updateUser, completeOtpLogin }}>
+    <AuthContext.Provider value={{ user, login, register, logout, loading, updateUser, isAuthenticated }}>
       {children}
     </AuthContext.Provider>
   );
