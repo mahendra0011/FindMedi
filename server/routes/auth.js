@@ -17,10 +17,13 @@ import {
   sendHostNotificationEmail,
   sendPasswordChangedEmail,
 } from '../services/notificationService.js';
+import { OAuth2Client } from 'google-auth-library';
 
 const router = express.Router();
-const ADMIN_SECRET_KEY = process.env.ADMIN_SECRET_KEY || 'medicore2580';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+const googleClientId = process.env.GOOGLE_CLIENT_ID;
+const googleClient = new OAuth2Client(googleClientId);
 const avatarUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
@@ -149,7 +152,6 @@ router.post('/register', async (req, res) => {
       email,
       password,
       role = 'patient',
-      secretKey,
       phone = '',
       gender = '',
       dateOfBirth,
@@ -171,10 +173,6 @@ router.post('/register', async (req, res) => {
 
     const normalizedRole = ['admin', 'doctor', 'patient'].includes(role) ? role : 'patient';
     const lowerEmail = email.toLowerCase();
-
-    if (normalizedRole === 'admin' && secretKey !== ADMIN_SECRET_KEY) {
-      return res.status(403).json({ message: 'Invalid secret key for admin registration' });
-    }
 
     if (normalizedRole === 'doctor' && (!specialization || !licenseNumber || !(qualification || qualifications))) {
       return res.status(400).json({ message: 'Specialization, qualification and license number are required for doctor registration' });
@@ -392,7 +390,7 @@ router.post('/resend-otp', async (req, res) => {
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
   try {
-    const { email, password, role, secretKey } = req.body;
+    const { email, password, role } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({ message: 'Email and password are required' });
@@ -407,10 +405,6 @@ router.post('/login', async (req, res) => {
 
     if (role && user.role !== role) {
       return res.status(403).json({ message: `This account is not a ${role}` });
-    }
-
-    if (user.role === 'admin' && secretKey !== ADMIN_SECRET_KEY) {
-      return res.status(403).json({ message: 'Invalid secret key for admin access' });
     }
 
     if (user.status === 'blocked') {
@@ -543,6 +537,68 @@ router.post('/reset-password', async (req, res) => {
     res.json({ message: 'Password updated successfully. You can now login.' });
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+});
+
+// POST /api/auth/google
+router.post('/google', async (req, res) => {
+  try {
+    const { idToken } = req.body;
+    if (!idToken) {
+      return res.status(400).json({ message: 'Google ID token is required' });
+    }
+
+    const ticket = await googleClient.verifyIdToken({
+      idToken,
+      audience: googleClientId,
+    });
+
+    const payload = ticket.getPayload();
+    const email = payload.email.toLowerCase();
+    const googleName = payload.name || '';
+    const googleAvatar = payload.picture || '';
+
+    let user = await User.findOne({ email });
+
+    if (!user) {
+      const tempPassword = Math.random().toString(36).slice(-10);
+      user = await User.create({
+        name: googleName,
+        email,
+        password: tempPassword,
+        role: 'patient',
+        isVerified: true,
+        status: 'active',
+        approvalStatus: 'not_required',
+        settings: { defaultDashboard: 'overview' },
+      });
+
+      await Patient.create({
+        name: googleName,
+        age: 0,
+        gender: 'Other',
+        phone: '',
+        email,
+        userId: user._id,
+        status: 'Active',
+      });
+    }
+
+    if (user.status === 'blocked') {
+      return res.status(403).json({ message: 'Your account has been blocked. Contact administrator.' });
+    }
+
+    res.json({
+      token: sign(user),
+      user: await userResponse(user),
+      googleUser: {
+        name: googleName,
+        email,
+        avatar: googleAvatar,
+      },
+    });
+  } catch (err) {
+    res.status(401).json({ message: 'Invalid Google token' });
   }
 });
 
