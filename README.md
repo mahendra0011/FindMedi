@@ -32,7 +32,6 @@ MediCore is a full-stack hospital management system built with React, Express, M
 - Secure authentication with JWT sessions, password hashing, email OTP verification, blocked-account checks, and forgot-password flow.
 - Patient signup with automatic email verification before dashboard access.
 - Doctor signup with email verification and admin approval before dashboard access.
-- Admin signup and login protected by a secret keyword.
 - Patient dashboard with appointments, records, billing, emergency data, and booked lab services.
 - Doctor dashboard with appointments, patient records, prescriptions, lab reports, discharge summaries, and email delivery.
 - Admin dashboard with patient, doctor, appointment, billing, emergency, report, notification, import, and settings management.
@@ -40,6 +39,7 @@ MediCore is a full-stack hospital management system built with React, Express, M
 - Excel import support for patients, doctors, and billing records using `.xlsx` or `.xls` files.
 - Settings for profile, password, notifications, language, theme, density, dashboard preferences, privacy, and calm theme variants.
 - Brevo email integration for OTPs and important user, doctor, and admin notifications.
+- Google OAuth integration for quick login/signup with auto-filled profile data.
 - Cloudinary/local upload support for documents and medical files.
 
 ## Tech Stack
@@ -54,6 +54,7 @@ MediCore is a full-stack hospital management system built with React, Express, M
 - Recharts
 - Framer Motion
 - Lucide icons
+- Redux Toolkit + React-Redux
 
 ### Backend
 - Node.js
@@ -108,7 +109,6 @@ NODE_ENV=development
 CLIENT_URL=http://localhost:5173
 MONGO_URI=mongodb://localhost:27017/medicore
 JWT_SECRET=change_this_to_a_long_random_secret
-ADMIN_SECRET_KEY=medicore2580
 
 BREVO_API_KEY=your_brevo_api_key
 BREVO_SENDER_EMAIL=your_verified_sender_email
@@ -145,14 +145,12 @@ After running `npm run seed`, these users are available:
 
 | Role | Email | Password | Extra login field |
 | --- | --- | --- | --- |
-| Admin | `admin@mediCore.com` | `password` | Secret keyword: `medicore2580` |
+| Admin | `admin@mediCore.com` | `password` | None |
 | Doctor | `sarah.smith@mediCore.com` | `password` | None |
 | Doctor | `raj.patel@mediCore.com` | `password` | None |
 | Patient | `sarah.johnson@email.com` | `password` | None |
 | Patient | `mike.chen@email.com` | `password` | None |
 | Patient | `patient@mediCore.com` | `password` | None |
-
-If you change `ADMIN_SECRET_KEY` in `server/.env`, use that value instead of `medicore2580`.
 
 ## Available Scripts
 
@@ -196,9 +194,9 @@ npm run preview --prefix client
 4. Dashboard access is allowed only after email verification and approval.
 
 ### Admin flow:
-1. Admin creates an account using the configured secret keyword.
+1. Admin creates an account.
 2. Admin verifies email with OTP.
-3. Admin login requires email, password, and the secret keyword.
+3. Admin logs in with email and password.
 4. Admin dashboard access is allowed only after successful verification.
 
 ## Feature Guide
@@ -259,9 +257,10 @@ verification, health check, and approved doctor listing.
 | `CLIENT_URL` | Frontend URL allowed by CORS in production. |
 | `MONGO_URI` | MongoDB local or Atlas connection string. |
 | `JWT_SECRET` | Secret used to sign JWT tokens. Use a strong random value. |
-| `ADMIN_SECRET_KEY` | Secret keyword required for admin signup/login. |
 | `BREVO_API_KEY` | Brevo API key for sending OTP and notification emails. |
 | `BREVO_SENDER_EMAIL` | Verified sender email configured in Brevo. |
+| `GOOGLE_CLIENT_ID` | Google OAuth 2.0 Client ID for Google sign-in. |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth 2.0 Client Secret (optional for ID token verification). |
 | `CLOUDINARY_URL` | Cloudinary connection URL for file uploads. |
 
 ### Client variables:
@@ -324,11 +323,6 @@ Typical deployment setup:
 - Confirm the sender is verified in Brevo.
 - Check the server console for the Brevo API response.
 
-### Admin login fails:
-- Include the secret keyword.
-- Default local/seed keyword is `medicore2580`.
-- If `ADMIN_SECRET_KEY` is changed, use the new value.
-
 ### Client shows demo/mock data:
 - Start the Express backend.
 - Confirm the client can reach `VITE_API_URL`.
@@ -338,7 +332,6 @@ Typical deployment setup:
 
 - Replace demo passwords before real use.
 - Use a strong `JWT_SECRET` in every non-local environment.
-- Change the default admin secret keyword before production.
 - Keep production CORS restricted to the deployed frontend URL.
 - Do not commit API keys, database passwords, or JWT secrets.
 - Review doctor approval and blocked-account flows before production rollout.
