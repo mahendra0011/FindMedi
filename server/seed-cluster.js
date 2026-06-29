@@ -724,7 +724,7 @@ const main = async () => {
   console.log(`Billing records: ${billCount}`);
   console.log('');
   console.log('Demo login credentials:');
-  console.log('Admin:   admin@mediCore.com / password / secret key medicore2580');
+  console.log('Admin:   admin@mediCore.com / password');
   console.log('Doctor:  sarah.smith@mediCore.com / password');
   console.log('Patient: patient@mediCore.com / password');
 };

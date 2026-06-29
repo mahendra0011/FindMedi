@@ -1,5 +1,5 @@
 import OTP from '../models/OTP.js';
-import { sendEmail, sendSMS } from './notificationService.js';
+import { sendEmail } from './notificationService.js';
 import { renderEmailTemplate, renderPlainText } from './emailTemplates.js';
 
 // OTP validity: 10 minutes
@@ -81,43 +81,38 @@ export const createAndSendOTP = async ({ userId, email, type = 'email', phone = 
       lastRequestAt: new Date()
     });
 
-    // Send OTP via email or SMS
-    let sendResult;
-    if (type === 'sms' && phone) {
-      sendResult = await sendSMS(phone, `Your MediCore OTP is: ${otpPlain}. Valid for ${OTP_VALIDITY_MINUTES} minutes.`);
-    } else {
-      const isPasswordReset = type === 'password_reset';
-      const subject = isPasswordReset
-        ? 'Reset Your MediCore Password'
-        : 'Your OTP Verification - MediCore Hospital';
-      const intro = isPasswordReset
-        ? 'Use this code to reset your MediCore password.'
-        : 'Use this code to verify your MediCore account.';
-      const template = {
-        title: isPasswordReset ? 'Reset your password' : 'Verify your email',
-        subtitle: intro,
-        badge: isPasswordReset ? 'Password Reset' : 'Email Verification',
-        paragraphs: [
-          `This secure code will expire in ${OTP_VALIDITY_MINUTES} minutes.`,
-          'For your safety, never share this code with anyone.',
-        ],
-        code: otpPlain,
-        details: [
-          { label: 'Purpose', value: isPasswordReset ? 'Password reset' : 'Email verification' },
-          { label: 'Expires in', value: `${OTP_VALIDITY_MINUTES} minutes` },
-        ],
-        note: "If you didn't request this code, you can safely ignore this email.",
-        tone: isPasswordReset ? 'warning' : 'default',
-        preheader: `Your MediCore verification code is ${otpPlain}.`,
-      };
+    // Send OTP via email only (SMS removed)
+    const isPasswordReset = type === 'password_reset';
+    const subject = isPasswordReset
+      ? 'Reset Your MediCore Password'
+      : 'Your OTP Verification - MediCore Hospital';
+    const intro = isPasswordReset
+      ? 'Use this code to reset your MediCore password.'
+      : 'Use this code to verify your MediCore account.';
+    const template = {
+      title: isPasswordReset ? 'Reset your password' : 'Verify your email',
+      subtitle: intro,
+      badge: isPasswordReset ? 'Password Reset' : 'Email Verification',
+      paragraphs: [
+        `This secure code will expire in ${OTP_VALIDITY_MINUTES} minutes.`,
+        'For your safety, never share this code with anyone.',
+      ],
+      code: otpPlain,
+      details: [
+        { label: 'Purpose', value: isPasswordReset ? 'Password reset' : 'Email verification' },
+        { label: 'Expires in', value: `${OTP_VALIDITY_MINUTES} minutes` },
+      ],
+      note: "If you didn't request this code, you can safely ignore this email.",
+      tone: isPasswordReset ? 'warning' : 'default',
+      preheader: `Your MediCore verification code is ${otpPlain}.`,
+    };
 
-      sendResult = await sendEmail({
-        to: normalizedEmail,
-        subject,
-        text: renderPlainText(template),
-        html: renderEmailTemplate(template)
-      });
-    }
+    const sendResult = await sendEmail({
+      to: normalizedEmail,
+      subject,
+      text: renderPlainText(template),
+      html: renderEmailTemplate(template)
+    });
 
     if (!sendResult.success) {
       // Delete OTP record if sending failed
@@ -143,7 +138,7 @@ export const createAndSendOTP = async ({ userId, email, type = 'email', phone = 
       success: true,
       message: 'OTP sent successfully',
       otpId: otpRecord._id,
-      sentTo: type === 'sms' ? phone : normalizedEmail,
+      sentTo: normalizedEmail,
       messageId: sendResult.messageId,
       simulated: sendResult.simulated === true,
     };
