@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate, Navigate, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, Navigate, Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Activity, ArrowRight, Shield, Stethoscope, UserRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,6 @@ import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 
 const roles = [
-  { key: 'admin',   label: 'Admin',   desc: 'Full system access',            icon: Shield,      color: 'text-primary', bg: 'bg-primary/10' },
   { key: 'doctor',  label: 'Doctor',  desc: 'Manage patients & schedule',    icon: Stethoscope, color: 'text-info',    bg: 'bg-info/10'    },
   { key: 'patient', label: 'Patient', desc: 'Book appointments & view records', icon: UserRound, color: 'text-success', bg: 'bg-success/10' },
 ];
@@ -16,9 +15,11 @@ const roles = [
 export default function Signup() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const location = useLocation();
   const [role, setRole] = useState('patient');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [isGoogle, setIsGoogle] = useState(false);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [phone, setPhone] = useState('');
@@ -29,11 +30,25 @@ export default function Signup() {
   const [qualification, setQualification] = useState('');
   const [licenseNumber, setLicenseNumber] = useState('');
   const [consultationFee, setConsultationFee] = useState('');
-  const [secretKey, setSecretKey] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   if (user) return <Navigate to="/dashboard" replace />;
+
+  useEffect(() => {
+    const stored = localStorage.getItem('google_signup');
+    if (stored) {
+      try {
+        const data = JSON.parse(stored);
+        if (data.isGoogle) {
+          setIsGoogle(true);
+          if (data.role) setRole(data.role);
+          if (data.name) setName(data.name);
+          if (data.email) setEmail(data.email);
+        }
+      } catch {}
+    }
+  }, []);
 
   const handleSignup = async (e) => {
     e.preventDefault();
@@ -44,10 +59,6 @@ export default function Signup() {
     }
     if (password.length < 6) {
       setError('Password must be at least 6 characters');
-      return;
-    }
-    if (role === 'admin' && secretKey !== 'medicore2580') {
-      setError('Invalid secret key for admin registration');
       return;
     }
     if (!phone || !gender || !dateOfBirth) {
@@ -66,7 +77,6 @@ export default function Signup() {
         email,
         password,
         role,
-        secretKey,
         phone,
         gender,
         dateOfBirth,
@@ -202,12 +212,6 @@ export default function Signup() {
                   <label className="text-sm font-medium text-foreground mb-1.5 block">License Number</label>
                   <Input value={licenseNumber} onChange={e => setLicenseNumber(e.target.value)} placeholder="Medical license number" required />
                 </div>
-              </div>
-            )}
-            {role === 'admin' && (
-              <div>
-                <label className="text-sm font-medium text-foreground mb-1.5 block">Secret Key</label>
-                <Input type="password" value={secretKey} onChange={e => setSecretKey(e.target.value)} placeholder="Enter admin secret key" required />
               </div>
             )}
             {error && <p className="text-sm text-destructive bg-destructive/10 px-3 py-2 rounded-lg">{error}</p>}
