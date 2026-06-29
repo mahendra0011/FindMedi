@@ -6,6 +6,7 @@
     "dev": "node --watch index.js",
     "start": "node index.js",
     "seed": "node seed.js",
+    "seed:admin": "node seed-admin.js",
     "seed:cluster": "node seed-cluster.js"
   },
   "dependencies": {

@@ -9,6 +9,7 @@
     "dev:python": "cd python_backend && python -m uvicorn app.main:app --reload --port 5000",
     "dev:all": "concurrently \"npm run dev --prefix server\" \"npm run dev:python\" \"npm run dev --prefix client\"",
     "seed": "npm run seed --prefix server",
+    "seed:admin": "npm run seed:admin --prefix server",
     "seed:cluster": "npm run seed:cluster --prefix server",
     "seed:python": "cd python_backend && python -m app.seed",
     "build": "npm run build --prefix client",
@@ -18,7 +19,10 @@
     "concurrently": "^9.1.0"
   },
   "dependencies": {
+    "@reduxjs/toolkit": "^2.12.0",
+    "google-auth-library": "^10.9.0",
     "mongodb": "^7.1.1",
+    "react-redux": "^9.3.0",
     "rollup": "^4.60.3"
   }
 }
