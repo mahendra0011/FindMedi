@@ -12,8 +12,7 @@ import {
   sendAppointmentReminder, 
   sendPrescriptionEmail, 
   sendLabReportEmail,
-  sendDischargeSummaryEmail,
-  sendAppointmentReminderSMS
+  sendDischargeSummaryEmail
 } from '../services/notificationService.js';
 import { processMedicalFile, validateFile } from '../utils/imageUtils.js';
 import { 
@@ -302,16 +301,6 @@ router.post('/email/discharge-summary', async (req, res) => {
       await createNotification(patientUser._id, 'Discharge Summary Emailed', 'Your discharge summary has been sent to your email.', 'records');
     }
 
-    res.json(result);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-router.post('/sms/appointment-reminder', async (req, res) => {
-  try {
-    const { phone, patientName, doctorName, date, time } = req.body;
-    const result = await sendAppointmentReminderSMS(phone, patientName, doctorName, date, time);
     res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });

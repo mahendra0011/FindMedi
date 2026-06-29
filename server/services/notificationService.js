@@ -422,12 +422,3 @@ export const sendPasswordChangedEmail = async (user) => {
   });
 };
 
-export const sendSMS = async (phone, message) => {
-  console.log(`SMS to ${phone}: ${message}`);
-  return { success: true, message: 'SMS simulated (integrate with Twilio/Africastalking)' };
-};
-
-export const sendAppointmentReminderSMS = async (phone, patientName, doctorName, date, time) => {
-  const message = `Dear ${patientName}, reminder for your appointment with ${doctorLabel(doctorName)} on ${date} at ${time}. Please arrive 15 mins early. - MediCore Hospital`;
-  return sendSMS(phone, message);
-};
