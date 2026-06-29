@@ -163,6 +163,26 @@ const mock = {
     const token = btoa(JSON.stringify({ id: u.id, role: u.role, exp: Date.now() + 7*24*3600*1000 }));
     return { token, user: { id: u.id, name: u.name, email: u.email, role: u.role, isVerified: u.isVerified } };
   },
+  async googleAuth({ idToken }) {
+    await delay();
+    const token = btoa(JSON.stringify({ id: 'google_user', role: 'patient', exp: Date.now() + 7*24*3600*1000 }));
+    return {
+      token,
+      user: {
+        id: 'google_user',
+        name: 'Google User',
+        email: 'google.user@example.com',
+        role: 'patient',
+        isVerified: true,
+        settings: { ...DEFAULT_USER_SETTINGS },
+      },
+      googleUser: {
+        name: 'Google User',
+        email: 'google.user@example.com',
+        avatar: '',
+      },
+    };
+  },
   async register({ name, email, password, role }) {
     await delay();
     if (MOCK_USERS[email?.toLowerCase()]) throw new Error('Email already in use');
@@ -801,6 +821,7 @@ export async function downloadInvoicePdf(billId, filename = 'invoice.pdf') {
 // ─── Public API surface ────────────────────────────────────────────────────
 export const api = {
   login:         (body)    => dispatch(() => mock.login(body),                         '/auth/login',       { method:'POST', body: JSON.stringify(body) }),
+  googleAuth:    (body)    => dispatch(() => mock.googleAuth(body),                    '/auth/google',      { method:'POST', body: JSON.stringify(body) }),
   register:      (body)    => dispatch(() => mock.register(body),                      '/auth/register',    { method:'POST', body: JSON.stringify(body) }),
   verifyOTP:     (body)    => dispatch(() => mock.verifyOTP(body),                     '/auth/verify-otp',  { method:'POST', body: JSON.stringify(body) }),
   resendOTP:     (body)    => dispatch(() => mock.resendOTP(body),                     '/auth/resend-otp',  { method:'POST', body: JSON.stringify(body) }),
