@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
+import { useDispatch, useSelector } from 'react-redux';
 import {
   AlertCircle,
   Bell,
@@ -18,7 +19,8 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
-import { applyUserSettings, mergeSettings, t } from '@/lib/settings';
+import { applyUserSettings, t } from '@/lib/settings';
+import { updateSetting, selectSetting } from '@/store/slices/settingsSlice';
 
 const roleBadge = {
   admin: 'bg-primary/15 text-primary',
@@ -113,7 +115,8 @@ export default function Settings() {
   const fileInputRef = useRef(null);
   const [tab, setTab] = useState('profile');
   const [profile, setProfile] = useState(() => buildProfile(user));
-  const [settings, setSettings] = useState(() => mergeSettings(user?.settings));
+  const dispatch = useDispatch();
+  const settings = useSelector(selectSetting) || {};
   const [password, setPassword] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [notice, setNotice] = useState(null);
   const language = settings.language || 'en';
@@ -121,7 +124,6 @@ export default function Settings() {
 
   useEffect(() => {
     setProfile(buildProfile(user));
-    setSettings(mergeSettings(user?.settings));
   }, [user]);
 
   useEffect(() => {
@@ -161,7 +163,7 @@ export default function Settings() {
   });
 
   const updateProfile = (key, value) => setProfile((current) => ({ ...current, [key]: value }));
-  const updateSetting = (key, value) => setSettings((current) => ({ ...current, [key]: value }));
+  const updateSetting = (key, value) => dispatch(updateSetting({ key, value }));
 
   const handleAvatarSelect = (event) => {
     const file = event.target.files?.[0];
@@ -482,7 +484,6 @@ export default function Settings() {
               <h3 className="font-heading font-semibold text-lg text-card-foreground mb-5">{tr('settings.notificationPrefs')}</h3>
               <div className="space-y-1">
                 <ToggleRow title={tr('settings.emailNotifications')} description={tr('settings.emailNotificationsDesc')} checked={settings.emailNotifications} onChange={(checked) => updateSetting('emailNotifications', checked)} />
-                <ToggleRow title={tr('settings.smsAlerts')} description={tr('settings.smsAlertsDesc')} checked={settings.smsAlerts} onChange={(checked) => updateSetting('smsAlerts', checked)} />
                 <ToggleRow title={tr('settings.systemNotifications')} description={tr('settings.systemNotificationsDesc')} checked={settings.systemNotifications} onChange={(checked) => updateSetting('systemNotifications', checked)} />
                 <ToggleRow title={tr('settings.appointmentReminders')} description={tr('settings.appointmentRemindersDesc')} checked={settings.appointmentReminders} onChange={(checked) => updateSetting('appointmentReminders', checked)} />
                 <ToggleRow title={tr('settings.weeklyReports')} description={tr('settings.weeklyReportsDesc')} checked={settings.weeklyReports} onChange={(checked) => updateSetting('weeklyReports', checked)} />
