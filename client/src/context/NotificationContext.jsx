@@ -1,38 +1,25 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { api } from '@/lib/api';
+import { createContext, useContext, useEffect, useCallback } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { useAuth } from '@/context/AuthContext';
+import { fetchNotifications, selectNotificationCount } from '@/store/slices/notificationsSlice';
 
 const NotificationContext = createContext(null);
 
 export function NotificationProvider({ children }) {
+  const dispatch = useDispatch();
+  const count = useSelector(selectNotificationCount);
   const { user } = useAuth();
-  const [count, setCount] = useState(0);
 
   const refreshCount = useCallback(async () => {
-    if (!user || user.settings?.systemNotifications === false) { setCount(0); return; }
-    try {
-      const list = await api.getNotifications({});
-      const userId = (user._id || user.id)?.toString();
-      let filtered = list;
-      if (user.role !== 'admin') {
-        filtered = list.filter(n => n.userId === userId);
-      }
-      const unread = filtered.filter(n => !n.read).length;
-      setCount(unread);
-    } catch (e) { 
-      console.error('[NotificationContext] error:', e);
-      setCount(0);
-    }
-  }, [user]);
+    if (!user) return;
+    dispatch(fetchNotifications());
+  }, [user, dispatch]);
 
   useEffect(() => {
-    if (user && user.settings?.systemNotifications !== false) {
-      refreshCount();
-      const interval = setInterval(refreshCount, 5000);
-      return () => clearInterval(interval);
+    if (user) {
+      dispatch(fetchNotifications());
     }
-    setCount(0);
-  }, [user, refreshCount]);
+  }, [user, dispatch]);
 
   return (
     <NotificationContext.Provider value={{ count, refreshCount }}>
