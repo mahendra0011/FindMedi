@@ -1,11 +1,15 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { HashRouter, Route, Routes, Navigate, Outlet } from 'react-router-dom';
 import { useEffect } from 'react';
+import { Provider } from 'react-redux';
 import { Toaster as Sonner } from '@/components/ui/sonner';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { store } from '@/store';
+import { initializeAuth } from '@/store/slices/authSlice';
 import { NotificationProvider } from '@/context/NotificationContext';
+import { AuthProvider } from '@/context/AuthContext';
+import { useDispatch, useSelector } from 'react-redux';
 import DashboardLayout from './components/DashboardLayout';
 import AppMotion from './components/AppMotion';
 import Home from './pages/Home';
@@ -59,6 +63,15 @@ import ImportExport from './pages/ImportExport';
 import FileUpload from './pages/FileUpload';
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1, staleTime: 30_000 } } });
+
+// Auth initializer component
+function AuthInitializer({ children }) {
+  const dispatch = useDispatch();
+  useEffect(() => {
+    dispatch(initializeAuth());
+  }, [dispatch]);
+  return children;
+}
 
 function BlockedAccountRedirect() {
   const { logout } = useAuth();
@@ -140,9 +153,22 @@ function RoleDashboard() {
   return <PatientDashboard />;
 }
 
+// Wrapper that uses Redux for auth instead of context
+function ReduxAuthProvider({ children }) {
+  return (
+    <Provider store={store}>
+      <AuthInitializer>
+        <AuthProvider>
+          {children}
+        </AuthProvider>
+      </AuthInitializer>
+    </Provider>
+  );
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
+    <ReduxAuthProvider>
       <NotificationProvider>
         <TooltipProvider>
           <Toaster />
@@ -209,7 +235,7 @@ const App = () => (
           </HashRouter>
         </TooltipProvider>
       </NotificationProvider>
-    </AuthProvider>
+    </ReduxAuthProvider>
   </QueryClientProvider>
 );
 
