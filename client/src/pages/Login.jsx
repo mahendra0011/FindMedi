@@ -169,26 +169,26 @@ export default function Login() {
 
           <div className="mt-6 p-4 bg-muted/50 rounded-xl border border-border/50">
             <p className="text-xs font-medium text-muted-foreground mb-2">Quick Demo Login:</p>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-4 gap-1.5">
               <button type="button" onClick={() => { setRole('superadmin'); setEmail('mahendrapra0077@gmail.com'); setPassword('admin@123'); setError(''); }}
-                className="text-xs text-left px-3 py-2 rounded-lg bg-purple-500/10 border border-purple-500/20 hover:bg-purple-500/20 transition-colors">
-                <span className="font-semibold text-purple-600 dark:text-purple-400">Super Admin</span>
-                <span className="block text-muted-foreground truncate">mahendrapra0077@gmail.com</span>
+                className="text-[10px] text-center px-1.5 py-1.5 rounded-lg bg-purple-500/10 border border-purple-500/20 hover:bg-purple-500/20 transition-colors">
+                <span className="font-semibold text-purple-600 dark:text-purple-400">Super</span>
+                <span className="block text-muted-foreground truncate">mahendrapra0077</span>
               </button>
               <button type="button" onClick={() => { setRole('admin'); setEmail('admin@mediCore.com'); setPassword('password'); setError(''); }}
-                className="text-xs text-left px-3 py-2 rounded-lg bg-primary/10 border border-primary/20 hover:bg-primary/20 transition-colors">
+                className="text-[10px] text-center px-1.5 py-1.5 rounded-lg bg-primary/10 border border-primary/20 hover:bg-primary/20 transition-colors">
                 <span className="font-semibold text-primary">Admin</span>
-                <span className="block text-muted-foreground truncate">admin@mediCore.com</span>
+                <span className="block text-muted-foreground truncate">admin</span>
               </button>
               <button type="button" onClick={() => { setRole('doctor'); setEmail('sarah.smith@mediCore.com'); setPassword('password'); setError(''); }}
-                className="text-xs text-left px-3 py-2 rounded-lg bg-info/10 border border-info/20 hover:bg-info/20 transition-colors">
+                className="text-[10px] text-center px-1.5 py-1.5 rounded-lg bg-info/10 border border-info/20 hover:bg-info/20 transition-colors">
                 <span className="font-semibold text-info">Doctor</span>
-                <span className="block text-muted-foreground truncate">sarah.smith@mediCore.com</span>
+                <span className="block text-muted-foreground truncate">sarah.smith</span>
               </button>
               <button type="button" onClick={() => { setRole('patient'); setEmail('patient@mediCore.com'); setPassword('password'); setError(''); }}
-                className="text-xs text-left px-3 py-2 rounded-lg bg-success/10 border border-success/20 hover:bg-success/20 transition-colors">
+                className="text-[10px] text-center px-1.5 py-1.5 rounded-lg bg-success/10 border border-success/20 hover:bg-success/20 transition-colors">
                 <span className="font-semibold text-success">Patient</span>
-                <span className="block text-muted-foreground truncate">patient@mediCore.com</span>
+                <span className="block text-muted-foreground truncate">patient</span>
               </button>
             </div>
           </div>
