@@ -9,6 +9,7 @@ const paymentSchema = new mongoose.Schema({
   status: { type: String, enum: ['completed', 'pending', 'failed', 'refunded'], default: 'completed' },
   invoice_id: { type: String, default: '' },
   refund_amount: { type: Number, default: 0 },
+  hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
   createdAt: { type: Date, default: Date.now },
 });
 
