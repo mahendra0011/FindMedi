@@ -54,7 +54,18 @@ router.get('/', protect, async (req, res) => {
 
 router.get('/patient/:patientId', protect, async (req, res) => {
   try {
-    const records = await Record.find({ patientId: req.params.patientId })
+    const filter = { patientId: req.params.patientId };
+
+    if (req.user.role === 'patient') {
+      filter.patientId = req.user._id;
+    } else if (req.user.role === 'doctor') {
+      filter.doctorId = req.user._id;
+      if (req.user.hospitalId) filter.hospitalId = req.user.hospitalId;
+    } else if (req.user.role === 'admin' && req.user.hospitalId) {
+      filter.hospitalId = req.user.hospitalId;
+    }
+
+    const records = await Record.find(filter)
       .populate('doctorId', 'name specialization')
       .sort({ createdAt: -1 });
     res.json({ records });
@@ -129,15 +140,30 @@ router.post('/', protect, async (req, res) => {
 
 router.put('/:id', protect, async (req, res) => {
   try {
+    const existing = await Record.findById(req.params.id);
+    if (!existing) return res.status(404).json({ message: 'Record not found' });
+    if (req.user.hospitalId && existing.hospitalId && existing.hospitalId.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Not authorized to modify this record' });
+    }
+    if (req.user.role === 'patient' && existing.patientId?.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to modify this record' });
+    }
     const r = await Record.findByIdAndUpdate(req.params.id, req.body, { new: true })
       .populate('doctorId', 'name specialization');
-    if (!r) return res.status(404).json({ message: 'Record not found' });
     res.json(r);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
 router.delete('/:id', protect, async (req, res) => {
   try {
+    const existing = await Record.findById(req.params.id);
+    if (!existing) return res.status(404).json({ message: 'Record not found' });
+    if (req.user.hospitalId && existing.hospitalId && existing.hospitalId.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Not authorized to delete this record' });
+    }
+    if (req.user.role === 'patient' && existing.patientId?.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to delete this record' });
+    }
     await Record.findByIdAndDelete(req.params.id);
     res.json({ message: 'Record removed' });
   } catch (err) { res.status(500).json({ message: err.message }); }
