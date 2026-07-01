@@ -119,6 +119,7 @@ const admissionSchema = new mongoose.Schema({
   dischargedAt: { type: Date },
   dischargedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   handoverNotes: { type: String },
+  hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });
