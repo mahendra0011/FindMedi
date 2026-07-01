@@ -53,7 +53,7 @@ export default function Insurance() {
 
   return (
     <div>
-      <div className="page-header"><h1 className="page-title">Insurance / TPA</h1><p className="page-subtitle">{stats?.total || 0} claims · {stats?.pending || 0} pending</p></div>
+      <div className="page-header flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"><h1 className="page-title">Insurance / TPA</h1><p className="page-subtitle">{stats?.total || 0} claims · {stats?.pending || 0} pending</p></div>
 
       <div className="grid grid-cols-6 gap-4 mb-6">
         {[
