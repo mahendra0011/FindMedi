@@ -34,13 +34,27 @@ MediCore is a full-stack hospital management system built with React, Express, M
 - Doctor signup with email verification and admin approval before dashboard access.
 - Patient dashboard with appointments, records, billing, emergency data, and booked lab services.
 - Doctor dashboard with appointments, patient records, prescriptions, lab reports, discharge summaries, and email delivery.
-- Admin dashboard with patient, doctor, appointment, billing, emergency, report, notification, import, and settings management.
+- Admin dashboard with comprehensive management of all hospital modules.
 - Professional PDFs for prescriptions, lab reports, discharge summaries, and billing invoices.
 - Excel import support for patients, doctors, and billing records using `.xlsx` or `.xls` files.
-- Settings for profile, password, notifications, language, theme, density, dashboard preferences, privacy, and calm theme variants.
-- Brevo email integration for OTPs and important user, doctor, and admin notifications.
+- Settings for profile, password, notifications, language, theme, density, dashboard preferences, and privacy.
+- Brevo email integration for OTPs and important notifications.
 - Google OAuth integration for quick login/signup with auto-filled profile data.
 - Cloudinary/local upload support for documents and medical files.
+- **Blood Bank Management**: Blood unit inventory, requests, cross-matching, and transfusion tracking with reaction monitoring.
+- **Pharmacy Management**: Medicine inventory tracking, purchase orders, supplier management, expiry alerts, and stock management.
+- **Laboratory**: Lab orders, test results, and diagnostic services workflow.
+- **Radiology**: Imaging services and radiology report management.
+- **IPD (In-Patient Department)**: Admission management, bed allocation, and inpatient tracking.
+- **Operation Theatre**: Surgery scheduling, pre-op checklists, instrument/sponge counts, and post-op recovery tracking.
+- **Physiotherapy**: Exercise plans, session tracking, and patient progress monitoring.
+- **Diet Management**: Diet orders, meal planning, and nutritional tracking.
+- **Nursing**: Nursing charts, patient care documentation, and vital tracking.
+- **Triage**: Emergency triage assessment and prioritization.
+- **Housekeeping**: Room cleaning schedules and facility maintenance.
+- **Staff Management**: Employee records, shifts, and department assignments.
+- **Insurance**: Insurance policy management and claims processing.
+- **Inventory**: General inventory for medical supplies and equipment.
 
 ## Tech Stack
 
@@ -70,9 +84,11 @@ MediCore is a full-stack hospital management system built with React, Express, M
 ## Project Structure
 
 ```text
-mediCore--main/
+mediCore/
   client/              React frontend
   server/              Express API and MongoDB models
+    models/            Admission, Appointment, AuditLog, Bed, Billing, BloodBank, Department, DietOrder, Doctor, Emergency, Housekeeping, Insurance, Inventory, LabOrder, Medicine, MentalHealth, Notification, NursingChart, OperationTheatre, OTP, Patient, Payment, Physiotherapy, Prescription, PurchaseOrder, Radiology, Record, Report, Review, Staff, Supplier, Token, Triage, User
+    routes/            auth, users, doctors, patients, appointments, records, billing, dashboard, reviews, notifications, reports, upload, emergency, departments, payments, lab, pharmacy, ipd, triage, radiology, insurance, diet, ot, bloodbank, physio, mentalhealth, staff, inventory, housekeeping, tokens, nursing
   DEPLOY.md            Render deployment notes
   package.json         Root scripts for install, dev, seed, and build
   README.md            Project documentation
@@ -208,6 +224,19 @@ npm run preview --prefix client
 - Import patients, doctors, and billing records from Excel files.
 - Generate and email professional prescriptions, lab reports, discharge summaries, and billing invoices.
 - Configure profile, password, notifications, language, theme, density, privacy, and dashboard behavior from settings.
+- **Blood Bank**: Manage blood inventory, process requests, cross-match units, track transfusions.
+- **Pharmacy**: Manage medicines, purchase orders, suppliers, expiry alerts.
+- **Laboratory**: Process lab orders and manage test results.
+- **Radiology**: Handle imaging requests and reports.
+- **IPD/ADT**: Manage admissions, bed allocation, and discharges.
+- **Operation Theatre**: Schedule surgeries, manage pre-op checklists, track procedures.
+- **Physiotherapy**: Manage exercise plans and track patient progress.
+- **Diet**: Create and manage patient diet orders.
+- **Nursing**: View nursing charts and patient care documentation.
+- **Triage**: Assess and prioritize emergency cases.
+- **Housekeeping**: Manage room cleaning schedules and facility maintenance.
+- **Staff**: Manage employee records and shift schedules.
+- **Insurance**: Process insurance claims and manage policies.
 
 ### Doctor
 - View assigned appointments and patient records.
@@ -215,6 +244,15 @@ npm run preview --prefix client
 - Send reports to patients by email.
 - Review emergency and patient data when assigned.
 - Manage personal dashboard settings, notifications, language, and themes.
+- **Blood Bank**: Create blood requests, perform cross-matching, start/stop transfusions.
+- **Pharmacy**: View medicine inventory, create purchase requests.
+- **Laboratory**: Order lab tests, view results.
+- **Radiology**: Request imaging studies, view reports.
+- **IPD**: View assigned in-patients, update care notes.
+- **OT**: View surgery schedules, update procedure notes.
+- **Physiotherapy**: Create exercise plans, track sessions.
+- **Diet**: Recommend diet plans for patients.
+- **Nursing**: Document patient care, update vitals.
 
 ### Patient
 - Book appointments and lab services.
@@ -222,6 +260,8 @@ npm run preview --prefix client
 - View medical records, prescriptions, lab reports, invoices, and notifications.
 - Submit emergency information and track emergency status.
 - Manage profile, password, notification, language, privacy, and theme settings.
+- **Blood Bank**: View blood requests and transfusion status.
+- **Billing**: View and pay invoices online.
 
 ## API Overview
 
@@ -245,6 +285,20 @@ verification, health check, and approved doctor listing.
 | Payments | `/payments` | Patient payment history and payment records. |
 | Uploads | `/upload`, `/upload/download/:fileId`, `/reports/upload/*` | Medical file, image, X-ray, and document uploads. |
 | Emergency | `/emergency`, `/emergency/:id/assign`, `/emergency/:id/status`, `/emergency/:id/notes`, `/emergency/stats` | Emergency case creation, assignment, status, notes, and stats. |
+| Blood Bank | `/bloodbank/units`, `/bloodbank/requests`, `/bloodbank/stats` | Blood unit inventory, requests, cross-matching, and transfusion tracking. |
+| Pharmacy | `/pharmacy/medicines`, `/pharmacy/orders`, `/pharmacy/suppliers` | Medicine inventory, purchase orders, and supplier management. |
+| Lab | `/lab/orders`, `/lab/results` | Lab order management and test results. |
+| Radiology | `/radiology`, `/radiology/:id` | Radiology imaging requests and reports. |
+| IPD | `/ipd/admissions`, `/ipd/beds`, `/ipd/discharge` | In-patient admission, bed management, and discharge. |
+| OT | `/ot/surgeries`, `/ot/:id` | Operation theatre scheduling and surgery tracking. |
+| Physiotherapy | `/physio/plans`, `/physio/sessions` | Physiotherapy exercise plans and session tracking. |
+| Diet | `/diet/orders`, `/diet/:id` | Diet order management and meal planning. |
+| Nursing | `/nursing/charts`, `/nursing/:id` | Nursing documentation and patient care tracking. |
+| Triage | `/triage`, `/triage/:id` | Emergency triage assessment and prioritization. |
+| Housekeeping | `/housekeeping`, `/housekeeping/:id` | Room cleaning schedules and maintenance. |
+| Staff | `/staff`, `/staff/:id` | Staff records, shifts, and department management. |
+| Insurance | `/insurance`, `/insurance/:id` | Insurance policy and claims management. |
+| Inventory | `/inventory`, `/inventory/items` | Medical supplies and equipment inventory. |
 | Other | `/dashboard/stats`, `/notifications`, `/reviews`, `/health` | Dashboard data, notifications, reviews, and API health. |
 
 ## Environment Variables
