@@ -20,6 +20,7 @@ const inventorySchema = new mongoose.Schema({
     reference: String,
     doneBy: String,
   }],
+  hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
   isActive: { type: Boolean, default: true },
   createdAt: { type: Date, default: Date.now },
 });
