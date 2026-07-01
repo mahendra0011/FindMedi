@@ -25,6 +25,7 @@ router.post('/orders', protect, async (req, res) => {
     const order = await LabOrder.create({
       orderId, patientId, patientName,
       doctorId: req.user._id, doctorName: req.user.name,
+      hospitalId: req.user.hospitalId || undefined,
       tests: tests.map(t => ({
         testName: t.testName, category: t.category || 'Blood',
         priority: t.priority || priority || 'Routine', status: 'Ordered',
@@ -49,6 +50,7 @@ router.get('/orders', protect, async (req, res) => {
     const filter = {};
     if (req.user.role === 'doctor') filter.doctorId = req.user._id;
     if (req.user.role === 'patient') filter.patientId = req.user._id;
+    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
 
     // Handle order-level status filter with proper mapping
     if (status && status !== 'All') {
@@ -82,6 +84,9 @@ router.get('/orders/:id', protect, async (req, res) => {
   try {
     const order = await LabOrder.findById(req.params.id).populate('patientId', 'name email phone').populate('doctorId', 'name email');
     if (!order) return res.status(404).json({ message: 'Order not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && order.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     res.json(order);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
@@ -91,6 +96,9 @@ router.put('/orders/:id/register-sample', protect, async (req, res) => {
   try {
     const order = await LabOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && order.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     const { testIndex, sampleType } = req.body;
     if (testIndex === undefined) return res.status(400).json({ message: 'Test index required' });
     const test = order.tests[testIndex];
@@ -109,6 +117,9 @@ router.put('/orders/:id/collect-sample', protect, async (req, res) => {
   try {
     const order = await LabOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && order.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     const { testIndex, rejectionReason } = req.body;
     if (testIndex === undefined) return res.status(400).json({ message: 'Test index required' });
     const test = order.tests[testIndex];
@@ -125,6 +136,9 @@ router.put('/orders/:id/enter-result', protect, async (req, res) => {
   try {
     const order = await LabOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && order.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     const { testIndex, resultValue, normalRange, unit } = req.body;
     if (testIndex === undefined || !resultValue) return res.status(400).json({ message: 'Test index and result value required' });
     const test = order.tests[testIndex];
@@ -158,6 +172,9 @@ router.put('/orders/:id/verify', protect, async (req, res) => {
   try {
     const order = await LabOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && order.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     const { testIndex, approved, notes } = req.body;
     if (testIndex === undefined) return res.status(400).json({ message: 'Test index required' });
     const test = order.tests[testIndex];
@@ -178,6 +195,9 @@ router.put('/orders/:id/deliver-report', protect, async (req, res) => {
   try {
     const order = await LabOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && order.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     const { testIndex, reportUrl } = req.body;
     if (testIndex === undefined) return res.status(400).json({ message: 'Test index required' });
     const test = order.tests[testIndex];
@@ -195,6 +215,7 @@ router.get('/stats', protect, async (req, res) => {
     const filter = {};
     if (req.user.role === 'doctor') filter.doctorId = req.user._id;
     if (req.user.role === 'patient') filter.patientId = req.user._id;
+    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
     const total = await LabOrder.countDocuments(filter);
     const pending = await LabOrder.countDocuments({ ...filter, status: { $in: ['Ordered', 'Sample Pending'] } });
     const processing = await LabOrder.countDocuments({ ...filter, status: { $in: ['Processing', 'Under Verification'] } });
