@@ -21,6 +21,7 @@ const tokenSchema = new mongoose.Schema({
   completedAt: { type: Date },
   roomNumber: { type: String },
   notes: { type: String },
+  hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
   createdAt: { type: Date, default: Date.now },
 });
 
