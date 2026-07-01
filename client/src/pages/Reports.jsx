@@ -63,7 +63,7 @@ export default function Reports() {
 
   return (
     <div>
-      <div className="page-header">
+      <div className="page-header flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <h1 className="page-title">Reports & Analytics</h1>
         <p className="page-subtitle">Generate and export hospital reports</p>
       </div>
