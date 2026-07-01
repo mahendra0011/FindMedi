@@ -305,6 +305,9 @@ router.get('/:id', protect, async (req, res) => {
   try {
     const report = await Report.findById(req.params.id).populate('generatedBy', 'name');
     if (!report) return res.status(404).json({ message: 'Report not found' });
+    if (req.user.role !== 'superadmin' && req.user.hospitalId && report.hospitalId && report.hospitalId.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     res.json(report);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });

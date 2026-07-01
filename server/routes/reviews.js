@@ -23,6 +23,11 @@ router.post('/', protect, async (req, res) => {
 
 router.delete('/:id', protect, async (req, res) => {
   try {
+    const review = await Review.findById(req.params.id);
+    if (!review) return res.status(404).json({ message: 'Review not found' });
+    if (req.user.role !== 'superadmin' && req.user.hospitalId && review.hospitalId && review.hospitalId.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Not authorized to delete this review' });
+    }
     await Review.findByIdAndDelete(req.params.id);
     res.json({ message: 'Deleted' });
   } catch (err) { res.status(500).json({ message: err.message }); }
