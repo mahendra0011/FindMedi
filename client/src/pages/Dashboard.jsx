@@ -4,6 +4,9 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import StatCard from '@/components/StatCard';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
+import { useSelector } from 'react-redux';
+import { selectSetting } from '@/store/slices/settingsSlice';
+import { applyUserSettings } from '@/lib/settings';
 
 const COLORS = ['hsl(174,62%,38%)','hsl(210,80%,55%)','hsl(38,92%,50%)','hsl(152,60%,42%)','hsl(210,12%,50%)'];
 
@@ -35,8 +38,14 @@ const tooltipStyle = { borderRadius:'0.75rem', border:'1px solid hsl(200,20%,90%
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const settings = useSelector(selectSetting) || {};
   const { data = FALLBACK } = useQuery({ queryKey:['dashboard'], queryFn: api.dashboardStats, onError:()=>{} });
   const { stats, weeklyAppointments, revenueData, departmentData, recentAppointments } = data;
+
+  // Apply appearance settings when dashboard mounts or settings change
+  if (typeof document !== 'undefined') {
+    applyUserSettings(settings);
+  }
 
   return (
     <div>
