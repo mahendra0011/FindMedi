@@ -10,10 +10,73 @@ dotenv.config({ path: path.join(__dirname, '.env') });
 import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import mongoSanitize from 'express-mongo-sanitize';
+import xss from 'xss';
 import { configureMongoDns } from './config/mongoDns.js';
 
 const app = express();
 configureMongoDns();
+
+// Security middleware
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "res.cloudinary.com"],
+    },
+  },
+  hsts: { maxAge: 31536000, includeSubDomains: true },
+  referrerPolicy: { policy: 'no-referrer' },
+}));
+
+// MongoDB injection protection
+app.use(mongoSanitize());
+
+// XSS protection
+app.use((req, res, next) => {
+  if (req.body) {
+    Object.keys(req.body).forEach(key => {
+      if (typeof req.body[key] === 'string') {
+        req.body[key] = xss(req.body[key]);
+      }
+    });
+  }
+  next();
+});
+
+// Rate limiting
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 100,
+  message: { message: 'Too many requests, please try again later.' },
+});
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { message: 'Too many authentication attempts, please try again later.' },
+});
+
+const otpLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 3,
+  message: { message: 'Too many OTP requests, please wait 10 minutes.' },
+});
+
+const forgotPasswordLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 3,
+  message: { message: 'Too many password reset requests, please try again later.' },
+});
+
+app.use('/api/', apiLimiter);
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
+app.use('/api/auth/resend-otp', otpLimiter);
+app.use('/api/auth/forgot-password', forgotPasswordLimiter);
 
 const redactMongoUri = (uri) => uri.replace(/\/\/([^:]+):([^@]+)@/, '//***:***@');
 
@@ -85,10 +148,27 @@ import dashboardRoutes from './routes/dashboard.js';
 import reviewRoutes from './routes/reviews.js';
 import notificationRoutes from './routes/notifications.js';
 import reportRoutes from './routes/reports.js';
+import Report from './models/Report.js';
 import uploadRoutes from './routes/upload.js';
 import emergencyRoutes from './routes/emergency.js';
 import departmentRoutes from './routes/departments.js';
 import paymentRoutes from './routes/payments.js';
+import labRoutes from './routes/lab.js';
+import pharmacyRoutes from './routes/pharmacy.js';
+import ipdRoutes from './routes/ipd.js';
+import triageRoutes from './routes/triage.js';
+import radiologyRoutes from './routes/radiology.js';
+import insuranceRoutes from './routes/insurance.js';
+import dietRoutes from './routes/diet.js';
+import otRoutes from './routes/ot.js';
+import bloodbankRoutes from './routes/bloodbank.js';
+import physioRoutes from './routes/physio.js';
+import mentalhealthRoutes from './routes/mentalhealth.js';
+import staffRoutes from './routes/staff.js';
+import inventoryRoutes from './routes/inventory.js';
+import housekeepingRoutes from './routes/housekeeping.js';
+import tokenRoutes from './routes/tokens.js';
+import nursingRoutes from './routes/nursing.js';
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -106,6 +186,22 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/emergency', emergencyRoutes);
 app.use('/api/departments', departmentRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/lab', labRoutes);
+app.use('/api/pharmacy', pharmacyRoutes);
+app.use('/api/ipd', ipdRoutes);
+app.use('/api/triage', triageRoutes);
+app.use('/api/radiology', radiologyRoutes);
+app.use('/api/insurance', insuranceRoutes);
+app.use('/api/diet', dietRoutes);
+app.use('/api/ot', otRoutes);
+app.use('/api/bloodbank', bloodbankRoutes);
+app.use('/api/physio', physioRoutes);
+app.use('/api/mentalhealth', mentalhealthRoutes);
+app.use('/api/staff', staffRoutes);
+app.use('/api/inventory', inventoryRoutes);
+app.use('/api/housekeeping', housekeepingRoutes);
+app.use('/api/tokens', tokenRoutes);
+app.use('/api/nursing', nursingRoutes);
 
 app.get('/api/health', (_, res) => res.json({ status: 'ok', time: new Date() }));
 
