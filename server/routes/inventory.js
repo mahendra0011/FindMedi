@@ -16,7 +16,7 @@ const generatePONumber = async () => {
 // Inventory Items
 router.post('/items', protect, async (req, res) => {
   try {
-    const item = await Inventory.create(req.body);
+    const item = await Inventory.create({ ...req.body, hospitalId: req.user.hospitalId || undefined });
     res.status(201).json(item);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -25,6 +25,7 @@ router.get('/items', protect, async (req, res) => {
   try {
     const { category, lowStock, search } = req.query;
     const filter = {};
+    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
     if (category && category !== 'All') filter.category = category;
     if (lowStock === 'true') {
       filter.$expr = { $lte: ['$currentStock', '$minStockLevel'] };
@@ -43,8 +44,13 @@ router.get('/items', protect, async (req, res) => {
 
 router.put('/items/:id', protect, async (req, res) => {
   try {
-    const item = await Inventory.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const item = await Inventory.findById(req.params.id);
     if (!item) return res.status(404).json({ message: 'Item not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && item.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    Object.assign(item, req.body);
+    await item.save();
     res.json(item);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -54,6 +60,9 @@ router.put('/items/:id/stock', protect, async (req, res) => {
     const { quantity, type, reference, notes } = req.body;
     const item = await Inventory.findById(req.params.id);
     if (!item) return res.status(404).json({ message: 'Not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && item.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
       
     if (type === 'add') item.currentStock += quantity;
     else if (type === 'deduct') item.currentStock = Math.max(0, item.currentStock - quantity);
@@ -76,19 +85,24 @@ router.get('/items/:id', protect, async (req, res) => {
   try {
     const item = await Inventory.findById(req.params.id);
     if (!item) return res.status(404).json({ message: 'Item not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && item.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     res.json(item);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
 router.get('/stats', protect, async (req, res) => {
   try {
-    const total = await Inventory.countDocuments({ isActive: true });
+    const hFilter = {};
+    if (req.user.hospitalId && req.user.role !== 'superadmin') hFilter.hospitalId = req.user.hospitalId;
+    const total = await Inventory.countDocuments({ isActive: true, ...hFilter });
     const lowStock = await Inventory.countDocuments({
-      isActive: true,
+      isActive: true, ...hFilter,
       $expr: { $lte: ['$currentStock', '$minStockLevel'] }
     });
     const totalValue = await Inventory.aggregate([
-      { $match: { isActive: true } },
+      { $match: { isActive: true, ...hFilter } },
       { $group: { _id: null, value: { $sum: { $multiply: ['$currentStock', '$unitPrice'] } } } }
     ]);
     res.json({
@@ -102,7 +116,7 @@ router.get('/stats', protect, async (req, res) => {
 // Suppliers
 router.post('/suppliers', protect, async (req, res) => {
   try {
-    const supplier = await Supplier.create(req.body);
+    const supplier = await Supplier.create({ ...req.body, hospitalId: req.user.hospitalId || undefined });
     res.status(201).json(supplier);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -111,6 +125,7 @@ router.get('/suppliers', protect, async (req, res) => {
   try {
     const { active, search, category } = req.query;
     const filter = {};
+    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
     if (active !== 'false') filter.isActive = true;
     if (category && category !== 'All') filter.category = category;
     if (search) filter.$or = [{ name: new RegExp(search, 'i') }, { contactPerson: new RegExp(search, 'i') }];
@@ -121,8 +136,13 @@ router.get('/suppliers', protect, async (req, res) => {
 
 router.put('/suppliers/:id', protect, async (req, res) => {
   try {
-    const supplier = await Supplier.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const supplier = await Supplier.findById(req.params.id);
     if (!supplier) return res.status(404).json({ message: 'Supplier not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && supplier.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    Object.assign(supplier, req.body);
+    await supplier.save();
     res.json(supplier);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -131,6 +151,9 @@ router.get('/suppliers/:id', protect, async (req, res) => {
   try {
     const supplier = await Supplier.findById(req.params.id);
     if (!supplier) return res.status(404).json({ message: 'Supplier not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && supplier.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     res.json(supplier);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
@@ -151,6 +174,7 @@ router.post('/purchase-orders', protect, async (req, res) => {
       poNumber,
       supplierId,
       supplierName,
+      hospitalId: req.user.hospitalId || undefined,
       items: items.map(item => ({
         ...item,
         total: item.quantity * item.unitPrice - (item.discount || 0)
@@ -173,6 +197,7 @@ router.get('/purchase-orders', protect, async (req, res) => {
   try {
     const { status, search } = req.query;
     const filter = {};
+    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
     if (status && status !== 'All') filter.status = status;
     if (search) {
       filter.$or = [
@@ -194,6 +219,9 @@ router.get('/purchase-orders/:id', protect, async (req, res) => {
       .populate('supplierId', 'name contactPerson email')
       .populate('createdBy', 'name email');
     if (!po) return res.status(404).json({ message: 'Purchase order not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && po.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     res.json(po);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
@@ -201,10 +229,14 @@ router.get('/purchase-orders/:id', protect, async (req, res) => {
 router.put('/purchase-orders/:id/status', protect, async (req, res) => {
   try {
     const { status, approvedBy } = req.body;
-    const updateData = { status };
-    if (approvedBy) updateData.approvedBy = req.user._id;
-    const po = await PurchaseOrder.findByIdAndUpdate(req.params.id, updateData, { new: true });
+    const po = await PurchaseOrder.findById(req.params.id);
     if (!po) return res.status(404).json({ message: 'Purchase order not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && po.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    po.status = status;
+    if (approvedBy) po.approvedBy = req.user._id;
+    await po.save();
     res.json(po);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -214,6 +246,9 @@ router.put('/purchase-orders/:id/receive', protect, async (req, res) => {
     const { receivedNotes } = req.body;
     const po = await PurchaseOrder.findById(req.params.id);
     if (!po) return res.status(404).json({ message: 'Purchase order not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && po.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     
     po.status = 'Received';
     po.receivedDate = new Date();
@@ -243,8 +278,12 @@ router.put('/purchase-orders/:id/receive', protect, async (req, res) => {
 
 router.delete('/purchase-orders/:id', protect, async (req, res) => {
   try {
-    const po = await PurchaseOrder.findByIdAndDelete(req.params.id);
+    const po = await PurchaseOrder.findById(req.params.id);
     if (!po) return res.status(404).json({ message: 'Purchase order not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && po.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    await PurchaseOrder.findByIdAndDelete(req.params.id);
     res.json({ message: 'Purchase order deleted' });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
