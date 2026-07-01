@@ -124,6 +124,14 @@ const MOCK_DASHBOARD = {
 };
 
 // ─── In-memory store (persists for the session) ────────────────────────────
+const MOCK_HOSPITALS = [
+  { _id:'h1', name:'City General Hospital', slug:'city-general-hospital', email:'contact@citygeneral.com', phone:'+1 234-567-8001', address:'123 Healthcare Ave', city:'New York', state:'NY', licenseNumber:'LIC-001', logo:'', description:'Leading multispeciality hospital with 24/7 emergency care, modern diagnostic facilities, and experienced medical professionals.', specialties:['Cardiology','Neurology','Orthopedics','Pediatrics','Oncology'], status:'approved', rating:4.5, reviewsCount:128, subscriptionPlan:'premium', createdAt:'2024-01-15' },
+  { _id:'h2', name:'Sunrise Medical Center', slug:'sunrise-medical-center', email:'info@sunrisemed.com', phone:'+1 234-567-8002', address:'456 Health Blvd', city:'Los Angeles', state:'CA', licenseNumber:'LIC-002', logo:'', description:'State-of-the-art medical center specializing in cardiac care, neurology, and advanced surgical procedures.', specialties:['Cardiology','Neurology','Orthopedics','General Medicine'], status:'approved', rating:4.2, reviewsCount:89, subscriptionPlan:'basic', createdAt:'2024-02-20' },
+  { _id:'h3', name:'Green Valley Hospital', slug:'green-valley-hospital', email:'admin@greenvalley.com', phone:'+1 234-567-8003', address:'789 Wellness Dr', city:'Chicago', state:'IL', licenseNumber:'LIC-003', logo:'', description:'Community-focused hospital providing quality healthcare with compassion and cutting-edge technology.', specialties:['Pediatrics','Dermatology','General Medicine','ENT'], status:'approved', rating:4.7, reviewsCount:215, subscriptionPlan:'basic', createdAt:'2024-03-10' },
+  { _id:'h4', name:'Pristine Care Hospital', slug:'pristine-care-hospital', email:'hello@pristinecare.com', phone:'+1 234-567-8004', address:'321 Recovery Ln', city:'Houston', state:'TX', licenseNumber:'LIC-004', logo:'', description:'Premium healthcare facility with world-class infrastructure and internationally trained doctors.', specialties:['Cardiology','Oncology','Neurology','Orthopedics'], status:'approved', rating:4.8, reviewsCount:342, subscriptionPlan:'premium', createdAt:'2024-01-05' },
+  { _id:'h5', name:'Lakeside Clinic', slug:'lakeside-clinic', email:'contact@lakeside.com', phone:'+1 234-567-8005', address:'555 Lake View Rd', city:'Phoenix', state:'AZ', licenseNumber:'LIC-005', logo:'', description:'A boutique clinic offering personalized healthcare services in a comfortable, patient-friendly environment.', specialties:['Dermatology','General Medicine','ENT'], status:'pending', rating:0, reviewsCount:0, subscriptionPlan:'free', createdAt:'2024-07-01' },
+];
+
 let store = {
   doctors:      [...MOCK_DOCTORS],
   patients:     [...MOCK_PATIENTS],
@@ -134,6 +142,7 @@ let store = {
   notifications:[...MOCK_NOTIFICATIONS],
   departments:  [...MOCK_DEPARTMENTS],
   payments:     [...MOCK_PAYMENTS],
+  hospitals:    [...MOCK_HOSPITALS],
 };
 
 let nextId = 100;
@@ -664,6 +673,59 @@ const mock = {
     if (i >= 0) store.doctors[i].approved = false;
     return { message: 'Doctor rejected' };
   },
+
+  // Hospital mocks
+  async getHospitals(p = {}) {
+    await delay();
+    let list = [...store.hospitals];
+    if (p.search) list = list.filter(h => h.name.toLowerCase().includes(p.search.toLowerCase()) || h.city?.toLowerCase().includes(p.search.toLowerCase()));
+    if (p.city) list = list.filter(h => h.city?.toLowerCase() === p.city.toLowerCase());
+    if (p.specialty) list = list.filter(h => h.specialties?.some(s => s.toLowerCase().includes(p.specialty.toLowerCase())));
+    if (p.status) list = list.filter(h => h.status === p.status);
+    return list;
+  },
+  async getHospital(id) {
+    await delay();
+    return store.hospitals.find(h => h._id === id) || null;
+  },
+  async registerHospital(body) {
+    await delay();
+    const h = { _id: 'h' + Date.now(), ...body, slug: body.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'), status: 'pending', rating: 0, reviewsCount: 0, createdAt: new Date().toISOString() };
+    store.hospitals.push(h);
+    return { hospital: h, message: 'Registration submitted for approval', tempPassword: 'Welcome@123' };
+  },
+  async updateHospital(id, body) {
+    await delay();
+    const i = store.hospitals.findIndex(h => h._id === id);
+    if (i >= 0) Object.assign(store.hospitals[i], body);
+    return { message: 'Hospital updated' };
+  },
+  async approveHospital(id) {
+    await delay();
+    const i = store.hospitals.findIndex(h => h._id === id);
+    if (i >= 0) store.hospitals[i].status = 'approved';
+    return { message: 'Hospital approved' };
+  },
+  async rejectHospital(id, body) {
+    await delay();
+    const i = store.hospitals.findIndex(h => h._id === id);
+    if (i >= 0) { store.hospitals[i].status = 'rejected'; store.hospitals[i].rejectionReason = body.reason || ''; }
+    return { message: 'Hospital rejected' };
+  },
+  async suspendHospital(id) {
+    await delay();
+    const i = store.hospitals.findIndex(h => h._id === id);
+    if (i >= 0) store.hospitals[i].status = 'suspended';
+    return { message: 'Hospital suspended' };
+  },
+  async getPendingHospitals() {
+    await delay();
+    return store.hospitals.filter(h => h.status === 'pending');
+  },
+  async getMyHospital() {
+    await delay();
+    return store.hospitals[0] || null;
+  },
 };
 
 // ─── Real API (when backend is running) ───────────────────────────────────
@@ -902,5 +964,16 @@ export const api = {
   updateDoctorSchedule:(id,b)=> dispatch(() => mock.updateDoctorSchedule(id,b),        `/doctors/${id}/schedule`, { method:'PUT', body: JSON.stringify(b) }),
   approveDoctor:   (id)    => dispatch(() => mock.approveDoctor(id),                   `/doctors/${id}/approve`, { method:'PUT' }),
   rejectDoctor:    (id)    => dispatch(() => mock.rejectDoctor(id),                    `/doctors/${id}/reject`,  { method:'PUT' }),
+
+  // Hospital endpoints
+  getHospitals:        (p={})  => dispatch(() => mock.getHospitals ? mock.getHospitals(p) : Promise.resolve([]),            '/hospitals?' + new URLSearchParams(p)),
+  getHospital:         (id)    => dispatch(() => mock.getHospital ? mock.getHospital(id) : Promise.resolve(null),           `/hospitals/${id}`),
+  registerHospital:    (body)  => dispatch(() => mock.registerHospital ? mock.registerHospital(body) : Promise.resolve({}), '/hospitals/register', { method:'POST', body: JSON.stringify(body) }),
+  updateHospital:      (id,b)  => dispatch(() => mock.updateHospital ? mock.updateHospital(id,b) : Promise.resolve({}),     `/hospitals/${id}`, { method:'PUT', body: JSON.stringify(b) }),
+  approveHospital:     (id)    => dispatch(() => mock.approveHospital ? mock.approveHospital(id) : Promise.resolve({}),     `/hospitals/${id}/approve`, { method:'PUT' }),
+  rejectHospital:      (id,b)  => dispatch(() => mock.rejectHospital ? mock.rejectHospital(id,b) : Promise.resolve({}),    `/hospitals/${id}/reject`, { method:'PUT', body: JSON.stringify(b) }),
+  suspendHospital:     (id)    => dispatch(() => mock.suspendHospital ? mock.suspendHospital(id) : Promise.resolve({}),    `/hospitals/${id}/suspend`, { method:'PUT' }),
+  getPendingHospitals: ()      => dispatch(() => mock.getPendingHospitals ? mock.getPendingHospitals() : Promise.resolve([]), '/hospitals/pending'),
+  getMyHospital:       ()      => dispatch(() => mock.getMyHospital ? mock.getMyHospital() : Promise.resolve(null),         '/hospitals/admin/mine'),
 };
 // 2
