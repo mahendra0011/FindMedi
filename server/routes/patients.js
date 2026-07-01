@@ -82,4 +82,4 @@ router.get('/:id/card', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-export default router;
+export default router;// 24
