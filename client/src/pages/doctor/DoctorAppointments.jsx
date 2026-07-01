@@ -272,9 +272,11 @@ export default function DoctorAppointments() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-heading text-2xl font-bold text-foreground">My Appointments</h1>
-        <p className="text-muted-foreground">Manage your patient appointments</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="font-heading text-2xl font-bold text-foreground">My Appointments</h1>
+          <p className="text-muted-foreground">Manage your patient appointments</p>
+        </div>
       </div>
 
       {/* Filters */}
@@ -364,7 +366,7 @@ export default function DoctorAppointments() {
               </div>
               <div>
                 <label className="text-sm font-medium text-foreground mb-1.5 block">New Time</label>
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {timeSlots.map(t => (
                     <button key={t} onClick={() => setNewTime(t)}
                       className={`px-2 py-1.5 rounded-lg text-xs font-medium transition-colors ${newTime === t ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>

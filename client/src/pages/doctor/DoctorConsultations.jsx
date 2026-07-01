@@ -260,7 +260,7 @@ export default function DoctorConsultations() {
                         {/* Advice & Follow-up */}
                         {(rec.data?.advice || rec.data?.followUp) && (
                           <div className="md:col-span-2">
-                            <div className="flex gap-4">
+                            <div className="flex flex-col sm:flex-row gap-4">
                               {rec.data?.advice && (
                                 <div className="flex-1 bg-primary/5 rounded-xl p-4">
                                   <p className="text-xs text-primary font-medium mb-1">Advice</p>
@@ -307,7 +307,7 @@ export default function DoctorConsultations() {
             
             <div className="space-y-4">
               {/* Patient Info */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-foreground mb-1.5 block">Patient Name *</label>
                   <Input value={patientName} onChange={e => setPatientName(e.target.value)} placeholder="Full name" />
@@ -329,7 +329,7 @@ export default function DoctorConsultations() {
               </div>
 
               {/* Patient Details */}
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="text-sm font-medium text-foreground mb-1.5 block">Age</label>
                   <Input value={patientAge} onChange={e => setPatientAge(e.target.value)} placeholder="Years" />
@@ -368,7 +368,7 @@ export default function DoctorConsultations() {
               </div>
 
               {/* Advice & Follow-up */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-foreground mb-1.5 block">Advice</label>
                   <textarea 
