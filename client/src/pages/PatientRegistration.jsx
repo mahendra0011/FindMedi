@@ -25,7 +25,7 @@ export default function PatientRegistration() {
 
   return (
     <div>
-      <div className="page-header"><h1 className="page-title">Patient Registration</h1><p className="page-subtitle">{stats?.total || 0} total · {stats?.today || 0} today</p></div>
+      <div className="page-header flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"><h1 className="page-title">Patient Registration</h1><p className="page-subtitle">{stats?.total || 0} total · {stats?.today || 0} today</p></div>
 
       {registeredPatient && (
         <div className="bg-success/10 border border-success/30 rounded-2xl p-6 mb-6 text-center animate-in slide-in-from-top">
@@ -36,7 +36,7 @@ export default function PatientRegistration() {
         </div>
       )}
 
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         {[
           { l: 'Total Patients', v: stats?.total || 0, c: 'text-foreground' },
           { l: 'Registered Today', v: stats?.today || 0, c: 'text-primary' },
