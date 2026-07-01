@@ -56,9 +56,6 @@ export default function AdminDoctors() {
     try { await api.approveDoctor(id); loadDoctors(); } catch (e) { console.error(e); }
   };
 
-  const handleReject = async (id) => {
-    try { await api.rejectDoctor(id); loadDoctors(); } catch (e) { console.error(e); }
-  };
 
   return (
     <div className="space-y-6">
@@ -115,11 +112,6 @@ export default function AdminDoctors() {
                 {!doc.approved && (
                   <Button variant="outline" size="sm" className="flex-1 min-w-[88px] gap-1 text-success hover:text-success" onClick={() => handleApprove(doc._id)}>
                     <CheckCircle className="w-3.5 h-3.5" /> Approve
-                  </Button>
-                )}
-                {doc.approved && (
-                  <Button variant="outline" size="sm" className="flex-1 min-w-[88px] gap-1 text-warning hover:text-warning" onClick={() => handleReject(doc._id)}>
-                    <Ban className="w-3.5 h-3.5" /> Reject
                   </Button>
                 )}
                 <Button variant="outline" size="sm" className="flex-1 min-w-[88px] gap-1 text-destructive hover:text-destructive" onClick={() => handleDelete(doc._id)}>
