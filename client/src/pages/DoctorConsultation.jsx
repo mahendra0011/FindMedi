@@ -672,4 +672,4 @@ export default function DoctorConsultation() {
       )}
     </div>
   );
-}
+}// 30
