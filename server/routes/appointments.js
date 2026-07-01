@@ -1,11 +1,27 @@
 import express from 'express';
 import Appointment from '../models/Appointment.js';
+import Bed from '../models/Bed.js';
 import Notification from '../models/Notification.js';
 import Doctor from '../models/Doctor.js';
 import User from '../models/User.js';
 import { protect } from '../middleware/auth.js';
 
 const router = express.Router();
+
+const generateToken = async (department) => {
+  const count = await Appointment.countDocuments({ department });
+  const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+  return `TKT-${department.slice(0, 3).toUpperCase()}-${dateStr}-${String(count + 1).padStart(3, '0')}`;
+};
+
+const calculateEstimatedWaitTime = async (department, priority = 'Normal') => {
+  const waitingCount = await Appointment.countDocuments({
+    department,
+    status: { $in: ['Confirmed', 'In Queue'] }
+  });
+  const avgConsultTime = priority === 'Emergency' ? 15 : priority === 'Urgent' ? 20 : 10; // minutes
+  return waitingCount * avgConsultTime;
+};
 
 const createNotification = async (userId, title, message, type = 'appointment') => {
   console.log(`[createNotification] START userId=${userId} title=${title}`);
@@ -102,12 +118,18 @@ router.get('/:id', protect, async (req, res) => {
 
 router.post('/', protect, async (req, res) => {
   try {
-    const { doctorId, doctor, department, date, time, type, symptoms } = req.body;
+    const { doctorId, doctor, department, date, time, type, symptoms, priority } = req.body;
     
     let patientName = req.user.name;
     let patientId = req.user._id;
     
+    const countToday = await Appointment.countDocuments({ date, doctor: doctor || '' });
+    const tokenNumber = `${new Date(date || Date.now()).toISOString().slice(0,10).replace(/-/g,'')}-${String(countToday + 1).padStart(3, '0')}`;
+    const patientUser = await User.findById(patientId);
+    const estimatedWaitTime = await calculateEstimatedWaitTime(department, priority);
     const appointment = await Appointment.create({
+      tokenNumber,
+      uhid: patientUser?.uhid || '',
       patient: patientName,
       patientId,
       doctor: doctor || '',
@@ -117,6 +139,8 @@ router.post('/', protect, async (req, res) => {
       time,
       type: type || 'Consultation',
       symptoms: symptoms || '',
+      priority: priority || 'Normal',
+      estimatedWaitTime,
       status: 'Pending'
     });
     
@@ -129,6 +153,38 @@ router.post('/', protect, async (req, res) => {
     
     res.status(201).json(appointment);
   } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+// ─── Queue Management ────────────────────────────────────────────────────────
+router.put('/:id/checkin', protect, async (req, res) => {
+  try {
+    const appointment = await Appointment.findById(req.params.id);
+    if (!appointment) return res.status(404).json({ message: 'Appointment not found' });
+    
+    appointment.status = 'In Queue';
+    appointment.checkedInAt = new Date();
+    
+    const queueCount = await Appointment.countDocuments({
+      department: appointment.department,
+      status: 'In Queue'
+    });
+    appointment.queuePosition = queueCount + 1;
+    
+    await appointment.save();
+    res.json(appointment);
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+router.get('/queue/:department', protect, async (req, res) => {
+  try {
+    const { department } = req.params;
+    const queue = await Appointment.find({
+      department,
+      status: { $in: ['In Queue', 'Called'] }
+    }).sort({ queuePosition: 1 });
+    
+    res.json({ queue });
+  } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
 router.put('/:id', protect, async (req, res) => {
