@@ -12,6 +12,19 @@ import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/components/ui/s
 import NotificationBell from './NotificationBell';
 
 const navConfig = {
+  superadmin: [
+    { icon: LayoutDashboard, labelKey: 'nav.dashboard',        path: '/dashboard'        },
+    { icon: Building2,       labelKey: 'nav.hospitals',        path: '/superadmin'       },
+    { icon: Users,           labelKey: 'nav.manageUsers',      path: '/admin/users'      },
+    { icon: Stethoscope,     labelKey: 'nav.manageDoctors',    path: '/admin/doctors'    },
+    { icon: UserRound,       labelKey: 'nav.managePatients',   path: '/patients'         },
+    { icon: CalendarDays,    labelKey: 'nav.appointments',     path: '/appointments'     },
+    { icon: FileText,        labelKey: 'nav.medicalRecords',   path: '/records'          },
+    { icon: CreditCard,      labelKey: 'nav.billing',          path: '/billing'          },
+    { icon: BarChart3,       labelKey: 'nav.analytics',        path: '/admin/analytics'  },
+    { icon: Bell,            labelKey: 'nav.notifications',    path: '/notifications'    },
+    { icon: Settings,        labelKey: 'nav.settings',         path: '/settings'         },
+  ],
   admin: [
     { icon: LayoutDashboard, labelKey: 'nav.dashboard',        path: '/dashboard'        },
     { icon: Users,           labelKey: 'nav.manageUsers',      path: '/admin/users'      },
@@ -47,6 +60,7 @@ const navConfig = {
   ],
   patient: [
     { icon: LayoutDashboard, labelKey: 'nav.dashboard',       path: '/dashboard'            },
+    { icon: Building2,       labelKey: 'nav.findHospital',    path: '/hospitals'            },
     { icon: Search,          labelKey: 'nav.findDoctors',     path: '/patient/doctors'      },
     { icon: CalendarDays,    labelKey: 'nav.myAppointments',  path: '/patient/appointments' },
     { icon: TestTube,        labelKey: 'nav.labServices',     path: '/patient/services'     },
