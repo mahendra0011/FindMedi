@@ -38,12 +38,12 @@ export default function Appointments() {
 
   return (
     <div>
-      <div className="page-header flex items-start justify-between">
+      <div className="page-header flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
           <h1 className="page-title">Appointments</h1>
           <p className="page-subtitle">{appointments.length} total appointments</p>
         </div>
-        <Button className="gap-2" onClick={() => setModal(true)}><Plus className="w-4 h-4" /> New Appointment</Button>
+        <Button className="gap-2 w-full sm:w-auto" onClick={() => setModal(true)}><Plus className="w-4 h-4" /> New Appointment</Button>
       </div>
 
       {/* Status Filter Pills */}
