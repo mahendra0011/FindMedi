@@ -28,12 +28,12 @@ export default function Patients() {
 
   return (
     <div>
-      <div className="page-header flex items-start justify-between">
+      <div className="page-header flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
           <h1 className="page-title">Patients</h1>
           <p className="page-subtitle">{patients.length} registered patients</p>
         </div>
-        <Button className="gap-2" onClick={() => setModal(true)}><Plus className="w-4 h-4" /> Add Patient</Button>
+        <Button className="gap-2 w-full sm:w-auto" onClick={() => setModal(true)}><Plus className="w-4 h-4" /> Add Patient</Button>
       </div>
 
       {/* Filters */}
