@@ -65,6 +65,7 @@ const main = async () => {
     existing.status = 'active';
     existing.isVerified = true;
     existing.approvalStatus = 'not_required';
+    if (!existing.phone) existing.phone = '0000000000';
     await existing.save();
     console.log('✅ Admin user updated successfully.');
   } else {
@@ -73,7 +74,7 @@ const main = async () => {
       email: email.toLowerCase(),
       password,
       role: 'admin',
-      phone: '',
+      phone: '0000000000',
       status: 'active',
       isVerified: true,
       approvalStatus: 'not_required',

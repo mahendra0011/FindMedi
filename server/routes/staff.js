@@ -13,7 +13,8 @@ router.post('/', protect, async (req, res) => {
     const { name, role, department } = req.body;
     if (!name || !role) return res.status(400).json({ message: 'Name and role required' });
     const employeeId = await genId();
-    const staff = await Staff.create({ employeeId, name, role, department, joinDate: new Date(), hospitalId: req.user.hospitalId || undefined, createdBy: req.user._id });
+    const targetHospId = req.body.hospitalId || req.user.hospitalId || undefined;
+    const staff = await Staff.create({ employeeId, name, role, department, joinDate: new Date(), hospitalId: targetHospId, createdBy: req.user._id });
     res.status(201).json(staff);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });

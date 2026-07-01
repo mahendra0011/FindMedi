@@ -107,7 +107,7 @@ router.post('/', protect, async (req, res) => {
       doctor: doctorName,
       doctorId: doctorId,
       appointmentId: appointmentId || null,
-      hospitalId: req.user.hospitalId || undefined,
+      hospitalId: req.body.hospitalId || req.user.hospitalId || undefined,
       date: new Date().toISOString().split('T')[0],
       diagnosis: diagnosis || '',
       prescription: prescription || '',

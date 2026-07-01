@@ -39,7 +39,8 @@ router.get('/:id', protect, async (req, res) => {
 
 router.post('/', protect, async (req, res) => {
   try {
-    const p = await Patient.create({ ...req.body, hospitalId: req.user.hospitalId || undefined });
+    const targetHospitalId = req.body.hospitalId || req.user.hospitalId || undefined;
+    const p = await Patient.create({ ...req.body, hospitalId: targetHospitalId });
     res.status(201).json(p);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });

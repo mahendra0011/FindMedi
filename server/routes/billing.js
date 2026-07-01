@@ -181,7 +181,7 @@ router.post('/', protect, async (req, res) => {
       services: selectedServices,
       source: isLabBooking ? 'lab' : source || 'manual',
       amount: finalAmount,
-      hospitalId: req.user.hospitalId || undefined,
+      hospitalId: req.body.hospitalId || req.user.hospitalId || undefined,
       date: date || new Date().toISOString().split('T')[0],
       dueDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       status: 'Pending',
