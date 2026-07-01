@@ -231,9 +231,11 @@ export default function Settings() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">{tr('settings.title')}</h1>
-        <p className="page-subtitle">{tr('settings.subtitle')}</p>
+      <div className="page-header flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div>
+          <h1 className="page-title">{tr('settings.title')}</h1>
+          <p className="page-subtitle">{tr('settings.subtitle')}</p>
+        </div>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6 max-w-6xl">
