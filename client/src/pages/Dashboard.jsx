@@ -49,9 +49,11 @@ export default function Dashboard() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">Dashboard</h1>
-        <p className="page-subtitle">Welcome back, <span className="font-semibold text-foreground">{user?.name}</span>! Here's your hospital overview.</p>
+      <div className="page-header flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div>
+          <h1 className="page-title">Dashboard</h1>
+          <p className="page-subtitle">Welcome back, <span className="font-semibold text-foreground">{user?.name}</span>! Here's your hospital overview.</p>
+        </div>
       </div>
 
       {/* Stats */}
