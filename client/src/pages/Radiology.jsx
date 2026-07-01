@@ -57,9 +57,9 @@ export default function Radiology() {
 
   return (
     <div>
-      <div className="page-header"><h1 className="page-title">Radiology</h1><p className="page-subtitle">{stats?.total || 0} orders · {stats?.pending || 0} pending</p></div>
+      <div className="page-header flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"><h1 className="page-title">Radiology</h1><p className="page-subtitle">{stats?.total || 0} orders · {stats?.pending || 0} pending</p></div>
 
-      <div className="grid grid-cols-5 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-6">
         {[
           { l: 'Total', v: stats?.total || 0, c: 'text-foreground' },
           { l: 'Pending', v: stats?.pending || 0, c: 'text-warning' },
