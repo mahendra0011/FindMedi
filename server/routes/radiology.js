@@ -22,6 +22,7 @@ router.post('/orders', protect, async (req, res) => {
     const order = await Radiology.create({
       orderId, patientId, patientName,
       doctorId: req.user._id, doctorName: req.user.name,
+      hospitalId: req.user.hospitalId || undefined,
       modality, bodyPart, clinicalHistory: clinicalHistory || '',
       priority: priority || 'Routine', createdBy: req.user._id,
     });
@@ -40,6 +41,7 @@ router.get('/orders', protect, async (req, res) => {
   try {
     const { status, modality, search } = req.query;
     const filter = {};
+    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
     if (req.user.role === 'doctor') filter.doctorId = req.user._id;
     if (req.user.role === 'patient') filter.patientId = req.user._id;
     if (status && status !== 'All') filter.status = status;
@@ -61,6 +63,9 @@ router.get('/orders/:id', protect, async (req, res) => {
   try {
     const order = await Radiology.findById(req.params.id).populate('patientId', 'name email phone').populate('doctorId', 'name email');
     if (!order) return res.status(404).json({ message: 'Order not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && order.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     res.json(order);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
@@ -69,18 +74,31 @@ router.get('/orders/:id', protect, async (req, res) => {
 router.put('/orders/:id/schedule', protect, async (req, res) => {
   try {
     const { scheduledAt } = req.body;
-    const order = await Radiology.findByIdAndUpdate(req.params.id, { status: 'Scheduled', scheduledAt }, { new: true });
-    if (!order) return res.status(404).json({ message: 'Order not found' });
-    res.json(order);
+    const existing = await Radiology.findById(req.params.id);
+    if (!existing) return res.status(404).json({ message: 'Order not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && existing.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    existing.status = 'Scheduled';
+    existing.scheduledAt = scheduledAt;
+    await existing.save();
+    res.json(existing);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
 // ─── Start Scan (Technician) ───────────────────────────────────────────────
 router.put('/orders/:id/start', protect, async (req, res) => {
   try {
-    const order = await Radiology.findByIdAndUpdate(req.params.id, { status: 'In Progress', performedAt: new Date(), performedBy: req.user.name }, { new: true });
-    if (!order) return res.status(404).json({ message: 'Order not found' });
-    res.json(order);
+    const existing = await Radiology.findById(req.params.id);
+    if (!existing) return res.status(404).json({ message: 'Order not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && existing.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    existing.status = 'In Progress';
+    existing.performedAt = new Date();
+    existing.performedBy = req.user.name;
+    await existing.save();
+    res.json(existing);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
@@ -88,9 +106,15 @@ router.put('/orders/:id/start', protect, async (req, res) => {
 router.put('/orders/:id/complete', protect, async (req, res) => {
   try {
     const { imageUrls } = req.body;
-    const order = await Radiology.findByIdAndUpdate(req.params.id, { status: 'Completed', imageUrls: imageUrls || [] }, { new: true });
-    if (!order) return res.status(404).json({ message: 'Order not found' });
-    res.json(order);
+    const existing = await Radiology.findById(req.params.id);
+    if (!existing) return res.status(404).json({ message: 'Order not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && existing.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    existing.status = 'Completed';
+    existing.imageUrls = imageUrls || [];
+    await existing.save();
+    res.json(existing);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
@@ -98,11 +122,19 @@ router.put('/orders/:id/complete', protect, async (req, res) => {
 router.put('/orders/:id/report', protect, async (req, res) => {
   try {
     const { findings, impression, recommendation, reportUrl } = req.body;
-    const order = await Radiology.findByIdAndUpdate(req.params.id, {
-      status: 'Reported', findings, impression, recommendation, reportUrl,
-      reportedBy: req.user._id, reportedAt: new Date(),
-    }, { new: true });
+    const order = await Radiology.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && order.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    order.status = 'Reported';
+    order.findings = findings;
+    order.impression = impression;
+    order.recommendation = recommendation;
+    order.reportUrl = reportUrl;
+    order.reportedBy = req.user._id;
+    order.reportedAt = new Date();
+    await order.save();
     // Notify doctor
     await Notification.create({
       title: 'Radiology Report Ready', message: `${order.modality} report for ${order.patientName} is ready`,
@@ -115,8 +147,13 @@ router.put('/orders/:id/report', protect, async (req, res) => {
 // ─── Deliver Report ────────────────────────────────────────────────────────
 router.put('/orders/:id/deliver', protect, async (req, res) => {
   try {
-    const order = await Radiology.findByIdAndUpdate(req.params.id, { status: 'Delivered' }, { new: true });
+    const order = await Radiology.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && order.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    order.status = 'Delivered';
+    await order.save();
     // Notify patient
     await Notification.create({
       title: 'Radiology Report Available', message: `Your ${order.modality} report is now available.`,
@@ -130,6 +167,7 @@ router.put('/orders/:id/deliver', protect, async (req, res) => {
 router.get('/stats', protect, async (req, res) => {
   try {
     const filter = {};
+    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
     if (req.user.role === 'doctor') filter.doctorId = req.user._id;
     if (req.user.role === 'patient') filter.patientId = req.user._id;
     const total = await Radiology.countDocuments(filter);
