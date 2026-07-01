@@ -87,7 +87,7 @@ export default function OperationTheatre() {
 
   return (
     <div>
-      <div className="page-header">
+      <div className="page-header flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <h1 className="page-title">Operation Theatre</h1>
         <p className="page-subtitle">{stats?.today || 0} today · {stats?.inProgress || 0} in progress · {stats?.completed || 0} completed</p>
       </div>
