@@ -7,9 +7,12 @@ import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { store } from '@/store';
 import { initializeAuth } from '@/store/slices/authSlice';
+import { applyUserSettings, readStoredSettings } from '@/lib/settings';
+import { loadUserSettings } from '@/store/slices/settingsSlice';
 import { NotificationProvider } from '@/context/NotificationContext';
 import { AuthProvider } from '@/context/AuthContext';
 import { useDispatch, useSelector } from 'react-redux';
+import { useAuth } from '@/context/AuthContext';
 import DashboardLayout from './components/DashboardLayout';
 import AppMotion from './components/AppMotion';
 import Home from './pages/Home';
@@ -27,6 +30,7 @@ import Settings from './pages/Settings';
 import NotFound from './pages/NotFound';
 import Notifications from './pages/Notifications';
 import OTPVerification from './pages/OTPVerification';
+import DoctorSetup from './pages/DoctorSetup';
 import { LenisScroll } from './components/LenisScroll';
 
 // Patient pages
@@ -61,6 +65,25 @@ import AdminEmergency from './pages/admin/AdminEmergency';
 import PDFReports from './pages/PDFReports';
 import ImportExport from './pages/ImportExport';
 import FileUpload from './pages/FileUpload';
+import Lab from './pages/Lab';
+import Pharmacy from './pages/Pharmacy';
+import IPD from './pages/IPD';
+import TriagePage from './pages/TriagePage';
+import Radiology from './pages/Radiology';
+import Insurance from './pages/Insurance';
+import DietKitchen from './pages/DietKitchen';
+import OperationTheatre from './pages/OperationTheatre';
+import BloodBank from './pages/BloodBank';
+import Physiotherapy from './pages/Physiotherapy';
+import MentalHealth from './pages/MentalHealth';
+import Reports from './pages/Reports';
+import Staff from './pages/Staff';
+import Inventory from './pages/Inventory';
+import Housekeeping from './pages/Housekeeping';
+import OPDRegistration from './pages/OPDRegistration';
+import OPDToken from './pages/OPDToken';
+import PatientRegistration from './pages/PatientRegistration';
+import DoctorConsultation from './pages/DoctorConsultation';
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1, staleTime: 30_000 } } });
 
@@ -71,6 +94,35 @@ function AuthInitializer({ children }) {
     dispatch(initializeAuth());
   }, [dispatch]);
   return children;
+}
+
+function SettingsInitializer() {
+  const dispatch = useDispatch();
+  const { user } = useAuth();
+  const reduxSettings = useSelector(state => state.settings);
+
+  // Apply settings from localStorage on first mount
+  useEffect(() => {
+    const stored = readStoredSettings();
+    if (stored && Object.keys(stored).length > 0) {
+      dispatch(loadUserSettings(stored));
+    }
+  }, []);
+
+  // Load user settings into Redux when user logs in and apply to DOM
+  useEffect(() => {
+    if (user?.settings) {
+      dispatch(loadUserSettings(user.settings));
+      applyUserSettings(user.settings);
+    }
+  }, [user?.settings, dispatch]);
+
+  // Apply settings whenever Redux settings change (after initial mount)
+  useEffect(() => {
+    applyUserSettings(reduxSettings);
+  }, [reduxSettings]);
+
+  return null;
 }
 
 function BlockedAccountRedirect() {
@@ -159,6 +211,7 @@ function ReduxAuthProvider({ children }) {
     <Provider store={store}>
       <AuthInitializer>
         <AuthProvider>
+          <SettingsInitializer />
           {children}
         </AuthProvider>
       </AuthInitializer>
@@ -184,6 +237,7 @@ const App = () => (
                   <Route path="/forgot-password" element={<ForgotPassword />} />
                   <Route path="/verify-otp" element={<OTPVerification />} />
                   <Route path="/pending-approval" element={<PendingApproval />} />
+                  <Route path="/doctor-setup" element={<DoctorSetup />} />
 
                   {/* Authenticated dashboard shell */}
                   <Route element={<DashboardShell />}>
@@ -206,6 +260,24 @@ const App = () => (
                     <Route path="/billing" element={<RoleRoute allowedRoles={['admin']}><Billing /></RoleRoute>} />
                     <Route path="/reports" element={<RoleRoute allowedRoles={['admin', 'doctor']}><PDFReports /></RoleRoute>} />
                     <Route path="/import-export" element={<RoleRoute allowedRoles={['admin']}><ImportExport /></RoleRoute>} />
+                    <Route path="/lab" element={<RoleRoute allowedRoles={['admin', 'doctor', 'lab_receptionist', 'lab_technician', 'pathologist']}><Lab /></RoleRoute>} />
+                    <Route path="/pharmacy" element={<RoleRoute allowedRoles={['admin', 'doctor', 'pharmacist']}><Pharmacy /></RoleRoute>} />
+                    <Route path="/ipd" element={<RoleRoute allowedRoles={['admin', 'doctor', 'nurse']}><IPD /></RoleRoute>} />
+                    <Route path="/triage" element={<RoleRoute allowedRoles={['admin', 'doctor', 'nurse']}><TriagePage /></RoleRoute>} />
+                    <Route path="/radiology" element={<RoleRoute allowedRoles={['admin', 'doctor', 'radiologist']}><Radiology /></RoleRoute>} />
+                    <Route path="/insurance" element={<RoleRoute allowedRoles={['admin', 'doctor', 'patient']}><Insurance /></RoleRoute>} />
+                    <Route path="/diet" element={<RoleRoute allowedRoles={['admin', 'doctor', 'nurse']}><DietKitchen /></RoleRoute>} />
+                    <Route path="/ot" element={<RoleRoute allowedRoles={['admin', 'doctor']}><OperationTheatre /></RoleRoute>} />
+                    <Route path="/bloodbank" element={<RoleRoute allowedRoles={['admin', 'doctor', 'nurse']}><BloodBank /></RoleRoute>} />
+                    <Route path="/physio" element={<RoleRoute allowedRoles={['admin', 'doctor', 'nurse']}><Physiotherapy /></RoleRoute>} />
+                    <Route path="/mentalhealth" element={<RoleRoute allowedRoles={['admin', 'doctor', 'nurse']}><MentalHealth /></RoleRoute>} />
+                    <Route path="/reports" element={<RoleRoute allowedRoles={['admin', 'doctor']}><Reports /></RoleRoute>} />
+                    <Route path="/staff" element={<RoleRoute allowedRoles={['admin']}><Staff /></RoleRoute>} />
+                    <Route path="/inventory" element={<RoleRoute allowedRoles={['admin']}><Inventory /></RoleRoute>} />
+                    <Route path="/housekeeping" element={<RoleRoute allowedRoles={['admin']}><Housekeeping /></RoleRoute>} />
+                    <Route path="/opd-token" element={<RoleRoute allowedRoles={['admin', 'doctor', 'nurse']}><OPDToken /></RoleRoute>} />
+                    <Route path="/patient-registration" element={<RoleRoute allowedRoles={['admin', 'nurse']}><PatientRegistration /></RoleRoute>} />
+                    <Route path="/doctor-consultation" element={<RoleRoute allowedRoles={['admin', 'doctor', 'nurse']}><DoctorConsultation /></RoleRoute>} />
 
                     {/* Patient routes */}
                     <Route path="/patient/doctors" element={<RoleRoute allowedRoles={['patient']}><PatientDoctors /></RoleRoute>} />
