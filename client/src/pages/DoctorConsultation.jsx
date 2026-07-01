@@ -375,7 +375,7 @@ export default function DoctorConsultation() {
   return (
     <div>
       {/* Header */}
-      <div className="page-header">
+      <div className="page-header flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <h1 className="page-title">Doctor Consultation</h1>
         <p className="page-subtitle">
           {stats?.inConsultation || 0} in consultation · {stats?.waiting || 0} waiting
