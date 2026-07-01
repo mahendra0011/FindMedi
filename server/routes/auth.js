@@ -4,6 +4,7 @@ import multer from 'multer';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { body, validationResult } from 'express-validator';
 import User from '../models/User.js';
 import Doctor from '../models/Doctor.js';
 import Patient from '../models/Patient.js';
@@ -32,11 +33,30 @@ const allowedAvatarTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'im
 
 const handleAvatarUpload = (req, res, next) => {
   avatarUpload.single('file')(req, res, (err) => {
-    if (!err) return next();
-    const message = err.code === 'LIMIT_FILE_SIZE'
-      ? 'Profile photo must be 5MB or smaller'
-      : err.message;
-    return res.status(400).json({ message });
+    if (err) {
+      const message = err.code === 'LIMIT_FILE_SIZE'
+        ? 'Profile photo must be 5MB or smaller'
+        : err.message;
+      return res.status(400).json({ message });
+    }
+
+    const file = req.file;
+    if (!file) {
+      return res.status(400).json({ message: 'Profile photo is required' });
+    }
+
+    // Validate MIME type explicitly
+    if (!allowedAvatarTypes.has(file.mimetype)) {
+      return res.status(400).json({ message: 'Invalid file type. Only JPG, PNG, WEBP, or GIF images are allowed.' });
+    }
+
+    // Validate file extension
+    const ext = path.extname(file.originalname || '').toLowerCase();
+    if (!['.jpg', '.jpeg', '.png', '.webp', '.gif'].includes(ext)) {
+      return res.status(400).json({ message: 'Invalid file extension. Use .jpg, .jpeg, .png, .webp, or .gif' });
+    }
+
+    next();
   });
 };
 
@@ -145,7 +165,20 @@ const sendVerificationOtp = (user) => createAndSendOTP({
 });
 
 // POST /api/auth/register
-router.post('/register', async (req, res) => {
+const validateRegister = [
+  body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
+  body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters'),
+  body('name').trim().isLength({ min: 2 }).withMessage('Name is required'),
+  body('phone').optional().isMobilePhone().withMessage('Valid phone number is required'),
+  body('gender').optional().isIn(['Male', 'Female', 'Other']).withMessage('Gender must be Male, Female, or Other'),
+  body('role').optional().isIn(['patient', 'doctor', 'admin']).withMessage('Invalid role'),
+];
+
+router.post('/register', validateRegister, async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ message: errors.array()[0].msg });
+  }
   try {
     const {
       name,
@@ -388,7 +421,17 @@ router.post('/resend-otp', async (req, res) => {
 });
 
 // POST /api/auth/login
-router.post('/login', async (req, res) => {
+const validateLogin = [
+  body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
+  body('password').notEmpty().withMessage('Password is required'),
+  body('role').optional().isIn(['patient', 'doctor', 'admin']).withMessage('Invalid role'),
+];
+
+router.post('/login', validateLogin, async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ message: errors.array()[0].msg });
+  }
   try {
     const { email, password, role } = req.body;
 
@@ -537,6 +580,40 @@ router.post('/reset-password', async (req, res) => {
     res.json({ message: 'Password updated successfully. You can now login.' });
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+});
+
+// POST /api/auth/doctor-setup
+router.post('/doctor-setup', async (req, res) => {
+  try {
+    const { token, password } = req.body;
+    if (!token || !password) {
+      return res.status(400).json({ message: 'Token and password are required' });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+    if (decoded.type !== 'doctor_setup') {
+      return res.status(400).json({ message: 'Invalid setup token' });
+    }
+
+    const user = await User.findOne({ email: decoded.email });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    user.password = password;
+    await user.save();
+
+    res.json({ message: 'Password set successfully. Please verify your email with OTP.' });
+  } catch (err) {
+    if (err.name === 'TokenExpiredError') {
+      return res.status(400).json({ message: 'Setup link has expired. Please contact your administrator.' });
+    }
+    res.status(400).json({ message: 'Invalid or expired setup token' });
   }
 });
 
