@@ -12,6 +12,7 @@ const reportSchema = new mongoose.Schema({
   generatedAt: { type: Date, default: Date.now },
   data: { type: mongoose.Schema.Types.Mixed },
   summary: { type: mongoose.Schema.Types.Mixed },
+  hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
 });
 
 export default mongoose.model('Report', reportSchema);
