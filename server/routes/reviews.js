@@ -15,7 +15,8 @@ router.get('/', protect, async (req, res) => {
 
 router.post('/', protect, async (req, res) => {
   try {
-    const review = await Review.create(req.body);
+    const data = { ...req.body, hospitalId: req.user.hospitalId || undefined };
+    const review = await Review.create(data);
     res.status(201).json(review);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
