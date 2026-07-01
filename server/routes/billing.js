@@ -213,7 +213,11 @@ router.get('/:id/invoice', protect, async (req, res) => {
       || String(bill.doctorId?.user_id || '') === String(req.user._id)
     );
 
-    if (req.user.role !== 'admin' && !isPatientOwner && !isDoctorOwner) {
+    const isAdminSameHospital = req.user.role === 'admin' && (
+      !req.user.hospitalId || !bill.hospitalId || bill.hospitalId.toString() === req.user.hospitalId.toString()
+    );
+
+    if (!isPatientOwner && !isDoctorOwner && !isAdminSameHospital) {
       return res.status(403).json({ message: 'Not authorized to download this invoice' });
     }
 
@@ -230,6 +234,9 @@ router.post('/:id/pay', protect, async (req, res) => {
   try {
     const bill = await Billing.findById(req.params.id);
     if (!bill) return res.status(404).json({ message: 'Invoice not found' });
+    if (req.user.hospitalId && bill.hospitalId && bill.hospitalId.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Not authorized to modify this invoice' });
+    }
     
     const { paymentMethod } = req.body;
     const transactionId = `TXN-${Date.now()}`;
@@ -259,6 +266,9 @@ router.put('/:id', protect, async (req, res) => {
   try {
     const oldBill = await Billing.findById(req.params.id);
     if (!oldBill) return res.status(404).json({ message: 'Invoice not found' });
+    if (req.user.hospitalId && oldBill.hospitalId && oldBill.hospitalId.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Not authorized to modify this invoice' });
+    }
 
     const updatedBill = await Billing.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
 
@@ -280,6 +290,11 @@ router.put('/:id', protect, async (req, res) => {
 
 router.delete('/:id', protect, async (req, res) => {
   try {
+    const bill = await Billing.findById(req.params.id);
+    if (!bill) return res.status(404).json({ message: 'Invoice not found' });
+    if (req.user.hospitalId && bill.hospitalId && bill.hospitalId.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Not authorized to delete this invoice' });
+    }
     await Billing.findByIdAndDelete(req.params.id);
     res.json({ message: 'Invoice removed' });
   } catch (err) { res.status(500).json({ message: err.message }); }
