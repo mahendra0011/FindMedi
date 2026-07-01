@@ -28,6 +28,7 @@ const doctorSchema = new mongoose.Schema({
   leaves: { type: [String], default: [] },
   approved: { type: Boolean, default: false },
   user_id: { type: String, default: '' },
+  hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
   reviews_count: { type: Number, default: 0 },
   createdAt: { type: Date, default: Date.now },
 });
