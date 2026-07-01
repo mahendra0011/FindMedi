@@ -44,7 +44,7 @@ export default function OPDToken() {
 
   return (
     <div>
-      <div className="page-header"><h1 className="page-title">OPD Token System</h1><p className="page-subtitle">{stats?.waiting || 0} waiting · {stats?.inConsultation || 0} in consultation</p></div>
+      <div className="page-header flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"><h1 className="page-title">OPD Token System</h1><p className="page-subtitle">{stats?.waiting || 0} waiting · {stats?.inConsultation || 0} in consultation</p></div>
 
       {displayToken && (
         <div className="bg-primary/10 border border-primary/30 rounded-2xl p-6 mb-6 text-center animate-in slide-in-from-top">
@@ -55,7 +55,7 @@ export default function OPDToken() {
         </div>
       )}
 
-      <div className="grid grid-cols-5 gap-3 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
         {[
           { l: 'Waiting', v: stats?.waiting || 0, c: 'text-warning' },
           { l: 'In Consultation', v: stats?.inConsultation || 0, c: 'text-primary' },
