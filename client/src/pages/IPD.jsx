@@ -176,7 +176,7 @@ export default function IPD() {
 
   return (
     <div>
-      <div className="page-header"><h1 className="page-title">IPD Management</h1><p className="page-subtitle">{stats?.activePatients || 0} active patients · {stats?.available || 0} beds available</p></div>
+      <div className="page-header flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"><h1 className="page-title">IPD Management</h1><p className="page-subtitle">{stats?.activePatients || 0} active patients · {stats?.available || 0} beds available</p></div>
 
       <div className="grid grid-cols-4 md:grid-cols-7 gap-3 mb-6">
         {[
