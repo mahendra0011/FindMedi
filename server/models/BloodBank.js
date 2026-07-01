@@ -21,10 +21,12 @@ const bloodUnitSchema = new mongoose.Schema({
   issuedAt: { type: Date },
   issuedBy: { type: String },
   requestId: { type: mongoose.Schema.Types.ObjectId, ref: 'BloodRequest' },
+  hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
   createdAt: { type: Date, default: Date.now },
 });
 
 const bloodRequestSchema = new mongoose.Schema({
+  hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
   requestId: { type: String, required: true, unique: true },
   patientId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   patientName: { type: String, required: true },
