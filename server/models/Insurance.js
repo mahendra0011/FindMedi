@@ -25,6 +25,7 @@ const insuranceSchema = new mongoose.Schema({
   treatmentPlan: { type: String },
   estimatedCost: { type: Number },
   remarks: { type: String },
+  hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
