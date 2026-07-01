@@ -169,6 +169,7 @@ import inventoryRoutes from './routes/inventory.js';
 import housekeepingRoutes from './routes/housekeeping.js';
 import tokenRoutes from './routes/tokens.js';
 import nursingRoutes from './routes/nursing.js';
+import hospitalRoutes from './routes/hospitals.js';
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -202,6 +203,7 @@ app.use('/api/inventory', inventoryRoutes);
 app.use('/api/housekeeping', housekeepingRoutes);
 app.use('/api/tokens', tokenRoutes);
 app.use('/api/nursing', nursingRoutes);
+app.use('/api/hospitals', hospitalRoutes);
 
 app.get('/api/health', (_, res) => res.json({ status: 'ok', time: new Date() }));
 
