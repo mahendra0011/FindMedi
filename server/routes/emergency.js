@@ -30,6 +30,7 @@ router.get('/', protect, async (req, res) => {
   try {
     const { status, severity } = req.query;
     const filter = {};
+    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
     
     if (req.user.role === 'doctor') {
       filter.$or = [
@@ -60,7 +61,8 @@ router.post('/', protect, async (req, res) => {
       phone,
       condition,
       severity: severity || 'Serious',
-      status: 'Pending'
+      status: 'Pending',
+      hospitalId: req.user.hospitalId || undefined,
     });
     
     // Notify all admins about new emergency
@@ -100,6 +102,11 @@ router.put('/:id/assign', protect, async (req, res) => {
       }
     }
     
+    const existing = await Emergency.findById(req.params.id);
+    if (!existing) return res.status(404).json({ message: 'Emergency case not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && existing.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     const emergency = await Emergency.findByIdAndUpdate(
       req.params.id,
       {
@@ -109,8 +116,6 @@ router.put('/:id/assign', protect, async (req, res) => {
       },
       { new: true }
     );
-    
-    if (!emergency) return res.status(404).json({ message: 'Emergency case not found' });
     
     if (userDoctorId) {
       await createNotification(userDoctorId, 'Emergency Case Assigned', `You have been assigned to emergency case: ${emergency.condition}`, 'system');
@@ -126,6 +131,9 @@ router.put('/:id/status', protect, async (req, res) => {
     
     const emergency = await Emergency.findById(req.params.id);
     if (!emergency) return res.status(404).json({ message: 'Emergency case not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && emergency.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     
     emergency.status = status;
     if (status === 'Assigned' && !emergency.assignedDoctor && req.user.role === 'doctor') {
@@ -148,6 +156,9 @@ router.post('/:id/notes', protect, async (req, res) => {
     
     const emergency = await Emergency.findById(req.params.id);
     if (!emergency) return res.status(404).json({ message: 'Emergency case not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && emergency.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     
     emergency.notes.push({
       text,
@@ -162,15 +173,19 @@ router.post('/:id/notes', protect, async (req, res) => {
 
 router.get('/stats', protect, async (req, res) => {
   try {
+    const matchFilter = {};
+    if (req.user.hospitalId && req.user.role !== 'superadmin') matchFilter.hospitalId = req.user.hospitalId;
     const stats = await Emergency.aggregate([
+      { $match: matchFilter },
       { $group: { _id: '$status', count: { $sum: 1 } } }
     ]);
     const severityStats = await Emergency.aggregate([
+      { $match: matchFilter },
       { $group: { _id: '$severity', count: { $sum: 1 } } }
     ]);
     
-    const total = await Emergency.countDocuments();
-    const critical = await Emergency.countDocuments({ severity: 'Critical', status: { $nin: ['Discharged', 'Transferred'] } });
+    const total = await Emergency.countDocuments(matchFilter);
+    const critical = await Emergency.countDocuments({ ...matchFilter, severity: 'Critical', status: { $nin: ['Discharged', 'Transferred'] } });
     
     res.json({
       total,
@@ -188,6 +203,9 @@ router.post('/:id/transfer-to-ipd', protect, async (req, res) => {
     
     const emergency = await Emergency.findById(req.params.id);
     if (!emergency) return res.status(404).json({ message: 'Emergency case not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && emergency.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     
     if (emergency.status === 'Transferred') {
       return res.status(400).json({ message: 'Already transferred' });
@@ -210,6 +228,7 @@ router.post('/:id/transfer-to-ipd', protect, async (req, res) => {
       bedId: bed?._id,
       bedNumber: bed?.bedNumber,
       ward: bed?.ward || ward,
+      hospitalId: req.user.hospitalId || undefined,
       admittedBy: req.user._id,
       admittingDoctor: emergency.assignedDoctorName || req.user.name,
       primaryDiagnosis: emergency.condition,
@@ -256,6 +275,9 @@ router.post('/beds/transfer/:id', protect, async (req, res) => {
     const toBed = await Bed.findById(toBedId);
     
     if (!fromBed || !toBed) return res.status(404).json({ message: 'Bed not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && (fromBed.hospitalId?.toString() !== req.user.hospitalId.toString() || toBed.hospitalId?.toString() !== req.user.hospitalId.toString())) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     if (toBed.status !== 'Available') return res.status(400).json({ message: 'Target bed not available' });
 
     // Move patient from one bed to another
