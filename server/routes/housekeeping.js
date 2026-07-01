@@ -26,6 +26,7 @@ router.post('/auto-create-on-discharge', protect, async (req, res) => {
       bedNumber,
       ward,
       room: room || bedNumber,
+      hospitalId: req.user.hospitalId || undefined,
       type: taskType,
       priority: isInfectionCase ? 'High' : 'Normal',
       status: 'Pending',
@@ -63,7 +64,7 @@ router.post('/tasks', protect, async (req, res) => {
     const { room, bedNumber, ward, type, priority, checklist } = req.body;
     if (!room || !type) return res.status(400).json({ message: 'Room and type required' });
     const taskId = await genId();
-    const task = await Housekeeping.create({ 
+    const task = await Housekeeping.create({
       taskId, 
       room, 
       bedNumber, 
@@ -71,6 +72,7 @@ router.post('/tasks', protect, async (req, res) => {
       type, 
       priority: priority || 'Normal',
       checklist: checklist || {},
+      hospitalId: req.user.hospitalId || undefined,
       createdBy: req.user._id 
     });
     res.status(201).json(task);
@@ -81,6 +83,7 @@ router.get('/tasks', protect, async (req, res) => {
   try {
     const { status, ward, type, assignedTo, date } = req.query;
     const filter = {};
+    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
     if (status && status !== 'All') filter.status = status;
     if (ward && ward !== 'All') filter.ward = ward;
     if (type && type !== 'All') filter.type = type;
@@ -101,6 +104,9 @@ router.get('/tasks/:id', protect, async (req, res) => {
   try {
     const task = await Housekeeping.findById(req.params.id);
     if (!task) return res.status(404).json({ message: 'Task not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && task.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     res.json(task);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
@@ -108,12 +114,16 @@ router.get('/tasks/:id', protect, async (req, res) => {
 router.put('/tasks/:id/assign', protect, async (req, res) => {
   try {
     const { assignedTo, assignedById } = req.body;
-    const task = await Housekeeping.findByIdAndUpdate(
-      req.params.id, 
-      { assignedTo, assignedById: req.user._id, status: 'In Progress', startedAt: new Date() }, 
-      { new: true }
-    );
+    const task = await Housekeeping.findById(req.params.id);
     if (!task) return res.status(404).json({ message: 'Task not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && task.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    task.assignedTo = assignedTo;
+    task.assignedById = req.user._id;
+    task.status = 'In Progress';
+    task.startedAt = new Date();
+    await task.save();
     res.json(task);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -123,6 +133,9 @@ router.put('/tasks/:id/complete', protect, async (req, res) => {
     const { checklistNotes, photo, checklist } = req.body;
     const task = await Housekeeping.findById(req.params.id);
     if (!task) return res.status(404).json({ message: 'Not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && task.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     
     // Validate mandatory checklist items for infection cases
     if (task.isInfectionCase) {
@@ -148,6 +161,9 @@ router.put('/tasks/:id/verify', protect, async (req, res) => {
   try {
     const task = await Housekeeping.findById(req.params.id);
     if (!task) return res.status(404).json({ message: 'Not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && task.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     
     task.status = 'Verified';
     task.verifiedBy = req.user.name;
@@ -171,6 +187,9 @@ router.put('/tasks/:id/checklist', protect, async (req, res) => {
     const { checklist } = req.body;
     const task = await Housekeeping.findById(req.params.id);
     if (!task) return res.status(404).json({ message: 'Task not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && task.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     
     task.checklist = { ...task.checklist, ...checklist };
     await task.save();
@@ -180,11 +199,13 @@ router.put('/tasks/:id/checklist', protect, async (req, res) => {
 
 router.get('/stats', protect, async (req, res) => {
   try {
-    const pending = await Housekeeping.countDocuments({ status: 'Pending' });
-    const inProgress = await Housekeeping.countDocuments({ status: 'In Progress' });
-    const completed = await Housekeeping.countDocuments({ status: 'Completed' });
-    const verified = await Housekeeping.countDocuments({ status: 'Verified' });
-    const infectionCases = await Housekeeping.countDocuments({ isInfectionCase: true });
+    const hFilter = {};
+    if (req.user.hospitalId && req.user.role !== 'superadmin') hFilter.hospitalId = req.user.hospitalId;
+    const pending = await Housekeeping.countDocuments({ status: 'Pending', ...hFilter });
+    const inProgress = await Housekeeping.countDocuments({ status: 'In Progress', ...hFilter });
+    const completed = await Housekeeping.countDocuments({ status: 'Completed', ...hFilter });
+    const verified = await Housekeeping.countDocuments({ status: 'Verified', ...hFilter });
+    const infectionCases = await Housekeeping.countDocuments({ isInfectionCase: true, ...hFilter });
     res.json({ pending, inProgress, completed, verified, infectionCases });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
