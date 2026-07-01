@@ -253,4 +253,4 @@ export default function Inventory() {
       )}
     </div>
   );
-}
+}// 35
