@@ -26,6 +26,9 @@ router.get('/', protect, async (req, res) => {
       filter.patientId = req.user._id;
     } else if (req.user.role === 'doctor') {
       filter.doctorId = req.user._id;
+      if (req.user.hospitalId) filter.hospitalId = req.user.hospitalId;
+    } else if (req.user.role === 'admin' && req.user.hospitalId) {
+      filter.hospitalId = req.user.hospitalId;
     }
     
     // Hide self-uploads from admin/doctor panels
@@ -93,6 +96,7 @@ router.post('/', protect, async (req, res) => {
       doctor: doctorName,
       doctorId: doctorId,
       appointmentId: appointmentId || null,
+      hospitalId: req.user.hospitalId || undefined,
       date: new Date().toISOString().split('T')[0],
       diagnosis: diagnosis || '',
       prescription: prescription || '',
