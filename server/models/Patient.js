@@ -55,3 +55,4 @@ patientSchema.pre('save', async function (next) {
 });
 
 export default mongoose.model('Patient', patientSchema);
+// 17
