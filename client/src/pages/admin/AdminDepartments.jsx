@@ -49,12 +49,12 @@ export default function AdminDepartments() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="font-heading text-2xl font-bold text-foreground">Manage Departments</h1>
           <p className="text-muted-foreground">Add, edit, or remove hospital departments and set fees structure</p>
         </div>
-        <Button className="gap-2" onClick={() => { resetForm(); setShowForm(true); }}><Plus className="w-4 h-4" /> Add Department</Button>
+        <Button className="gap-2 w-full sm:w-auto" onClick={() => { resetForm(); setShowForm(true); }}><Plus className="w-4 h-4" /> Add Department</Button>
       </div>
 
       {loading ? (
@@ -84,7 +84,7 @@ export default function AdminDepartments() {
                 {dept.head && <div className="flex items-center gap-2"><span>Head: {dept.head}</span></div>}
                 <div className="flex items-center gap-2"><IndianRupee className="w-3.5 h-3.5" /><span>Fees: Rs {dept.fees_structure}</span></div>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <Button variant="outline" size="sm" className="flex-1 gap-1" onClick={() => handleEdit(dept)}>
                   <Edit className="w-3.5 h-3.5" /> Edit
                 </Button>
