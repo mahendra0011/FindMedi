@@ -3,10 +3,12 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, UserRound, Stethoscope, CalendarDays, FileText,
   CreditCard, Settings, ChevronLeft, ChevronRight, Activity, LogOut,
-  Home, Search, Star, Users, Shield, BarChart3, Bell, Building2, Clock, DollarSign, FileUp, Download, TestTube, AlertTriangle
+  Home, Search, Star, Users, BarChart3, Bell, Building2, Clock, DollarSign, FileUp, Download, TestTube, AlertTriangle, Menu, X
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { t } from '@/lib/settings';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/components/ui/sheet';
 import NotificationBell from './NotificationBell';
 
 const navConfig = {
@@ -62,20 +64,19 @@ const navConfig = {
 
 const roleBadgeColor = { admin: 'bg-primary/20 text-primary', doctor: 'bg-info/20 text-info', patient: 'bg-success/20 text-success' };
 
-export default function AppSidebar() {
-  const [collapsed, setCollapsed] = useState(false);
+function SidebarContent({ collapsed, onToggleCollapse, onNavClick }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
 
-  const handleGoHome = () => { navigate('/'); };
-  const handleLogout = () => { logout(); navigate('/login'); };
+  const handleGoHome = () => { navigate('/'); onNavClick?.(); };
+  const handleLogout = () => { logout(); navigate('/login'); onNavClick?.(); };
 
   const navItems = navConfig[user?.role] || navConfig.patient;
   const language = user?.settings?.language || 'en';
 
   return (
-    <aside className={`sidebar-motion fixed left-0 top-0 h-screen bg-sidebar text-sidebar-foreground flex flex-col overflow-hidden transition-all duration-300 z-50 shadow-2xl ${collapsed ? 'w-[72px]' : 'w-64'}`}>
+    <div className={`flex flex-col h-full bg-sidebar text-sidebar-foreground ${collapsed ? 'w-[72px]' : 'w-64'}`}>
       {/* Logo */}
       <div className={`flex items-center gap-3 px-4 py-5 border-b border-sidebar-border ${collapsed ? 'justify-center' : ''}`}>
         <div className="w-9 h-9 rounded-xl bg-sidebar-primary flex items-center justify-center flex-shrink-0 shadow-lg shadow-sidebar-primary/30">
@@ -113,7 +114,7 @@ export default function AppSidebar() {
           const isActive = location.pathname === path;
           const label = t(labelKey, language);
           return (
-            <Link key={path} to={path}
+            <Link key={path} to={path} onClick={onNavClick}
               title={collapsed ? label : undefined}
               className={`sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${isActive ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-lg shadow-sidebar-primary/20' : 'text-sidebar-foreground/65 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'} ${collapsed ? 'justify-center' : ''}`}>
               <Icon className={`w-[18px] h-[18px] flex-shrink-0 ${!isActive ? 'group-hover:scale-110 transition-transform' : ''}`} />
@@ -139,11 +140,41 @@ export default function AppSidebar() {
         </button>
       </div>
 
-      {/* Collapse Toggle */}
-      <button onClick={() => setCollapsed(!collapsed)}
-        className="absolute -right-3 top-[72px] w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md hover:scale-110 transition-transform z-10">
-        {collapsed ? <ChevronRight className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />}
-      </button>
+      {/* Collapse Toggle - desktop only */}
+      {onToggleCollapse && (
+        <button onClick={onToggleCollapse}
+          className="absolute -right-3 top-[72px] w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md hover:scale-110 transition-transform z-10 max-md:hidden">
+          {collapsed ? <ChevronRight className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />}
+        </button>
+      )}
+    </div>
+  );
+}
+
+export default function AppSidebar() {
+  const [collapsed, setCollapsed] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const isMobile = useIsMobile();
+
+  if (isMobile) {
+    return (
+      <>
+        <button onClick={() => setSheetOpen(true)}
+          className="fixed top-3 left-3 z-50 w-10 h-10 rounded-xl bg-sidebar text-sidebar-foreground flex items-center justify-center shadow-lg hover:bg-sidebar-accent transition-colors">
+          <Menu className="w-5 h-5" />
+        </button>
+        <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+          <SheetContent side="left" className="p-0 w-[280px] bg-sidebar border-r border-sidebar-border">
+            <SidebarContent collapsed={false} onNavClick={() => setSheetOpen(false)} />
+          </SheetContent>
+        </Sheet>
+      </>
+    );
+  }
+
+  return (
+    <aside className="sidebar-motion fixed left-0 top-0 h-screen z-50 shadow-2xl transition-all duration-300 max-md:hidden">
+      <SidebarContent collapsed={collapsed} onToggleCollapse={() => setCollapsed(!collapsed)} />
     </aside>
   );
 }
