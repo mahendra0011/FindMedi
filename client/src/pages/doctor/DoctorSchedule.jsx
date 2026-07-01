@@ -77,7 +77,7 @@ export default function DoctorSchedule() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="font-heading text-2xl font-bold text-foreground">Manage Schedule</h1>
           <p className="text-muted-foreground">Set your availability, time slots, and leaves</p>
@@ -125,9 +125,9 @@ export default function DoctorSchedule() {
         <h2 className="font-heading text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
           <Settings className="w-5 h-5 text-primary" /> Mark Leaves / Holidays
         </h2>
-        <div className="flex gap-3 mb-4">
-          <Input type="date" value={newLeave} onChange={e => setNewLeave(e.target.value)} className="max-w-xs" />
-          <Button onClick={addLeave} className="gap-2"><Plus className="w-4 h-4" /> Add Leave</Button>
+        <div className="flex flex-col sm:flex-row gap-3 mb-4">
+          <Input type="date" value={newLeave} onChange={e => setNewLeave(e.target.value)} className="sm:max-w-xs" />
+          <Button onClick={addLeave} className="gap-2 w-full sm:w-auto"><Plus className="w-4 h-4" /> Add Leave</Button>
         </div>
         {leaves.length === 0 ? (
           <p className="text-sm text-muted-foreground">No leaves marked</p>

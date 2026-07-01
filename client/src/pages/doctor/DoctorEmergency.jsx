@@ -68,7 +68,7 @@ export default function DoctorEmergency() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="font-heading text-2xl font-bold text-foreground flex items-center gap-2">
             <AlertTriangle className="w-6 h-6 text-red-500" /> Emergency Cases
