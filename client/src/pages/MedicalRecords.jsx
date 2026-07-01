@@ -68,7 +68,7 @@ export default function MedicalRecords() {
 
   return (
     <div>
-      <div className="page-header">
+      <div className="page-header flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <h1 className="page-title">Medical Records</h1>
         <p className="page-subtitle">{records.length} records from {doctorList.length} doctors</p>
       </div>
