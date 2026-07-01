@@ -8,6 +8,7 @@ import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 
 const roles = [
+  { key: 'superadmin', label: 'SuperAdmin', desc: 'Platform management',         icon: Shield,      color: 'text-purple-600',  bg: 'bg-purple-500/10'  },
   { key: 'admin',   label: 'Admin',   desc: 'Full system access',              icon: Shield,      color: 'text-primary',     bg: 'bg-primary/10'     },
   { key: 'doctor',  label: 'Doctor',  desc: 'Patient & schedule management',   icon: Stethoscope, color: 'text-info',         bg: 'bg-info/10'        },
   { key: 'patient', label: 'Patient', desc: 'Book appointments & records',      icon: UserRound,   color: 'text-success',      bg: 'bg-success/10'     },
