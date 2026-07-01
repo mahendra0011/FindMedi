@@ -16,7 +16,7 @@ const router = express.Router();
 const genId = async () => { const c = await Report.countDocuments(); return `RPT-${new Date().getFullYear()}-${String(c+1).padStart(5,'0')}`; };
 
 // Generate actual report data based on type
-const generateReportData = async (reportType, dateFrom, dateTo, department) => {
+const generateReportData = async (reportType, dateFrom, dateTo, department, hospitalId) => {
   const dateFilter = {};
   if (dateFrom || dateTo) {
     dateFilter.createdAt = {};
@@ -29,14 +29,16 @@ const generateReportData = async (reportType, dateFrom, dateTo, department) => {
   }
 
   const deptFilter = department && department !== 'All' ? { department } : {};
+  const hospFilter = hospitalId ? { hospitalId } : {};
 
   switch (reportType) {
     case 'Bed Occupancy':
-      const totalBeds = await Bed.countDocuments();
-      const occupiedBeds = await Bed.countDocuments({ status: 'Occupied' });
-      const availableBeds = await Bed.countDocuments({ status: 'Available' });
-      const maintenanceBeds = await Bed.countDocuments({ status: 'Maintenance' });
+      const totalBeds = await Bed.countDocuments(hospFilter);
+      const occupiedBeds = await Bed.countDocuments({ status: 'Occupied', ...hospFilter });
+      const availableBeds = await Bed.countDocuments({ status: 'Available', ...hospFilter });
+      const maintenanceBeds = await Bed.countDocuments({ status: 'Maintenance', ...hospFilter });
       const wardStats = await Bed.aggregate([
+        { $match: hospFilter },
         { $group: { _id: '$ward', total: { $sum: 1 }, occupied: { $sum: { $cond: [{ $eq: ['$status', 'Occupied'] }, 1, 0] } } } }
       ]);
       
@@ -53,7 +55,7 @@ const generateReportData = async (reportType, dateFrom, dateTo, department) => {
       };
 
     case 'Financial Summary':
-      const billFilter = { ...dateFilter };
+      const billFilter = { ...dateFilter, ...hospFilter };
       if (department) billFilter.source = department.toLowerCase();
       
       const totalBilling = await Billing.aggregate([
@@ -78,13 +80,14 @@ const generateReportData = async (reportType, dateFrom, dateTo, department) => {
       };
 
     case 'Lab Statistics':
+      const labFilter = { ...dateFilter, ...hospFilter };
       const labStats = await LabOrder.aggregate([
-        { $match: dateFilter },
+        { $match: labFilter },
         { $group: { _id: '$status', count: { $sum: 1 } } }
       ]);
       
-      const totalLabTests = await LabOrder.countDocuments(dateFilter);
-      const completedTests = await LabOrder.countDocuments({ ...dateFilter, status: 'Completed' });
+      const totalLabTests = await LabOrder.countDocuments(labFilter);
+      const completedTests = await LabOrder.countDocuments({ ...labFilter, status: 'Completed' });
 
       return {
         data: {
@@ -98,15 +101,16 @@ const generateReportData = async (reportType, dateFrom, dateTo, department) => {
       };
 
     case 'Pharmacy':
-      const totalMeds = await Medicine.countDocuments({ isActive: true });
-      const lowStockMeds = await Medicine.countDocuments({ isActive: true, $expr: { $lte: ['$currentStock', '$reorderLevel'] } });
+      const medFilter = { isActive: true, ...hospFilter };
+      const totalMeds = await Medicine.countDocuments(medFilter);
+      const lowStockMeds = await Medicine.countDocuments({ ...medFilter, $expr: { $lte: ['$currentStock', '$reorderLevel'] } });
       const expiringMeds = await Medicine.countDocuments({ 
+        ...medFilter,
         expiryDate: { $lte: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000) }, 
-        isActive: true 
       });
       
-      const totalPrescriptions = await (await import('../models/Prescription.js')).default.countDocuments(dateFilter);
-      const pendingDispense = await (await import('../models/Prescription.js')).default.countDocuments({ status: { $in: ['Active', 'Partially Dispensed'] } });
+      const totalPrescriptions = await (await import('../models/Prescription.js')).default.countDocuments({ ...dateFilter, ...hospFilter });
+      const pendingDispense = await (await import('../models/Prescription.js')).default.countDocuments({ status: { $in: ['Active', 'Partially Dispensed'] }, ...hospFilter });
 
       return {
         data: {
@@ -120,8 +124,9 @@ const generateReportData = async (reportType, dateFrom, dateTo, department) => {
       };
 
     case 'Staff Attendance':
-      const totalStaff = await Staff.countDocuments({ status: 'Active' });
-      const presentCount = await Staff.countDocuments({ 'attendance.status': 'Present' });
+      const staffFilter = { status: 'Active', ...hospFilter };
+      const totalStaff = await Staff.countDocuments(staffFilter);
+      const presentCount = await Staff.countDocuments({ ...staffFilter, 'attendance.status': 'Present' });
       
       return {
         data: {
@@ -134,10 +139,11 @@ const generateReportData = async (reportType, dateFrom, dateTo, department) => {
       };
 
     case 'Inventory':
-      const totalItems = await Inventory.countDocuments({ isActive: true });
-      const lowStockItems = await Inventory.countDocuments({ isActive: true, $expr: { $lte: ['$currentStock', '$minStockLevel'] } });
+      const invFilter = { isActive: true, ...hospFilter };
+      const totalItems = await Inventory.countDocuments(invFilter);
+      const lowStockItems = await Inventory.countDocuments({ ...invFilter, $expr: { $lte: ['$currentStock', '$minStockLevel'] } });
       const totalInventoryValue = await Inventory.aggregate([
-        { $match: { isActive: true } },
+        { $match: invFilter },
         { $group: { _id: null, value: { $sum: { $multiply: ['$currentStock', '$unitPrice'] } } } }
       ]);
 
@@ -152,9 +158,10 @@ const generateReportData = async (reportType, dateFrom, dateTo, department) => {
       };
 
 case 'OT Statistics':
-      const totalSurgeries = await OperationTheatre.countDocuments(dateFilter);
-      const otCompleted = await OperationTheatre.countDocuments({ ...dateFilter, status: 'Completed' });
-      const otScheduled = await OperationTheatre.countDocuments({ ...dateFilter, status: 'Scheduled' });
+      const otFilter = { ...dateFilter, ...hospFilter };
+      const totalSurgeries = await OperationTheatre.countDocuments(otFilter);
+      const otCompleted = await OperationTheatre.countDocuments({ ...otFilter, status: 'Completed' });
+      const otScheduled = await OperationTheatre.countDocuments({ ...otFilter, status: 'Scheduled' });
 
       return {
         data: {
@@ -167,7 +174,7 @@ case 'OT Statistics':
       };
 
     case 'Birth Certificate':
-      const birthFilter = { ...dateFilter };
+      const birthFilter = { ...dateFilter, ...hospFilter };
       const PatientModel = (await import('../models/Patient.js')).default;
       const birthRecords = await PatientModel.find({ ...birthFilter, birthRecord: { $exists: true } });
       return {
@@ -186,7 +193,7 @@ case 'OT Statistics':
       };
 
     case 'Death Certificate':
-      const deathRecords = await PatientModel.find({ ...birthFilter, deathRecord: { $exists: true } });
+      const deathRecords = await PatientModel.find({ ...birthFilter, ...hospFilter, deathRecord: { $exists: true } });
       return {
         data: {
           deaths: deathRecords.length,
@@ -202,7 +209,7 @@ case 'OT Statistics':
       };
 
     case 'Notifiable Disease':
-      const allPatients = await PatientModel.find({ ...birthFilter });
+      const allPatients = await PatientModel.find({ ...birthFilter, ...hospFilter });
       const infectionPatients = allPatients.filter(p => p.infectiousDisease?.length > 0);
       const diseaseStats = {};
       infectionPatients.forEach(p => {
@@ -220,14 +227,15 @@ case 'OT Statistics':
       };
 
     case 'Appointment':
-      const totalAppointments = await Appointment.countDocuments(dateFilter);
-      const completedAppointments = await Appointment.countDocuments({ ...dateFilter, status: 'Completed' });
+      const aptFilter = { ...dateFilter, ...hospFilter };
+      const totalAppointments = await Appointment.countDocuments(aptFilter);
+      const completedAppointments = await Appointment.countDocuments({ ...aptFilter, status: 'Completed' });
       const aptByStatus = await Appointment.aggregate([
-        { $match: dateFilter },
+        { $match: aptFilter },
         { $group: { _id: '$status', count: { $sum: 1 } } }
       ]);
       const aptByDepartment = await Appointment.aggregate([
-        { $match: dateFilter },
+        { $match: aptFilter },
         { $group: { _id: '$department', count: { $sum: 1 } } }
       ]);
       return {
@@ -253,7 +261,7 @@ router.post('/generate', protect, async (req, res) => {
     }
 
     const reportId = await genId();
-    const { data, summary } = await generateReportData(reportType, dateFrom, dateTo, department);
+    const { data, summary } = await generateReportData(reportType, dateFrom, dateTo, department, req.user.hospitalId);
     
     const report = await Report.create({
       reportId,
@@ -276,6 +284,7 @@ router.get('/', protect, async (req, res) => {
   try {
     const { reportType, category, dateFrom, dateTo } = req.query;
     const filter = {};
+    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
     if (reportType && reportType !== 'All') filter.reportType = reportType;
     if (category && category !== 'All') filter.category = category;
     if (dateFrom || dateTo) {

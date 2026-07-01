@@ -32,6 +32,7 @@ router.post('/generate', protect, async (req, res) => {
     const token = await Token.create({
       patientId, patientName, uhid, doctorId, doctorName,
       department, appointmentId, type: type || 'OPD', priority: priority || 'Normal',
+      hospitalId: req.user.hospitalId || undefined,
       queuePosition: currentQueueLength + 1,
       estimatedWaitTime,
       checkedInAt: new Date(),
@@ -53,6 +54,7 @@ router.get('/', protect, async (req, res) => {
   try {
     const { status, department, date, doctorId } = req.query;
     const filter = {};
+    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
     
     if (status && status !== 'All') filter.status = status;
     if (department && department !== 'All') filter.department = department;
@@ -82,6 +84,7 @@ router.get('/current/:department?', protect, async (req, res) => {
   try {
     const { department } = req.params;
     const filter = { status: { $in: ['Waiting', 'Called', 'In Consultation'] } };
+    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
     if (department && department !== 'All') filter.department = department;
 
     const tokens = await Token.find(filter)
@@ -99,6 +102,9 @@ router.get('/:id', protect, async (req, res) => {
       .populate('patientId', 'name email phone')
       .populate('doctorId', 'name');
     if (!token) return res.status(404).json({ message: 'Token not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && token.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     res.json(token);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
@@ -126,12 +132,14 @@ router.put('/:id/call', protect, async (req, res) => {
 
 router.put('/:id/start-consultation', protect, async (req, res) => {
   try {
-    const token = await Token.findByIdAndUpdate(
-      req.params.id,
-      { status: 'In Consultation', consultationStartTime: new Date() },
-      { new: true }
-    );
+    const token = await Token.findById(req.params.id);
     if (!token) return res.status(404).json({ message: 'Token not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && token.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    token.status = 'Called';
+    token.calledAt = new Date();
+    await token.save();
     res.json(token);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -140,6 +148,9 @@ router.put('/:id/complete', protect, async (req, res) => {
   try {
     const token = await Token.findById(req.params.id);
     if (!token) return res.status(404).json({ message: 'Token not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && token.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
 
     token.status = 'Completed';
     token.completedAt = new Date();
@@ -162,6 +173,9 @@ router.put('/:id/skip', protect, async (req, res) => {
     const { reason } = req.body;
     const token = await Token.findById(req.params.id);
     if (!token) return res.status(404).json({ message: 'Token not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && token.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
 
     token.status = 'Skipped';
     token.skippedAt = new Date();
@@ -174,12 +188,14 @@ router.put('/:id/skip', protect, async (req, res) => {
 
 router.put('/:id/recall', protect, async (req, res) => {
   try {
-    const token = await Token.findByIdAndUpdate(
-      req.params.id,
-      { status: 'Called', calledAt: new Date() },
-      { new: true }
-    );
+    const token = await Token.findById(req.params.id);
     if (!token) return res.status(404).json({ message: 'Token not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && token.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    token.status = 'Called';
+    token.calledAt = new Date();
+    await token.save();
     res.json(token);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -187,11 +203,13 @@ router.put('/:id/recall', protect, async (req, res) => {
 router.get('/stats', protect, async (req, res) => {
   try {
     const today = new Date().setHours(0,0,0,0);
-    const waiting = await Token.countDocuments({ status: 'Waiting', createdAt: { $gte: today } });
-    const inConsultation = await Token.countDocuments({ status: 'In Consultation', createdAt: { $gte: today } });
-    const completed = await Token.countDocuments({ status: 'Completed', createdAt: { $gte: today } });
-    const skipped = await Token.countDocuments({ status: 'Skipped', createdAt: { $gte: today } });
-    const total = await Token.countDocuments({ createdAt: { $gte: today } });
+    const hFilter = {};
+    if (req.user.hospitalId && req.user.role !== 'superadmin') hFilter.hospitalId = req.user.hospitalId;
+    const waiting = await Token.countDocuments({ status: 'Waiting', createdAt: { $gte: today }, ...hFilter });
+    const inConsultation = await Token.countDocuments({ status: 'In Consultation', createdAt: { $gte: today }, ...hFilter });
+    const completed = await Token.countDocuments({ status: 'Completed', createdAt: { $gte: today }, ...hFilter });
+    const skipped = await Token.countDocuments({ status: 'Skipped', createdAt: { $gte: today }, ...hFilter });
+    const total = await Token.countDocuments({ createdAt: { $gte: today }, ...hFilter });
 
     res.json({ waiting, inConsultation, completed, skipped, total });
   } catch (err) { res.status(500).json({ message: err.message }); }

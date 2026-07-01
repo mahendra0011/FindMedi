@@ -13,7 +13,7 @@ router.post('/', protect, async (req, res) => {
     const { name, role, department } = req.body;
     if (!name || !role) return res.status(400).json({ message: 'Name and role required' });
     const employeeId = await genId();
-    const staff = await Staff.create({ employeeId, name, role, department, joinDate: new Date(), createdBy: req.user._id });
+    const staff = await Staff.create({ employeeId, name, role, department, joinDate: new Date(), hospitalId: req.user.hospitalId || undefined, createdBy: req.user._id });
     res.status(201).json(staff);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -22,6 +22,7 @@ router.get('/', protect, async (req, res) => {
   try {
     const { role, department } = req.query;
     const filter = {};
+    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
     if (role && role !== 'All') filter.role = role;
     if (department && department !== 'All') filter.department = department;
     const staff = await Staff.find(filter).sort({ createdAt: -1 });
@@ -39,17 +40,21 @@ router.get('/:id', protect, async (req, res) => {
 
 router.put('/:id', protect, async (req, res) => {
   try {
-    const staff = await Staff.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const filter = { _id: req.params.id };
+    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    const staff = await Staff.findOneAndUpdate(filter, req.body, { new: true });
     if (!staff) return res.status(404).json({ message: 'Not found' });
     res.json(staff);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
 router.get('/stats', protect, async (req, res) => {
-  const total = await Staff.countDocuments({ status: 'Active' });
-  const onLeave = await Staff.countDocuments({ status: 'On Leave' });
+  const filter = { status: 'Active' };
+  if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+  const total = await Staff.countDocuments(filter);
+  const onLeave = await Staff.countDocuments({ ...filter, status: 'On Leave' });
   const byDepartment = await Staff.aggregate([
-    { $match: { status: 'Active' } },
+    { $match: filter },
     { $group: { _id: '$department', count: { $sum: 1 } } }
   ]);
   res.json({ total, onLeave, byDepartment });

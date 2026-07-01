@@ -24,7 +24,7 @@ router.post('/', protect, async (req, res) => {
       tpaName: tpaName || '', tpaContact: tpaContact || '',
       coverageType: coverageType || 'Cashless',
       diagnosis: diagnosis || '', treatmentPlan: treatmentPlan || '',
-      estimatedCost: estimatedCost || 0, createdBy: req.user._id,
+      estimatedCost: estimatedCost || 0, hospitalId: req.user.hospitalId || undefined, createdBy: req.user._id,
     });
     res.status(201).json(claim);
   } catch (err) { res.status(400).json({ message: err.message }); }
@@ -35,6 +35,7 @@ router.get('/', protect, async (req, res) => {
   try {
     const { status, search, patientId } = req.query;
     const filter = {};
+    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
     if (req.user.role === 'patient') filter.patientId = req.user._id;
     if (status && status !== 'All') filter.claimStatus = status;
     if (patientId) filter.patientId = patientId;
@@ -56,6 +57,9 @@ router.get('/:id', protect, async (req, res) => {
   try {
     const claim = await Insurance.findById(req.params.id).populate('patientId', 'name email phone');
     if (!claim) return res.status(404).json({ message: 'Claim not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && claim.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     res.json(claim);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
@@ -63,8 +67,13 @@ router.get('/:id', protect, async (req, res) => {
 // ─── Update Claim ──────────────────────────────────────────────────────────
 router.put('/:id', protect, async (req, res) => {
   try {
-    const claim = await Insurance.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const claim = await Insurance.findById(req.params.id);
     if (!claim) return res.status(404).json({ message: 'Claim not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && claim.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    Object.assign(claim, req.body);
+    await claim.save();
     res.json(claim);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -73,10 +82,16 @@ router.put('/:id', protect, async (req, res) => {
 router.put('/:id/pre-auth', protect, async (req, res) => {
   try {
     const { preAuthStatus, preAuthAmount, preAuthExpiry } = req.body;
-    const claim = await Insurance.findByIdAndUpdate(req.params.id, {
-      preAuthStatus, preAuthAmount, preAuthExpiry, preAuthDate: new Date(),
-    }, { new: true });
+    const claim = await Insurance.findById(req.params.id);
     if (!claim) return res.status(404).json({ message: 'Claim not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && claim.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    claim.preAuthStatus = preAuthStatus;
+    claim.preAuthAmount = preAuthAmount;
+    claim.preAuthExpiry = preAuthExpiry;
+    claim.preAuthDate = new Date();
+    await claim.save();
     // Notify patient
     await Notification.create({
       title: `Pre-Authorization ${preAuthStatus}`,
@@ -91,10 +106,15 @@ router.put('/:id/pre-auth', protect, async (req, res) => {
 router.put('/:id/file-claim', protect, async (req, res) => {
   try {
     const { claimAmount } = req.body;
-    const claim = await Insurance.findByIdAndUpdate(req.params.id, {
-      claimStatus: 'Filed', claimAmount, claimDate: new Date(),
-    }, { new: true });
+    const claim = await Insurance.findById(req.params.id);
     if (!claim) return res.status(404).json({ message: 'Claim not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && claim.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    claim.claimStatus = 'Filed';
+    claim.claimAmount = claimAmount;
+    claim.claimDate = new Date();
+    await claim.save();
     res.json(claim);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -103,10 +123,15 @@ router.put('/:id/file-claim', protect, async (req, res) => {
 router.put('/:id/settle', protect, async (req, res) => {
   try {
     const { approvedAmount } = req.body;
-    const claim = await Insurance.findByIdAndUpdate(req.params.id, {
-      claimStatus: 'Settled', approvedAmount, settlementDate: new Date(),
-    }, { new: true });
+    const claim = await Insurance.findById(req.params.id);
     if (!claim) return res.status(404).json({ message: 'Claim not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && claim.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    claim.claimStatus = 'Settled';
+    claim.approvedAmount = approvedAmount;
+    claim.settlementDate = new Date();
+    await claim.save();
     await Notification.create({
       title: 'Claim Settled',
       message: `Your ${claim.insuranceProvider} claim of ₹${approvedAmount || 0} has been settled.`,
@@ -120,6 +145,7 @@ router.put('/:id/settle', protect, async (req, res) => {
 router.get('/stats/main', protect, async (req, res) => {
   try {
     const filter = {};
+    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
     if (req.user.role === 'patient') filter.patientId = req.user._id;
     const total = await Insurance.countDocuments(filter);
     const pending = await Insurance.countDocuments({ ...filter, preAuthStatus: 'Pending' });
