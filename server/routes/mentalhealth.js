@@ -13,7 +13,7 @@ router.post('/referrals', protect, async (req, res) => {
     const { patientId, patientName, referralSource, referrerName } = req.body;
     if (!patientId) return res.status(400).json({ message: 'Patient required' });
     const referralId = await genId();
-    const r = await MentalHealth.create({ referralId, patientId, patientName, referralSource: referralSource || 'Doctor', referrerName: referrerName || req.user.name, createdBy: req.user._id });
+    const r = await MentalHealth.create({ referralId, patientId, patientName, referralSource: referralSource || 'Doctor', referrerName: referrerName || req.user.name, hospitalId: req.user.hospitalId || undefined, createdBy: req.user._id });
     res.status(201).json(r);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -22,6 +22,7 @@ router.get('/referrals', protect, async (req, res) => {
   try {
     const { status, search } = req.query;
     const filter = {};
+    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
     if (status && status !== 'All') filter.status = status;
     if (search) filter.$or = [{ referralId: new RegExp(search,'i') }, { patientName: new RegExp(search,'i') }];
     const data = await MentalHealth.find(filter).sort({ createdAt: -1 });
@@ -31,8 +32,16 @@ router.get('/referrals', protect, async (req, res) => {
 
 router.put('/referrals/:id/assessment', protect, async (req, res) => {
   try {
-    const r = await MentalHealth.findByIdAndUpdate(req.params.id, { assessment: req.body, treatmentPlan: req.body.treatmentPlan, treatmentType: req.body.treatmentType, status: 'Active' }, { new: true });
+    const r = await MentalHealth.findById(req.params.id);
     if (!r) return res.status(404).json({ message: 'Not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && r.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    r.assessment = req.body;
+    r.treatmentPlan = req.body.treatmentPlan;
+    r.treatmentType = req.body.treatmentType;
+    r.status = 'Active';
+    await r.save();
     res.json(r);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -41,6 +50,9 @@ router.post('/referrals/:id/session', protect, async (req, res) => {
   try {
     const r = await MentalHealth.findById(req.params.id);
     if (!r) return res.status(404).json({ message: 'Not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && r.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     r.sessions.push({ ...req.body, date: new Date(), conductedBy: req.user.name });
     await r.save();
     res.json(r);
@@ -52,6 +64,9 @@ router.put('/referrals/:id/medication', protect, async (req, res) => {
   try {
     const r = await MentalHealth.findById(req.params.id);
     if (!r) return res.status(404).json({ message: 'Not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && r.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     const med = req.body;
     med.prescribedBy = req.user.name;
     med.prescribedAt = new Date();
@@ -67,6 +82,9 @@ router.post('/referrals/:id/family', protect, async (req, res) => {
     const { familyMemberName, relationship, involvementType, notes, contactNumber } = req.body;
     const r = await MentalHealth.findById(req.params.id);
     if (!r) return res.status(404).json({ message: 'Not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && r.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     
     r.familyInvolvement.push({
       familyMemberName,
@@ -89,6 +107,9 @@ router.post('/referrals/:id/consent', protect, async (req, res) => {
     const { consentType, documentUrl, expiryDate, notes } = req.body;
     const r = await MentalHealth.findById(req.params.id);
     if (!r) return res.status(404).json({ message: 'Not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && r.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     
     r.consents.push({
       consentType: consentType || 'Treatment Consent',
@@ -110,6 +131,9 @@ router.post('/referrals/:id/create-billing', protect, async (req, res) => {
   try {
     const referral = await MentalHealth.findById(req.params.id);
     if (!referral) return res.status(404).json({ message: 'Referral not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && referral.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     
     const { amount, description, sessionType } = req.body;
     
@@ -138,8 +162,10 @@ router.post('/referrals/:id/create-billing', protect, async (req, res) => {
 });
 
 router.get('/stats', protect, async (req, res) => {
-  const active = await MentalHealth.countDocuments({ status: 'Active' });
-  const total = await MentalHealth.countDocuments();
+  const hFilter = {};
+  if (req.user.hospitalId && req.user.role !== 'superadmin') hFilter.hospitalId = req.user.hospitalId;
+  const active = await MentalHealth.countDocuments({ ...hFilter, status: 'Active' });
+  const total = await MentalHealth.countDocuments(hFilter);
   res.json({ active, total });
 });
 
