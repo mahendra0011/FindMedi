@@ -17,6 +17,7 @@ router.get('/medicines', protect, async (req, res) => {
   try {
     const { search, category, lowStock } = req.query;
     const filter = {};
+    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
     if (search) filter.$or = [
       { name: new RegExp(search, 'i') },
       { genericName: new RegExp(search, 'i') },
@@ -35,21 +36,31 @@ router.get('/medicines', protect, async (req, res) => {
 
 router.post('/medicines', protect, async (req, res) => {
   try {
-    const medicine = await Medicine.create(req.body);
+    const medicine = await Medicine.create({ ...req.body, hospitalId: req.user.hospitalId || undefined });
     res.status(201).json(medicine);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
 router.put('/medicines/:id', protect, async (req, res) => {
   try {
-    const medicine = await Medicine.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const medicine = await Medicine.findById(req.params.id);
     if (!medicine) return res.status(404).json({ message: 'Medicine not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && medicine.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    Object.assign(medicine, req.body);
+    await medicine.save();
     res.json(medicine);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
 router.delete('/medicines/:id', protect, async (req, res) => {
   try {
+    const medicine = await Medicine.findById(req.params.id);
+    if (!medicine) return res.status(404).json({ message: 'Medicine not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && medicine.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     await Medicine.findByIdAndDelete(req.params.id);
     res.json({ message: 'Medicine removed' });
   } catch (err) { res.status(500).json({ message: err.message }); }
@@ -61,6 +72,9 @@ router.put('/medicines/:id/stock', protect, async (req, res) => {
     const { quantity, type } = req.body; // type: 'add' | 'deduct'
     const medicine = await Medicine.findById(req.params.id);
     if (!medicine) return res.status(404).json({ message: 'Medicine not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && medicine.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     if (type === 'add') medicine.currentStock += quantity;
     else if (type === 'deduct') medicine.currentStock = Math.max(0, medicine.currentStock - quantity);
     await medicine.save();
@@ -79,6 +93,7 @@ router.post('/prescriptions', protect, async (req, res) => {
     const prescription = await Prescription.create({
       prescriptionId, patientId, patientName,
       doctorId: req.user._id, doctorName: req.user.name,
+      hospitalId: req.user.hospitalId || undefined,
       medicines: medicines.map(m => ({
         medicineId: m.medicineId, medicineName: m.medicineName,
         dosage: m.dosage, frequency: m.frequency, duration: m.duration,
@@ -104,6 +119,7 @@ router.get('/prescriptions', protect, async (req, res) => {
     const filter = {};
     if (req.user.role === 'doctor') filter.doctorId = req.user._id;
     if (req.user.role === 'patient') filter.patientId = req.user._id;
+    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
     if (status && status !== 'All') filter.status = status;
     if (patientId) filter.patientId = patientId;
     if (doctorId) filter.doctorId = doctorId;
@@ -128,6 +144,9 @@ router.get('/prescriptions/:id', protect, async (req, res) => {
       .populate('patientId', 'name email phone')
       .populate('doctorId', 'name email');
     if (!prescription) return res.status(404).json({ message: 'Prescription not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && prescription.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     res.json(prescription);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
@@ -139,6 +158,9 @@ router.put('/prescriptions/:id/dispense', protect, async (req, res) => {
     if (medicineIndex === undefined) return res.status(400).json({ message: 'Medicine index required' });
     const prescription = await Prescription.findById(req.params.id).populate('patientId', 'allergies');
     if (!prescription) return res.status(404).json({ message: 'Prescription not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && prescription.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     const med = prescription.medicines[medicineIndex];
     if (!med) return res.status(404).json({ message: 'Medicine not found in prescription' });
     if (med.isDispensed) return res.status(400).json({ message: 'Already dispensed' });
@@ -194,14 +216,18 @@ router.put('/prescriptions/:id/dispense', protect, async (req, res) => {
 // ─── Pharmacy Stats ────────────────────────────────────────────────────────
 router.get('/stats', protect, async (req, res) => {
   try {
-    const totalMedicines = await Medicine.countDocuments({ isActive: true });
+    const medFilter = {};
+    if (req.user.hospitalId && req.user.role !== 'superadmin') medFilter.hospitalId = req.user.hospitalId;
+    const rxFilter = {};
+    if (req.user.hospitalId && req.user.role !== 'superadmin') rxFilter.hospitalId = req.user.hospitalId;
+    const totalMedicines = await Medicine.countDocuments({ isActive: true, ...medFilter });
     const lowStock = await Medicine.countDocuments({ 
-      isActive: true, 
+      isActive: true, ...medFilter,
       $expr: { $lte: ['$currentStock', '$reorderLevel'] } 
     });
-    const expiringSoon = await Medicine.countDocuments({ expiryDate: { $lte: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000) }, isActive: true });
-    const totalPrescriptions = await Prescription.countDocuments();
-    const pendingDispense = await Prescription.countDocuments({ status: { $in: ['Active', 'Partially Dispensed'] } });
+    const expiringSoon = await Medicine.countDocuments({ ...medFilter, expiryDate: { $lte: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000) }, isActive: true });
+    const totalPrescriptions = await Prescription.countDocuments(rxFilter);
+    const pendingDispense = await Prescription.countDocuments({ ...rxFilter, status: { $in: ['Active', 'Partially Dispensed'] } });
     res.json({ totalMedicines, lowStock, expiringSoon, totalPrescriptions, pendingDispense });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
