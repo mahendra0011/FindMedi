@@ -45,12 +45,12 @@ export default function Billing() {
 
   return (
     <div>
-      <div className="page-header flex items-start justify-between">
+      <div className="page-header flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
           <h1 className="page-title">Billing</h1>
           <p className="page-subtitle">Invoice management & revenue tracking</p>
         </div>
-        <Button className="gap-2" onClick={() => setModal(true)}><Plus className="w-4 h-4" /> New Invoice</Button>
+        <Button className="gap-2 w-full sm:w-auto" onClick={() => setModal(true)}><Plus className="w-4 h-4" /> New Invoice</Button>
       </div>
 
       {/* Summary Cards */}
