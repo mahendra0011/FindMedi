@@ -85,6 +85,12 @@ import OPDToken from './pages/OPDToken';
 import PatientRegistration from './pages/PatientRegistration';
 import DoctorConsultation from './pages/DoctorConsultation';
 
+// Hospital & superadmin pages
+import HospitalDirectory from './pages/HospitalDirectory';
+import HospitalProfile from './pages/HospitalProfile';
+import HospitalRegister from './pages/HospitalRegister';
+import SuperAdminDashboard from './pages/SuperAdminDashboard';
+
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1, staleTime: 30_000 } } });
 
 // Auth initializer component
@@ -200,6 +206,7 @@ function RoleDashboard() {
   const { user } = useAuth();
   const defaultPath = getDefaultDashboardPath(user);
   if (defaultPath) return <Navigate to={defaultPath} replace />;
+  if (user?.role === 'superadmin') return <SuperAdminDashboard />;
   if (user?.role === 'doctor') return <DoctorDashboard />;
   if (user?.role === 'admin') return <Dashboard />;
   return <PatientDashboard />;
@@ -238,6 +245,9 @@ const App = () => (
                   <Route path="/verify-otp" element={<OTPVerification />} />
                   <Route path="/pending-approval" element={<PendingApproval />} />
                   <Route path="/doctor-setup" element={<DoctorSetup />} />
+                  <Route path="/hospitals" element={<HospitalDirectory />} />
+                  <Route path="/hospitals/:id" element={<HospitalProfile />} />
+                  <Route path="/register-hospital" element={<HospitalRegister />} />
 
                   {/* Authenticated dashboard shell */}
                   <Route element={<DashboardShell />}>
@@ -247,7 +257,8 @@ const App = () => (
                     <Route path="/upload" element={<FileUpload />} />
 
                     {/* Admin routes */}
-                    <Route path="/admin/users" element={<RoleRoute allowedRoles={['admin']}><AdminUsers /></RoleRoute>} />
+                    <Route path="/superadmin" element={<RoleRoute allowedRoles={['superadmin']}><SuperAdminDashboard /></RoleRoute>} />
+                    <Route path="/admin/users" element={<RoleRoute allowedRoles={['admin', 'superadmin']}><AdminUsers /></RoleRoute>} />
                     <Route path="/admin/doctors" element={<RoleRoute allowedRoles={['admin']}><AdminDoctors /></RoleRoute>} />
                     <Route path="/admin/analytics" element={<RoleRoute allowedRoles={['admin']}><AdminAnalytics /></RoleRoute>} />
                     <Route path="/admin/departments" element={<RoleRoute allowedRoles={['admin']}><AdminDepartments /></RoleRoute>} />
