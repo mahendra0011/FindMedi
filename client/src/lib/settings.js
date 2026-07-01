@@ -505,3 +505,4 @@ const dictionaries = { en, hi, mr };
 export function t(key, language = 'en') {
   return dictionaries[language]?.[key] || key;
 }
+// 3
