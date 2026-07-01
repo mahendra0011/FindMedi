@@ -51,12 +51,12 @@ export default function PatientReviews() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
           <h1 className="font-heading text-2xl font-bold text-foreground">My Reviews</h1>
           <p className="text-muted-foreground">Rate and review your doctors</p>
         </div>
-        <Button className="gap-2" onClick={() => setShowForm(true)}><Star className="w-4 h-4" /> Write Review</Button>
+        <Button className="gap-2 w-full sm:w-auto" onClick={() => setShowForm(true)}><Star className="w-4 h-4" /> Write Review</Button>
       </div>
 
       {/* Reviews List */}
