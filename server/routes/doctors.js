@@ -79,10 +79,11 @@ router.post('/', protect, async (req, res) => {
       return res.status(400).json({ message: 'No hospital linked to this account' });
     }
 
-    const { name, email, phone, specialization, experience, qualification, consultation_fees, fees } = req.body;
+    const { name, email, phone, specialization, experience, qualification, consultation_fees, fees, hospitalId: bodyHospitalId } = req.body;
     
     if (!email) return res.status(400).json({ message: 'Doctor email is required' });
     if (!name) return res.status(400).json({ message: 'Doctor name is required' });
+    const targetHospitalId = bodyHospitalId || hospitalId || undefined;
 
     // Check if user already exists
     const existingUser = await User.findOne({ email: email.toLowerCase() });
@@ -100,7 +101,7 @@ router.post('/', protect, async (req, res) => {
       password: tempPassword,
       role: 'doctor',
       phone: phone || '',
-      hospitalId: hospitalId || undefined,
+      hospitalId: targetHospitalId,
       isVerified: false,
       status: 'active',
       approvalStatus: 'approved',
@@ -118,7 +119,7 @@ router.post('/', protect, async (req, res) => {
       consultation_fees: Number(consultation_fees || fees || 500),
       approved: true,
       user_id: user._id.toString(),
-      hospitalId: hospitalId || undefined,
+      hospitalId: targetHospitalId,
       initials: name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase(),
       available: true,
     });
