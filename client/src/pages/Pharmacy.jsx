@@ -48,9 +48,9 @@ export default function Pharmacy() {
 
   return (
     <div>
-      <div className="page-header"><h1 className="page-title">Pharmacy</h1><p className="page-subtitle">{stats?.totalMedicines || 0} medicines · {stats?.pendingDispense || 0} pending</p></div>
+      <div className="page-header flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"><h1 className="page-title">Pharmacy</h1><p className="page-subtitle">{stats?.totalMedicines || 0} medicines · {stats?.pendingDispense || 0} pending</p></div>
 
-      <div className="grid grid-cols-5 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-6">
         {[
           { l: 'Total Medicines', v: stats?.totalMedicines || 0, c: 'text-foreground' },
           { l: 'Low Stock', v: stats?.lowStock || 0, c: 'text-warning' },
@@ -182,7 +182,7 @@ export default function Pharmacy() {
               <div>
                 <div className="flex items-center justify-between mb-2"><label className="text-sm font-medium">Medicines</label><Button size="sm" variant="outline" onClick={addRxMed}><Plus className="w-3 h-3 mr-1" />Add</Button></div>
                 {newRx.medicines.map((m, i) => (
-                  <div key={i} className="grid grid-cols-5 gap-2 mb-2">
+                  <div key={i} className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-2">
                     <Input className="col-span-2" placeholder="Medicine name" value={m.medicineName} onChange={e => updateRxMed(i, 'medicineName', e.target.value)} />
                     <Input placeholder="Dosage" value={m.dosage} onChange={e => updateRxMed(i, 'dosage', e.target.value)} />
                     <select value={m.frequency} onChange={e => updateRxMed(i, 'frequency', e.target.value)} className="h-10 px-3 rounded-lg border border-input bg-background text-sm">{[1,2,3,4].map(n => <option key={n}>{n}-0-{n}</option>)}</select>
