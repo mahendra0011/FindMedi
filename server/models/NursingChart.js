@@ -39,6 +39,7 @@ const nursingChartSchema = new mongoose.Schema({
     dressingType: { type: String },
     notes: { type: String },
   },
+  hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
   // General notes
   notes: { type: String },
   createdAt: { type: Date, default: Date.now },
