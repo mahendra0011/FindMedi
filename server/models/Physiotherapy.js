@@ -33,6 +33,7 @@ const physioSchema = new mongoose.Schema({
   status: { type: String, enum: ['Referred', 'In Progress', 'Mid Review', 'Completed', 'Discontinued'], default: 'Referred' },
   reviewNotes: { type: String },
   dischargePlan: { homeExercise: String, precautions: String, followUpDate: Date },
+  hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
