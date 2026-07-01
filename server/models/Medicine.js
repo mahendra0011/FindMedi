@@ -15,6 +15,7 @@ const medicineSchema = new mongoose.Schema({
   rackLocation: { type: String, default: '' },
   interactions: [{ type: String }], // Drug interactions with other medicines
   contraindications: [{ type: String }], // Conditions where medicine should not be used
+  hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
   isActive: { type: Boolean, default: true },
   createdAt: { type: Date, default: Date.now },
 });
