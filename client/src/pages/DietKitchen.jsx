@@ -102,7 +102,7 @@ export default function DietKitchen() {
 
   return (
     <div>
-      <div className="page-header">
+      <div className="page-header flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <h1 className="page-title">Diet & Kitchen</h1>
         <p className="page-subtitle">{stats?.active || 0} active orders · {stats?.todayMeals || 0} meals today · {stats?.pendingReview || 0} pending review</p>
       </div>
