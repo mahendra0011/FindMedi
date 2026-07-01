@@ -142,6 +142,7 @@ const userResponse = async (user) => {
       : 'not_required',
     doctorApproved,
     doctorProfileId: doctorProfile?._id,
+    hospitalId: user.hospitalId || null,
     settings: user.settings || {},
   };
 };
