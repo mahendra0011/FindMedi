@@ -119,6 +119,12 @@ router.get('/:id', protect, async (req, res) => {
       .populate('patientId', 'name email phone')
       .populate('doctorId', 'name specialization');
     if (!a) return res.status(404).json({ message: 'Appointment not found' });
+    if (req.user.role === 'patient' && a.patientId?._id?.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to view this appointment' });
+    }
+    if (req.user.role !== 'patient' && req.user.hospitalId && a.hospitalId && a.hospitalId.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Not authorized to view this appointment' });
+    }
     res.json(a);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
@@ -177,6 +183,9 @@ router.put('/:id/checkin', protect, async (req, res) => {
   try {
     const appointment = await Appointment.findById(req.params.id);
     if (!appointment) return res.status(404).json({ message: 'Appointment not found' });
+    if (req.user.hospitalId && appointment.hospitalId && appointment.hospitalId.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Not authorized to modify this appointment' });
+    }
     
     appointment.status = 'In Queue';
     appointment.checkedInAt = new Date();
@@ -213,6 +222,9 @@ router.put('/:id', protect, async (req, res) => {
     const appointment = await Appointment.findById(req.params.id);
     
     if (!appointment) return res.status(404).json({ message: 'Appointment not found' });
+    if (req.user.hospitalId && appointment.hospitalId && appointment.hospitalId.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Not authorized to modify this appointment' });
+    }
     
     const oldStatus = appointment.status;
     const updates = { ...req.body };
@@ -238,6 +250,11 @@ router.put('/:id', protect, async (req, res) => {
 
 router.delete('/:id', protect, async (req, res) => {
   try {
+    const appointment = await Appointment.findById(req.params.id);
+    if (!appointment) return res.status(404).json({ message: 'Appointment not found' });
+    if (req.user.hospitalId && appointment.hospitalId && appointment.hospitalId.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Not authorized to delete this appointment' });
+    }
     await Appointment.findByIdAndDelete(req.params.id);
     res.json({ message: 'Appointment removed' });
   } catch (err) { res.status(500).json({ message: err.message }); }
