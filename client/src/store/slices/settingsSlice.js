@@ -64,4 +64,4 @@ export const applySettingsEffect = (settings) => {
   }
 };
 
-export default settingsSlice.reducer;
+export default settingsSlice.reducer;// 10
