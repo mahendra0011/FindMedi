@@ -1,0 +1,252 @@
+import express from 'express';
+import Inventory from '../models/Inventory.js';
+import Supplier from '../models/Supplier.js';
+import PurchaseOrder from '../models/PurchaseOrder.js';
+import Notification from '../models/Notification.js';
+import { protect } from '../middleware/auth.js';
+
+const router = express.Router();
+
+// Generate PO Number
+const generatePONumber = async () => {
+  const count = await PurchaseOrder.countDocuments();
+  return `PO-${new Date().getFullYear()}-${String(count + 1).padStart(5, '0')}`;
+};
+
+// Inventory Items
+router.post('/items', protect, async (req, res) => {
+  try {
+    const item = await Inventory.create(req.body);
+    res.status(201).json(item);
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+router.get('/items', protect, async (req, res) => {
+  try {
+    const { category, lowStock, search } = req.query;
+    const filter = {};
+    if (category && category !== 'All') filter.category = category;
+    if (lowStock === 'true') {
+      filter.$expr = { $lte: ['$currentStock', '$minStockLevel'] };
+    }
+    if (search) {
+      filter.$or = [
+        { itemName: new RegExp(search, 'i') },
+        { itemCode: new RegExp(search, 'i') },
+        { category: new RegExp(search, 'i') },
+      ];
+    }
+    const items = await Inventory.find(filter).sort({ itemName: 1 });
+    res.json({ items });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+router.put('/items/:id', protect, async (req, res) => {
+  try {
+    const item = await Inventory.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!item) return res.status(404).json({ message: 'Item not found' });
+    res.json(item);
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+router.put('/items/:id/stock', protect, async (req, res) => {
+  try {
+    const { quantity, type, reference, notes } = req.body;
+    const item = await Inventory.findById(req.params.id);
+    if (!item) return res.status(404).json({ message: 'Not found' });
+      
+    if (type === 'add') item.currentStock += quantity;
+    else if (type === 'deduct') item.currentStock = Math.max(0, item.currentStock - quantity);
+    else if (type === 'adjust') item.currentStock = quantity;
+      
+    item.transactionHistory.push({
+      type: type === 'add' ? 'Purchase' : (type === 'deduct' ? 'Issue' : 'Adjustment'),
+      quantity,
+      reference: reference || '',
+      doneBy: req.user.name,
+      date: new Date()
+    });
+    
+    await item.save();
+    res.json(item);
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+router.get('/items/:id', protect, async (req, res) => {
+  try {
+    const item = await Inventory.findById(req.params.id);
+    if (!item) return res.status(404).json({ message: 'Item not found' });
+    res.json(item);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+router.get('/stats', protect, async (req, res) => {
+  try {
+    const total = await Inventory.countDocuments({ isActive: true });
+    const lowStock = await Inventory.countDocuments({
+      isActive: true,
+      $expr: { $lte: ['$currentStock', '$minStockLevel'] }
+    });
+    const totalValue = await Inventory.aggregate([
+      { $match: { isActive: true } },
+      { $group: { _id: null, value: { $sum: { $multiply: ['$currentStock', '$unitPrice'] } } } }
+    ]);
+    res.json({
+      total,
+      lowStock,
+      inventoryValue: totalValue[0]?.value || 0
+    });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// Suppliers
+router.post('/suppliers', protect, async (req, res) => {
+  try {
+    const supplier = await Supplier.create(req.body);
+    res.status(201).json(supplier);
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+router.get('/suppliers', protect, async (req, res) => {
+  try {
+    const { active, search, category } = req.query;
+    const filter = {};
+    if (active !== 'false') filter.isActive = true;
+    if (category && category !== 'All') filter.category = category;
+    if (search) filter.$or = [{ name: new RegExp(search, 'i') }, { contactPerson: new RegExp(search, 'i') }];
+    const suppliers = await Supplier.find(filter).sort({ name: 1 });
+    res.json({ suppliers });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+router.put('/suppliers/:id', protect, async (req, res) => {
+  try {
+    const supplier = await Supplier.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!supplier) return res.status(404).json({ message: 'Supplier not found' });
+    res.json(supplier);
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+router.get('/suppliers/:id', protect, async (req, res) => {
+  try {
+    const supplier = await Supplier.findById(req.params.id);
+    if (!supplier) return res.status(404).json({ message: 'Supplier not found' });
+    res.json(supplier);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// Purchase Orders
+router.post('/purchase-orders', protect, async (req, res) => {
+  try {
+    const { supplierId, supplierName, items, expectedDelivery, notes, taxRate } = req.body;
+    const poNumber = await generatePONumber();
+
+    const subTotal = items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
+    const discount = items.reduce((sum, item) => sum + (item.discount || 0), 0);
+    const taxableAmount = subTotal - discount;
+    const taxAmount = (taxableAmount * (taxRate || 0)) / 100;
+    const grandTotal = taxableAmount + taxAmount;
+
+    const po = await PurchaseOrder.create({
+      poNumber,
+      supplierId,
+      supplierName,
+      items: items.map(item => ({
+        ...item,
+        total: item.quantity * item.unitPrice - (item.discount || 0)
+      })),
+      subTotal,
+      discount,
+      taxRate: taxRate || 0,
+      taxAmount,
+      grandTotal,
+      expectedDelivery,
+      notes: notes || '',
+      createdBy: req.user._id,
+    });
+
+    res.status(201).json(po);
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+router.get('/purchase-orders', protect, async (req, res) => {
+  try {
+    const { status, search } = req.query;
+    const filter = {};
+    if (status && status !== 'All') filter.status = status;
+    if (search) {
+      filter.$or = [
+        { poNumber: new RegExp(search, 'i') },
+        { supplierName: new RegExp(search, 'i') }
+      ];
+    }
+    const orders = await PurchaseOrder.find(filter)
+      .populate('supplierId', 'name contactPerson')
+      .populate('createdBy', 'name')
+      .sort({ createdAt: -1 });
+    res.json({ orders });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+router.get('/purchase-orders/:id', protect, async (req, res) => {
+  try {
+    const po = await PurchaseOrder.findById(req.params.id)
+      .populate('supplierId', 'name contactPerson email')
+      .populate('createdBy', 'name email');
+    if (!po) return res.status(404).json({ message: 'Purchase order not found' });
+    res.json(po);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+router.put('/purchase-orders/:id/status', protect, async (req, res) => {
+  try {
+    const { status, approvedBy } = req.body;
+    const updateData = { status };
+    if (approvedBy) updateData.approvedBy = req.user._id;
+    const po = await PurchaseOrder.findByIdAndUpdate(req.params.id, updateData, { new: true });
+    if (!po) return res.status(404).json({ message: 'Purchase order not found' });
+    res.json(po);
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+router.put('/purchase-orders/:id/receive', protect, async (req, res) => {
+  try {
+    const { receivedNotes } = req.body;
+    const po = await PurchaseOrder.findById(req.params.id);
+    if (!po) return res.status(404).json({ message: 'Purchase order not found' });
+    
+    po.status = 'Received';
+    po.receivedDate = new Date();
+    
+    // Update inventory stocks
+    for (const item of po.items) {
+      if (item.inventoryItemId) {
+        await Inventory.findByIdAndUpdate(item.inventoryItemId, {
+          $inc: { currentStock: item.quantity },
+          $push: {
+            transactionHistory: {
+              type: 'Purchase',
+              quantity: item.quantity,
+              reference: po.poNumber,
+              doneBy: req.user.name,
+              date: new Date()
+            }
+          }
+        });
+      }
+    }
+
+    await po.save();
+    res.json(po);
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+router.delete('/purchase-orders/:id', protect, async (req, res) => {
+  try {
+    const po = await PurchaseOrder.findByIdAndDelete(req.params.id);
+    if (!po) return res.status(404).json({ message: 'Purchase order not found' });
+    res.json({ message: 'Purchase order deleted' });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+export default router;
