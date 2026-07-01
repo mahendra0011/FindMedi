@@ -903,3 +903,4 @@ export const api = {
   approveDoctor:   (id)    => dispatch(() => mock.approveDoctor(id),                   `/doctors/${id}/approve`, { method:'PUT' }),
   rejectDoctor:    (id)    => dispatch(() => mock.rejectDoctor(id),                    `/doctors/${id}/reject`,  { method:'PUT' }),
 };
+// 2
