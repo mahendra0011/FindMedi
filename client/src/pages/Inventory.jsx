@@ -49,7 +49,7 @@ export default function Inventory() {
 
   return (
     <div>
-      <div className="page-header">
+      <div className="page-header flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <h1 className="page-title">Inventory & Store</h1>
         <p className="page-subtitle">{stats?.total || 0} items · {stats?.lowStock || 0} low stock · {stats?.expiring || 0} expiring soon</p>
       </div>
