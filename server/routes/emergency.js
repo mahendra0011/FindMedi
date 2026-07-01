@@ -1,5 +1,7 @@
 import express from 'express';
 import Emergency from '../models/Emergency.js';
+import Admission from '../models/Admission.js';
+import Bed from '../models/Bed.js';
 import Notification from '../models/Notification.js';
 import User from '../models/User.js';
 import Doctor from '../models/Doctor.js';
@@ -177,6 +179,115 @@ router.get('/stats', protect, async (req, res) => {
       bySeverity: severityStats.reduce((acc, s) => ({ ...acc, [s._id]: s.count }), {})
     });
   } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// ─── Emergency to IPD Transfer ─────────────────────────────────────────────
+router.post('/:id/transfer-to-ipd', protect, async (req, res) => {
+  try {
+    const { ward, admissionNotes } = req.body;
+    
+    const emergency = await Emergency.findById(req.params.id);
+    if (!emergency) return res.status(404).json({ message: 'Emergency case not found' });
+    
+    if (emergency.status === 'Transferred') {
+      return res.status(400).json({ message: 'Already transferred' });
+    }
+
+    // Generate admission ID
+    const count = await Admission.countDocuments();
+    const admissionId = `IPD-${new Date().getFullYear()}-${String(count + 1).padStart(5, '0')}`;
+
+    // Find appropriate bed based on severity
+    let bed = await Bed.findOne({
+      ward: ward || (emergency.severity === 'Critical' ? 'ICU' : 'General'),
+      status: 'Available'
+    }).sort({ bedNumber: 1 });
+
+    const admission = await Admission.create({
+      admissionId,
+      patientId: emergency.patientId,
+      patientName: emergency.patientName,
+      bedId: bed?._id,
+      bedNumber: bed?.bedNumber,
+      ward: bed?.ward || ward,
+      admittedBy: req.user._id,
+      admittingDoctor: emergency.assignedDoctorName || req.user.name,
+      primaryDiagnosis: emergency.condition,
+      source: 'Emergency',
+      admissionNotes: admissionNotes || `Transferred from Emergency. Severity: ${emergency.severity}`,
+      status: 'Admitted',
+    });
+
+    // Update bed status if assigned
+    if (bed) {
+      bed.status = 'Occupied';
+      bed.currentPatientId = emergency.patientId;
+      bed.currentPatientName = emergency.patientName;
+      bed.admissionId = admission._id;
+      bed.occupiedSince = new Date();
+      await bed.save();
+    }
+
+    // Update emergency status
+    emergency.status = 'Transferred';
+    await emergency.save();
+
+    // Notify ward staff
+    if (ward) {
+      const wardStaff = await User.find({ role: 'nurse', status: 'active' }).select('_id');
+      await Notification.insertMany(wardStaff.map(s => ({
+        title: 'New IPD Admission',
+        message: `${emergency.patientName} transferred from Emergency to ${ward}`,
+        type: 'ipd',
+        userId: s._id.toString(),
+      })));
+    }
+
+    res.status(201).json({ admission, emergency });
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+// ─── Bed Transfer (Emergency to Ward) ─────────────────────────────────────────
+router.post('/beds/transfer/:id', protect, async (req, res) => {
+  try {
+    const { fromBedId, toBedId, notes } = req.body;
+    
+    const fromBed = await Bed.findById(fromBedId);
+    const toBed = await Bed.findById(toBedId);
+    
+    if (!fromBed || !toBed) return res.status(404).json({ message: 'Bed not found' });
+    if (toBed.status !== 'Available') return res.status(400).json({ message: 'Target bed not available' });
+
+    // Move patient from one bed to another
+    toBed.status = 'Occupied';
+    toBed.currentPatientId = fromBed.currentPatientId;
+    toBed.currentPatientName = fromBed.currentPatientName;
+    toBed.admissionId = fromBed.admissionId;
+    toBed.occupiedSince = new Date();
+    await toBed.save();
+
+    // Free the source bed
+    fromBed.status = 'Under Cleaning';
+    fromBed.currentPatientId = null;
+    fromBed.currentPatientName = null;
+    fromBed.admissionId = null;
+    fromBed.occupiedSince = null;
+    await fromBed.save();
+
+    // Update admission record
+    if (fromBed.admissionId) {
+      const admission = await Admission.findById(fromBed.admissionId);
+      if (admission) {
+        admission.bedId = toBed._id;
+        admission.bedNumber = toBed.bedNumber;
+        admission.ward = toBed.ward;
+        admission.admissionNotes = `${admission.admissionNotes || ''}\nBed transferred: ${fromBed.bedNumber} → ${toBed.bedNumber}. ${notes || ''}`;
+        await admission.save();
+      }
+    }
+
+    res.json({ fromBed, toBed });
+  } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
 export default router;
