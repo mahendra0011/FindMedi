@@ -59,7 +59,7 @@ export default function Lab() {
 
   return (
     <div>
-      <div className="page-header">
+      <div className="page-header flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <h1 className="page-title">Lab Management</h1>
         <p className="page-subtitle">{stats?.total || 0} orders · {stats?.critical || 0} critical</p>
       </div>
