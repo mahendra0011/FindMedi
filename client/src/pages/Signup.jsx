@@ -8,7 +8,6 @@ import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 
 const roles = [
-  { key: 'doctor',  label: 'Doctor',  desc: 'Manage patients & schedule',    icon: Stethoscope, color: 'text-info',    bg: 'bg-info/10'    },
   { key: 'patient', label: 'Patient', desc: 'Book appointments & view records', icon: UserRound, color: 'text-success', bg: 'bg-success/10' },
 ];
 
@@ -25,11 +24,6 @@ export default function Signup() {
   const [phone, setPhone] = useState('');
   const [gender, setGender] = useState('Male');
   const [dateOfBirth, setDateOfBirth] = useState('');
-  const [specialization, setSpecialization] = useState('');
-  const [experience, setExperience] = useState('');
-  const [qualification, setQualification] = useState('');
-  const [licenseNumber, setLicenseNumber] = useState('');
-  const [consultationFee, setConsultationFee] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -65,10 +59,6 @@ export default function Signup() {
       setError('Phone number, gender and date of birth are required');
       return;
     }
-    if (role === 'doctor' && (!specialization || !experience || !qualification || !licenseNumber || !consultationFee)) {
-      setError('Please complete all doctor registration details');
-      return;
-    }
     setLoading(true);
     try {
       // Register using API directly (do not set auth state yet)
@@ -80,11 +70,6 @@ export default function Signup() {
         phone,
         gender,
         dateOfBirth,
-        specialization,
-        experience,
-        qualification,
-        licenseNumber,
-        consultationFee: Number(consultationFee) || 0,
       });
       // Store credentials for auto-login after OTP
       localStorage.setItem('temp_password', password);
@@ -188,32 +173,6 @@ export default function Signup() {
               <label className="text-sm font-medium text-foreground mb-1.5 block">Confirm Password</label>
               <Input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Confirm your password" required />
             </div>
-            {role === 'doctor' && (
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium text-foreground mb-1.5 block">Specialization</label>
-                  <Input value={specialization} onChange={e => setSpecialization(e.target.value)} placeholder="e.g. Cardiology" required />
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-sm font-medium text-foreground mb-1.5 block">Experience</label>
-                    <Input value={experience} onChange={e => setExperience(e.target.value)} placeholder="e.g. 8 years" required />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-foreground mb-1.5 block">Consultation Fee</label>
-                    <Input type="number" min="0" value={consultationFee} onChange={e => setConsultationFee(e.target.value)} placeholder="500" required />
-                  </div>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-foreground mb-1.5 block">Qualification</label>
-                  <Input value={qualification} onChange={e => setQualification(e.target.value)} placeholder="e.g. MBBS, MD" required />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-foreground mb-1.5 block">License Number</label>
-                  <Input value={licenseNumber} onChange={e => setLicenseNumber(e.target.value)} placeholder="Medical license number" required />
-                </div>
-              </div>
-            )}
             {error && <p className="text-sm text-destructive bg-destructive/10 px-3 py-2 rounded-lg">{error}</p>}
             <Button type="submit" className="w-full gap-2" size="lg" disabled={loading}>
               {loading ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
