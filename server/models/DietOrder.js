@@ -27,6 +27,7 @@ const dietOrderSchema = new mongoose.Schema({
     patientFeedback: { type: String, enum: ['Good', 'Average', 'Poor', 'Not Eaten'] },
     feedbackNote: { type: String },
   }],
+  hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
