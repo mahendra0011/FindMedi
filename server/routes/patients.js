@@ -4,15 +4,21 @@ import { protect } from '../middleware/auth.js';
 
 const router = express.Router();
 
+// ─── Get Patients ───────────────────────────────────────────────────────────
 router.get('/', protect, async (req, res) => {
   try {
     const { search, status } = req.query;
     const filter = {};
-    if (search) filter.$or = [
-      { name: new RegExp(search, 'i') },
-      { disease: new RegExp(search, 'i') },
-      { doctor: new RegExp(search, 'i') },
-    ];
+    if (search) {
+      filter.$or = [
+        { name: new RegExp(search, 'i') },
+        { disease: new RegExp(search, 'i') },
+        { doctor: new RegExp(search, 'i') },
+        { uhid: new RegExp(search, 'i') },
+        { phone: new RegExp(search, 'i') },
+        { email: new RegExp(search, 'i') },
+      ];
+    }
     if (status) filter.status = status;
     const patients = await Patient.find(filter).sort({ createdAt: -1 });
     res.json(patients);
@@ -46,6 +52,33 @@ router.delete('/:id', protect, async (req, res) => {
   try {
     await Patient.findByIdAndDelete(req.params.id);
     res.json({ message: 'Patient removed' });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// ─── Patient Card Data ───────────────────────────────────────────────────────
+router.get('/:id/card', protect, async (req, res) => {
+  try {
+    const patient = await Patient.findById(req.params.id);
+    if (!patient) return res.status(404).json({ message: 'Patient not found' });
+
+    const cardData = {
+      patientName: patient.name,
+      uhid: patient.uhid,
+      age: patient.age,
+      gender: patient.gender,
+      bloodGroup: patient.bloodGroup,
+      phone: patient.phone,
+      email: patient.email,
+      address: patient.address,
+      disease: patient.disease,
+      doctor: patient.doctor,
+      admitted: patient.admitted,
+      status: patient.status,
+      allergies: patient.adverseReactions || [],
+      generatedAt: new Date(),
+    };
+
+    res.json(cardData);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
