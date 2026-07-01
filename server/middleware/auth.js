@@ -61,6 +61,7 @@ export const protect = async (req, res, next) => {
       role: user.role,
       name: user.name,
       email: user.email,
+      hospitalId: user.hospitalId || null,
     };
     req.authUser = user;
     next();
@@ -77,6 +78,29 @@ export const adminOnly = (req, res, next) => {
   if (req.user?.role !== 'admin') {
     return res.status(403).json({ message: 'Admin access required' });
   }
+  next();
+};
+
+export const superadminOnly = (req, res, next) => {
+  if (req.user?.role !== 'superadmin') {
+    return res.status(403).json({ message: 'Superadmin access required' });
+  }
+  next();
+};
+
+export const hospitalAdminOnly = (req, res, next) => {
+  if (req.user?.role !== 'admin' || !req.user?.hospitalId) {
+    return res.status(403).json({ message: 'Hospital admin access required' });
+  }
+  next();
+};
+
+export const scopeToHospital = (req, res, next) => {
+  if (req.user?.role === 'superadmin') return next();
+  if (!req.user?.hospitalId) {
+    return res.status(403).json({ message: 'No hospital linked to this account' });
+  }
+  req.hospitalId = req.user.hospitalId.toString();
   next();
 };
 
