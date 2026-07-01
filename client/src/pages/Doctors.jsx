@@ -29,12 +29,12 @@ export default function Doctors() {
 
   return (
     <div>
-      <div className="page-header flex items-start justify-between">
+      <div className="page-header flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
           <h1 className="page-title">Doctors</h1>
           <p className="page-subtitle">{doctors.length} medical staff members</p>
         </div>
-        <Button className="gap-2" onClick={() => setModal(true)}><Plus className="w-4 h-4" /> Add Doctor</Button>
+        <Button className="gap-2 w-full sm:w-auto" onClick={() => setModal(true)}><Plus className="w-4 h-4" /> Add Doctor</Button>
       </div>
 
       <div className="relative mb-6 max-w-md">
