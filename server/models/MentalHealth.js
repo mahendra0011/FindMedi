@@ -40,6 +40,7 @@ const mhSchema = new mongoose.Schema({
   confidentiality: { type: Boolean, default: true },
   consentToShare: { type: Boolean, default: false },
   status: { type: String, enum: ['Active', 'Completed', 'Discontinued', 'Referred'], default: 'Active' },
+  hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
