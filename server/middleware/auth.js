@@ -1,6 +1,9 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import Doctor from '../models/Doctor.js';
+import Patient from '../models/Patient.js';
+import Record from '../models/Record.js';
+import { auditLog } from './audit.js';
 
 export const protect = async (req, res, next) => {
   const auth = req.headers.authorization;
@@ -66,9 +69,65 @@ export const protect = async (req, res, next) => {
   }
 };
 
+export const auditAction = async (req, action) => {
+  await auditLog(action, req.user?.id, { ip: req.ip, userAgent: req.get('user-agent') });
+};
+
 export const adminOnly = (req, res, next) => {
   if (req.user?.role !== 'admin') {
     return res.status(403).json({ message: 'Admin access required' });
   }
   next();
+};
+
+export const canAccessRecord = async (req, res, next) => {
+  try {
+    const record = await Record.findById(req.params.id);
+    if (!record) {
+      return res.status(404).json({ message: 'Record not found' });
+    }
+
+    const user = req.user;
+    if (user.role === 'admin') {
+      return next();
+    }
+
+    if (user.role === 'doctor' && record.assignedDoctor !== user.id) {
+      return res.status(403).json({ message: 'Forbidden: you can only access your assigned records' });
+    }
+
+    if (user.role === 'patient' && record.patientId !== user.id) {
+      return res.status(403).json({ message: 'Forbidden: you can only access your own records' });
+    }
+
+    next();
+  } catch (error) {
+    res.status(500).json({ message: 'Authorization check failed' });
+  }
+};
+
+export const canAccessPatient = async (req, res, next) => {
+  try {
+    const patient = await Patient.findById(req.params.id);
+    if (!patient) {
+      return res.status(404).json({ message: 'Patient not found' });
+    }
+
+    const user = req.user;
+    if (user.role === 'admin') {
+      return next();
+    }
+
+    if (user.role === 'doctor' && patient.assignedDoctor !== user.id) {
+      return res.status(403).json({ message: 'Forbidden: you can only access your assigned patients' });
+    }
+
+    if (user.role === 'patient' && patient.userId !== user.id) {
+      return res.status(403).json({ message: 'Forbidden: you can only access your own profile' });
+    }
+
+    next();
+  } catch (error) {
+    res.status(500).json({ message: 'Authorization check failed' });
+  }
 };

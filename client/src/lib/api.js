@@ -822,6 +822,7 @@ export async function downloadInvoicePdf(billId, filename = 'invoice.pdf') {
 export const api = {
   login:         (body)    => dispatch(() => mock.login(body),                         '/auth/login',       { method:'POST', body: JSON.stringify(body) }),
   googleAuth:    (body)    => dispatch(() => mock.googleAuth(body),                    '/auth/google',      { method:'POST', body: JSON.stringify(body) }),
+  setDoctorPassword:(body) => dispatch(() => Promise.resolve({ message: 'Password set', step: 'otp' }), '/auth/doctor-setup', { method:'POST', body: JSON.stringify(body) }),
   register:      (body)    => dispatch(() => mock.register(body),                      '/auth/register',    { method:'POST', body: JSON.stringify(body) }),
   verifyOTP:     (body)    => dispatch(() => mock.verifyOTP(body),                     '/auth/verify-otp',  { method:'POST', body: JSON.stringify(body) }),
   resendOTP:     (body)    => dispatch(() => mock.resendOTP(body),                     '/auth/resend-otp',  { method:'POST', body: JSON.stringify(body) }),

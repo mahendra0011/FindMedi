@@ -28,6 +28,11 @@ router.get('/', protect, async (req, res) => {
       filter.doctorId = req.user._id;
     }
     
+    // Hide self-uploads from admin/doctor panels
+    if (req.user.role !== 'patient') {
+      filter.doctor = { $ne: 'Self Upload' };
+    }
+    
     if (type && type !== 'All') filter.type = type;
     if (search) filter.$or = [
       { patient: new RegExp(search, 'i') },
@@ -101,6 +106,17 @@ router.post('/', protect, async (req, res) => {
     
     if (finalPatientId) {
       await createNotification(finalPatientId.toString(), 'New Medical Record', `Dr. ${doctorName} has generated your ${type || 'record'}`, 'records');
+    }
+    
+    // Notify admins about new record created by doctor
+    if (req.user.role === 'doctor') {
+      const admins = await User.find({ role: 'admin', status: 'active' }).select('_id');
+      await Notification.insertMany(admins.map(admin => ({
+        title: 'New Medical Record Generated',
+        message: `Dr. ${doctorName} created a ${type || 'record'} for ${patient || 'a patient'}`,
+        type: 'records',
+        userId: admin._id.toString(),
+      })));
     }
     
     res.status(201).json(record);

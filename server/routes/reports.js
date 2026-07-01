@@ -1,648 +1,323 @@
 import express from 'express';
-import multer from 'multer';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import jwt from 'jsonwebtoken';
-import { generatePrescriptionPDF, generateLabReportPDF, generateDischargeSummaryPDF } from '../services/pdfService.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-import { 
-  sendAppointmentReminder, 
-  sendPrescriptionEmail, 
-  sendLabReportEmail,
-  sendDischargeSummaryEmail
-} from '../services/notificationService.js';
-import { processMedicalFile, validateFile } from '../utils/imageUtils.js';
-import { 
-  parseExcelFile, 
-  exportToExcel, 
-  exportToCSV,
-  validatePatientData,
-  validateDoctorData,
-  validateBillingData,
-  formatPatientsForExport,
-  formatDoctorsForExport,
-  formatBillingForExport,
-  formatAppointmentsForExport
-} from '../utils/excelUtils.js';
-import Patient from '../models/Patient.js';
-import Doctor from '../models/Doctor.js';
-import Billing from '../models/Billing.js';
+import Report from '../models/Report.js';
+import Bed from '../models/Bed.js';
+import Admission from '../models/Admission.js';
 import Appointment from '../models/Appointment.js';
-import Record from '../models/Record.js';
-import User from '../models/User.js';
-import Notification from '../models/Notification.js';
-import { protect, adminOnly } from '../middleware/auth.js';
+import Billing from '../models/Billing.js';
+import LabOrder from '../models/LabOrder.js';
+import Medicine from '../models/Medicine.js';
+import Inventory from '../models/Inventory.js';
+import OperationTheatre from '../models/OperationTheatre.js';
+import Staff from '../models/Staff.js';
+import { protect } from '../middleware/auth.js';
 
 const router = express.Router();
-const upload = multer({ 
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 25 * 1024 * 1024 }
-});
 
-// Auth check helper - simple version
-const optionalAuth = (req, res, next) => {
-  const auth = req.headers.authorization;
-  if (auth && auth.startsWith('Bearer ')) {
-    try {
-      const token = auth.split(' ')[1];
-      req.user = jwt.verify(token, process.env.JWT_SECRET || 'secret');
-    } catch (e) {
-      console.log('Auth optional - no valid token');
+const genId = async () => { const c = await Report.countDocuments(); return `RPT-${new Date().getFullYear()}-${String(c+1).padStart(5,'0')}`; };
+
+// Generate actual report data based on type
+const generateReportData = async (reportType, dateFrom, dateTo, department) => {
+  const dateFilter = {};
+  if (dateFrom || dateTo) {
+    dateFilter.createdAt = {};
+    if (dateFrom) dateFilter.createdAt.$gte = new Date(dateFrom);
+    if (dateTo) {
+      const endDate = new Date(dateTo);
+      endDate.setHours(23, 59, 59);
+      dateFilter.createdAt.$lte = endDate;
     }
   }
-  next();
+
+  const deptFilter = department && department !== 'All' ? { department } : {};
+
+  switch (reportType) {
+    case 'Bed Occupancy':
+      const totalBeds = await Bed.countDocuments();
+      const occupiedBeds = await Bed.countDocuments({ status: 'Occupied' });
+      const availableBeds = await Bed.countDocuments({ status: 'Available' });
+      const maintenanceBeds = await Bed.countDocuments({ status: 'Maintenance' });
+      const wardStats = await Bed.aggregate([
+        { $group: { _id: '$ward', total: { $sum: 1 }, occupied: { $sum: { $cond: [{ $eq: ['$status', 'Occupied'] }, 1, 0] } } } }
+      ]);
+      
+      return {
+        data: {
+          totalBeds,
+          occupiedBeds,
+          availableBeds,
+          maintenanceBeds,
+          occupancyRate: totalBeds > 0 ? ((occupiedBeds / totalBeds) * 100).toFixed(2) : 0,
+          wardStats: wardStats.map(w => ({ ward: w._id, total: w.total, occupied: w.occupied, rate: w.total > 0 ? ((w.occupied / w.total) * 100).toFixed(2) : 0 }))
+        },
+        summary: `Total: ${totalBeds}, Occupied: ${occupiedBeds}, Available: ${availableBeds}`
+      };
+
+    case 'Financial Summary':
+      const billFilter = { ...dateFilter };
+      if (department) billFilter.source = department.toLowerCase();
+      
+      const totalBilling = await Billing.aggregate([
+        { $match: billFilter },
+        { $group: { _id: null, totalAmount: { $sum: '$amount' }, totalPaid: { $sum: '$paid' }, totalPending: { $sum: '$balance' } } }
+      ]);
+      
+      const byStatus = await Billing.aggregate([
+        { $match: billFilter },
+        { $group: { _id: '$status', count: { $sum: 1 }, amount: { $sum: '$amount' } } }
+      ]);
+
+      return {
+        data: {
+          totalAmount: totalBilling[0]?.totalAmount || 0,
+          totalPaid: totalBilling[0]?.totalPaid || 0,
+          totalPending: totalBilling[0]?.totalPending || 0,
+          collectionRate: totalBilling[0]?.totalAmount > 0 ? ((totalBilling[0]?.totalPaid / totalBilling[0]?.totalAmount) * 100).toFixed(2) : 0,
+          byStatus: byStatus.map(s => ({ status: s._id, count: s.count, amount: s.amount }))
+        },
+        summary: `Total: ₹${totalBilling[0]?.totalAmount || 0}, Paid: ₹${totalBilling[0]?.totalPaid || 0}`
+      };
+
+    case 'Lab Statistics':
+      const labStats = await LabOrder.aggregate([
+        { $match: dateFilter },
+        { $group: { _id: '$status', count: { $sum: 1 } } }
+      ]);
+      
+      const totalLabTests = await LabOrder.countDocuments(dateFilter);
+      const completedTests = await LabOrder.countDocuments({ ...dateFilter, status: 'Completed' });
+
+      return {
+        data: {
+          totalOrders: totalLabTests,
+          completedTests,
+          pendingTests: totalLabTests - completedTests,
+          completionRate: totalLabTests > 0 ? ((completedTests / totalLabTests) * 100).toFixed(2) : 0,
+          byStatus: labStats.map(s => ({ status: s._id, count: s.count }))
+        },
+        summary: `Total: ${totalLabTests}, Completed: ${completedTests}`
+      };
+
+    case 'Pharmacy':
+      const totalMeds = await Medicine.countDocuments({ isActive: true });
+      const lowStockMeds = await Medicine.countDocuments({ isActive: true, $expr: { $lte: ['$currentStock', '$reorderLevel'] } });
+      const expiringMeds = await Medicine.countDocuments({ 
+        expiryDate: { $lte: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000) }, 
+        isActive: true 
+      });
+      
+      const totalPrescriptions = await (await import('../models/Prescription.js')).default.countDocuments(dateFilter);
+      const pendingDispense = await (await import('../models/Prescription.js')).default.countDocuments({ status: { $in: ['Active', 'Partially Dispensed'] } });
+
+      return {
+        data: {
+          totalMedicines: totalMeds,
+          lowStock: lowStockMeds,
+          expiringSoon: expiringMeds,
+          totalPrescriptions,
+          pendingDispense
+        },
+        summary: `Medicines: ${totalMeds}, Low Stock: ${lowStockMeds}`
+      };
+
+    case 'Staff Attendance':
+      const totalStaff = await Staff.countDocuments({ status: 'Active' });
+      const presentCount = await Staff.countDocuments({ 'attendance.status': 'Present' });
+      
+      return {
+        data: {
+          totalStaff,
+          presentCount,
+          absentCount: totalStaff - presentCount,
+          attendanceRate: totalStaff > 0 ? ((presentCount / totalStaff) * 100).toFixed(2) : 0
+        },
+        summary: `Total Staff: ${totalStaff}, Present: ${presentCount}`
+      };
+
+    case 'Inventory':
+      const totalItems = await Inventory.countDocuments({ isActive: true });
+      const lowStockItems = await Inventory.countDocuments({ isActive: true, $expr: { $lte: ['$currentStock', '$minStockLevel'] } });
+      const totalInventoryValue = await Inventory.aggregate([
+        { $match: { isActive: true } },
+        { $group: { _id: null, value: { $sum: { $multiply: ['$currentStock', '$unitPrice'] } } } }
+      ]);
+
+      return {
+        data: {
+          totalItems,
+          lowStockItems,
+          inventoryValue: totalInventoryValue[0]?.value || 0,
+          lowStockPercentage: totalItems > 0 ? ((lowStockItems / totalItems) * 100).toFixed(2) : 0
+        },
+        summary: `Items: ${totalItems}, Low Stock: ${lowStockItems}`
+      };
+
+case 'OT Statistics':
+      const totalSurgeries = await OperationTheatre.countDocuments(dateFilter);
+      const otCompleted = await OperationTheatre.countDocuments({ ...dateFilter, status: 'Completed' });
+      const otScheduled = await OperationTheatre.countDocuments({ ...dateFilter, status: 'Scheduled' });
+
+      return {
+        data: {
+          total: totalSurgeries,
+          completed: otCompleted,
+          scheduled: otScheduled,
+          completionRate: totalSurgeries > 0 ? ((otCompleted / totalSurgeries) * 100).toFixed(2) : 0
+        },
+        summary: `Total: ${totalSurgeries}, Completed: ${otCompleted}`
+      };
+
+    case 'Birth Certificate':
+      const birthFilter = { ...dateFilter };
+      const PatientModel = (await import('../models/Patient.js')).default;
+      const birthRecords = await PatientModel.find({ ...birthFilter, birthRecord: { $exists: true } });
+      return {
+        data: {
+          births: birthRecords.length,
+          records: birthRecords.map(r => ({
+            babyName: r.name,
+            dateOfBirth: r.dateOfBirth,
+            parentName: r.parentName,
+            placeOfBirth: r.birthPlace || 'Hospital',
+            attendingDoctor: r.attendingDoctor,
+            certificateGenerated: r.birthRecord?.certificateGenerated || false
+          }))
+        },
+        summary: `Total births: ${birthRecords.length}`
+      };
+
+    case 'Death Certificate':
+      const deathRecords = await PatientModel.find({ ...birthFilter, deathRecord: { $exists: true } });
+      return {
+        data: {
+          deaths: deathRecords.length,
+          records: deathRecords.map(r => ({
+            patientName: r.name,
+            dateOfDeath: r.deathDate,
+            causeOfDeath: r.deathRecord?.causeOfDeath,
+            attendingDoctor: r.deathRecord?.attendingDoctor,
+            certificateGenerated: r.deathRecord?.certificateGenerated || false
+          }))
+        },
+        summary: `Total deaths: ${deathRecords.length}`
+      };
+
+    case 'Notifiable Disease':
+      const allPatients = await PatientModel.find({ ...birthFilter });
+      const infectionPatients = allPatients.filter(p => p.infectiousDisease?.length > 0);
+      const diseaseStats = {};
+      infectionPatients.forEach(p => {
+        p.infectiousDisease.forEach(d => {
+          diseaseStats[d.disease] = (diseaseStats[d.disease] || 0) + 1;
+        });
+      });
+      return {
+        data: {
+          totalCases: infectionPatients.length,
+          byDisease: Object.entries(diseaseStats).map(([disease, count]) => ({ disease, count })),
+          notifiedTo: 'Public Health Department'
+        },
+        summary: `Total notifiable disease cases: ${infectionPatients.length}`
+      };
+
+    case 'Appointment':
+      const totalAppointments = await Appointment.countDocuments(dateFilter);
+      const completedAppointments = await Appointment.countDocuments({ ...dateFilter, status: 'Completed' });
+      const aptByStatus = await Appointment.aggregate([
+        { $match: dateFilter },
+        { $group: { _id: '$status', count: { $sum: 1 } } }
+      ]);
+      const aptByDepartment = await Appointment.aggregate([
+        { $match: dateFilter },
+        { $group: { _id: '$department', count: { $sum: 1 } } }
+      ]);
+      return {
+        data: {
+          totalAppointments,
+          completedAppointments,
+          pendingAppointments: totalAppointments - completedAppointments,
+          completionRate: totalAppointments > 0 ? ((completedAppointments / totalAppointments) * 100).toFixed(2) : 0,
+          byStatus: aptByStatus.map(s => ({ status: s._id, count: s.count })),
+          byDepartment: aptByDepartment.map(d => ({ department: d._id, count: d.count }))
+        },
+        summary: `Total: ${totalAppointments}, Completed: ${completedAppointments}`
+      };
+  }
 };
 
-const findPatientByName = async (name) => {
-  if (!name) return null;
-  const patient = await User.findOne({ name: new RegExp(name, 'i'), role: 'patient' });
-  return patient;
-};
-
-const createNotification = async (userId, title, message, type = 'records') => {
-  if (userId) {
-    await Notification.create({ title, message, type, read: false, userId: userId.toString(), date: new Date().toISOString().split('T')[0] });
-  }
-};
-
-const buildPrescriptionData = (patient, prescription) => (
-  prescription?.patient
-    ? prescription
-    : {
-        patient,
-        doctor: {
-          name: prescription?.doctorName,
-          specialization: prescription?.doctorSpecialization,
-        },
-        chiefComplaints: prescription?.chiefComplaints,
-        diagnosis: prescription?.diagnosis,
-        advice: prescription?.advice,
-        followUp: prescription?.followUp,
-        medications: prescription?.medications || [],
-      }
-);
-
-const buildLabReportData = (patient, report) => (
-  report?.patient
-    ? report
-    : {
-        patient,
-        doctor: {
-          name: report?.doctorName,
-          specialization: report?.doctorSpecialization,
-        },
-        reportId: report?.reportId,
-        testDate: report?.testDate,
-        reportDate: report?.reportDate,
-        notes: report?.notes,
-        tests: report?.tests || [],
-      }
-);
-
-const buildDischargeData = (patient, summary) => (
-  summary?.patient
-    ? summary
-    : {
-        patient,
-        doctor: {
-          name: summary?.doctorName,
-          specialization: summary?.doctorSpecialization,
-        },
-        admissionId: summary?.admissionId,
-        admissionDate: summary?.admissionDate,
-        dischargeDate: summary?.dischargeDate,
-        chiefComplaints: summary?.chiefComplaints,
-        diagnosis: summary?.diagnosis,
-        treatment: summary?.treatment,
-        surgery: summary?.surgery,
-        dischargeAdvice: summary?.dischargeAdvice,
-        followUpInstructions: summary?.followUpInstructions,
-        medications: summary?.medications || [],
-      }
-);
-
-router.post('/generate-prescription', async (req, res) => {
+router.post('/generate', protect, async (req, res) => {
   try {
-    const pdfBuffer = await generatePrescriptionPDF(req.body);
+    const { reportType, category, dateFrom, dateTo, department } = req.body;
     
-    const patientName = req.body.patient?.name || req.body.patient;
-    const doctorName = req.body.doctor?.name || req.body.doctor;
-    
-    let patientUser = null;
-    if (patientName) {
-      patientUser = await findPatientByName(patientName);
+    if (!reportType) {
+      return res.status(400).json({ message: 'Report type is required' });
     }
+
+    const reportId = await genId();
+    const { data, summary } = await generateReportData(reportType, dateFrom, dateTo, department);
     
-    if (patientName && doctorName) {
-      const record = await Record.create({
-        patient: patientName,
-        patientId: patientUser?._id || null,
-        doctor: doctorName,
-        date: new Date().toLocaleDateString(),
-        diagnosis: req.body.diagnosis || '',
-        type: 'prescription',
-        data: req.body,
-        createdAt: new Date()
-      });
-      
-      if (patientUser?._id) {
-        await createNotification(patientUser._id.toString(), 'New Prescription', `Dr. ${doctorName} has generated your prescription`, 'records');
+    const report = await Report.create({
+      reportId,
+      reportType,
+      category: category || 'General',
+      dateFrom,
+      dateTo,
+      department,
+      data,
+      summary,
+      generatedBy: req.user._id,
+      status: 'Generated'
+    });
+
+    res.status(201).json(report);
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+router.get('/', protect, async (req, res) => {
+  try {
+    const { reportType, category, dateFrom, dateTo } = req.query;
+    const filter = {};
+    if (reportType && reportType !== 'All') filter.reportType = reportType;
+    if (category && category !== 'All') filter.category = category;
+    if (dateFrom || dateTo) {
+      filter.createdAt = {};
+      if (dateFrom) filter.createdAt.$gte = new Date(dateFrom);
+      if (dateTo) {
+        const endDate = new Date(dateTo);
+        endDate.setHours(23, 59, 59);
+        filter.createdAt.$lte = endDate;
       }
     }
-    
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', 'attachment; filename=prescription.pdf');
-    res.send(pdfBuffer);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+    const reports = await Report.find(filter).populate('generatedBy', 'name').sort({ generatedAt: -1 });
+    res.json({ reports });
+  } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/generate-lab-report', async (req, res) => {
+router.get('/:id', protect, async (req, res) => {
   try {
-    const pdfBuffer = await generateLabReportPDF(req.body);
-    
-    const patientName = req.body.patient?.name || req.body.patient;
-    const doctorName = req.body.doctor?.name || req.body.doctor;
-    
-    let patientUser = null;
-    if (patientName) {
-      patientUser = await findPatientByName(patientName);
-    }
-    
-    if (patientName && doctorName) {
-      const record = await Record.create({
-        patient: patientName,
-        patientId: patientUser?._id || null,
-        doctor: doctorName,
-        date: req.body.testDate || new Date().toLocaleDateString(),
-        diagnosis: 'Lab Report',
-        type: 'lab_report',
-        data: req.body,
-        createdAt: new Date()
-      });
-      
-      if (patientUser?._id) {
-        await createNotification(patientUser._id.toString(), 'Lab Report Ready', `Dr. ${doctorName} has generated your lab report`, 'records');
-      }
-    }
-    
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', 'attachment; filename=lab-report.pdf');
-    res.send(pdfBuffer);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+    const report = await Report.findById(req.params.id).populate('generatedBy', 'name');
+    if (!report) return res.status(404).json({ message: 'Report not found' });
+    res.json(report);
+  } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/generate-discharge-summary', async (req, res) => {
+router.get('/types/list', protect, async (req, res) => {
   try {
-    const pdfBuffer = await generateDischargeSummaryPDF(req.body);
-    
-    const patientName = req.body.patient?.name || req.body.patient;
-    const doctorName = req.body.doctor?.name || req.body.doctor;
-    
-    let patientUser = null;
-    if (patientName) {
-      patientUser = await findPatientByName(patientName);
-    }
-    
-    if (patientName && doctorName) {
-      const record = await Record.create({
-        patient: patientName,
-        patientId: patientUser?._id || null,
-        doctor: doctorName,
-        date: req.body.dischargeDate || new Date().toLocaleDateString(),
-        diagnosis: req.body.diagnosis || 'Discharge Summary',
-        type: 'discharge_summary',
-        data: req.body,
-        createdAt: new Date()
-      });
-      
-      if (patientUser?._id) {
-        await createNotification(patientUser._id.toString(), 'Discharge Summary', `Dr. ${doctorName} has generated your discharge summary`, 'records');
-      }
-    }
-    
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', 'attachment; filename=discharge-summary.pdf');
-    res.send(pdfBuffer);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-router.post('/email/appointment-reminder', async (req, res) => {
-  try {
-    const result = await sendAppointmentReminder(req.body);
-    res.json(result);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-router.post('/email/prescription', async (req, res) => {
-  try {
-    const { patient, prescription } = req.body;
-    if (!patient?.email) return res.status(400).json({ message: 'Patient email is required' });
-
-    const pdfData = buildPrescriptionData(patient, prescription);
-    const pdfBuffer = await generatePrescriptionPDF(pdfData);
-    const result = await sendPrescriptionEmail(patient, {
-      ...pdfData,
-      doctorName: pdfData.doctor?.name || prescription?.doctorName || '',
-    }, pdfBuffer);
-
-    const patientUser = await findPatientByName(patient.name);
-    if (patientUser?._id) {
-      await createNotification(patientUser._id, 'Prescription Emailed', 'Your prescription has been sent to your email.', 'records');
-    }
-
-    res.json(result);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-router.post('/email/lab-result', async (req, res) => {
-  try {
-    const { patient, report } = req.body;
-    if (!patient?.email) return res.status(400).json({ message: 'Patient email is required' });
-
-    const pdfData = buildLabReportData(patient, report);
-    const pdfBuffer = await generateLabReportPDF(pdfData);
-    const result = await sendLabReportEmail(patient, pdfData, pdfBuffer);
-
-    const patientUser = await findPatientByName(patient.name);
-    if (patientUser?._id) {
-      await createNotification(patientUser._id, 'Lab Report Emailed', 'Your lab report has been sent to your email.', 'records');
-    }
-
-    res.json(result);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-router.post('/email/discharge-summary', async (req, res) => {
-  try {
-    const { patient, summary } = req.body;
-    if (!patient?.email) return res.status(400).json({ message: 'Patient email is required' });
-
-    const pdfData = buildDischargeData(patient, summary);
-    const pdfBuffer = await generateDischargeSummaryPDF(pdfData);
-    const result = await sendDischargeSummaryEmail(patient, pdfData, pdfBuffer);
-
-    const patientUser = await findPatientByName(patient.name);
-    if (patientUser?._id) {
-      await createNotification(patientUser._id, 'Discharge Summary Emailed', 'Your discharge summary has been sent to your email.', 'records');
-    }
-
-    res.json(result);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-router.post('/upload/image', optionalAuth, upload.single('file'), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' });
-    }
-    
-    const ext = path.extname(req.file.originalname);
-    const filename = `${Date.now()}-${Math.random().toString(36).substring(7)}${ext}`;
-    const filepath = `/uploads/images/${filename}`;
-    
-    const result = {
-      filename: req.file.originalname,
-      filepath: filepath,
-      size: req.file.size,
-      type: 'image'
-    };
-    
-    if (req.user.role === 'patient') {
-      await Record.create({
-        patient: req.user.name,
-        patientId: req.user._id,
-        doctor: 'Self Upload',
-        diagnosis: 'Uploaded medical image',
-        type: 'prescription',
-        notes: `File: ${result.filename}`,
-        data: {
-          patient: { name: req.user.name },
-          doctor: { name: 'Self Upload' },
-          uploadedFile: result,
-          date: new Date().toISOString().split('T')[0],
-        },
-      });
-      
-      await Notification.create({
-        title: 'File Uploaded',
-        message: `Your medical image has been uploaded successfully`,
-        type: 'records',
-        read: false,
-        userId: req.user._id,
-        date: new Date().toISOString().split('T')[0],
-      });
-    }
-    
-    res.json({ success: true, ...result });
-  } catch (error) {
-    console.error('Upload error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-router.post('/upload/xray', optionalAuth, upload.single('file'), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' });
-    }
-    
-    const ext = path.extname(req.file.originalname);
-    const filename = `${Date.now()}-${Math.random().toString(36).substring(7)}${ext}`;
-    const filepath = `/uploads/xray/${filename}`;
-    
-    const result = {
-      filename: req.file.originalname,
-      filepath: filepath,
-      size: req.file.size,
-      type: 'xray'
-    };
-    
-    if (req.user.role === 'patient') {
-      await Record.create({
-        patient: req.user.name,
-        patientId: req.user._id,
-        doctor: 'Self Upload',
-        diagnosis: 'Uploaded X-ray',
-        type: 'lab_report',
-        notes: `File: ${result.filename}`,
-        data: {
-          patient: { name: req.user.name },
-          doctor: { name: 'Self Upload' },
-          uploadedFile: result,
-          date: new Date().toISOString().split('T')[0],
-        },
-      });
-      
-      await Notification.create({
-        title: 'X-Ray Uploaded',
-        message: `Your X-ray has been uploaded successfully`,
-        type: 'records',
-        read: false,
-        userId: req.user._id,
-        date: new Date().toISOString().split('T')[0],
-      });
-    }
-    
-    res.json({ success: true, ...result });
-  } catch (error) {
-    console.error('Upload error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-router.post('/upload/document', optionalAuth, upload.single('file'), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' });
-    }
-    
-    const ext = path.extname(req.file.originalname);
-    const filename = `${Date.now()}-${Math.random().toString(36).substring(7)}${ext}`;
-    const filepath = `/uploads/documents/${filename}`;
-    
-    const result = {
-      filename: req.file.originalname,
-      filepath: filepath,
-      size: req.file.size,
-      type: 'document'
-    };
-    
-    if (req.user.role === 'patient') {
-      await Record.create({
-        patient: req.user.name,
-        patientId: req.user._id,
-        doctor: 'Self Upload',
-        diagnosis: 'Uploaded document',
-        type: 'discharge_summary',
-        notes: `File: ${result.filename}`,
-        data: {
-          patient: { name: req.user.name },
-          doctor: { name: 'Self Upload' },
-          uploadedFile: result,
-          date: new Date().toISOString().split('T')[0],
-        },
-      });
-      
-      await Notification.create({
-        title: 'Document Uploaded',
-        message: `Your document has been uploaded successfully`,
-        type: 'records',
-        read: false,
-        userId: req.user._id,
-        date: new Date().toISOString().split('T')[0],
-      });
-    }
-    
-    res.json({ success: true, ...result });
-  } catch (error) {
-    console.error('Upload error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-router.post('/import/patients', protect, adminOnly, upload.single('file'), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' });
-    }
-    
-    const data = parseExcelFile(req.file.buffer);
-    const { validPatients, errors } = validatePatientData(data);
-    
-    if (validPatients.length > 0) {
-      const imported = await Patient.insertMany(validPatients);
-      res.json({ 
-        success: true, 
-        imported: imported.length, 
-        errors,
-        patients: imported 
-      });
-    } else {
-      res.json({ success: false, errors, message: 'No valid patients found' });
-    }
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-router.post('/import/doctors', protect, adminOnly, upload.single('file'), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' });
-    }
-    
-    const data = parseExcelFile(req.file.buffer);
-    const { validDoctors, errors } = validateDoctorData(data);
-    
-    if (validDoctors.length > 0) {
-      const imported = await Doctor.insertMany(validDoctors);
-      res.json({ 
-        success: true, 
-        imported: imported.length, 
-        errors,
-        doctors: imported 
-      });
-    } else {
-      res.json({ success: false, errors, message: 'No valid doctors found' });
-    }
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-router.post('/import/billing', protect, adminOnly, upload.single('file'), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' });
-    }
-    
-    const data = parseExcelFile(req.file.buffer);
-    const { validRecords, errors } = validateBillingData(data);
-    
-    if (validRecords.length > 0) {
-      const count = await Billing.countDocuments();
-      const normalizedRecords = validRecords.map((record, index) => {
-        const statusMap = {
-          paid: 'Paid',
-          pending: 'Pending',
-          overdue: 'Overdue',
-          partial: 'Partial',
-        };
-        const normalized = {
-          ...record,
-          status: statusMap[String(record.status || 'Pending').toLowerCase()] || 'Pending',
-          invoiceId: record.invoiceId || `IMP-${String(count + index + 1).padStart(4, '0')}`,
-        };
-        if (normalized.patientId && !/^[a-f\d]{24}$/i.test(String(normalized.patientId))) {
-          delete normalized.patientId;
-        }
-        return normalized;
-      });
-      const imported = await Billing.insertMany(normalizedRecords);
-      res.json({ 
-        success: true, 
-        imported: imported.length, 
-        errors,
-        records: imported 
-      });
-    } else {
-      res.json({ success: false, errors, message: 'No valid billing records found' });
-    }
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-router.get('/export/patients', protect, adminOnly, async (req, res) => {
-  try {
-    const patients = await Patient.find().sort({ createdAt: -1 });
-    const data = formatPatientsForExport(patients);
-    
-    const format = req.query.format || 'excel';
-    
-    if (format === 'csv') {
-      const csv = exportToCSV(data);
-      res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', 'attachment; filename=patients.csv');
-      res.send(csv);
-    } else {
-      const buffer = exportToExcel(data, 'patients');
-      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      res.setHeader('Content-Disposition', 'attachment; filename=patients.xlsx');
-      res.send(buffer);
-    }
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-router.get('/export/doctors', protect, adminOnly, async (req, res) => {
-  try {
-    const doctors = await Doctor.find().sort({ createdAt: -1 });
-    const data = formatDoctorsForExport(doctors);
-    
-    const format = req.query.format || 'excel';
-    
-    if (format === 'csv') {
-      const csv = exportToCSV(data);
-      res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', 'attachment; filename=doctors.csv');
-      res.send(csv);
-    } else {
-      const buffer = exportToExcel(data, 'doctors');
-      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      res.setHeader('Content-Disposition', 'attachment; filename=doctors.xlsx');
-      res.send(buffer);
-    }
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-router.get('/export/billing', protect, adminOnly, async (req, res) => {
-  try {
-    const billing = await Billing.find().sort({ date: -1 });
-    const data = formatBillingForExport(billing);
-    
-    const format = req.query.format || 'excel';
-    
-    if (format === 'csv') {
-      const csv = exportToCSV(data);
-      res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', 'attachment; filename=billing.csv');
-      res.send(csv);
-    } else {
-      const buffer = exportToExcel(data, 'billing');
-      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      res.setHeader('Content-Disposition', 'attachment; filename=billing.xlsx');
-      res.send(buffer);
-    }
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-router.get('/export/appointments', protect, adminOnly, async (req, res) => {
-  try {
-    const appointments = await Appointment.find()
-      .populate('patient', 'name email phone')
-      .populate('doctor', 'name specialization')
-      .sort({ createdAt: -1 });
-    
-    const data = formatAppointmentsForExport(appointments);
-    const format = req.query.format || 'excel';
-    
-    if (format === 'csv') {
-      const csv = exportToCSV(data);
-      res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', 'attachment; filename=appointments.csv');
-      res.send(csv);
-    } else {
-      const buffer = exportToExcel(data, 'appointments');
-      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      res.setHeader('Content-Disposition', 'attachment; filename=appointments.xlsx');
-      res.send(buffer);
-    }
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+    const reportTypes = [
+      { id: 'Bed Occupancy', name: 'Bed Occupancy Report', category: 'Administrative' },
+      { id: 'Financial Summary', name: 'Financial Summary', category: 'Financial' },
+      { id: 'Lab Statistics', name: 'Laboratory Statistics', category: 'Clinical' },
+      { id: 'Pharmacy', name: 'Pharmacy Report', category: 'Clinical' },
+      { id: 'Staff Attendance', name: 'Staff Attendance Report', category: 'HR' },
+      { id: 'Inventory', name: 'Inventory Status Report', category: 'Administrative' },
+      { id: 'OT Statistics', name: 'Operation Theatre Statistics', category: 'Clinical' },
+      { id: 'Appointment', name: 'Appointment Statistics', category: 'Administrative' },
+      { id: 'Patient', name: 'Patient Statistics', category: 'Clinical' },
+      { id: 'Birth Certificate', name: 'Birth Certificate Report', category: 'Administrative' },
+      { id: 'Death Certificate', name: 'Death Certificate Report', category: 'Administrative' },
+      { id: 'Notifiable Disease', name: 'Notifiable Disease Report', category: 'Administrative' },
+    ];
+    res.json({ reportTypes });
+  } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
 export default router;

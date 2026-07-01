@@ -37,10 +37,14 @@ const settingsSlice = createSlice({
     loadSettings: (state, action) => {
       return { ...DEFAULT_SETTINGS, ...action.payload };
     },
+    loadUserSettings: (state, action) => {
+      const userSettings = action.payload || {};
+      return { ...DEFAULT_SETTINGS, ...userSettings };
+    },
   },
 });
 
-export const { updateSetting, resetSettings, loadSettings } = settingsSlice.actions;
+export const { updateSetting, resetSettings, loadSettings, loadUserSettings } = settingsSlice.actions;
 
 export const selectSetting = (state) => state.settings;
 export const selectTheme = (state) => state.settings.theme;

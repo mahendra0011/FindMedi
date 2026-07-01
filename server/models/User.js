@@ -5,12 +5,22 @@ const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true, lowercase: true, index: true },
   password: { type: String, required: true },
-  role: { type: String, enum: ['admin', 'doctor', 'patient'], default: 'patient', index: true },
+  role: { type: String, enum: ['admin', 'doctor', 'patient', 'lab_receptionist', 'lab_technician', 'pathologist', 'pharmacist', 'nurse', 'radiologist', 'dietitian', 'physiotherapist', 'counselor', 'accountant', 'security', 'technician', 'helper'], default: 'patient', index: true },
   avatar: { type: String, default: '' },
-  phone: { type: String, default: '' },
+  phone: { type: String, required: true },
   address: { type: String, default: '' },
+  uhid: { type: String, unique: true, sparse: true, index: true },
   gender: { type: String, enum: ['', 'Male', 'Female', 'Other'], default: '' },
   dateOfBirth: { type: Date },
+
+  // Allergies for patients
+  allergies: [{
+    allergen: { type: String, required: true },
+    reaction: { type: String },
+    severity: { type: String, enum: ['Mild', 'Moderate', 'Severe'], default: 'Mild' },
+    notes: { type: String },
+  }],
+
   specialization: { type: String, default: '' }, // for doctors
   experience: { type: String, default: '' },
   qualification: { type: String, default: '' },
@@ -53,6 +63,14 @@ const userSchema = new mongoose.Schema({
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
   this.password = await bcrypt.hash(this.password, 10);
+  next();
+});
+
+userSchema.pre('save', async function (next) {
+  if (!this.uhid && this.role === 'patient') {
+    const count = await mongoose.models.User?.countDocuments({ role: 'patient' }) || 0;
+    this.uhid = `UHID${new Date().getFullYear()}${String(count + 1).padStart(7, '0')}`;
+  }
   next();
 });
 
