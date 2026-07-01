@@ -14,6 +14,7 @@ const supplierSchema = new mongoose.Schema({
   leadTime: { type: Number, default: 7 }, // days
   paymentTerms: { type: String, default: 'Net 30' },
   isActive: { type: Boolean, default: true },
+  hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
   notes: { type: String },
   createdAt: { type: Date, default: Date.now },
 });
