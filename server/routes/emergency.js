@@ -291,3 +291,4 @@ router.post('/beds/transfer/:id', protect, async (req, res) => {
 });
 
 export default router;
+// 23
