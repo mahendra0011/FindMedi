@@ -12,6 +12,7 @@ const housekeepingSchema = new mongoose.Schema({
   completedAt: { type: Date },
   verifiedBy: { type: String },
   verifiedAt: { type: Date },
+  hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
   createdAt: { type: Date, default: Date.now },
 });
 
