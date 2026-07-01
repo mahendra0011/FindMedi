@@ -62,10 +62,10 @@ const services = [
 const specialties = [
   { icon: Stethoscope, name: "General Physician", color: "bg-emerald-500/10 text-emerald-600", count: "45+" },
   { icon: Baby, name: "Gynecologist", color: "bg-pink-500/10 text-pink-600", count: "32+" },
-  { icon: Heart, name: "Dermatologist", color: "bg-rose-500/10 text-rose-600", count: "28+" },
-  { icon: Brain, name: "Pediatricians", color: "bg-violet-500/10 text-violet-600", count: "25+" },
-  { icon: Eye, name: "Neurologist", color: "bg-blue-500/10 text-blue-600", count: "20+" },
-  { icon: Bone, name: "Gastroenterologist", color: "bg-amber-500/10 text-amber-600", count: "18+" },
+  { icon: Smile, name: "Dermatologist", color: "bg-rose-500/10 text-rose-600", count: "28+" },
+  { icon: Heart, name: "Pediatricians", color: "bg-violet-500/10 text-violet-600", count: "25+" },
+  { icon: Brain, name: "Neurologist", color: "bg-blue-500/10 text-blue-600", count: "20+" },
+  { icon: UtensilsCrossed, name: "Gastroenterologist", color: "bg-amber-500/10 text-amber-600", count: "18+" },
 ];
 
 const whyChooseUs = [
@@ -77,27 +77,63 @@ const whyChooseUs = [
   { icon: Lock, title: "Bank-Level Data Security", desc: "Protect sensitive health records with strict role-scoped access control (Superadmin, Admin, Doctor, Patient), secure Cloudinary-backed medical document storage, and 100% data confidentiality.", color: "from-cyan-500/10 to-cyan-500/5", iconColor: "text-cyan-600" },
 ];
 
-const modules = [
-  { icon: HeartPulse, title: "Doctor Consultation", desc: "Comprehensive OPD and IPD consultations with certified specialists across all departments", color: "from-blue-500/20 to-blue-600/10" },
-  { icon: ClipboardList, title: "Staff & HR Management", desc: "Complete staff lifecycle management from attendance to payroll and performance tracking", color: "from-violet-500/20 to-violet-600/10" },
-  { icon: Package, title: "Inventory & Pharmacy", desc: "Real-time stock tracking, expiry alerts, barcode scanning, and vendor management", color: "from-emerald-500/20 to-emerald-600/10" },
-  { icon: Scissors, title: "Operation Theatre", desc: "OT scheduling, instrument sterilization logs, surgeon assignment and post-op tracking", color: "from-red-500/20 to-red-600/10" },
-  { icon: TestTube, title: "Lab & Radiology", desc: "Full lab test catalog with normal ranges, abnormal flags, and radiology image viewer", color: "from-amber-500/20 to-amber-600/10" },
-  { icon: UtensilsCrossed, title: "Diet & Kitchen", desc: "Patient-specific diet plans with rotation logic, allergy warnings, and nutrition calculator", color: "from-orange-500/20 to-orange-600/10" },
-  { icon: Droplet, title: "Blood Bank", desc: "Donor management, crossmatch reports, stock alerts, and transfusion history tracking", color: "from-rose-500/20 to-rose-600/10" },
-  { icon: Smile, title: "Mental Health", desc: "Confidential assessments, risk scoring, therapy goals, and follow-up reminders", color: "from-pink-500/20 to-pink-600/10" },
-  { icon: Dna, title: "Physiotherapy", desc: "Exercise library with video embeds, progress photo gallery, and home exercise plans", color: "from-cyan-500/20 to-cyan-600/10" },
-  { icon: Sofa, title: "Housekeeping", desc: "Room status sync, task assignment, inspection checklists, and pest control scheduling", color: "from-teal-500/20 to-teal-600/10" },
-  { icon: PieChart, title: "Reports & Analytics", desc: "Exportable reports, trend charts, performance metrics, and demographic analysis", color: "from-indigo-500/20 to-indigo-600/10" },
-  { icon: Shield, title: "Insurance & Billing", desc: "Claim tracking, discount approval workflows, tax calculation, and refund processing", color: "from-purple-500/20 to-purple-600/10" },
-  { icon: CalendarCheck, title: "OPD Registration", desc: "Outpatient department registration with token generation, appointment scheduling, and queue management", color: "from-sky-500/20 to-sky-600/10" },
-  { icon: FileText, title: "Medical Records", desc: "Digital health records with prescription history, lab results, discharge summaries, and document uploads", color: "from-lime-500/20 to-lime-600/10" },
-  { icon: Users, title: "Patient Registration", desc: "New patient onboarding, demographic details, insurance verification, and unique ID generation", color: "from-fuchsia-500/20 to-fuchsia-600/10" },
-  { icon: Activity, title: "Triage & Emergency", desc: "Emergency patient prioritization, vitals tracking, incident reporting, and critical care alerts", color: "from-red-500/20 to-red-600/10" },
-  { icon: BedDouble, title: "IPD Management", desc: "Inpatient department bed allocation, ward management, admission tracking, and discharge planning", color: "from-indigo-500/20 to-indigo-600/10" },
-  { icon: Upload, title: "File Upload & Reports", desc: "Bulk import/export of patient data, lab reports, and automated PDF generation for medical documents", color: "from-green-500/20 to-green-600/10" },
-  { icon: Bell, title: "Smart Notifications", desc: "Real-time alerts for appointments, lab results, billing reminders, and emergency notifications", color: "from-yellow-500/20 to-yellow-600/10" },
-  { icon: Video, title: "Teleconsultation", desc: "Virtual doctor consultations with HD video calls, chat, e-prescriptions, and digital signatures", color: "from-teal-500/20 to-teal-600/10" },
+const featureSections = [
+  {
+    id: "patient-journey", title: "Patient Journey", subtitle: "End-to-end digital experience from registration to discharge",
+    color: "from-blue-500/10 to-cyan-500/5", borderColor: "border-blue-500/20",
+    items: [
+      { icon: Users, title: "Patient Registration", desc: "New patient onboarding, UHID generation, demographic capture, and insurance verification in seconds" },
+      { icon: CalendarCheck, title: "OPD Registration", desc: "Outpatient registration with automated token generation, appointment scheduling, and live queue management" },
+      { icon: HeartPulse, title: "Doctor Consultation", desc: "Comprehensive OPD & IPD consultations with certified specialists, e-prescriptions, and follow-up tracking" },
+      { icon: Video, title: "Teleconsultation", desc: "HD video calls, chat messaging, e-prescriptions with digital signatures, and remote patient monitoring" },
+      { icon: FileText, title: "Medical Records", desc: "Unified digital health record with prescription history, lab results, discharge summaries, and document uploads" },
+      { icon: BedDouble, title: "IPD Management", desc: "Bed allocation, ward management, nursing charts, diet orders, and discharge planning with auto-housekeeping" },
+    ]
+  },
+  {
+    id: "critical-care", title: "Emergency & Critical Care", subtitle: "Rapid response systems for life-saving decisions",
+    color: "from-red-500/10 to-rose-500/5", borderColor: "border-red-500/20",
+    items: [
+      { icon: Activity, title: "Triage & Emergency", desc: "P1-P5 severity triage, MLC registration, real-time vitals tracking, and instant critical care alerts" },
+      { icon: Scissors, title: "Operation Theatre", desc: "OT scheduling, pre-op checklists, instrument sterilization logs, surgeon assignment, and post-op recovery tracking" },
+      { icon: Droplet, title: "Blood Bank", desc: "Donor management, blood unit screening, crossmatch validation, issue tracking, and transfusion reaction logging" },
+      { icon: Dna, title: "Physiotherapy", desc: "Referral-based therapy with exercise library, session tracking, pain scale monitoring, and home exercise plans" },
+    ]
+  },
+  {
+    id: "diagnostics", title: "Diagnostics & Pharmacy", subtitle: "Integrated clinical workflows connecting labs, pharmacy, and nutrition",
+    color: "from-amber-500/10 to-orange-500/5", borderColor: "border-amber-500/20",
+    items: [
+      { icon: TestTube, title: "Lab & Radiology", desc: "29+ test catalog with auto-abnormal flags, sample tracking, pathologist verification, and radiology image viewer" },
+      { icon: Package, title: "Inventory & Pharmacy", desc: "Real-time stock tracking, expiry alerts, allergy-checked dispensing, drug interaction warnings, and vendor management" },
+      { icon: UtensilsCrossed, title: "Diet & Kitchen", desc: "Patient-specific diet plans, allergy-safe meal rotation, kitchen task assignment, and meal delivery confirmation" },
+    ]
+  },
+  {
+    id: "support-services", title: "Support & Rehabilitation", subtitle: "Holistic care extending beyond treatment",
+    color: "from-pink-500/10 to-purple-500/5", borderColor: "border-pink-500/20",
+    items: [
+      { icon: Smile, title: "Mental Health", desc: "Confidential assessments, risk scoring, therapy goal tracking, medication management, and family involvement logging" },
+      { icon: Sofa, title: "Housekeeping", desc: "Auto-triggered cleaning on discharge, task assignment, infection control checklists, and bed status verification" },
+      { icon: Bell, title: "Smart Notifications", desc: "Real-time alerts for appointments, lab results, billing reminders, emergency alerts, and prescription refills" },
+    ]
+  },
+  {
+    id: "workforce", title: "Workforce & Operations", subtitle: "Streamline staff management and administrative workflows",
+    color: "from-violet-500/10 to-indigo-500/5", borderColor: "border-violet-500/20",
+    items: [
+      { icon: ClipboardList, title: "Staff & HR Management", desc: "Complete lifecycle from onboarding to payroll — attendance, shift scheduling, overtime, and performance reports" },
+      { icon: Upload, title: "File Upload & Reports", desc: "Bulk import/export of patient data and lab reports, automated PDF generation for medical documents" },
+    ]
+  },
+  {
+    id: "finance", title: "Finance & Analytics", subtitle: "Revenue cycle management with data-driven insights",
+    color: "from-emerald-500/10 to-teal-500/5", borderColor: "border-emerald-500/20",
+    items: [
+      { icon: Shield, title: "Insurance & Billing", desc: "Automated invoice generation (INV-0001), UPI/Card/Cash payments, partial payments, insurance pre-auth and claim filing" },
+      { icon: PieChart, title: "Reports & Analytics", desc: "Exportable reports, revenue trends, department-wise performance metrics, demographic analysis, and compliance dashboards" },
+    ]
+  },
 ];
 
 const testimonials = [
@@ -510,27 +546,42 @@ const Home = () => {
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-            {modules.map((mod, i) => (
+          <div className="space-y-12">
+            {featureSections.map((section, sIdx) => (
               <motion.div
-                key={mod.title}
+                key={section.id}
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.06, type: "spring", stiffness: 100 }}
-                whileHover={{ scale: 1.03, y: -6 }}
-                className="group bg-card rounded-2xl border border-border/60 p-5 hover:shadow-xl hover:border-primary/30 transition-all relative overflow-hidden"
+                transition={{ delay: sIdx * 0.1 }}
+                className={`bg-gradient-to-br ${section.color} rounded-3xl border ${section.borderColor} p-6 sm:p-8`}
               >
-                <div className={`absolute inset-0 bg-gradient-to-br ${mod.color} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
-                <div className="relative z-10">
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/20 to-blue-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                    <mod.icon className="w-7 h-7 text-primary" />
-                  </div>
-                  <h3 className="font-heading font-bold text-lg text-foreground mb-2">{mod.title}</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{mod.desc}</p>
-                  <div className="mt-4 flex items-center gap-1 text-primary text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-                    <span>Explore</span>
-                    <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-                  </div>
+                <div className="flex items-center gap-3 mb-6">
+                  <h3 className="font-heading text-xl sm:text-2xl font-bold text-foreground">{section.title}</h3>
+                  <div className="h-px flex-1 bg-border/60" />
+                </div>
+                <p className="text-sm text-muted-foreground -mt-4 mb-6">{section.subtitle}</p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {section.items.map((item, i) => (
+                    <motion.div
+                      key={item.title}
+                      initial={{ opacity: 0, y: 20 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      transition={{ delay: (sIdx * 6 + i) * 0.04 }}
+                      whileHover={{ scale: 1.02, y: -3 }}
+                      className="group bg-card/80 backdrop-blur-sm rounded-xl border border-border/50 p-4 hover:shadow-lg hover:border-primary/30 transition-all"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-blue-500/20 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-110 transition-transform">
+                          <item.icon className="w-5 h-5 text-primary" />
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="font-semibold text-sm text-foreground">{item.title}</h4>
+                          <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{item.desc}</p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
                 </div>
               </motion.div>
             ))}
