@@ -73,21 +73,21 @@ export default function Notifications() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
           <h1 className="font-heading text-2xl font-bold text-foreground">Notifications</h1>
           <p className="text-muted-foreground">
             {unreadCount > 0 ? `You have ${unreadCount} unread notification${unreadCount > 1 ? 's' : ''}` : 'All caught up!'}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
           {unreadCount > 0 && (
-            <Button variant="outline" size="sm" className="gap-2" onClick={handleMarkAllRead}>
+            <Button variant="outline" size="sm" className="gap-2 w-full sm:w-auto" onClick={handleMarkAllRead}>
               <Check className="w-4 h-4" /> Mark all read
             </Button>
           )}
           {notifications.length > 0 && (
-            <Button variant="outline" size="sm" className="gap-2 text-destructive hover:bg-destructive/10" onClick={handleClearAll}>
+            <Button variant="outline" size="sm" className="gap-2 w-full sm:w-auto text-destructive hover:bg-destructive/10" onClick={handleClearAll}>
               <Trash className="w-4 h-4" /> Clear all
             </Button>
           )}
