@@ -34,6 +34,7 @@ const appointmentSchema = new mongoose.Schema({
   consultationEndTime: { type: Date },
   followUpDate: { type: Date },
   reminderSent: { type: Boolean, default: false },
+  hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
   createdAt: { type: Date, default: Date.now },
 });
 
