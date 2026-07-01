@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { Activity, ArrowRight, Stethoscope, UserRound, CalendarDays, FileText, CreditCard, Shield, Clock, HeartPulse, ChevronRight, Zap, BarChart3, FileUp, Download, Mail, Image, Users, Bell, Laptop, Database, Cloud, Star, Quote, Play, CheckCircle, Phone, Search, MapPin, Award, Heart, Baby, Brain, Bone, Eye, Microscope, Syringe, Ambulance, Check, Circle, Send, Droplets, TestTube, Thermometer, Sparkles, Building2, CalendarCheck, TrendingUp, BadgeCheck, Video, FileCheck, Wallet, Lock, CircleDollarSign, Truck, Moon, Sun } from "lucide-react";
+import { Activity, ArrowRight, Stethoscope, UserRound, CalendarDays, FileText, CreditCard, Shield, Clock, HeartPulse, ChevronRight, Zap, BarChart3, FileUp, Download, Mail, Image, Users, Bell, Laptop, Database, Cloud, Star, Quote, Play, CheckCircle, Phone, Search, MapPin, Award, Heart, Baby, Brain, Bone, Eye, Microscope, Syringe, Ambulance, Check, Circle, Send, Droplets, TestTube, Thermometer, Sparkles, Building2, CalendarCheck, TrendingUp, BadgeCheck, Video, FileCheck, Wallet, Lock, CircleDollarSign, Truck, Moon, Sun, UtensilsCrossed, Scissors, Droplet, Dna, Smile, ClipboardList, Package, Sofa, PieChart, BedDouble, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,15 +20,17 @@ const doctorImage = "https://alliedsoftech89.wordpress.com/wp-content/uploads/20
 const doctorImage2 = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSjPqcWATF_Dr7kcC-DSSbsfzCtcFZDdeI-pQ&s";
 
 const flowingMenuItems = [
-  { link: "#specialties", text: "Specialties", image: "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?auto=format&fit=crop&w=900&q=80" },
+  { link: "#modules", text: "Our Modules", image: "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?auto=format&fit=crop&w=900&q=80" },
   { link: "#doctors", text: "Top Doctors", image: doctorImage },
-  { link: "#services", text: "Lab Services", image: "https://images.unsplash.com/photo-1576086213369-97a306d36557?auto=format&fit=crop&w=900&q=80" },
+  { link: "#specialties", text: "Specialties", image: "https://images.unsplash.com/photo-1576086213369-97a306d36557?auto=format&fit=crop&w=900&q=80" },
   { link: "#testimonials", text: "Patient Stories", image: "https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=900&q=80" },
+  { link: "#services", text: "Lab Services", image: "https://images.unsplash.com/photo-1576086213369-97a306d36557?auto=format&fit=crop&w=900&q=80" },
 ];
 
 const velocityMessages = [
-  "24/7 emergency care  verified doctors  digital records  secure billing  lab reports",
-  "book appointments  prescriptions  diagnostics  patient support  discharge summaries",
+  "doctor consultation  staff management  inventory tracking  operation theatre  lab reports",
+  "blood bank  diet kitchen  physiotherapy  mental health  housekeeping  radiology",
+  "insurance claims  billing  pharmacy  ipd management  triage  emergency care",
 ];
 
 const fadeUp = {
@@ -67,21 +69,35 @@ const specialties = [
 ];
 
 const whyChooseUs = [
-  { icon: Shield, title: "Certified Specialists", desc: "All our doctors are board-certified with years of experience in their fields.", color: "from-emerald-500/10 to-emerald-500/5", iconColor: "text-emerald-600" },
-  { icon: Clock, title: "24/7 Support", desc: "Round-the-clock medical assistance and emergency care when you need it most.", color: "from-blue-500/10 to-blue-500/5", iconColor: "text-blue-600" },
-  { icon: HeartPulse, title: "Modern Facilities", desc: "State-of-the-art equipment and comfortable environment for your care.", color: "from-violet-500/10 to-violet-500/5", iconColor: "text-violet-600" },
-  { icon: CreditCard, title: "Affordable Care", desc: "Quality healthcare at transparent pricing with flexible payment options.", color: "from-amber-500/10 to-amber-500/5", iconColor: "text-amber-600" },
-  { icon: Users, title: "Patient-Centered", desc: "Your wellbeing is our priority. Personalized care plans for every individual.", color: "from-rose-500/10 to-rose-500/5", iconColor: "text-rose-600" },
-  { icon: CheckCircle, title: "Privacy First", desc: "Your medical information is protected with bank-level security and confidentiality.", color: "from-cyan-500/10 to-cyan-500/5", iconColor: "text-cyan-600" },
+  { icon: Building2, title: "All-in-One Connected Ecosystem", desc: "From instant OPD token registration to intensive IPD bedside charting and complex OT scheduling, manage every single clinical and administrative workflow within a single unified platform.", color: "from-emerald-500/10 to-emerald-500/5", iconColor: "text-emerald-600" },
+  { icon: Zap, title: "Smart Front-Desk Automation", desc: "Eliminate long waiting lines and chaotic waiting rooms with automated UHID generation, dynamic department-wise token systems, live queue tracking, and real-time estimated wait-time algorithms.", color: "from-blue-500/10 to-blue-500/5", iconColor: "text-blue-600" },
+  { icon: ClipboardList, title: "Integrated Diagnostics & Care", desc: "Seamlessly bridge the gap between doctors and support wings with connected 29+ Lab test catalogs, digital Radiology viewers, allergy-checked Pharmacy dispensing, and real-time Blood Bank registries.", color: "from-violet-500/10 to-violet-500/5", iconColor: "text-violet-600" },
+  { icon: CircleDollarSign, title: "Automated Revenue Cycle", desc: "Streamline your hospital's cash flow with automated invoice generation (INV-0001), multi-mode payment tracking (UPI/Card/Cash), partial-payment workflows, and integrated insurance pre-authorization.", color: "from-amber-500/10 to-amber-500/5", iconColor: "text-amber-600" },
+  { icon: TrendingUp, title: "Enterprise-Grade Operations", desc: "Optimize backend resources with bulk staff attendance tracking, automated shift payrolls, predictive inventory reorder alerts, and automated housekeeping tasks triggered instantly upon patient discharge.", color: "from-rose-500/10 to-rose-500/5", iconColor: "text-rose-600" },
+  { icon: Lock, title: "Bank-Level Data Security", desc: "Protect sensitive health records with strict role-scoped access control (Superadmin, Admin, Doctor, Patient), secure Cloudinary-backed medical document storage, and 100% data confidentiality.", color: "from-cyan-500/10 to-cyan-500/5", iconColor: "text-cyan-600" },
 ];
 
-const features = [
-  { icon: CalendarCheck, title: "Easy Booking", desc: "Book appointments in seconds" },
-  { icon: FileCheck, title: "Digital Records", desc: "Access your records anywhere" },
-  { icon: Wallet, title: "Flexible Payments", desc: "Multiple payment options" },
-  { icon: Bell, title: "Appointment Reminders", desc: "Never miss your appointment" },
-  { icon: Lock, title: "Secure Data", desc: "Your privacy is protected" },
-  { icon: HeartPulse, title: "Quality Care", desc: "Excellence in healthcare" },
+const modules = [
+  { icon: HeartPulse, title: "Doctor Consultation", desc: "Comprehensive OPD and IPD consultations with certified specialists across all departments", color: "from-blue-500/20 to-blue-600/10" },
+  { icon: ClipboardList, title: "Staff & HR Management", desc: "Complete staff lifecycle management from attendance to payroll and performance tracking", color: "from-violet-500/20 to-violet-600/10" },
+  { icon: Package, title: "Inventory & Pharmacy", desc: "Real-time stock tracking, expiry alerts, barcode scanning, and vendor management", color: "from-emerald-500/20 to-emerald-600/10" },
+  { icon: Scissors, title: "Operation Theatre", desc: "OT scheduling, instrument sterilization logs, surgeon assignment and post-op tracking", color: "from-red-500/20 to-red-600/10" },
+  { icon: TestTube, title: "Lab & Radiology", desc: "Full lab test catalog with normal ranges, abnormal flags, and radiology image viewer", color: "from-amber-500/20 to-amber-600/10" },
+  { icon: UtensilsCrossed, title: "Diet & Kitchen", desc: "Patient-specific diet plans with rotation logic, allergy warnings, and nutrition calculator", color: "from-orange-500/20 to-orange-600/10" },
+  { icon: Droplet, title: "Blood Bank", desc: "Donor management, crossmatch reports, stock alerts, and transfusion history tracking", color: "from-rose-500/20 to-rose-600/10" },
+  { icon: Smile, title: "Mental Health", desc: "Confidential assessments, risk scoring, therapy goals, and follow-up reminders", color: "from-pink-500/20 to-pink-600/10" },
+  { icon: Dna, title: "Physiotherapy", desc: "Exercise library with video embeds, progress photo gallery, and home exercise plans", color: "from-cyan-500/20 to-cyan-600/10" },
+  { icon: Sofa, title: "Housekeeping", desc: "Room status sync, task assignment, inspection checklists, and pest control scheduling", color: "from-teal-500/20 to-teal-600/10" },
+  { icon: PieChart, title: "Reports & Analytics", desc: "Exportable reports, trend charts, performance metrics, and demographic analysis", color: "from-indigo-500/20 to-indigo-600/10" },
+  { icon: Shield, title: "Insurance & Billing", desc: "Claim tracking, discount approval workflows, tax calculation, and refund processing", color: "from-purple-500/20 to-purple-600/10" },
+  { icon: CalendarCheck, title: "OPD Registration", desc: "Outpatient department registration with token generation, appointment scheduling, and queue management", color: "from-sky-500/20 to-sky-600/10" },
+  { icon: FileText, title: "Medical Records", desc: "Digital health records with prescription history, lab results, discharge summaries, and document uploads", color: "from-lime-500/20 to-lime-600/10" },
+  { icon: Users, title: "Patient Registration", desc: "New patient onboarding, demographic details, insurance verification, and unique ID generation", color: "from-fuchsia-500/20 to-fuchsia-600/10" },
+  { icon: Activity, title: "Triage & Emergency", desc: "Emergency patient prioritization, vitals tracking, incident reporting, and critical care alerts", color: "from-red-500/20 to-red-600/10" },
+  { icon: BedDouble, title: "IPD Management", desc: "Inpatient department bed allocation, ward management, admission tracking, and discharge planning", color: "from-indigo-500/20 to-indigo-600/10" },
+  { icon: Upload, title: "File Upload & Reports", desc: "Bulk import/export of patient data, lab reports, and automated PDF generation for medical documents", color: "from-green-500/20 to-green-600/10" },
+  { icon: Bell, title: "Smart Notifications", desc: "Real-time alerts for appointments, lab results, billing reminders, and emergency notifications", color: "from-yellow-500/20 to-yellow-600/10" },
+  { icon: Video, title: "Teleconsultation", desc: "Virtual doctor consultations with HD video calls, chat, e-prescriptions, and digital signatures", color: "from-teal-500/20 to-teal-600/10" },
 ];
 
 const testimonials = [
@@ -236,7 +252,7 @@ const Home = () => {
               <span className="font-heading text-xl font-bold">MediCore</span>
             </div>
             <div className="hidden md:flex items-center gap-2 rounded-full border border-border/50 bg-muted/30 p-1">
-              <button type="button" onClick={() => scrollToSection('specialties')} className="rounded-full px-3 py-1.5 text-sm text-muted-foreground hover:bg-background hover:text-foreground hover:shadow-sm transition-all">Specialties</button>
+              <button type="button" onClick={() => scrollToSection('modules')} className="rounded-full px-3 py-1.5 text-sm text-muted-foreground hover:bg-background hover:text-foreground hover:shadow-sm transition-all">Modules</button>
               <button type="button" onClick={() => scrollToSection('doctors')} className="rounded-full px-3 py-1.5 text-sm text-muted-foreground hover:bg-background hover:text-foreground hover:shadow-sm transition-all">Top Doctors</button>
               <button type="button" onClick={() => scrollToSection('why-choose-us')} className="rounded-full px-3 py-1.5 text-sm text-muted-foreground hover:bg-background hover:text-foreground hover:shadow-sm transition-all">Why Choose Us</button>
               <button type="button" onClick={() => scrollToSection('testimonials')} className="rounded-full px-3 py-1.5 text-sm text-muted-foreground hover:bg-background hover:text-foreground hover:shadow-sm transition-all">Testimonials</button>
@@ -480,24 +496,42 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Features Grid */}
-      <section className="py-16 px-4 sm:px-6">
+      {/* Hospital Modules Section */}
+      <section id="modules" className="py-20 px-4 sm:px-6 bg-gradient-to-b from-muted/20 via-background to-muted/10">
         <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {features.map((feature, i) => (
+          <motion.div initial="hidden" whileInView="visible" variants={fadeUp} className="text-center mb-14">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-primary/10 to-blue-500/10 text-primary text-sm font-medium mb-4 border border-primary/20">
+              <Building2 className="w-4 h-4" />
+              <span>Complete Hospital Ecosystem</span>
+            </div>
+            <h2 className="font-heading text-3xl sm:text-4xl font-bold text-foreground">All-in-One Healthcare Platform</h2>
+            <p className="text-muted-foreground mt-3 max-w-2xl mx-auto">
+              From consultation to discharge, every aspect of hospital management is covered with our 20+ integrated digital modules
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            {modules.map((mod, i) => (
               <motion.div
-                key={feature.title}
-                initial={{ opacity: 0, scale: 0.8 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                transition={{ delay: i * 0.08, type: "spring", stiffness: 200 }}
-                whileHover={{ scale: 1.08, y: -5 }}
-                className="bg-card rounded-xl border border-border/60 p-4 text-center hover:shadow-lg hover:border-primary/30 transition-all"
+                key={mod.title}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.06, type: "spring", stiffness: 100 }}
+                whileHover={{ scale: 1.03, y: -6 }}
+                className="group bg-card rounded-2xl border border-border/60 p-5 hover:shadow-xl hover:border-primary/30 transition-all relative overflow-hidden"
               >
-                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-3">
-                  <feature.icon className="w-6 h-6 text-primary" />
+                <div className={`absolute inset-0 bg-gradient-to-br ${mod.color} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+                <div className="relative z-10">
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/20 to-blue-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <mod.icon className="w-7 h-7 text-primary" />
+                  </div>
+                  <h3 className="font-heading font-bold text-lg text-foreground mb-2">{mod.title}</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{mod.desc}</p>
+                  <div className="mt-4 flex items-center gap-1 text-primary text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span>Explore</span>
+                    <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                  </div>
                 </div>
-                <h3 className="font-semibold text-foreground text-sm">{feature.title}</h3>
-                <p className="text-xs text-muted-foreground mt-1">{feature.desc}</p>
               </motion.div>
             ))}
           </div>
@@ -552,7 +586,7 @@ const Home = () => {
               </div>
               <h2 className="font-heading text-3xl sm:text-4xl font-bold text-foreground">The MediCore Difference</h2>
               <p className="text-muted-foreground mt-3 max-w-2xl mx-auto">
-                We combine cutting-edge technology with compassionate care to deliver an exceptional healthcare experience
+                We combine cutting-edge automation with interconnected modules to deliver a secure, efficient, and next-generation healthcare management experience.
               </p>
             </motion.div>
 
@@ -829,10 +863,10 @@ const Home = () => {
           />
           <div className="relative">
             <h2 className="font-heading text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-4">
-              With 100+ Trusted Doctors
+              Ready to Experience Modern Healthcare?
             </h2>
             <p className="text-white/80 text-lg max-w-xl mx-auto mb-8">
-              Our network of certified healthcare professionals is here to provide you with the best care possible.
+              Join 20,000+ patients who trust MediCore for their healthcare needs. Book appointments, manage records, and access 20+ integrated hospital modules — all in one place.
             </p>
             <Button size="lg" className="group gap-2 text-base px-10 h-12 bg-white text-primary hover:bg-white/90 shadow-xl"
               onClick={() => navigate(primaryActionPath)}>
