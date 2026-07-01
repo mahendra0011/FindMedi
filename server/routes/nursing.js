@@ -10,6 +10,7 @@ router.get('/', protect, async (req, res) => {
   try {
     const { patientId, admissionId, chartType, shift, date } = req.query;
     const filter = {};
+    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
     if (patientId) filter.patientId = patientId;
     if (admissionId) filter.admissionId = admissionId;
     if (chartType && chartType !== 'All') filter.chartType = chartType;
@@ -32,6 +33,7 @@ router.post('/vitals', protect, async (req, res) => {
     if (!patientId || !vitals) return res.status(400).json({ message: 'Patient and vitals required' });
     const chart = await NursingChart.create({
       patientId, patientName, admissionId, chartType: 'Vitals', vitals,
+      hospitalId: req.user.hospitalId || undefined,
       shift: vitals.shift || 'Morning', recordedBy: req.user._id, recordedByName: req.user.name,
     });
     res.status(201).json(chart);
@@ -45,6 +47,7 @@ router.post('/mar', protect, async (req, res) => {
     if (!patientId || !medicationAdmin) return res.status(400).json({ message: 'Patient and medication data required' });
     const chart = await NursingChart.create({
       patientId, patientName, admissionId, chartType: 'MAR', medicationAdmin,
+      hospitalId: req.user.hospitalId || undefined,
       shift: medicationAdmin.shift || 'Morning', recordedBy: req.user._id, recordedByName: req.user.name,
     });
     res.status(201).json(chart);
@@ -58,6 +61,7 @@ router.post('/io', protect, async (req, res) => {
     if (!patientId) return res.status(400).json({ message: 'Patient required' });
     const chart = await NursingChart.create({
       patientId, patientName, admissionId, chartType: 'InputOutput', vitals,
+      hospitalId: req.user.hospitalId || undefined,
       shift: vitals?.shift || 'Morning', recordedBy: req.user._id, recordedByName: req.user.name,
     });
     res.status(201).json(chart);
@@ -71,6 +75,7 @@ router.post('/wound-dressing', protect, async (req, res) => {
     if (!patientId) return res.status(400).json({ message: 'Patient required' });
     const chart = await NursingChart.create({
       patientId, patientName, admissionId, chartType: 'WoundDressing', woundDressing,
+      hospitalId: req.user.hospitalId || undefined,
       shift: woundDressing?.shift || 'Morning', recordedBy: req.user._id, recordedByName: req.user.name,
     });
     res.status(201).json(chart);
@@ -82,8 +87,10 @@ router.get('/shift/:admissionId/:date', protect, async (req, res) => {
   try {
     const { admissionId, date } = req.params;
     const dateObj = new Date(date);
+    const filters = { admissionId };
+    if (req.user.hospitalId && req.user.role !== 'superadmin') filters.hospitalId = req.user.hospitalId;
     const charts = await NursingChart.find({
-      admissionId,
+      ...filters,
       date: { $gte: new Date(dateObj.setHours(0,0,0,0)), $lte: new Date(dateObj.setHours(23,59,59,999)) }
     }).sort({ shift: 1 });
     res.json({ charts });
@@ -93,10 +100,12 @@ router.get('/shift/:admissionId/:date', protect, async (req, res) => {
 // Stats
 router.get('/stats', protect, async (req, res) => {
   try {
-    const vitalsCount = await NursingChart.countDocuments({ chartType: 'Vitals' });
-    const marCount = await NursingChart.countDocuments({ chartType: 'MAR' });
-    const ioCount = await NursingChart.countDocuments({ chartType: 'InputOutput' });
-    const woundCount = await NursingChart.countDocuments({ chartType: 'WoundDressing' });
+    const hFilter = {};
+    if (req.user.hospitalId && req.user.role !== 'superadmin') hFilter.hospitalId = req.user.hospitalId;
+    const vitalsCount = await NursingChart.countDocuments({ chartType: 'Vitals', ...hFilter });
+    const marCount = await NursingChart.countDocuments({ chartType: 'MAR', ...hFilter });
+    const ioCount = await NursingChart.countDocuments({ chartType: 'InputOutput', ...hFilter });
+    const woundCount = await NursingChart.countDocuments({ chartType: 'WoundDressing', ...hFilter });
     res.json({ vitals: vitalsCount, mar: marCount, io: ioCount, woundDressing: woundCount });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
