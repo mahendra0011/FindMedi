@@ -12,6 +12,7 @@ const bedSchema = new mongoose.Schema({
   dailyRate: { type: Number, required: true },
   floor: { type: String },
   isAC: { type: Boolean, default: false },
+  hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
   createdAt: { type: Date, default: Date.now },
 });
 
