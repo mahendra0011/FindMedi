@@ -4,7 +4,7 @@ import Doctor from '../models/Doctor.js';
 import User from '../models/User.js';
 import Notification from '../models/Notification.js';
 import { protect, adminOnly } from '../middleware/auth.js';
-import { sendDoctorApprovalEmail, sendDoctorRejectionEmail } from '../services/notificationService.js';
+import { sendDoctorApprovalEmail, sendDoctorRejectionEmail, sendEmail } from '../services/notificationService.js';
 
 const router = express.Router();
 
@@ -62,10 +62,72 @@ router.get('/:id', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/', protect, async (req, res) => {
+router.post('/', protect, adminOnly, async (req, res) => {
   try {
-    const doctor = await Doctor.create(req.body);
-    res.status(201).json(doctor);
+    const { name, email, phone, specialization, experience, qualification, consultation_fees, fees } = req.body;
+    
+    if (!email) return res.status(400).json({ message: 'Doctor email is required' });
+    if (!name) return res.status(400).json({ message: 'Doctor name is required' });
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    if (existingUser) {
+      return res.status(400).json({ message: 'A user with this email already exists' });
+    }
+
+    // Create User with temporary status
+    const tempPassword = Math.random().toString(36).slice(-10);
+    const setupToken = jwt.sign({ email: email.toLowerCase(), type: 'doctor_setup' }, process.env.JWT_SECRET || 'secret', { expiresIn: '48h' });
+
+    const user = await User.create({
+      name,
+      email: email.toLowerCase(),
+      password: tempPassword,
+      role: 'doctor',
+      phone: phone || '',
+      isVerified: false,
+      status: 'active',
+      approvalStatus: 'approved',
+    });
+
+    // Create Doctor profile
+    const doctor = await Doctor.create({
+      name,
+      email: email.toLowerCase(),
+      phone: phone || '',
+      specialization: specialization || 'General Medicine',
+      experience: experience || '1 year',
+      qualifications: qualification || '',
+      fees: Number(consultation_fees || fees || 500),
+      consultation_fees: Number(consultation_fees || fees || 500),
+      approved: true,
+      user_id: user._id.toString(),
+      initials: name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase(),
+      available: true,
+    });
+
+    // Send invitation email with setup link
+    const setupUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/#/doctor-setup?token=${setupToken}`;
+    await sendEmail({
+      to: email.toLowerCase(),
+      subject: 'Welcome to MediCore — Set up your doctor account',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px;">
+          <h2 style="color: #0b8a72;">Welcome to MediCore, ${name}!</h2>
+          <p>An admin has created a doctor account for you. Please set up your password to get started.</p>
+          <a href="${setupUrl}" style="display: inline-block; padding: 12px 24px; background: #0b8a72; color: white; text-decoration: none; border-radius: 6px; font-size: 16px;">
+            Set Up My Account
+          </a>
+          <p style="margin-top: 24px; color: #666;">This link expires in 48 hours. If you did not expect this invitation, please ignore this email.</p>
+        </div>
+      `,
+      text: `Welcome to MediCore! An admin has created a doctor account for you. Set up your password here: ${setupUrl}`,
+    });
+
+    res.status(201).json({
+      message: 'Doctor created. An invitation email has been sent.',
+      doctor,
+    });
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
