@@ -4,7 +4,8 @@ import Bed from '../models/Bed.js';
 import Notification from '../models/Notification.js';
 import Doctor from '../models/Doctor.js';
 import User from '../models/User.js';
-import { protect } from '../middleware/auth.js';
+import Hospital from '../models/Hospital.js';
+import { protect, scopeToHospital } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -57,7 +58,7 @@ const createNotification = async (userId, title, message, type = 'appointment') 
 
 router.get('/', protect, async (req, res) => {
   try {
-    const { status, date, search } = req.query;
+    const { status, date, search, hospitalId } = req.query;
     const filter = {};
     
     if (status && status !== 'All') filter.status = status;
@@ -66,9 +67,13 @@ router.get('/', protect, async (req, res) => {
     if (req.user.role === 'patient') {
       filter.patientId = req.user._id;
     } else if (req.user.role === 'doctor') {
-      // Match appointments where doctor name matches current doctor's name
       filter.doctor = new RegExp(req.user.name, 'i');
+      if (req.user.hospitalId) filter.hospitalId = req.user.hospitalId;
+    } else if (req.user.role === 'admin') {
+      if (req.user.hospitalId) filter.hospitalId = req.user.hospitalId;
     }
+    
+    if (hospitalId) filter.hospitalId = hospitalId;
     
     if (search && req.user.role === 'doctor') {
       filter.$or = [
@@ -92,8 +97,10 @@ router.get('/my-appointments', protect, async (req, res) => {
     if (req.user.role === 'patient') {
       filter.patientId = req.user._id;
     } else if (req.user.role === 'doctor') {
-      // Match by doctor name
       filter.doctor = new RegExp(req.user.name, 'i');
+      if (req.user.hospitalId) filter.hospitalId = req.user.hospitalId;
+    } else if (req.user.role === 'admin') {
+      if (req.user.hospitalId) filter.hospitalId = req.user.hospitalId;
     }
     
     if (status && status !== 'All') filter.status = status;
@@ -123,6 +130,15 @@ router.post('/', protect, async (req, res) => {
     let patientName = req.user.name;
     let patientId = req.user._id;
     
+    // Get hospitalId from the selected doctor
+    let hospitalId = null;
+    if (doctorId) {
+      const doctorDoc = await Doctor.findById(doctorId);
+      if (doctorDoc && doctorDoc.hospitalId) {
+        hospitalId = doctorDoc.hospitalId;
+      }
+    }
+    
     const countToday = await Appointment.countDocuments({ date, doctor: doctor || '' });
     const tokenNumber = `${new Date(date || Date.now()).toISOString().slice(0,10).replace(/-/g,'')}-${String(countToday + 1).padStart(3, '0')}`;
     const patientUser = await User.findById(patientId);
@@ -141,6 +157,7 @@ router.post('/', protect, async (req, res) => {
       symptoms: symptoms || '',
       priority: priority || 'Normal',
       estimatedWaitTime,
+      hospitalId: hospitalId || undefined,
       status: 'Pending'
     });
     
@@ -178,10 +195,13 @@ router.put('/:id/checkin', protect, async (req, res) => {
 router.get('/queue/:department', protect, async (req, res) => {
   try {
     const { department } = req.params;
-    const queue = await Appointment.find({
-      department,
-      status: { $in: ['In Queue', 'Called'] }
-    }).sort({ queuePosition: 1 });
+    const filter = { department, status: { $in: ['In Queue', 'Called'] } };
+    if (req.user.hospitalId && req.user.role !== 'superadmin') {
+      filter.hospitalId = req.user.hospitalId;
+    } else if (req.query.hospitalId) {
+      filter.hospitalId = req.query.hospitalId;
+    }
+    const queue = await Appointment.find(filter).sort({ queuePosition: 1 });
     
     res.json({ queue });
   } catch (err) { res.status(500).json({ message: err.message }); }
