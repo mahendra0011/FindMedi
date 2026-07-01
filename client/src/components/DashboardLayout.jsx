@@ -1,24 +1,12 @@
-import { useState, useEffect, useRef } from 'react';
+import { useRef, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
+import { useIsMobile } from '@/hooks/use-mobile';
 import AppSidebar from './AppSidebar';
 
 export default function DashboardLayout({ children }) {
-  const [sidebarWidth, setSidebarWidth] = useState(256);
   const mainRef = useRef(null);
   const location = useLocation();
-
-  useEffect(() => {
-    const obs = new MutationObserver(() => {
-      const aside = document.querySelector('aside');
-      if (aside) setSidebarWidth(aside.offsetWidth);
-    });
-    const aside = document.querySelector('aside');
-    if (aside) {
-      setSidebarWidth(aside.offsetWidth);
-      obs.observe(aside, { attributes: true, attributeFilter: ['class'] });
-    }
-    return () => obs.disconnect();
-  }, []);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     mainRef.current?.scrollTo({ top: 0, left: 0, behavior: 'auto' });
@@ -29,8 +17,8 @@ export default function DashboardLayout({ children }) {
       <AppSidebar />
       <main
         ref={mainRef}
-        className="dashboard-main h-screen overflow-y-auto overscroll-contain p-6 md:p-8 transition-all duration-300"
-        style={{ marginLeft: sidebarWidth }}
+        className={`dashboard-main h-screen overflow-y-auto overscroll-contain transition-all duration-300 ${isMobile ? 'p-4 pt-16' : 'p-6 md:p-8'}`}
+        style={isMobile ? {} : { marginLeft: 256 }}
       >
         {children}
       </main>
