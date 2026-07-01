@@ -52,6 +52,10 @@ router.get('/', protect, async (req, res) => {
     const { search, status } = req.query;
     const filter = {};
     
+    if (req.user.hospitalId && (req.user.role === 'admin' || req.user.role === 'superadmin')) {
+      filter.hospitalId = req.user.hospitalId;
+    }
+    
     // If admin or doctor, show all bills (or filter by their name for doctors)
     if (req.user.role === 'patient') {
       filter.$or = [
@@ -59,7 +63,6 @@ router.get('/', protect, async (req, res) => {
         { patient: new RegExp(req.user.name, 'i') }
       ];
     } else if (req.user.role === 'doctor') {
-      // Doctors see bills created by them
       filter.doctor = new RegExp(req.user.name, 'i');
     }
     // Admin sees all bills - no filter needed
@@ -178,6 +181,7 @@ router.post('/', protect, async (req, res) => {
       services: selectedServices,
       source: isLabBooking ? 'lab' : source || 'manual',
       amount: finalAmount,
+      hospitalId: req.user.hospitalId || undefined,
       date: date || new Date().toISOString().split('T')[0],
       dueDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       status: 'Pending',
