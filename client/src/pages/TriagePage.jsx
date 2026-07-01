@@ -47,7 +47,7 @@ export default function TriagePage() {
 
   return (
     <div>
-      <div className="page-header"><h1 className="page-title">Emergency Triage</h1><p className="page-subtitle">{stats?.today || 0} today · {stats?.immediate || 0} immediate</p></div>
+      <div className="page-header flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"><h1 className="page-title">Emergency Triage</h1><p className="page-subtitle">{stats?.today || 0} today · {stats?.immediate || 0} immediate</p></div>
 
       <div className="grid grid-cols-2 md:grid-cols-7 gap-3 mb-6">
         {[
