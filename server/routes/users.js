@@ -9,6 +9,7 @@ router.get('/', protect, adminOnly, async (req, res) => {
   try {
     const filter = {};
     if (req.query.role && req.query.role !== 'All') filter.role = req.query.role;
+    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
     if (req.query.search) {
       const q = req.query.search;
       filter.$or = [
@@ -40,6 +41,9 @@ router.put('/:id/block', protect, adminOnly, async (req, res) => {
 
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ message: 'User not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && user.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
 
     user.status = user.status === 'blocked' ? 'active' : 'blocked';
     await user.save();
@@ -58,6 +62,11 @@ router.delete('/:id', protect, adminOnly, async (req, res) => {
       return res.status(400).json({ message: 'You cannot delete your own account' });
     }
 
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && user.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     await User.findByIdAndDelete(req.params.id);
     res.json({ message: 'Deleted' });
   } catch (err) { res.status(500).json({ message: err.message }); }
