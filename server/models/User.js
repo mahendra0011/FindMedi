@@ -79,3 +79,4 @@ userSchema.methods.comparePassword = function (plain) {
 };
 
 export default mongoose.model('User', userSchema);
+// 19
