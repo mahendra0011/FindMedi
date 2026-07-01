@@ -12,7 +12,8 @@ const patientSchema = new mongoose.Schema({
   phone: { type: String, default: '' },
   email: { type: String, default: '' },
   address: { type: String, default: '' },
-bloodGroup: { type: String, default: '' },
+  bloodGroup: { type: String, default: '' },
+  hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
 
   birthRecord: {
     placeOfBirth: { type: String },
