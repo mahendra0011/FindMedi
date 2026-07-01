@@ -20,7 +20,7 @@ import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { applyUserSettings, t } from '@/lib/settings';
-import { updateSetting, selectSetting } from '@/store/slices/settingsSlice';
+import { updateSetting, loadUserSettings, selectSetting } from '@/store/slices/settingsSlice';
 
 const roleBadge = {
   admin: 'bg-primary/15 text-primary',
@@ -30,11 +30,10 @@ const roleBadge = {
 
 const tabs = [
   { key: 'profile', labelKey: 'settings.profile', icon: User },
-  { key: 'role', labelKey: 'settings.roleDetails', icon: Stethoscope },
   { key: 'security', labelKey: 'settings.security', icon: Lock },
   { key: 'notifications', labelKey: 'settings.notifications', icon: Bell },
   { key: 'appearance', labelKey: 'settings.appearance', icon: Palette },
-  { key: 'privacy', labelKey: 'settings.privacy', icon: Shield },
+  { key: 'privacy', labelKey: 'settings.privacyData', icon: Shield },
 ];
 
 const toInputDate = (value) => {
@@ -116,7 +115,9 @@ export default function Settings() {
   const [tab, setTab] = useState('profile');
   const [profile, setProfile] = useState(() => buildProfile(user));
   const dispatch = useDispatch();
-  const settings = useSelector(selectSetting) || {};
+  const reduxSettings = useSelector(selectSetting) || {};
+  const authSettings = user?.settings || {};
+  const settings = reduxSettings;
   const [password, setPassword] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [notice, setNotice] = useState(null);
   const language = settings.language || 'en';
@@ -125,6 +126,14 @@ export default function Settings() {
   useEffect(() => {
     setProfile(buildProfile(user));
   }, [user]);
+
+// Sync auth user settings into Redux when user changes
+  useEffect(() => {
+    if (authSettings && Object.keys(authSettings).length > 0) {
+      dispatch(loadUserSettings(authSettings));
+      applyUserSettings(authSettings);
+    }
+  }, [user, dispatch]);
 
   useEffect(() => {
     applyUserSettings(settings);
@@ -136,6 +145,10 @@ export default function Settings() {
     mutationFn: (payload) => api.updateProfile(payload),
     onSuccess: (data) => {
       updateUser(data);
+      if (data?.settings) {
+        dispatch(loadUserSettings(data.settings));
+        applyUserSettings(data.settings);
+      }
       setNotice({ type: 'success', text: t('settings.saved', data.settings?.language || language) });
     },
     onError: (error) => setNotice({ type: 'error', text: error.message || tr('settings.saveError') }),
@@ -163,7 +176,7 @@ export default function Settings() {
   });
 
   const updateProfile = (key, value) => setProfile((current) => ({ ...current, [key]: value }));
-  const updateSetting = (key, value) => dispatch(updateSetting({ key, value }));
+  const saveSetting = (key, value) => dispatch(updateSetting({ key, value }));
 
   const handleAvatarSelect = (event) => {
     const file = event.target.files?.[0];
@@ -338,111 +351,6 @@ export default function Settings() {
             </>
           )}
 
-          {tab === 'role' && (
-            <div className="bg-card rounded-xl border shadow-sm p-6">
-              <h3 className="font-heading font-semibold text-lg text-card-foreground mb-5">{tr('settings.rolePreferences')}</h3>
-              {user?.role === 'doctor' && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Field label={tr('settings.specialization')}>
-                    <Input value={profile.specialization} onChange={(event) => updateProfile('specialization', event.target.value)} placeholder="Cardiology" />
-                  </Field>
-                  <Field label={tr('settings.experience')}>
-                    <Input value={profile.experience} onChange={(event) => updateProfile('experience', event.target.value)} placeholder="8 years" />
-                  </Field>
-                  <Field label={tr('settings.qualification')}>
-                    <Input value={profile.qualification} onChange={(event) => updateProfile('qualification', event.target.value)} placeholder="MBBS, MD" />
-                  </Field>
-                  <Field label={tr('settings.licenseNumber')}>
-                    <Input value={profile.licenseNumber} onChange={(event) => updateProfile('licenseNumber', event.target.value)} placeholder="MED-12345" />
-                  </Field>
-                  <Field label={tr('settings.consultationFee')}>
-                    <Input type="number" value={profile.consultationFee} onChange={(event) => updateProfile('consultationFee', event.target.value)} placeholder="500" />
-                  </Field>
-                  <SelectField
-                    label={tr('settings.defaultDoctorDashboard')}
-                    value={settings.defaultDashboard}
-                    onChange={(value) => updateSetting('defaultDashboard', value)}
-                    options={[
-                      { value: 'overview', label: tr('option.overview') },
-                      { value: 'appointments', label: tr('option.appointments') },
-                      { value: 'patients', label: tr('option.patients') },
-                      { value: 'reports', label: tr('option.reports') },
-                      { value: 'earnings', label: tr('option.earnings') },
-                      { value: 'schedule', label: tr('option.schedule') },
-                      { value: 'emergency', label: tr('option.emergency') },
-                    ]}
-                  />
-                  <ToggleRow
-                    title={tr('settings.scheduleAlerts')}
-                    description={tr('settings.scheduleAlertsDesc')}
-                    checked={settings.doctorScheduleAlerts}
-                    onChange={(checked) => updateSetting('doctorScheduleAlerts', checked)}
-                  />
-                </div>
-              )}
-              {user?.role === 'admin' && (
-                <div className="space-y-1">
-                  <ToggleRow
-                    title={tr('settings.adminDigest')}
-                    description={tr('settings.adminDigestDesc')}
-                    checked={settings.adminDigest}
-                    onChange={(checked) => updateSetting('adminDigest', checked)}
-                  />
-                  <ToggleRow
-                    title={tr('settings.criticalAlerts')}
-                    description={tr('settings.criticalAlertsDesc')}
-                    checked={settings.criticalAlerts}
-                    onChange={(checked) => updateSetting('criticalAlerts', checked)}
-                  />
-                  <SelectField
-                    label={tr('settings.defaultAdminDashboard')}
-                    value={settings.defaultDashboard}
-                    onChange={(value) => updateSetting('defaultDashboard', value)}
-                    options={[
-                      { value: 'overview', label: tr('option.overview') },
-                      { value: 'reports', label: tr('option.reports') },
-                      { value: 'billing', label: tr('option.billing') },
-                      { value: 'emergency', label: tr('option.emergency') },
-                    ]}
-                  />
-                </div>
-              )}
-              {user?.role === 'patient' && (
-                <div className="space-y-1">
-                  <ToggleRow
-                    title={tr('settings.careTeamSharing')}
-                    description={tr('settings.careTeamSharingDesc')}
-                    checked={settings.patientRecordSharing}
-                    onChange={(checked) => updateSetting('patientRecordSharing', checked)}
-                  />
-                  <ToggleRow
-                    title={tr('settings.labResultEmails')}
-                    description={tr('settings.labResultEmailsDesc')}
-                    checked={settings.labResultEmails}
-                    onChange={(checked) => updateSetting('labResultEmails', checked)}
-                  />
-                  <SelectField
-                    label={tr('settings.defaultPatientDashboard')}
-                    value={settings.defaultDashboard}
-                    onChange={(value) => updateSetting('defaultDashboard', value)}
-                    options={[
-                      { value: 'overview', label: tr('option.overview') },
-                      { value: 'appointments', label: tr('option.appointments') },
-                      { value: 'records', label: tr('option.records') },
-                      { value: 'billing', label: tr('option.billing') },
-                    ]}
-                  />
-                </div>
-              )}
-              <div className="flex justify-end mt-5">
-                <Button onClick={saveAccount} disabled={saveMut.isPending} className="gap-2">
-                  <Save className="w-4 h-4" />
-                  {saveMut.isPending ? tr('common.saving') : tr('settings.saveRole')}
-                </Button>
-              </div>
-            </div>
-          )}
-
           {tab === 'security' && (
             <div className="bg-card rounded-xl border shadow-sm p-6">
               <h3 className="font-heading font-semibold text-lg text-card-foreground mb-5">{tr('settings.security')}</h3>
@@ -463,7 +371,7 @@ export default function Settings() {
                   title={tr('settings.twoFactor')}
                   description={tr('settings.twoFactorDesc')}
                   checked={settings.twoFactorEnabled}
-                  onChange={(checked) => updateSetting('twoFactorEnabled', checked)}
+                  onChange={(checked) => saveSetting('twoFactorEnabled', checked)}
                 />
               </div>
               <div className="flex flex-wrap gap-3 mt-5">
@@ -483,11 +391,9 @@ export default function Settings() {
             <div className="bg-card rounded-xl border shadow-sm p-6">
               <h3 className="font-heading font-semibold text-lg text-card-foreground mb-5">{tr('settings.notificationPrefs')}</h3>
               <div className="space-y-1">
-                <ToggleRow title={tr('settings.emailNotifications')} description={tr('settings.emailNotificationsDesc')} checked={settings.emailNotifications} onChange={(checked) => updateSetting('emailNotifications', checked)} />
-                <ToggleRow title={tr('settings.systemNotifications')} description={tr('settings.systemNotificationsDesc')} checked={settings.systemNotifications} onChange={(checked) => updateSetting('systemNotifications', checked)} />
-                <ToggleRow title={tr('settings.appointmentReminders')} description={tr('settings.appointmentRemindersDesc')} checked={settings.appointmentReminders} onChange={(checked) => updateSetting('appointmentReminders', checked)} />
-                <ToggleRow title={tr('settings.weeklyReports')} description={tr('settings.weeklyReportsDesc')} checked={settings.weeklyReports} onChange={(checked) => updateSetting('weeklyReports', checked)} />
-                <ToggleRow title={tr('settings.criticalAlerts')} description={tr('settings.criticalAlertsDesc')} checked={settings.criticalAlerts} onChange={(checked) => updateSetting('criticalAlerts', checked)} />
+                <ToggleRow title={tr('settings.emailNotifications')} description={tr('settings.emailNotificationsDesc')} checked={settings.emailNotifications} onChange={(checked) => saveSetting('emailNotifications', checked)} />
+                <ToggleRow title={tr('settings.systemNotifications')} description={tr('settings.systemNotificationsDesc')} checked={settings.systemNotifications} onChange={(checked) => saveSetting('systemNotifications', checked)} />
+                <ToggleRow title={tr('settings.appointmentReminders')} description={tr('settings.appointmentRemindersDesc')} checked={settings.appointmentReminders} onChange={(checked) => saveSetting('appointmentReminders', checked)} />
               </div>
               <div className="flex justify-end mt-5">
                 <Button onClick={saveAccount} disabled={saveMut.isPending} className="gap-2">
@@ -505,7 +411,7 @@ export default function Settings() {
                 <SelectField
                   label={tr('settings.theme')}
                   value={settings.theme}
-                  onChange={(value) => updateSetting('theme', value)}
+                  onChange={(value) => saveSetting('theme', value)}
                   options={[
                     { value: 'system', label: tr('settings.system') },
                     { value: 'light', label: tr('settings.light') },
@@ -519,7 +425,7 @@ export default function Settings() {
                 <SelectField
                   label={tr('settings.density')}
                   value={settings.density}
-                  onChange={(value) => updateSetting('density', value)}
+                  onChange={(value) => saveSetting('density', value)}
                   options={[
                     { value: 'comfortable', label: tr('settings.comfortable') },
                     { value: 'compact', label: tr('settings.compact') },
@@ -529,22 +435,11 @@ export default function Settings() {
                 <SelectField
                   label={tr('settings.language')}
                   value={settings.language}
-                  onChange={(value) => updateSetting('language', value)}
+                  onChange={(value) => saveSetting('language', value)}
                   options={[
                     { value: 'en', label: tr('settings.english') },
                     { value: 'hi', label: tr('settings.hindi') },
                     { value: 'mr', label: tr('settings.marathi') },
-                  ]}
-                />
-                <SelectField
-                  label={tr('settings.timezone')}
-                  value={settings.timezone}
-                  onChange={(value) => updateSetting('timezone', value)}
-                  options={[
-                    { value: 'Asia/Calcutta', label: tr('settings.indiaTime') },
-                    { value: 'UTC', label: 'UTC' },
-                    { value: 'America/New_York', label: tr('settings.easternTime') },
-                    { value: 'Europe/London', label: tr('settings.london') },
                   ]}
                 />
               </div>
@@ -560,27 +455,10 @@ export default function Settings() {
           {tab === 'privacy' && (
             <div className="bg-card rounded-xl border shadow-sm p-6">
               <h3 className="font-heading font-semibold text-lg text-card-foreground mb-5">{tr('settings.privacyData')}</h3>
-              <div className="space-y-1">
-                <ToggleRow title={tr('settings.usageAnalytics')} description={tr('settings.usageAnalyticsDesc')} checked={settings.dataSharing} onChange={(checked) => updateSetting('dataSharing', checked)} />
-                <SelectField
-                  label={tr('settings.profileVisibility')}
-                  value={settings.profileVisibility}
-                  onChange={(value) => updateSetting('profileVisibility', value)}
-                  options={[
-                    { value: 'private', label: tr('settings.private') },
-                    { value: 'care_team', label: tr('settings.careTeamOnly') },
-                    { value: 'hospital', label: tr('settings.hospitalStaff') },
-                  ]}
-                />
-              </div>
               <div className="flex flex-wrap gap-3 mt-5">
                 <Button variant="outline" onClick={downloadMyData} className="gap-2">
                   <Download className="w-4 h-4" />
                   {tr('settings.downloadData')}
-                </Button>
-                <Button onClick={saveAccount} disabled={saveMut.isPending} className="gap-2">
-                  <Save className="w-4 h-4" />
-                  {saveMut.isPending ? tr('common.saving') : tr('settings.savePrivacy')}
                 </Button>
               </div>
             </div>
