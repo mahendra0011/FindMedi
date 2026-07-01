@@ -42,6 +42,7 @@ const recordSchema = new mongoose.Schema({
     musculoskeletal: { type: String },
   },
 
+  hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
   data: { type: Object, default: {} },
   attachments: [{ type: String }],
   createdAt: { type: Date, default: Date.now },
