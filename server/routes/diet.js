@@ -20,6 +20,7 @@ router.post('/orders', protect, async (req, res) => {
     const order = await DietOrder.create({
       orderId, patientId, patientName, admissionId, ward, bedNumber,
       doctorId: req.user._id, doctorName: req.user.name,
+      hospitalId: req.user.hospitalId || undefined,
       dietType, mealTimes: mealTimes || ['Breakfast', 'Lunch', 'Dinner'],
       instructions: instructions || '', allergies: allergies || '',
       createdBy: req.user._id,
@@ -38,6 +39,7 @@ router.get('/orders', protect, async (req, res) => {
   try {
     const { status, search } = req.query;
     const filter = {};
+    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
     if (status && status !== 'All') filter.status = status;
     if (search) {
       filter.$or = [
@@ -54,6 +56,9 @@ router.put('/orders/:id/deliver-meal', protect, async (req, res) => {
   try {
     const order = await DietOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && order.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     const { mealType, items } = req.body;
     
     const mealIndex = order.meals.findIndex(m => m.mealType === mealType);
@@ -77,6 +82,9 @@ router.put('/orders/:id/confirm-meal', protect, async (req, res) => {
   try {
     const order = await DietOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && order.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     const { mealIndex, feedback, feedbackNote } = req.body;
     if (mealIndex === undefined) return res.status(400).json({ message: 'Meal index required' });
     const meal = order.meals[mealIndex];
@@ -92,8 +100,14 @@ router.put('/orders/:id/confirm-meal', protect, async (req, res) => {
 
 router.put('/orders/:id/review', protect, async (req, res) => {
   try {
-    const order = await DietOrder.findByIdAndUpdate(req.params.id, { reviewedByDietitian: true, dietitianName: req.user.name }, { new: true });
+    const order = await DietOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && order.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    order.reviewedByDietitian = true;
+    order.dietitianName = req.user.name;
+    await order.save();
     res.json(order);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -103,6 +117,9 @@ router.post('/orders/:id/create-billing', protect, async (req, res) => {
   try {
     const order = await DietOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && order.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     
     const { amount, description, items } = req.body;
     
@@ -134,10 +151,12 @@ router.post('/orders/:id/create-billing', protect, async (req, res) => {
 
 router.get('/stats', protect, async (req, res) => {
   try {
-    const active = await DietOrder.countDocuments({ status: 'Active' });
-    const todayMeals = await DietOrder.countDocuments({ 'meals.date': { $gte: new Date().setHours(0,0,0,0) } });
-    const total = await DietOrder.countDocuments();
-    const reviewed = await DietOrder.countDocuments({ reviewedByDietitian: true });
+    const hFilter = {};
+    if (req.user.hospitalId && req.user.role !== 'superadmin') hFilter.hospitalId = req.user.hospitalId;
+    const active = await DietOrder.countDocuments({ status: 'Active', ...hFilter });
+    const todayMeals = await DietOrder.countDocuments({ ...hFilter, 'meals.date': { $gte: new Date().setHours(0,0,0,0) } });
+    const total = await DietOrder.countDocuments(hFilter);
+    const reviewed = await DietOrder.countDocuments({ reviewedByDietitian: true, ...hFilter });
     res.json({ active, todayMeals, total, reviewed });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
