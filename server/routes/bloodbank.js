@@ -12,6 +12,7 @@ router.get('/units', protect, async (req, res) => {
   try {
     const { bloodGroup, status } = req.query;
     const filter = {};
+    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
     if (bloodGroup && bloodGroup !== 'All') filter.bloodGroup = bloodGroup;
     if (status && status !== 'All') filter.status = status;
     const units = await BloodUnit.find(filter).sort({ createdAt: -1 });
@@ -22,7 +23,7 @@ router.get('/units', protect, async (req, res) => {
 router.post('/units', protect, async (req, res) => {
   try {
     const unitId = await genUnitId();
-    const unit = await BloodUnit.create({ ...req.body, unitId });
+    const unit = await BloodUnit.create({ ...req.body, unitId, hospitalId: req.user.hospitalId || undefined });
     res.status(201).json(unit);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -32,7 +33,7 @@ router.post('/requests', protect, async (req, res) => {
     const { patientId, patientName, bloodGroup, unitsRequired, reason, priority } = req.body;
     if (!patientId || !bloodGroup) return res.status(400).json({ message: 'Patient and blood group required' });
     const requestId = await genReqId();
-    const request = await BloodRequest.create({ requestId, patientId, patientName, doctorId: req.user._id, doctorName: req.user.name, bloodGroup, unitsRequired: unitsRequired || 1, reason, priority: priority || 'Routine', createdBy: req.user._id });
+    const request = await BloodRequest.create({ requestId, patientId, patientName, doctorId: req.user._id, doctorName: req.user.name, bloodGroup, unitsRequired: unitsRequired || 1, reason, priority: priority || 'Routine', hospitalId: req.user.hospitalId || undefined, createdBy: req.user._id });
     res.status(201).json(request);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -41,6 +42,7 @@ router.get('/requests', protect, async (req, res) => {
   try {
     const { status, search } = req.query;
     const filter = {};
+    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
     if (status && status !== 'All') filter.status = status;
     if (search) filter.$or = [{ requestId: new RegExp(search,'i') }, { patientName: new RegExp(search,'i') }, { bloodGroup: new RegExp(search,'i') }];
     const requests = await BloodRequest.find(filter).populate('patientId','name').sort({ createdAt: -1 });
@@ -53,6 +55,9 @@ router.put('/requests/:id/issue', protect, async (req, res) => {
     const { unitIds } = req.body;
     const request = await BloodRequest.findById(req.params.id);
     if (!request) return res.status(404).json({ message: 'Request not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && request.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     request.status = 'Issued';
     request.issuedUnits = unitIds || [];
     await request.save();
@@ -65,7 +70,16 @@ router.put('/requests/:id/issue', protect, async (req, res) => {
 
 router.put('/requests/:id/transfuse', protect, async (req, res) => {
   try {
-    const request = await BloodRequest.findByIdAndUpdate(req.params.id, { status: 'Completed', transfusionEndedAt: new Date(), reaction: req.body.reaction, reactionNotes: req.body.reactionNotes }, { new: true });
+    const request = await BloodRequest.findById(req.params.id);
+    if (!request) return res.status(404).json({ message: 'Request not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && request.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    request.status = 'Completed';
+    request.transfusionEndedAt = new Date();
+    request.reaction = req.body.reaction;
+    request.reactionNotes = req.body.reactionNotes;
+    await request.save();
     res.json(request);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -75,6 +89,9 @@ router.put('/requests/:id/crossmatch', protect, async (req, res) => {
   try {
     const request = await BloodRequest.findById(req.params.id);
     if (!request) return res.status(404).json({ message: 'Request not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && request.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     
     const { unitIds, crossMatchResult } = req.body;
     
@@ -115,12 +132,14 @@ router.put('/requests/:id/crossmatch', protect, async (req, res) => {
 
 router.get('/stats', protect, async (req, res) => {
   try {
-    const total = await BloodUnit.countDocuments();
-    const available = await BloodUnit.countDocuments({ status: 'Available' });
-    const expired = await BloodUnit.countDocuments({ status: 'Expired' });
-    const pending = await BloodRequest.countDocuments({ status: { $in: ['Pending','Crossmatching'] } });
-    const issued = await BloodRequest.countDocuments({ status: 'Issued' });
-    const groups = await BloodUnit.aggregate([{ $match: { status: 'Available' } }, { $group: { _id: '$bloodGroup', count: { $sum: 1 } } }]);
+    const hFilter = {};
+    if (req.user.hospitalId && req.user.role !== 'superadmin') hFilter.hospitalId = req.user.hospitalId;
+    const total = await BloodUnit.countDocuments(hFilter);
+    const available = await BloodUnit.countDocuments({ status: 'Available', ...hFilter });
+    const expired = await BloodUnit.countDocuments({ status: 'Expired', ...hFilter });
+    const pending = await BloodRequest.countDocuments({ status: { $in: ['Pending','Crossmatching'] }, ...hFilter });
+    const issued = await BloodRequest.countDocuments({ status: 'Issued', ...hFilter });
+    const groups = await BloodUnit.aggregate([{ $match: { status: 'Available', ...hFilter } }, { $group: { _id: '$bloodGroup', count: { $sum: 1 } } }]);
     res.json({ total, available, expired, pending, issued, groups });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
