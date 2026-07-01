@@ -81,7 +81,7 @@ export default function Housekeeping() {
 
   return (
     <div>
-      <div className="page-header">
+      <div className="page-header flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <h1 className="page-title">Housekeeping</h1>
         <p className="page-subtitle">{stats?.pending || 0} pending · {stats?.inProgress || 0} in progress · {stats?.completed || 0} completed</p>
       </div>
@@ -256,7 +256,7 @@ export default function Housekeeping() {
           <div className="bg-card rounded-2xl border shadow-xl max-w-lg w-full p-6" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-6"><h2 className="font-heading text-xl font-bold">New Housekeeping Task</h2><button onClick={() => setShowCreate(false)}><X className="w-5 h-5" /></button></div>
             <div className="space-y-4">
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div><label className="text-sm font-medium mb-1 block">Room *</label><Input value={newTask.room} onChange={e => setNewTask({ ...newTask, room: e.target.value })} /></div>
                 <div><label className="text-sm font-medium mb-1 block">Bed Number</label><Input value={newTask.bedNumber} onChange={e => setNewTask({ ...newTask, bedNumber: e.target.value })} /></div>
                 <div><label className="text-sm font-medium mb-1 block">Ward</label><Input value={newTask.ward} onChange={e => setNewTask({ ...newTask, ward: e.target.value })} /></div>
