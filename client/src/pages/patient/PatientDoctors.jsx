@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Star, Clock, Phone, Mail, CalendarDays, Filter, ChevronRight, CheckCircle, IndianRupee, Download } from 'lucide-react';
+import { Search, Star, Clock, Phone, Mail, CalendarDays, Filter, ChevronRight, CheckCircle, IndianRupee, Download, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
@@ -11,8 +11,10 @@ const specializations = ['All', 'Cardiology', 'Neurology', 'Orthopedics', 'Pedia
 export default function PatientDoctors() {
   const { user } = useAuth();
   const [doctors, setDoctors] = useState([]);
+  const [hospitals, setHospitals] = useState([]);
   const [search, setSearch] = useState('');
   const [specFilter, setSpecFilter] = useState('All');
+  const [hospitalFilter, setHospitalFilter] = useState('');
   const [loading, setLoading] = useState(true);
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [viewProfile, setViewProfile] = useState(null);
@@ -26,13 +28,19 @@ export default function PatientDoctors() {
   const loadDoctors = async () => {
     setLoading(true);
     try {
-      const data = await api.getDoctors({ search, specialization: specFilter });
+      const params = { search, specialization: specFilter };
+      if (hospitalFilter) params.hospitalId = hospitalFilter;
+      const data = await api.getDoctors(params);
       setDoctors(data);
     } catch (e) { console.error(e); }
     setLoading(false);
   };
 
-  useEffect(() => { loadDoctors(); }, [search, specFilter]);
+  useEffect(() => { loadDoctors(); }, [search, specFilter, hospitalFilter]);
+
+  useEffect(() => {
+    api.getHospitals({ status: 'approved' }).then(setHospitals).catch(() => {});
+  }, []);
 
   const handleBook = async () => {
     if (!bookingDate || !bookingTime || !selectedDoctor) return;
@@ -77,7 +85,15 @@ export default function PatientDoctors() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name or specialization..." className="pl-10" />
         </div>
-        <div className="flex flex-wrap gap-4">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex-1">
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">Hospital</label>
+            <select value={hospitalFilter} onChange={e => setHospitalFilter(e.target.value)}
+              className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm">
+              <option value="">All Hospitals</option>
+              {hospitals.map(h => <option key={h._id} value={h._id}>{h.name}</option>)}
+            </select>
+          </div>
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Specialization</label>
               <div className="flex gap-2 flex-wrap">
@@ -111,6 +127,11 @@ export default function PatientDoctors() {
                 <div className="min-w-0 flex-1">
                   <h3 className="font-heading font-semibold text-foreground truncate">{doc.name}</h3>
                   <p className="text-sm text-primary font-medium">{doc.specialization}</p>
+                  {doc.hospitalId?.name && (
+                    <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                      <Building2 className="w-3 h-3" />{doc.hospitalId.name}
+                    </p>
+                  )}
                 </div>
                 <div className={`px-2 py-0.5 rounded-full text-xs font-semibold ${doc.available ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}`}>
                   {doc.available ? 'Available' : 'Unavailable'}
