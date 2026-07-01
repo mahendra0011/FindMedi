@@ -32,7 +32,9 @@ router.get('/', protect, async (req, res) => {
 
 router.get('/:id', protect, async (req, res) => {
   try {
-    const staff = await Staff.findById(req.params.id);
+    const filter = { _id: req.params.id };
+    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    const staff = await Staff.findOne(filter);
     if (!staff) return res.status(404).json({ message: 'Staff not found' });
     res.json(staff);
   } catch (err) { res.status(500).json({ message: err.message }); }
