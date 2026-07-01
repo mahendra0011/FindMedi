@@ -67,7 +67,7 @@ export default function BloodBank() {
 
   return (
     <div>
-      <div className="page-header">
+      <div className="page-header flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <h1 className="page-title">Blood Bank</h1>
         <p className="page-subtitle">{stats?.available || 0} units available · {stats?.pending || 0} pending · {stats?.crossMatching || 0} cross-matching</p>
       </div>
