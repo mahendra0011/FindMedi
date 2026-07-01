@@ -21,6 +21,7 @@ const purchaseOrderSchema = new mongoose.Schema({
   expectedDelivery: { type: Date },
   receivedDate: { type: Date },
   approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   notes: { type: String },
   createdAt: { type: Date, default: Date.now },
