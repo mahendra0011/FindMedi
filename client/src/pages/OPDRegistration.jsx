@@ -43,12 +43,12 @@ export default function OPDRegistration() {
 
   return (
     <div>
-      <div className="page-header flex items-start justify-between">
+      <div className="page-header flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
           <h1 className="page-title">OPD Registration</h1>
           <p className="page-subtitle">Patient registration with UHID generation</p>
         </div>
-        <Button className="gap-2" onClick={() => setShowAdd(true)}><Plus className="w-4 h-4" /> New Registration</Button>
+        <Button className="gap-2 w-full sm:w-auto" onClick={() => setShowAdd(true)}><Plus className="w-4 h-4" /> New Registration</Button>
       </div>
 
       <div className="flex flex-wrap gap-3 mb-6">
