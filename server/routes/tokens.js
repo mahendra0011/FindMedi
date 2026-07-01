@@ -111,12 +111,14 @@ router.get('/:id', protect, async (req, res) => {
 
 router.put('/:id/call', protect, async (req, res) => {
   try {
-    const token = await Token.findByIdAndUpdate(
-      req.params.id,
-      { status: 'Called', calledAt: new Date() },
-      { new: true }
-    );
+    const token = await Token.findById(req.params.id);
     if (!token) return res.status(404).json({ message: 'Token not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && token.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Not authorized to call this token' });
+    }
+    token.status = 'Called';
+    token.calledAt = new Date();
+    await token.save();
     
     // Notify patient
     await Notification.create({
