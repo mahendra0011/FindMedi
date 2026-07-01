@@ -12,17 +12,22 @@ router.get('/stats', protect, async (req, res) => {
   try {
     const today = new Date().toISOString().split('T')[0];
 
+    const hospitalFilter = req.user.hospitalId && req.user.role !== 'superadmin' ? { hospitalId: req.user.hospitalId } : {};
+    const billingMatch = { $match: hospitalFilter };
+    const appointmentMatch = { $match: { ...hospitalFilter, date: today } };
+
     const [totalPatients, totalDoctors, todayAppointments, billing, recentAppointments] = await Promise.all([
-      User.countDocuments({ role: 'patient' }),
-      User.countDocuments({ role: 'doctor' }),
-      Appointment.countDocuments({ date: today }),
-      Billing.aggregate([{ $group: { _id: null, revenue: { $sum: '$paid' } } }]),
-      Appointment.find().sort({ createdAt: -1 }).limit(5),
+      User.countDocuments({ role: 'patient', ...hospitalFilter }),
+      User.countDocuments({ role: 'doctor', ...hospitalFilter }),
+      Appointment.countDocuments({ date: today, ...hospitalFilter }),
+      Billing.aggregate([billingMatch, { $group: { _id: null, revenue: { $sum: '$paid' } } }]),
+      Appointment.find({ ...hospitalFilter }).sort({ createdAt: -1 }).limit(5),
     ]);
 
     // Weekly appointments for chart
     const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
     const weeklyRaw = await Appointment.aggregate([
+      { $match: hospitalFilter },
       { $group: { _id: { $dayOfWeek: '$createdAt' }, count: { $sum: 1 } } },
     ]);
     const weeklyMap = {};
@@ -31,6 +36,7 @@ router.get('/stats', protect, async (req, res) => {
 
     // Monthly revenue
     const monthlyRevenue = await Billing.aggregate([
+      billingMatch,
       { $group: { _id: { $month: '$createdAt' }, revenue: { $sum: '$paid' } } },
       { $sort: { '_id': 1 } },
       { $limit: 6 },
@@ -40,6 +46,7 @@ router.get('/stats', protect, async (req, res) => {
 
     // Department distribution
     const deptRaw = await Appointment.aggregate([
+      { $match: hospitalFilter },
       { $group: { _id: '$department', value: { $sum: 1 } } },
       { $sort: { value: -1 } },
       { $limit: 5 },
