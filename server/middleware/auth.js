@@ -112,15 +112,22 @@ export const canAccessRecord = async (req, res, next) => {
     }
 
     const user = req.user;
-    if (user.role === 'admin') {
+    if (user.role === 'superadmin') {
       return next();
     }
 
-    if (user.role === 'doctor' && record.assignedDoctor !== user.id) {
+    if (user.role === 'admin') {
+      if (user.hospitalId && record.hospitalId && record.hospitalId.toString() !== user.hospitalId.toString()) {
+        return res.status(403).json({ message: 'Forbidden: this record belongs to a different hospital' });
+      }
+      return next();
+    }
+
+    if (user.role === 'doctor' && record.doctorId?.toString() !== user.id) {
       return res.status(403).json({ message: 'Forbidden: you can only access your assigned records' });
     }
 
-    if (user.role === 'patient' && record.patientId !== user.id) {
+    if (user.role === 'patient' && record.patientId?.toString() !== user.id) {
       return res.status(403).json({ message: 'Forbidden: you can only access your own records' });
     }
 
@@ -138,7 +145,14 @@ export const canAccessPatient = async (req, res, next) => {
     }
 
     const user = req.user;
+    if (user.role === 'superadmin') {
+      return next();
+    }
+
     if (user.role === 'admin') {
+      if (user.hospitalId && patient.hospitalId && patient.hospitalId.toString() !== user.hospitalId.toString()) {
+        return res.status(403).json({ message: 'Forbidden: this patient belongs to a different hospital' });
+      }
       return next();
     }
 
@@ -146,7 +160,7 @@ export const canAccessPatient = async (req, res, next) => {
       return res.status(403).json({ message: 'Forbidden: you can only access your assigned patients' });
     }
 
-    if (user.role === 'patient' && patient.userId !== user.id) {
+    if (user.role === 'patient' && patient.userId?.toString() !== user.id) {
       return res.status(403).json({ message: 'Forbidden: you can only access your own profile' });
     }
 
