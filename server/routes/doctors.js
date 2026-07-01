@@ -51,6 +51,9 @@ router.get('/user/:userId', protect, async (req, res) => {
   try {
     const doctor = await Doctor.findOne({ user_id: req.params.userId });
     if (!doctor) return res.status(404).json({ message: 'Doctor profile not found' });
+    if (req.user.role !== 'superadmin' && req.user.hospitalId && doctor.hospitalId && doctor.hospitalId.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     res.json(doctor);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
@@ -59,6 +62,9 @@ router.get('/:id', protect, async (req, res) => {
   try {
     const doctor = await Doctor.findById(req.params.id);
     if (!doctor) return res.status(404).json({ message: 'Doctor not found' });
+    if (req.user.role !== 'superadmin' && req.user.hospitalId && doctor.hospitalId && doctor.hospitalId.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     res.json(doctor);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
@@ -214,12 +220,20 @@ router.put('/:id/reject', protect, async (req, res) => {
 
 router.put('/:id/schedule', protect, async (req, res) => {
   try {
+    if (req.user.role !== 'superadmin' && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+    const doctor = await Doctor.findById(req.params.id);
+    if (!doctor) return res.status(404).json({ message: 'Doctor not found' });
+    if (doctor.hospitalId?.toString() !== req.user.hospitalId?.toString() && req.user.role !== 'superadmin') {
+      return res.status(403).json({ message: 'Not your hospital' });
+    }
     const update = {};
     if (req.body.time_slots) update.time_slots = req.body.time_slots;
     if (req.body.weekly_schedule) update.weekly_schedule = req.body.weekly_schedule;
     if (req.body.leaves) update.leaves = req.body.leaves;
-    const doctor = await Doctor.findByIdAndUpdate(req.params.id, update, { new: true });
-    res.json(doctor);
+    const updated = await Doctor.findByIdAndUpdate(req.params.id, update, { new: true });
+    res.json(updated);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
