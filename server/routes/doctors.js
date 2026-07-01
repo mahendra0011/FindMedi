@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import Doctor from '../models/Doctor.js';
 import User from '../models/User.js';
 import Notification from '../models/Notification.js';
-import { protect, adminOnly } from '../middleware/auth.js';
+import { protect, adminOnly, hospitalAdminOnly, superadminOnly, scopeToHospital } from '../middleware/auth.js';
 import { sendDoctorApprovalEmail, sendDoctorRejectionEmail, sendEmail } from '../services/notificationService.js';
 
 const router = express.Router();
@@ -30,7 +30,7 @@ const findDoctorUser = (doctor, update) => {
 
 router.get('/', async (req, res) => {
   try {
-    const { search, available, specialization, location, includeAll } = req.query;
+    const { search, available, specialization, location, includeAll, hospitalId } = req.query;
     const filter = {};
     const canViewAll = includeAll === 'true' && await isAdminListRequest(req);
     if (!canViewAll) filter.approved = true;
@@ -41,6 +41,7 @@ router.get('/', async (req, res) => {
     if (specialization && specialization !== 'All') filter.specialization = new RegExp(specialization, 'i');
     if (location && location !== 'All') filter.location = new RegExp(location, 'i');
     if (available !== undefined) filter.available = available === 'true';
+    if (hospitalId) filter.hospitalId = hospitalId;
     const doctors = await Doctor.find(filter).sort({ createdAt: -1 });
     res.json(doctors);
   } catch (err) { res.status(500).json({ message: err.message }); }
@@ -62,8 +63,16 @@ router.get('/:id', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/', protect, adminOnly, async (req, res) => {
+router.post('/', protect, async (req, res) => {
   try {
+    if (req.user.role !== 'superadmin' && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+    const hospitalId = req.user.hospitalId;
+    if (!hospitalId && req.user.role !== 'superadmin') {
+      return res.status(400).json({ message: 'No hospital linked to this account' });
+    }
+
     const { name, email, phone, specialization, experience, qualification, consultation_fees, fees } = req.body;
     
     if (!email) return res.status(400).json({ message: 'Doctor email is required' });
@@ -85,6 +94,7 @@ router.post('/', protect, adminOnly, async (req, res) => {
       password: tempPassword,
       role: 'doctor',
       phone: phone || '',
+      hospitalId: hospitalId || undefined,
       isVerified: false,
       status: 'active',
       approvalStatus: 'approved',
@@ -102,6 +112,7 @@ router.post('/', protect, adminOnly, async (req, res) => {
       consultation_fees: Number(consultation_fees || fees || 500),
       approved: true,
       user_id: user._id.toString(),
+      hospitalId: hospitalId || undefined,
       initials: name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase(),
       available: true,
     });
@@ -133,16 +144,28 @@ router.post('/', protect, adminOnly, async (req, res) => {
 
 router.put('/:id', protect, async (req, res) => {
   try {
-    const doctor = await Doctor.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    const doctor = await Doctor.findById(req.params.id);
     if (!doctor) return res.status(404).json({ message: 'Doctor not found' });
-    res.json(doctor);
+    if (doctor.hospitalId?.toString() !== req.user.hospitalId?.toString() && req.user.role !== 'superadmin') {
+      return res.status(403).json({ message: 'Not authorized to update this doctor' });
+    }
+    const updated = await Doctor.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    res.json(updated);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/:id/approve', protect, adminOnly, async (req, res) => {
+router.put('/:id/approve', protect, async (req, res) => {
   try {
-    const doctor = await Doctor.findByIdAndUpdate(req.params.id, { approved: true }, { new: true });
+    if (req.user.role !== 'superadmin' && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+    const doctor = await Doctor.findById(req.params.id);
     if (!doctor) return res.status(404).json({ message: 'Doctor not found' });
+    if (doctor.hospitalId?.toString() !== req.user.hospitalId?.toString() && req.user.role !== 'superadmin') {
+      return res.status(403).json({ message: 'Not your hospital' });
+    }
+    doctor.approved = true;
+    await doctor.save();
 
     const user = await findDoctorUser(doctor, { approvalStatus: 'approved' });
 
@@ -160,10 +183,18 @@ router.put('/:id/approve', protect, adminOnly, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.put('/:id/reject', protect, adminOnly, async (req, res) => {
+router.put('/:id/reject', protect, async (req, res) => {
   try {
-    const doctor = await Doctor.findByIdAndUpdate(req.params.id, { approved: false }, { new: true });
+    if (req.user.role !== 'superadmin' && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+    const doctor = await Doctor.findById(req.params.id);
     if (!doctor) return res.status(404).json({ message: 'Doctor not found' });
+    if (doctor.hospitalId?.toString() !== req.user.hospitalId?.toString() && req.user.role !== 'superadmin') {
+      return res.status(403).json({ message: 'Not your hospital' });
+    }
+    doctor.approved = false;
+    await doctor.save();
 
     const user = await findDoctorUser(doctor, { approvalStatus: 'rejected' });
 
@@ -194,6 +225,14 @@ router.put('/:id/schedule', protect, async (req, res) => {
 
 router.delete('/:id', protect, async (req, res) => {
   try {
+    if (req.user.role !== 'superadmin' && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+    const doctor = await Doctor.findById(req.params.id);
+    if (!doctor) return res.status(404).json({ message: 'Doctor not found' });
+    if (doctor.hospitalId?.toString() !== req.user.hospitalId?.toString() && req.user.role !== 'superadmin') {
+      return res.status(403).json({ message: 'Not your hospital' });
+    }
     await Doctor.findByIdAndDelete(req.params.id);
     res.json({ message: 'Doctor removed' });
   } catch (err) { res.status(500).json({ message: err.message }); }
