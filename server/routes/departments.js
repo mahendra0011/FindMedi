@@ -1,33 +1,49 @@
 import express from 'express';
 import Department from '../models/Department.js';
-import { protect, adminOnly } from '../middleware/auth.js';
+import { protect, scopeToHospital, superadminOnly } from '../middleware/auth.js';
 
 const router = express.Router();
 
-router.get('/', protect, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
-    const departments = await Department.find().sort({ createdAt: -1 });
+    const { hospitalId } = req.query;
+    const filter = {};
+    if (hospitalId) filter.hospitalId = hospitalId;
+    const departments = await Department.find(filter).sort({ createdAt: -1 });
     res.json(departments);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/', protect, adminOnly, async (req, res) => {
+router.post('/', protect, scopeToHospital, async (req, res) => {
   try {
-    const dept = await Department.create(req.body);
+    if (req.user.role !== 'superadmin' && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+    const data = { ...req.body, hospitalId: req.hospitalId };
+    const dept = await Department.create(data);
     res.status(201).json(dept);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/:id', protect, adminOnly, async (req, res) => {
+router.put('/:id', protect, scopeToHospital, async (req, res) => {
   try {
-    const dept = await Department.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (req.user.role !== 'superadmin' && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+    const dept = await Department.findOne({ _id: req.params.id, hospitalId: req.hospitalId });
     if (!dept) return res.status(404).json({ message: 'Department not found' });
-    res.json(dept);
+    const updated = await Department.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    res.json(updated);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.delete('/:id', protect, adminOnly, async (req, res) => {
+router.delete('/:id', protect, scopeToHospital, async (req, res) => {
   try {
+    if (req.user.role !== 'superadmin' && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+    const dept = await Department.findOne({ _id: req.params.id, hospitalId: req.hospitalId });
+    if (!dept) return res.status(404).json({ message: 'Department not found' });
     await Department.findByIdAndDelete(req.params.id);
     res.json({ message: 'Department removed' });
   } catch (err) { res.status(500).json({ message: err.message }); }
