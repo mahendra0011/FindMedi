@@ -15,6 +15,7 @@ const LAB_SERVICES = [
 let MOCK_USERS = {
   'admin@medicare.com':       { id: '1', name: 'Admin User',      email: 'admin@medicare.com',       role: 'admin',   password: 'password', phone: '', status: 'active', isVerified: true },
   'sarah.smith@medicare.com': { id: '2', name: 'Dr. Sarah Smith', email: 'sarah.smith@medicare.com', role: 'doctor',  password: 'password', phone: '', status: 'active', isVerified: true },
+  'clinic.doc@medicare.com':  { id: '7', name: 'Dr. Clinic Doc',  email: 'clinic.doc@medicare.com',  role: 'clinic_doctor', password: 'password', phone: '', status: 'active', isVerified: true, doctorApproved: true },
   'patient@medicare.com':     { id: '3', name: 'John Patient',    email: 'patient@medicare.com',     role: 'patient', password: 'password', phone: '', status: 'active', isVerified: true },
 };
 
@@ -25,6 +26,7 @@ const MOCK_DOCTORS = [
   { _id:'d4', name:'Dr. Carlos Garcia',specialization:'Pediatrics',   experience:'10 years', rating:4.6, patients:1800, available:true,  phone:'+1 234-567-8904', email:'carlos.garcia@medicare.com',initials:'CG', fees:350, consultation_fees:350, location:'Houston, TX', qualifications:'MBBS, DCH Pediatrics', bio:'Dedicated pediatrician caring for children of all ages.', time_slots:['09:00 AM','10:00 AM','11:00 AM','02:00 PM','03:00 PM','04:00 PM'], weekly_schedule:{monday:true,tuesday:true,wednesday:true,thursday:true,friday:true,saturday:true,sunday:false}, leaves:[], approved:true, user_id:'', reviews_count:1 },
   { _id:'d5', name:'Dr. Min Kim',      specialization:'Dermatology',  experience:'6 years',  rating:4.8, patients:650,  available:true,  phone:'+1 234-567-8905', email:'min.kim@medicare.com',      initials:'MK', fees:400, consultation_fees:400, location:'Phoenix, AZ', qualifications:'MBBS, MD Dermatology', bio:'Skin care expert specializing in cosmetic and medical dermatology.', time_slots:['09:00 AM','10:00 AM','11:00 AM','02:00 PM','03:00 PM'], weekly_schedule:{monday:true,tuesday:true,wednesday:true,thursday:true,friday:true,saturday:false,sunday:false}, leaves:[], approved:true, user_id:'', reviews_count:1 },
   { _id:'d6', name:'Dr. Anna Wilson',  specialization:'Oncology',     experience:'20 years', rating:4.9, patients:3200, available:false, phone:'+1 234-567-8906', email:'anna.wilson@medicare.com',  initials:'AW', fees:800, consultation_fees:800, location:'Philadelphia, PA', qualifications:'MBBS, DM Oncology', bio:'Leading oncologist with 20 years of cancer treatment expertise.', time_slots:['10:00 AM','11:00 AM','02:00 PM','03:00 PM'], weekly_schedule:{monday:true,tuesday:true,wednesday:true,thursday:true,friday:false,saturday:false,sunday:false}, leaves:[], approved:true, user_id:'', reviews_count:0 },
+  { _id:'d7', name:'Dr. Clinic Doc',   specialization:'General Medicine', experience:'5 years',  rating:4.5, patients:450,  available:true,  phone:'+1 234-567-8907', email:'clinic.doc@medicare.com',   initials:'CD', fees:350, consultation_fees:350, home_visit_fee:700, follow_up_fee:200, video_consult_fee:300, custom_services:[], location:'Austin, TX', qualifications:'MBBS', bio:'Dedicated clinic doctor providing comprehensive primary care.', time_slots:['09:00 AM','10:00 AM','11:00 AM','02:00 PM','03:00 PM','04:00 PM','05:00 PM'], weekly_schedule:{monday:true,tuesday:true,wednesday:true,thursday:true,friday:true,saturday:true,sunday:false}, leaves:[], approved:true, user_id:'7', reviews_count:1 },
 ];
 
 const MOCK_PATIENTS = [
@@ -132,6 +134,32 @@ const MOCK_HOSPITALS = [
   { _id:'h5', name:'Lakeside Clinic', slug:'lakeside-clinic', email:'contact@lakeside.com', phone:'+1 234-567-8005', address:'555 Lake View Rd', city:'Phoenix', state:'AZ', licenseNumber:'LIC-005', logo:'', description:'A boutique clinic offering personalized healthcare services in a comfortable, patient-friendly environment.', specialties:['Dermatology','General Medicine','ENT'], status:'pending', rating:0, reviewsCount:0, subscriptionPlan:'free', createdAt:'2024-07-01' },
 ];
 
+const MOCK_BEDS = [
+  { _id:'b1', bedNumber:'G-01', ward:'General', bedType:'General', status:'Available', dailyRate:1500, floor:'1st Floor', isAC:false, hospitalId:'h1' },
+  { _id:'b2', bedNumber:'G-02', ward:'General', bedType:'General', status:'Occupied', dailyRate:1500, floor:'1st Floor', isAC:false, hospitalId:'h1', currentPatientName:'Ravi Kumar' },
+  { _id:'b3', bedNumber:'G-03', ward:'General', bedType:'General', status:'Available', dailyRate:1500, floor:'1st Floor', isAC:false, hospitalId:'h1' },
+  { _id:'b4', bedNumber:'SP-01', ward:'Semi-Private', bedType:'Semi-Private', status:'Available', dailyRate:2500, floor:'2nd Floor', isAC:true, hospitalId:'h1' },
+  { _id:'b5', bedNumber:'SP-02', ward:'Semi-Private', bedType:'Semi-Private', status:'Under Cleaning', dailyRate:2500, floor:'2nd Floor', isAC:true, hospitalId:'h1' },
+  { _id:'b6', bedNumber:'P-01', ward:'Private', bedType:'Private', status:'Available', dailyRate:4000, floor:'3rd Floor', isAC:true, hospitalId:'h1' },
+  { _id:'b7', bedNumber:'ICU-01', ward:'ICU', bedType:'ICU', status:'Occupied', dailyRate:8000, floor:'4th Floor', isAC:true, hospitalId:'h1', currentPatientName:'Sunita Sharma' },
+  { _id:'b8', bedNumber:'ICU-02', ward:'ICU', bedType:'ICU', status:'Maintenance', dailyRate:8000, floor:'4th Floor', isAC:true, hospitalId:'h1' },
+  { _id:'b9', bedNumber:'ER-01', ward:'Emergency', bedType:'General', status:'Available', dailyRate:2000, floor:'Ground Floor', isAC:false, hospitalId:'h1' },
+  { _id:'b10', bedNumber:'NICU-01', ward:'NICU', bedType:'NICU', status:'Available', dailyRate:10000, floor:'5th Floor', isAC:true, hospitalId:'h1' },
+];
+
+const MOCK_TESTS = [
+  { _id:'t1', name:'Complete Blood Count (CBC)', category:'Blood Test', department:'Pathology', price:299, mrp:499, discount:40, reportTime:'6 hrs', prescriptionReq:false, homeCollection:true, homeCollectionFee:50, popular:true, nablAccredited:true, reportsOnline:true, description:'Measures overall health and detects a wide range of disorders.', preparation:'No special preparation required' },
+  { _id:'t2', name:'Lipid Profile', category:'Blood Test', department:'Pathology', price:399, mrp:699, discount:43, reportTime:'12 hrs', prescriptionReq:false, homeCollection:true, homeCollectionFee:50, popular:true, nablAccredited:true, reportsOnline:true, description:'Measures cholesterol levels and helps assess cardiovascular risk.', preparation:'Fasting for 9-12 hours required' },
+  { _id:'t3', name:'Thyroid Profile (T3, T4, TSH)', category:'Hormone', department:'Pathology', price:449, mrp:799, discount:44, reportTime:'24 hrs', prescriptionReq:false, homeCollection:true, homeCollectionFee:50, popular:false, nablAccredited:true, reportsOnline:true, description:'Evaluates thyroid gland function.', preparation:'No special preparation required' },
+  { _id:'t4', name:'Blood Sugar (Fasting & PP)', category:'Blood Test', department:'Pathology', price:199, mrp:349, discount:43, reportTime:'6 hrs', prescriptionReq:false, homeCollection:true, homeCollectionFee:50, popular:true, nablAccredited:true, reportsOnline:true, description:'Measures blood glucose levels to screen for diabetes.', preparation:'Fasting for 8 hours required' },
+  { _id:'t5', name:'Urine Routine & Microscopy', category:'Urine/Stool', department:'Pathology', price:149, mrp:249, discount:40, reportTime:'6 hrs', prescriptionReq:false, homeCollection:true, homeCollectionFee:50, popular:false, nablAccredited:true, reportsOnline:true, description:'Screens for urinary tract infections and kidney disorders.', preparation:'First morning urine sample preferred' },
+  { _id:'t6', name:'Liver Function Test (LFT)', category:'Blood Test', department:'Pathology', price:349, mrp:599, discount:42, reportTime:'12 hrs', prescriptionReq:false, homeCollection:true, homeCollectionFee:50, popular:false, nablAccredited:true, reportsOnline:true, description:'Evaluates liver health and function.', preparation:'Fasting for 8 hours recommended' },
+  { _id:'t7', name:'ECG / Electrocardiogram', category:'Cardiac Basic', department:'Cardiology', price:299, mrp:499, discount:40, reportTime:'30 mins', prescriptionReq:true, homeCollection:false, homeCollectionFee:0, popular:false, nablAccredited:true, reportsOnline:true, quickTest:true, description:'Records electrical signals of the heart.', preparation:'Avoid caffeine before test' },
+  { _id:'t8', name:'Chest X-Ray', category:'Basic Imaging', department:'Radiology', price:399, mrp:699, discount:43, reportTime:'2 hrs', prescriptionReq:true, homeCollection:false, homeCollectionFee:0, popular:false, nablAccredited:true, reportsOnline:true, description:'Creates images of the chest area to diagnose lung conditions.', preparation:'Wear comfortable clothing without metal' },
+  { _id:'t9', name:'MRI Brain', category:'Advanced Imaging', department:'Radiology', price:4999, mrp:7999, discount:37, reportTime:'24 hrs', prescriptionReq:true, homeCollection:false, homeCollectionFee:0, popular:false, nablAccredited:true, reportsOnline:true, description:'Detailed brain imaging for neurological evaluation.', preparation:'Remove all metal objects' },
+  { _id:'t10', name:'Vitamin D Test', category:'Vitamin', department:'Pathology', price:699, mrp:1199, discount:42, reportTime:'24 hrs', prescriptionReq:false, homeCollection:true, homeCollectionFee:50, popular:true, nablAccredited:true, reportsOnline:true, description:'Measures vitamin D levels in the blood.', preparation:'No special preparation required' },
+];
+
 let store = {
   doctors:      [...MOCK_DOCTORS],
   patients:     [...MOCK_PATIENTS],
@@ -143,6 +171,8 @@ let store = {
   departments:  [...MOCK_DEPARTMENTS],
   payments:     [...MOCK_PAYMENTS],
   hospitals:    [...MOCK_HOSPITALS],
+  beds:         [...MOCK_BEDS],
+  tests:        [...MOCK_TESTS],
 };
 
 let nextId = 100;
@@ -736,6 +766,89 @@ const mock = {
     await delay();
     return store.hospitals[0] || null;
   },
+
+  // Beds
+  async getBeds(p = {}) {
+    await delay();
+    let list = [...store.beds];
+    if (p.ward) list = list.filter(b => b.ward === p.ward);
+    if (p.status) list = list.filter(b => b.status === p.status);
+    if (p.hospitalId) list = list.filter(b => b.hospitalId === p.hospitalId);
+    return list;
+  },
+  async getBedStats() {
+    await delay();
+    const beds = store.beds;
+    return {
+      total: beds.length,
+      available: beds.filter(b => b.status === 'Available').length,
+      occupied: beds.filter(b => b.status === 'Occupied').length,
+      maintenance: beds.filter(b => b.status === 'Under Cleaning' || b.status === 'Maintenance').length,
+    };
+  },
+  async createBed(body) {
+    await delay();
+    const bed = { _id: 'b' + uid(), ...body, status: 'Available', createdAt: new Date().toISOString() };
+    store.beds.unshift(bed);
+    return bed;
+  },
+  async updateBed(id, body) {
+    await delay();
+    const i = store.beds.findIndex(b => b._id === id);
+    if (i >= 0) store.beds[i] = { ...store.beds[i], ...body };
+    return store.beds[i] || null;
+  },
+  async deleteBed(id) {
+    await delay();
+    store.beds = store.beds.filter(b => b._id !== id);
+    return { message: 'Bed removed' };
+  },
+
+  // Tests
+  async getTests(p = {}) {
+    await delay();
+    let list = [...store.tests];
+    if (p.category) list = list.filter(t => t.category === p.category);
+    if (p.department) list = list.filter(t => t.department === p.department);
+    if (p.popular === 'true') list = list.filter(t => t.popular);
+    if (p.hospitalId) list = list.filter(t => t.hospitalId === p.hospitalId);
+    if (p.search) list = list.filter(t => t.name.toLowerCase().includes(p.search.toLowerCase()));
+    return list;
+  },
+  async getTestStats() {
+    await delay();
+    const tests = store.tests;
+    const categories = [...new Set(tests.map(t => t.category))];
+    return {
+      total: tests.length,
+      popular: tests.filter(t => t.popular).length,
+      homeCollection: tests.filter(t => t.homeCollection).length,
+      prescriptionReq: tests.filter(t => t.prescriptionReq).length,
+      categories: categories.length,
+    };
+  },
+  async createTest(body) {
+    await delay();
+    const test = { _id: 't' + uid(), ...body, createdAt: new Date().toISOString() };
+    if (!test.discount && test.mrp && test.price) test.discount = Math.round((1 - test.price / test.mrp) * 100);
+    store.tests.unshift(test);
+    return test;
+  },
+  async updateTest(id, body) {
+    await delay();
+    const i = store.tests.findIndex(t => t._id === id);
+    if (i >= 0) {
+      const updated = { ...store.tests[i], ...body };
+      if (updated.mrp && updated.price) updated.discount = Math.round((1 - updated.price / updated.mrp) * 100);
+      store.tests[i] = updated;
+    }
+    return store.tests[i] || null;
+  },
+  async deleteTest(id) {
+    await delay();
+    store.tests = store.tests.filter(t => t._id !== id);
+    return { message: 'Test removed' };
+  },
 };
 
 // ─── Real API (when backend is running) ───────────────────────────────────
@@ -986,5 +1099,17 @@ export const api = {
   getPendingHospitals: ()      => dispatch(() => mock.getPendingHospitals ? mock.getPendingHospitals() : Promise.resolve([]), '/hospitals/pending'),
   getMyHospital:       ()      => dispatch(() => mock.getMyHospital ? mock.getMyHospital() : Promise.resolve(null),         '/hospitals/admin/mine'),
   registerPlatform:    (body)  => dispatch(() => mock.registerPlatform(body),                                                '/platform/register', { method:'POST', body: JSON.stringify(body) }),
+
+  getBeds:         (p={})  => dispatch(() => mock.getBeds ? mock.getBeds(p) : Promise.resolve([]),                      '/beds?' + new URLSearchParams(p)),
+  getBedStats:     ()      => dispatch(() => mock.getBedStats ? mock.getBedStats() : Promise.resolve({ total:0, available:0, occupied:0, maintenance:0 }), '/beds/stats'),
+  createBed:       (body)  => dispatch(() => mock.createBed ? mock.createBed(body) : Promise.resolve({}),              '/beds',       { method:'POST',   body: JSON.stringify(body) }),
+  updateBed:       (id,b)  => dispatch(() => mock.updateBed ? mock.updateBed(id,b) : Promise.resolve({}),              `/beds/${id}`, { method:'PUT',    body: JSON.stringify(b) }),
+  deleteBed:       (id)    => dispatch(() => mock.deleteBed ? mock.deleteBed(id) : Promise.resolve({}),                `/beds/${id}`, { method:'DELETE' }),
+
+  getTests:        (p={})  => dispatch(() => mock.getTests ? mock.getTests(p) : Promise.resolve([]),                  '/tests?' + new URLSearchParams(p)),
+  getTestStats:    ()      => dispatch(() => mock.getTestStats ? mock.getTestStats() : Promise.resolve({ total:0, popular:0, homeCollection:0, prescriptionReq:0, categories:0 }), '/tests/stats'),
+  createTest:      (body)  => dispatch(() => mock.createTest ? mock.createTest(body) : Promise.resolve({}),          '/tests',      { method:'POST',   body: JSON.stringify(body) }),
+  updateTest:      (id,b)  => dispatch(() => mock.updateTest ? mock.updateTest(id,b) : Promise.resolve({}),          `/tests/${id}`, { method:'PUT',    body: JSON.stringify(b) }),
+  deleteTest:      (id)    => dispatch(() => mock.deleteTest ? mock.deleteTest(id) : Promise.resolve({}),            `/tests/${id}`, { method:'DELETE' }),
 };
 // 2
