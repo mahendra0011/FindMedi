@@ -4,11 +4,11 @@ import { Activity, ArrowRight, Stethoscope, UserRound, CalendarDays, FileText, C
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useState, useEffect, useRef } from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
-import { applyUserSettings, readStoredSettings } from "@/lib/settings";
+import PublicNavbar from "@/components/PublicNavbar";
+import PublicFooter from "@/components/PublicFooter";
 import ElectricBorder from "@/components/reactbits/ElectricBorder";
 import FlowingMenu from "@/components/reactbits/FlowingMenu";
 import ScrollVelocity from "@/components/reactbits/ScrollVelocity";
@@ -155,13 +155,14 @@ const isDocumentDark = () => (
   typeof document !== 'undefined' && document.documentElement.classList.contains('dark')
 );
 
+const getSelectedCity = () => localStorage.getItem('mediCore_city') || '';
+
 const Home = () => {
   const navigate = useNavigate();
   const { user, updateUser } = useAuth();
   const [doctorsList, setDoctorsList] = useState([]);
   const [counters, setCounters] = useState(statsData.map(() => 0));
   const [countersVisible, setCountersVisible] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(() => isDocumentDark());
   const [ctaPointer, setCtaPointer] = useState({ x: 50, y: 50 });
   const statsRef = useRef(null);
 
@@ -210,22 +211,6 @@ const Home = () => {
     return () => observer.disconnect();
   }, [countersVisible]);
 
-  useEffect(() => {
-    const syncThemeState = () => setIsDarkMode(isDocumentDark());
-    syncThemeState();
-
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleSystemThemeChange = () => {
-      if ((readStoredSettings().theme || 'system') === 'system') {
-        applyUserSettings(readStoredSettings());
-        syncThemeState();
-      }
-    };
-
-    mediaQuery.addEventListener?.('change', handleSystemThemeChange);
-    return () => mediaQuery.removeEventListener?.('change', handleSystemThemeChange);
-  }, []);
-
   const { scrollY } = useScroll();
   const heroY = useTransform(scrollY, [0, 500], [0, 150]);
   const dashboardLabel = user?.role === 'admin'
@@ -235,19 +220,9 @@ const Home = () => {
       : 'User Dashboard';
   const primaryActionLabel = user ? dashboardLabel : 'Book Appointment';
   const primaryActionPath = user ? '/dashboard' : '/signup';
-  const themeToggleLabel = isDarkMode ? 'Switch to light mode' : 'Switch to dark mode';
 
   const scrollToSection = (id) => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
-
-  const toggleDarkMode = () => {
-    const nextTheme = isDarkMode ? 'light' : 'dark';
-    const nextSettings = applyUserSettings({ ...readStoredSettings(), theme: nextTheme });
-    setIsDarkMode(isDocumentDark());
-    if (user) {
-      updateUser({ settings: { ...user.settings, ...nextSettings } });
-    }
   };
 
   const handleCtaPointerMove = (event) => {
@@ -276,51 +251,7 @@ const Home = () => {
           className="absolute top-1/3 -right-1/4 w-[600px] h-[600px] rounded-full bg-gradient-to-bl from-blue-500/20 to-transparent blur-3xl" />
       </div>
 
-      {/* Navbar */}
-      <motion.nav initial={{ y: -100 }} animate={{ y: 0 }} transition={{ duration: 0.6 }}
-        className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-2xl border-b border-border/40 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate("/")}>
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg shadow-primary/30">
-                <Activity className="w-5 h-5 text-primary-foreground" />
-              </div>
-              <span className="font-heading text-xl font-bold">MediCore</span>
-            </div>
-            <div className="hidden md:flex items-center gap-2 rounded-full border border-border/50 bg-muted/30 p-1">
-              <button type="button" onClick={() => scrollToSection('modules')} className="rounded-full px-3 py-1.5 text-sm text-muted-foreground hover:bg-background hover:text-foreground hover:shadow-sm transition-all">Modules</button>
-              <button type="button" onClick={() => scrollToSection('doctors')} className="rounded-full px-3 py-1.5 text-sm text-muted-foreground hover:bg-background hover:text-foreground hover:shadow-sm transition-all">Top Doctors</button>
-              <button type="button" onClick={() => scrollToSection('why-choose-us')} className="rounded-full px-3 py-1.5 text-sm text-muted-foreground hover:bg-background hover:text-foreground hover:shadow-sm transition-all">Why Choose Us</button>
-              <button type="button" onClick={() => scrollToSection('testimonials')} className="rounded-full px-3 py-1.5 text-sm text-muted-foreground hover:bg-background hover:text-foreground hover:shadow-sm transition-all">Testimonials</button>
-            </div>
-            <div className="flex items-center gap-3">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    onClick={toggleDarkMode}
-                    aria-label={themeToggleLabel}
-                    className="h-9 w-9 rounded-full border-border/70 bg-background/80 shadow-sm"
-                  >
-                    {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>{themeToggleLabel}</TooltipContent>
-              </Tooltip>
-              {!user && (
-                <Button variant="ghost" size="sm" onClick={() => navigate("/login")} className="hidden sm:flex">
-                  Sign In
-                </Button>
-              )}
-              <Button size="sm" className="gap-2 shadow-lg shadow-primary/20" onClick={() => navigate(primaryActionPath)}>
-                {primaryActionLabel} <ArrowRight className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-        </div>
-      </motion.nav>
+      <PublicNavbar />
 
       {/* Hero Section with Image */}
       <section className="relative pt-28 pb-20 px-4 sm:px-6 lg:px-8">
@@ -519,13 +450,13 @@ const Home = () => {
       <section className="py-12 px-4 sm:px-6">
         <div className="max-w-4xl mx-auto">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Button variant="outline" className="h-16 text-lg gap-3 py-4">
+            <Button variant="outline" className="h-16 text-lg gap-3 py-4" onClick={() => navigate(`/hospitals${getSelectedCity() ? `?city=${encodeURIComponent(getSelectedCity())}` : ''}`)}>
               <Search className="w-5 h-5" /> Find by Speciality
             </Button>
-            <Button variant="outline" className="h-16 text-lg gap-3 py-4">
-              <MapPin className="w-5 h-5" /> Find by Location
+            <Button variant="outline" className="h-16 text-lg gap-3 py-4" onClick={() => navigate(`/hospitals${getSelectedCity() ? `?city=${encodeURIComponent(getSelectedCity())}` : ''}`)}>
+              <MapPin className="w-5 h-5" /> {getSelectedCity() || 'Find by Location'}
             </Button>
-            <Button variant="outline" className="h-16 text-lg gap-3 py-4">
+            <Button variant="outline" className="h-16 text-lg gap-3 py-4" onClick={() => navigate(primaryActionPath)}>
               <CalendarDays className="w-5 h-5" /> Book Appointment
             </Button>
           </div>
@@ -957,110 +888,7 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-gradient-to-b from-background to-muted/30 border-t border-border/50 pt-16 px-4 sm:px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
-            {/* Brand & About */}
-            <div className="lg:col-span-1">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center">
-                  <Activity className="w-6 h-6 text-primary-foreground" />
-                </div>
-                <span className="font-heading text-2xl font-bold">MediCore</span>
-              </div>
-              <p className="text-muted-foreground text-sm leading-relaxed mb-6">
-                Your trusted partner in healthcare innovation. We're committed to providing exceptional medical care with cutting-edge technology and compassionate service.
-              </p>
-              <div className="space-y-3">
-                <div className="flex items-center gap-3 text-sm">
-                  <Phone className="w-4 h-4 text-primary" />
-                  <span>+91 8299431275</span>
-                </div>
-                <div className="flex items-center gap-3 text-sm">
-                  <Mail className="w-4 h-4 text-primary" />
-                  <span>hexagonsservices@gmail.com</span>
-                </div>
-                <div className="flex items-center gap-3 text-sm">
-                  <MapPin className="w-4 h-4 text-primary" />
-                  <span>Lucknow, India</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Links */}
-            <div>
-              <h4 className="font-heading text-lg font-semibold mb-4">Quick Links</h4>
-              <ul className="space-y-3">
-                {["Home", "Doctors", "Services", "Contact", "Appointments", "Medical Records", "Billing", "Emergency"].map((link, i) => (
-                  <li key={link}>
-                    <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="text-muted-foreground hover:text-primary transition-colors text-sm flex items-center gap-2">
-                      <ChevronRight className="w-3 h-3" /> {link}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Our Services */}
-            <div>
-              <h4 className="font-heading text-lg font-semibold mb-4">Our Services</h4>
-              <ul className="space-y-3">
-                {services.slice(0, 5).map((service, i) => (
-                  <li key={service.name}>
-                    <a href="#" className="text-muted-foreground hover:text-primary transition-colors text-sm flex items-center justify-between">
-                      <span className="flex items-center gap-2"><service.icon className="w-3 h-3 text-primary" /> {service.name}</span>
-                    </a>
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-2 text-xs text-primary font-medium">{services[1].price}</div>
-            </div>
-
-            {/* Newsletter */}
-            <div>
-              <h4 className="font-heading text-lg font-semibold mb-4">Stay Connected</h4>
-              <p className="text-muted-foreground text-sm mb-4">
-                Subscribe for health tips, medical updates, and wellness insights delivered to your inbox.
-              </p>
-              <div className="flex gap-2">
-                <Input 
-                  placeholder="Enter your email" 
-                  className="bg-background"
-                />
-                <Button size="icon" className="shrink-0">
-                  <Send className="w-4 h-4" />
-                </Button>
-              </div>
-
-              {/* Social Links */}
-              <div className="flex items-center gap-4 mt-6">
-                {['FB', 'TW', 'IG', 'LI'].map((social, i) => (
-                  <a 
-                    key={i}
-                    href="#" 
-                    className="w-9 h-9 rounded-full bg-muted hover:bg-primary hover:text-white flex items-center justify-center transition-all text-xs font-bold"
-                  >
-                    {social}
-                  </a>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Bottom Footer */}
-          <div className="border-t border-border/50 mt-12 pt-8">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-              <p className="text-sm text-muted-foreground">© 2026 MediCore Healthcare. All rights reserved.</p>
-              <div className="flex items-center gap-6 text-sm text-muted-foreground">
-                <a href="#" className="hover:text-foreground transition-colors">Privacy Policy</a>
-                <a href="#" className="hover:text-foreground transition-colors">Terms of Service</a>
-                <a href="#" className="hover:text-foreground transition-colors">Cookie Policy</a>
-              </div>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <PublicFooter />
     </div>
   );
 };
