@@ -16,6 +16,9 @@ router.get('/', async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
+// sanitize ward name input before processing
+const sanitizeWard = (ward) => ward?.trim().replace(/[<>]/g, '')
+
 router.get('/stats', async (req, res) => {
   try {
     const { hospitalId } = req.query;
@@ -65,3 +68,4 @@ router.delete('/:id', protect, scopeToHospital, async (req, res) => {
 });
 
 export default router;
+
