@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, UserRound, Stethoscope, CalendarDays, FileText,
   CreditCard, Settings, ChevronLeft, ChevronRight, Activity, LogOut,
-  Home, Search, Star, Users, BarChart3, Bell, Building2, Clock, DollarSign, FileUp, Download, TestTube, AlertTriangle, Menu, X
+  Home, Search, Star, Users, BarChart3, Bell, Building2, Clock, DollarSign, FileUp, Download, TestTube, AlertTriangle, Menu, X, Bed, Pill, FlaskConical, Hospital, Heart, Brain, Syringe, ClipboardList, ShieldCheck, Baby, Ambulance
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { t } from '@/lib/settings';
@@ -37,25 +37,62 @@ const navConfig = {
     { icon: Star,            labelKey: 'nav.reviews',          path: '/admin/reviews'    },
     { icon: BarChart3,       labelKey: 'nav.analytics',        path: '/admin/analytics'  },
     { icon: AlertTriangle,   labelKey: 'nav.emergency',        path: '/admin/emergency'  },
-    { icon: FileUp,          labelKey: 'nav.importExport',     path: '/import-export'    },
-    { icon: Stethoscope,     labelKey: 'nav.doctorConsultation', path: '/doctor-consultation' },
-    { icon: TestTube,        labelKey: 'nav.lab',              path: '/lab'              },
+    { icon: Bed,             labelKey: 'nav.bedManagement',    path: '/admin/beds'       },
+    { icon: FlaskConical,    labelKey: 'nav.testCatalog',      path: '/admin/test-catalog' },
+    { icon: TestTube,        labelKey: 'nav.diagnostic',        path: '/admin/diagnostic' },
+    { icon: Hospital,        labelKey: 'nav.ipd',              path: '/ipd'              },
+    { icon: Activity,        labelKey: 'nav.ot',               path: '/ot'               },
+    { icon: Users,           labelKey: 'nav.staff',            path: '/staff'            },
+    { icon: Heart,           labelKey: 'nav.bloodBank',         path: '/bloodbank'        },
+    { icon: Activity,        labelKey: 'nav.physiotherapy',     path: '/physio'           },
+    { icon: Brain,           labelKey: 'nav.mentalHealth',      path: '/mentalhealth'     },
+    { icon: Baby,            labelKey: 'nav.dietKitchen',       path: '/diet'             },
+    { icon: ClipboardList,   labelKey: 'nav.housekeeping',      path: '/housekeeping'     },
+    { icon: Activity,        labelKey: 'nav.triage',            path: '/triage'           },
+    { icon: Clock,           labelKey: 'nav.opdToken',          path: '/opd-token'        },
+    { icon: Activity,        labelKey: 'nav.radiology',         path: '/radiology'        },
+    { icon: Ambulance,       labelKey: 'nav.nursing',           path: '/nursing'          },
+    { icon: Pill,            labelKey: 'nav.pharmacy',          path: '/pharmacy'         },
+    { icon: FileText,        labelKey: 'nav.inventory',         path: '/inventory'        },
     { icon: Download,        labelKey: 'nav.reports',          path: '/reports'          },
+    { icon: Syringe,         labelKey: 'nav.lab',              path: '/lab'              },
+    { icon: Stethoscope,     labelKey: 'nav.doctorConsultation', path: '/doctor-consultation' },
+    { icon: FileUp,          labelKey: 'nav.importExport',     path: '/import-export'    },
     { icon: Bell,            labelKey: 'nav.notifications',    path: '/notifications'    },
     { icon: Settings,        labelKey: 'nav.settings',         path: '/settings'         },
+  ],
+  clinic_doctor: [
+    { icon: LayoutDashboard, labelKey: 'nav.dashboard',         path: '/clinic/dashboard'     },
+    { icon: CalendarDays,    labelKey: 'nav.myAppointments',    path: '/clinic/appointments'  },
+    { icon: Clock,           labelKey: 'nav.mySchedule',        path: '/clinic/schedule'      },
+    { icon: IndianRupee,     labelKey: 'nav.feesPricing',       path: '/clinic/fees'          },
+    { icon: UserRound,       labelKey: 'nav.myPatients',        path: '/clinic/patients'      },
+    { icon: Pill,            labelKey: 'nav.prescriptions',     path: '/clinic/prescriptions' },
+    { icon: FlaskConical,    labelKey: 'nav.clinicTests',       path: '/clinic/tests'         },
+    { icon: FileText,        labelKey: 'nav.consultations',     path: '/clinic/consultations' },
+    { icon: Hospital,        labelKey: 'nav.clinicManagement',  path: '/clinic/management'    },
+    { icon: CreditCard,      labelKey: 'nav.billing',           path: '/clinic/billing'       },
+    { icon: DollarSign,      labelKey: 'nav.myEarnings',        path: '/clinic/earnings'      },
+    { icon: Star,            labelKey: 'nav.myReviews',         path: '/clinic/reviews'       },
+    { icon: Users,           labelKey: 'nav.staffManagement',   path: '/clinic/staff'         },
+    { icon: Bell,            labelKey: 'nav.notifications',     path: '/notifications'        },
+    { icon: Settings,        labelKey: 'nav.clinicSettings',    path: '/clinic/settings'      },
   ],
   doctor: [
     { icon: LayoutDashboard, labelKey: 'nav.dashboard',       path: '/dashboard'           },
     { icon: CalendarDays,    labelKey: 'nav.myAppointments',  path: '/doctor/appointments' },
     { icon: UserRound,       labelKey: 'nav.myPatients',      path: '/doctor/patients'     },
     { icon: FileText,        labelKey: 'nav.consultations',   path: '/doctor/consultations'},
+    { icon: Pill,            labelKey: 'nav.prescriptions',   path: '/doctor/prescriptions'},
     { icon: Clock,           labelKey: 'nav.mySchedule',      path: '/doctor/schedule'     },
+    { icon: Calendar,        labelKey: 'nav.leaveRequests',   path: '/doctor/leave-requests'},
     { icon: Download,        labelKey: 'nav.reports',         path: '/reports'             },
     { icon: TestTube,        labelKey: 'nav.lab',             path: '/lab'                 },
     { icon: Star,            labelKey: 'nav.myReviews',       path: '/doctor/reviews'      },
     { icon: DollarSign,      labelKey: 'nav.myEarnings',      path: '/doctor/earnings'     },
     { icon: AlertTriangle,   labelKey: 'nav.emergency',       path: '/doctor/emergency'    },
     { icon: Bell,            labelKey: 'nav.notifications',   path: '/notifications'       },
+    { icon: UserRound,       labelKey: 'nav.myProfile',       path: '/doctor/profile'      },
     { icon: Settings,        labelKey: 'nav.settings',        path: '/settings'            },
   ],
   patient: [
@@ -76,7 +113,7 @@ const navConfig = {
   ],
 };
 
-const roleBadgeColor = { admin: 'bg-primary/20 text-primary', doctor: 'bg-info/20 text-info', patient: 'bg-success/20 text-success' };
+const roleBadgeColor = { admin: 'bg-primary/20 text-primary', doctor: 'bg-info/20 text-info', patient: 'bg-success/20 text-success', clinic_doctor: 'bg-warning/20 text-warning' };
 
 function SidebarContent({ collapsed, onToggleCollapse, onNavClick }) {
   const location = useLocation();
