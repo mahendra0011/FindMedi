@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, Download, Clock, X, FileText, TrendingUp, Users, Activity, BarChart3, Calendar, Filter } from 'lucide-react';
+import { Search, Download, Clock, X, FileText, TrendingUp, Users, Activity, BarChart3, Calendar, Filter, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
