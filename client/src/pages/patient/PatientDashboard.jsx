@@ -83,7 +83,9 @@ let mockTestBookings = [
   { _id: 'tb3', bookingId: 'BK-2026-0003', tests: ['ECG', 'X-Ray Chest'], labName: 'City Imaging Center', status: 'Pending', date: new Date(Date.now() + 2 * 86400000).toISOString(), timeSlot: '11:30 AM', amount: 2500 },
 ];
 
-const TABS = [
+const getInitials = (name) => name ? name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : '?'
+
+const tabs = [
   { id: 'overview', label: 'Home', icon: LayoutDashboard },
   { id: 'appointments', label: 'Appointments', icon: CalendarDays },
   { id: 'test-bookings', label: 'Test Bookings', icon: TestTube },
@@ -755,3 +757,4 @@ export default function PatientDashboard() {
     </div>
   );
 }
+
