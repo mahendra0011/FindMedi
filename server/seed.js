@@ -16,6 +16,7 @@ import Bed from './models/Bed.js';
 import LabOrder from './models/LabOrder.js';
 import Department from './models/Department.js';
 import Staff from './models/Staff.js';
+import Hospital from './models/Hospital.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -58,7 +59,7 @@ async function seed() {
     Review.deleteMany(), Notification.deleteMany(), Medicine.deleteMany(),
     Prescription.deleteMany(), Triage.deleteMany(), Admission.deleteMany(), 
     Bed.deleteMany(), LabOrder.deleteMany(), Department.deleteMany(),
-    Staff.deleteMany(),
+    Staff.deleteMany(), Hospital.deleteMany(),
   ]);
 
   // Seed Departments
@@ -89,12 +90,23 @@ async function seed() {
 
   console.log('Created users...');
 
-  // Create Doctors with user_id references
+  // Seed Hospitals first (so we can link doctors to them)
+  const hospitals = await Hospital.insertMany([
+    { name: 'City General Hospital', slug: 'city-general-hospital', email: 'contact@citygeneral.com', phone: '+1 234-567-8001', address: '123 Healthcare Ave', city: 'New York', state: 'NY', licenseNumber: 'LIC-001', logo: 'https://images.unsplash.com/photo-1587351021759-3e566b6af7cc?w=400&h=300&fit=crop', description: 'Leading multispeciality hospital with 24/7 emergency care, modern diagnostic facilities, and experienced medical professionals.', specialties: ['Cardiology', 'Neurology', 'Orthopedics', 'Pediatrics', 'Oncology'], status: 'approved', rating: 4.5, reviewsCount: 128, subscriptionPlan: 'premium', createdAt: new Date('2024-01-15'), establishedYear: 1995, totalDoctors: 120, accreditations: ['NABH', 'NABL', 'ISO'], hospitalType: 'Private Multi-Specialty', emergency24x7: true, bedAvailability: 350, ambulanceService: true },
+    { name: 'Sunrise Medical Center', slug: 'sunrise-medical-center', email: 'info@sunrisemed.com', phone: '+1 234-567-8002', address: '456 Health Blvd', city: 'Los Angeles', state: 'CA', licenseNumber: 'LIC-002', logo: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=400&h=300&fit=crop', description: 'State-of-the-art medical center specializing in cardiac care, neurology, and advanced surgical procedures.', specialties: ['Cardiology', 'Neurology', 'Orthopedics', 'General Medicine'], status: 'approved', rating: 4.2, reviewsCount: 89, subscriptionPlan: 'basic', createdAt: new Date('2024-02-20'), establishedYear: 2008, totalDoctors: 75, accreditations: ['NABH', 'ISO'], hospitalType: 'Private Multi-Specialty', emergency24x7: true, bedAvailability: 200, ambulanceService: true },
+    { name: 'Green Valley Hospital', slug: 'green-valley-hospital', email: 'admin@greenvalley.com', phone: '+1 234-567-8003', address: '789 Wellness Dr', city: 'Chicago', state: 'IL', licenseNumber: 'LIC-003', logo: 'https://images.unsplash.com/photo-1551076805-e1869033e561?w=400&h=300&fit=crop', description: 'Community-focused hospital providing quality healthcare with compassion and cutting-edge technology.', specialties: ['Pediatrics', 'Dermatology', 'General Medicine', 'ENT'], status: 'approved', rating: 4.7, reviewsCount: 215, subscriptionPlan: 'basic', createdAt: new Date('2024-03-10'), establishedYear: 1985, totalDoctors: 95, accreditations: ['NABH', 'NABL'], hospitalType: 'Government Multi-Specialty', emergency24x7: true, bedAvailability: 500, ambulanceService: true },
+    { name: 'Pristine Care Hospital', slug: 'pristine-care-hospital', email: 'hello@pristinecare.com', phone: '+1 234-567-8004', address: '321 Recovery Ln', city: 'Houston', state: 'TX', licenseNumber: 'LIC-004', logo: 'https://images.unsplash.com/photo-1516549655169-df83a0774514?w=400&h=300&fit=crop', description: 'Premium healthcare facility with world-class infrastructure and internationally trained doctors.', specialties: ['Cardiology', 'Oncology', 'Neurology', 'Orthopedics'], status: 'approved', rating: 4.8, reviewsCount: 342, subscriptionPlan: 'premium', createdAt: new Date('2024-01-05'), establishedYear: 2000, totalDoctors: 150, accreditations: ['NABH', 'NABL', 'ISO'], hospitalType: 'Private Multi-Specialty', emergency24x7: true, bedAvailability: 450, ambulanceService: true },
+    { name: 'Lakeside Clinic', slug: 'lakeside-clinic', email: 'contact@lakeside.com', phone: '+1 234-567-8005', address: '555 Lake View Rd', city: 'Phoenix', state: 'AZ', licenseNumber: 'LIC-005', logo: 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=400&h=300&fit=crop', description: 'A boutique clinic offering personalized healthcare services in a comfortable, patient-friendly environment.', specialties: ['Dermatology', 'General Medicine', 'ENT'], status: 'pending', rating: 0, reviewsCount: 0, subscriptionPlan: 'free', createdAt: new Date('2024-07-01'), establishedYear: 2019, totalDoctors: 12, accreditations: [], hospitalType: 'Private Single-Specialty', emergency24x7: false, bedAvailability: 30, ambulanceService: false },
+  ]);
+  const [h1, h2, h3, h4, h5] = hospitals;
+  console.log('Created hospitals...');
+
+  // Create Doctors with user_id and hospitalId references
   const doctors = await Doctor.insertMany([
-    { name: 'Dr. Sarah Smith', specialization: 'Cardiology', experience: '12 years', rating: 4.8, patients: 1250, available: true, phone: '+1 234-567-8901', email: 'sarah.smith@mediCore.com', initials: 'SS', department: 'Cardiology', fees: 500, consultation_fees: 500, location: 'New York, NY', qualifications: 'MBBS, MD Cardiology', bio: 'Expert cardiologist with 12 years of experience.', time_slots: ['09:00 AM', '10:00 AM', '11:00 AM', '02:00 PM', '03:00 PM', '04:00 PM'], weekly_schedule: { monday: true, tuesday: true, wednesday: true, thursday: true, friday: true, saturday: false, sunday: false }, leaves: [], approved: true, user_id: doctorUser1._id.toString(), reviews_count: 3 },
-    { name: 'Dr. Raj Patel', specialization: 'Neurology', experience: '8 years', rating: 4.9, patients: 890, available: true, phone: '+1 234-567-8902', email: 'raj.patel@mediCore.com', initials: 'RP', department: 'Neurology', fees: 600, consultation_fees: 600, location: 'Los Angeles, CA', qualifications: 'MBBS, DM Neurology', bio: 'Specialized in neurological disorders.', time_slots: ['09:00 AM', '10:00 AM', '11:00 AM', '02:00 PM', '03:00 PM', '04:00 PM'], weekly_schedule: { monday: true, tuesday: true, wednesday: true, thursday: true, friday: true, saturday: true, sunday: false }, leaves: [], approved: true, user_id: doctorUser2._id.toString(), reviews_count: 2 },
-    { name: 'Dr. Emily Lee', specialization: 'Orthopedics', experience: '15 years', rating: 4.7, patients: 2100, available: true, phone: '+1 234-567-8903', email: 'emily.lee@mediCore.com', initials: 'EL', department: 'Orthopedics', fees: 450, consultation_fees: 450, location: 'Chicago, IL', qualifications: 'MBBS, MS Orthopedics', bio: 'Bone and joint specialist.', time_slots: ['10:00 AM', '11:00 AM', '02:00 PM', '03:00 PM'], weekly_schedule: { monday: true, tuesday: true, wednesday: true, thursday: true, friday: false, saturday: false, sunday: false }, leaves: [], approved: true, user_id: doctorUser3._id.toString(), reviews_count: 0 },
-    { name: 'Dr. Carlos Garcia', specialization: 'Pediatrics', experience: '10 years', rating: 4.6, patients: 1800, available: true, phone: '+1 234-567-8904', email: 'carlos.garcia@mediCore.com', initials: 'CG', department: 'Pediatrics', fees: 350, consultation_fees: 350, location: 'Houston, TX', qualifications: 'MBBS, DCH Pediatrics', bio: 'Dedicated pediatrician.', time_slots: ['09:00 AM', '10:00 AM', '11:00 AM', '02:00 PM', '03:00 PM', '04:00 PM'], weekly_schedule: { monday: true, tuesday: true, wednesday: true, thursday: true, friday: true, saturday: true, sunday: false }, leaves: [], approved: true, user_id: doctorUser4._id.toString(), reviews_count: 1 },
+    { name: 'Dr. Sarah Smith', specialization: 'Cardiology', experience: '12 years', rating: 4.8, patients: 1250, available: true, phone: '+1 234-567-8901', email: 'sarah.smith@mediCore.com', initials: 'SS', department: 'Cardiology', fees: 500, consultation_fees: 500, location: 'New York, NY', qualifications: 'MBBS, MD Cardiology', bio: 'Expert cardiologist with 12 years of experience.', time_slots: ['09:00 AM', '10:00 AM', '11:00 AM', '02:00 PM', '03:00 PM', '04:00 PM'], weekly_schedule: { monday: true, tuesday: true, wednesday: true, thursday: true, friday: true, saturday: false, sunday: false }, leaves: [], approved: true, user_id: doctorUser1._id.toString(), reviews_count: 3, hospitalId: h1._id, languages: ['English', 'Hindi', 'Spanish'] },
+    { name: 'Dr. Raj Patel', specialization: 'Neurology', experience: '8 years', rating: 4.9, patients: 890, available: true, phone: '+1 234-567-8902', email: 'raj.patel@mediCore.com', initials: 'RP', department: 'Neurology', fees: 600, consultation_fees: 600, location: 'Los Angeles, CA', qualifications: 'MBBS, DM Neurology', bio: 'Specialized in neurological disorders.', time_slots: ['09:00 AM', '10:00 AM', '11:00 AM', '02:00 PM', '03:00 PM', '04:00 PM'], weekly_schedule: { monday: true, tuesday: true, wednesday: true, thursday: true, friday: true, saturday: true, sunday: false }, leaves: [], approved: true, user_id: doctorUser2._id.toString(), reviews_count: 2, hospitalId: h1._id, languages: ['English', 'Gujarati', 'Hindi'] },
+    { name: 'Dr. Emily Lee', specialization: 'Orthopedics', experience: '15 years', rating: 4.7, patients: 2100, available: true, phone: '+1 234-567-8903', email: 'emily.lee@mediCore.com', initials: 'EL', department: 'Orthopedics', fees: 450, consultation_fees: 450, location: 'Chicago, IL', qualifications: 'MBBS, MS Orthopedics', bio: 'Bone and joint specialist.', time_slots: ['10:00 AM', '11:00 AM', '02:00 PM', '03:00 PM'], weekly_schedule: { monday: true, tuesday: true, wednesday: true, thursday: true, friday: false, saturday: false, sunday: false }, leaves: [], approved: true, user_id: doctorUser3._id.toString(), reviews_count: 0, hospitalId: h2._id, languages: ['English', 'Chinese'] },
+    { name: 'Dr. Carlos Garcia', specialization: 'Pediatrics', experience: '10 years', rating: 4.6, patients: 1800, available: true, phone: '+1 234-567-8904', email: 'carlos.garcia@mediCore.com', initials: 'CG', department: 'Pediatrics', fees: 350, consultation_fees: 350, location: 'Houston, TX', qualifications: 'MBBS, DCH Pediatrics', bio: 'Dedicated pediatrician.', time_slots: ['09:00 AM', '10:00 AM', '11:00 AM', '02:00 PM', '03:00 PM', '04:00 PM'], weekly_schedule: { monday: true, tuesday: true, wednesday: true, thursday: true, friday: true, saturday: true, sunday: false }, leaves: [], approved: true, user_id: doctorUser4._id.toString(), reviews_count: 1, hospitalId: h3._id, languages: ['English', 'Spanish'] },
   ]);
 
   console.log('Created doctors...');
@@ -190,6 +202,8 @@ async function seed() {
   ]);
 
   console.log('Created notifications...');
+
+
 
   console.log('\n✅ Seed complete!');
   console.log('\n📋 Login Credentials:');
