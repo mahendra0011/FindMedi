@@ -883,3 +883,4 @@ export default function Pharmacy() {
     </div>
   );
 }
+
