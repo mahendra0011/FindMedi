@@ -27,6 +27,7 @@
     "helmet": "^8.2.0",
     "mongodb": "^7.1.1",
     "react-redux": "^9.3.0",
+    "redux-persist": "^6.0.0",
     "rollup": "^4.60.3",
     "xss": "^1.0.15"
   }
