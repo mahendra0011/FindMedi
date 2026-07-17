@@ -1,6 +1,11 @@
 import express from 'express';
 import Medicine from '../models/Medicine.js';
 import Prescription from '../models/Prescription.js';
+import PharmacyOrder from '../models/PharmacyOrder.js';
+import PharmacyDelivery from '../models/PharmacyDelivery.js';
+import PharmacyOffer from '../models/PharmacyOffer.js';
+import PharmacyReturn from '../models/PharmacyReturn.js';
+import PharmacyStaff from '../models/PharmacyStaff.js';
 import Notification from '../models/Notification.js';
 import User from '../models/User.js';
 import { protect } from '../middleware/auth.js';
@@ -228,8 +233,173 @@ router.get('/stats', protect, async (req, res) => {
     const expiringSoon = await Medicine.countDocuments({ ...medFilter, expiryDate: { $lte: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000) }, isActive: true });
     const totalPrescriptions = await Prescription.countDocuments(rxFilter);
     const pendingDispense = await Prescription.countDocuments({ ...rxFilter, status: { $in: ['Active', 'Partially Dispensed'] } });
-    res.json({ totalMedicines, lowStock, expiringSoon, totalPrescriptions, pendingDispense });
+    const totalOrders = await PharmacyOrder.countDocuments(medFilter);
+    const pendingReturns = await PharmacyReturn.countDocuments({ ...medFilter, status: 'Pending' });
+    const revenue = await PharmacyOrder.aggregate([
+      { $match: { paymentStatus: 'Paid', ...(medFilter.hospitalId ? { hospitalId: medFilter.hospitalId } : {}) } },
+      { $group: { _id: null, total: { $sum: '$total' } } },
+    ]);
+    res.json({ totalMedicines, lowStock, expiringSoon, totalPrescriptions, pendingDispense, totalOrders, pendingReturns, revenue: revenue[0]?.total || 0 });
   } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// ─── Orders ────────────────────────────────────────────────────────────────
+router.get('/orders', protect, async (req, res) => {
+  try {
+    const { status, search } = req.query;
+    const filter = {};
+    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (status && status !== 'All') filter.status = status;
+    if (search) filter.$or = [{ orderId: new RegExp(search, 'i') }, { patientName: new RegExp(search, 'i') }];
+    const orders = await PharmacyOrder.find(filter).sort({ orderDate: -1 });
+    res.json({ orders });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+router.post('/orders', protect, async (req, res) => {
+  try {
+    const count = await PharmacyOrder.countDocuments();
+    const orderId = `ORD-${String(count + 1).padStart(4, '0')}`;
+    const order = await PharmacyOrder.create({ ...req.body, orderId, hospitalId: req.user.hospitalId || undefined, createdBy: req.user._id });
+    res.status(201).json(order);
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+router.put('/orders/:id', protect, async (req, res) => {
+  try {
+    const order = await PharmacyOrder.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+    Object.assign(order, req.body);
+    await order.save();
+    res.json(order);
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+router.delete('/orders/:id', protect, async (req, res) => {
+  try { await PharmacyOrder.findByIdAndDelete(req.params.id); res.json({ message: 'Deleted' }); }
+  catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// ─── Deliveries ────────────────────────────────────────────────────────────
+router.get('/deliveries', protect, async (req, res) => {
+  try {
+    const filter = {};
+    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    const deliveries = await PharmacyDelivery.find(filter).sort({ assignedAt: -1 });
+    res.json({ deliveries });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+router.post('/deliveries', protect, async (req, res) => {
+  try {
+    const delivery = await PharmacyDelivery.create({ ...req.body, hospitalId: req.user.hospitalId || undefined });
+    res.status(201).json(delivery);
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+router.put('/deliveries/:id', protect, async (req, res) => {
+  try {
+    const delivery = await PharmacyDelivery.findById(req.params.id);
+    if (!delivery) return res.status(404).json({ message: 'Delivery not found' });
+    if (req.body.tracking) delivery.tracking.push({ location: req.body.tracking, time: new Date() });
+    Object.assign(delivery, req.body);
+    await delivery.save();
+    res.json(delivery);
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+// ─── Offers ────────────────────────────────────────────────────────────────
+router.get('/offers', protect, async (req, res) => {
+  try {
+    const filter = {};
+    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    const offers = await PharmacyOffer.find(filter).sort({ createdAt: -1 });
+    res.json({ offers });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+router.post('/offers', protect, async (req, res) => {
+  try {
+    const offer = await PharmacyOffer.create({ ...req.body, hospitalId: req.user.hospitalId || undefined });
+    res.status(201).json(offer);
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+router.put('/offers/:id', protect, async (req, res) => {
+  try {
+    const offer = await PharmacyOffer.findById(req.params.id);
+    if (!offer) return res.status(404).json({ message: 'Offer not found' });
+    Object.assign(offer, req.body);
+    await offer.save();
+    res.json(offer);
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+router.delete('/offers/:id', protect, async (req, res) => {
+  try { await PharmacyOffer.findByIdAndDelete(req.params.id); res.json({ message: 'Deleted' }); }
+  catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// ─── Returns ───────────────────────────────────────────────────────────────
+router.get('/returns', protect, async (req, res) => {
+  try {
+    const filter = {};
+    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    const returns = await PharmacyReturn.find(filter).sort({ initiatedAt: -1 });
+    res.json({ returns });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+router.post('/returns', protect, async (req, res) => {
+  try {
+    const count = await PharmacyReturn.countDocuments();
+    const returnId = `RET-${String(count + 1).padStart(4, '0')}`;
+    const ret = await PharmacyReturn.create({ ...req.body, returnId, hospitalId: req.user.hospitalId || undefined });
+    res.status(201).json(ret);
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+router.put('/returns/:id', protect, async (req, res) => {
+  try {
+    const ret = await PharmacyReturn.findById(req.params.id);
+    if (!ret) return res.status(404).json({ message: 'Return not found' });
+    if (req.body.status === 'Approved' || req.body.status === 'Refunded') ret.completedAt = new Date();
+    Object.assign(ret, req.body);
+    await ret.save();
+    res.json(ret);
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+// ─── Staff ─────────────────────────────────────────────────────────────────
+router.get('/staff', protect, async (req, res) => {
+  try {
+    const filter = {};
+    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    const staff = await PharmacyStaff.find(filter).sort({ joinedAt: -1 });
+    res.json({ staff });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+router.post('/staff', protect, async (req, res) => {
+  try {
+    const member = await PharmacyStaff.create({ ...req.body, hospitalId: req.user.hospitalId || undefined });
+    res.status(201).json(member);
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+router.put('/staff/:id', protect, async (req, res) => {
+  try {
+    const member = await PharmacyStaff.findById(req.params.id);
+    if (!member) return res.status(404).json({ message: 'Staff not found' });
+    Object.assign(member, req.body);
+    await member.save();
+    res.json(member);
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+router.delete('/staff/:id', protect, async (req, res) => {
+  try { await PharmacyStaff.findByIdAndDelete(req.params.id); res.json({ message: 'Deleted' }); }
+  catch (err) { res.status(500).json({ message: err.message }); }
 });
 
 export default router;
