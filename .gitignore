@@ -11,3 +11,6 @@ response.txt
 
 # Local dev overrides.env.local
 
+
+# Temp scripts.temp-*
+
