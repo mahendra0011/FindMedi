@@ -75,7 +75,7 @@ const navConfig = {
     { icon: DollarSign,      labelKey: 'nav.myEarnings',        path: '/clinic/earnings'      },
     { icon: Star,            labelKey: 'nav.myReviews',         path: '/clinic/reviews'       },
     { icon: Users,           labelKey: 'nav.staffManagement',   path: '/clinic/staff'         },
-    { icon: Bell,            labelKey: 'nav.notifications',     path: '/notifications'        },
+    { icon: Bell,            labelKey: 'nav.notifications',     path: '/clinic/notifications' },
     { icon: Settings,        labelKey: 'nav.clinicSettings',    path: '/clinic/settings'      },
   ],
   doctor: [
