@@ -458,6 +458,16 @@ const mock = {
     return { message: 'Deleted' };
   },
 
+  // Platform Registration
+  async registerPlatform(payload) {
+    await delay(300);
+    const id = 'plat_' + Date.now();
+    store.doctors = [...(payload.doctors || []).map((d, i) => ({
+      _id: 'new_doc_' + id + '_' + i, ...d, hospitalId: id, approved: false
+    })), ...store.doctors];
+    return { id, ...payload, message: 'Registration submitted for review' };
+  },
+
   // Billing
   async getBilling({ search, status, patient } = {}) {
     await delay();
@@ -975,5 +985,6 @@ export const api = {
   suspendHospital:     (id)    => dispatch(() => mock.suspendHospital ? mock.suspendHospital(id) : Promise.resolve({}),    `/hospitals/${id}/suspend`, { method:'PUT' }),
   getPendingHospitals: ()      => dispatch(() => mock.getPendingHospitals ? mock.getPendingHospitals() : Promise.resolve([]), '/hospitals/pending'),
   getMyHospital:       ()      => dispatch(() => mock.getMyHospital ? mock.getMyHospital() : Promise.resolve(null),         '/hospitals/admin/mine'),
+  registerPlatform:    (body)  => dispatch(() => mock.registerPlatform(body),                                                '/platform/register', { method:'POST', body: JSON.stringify(body) }),
 };
 // 2
