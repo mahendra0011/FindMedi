@@ -51,9 +51,19 @@ router.get('/pending', protect, superadminOnly, async (req, res) => {
 
 router.get('/:id', async (req, res) => {
   try {
-    const hospital = await Hospital.findById(req.params.id);
+    let hospital;
+    try {
+      hospital = await Hospital.findById(req.params.id);
+    } catch (castErr) {
+      return res.status(404).json({ message: 'Hospital not found' });
+    }
     if (!hospital) return res.status(404).json({ message: 'Hospital not found' });
-    const doctors = await Doctor.find({ hospitalId: req.params.id, approved: true }).sort({ specialization: 1 });
+    let doctors = [];
+    try {
+      doctors = await Doctor.find({ hospitalId: req.params.id, approved: true }).sort({ specialization: 1 });
+    } catch (castErr) {
+      doctors = [];
+    }
     res.json({ hospital, doctors });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });

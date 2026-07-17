@@ -41,7 +41,15 @@ router.get('/', async (req, res) => {
     if (specialization && specialization !== 'All') filter.specialization = new RegExp(specialization, 'i');
     if (location && location !== 'All') filter.location = new RegExp(location, 'i');
     if (available !== undefined) filter.available = available === 'true';
-    if (hospitalId) filter.hospitalId = hospitalId;
+    if (hospitalId) {
+      try {
+        filter.hospitalId = hospitalId;
+        const doctors = await Doctor.find(filter).sort({ createdAt: -1 });
+        return res.json(doctors);
+      } catch (castErr) {
+        return res.json([]);
+      }
+    }
     const doctors = await Doctor.find(filter).sort({ createdAt: -1 });
     res.json(doctors);
   } catch (err) { res.status(500).json({ message: err.message }); }
