@@ -13,7 +13,7 @@ const otpSchema = new mongoose.Schema({
   phone: { type: String, default: '' },
   used: { type: Boolean, default: false, index: true },
   expiresAt: { type: Date, index: true },
-  createdAt: { type: Date, default: Date.now, index: true },
+  createdAt: { type: Date, default: Date.now },
   // For rate limiting: track last OTP request time per user/email
   lastRequestAt: { type: Date, index: true }
 });

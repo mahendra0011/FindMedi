@@ -18,6 +18,19 @@ const hospitalSchema = new mongoose.Schema({
   reviewsCount: { type: Number, default: 0 },
   subscriptionPlan: { type: String, enum: ['free', 'basic', 'premium'], default: 'free' },
   createdAt: { type: Date, default: Date.now, index: true },
+
+  // 🏥 Essential Fields
+  establishedYear: { type: Number, default: null },           // kitna purana hospital hai
+  totalDoctors: { type: Number, default: 0 },                 // total doctors ki sankhya
+  accreditations: [{ type: String }],                         // NABH, NABL, ISO badges
+  hospitalType: {                                             // Government/Private, Multi-specialty/Single-specialty
+    type: String,
+    default: 'Private',
+  },
+  emergency24x7: { type: Boolean, default: false },           // 24/7 Emergency badge
+  bedAvailability: { type: Number, default: 0 },              // Bed availability status
+  ambulanceService: { type: Boolean, default: false },        // Ambulance Service available
+  image: { type: String, default: '' },                     // Cover image for hospital profile
 });
 
 export default mongoose.model('Hospital', hospitalSchema);
