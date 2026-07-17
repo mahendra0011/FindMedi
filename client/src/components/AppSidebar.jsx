@@ -61,7 +61,7 @@ const navConfig = {
   patient: [
     { icon: LayoutDashboard, labelKey: 'nav.dashboard',       path: '/dashboard'            },
     { icon: Building2,       labelKey: 'nav.findHospital',    path: '/hospitals'            },
-    { icon: Search,          labelKey: 'nav.findDoctors',     path: '/patient/doctors'      },
+    { icon: Search,          labelKey: 'nav.findDoctors',     path: '/doctors'      },
     { icon: CalendarDays,    labelKey: 'nav.myAppointments',  path: '/patient/appointments' },
     { icon: TestTube,        labelKey: 'nav.labServices',     path: '/patient/services'     },
     { icon: AlertTriangle,   labelKey: 'nav.emergency',       path: '/patient/emergency'    },
