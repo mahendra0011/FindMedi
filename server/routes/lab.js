@@ -1,5 +1,8 @@
 import express from 'express';
 import LabOrder from '../models/LabOrder.js';
+import LabBooking from '../models/LabBooking.js';
+import Equipment from '../models/Equipment.js';
+import HealthPackage from '../models/HealthPackage.js';
 import Notification from '../models/Notification.js';
 import User from '../models/User.js';
 import { protect } from '../middleware/auth.js';
@@ -259,6 +262,108 @@ router.get('/tests', protect, (req, res) => {
     { name: 'Ultrasound Abdomen', category: 'Imaging', normalRange: 'Normal', unit: '' },
   ];
   res.json({ tests: labTests });
+});
+
+// ─── Lab Bookings ──────────────────────────────────────────────────────────
+router.get('/bookings', protect, async (req, res) => {
+  try {
+    const { status, date, search } = req.query;
+    const filter = {};
+    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if (status && status !== 'All') filter.status = status;
+    if (date) filter.bookingDate = { $gte: new Date(date), $lt: new Date(new Date(date).getTime() + 86400000) };
+    if (search) filter.$or = [{ bookingId: new RegExp(search, 'i') }, { patientName: new RegExp(search, 'i') }];
+    const bookings = await LabBooking.find(filter).sort({ createdAt: -1 });
+    res.json({ bookings });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+router.post('/bookings', protect, async (req, res) => {
+  try {
+    const count = await LabBooking.countDocuments();
+    const bookingId = `BK-${new Date().getFullYear()}-${String(count + 1).padStart(5, '0')}`;
+    const booking = await LabBooking.create({ ...req.body, bookingId, hospitalId: req.user.hospitalId || undefined, createdBy: req.user._id });
+    res.status(201).json(booking);
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+router.put('/bookings/:id', protect, async (req, res) => {
+  try {
+    const booking = await LabBooking.findById(req.params.id);
+    if (!booking) return res.status(404).json({ message: 'Booking not found' });
+    Object.assign(booking, req.body);
+    await booking.save();
+    res.json(booking);
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+router.delete('/bookings/:id', protect, async (req, res) => {
+  try { await LabBooking.findByIdAndDelete(req.params.id); res.json({ message: 'Deleted' }); }
+  catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// ─── Equipment ─────────────────────────────────────────────────────────────
+router.get('/equipment', protect, async (req, res) => {
+  try {
+    const filter = {};
+    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    const equipment = await Equipment.find(filter).sort({ name: 1 });
+    res.json({ equipment });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+router.post('/equipment', protect, async (req, res) => {
+  try {
+    const item = await Equipment.create({ ...req.body, hospitalId: req.user.hospitalId || undefined });
+    res.status(201).json(item);
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+router.put('/equipment/:id', protect, async (req, res) => {
+  try {
+    const item = await Equipment.findById(req.params.id);
+    if (!item) return res.status(404).json({ message: 'Equipment not found' });
+    Object.assign(item, req.body);
+    await item.save();
+    res.json(item);
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+router.delete('/equipment/:id', protect, async (req, res) => {
+  try { await Equipment.findByIdAndDelete(req.params.id); res.json({ message: 'Deleted' }); }
+  catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// ─── Health Packages ───────────────────────────────────────────────────────
+router.get('/packages', protect, async (req, res) => {
+  try {
+    const filter = {};
+    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    const packages = await HealthPackage.find(filter).sort({ createdAt: -1 });
+    res.json({ packages });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+router.post('/packages', protect, async (req, res) => {
+  try {
+    const pkg = await HealthPackage.create({ ...req.body, hospitalId: req.user.hospitalId || undefined });
+    res.status(201).json(pkg);
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+router.put('/packages/:id', protect, async (req, res) => {
+  try {
+    const pkg = await HealthPackage.findById(req.params.id);
+    if (!pkg) return res.status(404).json({ message: 'Package not found' });
+    Object.assign(pkg, req.body);
+    await pkg.save();
+    res.json(pkg);
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+router.delete('/packages/:id', protect, async (req, res) => {
+  try { await HealthPackage.findByIdAndDelete(req.params.id); res.json({ message: 'Deleted' }); }
+  catch (err) { res.status(500).json({ message: err.message }); }
 });
 
 export default router;
