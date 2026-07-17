@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Navigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Activity, ArrowRight, Shield, Stethoscope, UserRound } from 'lucide-react';
+import { Activity, ArrowRight, Shield, Stethoscope, UserRound, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
@@ -155,8 +155,18 @@ export default function Login() {
 
           <p className="text-sm text-muted-foreground text-center mt-6">
             Don't have an account?{' '}
-            <Link to="/signup" className="text-primary font-medium hover:underline">Create Account</Link>
+            <Link to="/signup" className="text-primary font-medium hover:underline">Sign Up</Link>
           </p>
+
+          <div className="mt-4 p-4 bg-gradient-to-r from-primary/5 to-primary/10 rounded-xl border border-primary/20">
+            <p className="text-xs font-medium text-foreground mb-2">Are you a healthcare provider?</p>
+            <Link to="/join-platform">
+              <Button variant="outline" className="w-full gap-2 rounded-xl border-primary/30 text-primary hover:bg-primary/5">
+                <Building2 className="w-4 h-4" /> Join Platform
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </Link>
+          </div>
 
           <div className="relative mt-4">
             <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
