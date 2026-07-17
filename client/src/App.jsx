@@ -11,15 +11,37 @@ import { applyUserSettings, readStoredSettings } from '@/lib/settings';
 import { loadUserSettings } from '@/store/slices/settingsSlice';
 import { NotificationProvider } from '@/context/NotificationContext';
 import { AuthProvider } from '@/context/AuthContext';
+import { CartProvider } from '@/context/CartContext';
+import { PreferredPharmacyProvider } from '@/context/PreferredPharmacyContext';
 import { useDispatch, useSelector } from 'react-redux';
 import { useAuth } from '@/context/AuthContext';
 import DashboardLayout from './components/DashboardLayout';
+import PublicLayout from './components/PublicLayout';
 import AppMotion from './components/AppMotion';
 import Home from './pages/Home';
 import Login from './pages/Login';
+import FindDoctor from './pages/FindDoctor';
+import BookTest from './pages/BookTest';
+import AllTests from './pages/AllTests';
+import DiagnosticCenterDetail from './pages/DiagnosticCenterDetail';
+import ImagingCenterDetail from './pages/ImagingCenterDetail';
+
+import BuyMedicine from './pages/BuyMedicine';
+import MedicineStoreDetail from './pages/MedicineStoreDetail';
+import PathologyClinicDetail from './pages/PathologyClinicDetail';
+import ClinicDetail from './pages/ClinicDetail';
+import HospitalTestBooking from './pages/HospitalTestBooking';
+import StoreMedicines from './pages/StoreMedicines';
+import Cart from './pages/Cart';
+import Checkout from './pages/Checkout';
+import OrderConfirmation from './pages/OrderConfirmation';
+import OrderTracking from './pages/OrderTracking';
+import PaymentGateway from './pages/PaymentGateway';
+import DoctorDetail from './pages/DoctorDetail';
 import Signup from './pages/Signup';
 import ForgotPassword from './pages/ForgotPassword';
 import PendingApproval from './pages/PendingApproval';
+import JoinPlatform from './pages/JoinPlatform';
 import Dashboard from './pages/Dashboard';
 import Doctors from './pages/Doctors';
 import Patients from './pages/Patients';
@@ -34,7 +56,6 @@ import DoctorSetup from './pages/DoctorSetup';
 import { LenisScroll } from './components/LenisScroll';
 
 // Patient pages
-import PatientDoctors from './pages/patient/PatientDoctors';
 import PatientAppointments from './pages/patient/PatientAppointments';
 import PatientRecords from './pages/patient/PatientRecords';
 import PatientReviews from './pages/patient/PatientReviews';
@@ -43,6 +64,7 @@ import PatientPayment from './pages/patient/PatientPayment';
 import PatientReports from './pages/patient/PatientReports';
 import PatientServices from './pages/patient/PatientServices';
 import PatientEmergency from './pages/patient/PatientEmergency';
+import PatientBookings from './pages/patient/PatientBookings';
 import PatientDashboard from './pages/patient/PatientDashboard';
 
 // Doctor pages
@@ -89,6 +111,7 @@ import DoctorConsultation from './pages/DoctorConsultation';
 import HospitalDirectory from './pages/HospitalDirectory';
 import HospitalProfile from './pages/HospitalProfile';
 import HospitalRegister from './pages/HospitalRegister';
+import HospitalDoctors from './pages/HospitalDoctors';
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1, staleTime: 30_000 } } });
@@ -230,6 +253,8 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <ReduxAuthProvider>
       <NotificationProvider>
+        <PreferredPharmacyProvider>
+        <CartProvider>
         <TooltipProvider>
           <Toaster />
           <Sonner />
@@ -240,14 +265,38 @@ const App = () => (
                   {/* Public routes */}
                   <Route path="/" element={<Home />} />
                   <Route path="/login" element={<Login />} />
-                  <Route path="/signup" element={<Signup />} />
+                    <Route path="/signup" element={<Signup />} />
+                    <Route path="/join-platform" element={<JoinPlatform />} />
                   <Route path="/forgot-password" element={<ForgotPassword />} />
                   <Route path="/verify-otp" element={<OTPVerification />} />
                   <Route path="/pending-approval" element={<PendingApproval />} />
                   <Route path="/doctor-setup" element={<DoctorSetup />} />
-                  <Route path="/hospitals" element={<HospitalDirectory />} />
-                  <Route path="/hospitals/:id" element={<HospitalProfile />} />
-                  <Route path="/register-hospital" element={<HospitalRegister />} />
+<Route path="/hospitals" element={<PublicLayout><HospitalDirectory /></PublicLayout>} />
+                   <Route path="/hospitals/:id" element={<PublicLayout><HospitalProfile /></PublicLayout>} />
+                   <Route path="/hospitals/:hospitalId/doctors" element={<PublicLayout><HospitalDoctors /></PublicLayout>} />
+                   <Route path="/register-hospital" element={<HospitalRegister />} />
+                   <Route path="/doctors" element={<PublicLayout><FindDoctor /></PublicLayout>} />
+                    <Route path="/doctors/:id" element={<PublicLayout><DoctorDetail /></PublicLayout>} />
+                    <Route path="/clinic/:clinicId" element={<PublicLayout><ClinicDetail /></PublicLayout>} />
+                    <Route path="/hospital-tests/:hospitalId" element={<PublicLayout><HospitalTestBooking /></PublicLayout>} />
+                     <Route path="/book-test" element={<PublicLayout><BookTest /></PublicLayout>} />
+                     <Route path="/all-tests" element={<PublicLayout><AllTests /></PublicLayout>} />
+                     <Route path="/lab/:clinicId" element={<PublicLayout><PathologyClinicDetail /></PublicLayout>} />
+                     <Route path="/lab/:clinicId/details" element={<PublicLayout><PathologyClinicDetail /></PublicLayout>} />
+                     <Route path="/test-booking" element={<PublicLayout><HospitalTestBooking /></PublicLayout>} />
+                     <Route path="/test-booking/:hospitalId" element={<PublicLayout><HospitalTestBooking /></PublicLayout>} />
+                     <Route path="/diagnostic-center/:clinicId" element={<PublicLayout><DiagnosticCenterDetail /></PublicLayout>} />
+                     <Route path="/diagnostic-center/:clinicId/details" element={<PublicLayout><DiagnosticCenterDetail /></PublicLayout>} />
+                     <Route path="/imaging/:clinicId" element={<PublicLayout><ImagingCenterDetail /></PublicLayout>} />
+                     <Route path="/imaging/:clinicId/details" element={<PublicLayout><ImagingCenterDetail /></PublicLayout>} />
+                    <Route path="/buy-medicine" element={<PublicLayout><BuyMedicine /></PublicLayout>} />
+                   <Route path="/buy-medicine/:storeId/medicines" element={<PublicLayout><StoreMedicines /></PublicLayout>} />
+                   <Route path="/buy-medicine/:storeId" element={<PublicLayout><MedicineStoreDetail /></PublicLayout>} />
+                   <Route path="/cart" element={<PublicLayout><Cart /></PublicLayout>} />
+                   <Route path="/checkout" element={<PublicLayout><Checkout /></PublicLayout>} />
+                   <Route path="/order-confirmation" element={<PublicLayout><OrderConfirmation /></PublicLayout>} />
+                    <Route path="/order-tracking/:orderId" element={<PublicLayout><OrderTracking /></PublicLayout>} />
+                    <Route path="/payment-gateway" element={<PublicLayout><PaymentGateway /></PublicLayout>} />
 
                   {/* Authenticated dashboard shell */}
                   <Route element={<DashboardShell />}>
@@ -291,7 +340,6 @@ const App = () => (
                     <Route path="/doctor-consultation" element={<RoleRoute allowedRoles={['admin', 'doctor', 'nurse']}><DoctorConsultation /></RoleRoute>} />
 
                     {/* Patient routes */}
-                    <Route path="/patient/doctors" element={<RoleRoute allowedRoles={['patient']}><PatientDoctors /></RoleRoute>} />
                     <Route path="/patient/appointments" element={<RoleRoute allowedRoles={['patient']}><PatientAppointments /></RoleRoute>} />
                     <Route path="/patient/records" element={<RoleRoute allowedRoles={['patient']}><PatientRecords /></RoleRoute>} />
                     <Route path="/patient/reports" element={<RoleRoute allowedRoles={['patient']}><PatientReports /></RoleRoute>} />
@@ -299,6 +347,7 @@ const App = () => (
                     <Route path="/patient/billing" element={<RoleRoute allowedRoles={['patient']}><PatientBilling /></RoleRoute>} />
                     <Route path="/patient/payment" element={<RoleRoute allowedRoles={['patient']}><PatientPayment /></RoleRoute>} />
                     <Route path="/patient/services" element={<RoleRoute allowedRoles={['patient']}><PatientServices /></RoleRoute>} />
+                    <Route path="/patient/bookings" element={<RoleRoute allowedRoles={['patient']}><PatientBookings /></RoleRoute>} />
                     <Route path="/patient/emergency" element={<RoleRoute allowedRoles={['patient']}><PatientEmergency /></RoleRoute>} />
 
                     {/* Doctor routes */}
@@ -317,6 +366,8 @@ const App = () => (
             </LenisScroll>
           </HashRouter>
         </TooltipProvider>
+        </CartProvider>
+        </PreferredPharmacyProvider>
       </NotificationProvider>
     </ReduxAuthProvider>
   </QueryClientProvider>
