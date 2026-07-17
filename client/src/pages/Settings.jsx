@@ -13,6 +13,7 @@ import {
   Shield,
   Stethoscope,
   User,
+  Pill,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,6 +22,7 @@ import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { applyUserSettings, t } from '@/lib/settings';
 import { updateSetting, loadUserSettings, selectSetting } from '@/store/slices/settingsSlice';
+import PreferredPharmacySettings from '@/components/PreferredPharmacySettings';
 
 const roleBadge = {
   admin: 'bg-primary/15 text-primary',
@@ -33,6 +35,7 @@ const tabs = [
   { key: 'security', labelKey: 'settings.security', icon: Lock },
   { key: 'notifications', labelKey: 'settings.notifications', icon: Bell },
   { key: 'appearance', labelKey: 'settings.appearance', icon: Palette },
+  { key: 'pharmacy', labelKey: 'Preferred Pharmacies', icon: Pill },
   { key: 'privacy', labelKey: 'settings.privacyData', icon: Shield },
 ];
 
@@ -452,6 +455,10 @@ export default function Settings() {
                 </Button>
               </div>
             </div>
+          )}
+
+          {tab === 'pharmacy' && (
+            <PreferredPharmacySettings />
           )}
 
           {tab === 'privacy' && (
