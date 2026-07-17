@@ -76,6 +76,25 @@ import DoctorReviews from './pages/doctor/DoctorReviews';
 import DoctorEarnings from './pages/doctor/DoctorEarnings';
 import DoctorSchedule from './pages/doctor/DoctorSchedule';
 import DoctorEmergency from './pages/doctor/DoctorEmergency';
+import DoctorPrescriptions from './pages/doctor/DoctorPrescriptions';
+import DoctorLeaveRequests from './pages/doctor/DoctorLeaveRequests';
+import DoctorProfile from './pages/doctor/DoctorProfile';
+
+// Clinic Doctor pages
+import ClinicDashboard from './pages/clinic/ClinicDashboard';
+import ClinicAppointments from './pages/clinic/ClinicAppointments';
+import ClinicSchedule from './pages/clinic/ClinicSchedule';
+import ClinicFees from './pages/clinic/ClinicFees';
+import ClinicPatients from './pages/clinic/ClinicPatients';
+import ClinicPrescriptions from './pages/clinic/ClinicPrescriptions';
+import ClinicTests from './pages/clinic/ClinicTests';
+import ClinicConsultations from './pages/clinic/ClinicConsultations';
+import ClinicManagement from './pages/clinic/ClinicManagement';
+import ClinicBilling from './pages/clinic/ClinicBilling';
+import ClinicEarnings from './pages/clinic/ClinicEarnings';
+import ClinicReviews from './pages/clinic/ClinicReviews';
+import ClinicSettings from './pages/clinic/ClinicSettings';
+import ClinicStaff from './pages/clinic/ClinicStaff';
 
 // Admin pages
 import AdminUsers from './pages/admin/AdminUsers';
@@ -84,6 +103,9 @@ import AdminAnalytics from './pages/admin/AdminAnalytics';
 import AdminDepartments from './pages/admin/AdminDepartments';
 import AdminReviews from './pages/admin/AdminReviews';
 import AdminEmergency from './pages/admin/AdminEmergency';
+import AdminBedManagement from './pages/admin/AdminBedManagement';
+import AdminTestCatalog from './pages/admin/AdminTestCatalog';
+import DiagnosticDashboard from './pages/DiagnosticDashboard';
 import PDFReports from './pages/PDFReports';
 import ImportExport from './pages/ImportExport';
 import FileUpload from './pages/FileUpload';
@@ -174,7 +196,7 @@ function ProtectedRoute({ children, allowedRoles }) {
   if (!user) return <Navigate to="/login" replace />;
   if (user.status === 'blocked') return <BlockedAccountRedirect />;
   if (!user.isVerified) return <Navigate to={`/verify-otp?email=${encodeURIComponent(user.email)}`} replace />;
-  if (user.role === 'doctor' && !user.doctorApproved) {
+  if ((user.role === 'doctor' || user.role === 'clinic_doctor') && !user.doctorApproved) {
     return <Navigate to={`/pending-approval?email=${encodeURIComponent(user.email)}&status=${user.approvalStatus === 'rejected' ? 'rejected' : 'pending'}`} replace />;
   }
   if (allowedRoles && !allowedRoles.includes(user.role)) return <Navigate to="/dashboard" replace />;
@@ -215,6 +237,13 @@ function getDefaultDashboardPath(user) {
       schedule: '/doctor/schedule',
       emergency: '/doctor/emergency',
     },
+    clinic_doctor: {
+      appointments: '/clinic/appointments',
+      patients: '/clinic/patients',
+      reports: '/reports',
+      earnings: '/clinic/earnings',
+      schedule: '/clinic/schedule',
+    },
     patient: {
       appointments: '/patient/appointments',
       records: '/patient/records',
@@ -231,6 +260,7 @@ function RoleDashboard() {
   if (defaultPath) return <Navigate to={defaultPath} replace />;
   if (user?.role === 'superadmin') return <SuperAdminDashboard />;
   if (user?.role === 'doctor') return <DoctorDashboard />;
+  if (user?.role === 'clinic_doctor') return <ClinicDashboard />;
   if (user?.role === 'admin') return <Dashboard />;
   return <PatientDashboard />;
 }
@@ -313,6 +343,9 @@ const App = () => (
                     <Route path="/admin/departments" element={<RoleRoute allowedRoles={['admin']}><AdminDepartments /></RoleRoute>} />
                     <Route path="/admin/emergency" element={<RoleRoute allowedRoles={['admin']}><AdminEmergency /></RoleRoute>} />
                     <Route path="/admin/reviews" element={<RoleRoute allowedRoles={['admin']}><AdminReviews /></RoleRoute>} />
+                    <Route path="/admin/beds" element={<RoleRoute allowedRoles={['admin']}><AdminBedManagement /></RoleRoute>} />
+                    <Route path="/admin/test-catalog" element={<RoleRoute allowedRoles={['admin']}><AdminTestCatalog /></RoleRoute>} />
+                    <Route path="/admin/diagnostic" element={<RoleRoute allowedRoles={['admin', 'doctor', 'lab_receptionist', 'lab_technician', 'pathologist']}><DiagnosticDashboard /></RoleRoute>} />
                     <Route path="/doctors" element={<RoleRoute allowedRoles={['admin']}><Doctors /></RoleRoute>} />
                     <Route path="/patients" element={<RoleRoute allowedRoles={['admin']}><Patients /></RoleRoute>} />
                     <Route path="/appointments" element={<RoleRoute allowedRoles={['admin']}><Appointments /></RoleRoute>} />
@@ -358,6 +391,25 @@ const App = () => (
                     <Route path="/doctor/earnings" element={<RoleRoute allowedRoles={['doctor']}><DoctorEarnings /></RoleRoute>} />
                     <Route path="/doctor/schedule" element={<RoleRoute allowedRoles={['doctor']}><DoctorSchedule /></RoleRoute>} />
                     <Route path="/doctor/emergency" element={<RoleRoute allowedRoles={['doctor']}><DoctorEmergency /></RoleRoute>} />
+                    <Route path="/doctor/prescriptions" element={<RoleRoute allowedRoles={['doctor']}><DoctorPrescriptions /></RoleRoute>} />
+                    <Route path="/doctor/leave-requests" element={<RoleRoute allowedRoles={['doctor']}><DoctorLeaveRequests /></RoleRoute>} />
+                    <Route path="/doctor/profile" element={<RoleRoute allowedRoles={['doctor']}><DoctorProfile /></RoleRoute>} />
+
+                    {/* Clinic Doctor routes */}
+                    <Route path="/clinic/dashboard" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicDashboard /></RoleRoute>} />
+                    <Route path="/clinic/appointments" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicAppointments /></RoleRoute>} />
+                    <Route path="/clinic/schedule" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicSchedule /></RoleRoute>} />
+                    <Route path="/clinic/fees" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicFees /></RoleRoute>} />
+                    <Route path="/clinic/patients" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicPatients /></RoleRoute>} />
+                    <Route path="/clinic/prescriptions" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicPrescriptions /></RoleRoute>} />
+                    <Route path="/clinic/tests" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicTests /></RoleRoute>} />
+                    <Route path="/clinic/consultations" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicConsultations /></RoleRoute>} />
+                    <Route path="/clinic/management" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicManagement /></RoleRoute>} />
+                    <Route path="/clinic/billing" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicBilling /></RoleRoute>} />
+                    <Route path="/clinic/earnings" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicEarnings /></RoleRoute>} />
+                    <Route path="/clinic/reviews" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicReviews /></RoleRoute>} />
+                    <Route path="/clinic/settings" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicSettings /></RoleRoute>} />
+                    <Route path="/clinic/staff" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicStaff /></RoleRoute>} />
                   </Route>
 
                   <Route path="*" element={<NotFound />} />
