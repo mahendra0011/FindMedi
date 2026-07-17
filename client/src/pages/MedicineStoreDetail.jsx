@@ -1,0 +1,598 @@
+import { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { Star, Truck, Phone, Mail, Clock, MapPin, ArrowLeft, BadgeCheck, Store, ShoppingCart, Pill, Camera, Upload, Shield, ChevronRight, Share2, Navigation, Percent, Tag, AlertCircle, X, Image, FileText, Zap, Info, Copy, CheckCircle2, Stethoscope, CalendarDays, Award, Search, Plus, Minus, Lock } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
+import { useCart } from '@/context/CartContext';
+import { toast } from 'sonner';
+
+const MOCK_STORES = [
+  { id:'s1', name:'MedPlus Pharmacy', photo:'https://images.unsplash.com/photo-1585435557343-3b092031a831?w=400&h=300&fit=crop', cover:'https://images.unsplash.com/photo-1587351021759-3e566b6af7cc?w=1200&h=400&fit=crop', verified:true, open:true, timing:'24/7', type:'Pharmacy', rating:4.5, reviews:120, tags:['24x7','Home Delivery','Generic Available'], deliveryTime:'25 mins', phone:'9876543210', email:'store@medplus.com', address:'123, Health Avenue, Block C, Downtown, New York, NY 10001', distance:'0.8 km', workingHours:'Open 24/7', deliveryCharges:20, freeDeliveryAbove:200, minOrder:0, pickup:true, deliveryArea:'Within 5 km', established:2015, licenseNo:'DL-21-54321', pharmacist:'Mr. Rajesh Kumar', description:'MedPlus Pharmacy is a trusted pharmacy chain offering genuine medicines at affordable prices with fast home delivery.', deliveryAvailable:true, offers:[{ title:'Flat 20% off on first order', code:'FIRST20', desc:'Use code FIRST20 to get 20% off on your first order.' }, { title:'Combo Deal: Buy 2 Get 10% off', code:'COMBO10', desc:'On all vitamin supplements.' }], policies:{ return:'Medicines can be returned within 7 days if unopened and in original packaging. Prescription medicines cannot be returned once dispensed.', cancel:'Orders can be cancelled within 30 minutes of placing. Full refund will be processed within 3-5 business days.', rxValidity:'Prescriptions issued within the last 6 months are accepted.' }, city:'New York' },
+  { id:'s2', name:'HealthFirst Medicals', photo:'https://images.unsplash.com/photo-1631217868264-e5b90bb7e133?w=400&h=300&fit=crop', cover:'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=1200&h=400&fit=crop', verified:true, open:true, timing:'9 AM - 11 PM', type:'Medical Store', rating:4.2, reviews:89, tags:['Home Delivery','Generic Available'], deliveryTime:'30 mins', phone:'9876543211', email:'info@healthfirst.com', address:'456, Wellness Road, Sector 7, Los Angeles, CA 90012', distance:'1.2 km', workingHours:'9:00 AM - 11:00 PM', deliveryCharges:15, freeDeliveryAbove:150, minOrder:50, pickup:false, deliveryArea:'Within 3 km', established:2018, licenseNo:'DL-22-98765', pharmacist:'Mrs. Sunita Patel', description:'Your neighborhood medical store for all healthcare needs.', deliveryAvailable:true, offers:[{ title:'Free delivery on orders above \u20B9150', code:'', desc:'Auto-applied at checkout' }], policies:{ return:'Unopened products can be returned within 3 days. No returns on cold storage items.', cancel:'Free cancellation within 15 minutes of ordering.', rxValidity:'Prescriptions within 3 months are accepted.' }, city:'New York' },
+  { id:'s3', name:'City Drug House', photo:'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?w=400&h=300&fit=crop', cover:'https://images.unsplash.com/photo-1587351021759-3e566b6af7cc?w=1200&h=400&fit=crop', verified:false, open:false, timing:'10 AM - 10 PM', type:'Chain Pharmacy', rating:4.0, reviews:45, tags:['24x7'], deliveryTime:'40 mins', phone:'9876543212', email:'citydrug@email.com', address:'789, Market Street, Chicago, IL 60607', distance:'2.5 km', workingHours:'10:00 AM - 10:00 PM', deliveryCharges:25, freeDeliveryAbove:300, minOrder:100, pickup:true, deliveryArea:'Within 4 km', established:2010, licenseNo:'DL-23-45678', pharmacist:'Mr. Amit Singh', description:'City Drug House - Serving since 2010.', deliveryAvailable:true, offers:[], policies:{ return:'7-day return on unopened items. Prescription items non-returnable.', cancel:'Cancellation accepted within 1 hour.', rxValidity:'Prescriptions within 6 months accepted.' }, city:'New York' },
+];
+
+const REVIEWS_DATA = [
+  { id:'r1', user:'Rahul M.', rating:5, comment:'Very fast delivery! Medicines were properly packed and genuine. Highly recommend.', date:'2 days ago' },
+  { id:'r2', user:'Priya S.', rating:4, comment:'Good service. Got my order in 20 mins.', date:'1 week ago' },
+  { id:'r3', user:'Amit K.', rating:5, comment:'Excellent pharmacy. Pharmacist explained dosage very clearly.', date:'2 weeks ago' },
+  { id:'r4', user:'Neha G.', rating:3, comment:'Delivery was late by 10 mins. Otherwise ok.', date:'3 weeks ago' },
+  { id:'r5', user:'Vikram J.', rating:4, comment:'Good stock availability. Got all medicines in one place.', date:'1 month ago' },
+];
+
+const MOCK_MEDICINES = [
+  { id:'m1', name:'Paracetamol 500mg', image:'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop', brand:'XYZ Pharma', mrp:45, price:29, discount:35, inStock:true, rx:false, pack:'10 tablets', category:'OTC', storeId:'s1' },
+  { id:'m2', name:'Vitamin C 1000mg', image:'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop', brand:'HealthPlus', mrp:599, price:399, discount:33, inStock:true, rx:false, pack:'60 tablets', category:'Vitamins', storeId:'s1' },
+  { id:'m3', name:'Cough Syrup 100ml', image:'https://images.unsplash.com/photo-1550572017-edd951b55104?w=200&h=200&fit=crop', brand:'MediCare', mrp:120, price:89, discount:26, inStock:true, rx:false, pack:'100ml bottle', category:'OTC', storeId:'s1' },
+  { id:'m4', name:'Amoxicillin 500mg', image:'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop', brand:'BioPharma', mrp:180, price:145, discount:19, inStock:true, rx:true, pack:'15 capsules', category:'Prescription', storeId:'s1' },
+  { id:'m5', name:'Azithromycin 500mg', image:'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop', brand:'PharmaCorp', mrp:250, price:199, discount:20, inStock:false, rx:true, pack:'6 tablets', category:'Prescription', storeId:'s1' },
+  { id:'m6', name:'BP Monitor', image:'https://images.unsplash.com/photo-1631549916768-4119b2e5f926?w=200&h=200&fit=crop', brand:'HealthTech', mrp:2999, price:2499, discount:17, inStock:true, rx:false, pack:'1 unit', category:'Devices', storeId:'s1' },
+  { id:'m7', name:'Baby Diapers M', image:'https://images.unsplash.com/photo-1584820927498-cfe5211fd8bf?w=200&h=200&fit=crop', brand:'BabySoft', mrp:499, price:399, discount:20, inStock:true, rx:false, pack:'30 pieces', category:'Baby Care', storeId:'s1' },
+  { id:'m8', name:'Multivitamin', image:'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop', brand:'NutriFit', mrp:450, price:349, discount:22, inStock:true, rx:false, pack:'30 tablets', category:'Vitamins', storeId:'s1' },
+  { id:'m12', name:'Chyawanprash', image:'https://images.unsplash.com/photo-1550572017-edd951b55104?w=200&h=200&fit=crop', brand:'HerbalLife', mrp:350, price:299, discount:15, inStock:true, rx:false, pack:'500g jar', category:'Ayurvedic', storeId:'s1' },
+  { id:'m16', name:'Protein Powder', image:'https://images.unsplash.com/photo-1550572017-edd951b55104?w=200&h=200&fit=crop', brand:'NutriFit', mrp:1599, price:1299, discount:19, inStock:true, rx:false, pack:'1kg container', category:'Vitamins', storeId:'s1' },
+  { id:'m17', name:'Aspirin 75mg', image:'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop', brand:'XYZ Pharma', mrp:30, price:18, discount:40, inStock:true, rx:false, pack:'14 tablets', category:'OTC', storeId:'s1' },
+  { id:'m18', name:'Dolo 650', image:'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop', brand:'Micro Labs', mrp:55, price:35, discount:36, inStock:true, rx:false, pack:'15 tablets', category:'OTC', storeId:'s1' },
+  { id:'m9', name:'Ibuprofen 400mg', image:'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop', brand:'XYZ Pharma', mrp:65, price:45, discount:31, inStock:true, rx:false, pack:'10 tablets', category:'OTC', storeId:'s2' },
+  { id:'m10', name:'Cetirizine 10mg', image:'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop', brand:'AllerCare', mrp:35, price:24, discount:31, inStock:true, rx:false, pack:'10 tablets', category:'OTC', storeId:'s2' },
+  { id:'m11', name:'Metformin 500mg', image:'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop', brand:'DiabeCare', mrp:90, price:68, discount:24, inStock:true, rx:true, pack:'20 tablets', category:'Prescription', storeId:'s2' },
+  { id:'m13', name:'Glucose Powder', image:'https://images.unsplash.com/photo-1550572017-edd951b55104?w=200&h=200&fit=crop', brand:'Energize', mrp:120, price:89, discount:26, inStock:true, rx:false, pack:'500g pouch', category:'OTC', storeId:'s2' },
+  { id:'m14', name:'Digital Thermometer', image:'https://images.unsplash.com/photo-1631549916768-4119b2e5f926?w=200&h=200&fit=crop', brand:'HealthTech', mrp:299, price:199, discount:33, inStock:true, rx:false, pack:'1 unit', category:'Devices', storeId:'s2' },
+  { id:'m15', name:'Omeprazole 20mg', image:'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop', brand:'GastroCare', mrp:85, price:59, discount:31, inStock:false, rx:false, pack:'10 capsules', category:'OTC', storeId:'s3' },
+  { id:'m19', name:'Betadine Solution', image:'https://images.unsplash.com/photo-1550572017-edd951b55104?w=200&h=200&fit=crop', brand:'Win Medicare', mrp:120, price:89, discount:26, inStock:true, rx:false, pack:'100ml bottle', category:'OTC', storeId:'s3' },
+  { id:'m20', name:'Vitamin D3 60K', image:'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop', brand:'HealthPlus', mrp:199, price:149, discount:25, inStock:true, rx:false, pack:'4 capsules', category:'Vitamins', storeId:'s3' },
+];
+
+const CATEGORIES = ['All', 'Prescription', 'OTC', 'Generic', 'Baby Care', 'Ayurvedic', 'Devices', 'Vitamins'];
+
+function getStoreById(id) { return MOCK_STORES.find(s => s.id === id) || MOCK_STORES[0]; }
+
+function fadeUp(i) {
+  return { initial:{ opacity:0, y:20 }, animate:{ opacity:1, y:0 }, transition:{ delay:i * 0.06, duration:0.4 } };
+}
+
+function SectionCard({ icon:Icon, title, children, className }) {
+  return (
+    <motion.div {...fadeUp(0)} className={cn('bg-card rounded-2xl border border-border/50 overflow-hidden shadow-sm', className)}>
+      <div className="px-6 py-4 border-b border-border/30 bg-gradient-to-r from-primary/[0.04] to-transparent">
+        <h3 className="font-heading font-bold text-foreground flex items-center gap-2.5 text-base">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shadow-sm">
+            <Icon className="w-4.5 h-4.5 text-primary" />
+          </div>
+          {title}
+        </h3>
+      </div>
+      <div className="px-6 py-5">{children}</div>
+    </motion.div>
+  );
+}
+
+function SidebarCard({ icon:Icon, title, children }) {
+  return (
+    <motion.div {...fadeUp(0)} className="bg-card rounded-2xl border border-border/50 overflow-hidden shadow-sm">
+      <div className="px-5 py-3.5 border-b border-border/30 bg-gradient-to-r from-primary/[0.04] to-transparent">
+        <h4 className="font-heading font-semibold text-foreground flex items-center gap-2 text-sm">
+          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+            <Icon className="w-4 h-4 text-primary" />
+          </div>
+          {title}
+        </h4>
+      </div>
+      <div className="p-5">{children}</div>
+    </motion.div>
+  );
+}
+
+export default function MedicineStoreDetail() {
+  const { storeId } = useParams();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const store = getStoreById(storeId);
+  const { entries, addItem, updateQty } = useCart();
+  const [showRx, setShowRx] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(null);
+  const medicinesRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const [medSearch, setMedSearch] = useState('');
+  const [catFilter, setCatFilter] = useState('All');
+
+  const allMeds = MOCK_MEDICINES.filter(m => m.storeId === storeId);
+  const storeEntries = entries.filter(e => e.storeId === storeId);
+
+  const storeCartCount = storeEntries.reduce((s, e) => s + e.qty, 0);
+  const storeCartTotal = storeEntries.reduce((s, e) => s + e.item.price * e.qty, 0);
+
+  const renderMedCard = (med) => {
+    const entry = storeEntries.find(e => e.item.id === med.id);
+    return (
+      <div key={med.id} className="bg-background rounded-xl border border-border/50 overflow-hidden hover:shadow-lg hover:border-primary/20 transition-all group/card flex flex-col">
+        <div className="relative h-28 sm:h-32 bg-gradient-to-br from-muted/50 to-muted/10 overflow-hidden">
+          <img src={med.image} alt="" className="w-full h-full object-cover transition-transform duration-300 group-hover/card:scale-105" />
+          {med.discount > 0 && (
+            <span className="absolute top-1.5 left-1.5 bg-emerald-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md shadow">{med.discount}% OFF</span>
+          )}
+          {med.rx && (
+            <span className="absolute top-1.5 right-1.5 bg-amber-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md shadow flex items-center gap-0.5">
+              <Lock className="w-2.5 h-2.5" /> Rx
+            </span>
+          )}
+        </div>
+        <div className="p-2.5 sm:p-3 flex-1 flex flex-col">
+          <h4 className="font-heading font-semibold text-xs sm:text-sm text-foreground leading-tight line-clamp-1">{med.name}</h4>
+          <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 line-clamp-1">{med.brand} | {med.pack}</p>
+          <div className="flex items-center gap-1.5 mt-1.5">
+            <span className="text-sm sm:text-base font-bold text-foreground">₹{med.price}</span>
+            {med.mrp > med.price && <span className="text-[10px] sm:text-xs text-muted-foreground line-through">₹{med.mrp}</span>}
+          </div>
+          <span className={cn('text-[10px] font-medium mt-1', med.inStock ? 'text-emerald-600' : 'text-red-500')}>
+            {med.inStock ? '✓ In Stock' : '✕ Out of Stock'}
+          </span>
+          <div className="mt-auto pt-2">
+            {med.rx ? (
+              <Button size="sm" className="w-full gap-1 rounded-lg text-[10px] h-7 sm:h-8 bg-amber-500 hover:bg-amber-600 text-white" onClick={() => setShowRx(true)}>
+                <Lock className="w-3 h-3" /> Upload Rx
+              </Button>
+            ) : entry ? (
+              <div className="flex items-center justify-center gap-1">
+                <Button variant="outline" size="icon" className="h-7 w-7 rounded-lg" onClick={() => updateQty(entry.key, entry.qty - 1)} disabled={entry.qty <= 1}>
+                  <Minus className="w-3 h-3" />
+                </Button>
+                <span className="w-6 text-center text-xs font-bold">{entry.qty}</span>
+                <Button variant="outline" size="icon" className="h-7 w-7 rounded-lg" onClick={() => addItem(med, storeId)} disabled={!med.inStock}>
+                  <Plus className="w-3 h-3" />
+                </Button>
+              </div>
+            ) : (
+              <Button size="sm" className="w-full gap-1 rounded-lg text-[10px] h-7 sm:h-8" disabled={!med.inStock} onClick={() => { addItem(med, storeId); toast.success(`${med.name} added to cart`); }}>
+                <ShoppingCart className="w-3 h-3" /> Add
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  useEffect(() => {
+    if (searchParams.get('section') === 'medicines') {
+      setTimeout(() => medicinesRef.current?.scrollIntoView({ behavior:'smooth', block:'start' }), 300);
+    } else {
+      window.scrollTo(0, 0);
+    }
+  }, [storeId]);
+
+  const renderStars = (r) => (
+    <div className="flex items-center gap-0.5">
+      {[1,2,3,4,5].map(s => (
+        <Star key={s} className={cn('w-3.5 h-3.5', s <= Math.round(r) ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground/20')} />
+      ))}
+    </div>
+  );
+
+  const handleCopyCode = (code) => {
+    navigator.clipboard?.writeText(code);
+    setCopiedCode(code);
+    setTimeout(() => setCopiedCode(null), 2000);
+  };
+
+  if (!store) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-16 text-center">
+        <Store className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
+        <h2 className="text-xl font-semibold">Store not found</h2>
+        <Button className="mt-4" onClick={() => navigate('/buy-medicine')}>Back to Stores</Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-muted/20 to-background pb-32">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Breadcrumb */}
+        <motion.div {...fadeUp(0)} className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground mb-5">
+          <button onClick={() => navigate('/buy-medicine')} className="hover:text-foreground transition-colors">Buy Medicine</button>
+          <span className="text-muted-foreground/40">/</span>
+          <span className="text-foreground font-medium truncate">{store.name}</span>
+        </motion.div>
+
+        {/* ═══ HERO HEADER ═══ */}
+        <motion.div {...fadeUp(1)} className="relative bg-card rounded-2xl border border-border/50 overflow-hidden mb-8 shadow-sm group">
+          <div className="relative h-56 sm:h-64 overflow-hidden">
+            <img src={store.cover} alt="" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+            <div className="absolute top-4 right-4 flex items-center gap-2">
+              {store.deliveryAvailable && (
+                <span className="px-3 py-1 rounded-full text-[10px] font-semibold bg-white/20 backdrop-blur-sm text-white border border-white/30 shadow-lg">
+                  <Truck className="w-3 h-3 inline mr-1" />Delivery Available
+                </span>
+              )}
+              <span className={cn('px-3 py-1.5 rounded-full text-xs font-bold border-2 shadow-lg', store.open ? 'bg-emerald-500 text-white border-emerald-400' : 'bg-red-500 text-white border-red-400')}>
+                {store.open ? '● Open' : '● Closed'} &bull; {store.timing}
+              </span>
+            </div>
+          </div>
+          <div className="px-6 sm:px-8 pb-5 -mt-16 relative z-10">
+            <div className="flex items-end gap-5 mb-3">
+              <div className="w-28 h-28 rounded-2xl border-[5px] border-card overflow-hidden shadow-2xl shrink-0 bg-card">
+                <img src={store.photo} alt="" className="w-full h-full object-cover" />
+              </div>
+              <div className="min-w-0 flex-1 pt-16">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <h1 className="font-heading text-2xl sm:text-3xl font-bold text-foreground truncate">{store.name}</h1>
+                  {store.verified && (
+                    <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 text-[11px] font-semibold shrink-0">
+                      <BadgeCheck className="w-3.5 h-3.5" /> Verified
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-3 mt-2 flex-wrap">
+                  <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-muted/50 border border-border/40">
+                    <Store className="w-3.5 h-3.5 text-primary" />
+                    <span className="text-xs font-medium text-foreground">{store.type}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {renderStars(store.rating)}
+                    <span className="text-sm font-bold text-foreground">{store.rating}</span>
+                    <span className="text-xs text-muted-foreground">({store.reviews} reviews)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {store.tags.map(t => (
+                <Badge key={t} className="text-[11px] px-3 py-1 bg-muted/50 border-border/40 hover:bg-muted/80 transition-colors">
+                  {t.includes('24x7') && <Zap className="w-3 h-3 mr-1 text-amber-500" />}
+                  {t.includes('Delivery') && <Truck className="w-3 h-3 mr-1 text-primary" />}
+                  {t.includes('Generic') && <Pill className="w-3 h-3 mr-1 text-emerald-500" />}
+                  {t}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        </motion.div>
+
+        {/* ═══ MAIN GRID: LEFT + RIGHT ═══ */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+          {/* ─── LEFT COLUMN (lg:col-span-2) ─── */}
+          <div className="lg:col-span-2 space-y-6">
+
+            {/* Upload Prescription CTA */}
+            <motion.div {...fadeUp(2)}>
+              <button onClick={() => { const inStock = allMeds.filter(m => m.inStock); inStock.forEach(m => addItem(m, storeId)); toast.success(`${inStock.length} items added to cart`); navigate('/cart'); }} className="w-full text-left bg-gradient-to-r from-primary/10 via-primary/5 to-card rounded-2xl border border-primary/20 p-6 hover:shadow-lg hover:border-primary/40 transition-all group">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-2xl bg-primary/15 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                    <FileText className="w-7 h-7 text-primary" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-heading font-bold text-lg text-foreground">Upload Prescription</h3>
+                    <p className="text-sm text-muted-foreground">Buy all medicines in single click &rarr;</p>
+                  </div>
+                  <ChevronRight className="w-6 h-6 text-primary/40 group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                </div>
+              </button>
+            </motion.div>
+
+            {/* Browse Medicines */}
+            <motion.div {...fadeUp(3)} ref={medicinesRef}>
+              <div className="bg-card rounded-2xl border border-border/50 overflow-hidden shadow-sm">
+                <div className="px-5 py-4 border-b border-border/30 bg-gradient-to-r from-primary/[0.04] to-transparent">
+                  <h3 className="font-heading font-bold text-foreground flex items-center gap-2.5 text-base">
+                    <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shadow-sm">
+                      <Pill className="w-4.5 h-4.5 text-primary" />
+                    </div>
+                    Medicines
+                    <span className="text-sm font-normal text-muted-foreground">({allMeds.length} items)</span>
+                  </h3>
+                </div>
+                <div className="p-5">
+                  <div className="relative mb-4">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input value={medSearch} onChange={e => setMedSearch(e.target.value)} placeholder={`Search in ${store.name}...`} className="pl-10 h-11 text-sm rounded-xl bg-background border-border/50" />
+                  </div>
+                  <div className="flex gap-2 overflow-x-auto pb-2 mb-4">
+                    {CATEGORIES.map(c => (
+                      <button key={c} onClick={() => setCatFilter(c)}
+                        className={cn('px-4 py-2 rounded-xl text-xs font-medium whitespace-nowrap transition-all shrink-0 border', catFilter === c ? 'bg-primary text-primary-foreground border-primary shadow-md shadow-primary/20' : 'bg-background text-muted-foreground hover:text-foreground border-border/50')}>
+                        {c}
+                      </button>
+                    ))}
+                  </div>
+                  {(() => {
+                    const filtered = allMeds.filter(m => {
+                      if (catFilter !== 'All' && m.category !== catFilter) return false;
+                      if (medSearch && !m.name.toLowerCase().includes(medSearch.toLowerCase()) && !m.brand.toLowerCase().includes(medSearch.toLowerCase())) return false;
+                      return true;
+                    });
+                    if (filtered.length === 0) {
+                      return (
+                        <div className="text-center py-12 bg-background rounded-xl border border-border/50">
+                          <Search className="w-12 h-12 text-muted-foreground/20 mx-auto mb-3" />
+                          <p className="text-muted-foreground text-sm">No medicines found</p>
+                        </div>
+                      );
+                    }
+                    return (
+                      <>
+                        <div className="grid grid-cols-4 gap-3">
+                          {filtered.slice(0, 4).map(med => renderMedCard(med))}
+                        </div>
+                        <div className="mt-4 text-center">
+                          <Button variant="outline" className="gap-2 rounded-xl px-6" onClick={() => navigate(`/buy-medicine/${storeId}/medicines`)}>
+                            <Pill className="w-4 h-4" /> View More Medicines <ChevronRight className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Offers */}
+            {store.offers.length > 0 && (
+              <SectionCard icon={Tag} title={`Offers & Deals (${store.offers.length})`}>
+                <div className="space-y-3">
+                  {store.offers.map((offer, i) => (
+                    <motion.div key={i} {...fadeUp(i)}
+                      className="flex items-start gap-4 p-4 rounded-xl bg-gradient-to-r from-primary/5 via-primary/[0.02] to-transparent border border-primary/10 hover:border-primary/20 hover:shadow-sm transition-all">
+                      <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shrink-0 shadow-sm">
+                        <Percent className="w-5 h-5 text-primary" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-bold text-foreground">{offer.title}</p>
+                        {offer.code && (
+                          <div className="flex items-center gap-2 mt-2">
+                            <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-primary/10 border border-primary/20">
+                              <Tag className="w-3 h-3 text-primary" />
+                              <span className="text-sm font-mono font-bold text-primary tracking-wider">{offer.code}</span>
+                            </div>
+                            <button onClick={() => handleCopyCode(offer.code)}
+                              className="flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 transition-colors px-2.5 py-1 rounded-lg hover:bg-primary/5">
+                              {copiedCode === offer.code ? <><CheckCircle2 className="w-3.5 h-3.5" /> Copied</> : <><Copy className="w-3.5 h-3.5" /> Copy</>}
+                            </button>
+                          </div>
+                        )}
+                        {offer.desc && <p className="text-xs text-muted-foreground mt-1.5">{offer.desc}</p>}
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </SectionCard>
+            )}
+
+            {/* About */}
+            <SectionCard icon={Info} title="About">
+              <div className="space-y-5">
+                <p className="text-sm text-muted-foreground leading-relaxed">{store.description}</p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {[
+                    { label:'License No.', value:store.licenseNo, icon:FileText },
+                    { label:'Pharmacist', value:store.pharmacist, icon:Shield },
+                    { label:'Established', value:store.established, icon:CalendarDays },
+                    { label:'Type', value:store.type, icon:Store },
+                  ].map((item, i) => (
+                    <div key={i} className="bg-gradient-to-br from-muted/40 to-muted/10 rounded-xl p-4 border border-border/40 hover:border-primary/20 transition-all">
+                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center mb-2.5">
+                        <item.icon className="w-4 h-4 text-primary" />
+                      </div>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-0.5">{item.label}</p>
+                      <p className="text-sm font-bold text-foreground">{item.value}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </SectionCard>
+
+            {/* Reviews */}
+            <SectionCard icon={Star} title={`Reviews (${store.reviews})`}>
+              <div className="space-y-5">
+                <div className="flex items-start gap-6 sm:gap-10">
+                  <div className="text-center shrink-0">
+                    <div className="text-4xl font-black text-foreground">{store.rating}</div>
+                    <div className="flex mt-1.5 justify-center">{renderStars(store.rating)}</div>
+                    <p className="text-xs text-muted-foreground mt-1.5 font-medium">{store.reviews} reviews</p>
+                  </div>
+                  <div className="flex-1 space-y-1.5 pt-1">
+                    {[5,4,3,2,1].map(s => {
+                      const count = REVIEWS_DATA.filter(r => Math.round(r.rating) === s).length;
+                      const pct = REVIEWS_DATA.length > 0 ? (count / REVIEWS_DATA.length) * 100 : 0;
+                      return (
+                        <div key={s} className="flex items-center gap-2 text-xs">
+                          <span className="w-3 text-muted-foreground font-medium">{s}</span>
+                          <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
+                          <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                            <div className="h-full bg-gradient-to-r from-amber-400 to-amber-500 rounded-full transition-all" style={{ width:`${pct}%` }} />
+                          </div>
+                          <span className="w-5 text-muted-foreground text-right">{count}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+                <Separator />
+                <div className="space-y-4">
+                  {REVIEWS_DATA.map((r, i) => (
+                    <motion.div key={r.id} {...fadeUp(i)} className="pb-4 border-b border-border/20 last:border-0 last:pb-0">
+                      <div className="flex items-center gap-3 mb-1.5">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center text-xs font-bold text-primary shadow-sm">{r.user[0]}</div>
+                        <span className="text-sm font-semibold text-foreground">{r.user}</span>
+                        <span className="text-[10px] text-muted-foreground ml-auto bg-muted/50 px-2 py-0.5 rounded-full">{r.date}</span>
+                      </div>
+                      <div className="flex mb-1.5 ml-11">{renderStars(r.rating)}</div>
+                      <p className="text-sm text-muted-foreground ml-11 leading-relaxed">{r.comment}</p>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            </SectionCard>
+
+            {/* Policies */}
+            <SectionCard icon={Shield} title="Store Policies">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {[
+                  { icon:ArrowLeft, title:'Return / Refund', desc:store.policies.return, color:'text-blue-500', bg:'bg-blue-500/10' },
+                  { icon:X, title:'Cancellation', desc:store.policies.cancel, color:'text-red-500', bg:'bg-red-500/10' },
+                  { icon:FileText, title:'Prescription Validity', desc:store.policies.rxValidity, color:'text-amber-500', bg:'bg-amber-500/10' },
+                ].map((item, i) => (
+                  <motion.div key={i} {...fadeUp(i)}
+                    className="bg-gradient-to-br from-muted/40 to-muted/10 rounded-xl p-5 border border-border/40 hover:border-primary/20 hover:shadow-sm transition-all">
+                    <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center mb-3', item.bg)}>
+                      <item.icon className={cn('w-5 h-5', item.color)} />
+                    </div>
+                    <h4 className="text-sm font-bold text-foreground mb-1.5">{item.title}</h4>
+                    <p className="text-xs text-muted-foreground leading-relaxed">{item.desc}</p>
+                  </motion.div>
+                ))}
+              </div>
+            </SectionCard>
+
+          </div>
+
+          {/* ─── RIGHT SIDEBAR ─── */}
+          <div className="space-y-6">
+
+            {/* Quick Info */}
+            <SidebarCard icon={Info} title="Quick Info">
+              <div className="space-y-3">
+                {[
+                  { icon:Truck, label:'Delivery Time', value:store.deliveryTime },
+                  { icon:MapPin, label:'Distance', value:store.distance || '0.8 km' },
+                  { icon:Phone, label:'Phone', value:store.phone },
+                  { icon:Mail, label:'Email', value:store.email },
+                  { icon:Clock, label:'Working Hours', value:store.workingHours },
+                  { icon:Truck, label:'Delivery', value:store.deliveryCharges === 0 ? 'Free' : `\u20B9${store.deliveryCharges}` },
+                ].map((item, i) => (
+                  <div key={i} className="flex items-center gap-3 py-2 border-b border-border/20 last:border-0">
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center shrink-0">
+                      <item.icon className="w-4 h-4 text-primary" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{item.label}</p>
+                      <p className="text-sm font-semibold text-foreground truncate">{item.value}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </SidebarCard>
+
+            {/* Trust & Info */}
+            <SidebarCard icon={Award} title="Trust & Info">
+              <div className="space-y-3">
+                {[
+                  { label:'License', value:store.licenseNo, icon:FileText },
+                  { label:'Pharmacist', value:store.pharmacist, icon:Stethoscope },
+                  { label:'Established', value:store.established, icon:CalendarDays },
+                  { label:'Delivery Area', value:store.deliveryArea, icon:MapPin },
+                ].map((item, i) => (
+                  <div key={i} className="flex items-center gap-3 py-2 border-b border-border/20 last:border-0">
+                    <div className="w-8 h-8 rounded-lg bg-muted/50 flex items-center justify-center shrink-0">
+                      <item.icon className="w-4 h-4 text-muted-foreground" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{item.label}</p>
+                      <p className="text-sm font-semibold text-foreground truncate">{item.value}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </SidebarCard>
+
+            {/* Quick Actions (sticky) */}
+            <div className="lg:sticky lg:top-24 space-y-4">
+              <SidebarCard icon={MapPin} title="Address">
+                <p className="text-sm text-muted-foreground leading-relaxed mb-4">{store.address}</p>
+                <div className="flex flex-col gap-2">
+                  <Button variant="default" className="gap-2 rounded-xl w-full shadow-md shadow-primary/20" onClick={() => window.open(`tel:${store.phone}`)}>
+                    <Phone className="w-4 h-4" /> Call Store
+                  </Button>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button variant="outline" className="gap-2 rounded-xl" onClick={() => window.open(`https://maps.google.com/?q=${encodeURIComponent(store.address)}`)}>
+                      <Navigation className="w-4 h-4" /> Directions
+                    </Button>
+                    <Button variant="outline" className="gap-2 rounded-xl" onClick={() => { if (navigator.share) navigator.share({ title:store.name, text:`${store.name}\n${store.address}` }); }}>
+                      <Share2 className="w-4 h-4" /> Share
+                    </Button>
+                  </div>
+                </div>
+              </SidebarCard>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      {/* ═══ PRESCRIPTION MODAL ═══ */}
+      {showRx && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setShowRx(false)}>
+          <motion.div initial={{ opacity:0, scale:0.95 }} animate={{ opacity:1, scale:1 }}
+            className="bg-card rounded-2xl border border-border/60 p-6 sm:p-8 max-w-md w-full shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="font-heading font-bold text-foreground flex items-center gap-2 text-lg">
+                <FileText className="w-5 h-5 text-primary" /> Upload Prescription
+              </h3>
+              <button onClick={() => setShowRx(false)} className="w-8 h-8 rounded-full bg-muted/50 flex items-center justify-center hover:bg-muted transition-colors">
+                <X className="w-4 h-4 text-muted-foreground" />
+              </button>
+            </div>
+            <div className="border-2 border-dashed border-border/60 rounded-xl p-8 sm:p-10 text-center mb-3 hover:border-primary/40 hover:bg-primary/[0.02] transition-all cursor-pointer group relative" onClick={() => fileInputRef.current?.click()}>
+              <div className="w-14 h-14 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-4 group-hover:bg-primary/10 transition-colors">
+                <Upload className="w-7 h-7 text-muted-foreground/50 group-hover:text-primary transition-colors" />
+              </div>
+              <p className="text-sm font-semibold text-foreground mb-1">Tap to upload your prescription</p>
+              <p className="text-xs text-muted-foreground">Supports JPG, PNG, PDF (max 5MB)</p>
+              <input ref={fileInputRef} type="file" accept="image/*,.pdf" className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) toast.success(`Uploaded: ${file.name}`);
+                }} />
+            </div>
+            <div className="grid grid-cols-2 gap-3 mb-5">
+              <Button variant="outline" className="gap-2 rounded-xl py-6" onClick={() => fileInputRef.current?.click()}>
+                <Camera className="w-4 h-4" /> Camera
+              </Button>
+              <Button variant="outline" className="gap-2 rounded-xl py-6" onClick={() => fileInputRef.current?.click()}>
+                <Image className="w-4 h-4" /> Gallery
+              </Button>
+            </div>
+            <div className="bg-amber-50/80 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl p-4">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center shrink-0">
+                  <AlertCircle className="w-4 h-4 text-amber-600" />
+                </div>
+                <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed">
+                  Pharmacist will verify your prescription before dispatch. You will be notified once approved.
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* ═══ BOTTOM STICKY BAR ═══ */}
+      {storeCartCount > 0 && (
+        <motion.div initial={{ y:100 }} animate={{ y:0 }}
+          className="fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-xl border-t border-border/50 shadow-2xl">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                <ShoppingCart className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <span className="text-xs text-muted-foreground">{storeCartCount} item{storeCartCount > 1 ? 's' : ''}</span>
+                <span className="text-lg font-bold text-foreground block leading-tight">\u20B9{storeCartTotal}</span>
+              </div>
+            </div>
+            <Button className="gap-2 rounded-xl shadow-lg shadow-primary/30 px-6 h-11" onClick={() => navigate('/cart')}>
+              View Cart <ChevronRight className="w-5 h-5" />
+            </Button>
+          </div>
+        </motion.div>
+      )}
+    </div>
+  );
+}
