@@ -350,7 +350,7 @@ export default function PatientDashboard() {
         <h2 className="font-heading text-lg font-semibold text-foreground mb-4">Quick Actions</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Button asChild variant="outline" className="h-20 flex-col gap-2 py-4">
-            <Link to="/patient/doctors">
+            <Link to="/doctors">
             <Search className="w-6 h-6 text-primary" />
             <span className="text-sm">Find Doctors</span>
             </Link>
