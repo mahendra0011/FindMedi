@@ -95,6 +95,7 @@ import ClinicEarnings from './pages/clinic/ClinicEarnings';
 import ClinicReviews from './pages/clinic/ClinicReviews';
 import ClinicSettings from './pages/clinic/ClinicSettings';
 import ClinicStaff from './pages/clinic/ClinicStaff';
+import ClinicNotifications from './pages/clinic/ClinicNotifications';
 
 // Admin pages
 import AdminUsers from './pages/admin/AdminUsers';
@@ -410,6 +411,7 @@ const App = () => (
                     <Route path="/clinic/reviews" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicReviews /></RoleRoute>} />
                     <Route path="/clinic/settings" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicSettings /></RoleRoute>} />
                     <Route path="/clinic/staff" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicStaff /></RoleRoute>} />
+                    <Route path="/clinic/notifications" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicNotifications /></RoleRoute>} />
                   </Route>
 
                   <Route path="*" element={<NotFound />} />
