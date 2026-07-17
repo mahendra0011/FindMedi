@@ -1,0 +1,14 @@
+import dns from 'dns';
+dns.setServers(['8.8.8.8', '1.1.1.1']);
+import mongoose from 'mongoose';
+import { config } from 'dotenv';
+import { fileURLToPath } from 'url';
+import path from 'path';
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+config({ path: path.join(__dirname, '.env') });
+const url = process.env.MONGO_URI;
+await mongoose.connect(url, { serverSelectionTimeoutMS: 30000, family: 4 });
+const User = (await import('./models/User.js')).default;
+const r = await User.findOneAndUpdate({ email: 'mahendrapra0077@gmail.com' }, { role: 'superadmin' }, { new: true });
+console.log('UPDATED:', r.email, r.role);
+await mongoose.disconnect();
