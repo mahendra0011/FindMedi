@@ -4,8 +4,10 @@ import { Save, CheckCircle, Upload, Image, MapPin, Phone, Mail, Clock, Building2
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { api } from '@/lib/api';
 
 const STORAGE_KEY = 'medicore_labcenter_settings';
+// TODO: Replace localStorage with api calls once settings endpoint is added to lab routes
 
 const centerTypes = ['Pathology Lab', 'Diagnostic Center', 'Imaging Center'];
 const certOptions = ['NABL', 'AERB', 'ISO'];

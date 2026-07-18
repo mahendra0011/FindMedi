@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, User, ClipboardList, CheckCircle, Truck, Search, FlaskConical, CalendarDays } from 'lucide-react';
+import { MapPin, User, ClipboardList, CheckCircle, Truck, Search, FlaskConical, CalendarDays, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { api } from '@/lib/api';
 
 const statusColors = {
   Requested: 'bg-primary/10 text-primary',
@@ -14,39 +15,46 @@ const statusColors = {
 
 const phlebotomists = ['Rajesh Kumar', 'Priya Sharma', 'Amit Singh', 'Sneha Patel'];
 
-const defaultCollections = [
-  { id: 'col_1', patient: 'Arun Nair', address: '42, MG Road, Andheri East, Mumbai', tests: ['CBC', 'Lipid Profile'], status: 'Requested', phlebotomist: '', requestedDate: '2026-07-18', time: '07:30 AM' },
-  { id: 'col_2', patient: 'Meera Joshi', address: '15, Lake View Apartments, Koregaon Park, Pune', tests: ['Thyroid Panel', 'Vitamin D'], status: 'Assigned', phlebotomist: 'Rajesh Kumar', requestedDate: '2026-07-17', time: '08:00 AM' },
-  { id: 'col_3', patient: 'Vikram Deshmukh', address: '88, Sunrise Colony, Baner, Pune', tests: ['HbA1c', 'FBS', 'Creatinine'], status: 'Collected', phlebotomist: 'Priya Sharma', requestedDate: '2026-07-17', time: '09:15 AM' },
-  { id: 'col_4', patient: 'Sunita Rao', address: '7B, Green Park Extension, Delhi', tests: ['Liver Function', 'Complete Urine'], status: 'Received at Lab', phlebotomist: 'Amit Singh', requestedDate: '2026-07-16', time: '06:45 AM' },
-];
+const mapBooking = (b, i) => ({
+  id: b._id || `col_${i}`,
+  patient: b.patientName || b.patient || 'Unknown',
+  address: b.address || '',
+  tests: b.tests || [],
+  status: b.status || 'Requested',
+  phlebotomist: b.phlebotomist || '',
+  requestedDate: b.date || b.createdAt?.split('T')[0] || '',
+  time: b.time || '',
+});
 
 export default function LabSampleCollection() {
   const [collections, setCollections] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [assigning, setAssigning] = useState(null);
 
   useEffect(() => {
-    const stored = localStorage.getItem('medicore_labcenter_collections');
-    if (stored) setCollections(JSON.parse(stored));
-    else { setCollections(defaultCollections); localStorage.setItem('medicore_labcenter_collections', JSON.stringify(defaultCollections)); }
+    api.getLabBookings({})
+      .then(res => setCollections((res.bookings || []).map(mapBooking)))
+      .catch(console.error)
+      .finally(() => setLoading(false));
   }, []);
 
-  const persist = (data) => {
-    localStorage.setItem('medicore_labcenter_collections', JSON.stringify(data));
-    setCollections(data);
-  };
-
-  const assignPhlebotomist = (id, name) => {
-    const updated = collections.map(c => c.id === id ? { ...c, phlebotomist: name, status: 'Assigned' } : c);
-    persist(updated);
+  const assignPhlebotomist = async (id, name) => {
+    try {
+      await api.updateLabBooking(id, { phlebotomist: name, status: 'Assigned' });
+      setCollections(prev => prev.map(c => c.id === id ? { ...c, phlebotomist: name, status: 'Assigned' } : c));
+    } catch (e) { console.error(e); }
     setAssigning(null);
   };
 
-  const advanceStatus = (id) => {
-    const flow = { Requested: 'Assigned', Assigned: 'Collected', Collected: 'Received at Lab' };
-    const updated = collections.map(c => c.id === id ? { ...c, status: flow[c.status] || c.status } : c);
-    persist(updated);
+  const advanceStatus = async (id) => {
+    try {
+      const flow = { Requested: 'Assigned', Assigned: 'Collected', Collected: 'Received at Lab' };
+      const c = collections.find(c => c.id === id);
+      const nextStatus = flow[c?.status] || c?.status;
+      await api.updateLabBooking(id, { status: nextStatus });
+      setCollections(prev => prev.map(c => c.id === id ? { ...c, status: nextStatus } : c));
+    } catch (e) { console.error(e); }
   };
 
   const today = new Date().toISOString().split('T')[0];
@@ -55,6 +63,14 @@ export default function LabSampleCollection() {
     c.address.toLowerCase().includes(search.toLowerCase()) ||
     c.tests.some(t => t.toLowerCase().includes(search.toLowerCase()))
   );
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

@@ -1,50 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Package, Plus, X, Save, Gift, Percent, Beaker, IndianRupee } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-
-const STORAGE_KEY = 'medicore_labcenter_packages';
-const TESTS_KEY = 'medicore_labcenter_tests';
-
-const generateMockPackages = (tests) => [
-  {
-    _id: 'pkg_1', name: 'Full Body Checkup', description: 'Complete health screening with 70+ parameters',
-    tests: tests?.slice(0, 4)?.map(t => t._id) || [], discount: 40, price: 2999,
-  },
-  {
-    _id: 'pkg_2', name: 'Cardiac Profile', description: 'Heart health assessment including lipid profile',
-    tests: tests?.slice(2, 5)?.map(t => t._id) || [], discount: 25, price: 1499,
-  },
-  {
-    _id: 'pkg_3', name: 'Diabetes Panel', description: 'Complete diabetic screening package',
-    tests: tests?.slice(1, 3)?.map(t => t._id) || [], discount: 20, price: 999,
-  },
-];
-
-const mockTests = [
-  { _id: 't1', name: 'Complete Blood Count', price: 500 },
-  { _id: 't2', name: 'Blood Sugar Fasting', price: 200 },
-  { _id: 't3', name: 'Lipid Profile', price: 600 },
-  { _id: 't4', name: 'Liver Function Test', price: 400 },
-  { _id: 't5', name: 'Thyroid Profile', price: 550 },
-  { _id: 't6', name: 'Kidney Function Test', price: 350 },
-];
+import { api } from '@/lib/api';
 
 export default function LabPackages() {
-  const [packages, setPackages] = useState(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) return JSON.parse(stored);
-    const tests = JSON.parse(localStorage.getItem(TESTS_KEY) || '[]');
-    if (tests.length === 0) {
-      localStorage.setItem(TESTS_KEY, JSON.stringify(mockTests));
-    }
-    const t = tests.length > 0 ? tests : mockTests;
-    const mock = generateMockPackages(t);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(mock));
-    return mock;
-  });
+  const [packages, setPackages] = useState([]);
+  const [tests, setTests] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [name, setName] = useState('');
@@ -54,17 +19,25 @@ export default function LabPackages() {
   const [price, setPrice] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const tests = JSON.parse(localStorage.getItem(TESTS_KEY) || JSON.stringify(mockTests));
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const [pkgRes, testRes] = await Promise.all([
+          api.getLabPackages({}),
+          api.getLabTests(),
+        ]);
+        setPackages(pkgRes.packages || []);
+        setTests(testRes.tests || []);
+      } catch (e) { console.error(e); }
+      setLoading(false);
+    };
+    load();
+  }, []);
 
   const totalOriginal = selectedTests.reduce((sum, tid) => {
     const t = tests.find(tt => tt._id === tid);
     return sum + (t?.price || 0);
   }, 0);
-
-  const savePackages = (data) => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    setPackages(data);
-  };
 
   const handleSave = async () => {
     if (!name || selectedTests.length === 0 || !price) return;
@@ -72,9 +45,11 @@ export default function LabPackages() {
     try {
       const pkg = { name, description, tests: selectedTests, discount: Number(discount), price: Number(price) };
       if (editing) {
-        savePackages(packages.map(p => p._id === editing._id ? { ...p, ...pkg } : p));
+        const updated = await api.updateLabPackage(editing._id, pkg);
+        setPackages(prev => prev.map(p => p._id === editing._id ? updated : p));
       } else {
-        savePackages([{ _id: `pkg_${Date.now()}`, ...pkg }, ...packages]);
+        const created = await api.createLabPackage(pkg);
+        setPackages(prev => [created, ...prev]);
       }
       setShowForm(false);
       setEditing(null);
@@ -92,6 +67,10 @@ export default function LabPackages() {
   const toggleTest = (tid) => {
     setSelectedTests(prev => prev.includes(tid) ? prev.filter(t => t !== tid) : [...prev, tid]);
   };
+
+  if (loading) {
+    return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
+  }
 
   return (
     <div className="space-y-6">

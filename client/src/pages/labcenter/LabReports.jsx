@@ -4,15 +4,7 @@ import { FileText, Upload, CheckCircle, Send, Search, Download, Calendar, User, 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-
-const defaultReports = [
-  { _id: 'r1', patient: 'Ravi Kumar', tests: ['Complete Blood Count', 'Lipid Profile'], date: new Date().toISOString().split('T')[0], status: 'Pending Upload', notes: '' },
-  { _id: 'r2', patient: 'Priya Sharma', tests: ['X-Ray Chest PA View'], date: new Date().toISOString().split('T')[0], status: 'Uploaded', notes: 'Report ready', notified: false },
-  { _id: 'r3', patient: 'Amit Patel', tests: ['Thyroid Panel'], date: new Date(Date.now() - 86400000).toISOString().split('T')[0], status: 'Uploaded', notes: '', notified: true },
-  { _id: 'r4', patient: 'Sneha Reddy', tests: ['Blood Sugar'], date: new Date(Date.now() - 86400000).toISOString().split('T')[0], status: 'Delivered', notes: 'Delivered via email', notified: true },
-  { _id: 'r5', patient: 'Vikram Singh', tests: ['ECG', 'Lipid Profile'], date: new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0], status: 'Pending Upload', notes: '' },
-  { _id: 'r6', patient: 'Neha Gupta', tests: ['MRI Brain'], date: new Date(Date.now() - 3 * 86400000).toISOString().split('T')[0], status: 'Uploaded', notes: '', notified: false },
-];
+import { api } from '@/lib/api';
 
 const statusColors = {
   'Pending Upload': 'bg-warning/10 text-warning',
@@ -21,32 +13,46 @@ const statusColors = {
 };
 
 export default function LabReports() {
-  const [reports, setReports] = useState(() => {
-    const stored = localStorage.getItem('medicore_labcenter_reports');
-    return stored ? JSON.parse(stored) : defaultReports;
-  });
+  const [reports, setReports] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('All');
 
-  useEffect(() => { localStorage.setItem('medicore_labcenter_reports', JSON.stringify(reports)); }, [reports]);
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await api.getLabBookings({});
+        setReports(res.bookings || []);
+      } catch (e) { console.error(e); }
+      setLoading(false);
+    };
+    load();
+  }, []);
 
-  const handleUpload = (id) => {
-    setReports(prev => prev.map(r => r._id === id ? { ...r, status: 'Uploaded', notes: 'Report uploaded', notified: false } : r));
+  const handleUpload = async (id) => {
+    try {
+      await api.updateLabBooking(id, { status: 'Uploaded', notes: 'Report uploaded', notified: false });
+      setReports(prev => prev.map(r => r._id === id ? { ...r, status: 'Uploaded', notes: 'Report uploaded', notified: false } : r));
+    } catch (e) { console.error(e); }
   };
 
   const handleNotify = async (id) => {
-    setReports(prev => prev.map(r => r._id === id ? { ...r, status: 'Delivered', notified: true } : r));
     try {
-      const { api } = await import('@/lib/api');
+      await api.updateLabBooking(id, { status: 'Delivered', notified: true });
+      setReports(prev => prev.map(r => r._id === id ? { ...r, status: 'Delivered', notified: true } : r));
       await api.createNotification({ title: 'Report Ready', message: 'Your lab report is ready for download', type: 'records' });
     } catch (e) { console.error(e); }
   };
 
   const filtered = reports.filter(r => {
-    const ms = !search || r.patient.toLowerCase().includes(search.toLowerCase());
+    const ms = !search || (r.patient || '').toLowerCase().includes(search.toLowerCase());
     const mf = filter === 'All' || r.status === filter;
     return ms && mf;
   });
+
+  if (loading) {
+    return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
+  }
 
   return (
     <div className="space-y-6">
@@ -87,7 +93,7 @@ export default function LabReports() {
                   <div>
                     <h3 className="font-heading font-semibold text-foreground">{r.patient}</h3>
                     <div className="flex flex-wrap gap-1.5 mt-1">
-                      {r.tests.map((t, j) => <Badge key={j} variant="secondary" className="text-[10px]">{t}</Badge>)}
+                      {r.tests?.map((t, j) => <Badge key={j} variant="secondary" className="text-[10px]">{t}</Badge>)}
                     </div>
                     <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
                       <Calendar className="w-3 h-3" /> {r.date}

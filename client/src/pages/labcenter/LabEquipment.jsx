@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Wrench, Plus, X, CalendarDays, Activity, AlertTriangle, CheckCircle, Save } from 'lucide-react';
+import { Wrench, Plus, X, CalendarDays, Activity, AlertTriangle, CheckCircle, Save, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { api } from '@/lib/api';
 
 const statusColors = {
   Operational: 'bg-success/10 text-success',
@@ -25,38 +26,43 @@ export default function LabEquipment() {
   const [equipment, setEquipment] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [newEq, setNewEq] = useState({ name: '', type: 'MRI', purchaseDate: '' });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const stored = localStorage.getItem('medicore_labcenter_equipment');
-    if (stored) setEquipment(JSON.parse(stored));
-    else { setEquipment(defaultEquipment); localStorage.setItem('medicore_labcenter_equipment', JSON.stringify(defaultEquipment)); }
+    api.getLabEquipment({}).then(res => {
+      if (res.equipment && res.equipment.length > 0) setEquipment(res.equipment);
+      else setEquipment(defaultEquipment);
+    }).catch(() => setEquipment(defaultEquipment)).finally(() => setLoading(false));
   }, []);
 
-  const persist = (data) => {
-    localStorage.setItem('medicore_labcenter_equipment', JSON.stringify(data));
-    setEquipment(data);
-  };
-
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!newEq.name || !newEq.purchaseDate) return;
-    const item = {
-      id: `eq_${Date.now()}`,
-      name: newEq.name,
-      type: newEq.type,
-      status: 'Operational',
-      purchaseDate: newEq.purchaseDate,
-      lastMaintenance: new Date().toISOString().split('T')[0],
-      nextMaintenance: '',
-    };
-    persist([item, ...equipment]);
-    setNewEq({ name: '', type: 'MRI', purchaseDate: '' });
-    setShowModal(false);
+    try {
+      const eq = await api.createLabEquipment({
+        name: newEq.name,
+        type: newEq.type,
+        status: 'Operational',
+        purchaseDate: newEq.purchaseDate,
+        lastMaintenance: new Date().toISOString().split('T')[0],
+        nextMaintenance: '',
+      });
+      setEquipment(prev => [eq, ...prev]);
+      setNewEq({ name: '', type: 'MRI', purchaseDate: '' });
+      setShowModal(false);
+    } catch (e) { console.error(e); }
   };
 
-  const updateStatus = (id, status) => {
-    const updated = equipment.map(eq => eq.id === id ? { ...eq, status, lastMaintenance: status === 'Maintenance' ? new Date().toISOString().split('T')[0] : eq.lastMaintenance } : eq);
-    persist(updated);
+  const updateStatus = async (id, status) => {
+    const updates = { status, lastMaintenance: status === 'Maintenance' ? new Date().toISOString().split('T')[0] : undefined };
+    setEquipment(prev => prev.map(eq => eq.id === id ? { ...eq, ...updates } : eq));
+    try { await api.updateLabEquipment(id, updates); } catch (e) { console.error(e); }
   };
+
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <Loader2 className="w-8 h-8 animate-spin text-primary" />
+    </div>
+  );
 
   return (
     <div className="space-y-6">

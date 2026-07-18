@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CalendarDays, Clock, User, CheckCircle, XCircle, Search, ChevronDown, ChevronRight, Phone, Mail, Filter } from 'lucide-react';
+import { CalendarDays, Clock, User, CheckCircle, XCircle, Search, ChevronDown, ChevronRight, Phone, Mail, Filter, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { api } from '@/lib/api';
 
 const statusColors = { Pending: 'bg-warning/10 text-warning', Confirmed: 'bg-success/10 text-success', Completed: 'bg-primary/10 text-primary', Cancelled: 'bg-destructive/10 text-destructive' };
 const filters = ['All', 'Pending', 'Confirmed', 'Completed', 'Cancelled'];
@@ -19,15 +20,17 @@ const defaultBookings = [
 const timeSlots = ['09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM', '02:00 PM', '02:30 PM', '03:00 PM', '03:30 PM', '04:00 PM'];
 
 export default function LabBookingManagement() {
-  const [bookings, setBookings] = useState(() => {
-    const stored = localStorage.getItem('medicore_labcenter_bookings');
-    return stored ? JSON.parse(stored) : defaultBookings;
-  });
+  const [bookings, setBookings] = useState(defaultBookings);
   const [filter, setFilter] = useState('All');
   const [search, setSearch] = useState('');
   const [expanded, setExpanded] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => { localStorage.setItem('medicore_labcenter_bookings', JSON.stringify(bookings)); }, [bookings]);
+  useEffect(() => {
+    api.getLabBookings({}).then(res => {
+      if (res.bookings && res.bookings.length > 0) setBookings(res.bookings);
+    }).catch(console.error).finally(() => setLoading(false));
+  }, []);
 
   const filtered = bookings.filter(b => {
     const ms = !search || b.patient.toLowerCase().includes(search.toLowerCase());
@@ -37,7 +40,14 @@ export default function LabBookingManagement() {
 
   const handleStatus = (id, status) => {
     setBookings(prev => prev.map(b => b._id === id ? { ...b, status } : b));
+    api.updateLabBooking(id, { status }).catch(console.error);
   };
+
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <Loader2 className="w-8 h-8 animate-spin text-primary" />
+    </div>
+  );
 
   return (
     <div className="space-y-6">

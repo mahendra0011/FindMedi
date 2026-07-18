@@ -4,6 +4,7 @@ import { User, Mail, Phone, Shield, Plus, X, Save, Edit2, Users, Stethoscope, Mi
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { api } from '@/lib/api'; // TODO: LabStaff has no dedicated API endpoint yet; using localStorage fallback
 
 const staffRoles = ['Technician', 'Radiologist', 'Phlebotomist', 'Receptionist', 'Pathologist'];
 const roleIcons = { Technician: Microscope, Radiologist: Eye, Phlebotomist: Syringe, Receptionist: Users, Pathologist: Stethoscope };
