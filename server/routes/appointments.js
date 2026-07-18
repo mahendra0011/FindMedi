@@ -6,6 +6,7 @@ import Doctor from '../models/Doctor.js';
 import User from '../models/User.js';
 import Hospital from '../models/Hospital.js';
 import { protect, scopeToHospital } from '../middleware/auth.js';
+import { validate, createAppointmentSchema, updateAppointmentSchema } from '../utils/validate.js';
 
 const router = express.Router();
 
@@ -20,12 +21,11 @@ const calculateEstimatedWaitTime = async (department, priority = 'Normal') => {
     department,
     status: { $in: ['Confirmed', 'In Queue'] }
   });
-  const avgConsultTime = priority === 'Emergency' ? 15 : priority === 'Urgent' ? 20 : 10; // minutes
+  const avgConsultTime = priority === 'Emergency' ? 15 : priority === 'Urgent' ? 20 : 10;
   return waitingCount * avgConsultTime;
 };
 
 const createNotification = async (userId, title, message, type = 'appointment') => {
-  console.log(`[createNotification] START userId=${userId} title=${title}`);
   if (!userId) return;
   try {
     let finalUserId = userId.toString();
@@ -33,24 +33,15 @@ const createNotification = async (userId, title, message, type = 'appointment') 
     if (doctor) {
       if (doctor.user_id) {
         finalUserId = doctor.user_id;
-        console.log(`[createNotification] Doctor found, using user_id=${finalUserId}`);
       } else {
-        // Fallback: find User by email to get correct userId
         const user = await User.findOne({ email: doctor.email, role: 'doctor' });
         if (user) {
           finalUserId = user._id.toString();
-          // Update doctor record for future
           await Doctor.findByIdAndUpdate(doctor._id, { user_id: user._id });
-          console.log(`[createNotification] Doctor missing user_id; fixed via User lookup. finalUserId=${finalUserId}`);
-        } else {
-          console.log(`[createNotification] Doctor found but no matching User; keeping original ID`);
         }
       }
-    } else {
-      console.log(`[createNotification] No doctor found for userId=${userId}`);
     }
     await Notification.create({ title, message, type, read: false, userId: finalUserId, date: new Date().toISOString().split('T')[0] });
-    console.log(`[createNotification] CREATED Notification userId=${finalUserId}`);
   } catch (err) {
     console.error('[createNotification] ERROR:', err);
   }
@@ -76,9 +67,7 @@ router.get('/', protect, async (req, res) => {
     if (hospitalId) filter.hospitalId = hospitalId;
     
     if (search && req.user.role === 'doctor') {
-      filter.$or = [
-        { patient: new RegExp(search, 'i') },
-      ];
+      filter.$or = [{ patient: new RegExp(search, 'i') }];
     }
     
     const appointments = await Appointment.find(filter)
@@ -129,14 +118,13 @@ router.get('/:id', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/', protect, async (req, res) => {
+router.post('/', protect, validate(createAppointmentSchema), async (req, res) => {
   try {
     const { doctorId, doctor, department, date, time, type, symptoms, priority } = req.body;
     
     let patientName = req.user.name;
     let patientId = req.user._id;
     
-    // Get hospitalId from the selected doctor
     let hospitalId = null;
     if (doctorId) {
       const doctorDoc = await Doctor.findById(doctorId);
@@ -169,7 +157,6 @@ router.post('/', protect, async (req, res) => {
     
     await appointment.populate('doctorId', 'name specialization');
     
-    // Notify doctor about new appointment
     if (doctorId) {
       await createNotification(doctorId, 'New Appointment', `New ${type || 'Consultation'} appointment from ${patientName} for ${date} at ${time}`, 'appointment');
     }
@@ -178,7 +165,6 @@ router.post('/', protect, async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-// ─── Queue Management ────────────────────────────────────────────────────────
 router.put('/:id/checkin', protect, async (req, res) => {
   try {
     const appointment = await Appointment.findById(req.params.id);
@@ -211,7 +197,6 @@ router.get('/queue/:department', protect, async (req, res) => {
       filter.hospitalId = req.query.hospitalId;
     }
     const queue = await Appointment.find(filter).sort({ queuePosition: 1 });
-    
     res.json({ queue });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
@@ -238,7 +223,6 @@ router.put('/:id', protect, async (req, res) => {
       if (patientUser) {
         await createNotification(patientUser._id.toString(), 'Appointment Update', `Your appointment status changed to ${status}`, 'appointment');
       }
-      // Notify doctor
       if (updated.doctorId) {
         await createNotification(updated.doctorId._id.toString(), 'Appointment Update', `Appointment with ${updated.patient} status changed to ${status}`, 'appointment');
       }
@@ -261,4 +245,3 @@ router.delete('/:id', protect, async (req, res) => {
 });
 
 export default router;
-// 20

@@ -3,6 +3,7 @@ import Hospital from '../models/Hospital.js';
 import User from '../models/User.js';
 import Doctor from '../models/Doctor.js';
 import { protect, superadminOnly, hospitalAdminOnly } from '../middleware/auth.js';
+import { validate, registerHospitalSchema } from '../utils/validate.js';
 
 const router = express.Router();
 
@@ -15,7 +16,7 @@ router.get('/', async (req, res) => {
       try {
         const jwt = (await import('jsonwebtoken')).default;
         const token = req.headers.authorization.split(' ')[1];
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
         const user = await User.findById(decoded.id).select('role status isVerified');
         if (user && user.role === 'superadmin' && user.status !== 'blocked' && user.isVerified) {
           filter.status = status;
@@ -102,9 +103,21 @@ router.post('/register', async (req, res) => {
       approvalStatus: 'not_required',
     });
 
+    try {
+      const { sendHostNotificationEmail } = await import('../services/notificationService.js');
+      await sendHostNotificationEmail({
+        subject: 'MediCore Hospital Registration',
+        text: `Hospital "${name}" registered by ${adminName} (${adminEmail}).\n\nTemporary password: ${tempPassword}\n\nAdmin can login with this password and will be prompted to change it.`,
+      });
+    } catch {
+      console.warn('Could not send notification email for hospital registration');
+    }
+
     res.status(201).json({
       message: 'Hospital registered successfully. Awaiting superadmin approval.',
       hospitalId: hospital._id,
+      adminEmail: adminEmail.toLowerCase(),
+      tempPassword,
     });
   } catch (err) { res.status(400).json({ message: err.message }); }
 });

@@ -8,6 +8,7 @@ import Notification from '../models/Notification.js';
 import { protect, adminOnly, hospitalAdminOnly, superadminOnly, scopeToHospital } from '../middleware/auth.js';
 import { sendDoctorApprovalEmail, sendDoctorRejectionEmail, sendEmail } from '../services/notificationService.js';
 import { uploadFileToCloudinary } from '../services/cloudinaryService.js';
+import { validate, createDoctorSchema, updateDoctorSchema } from '../utils/validate.js';
 
 const router = express.Router();
 
@@ -26,7 +27,7 @@ const isAdminListRequest = async (req) => {
 
   try {
     const token = auth.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(decoded.id).select('role status isVerified');
     return Boolean(user && user.role === 'admin' && user.status !== 'blocked' && user.isVerified);
   } catch {
@@ -125,7 +126,7 @@ router.post('/', protect, async (req, res) => {
 
     // Create User with temporary status
     const tempPassword = Math.random().toString(36).slice(-10);
-    const setupToken = jwt.sign({ email: email.toLowerCase(), type: 'doctor_setup' }, process.env.JWT_SECRET || 'secret', { expiresIn: '48h' });
+    const setupToken = jwt.sign({ email: email.toLowerCase(), type: 'doctor_setup' }, process.env.JWT_SECRET, { expiresIn: '48h' });
 
     const user = await User.create({
       name,

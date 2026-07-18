@@ -16,7 +16,7 @@ router.get('/', async (req, res) => {
     if (status && req.headers.authorization) {
       try {
         const token = req.headers.authorization.split(' ')[1];
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
         const user = await User.findById(decoded.id).select('role status isVerified');
         if (user && user.role === 'superadmin' && user.status !== 'blocked' && user.isVerified) {
           filter.status = status;

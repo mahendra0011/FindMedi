@@ -13,8 +13,10 @@ import mongoose from 'mongoose';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import mongoSanitize from 'express-mongo-sanitize';
+import morgan from 'morgan';
 import xss from 'xss';
 import { configureMongoDns } from './config/mongoDns.js';
+import { errorHandler, notFound } from './middleware/errorHandler.js';
 
 const app = express();
 configureMongoDns();
@@ -47,6 +49,13 @@ app.use((req, res, next) => {
   next();
 });
 
+// HTTP request logging
+if (process.env.NODE_ENV === 'production') {
+  app.use(morgan('combined'));
+} else {
+  app.use(morgan('dev'));
+}
+
 // Rate limiting
 const apiLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -77,6 +86,23 @@ app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
 app.use('/api/auth/resend-otp', otpLimiter);
 app.use('/api/auth/forgot-password', forgotPasswordLimiter);
+
+// Environment validation
+(() => {
+  const required = ['MONGO_URI'];
+  if (process.env.NODE_ENV === 'production') {
+    required.push('JWT_SECRET');
+  }
+  const missing = required.filter(k => !process.env[k]);
+  if (missing.length) {
+    console.error(`❌ Missing required environment variables: ${missing.join(', ')}`);
+    process.exit(1);
+  }
+
+  if (process.env.JWT_SECRET === 'secret' || !process.env.JWT_SECRET) {
+    console.warn('⚠️  WARNING: Using default JWT_SECRET. Set a strong secret in production.');
+  }
+})();
 
 const redactMongoUri = (uri) => uri.replace(/\/\/([^:]+):([^@]+)@/, '//***:***@');
 
@@ -216,6 +242,12 @@ app.use('/api/clinics', clinicRoutes);
 app.use('/api/patient', patientPortalRoutes);
 
 app.get('/api/health', (_, res) => res.json({ status: 'ok', time: new Date() }));
+
+// 404 handler for unknown routes
+app.use(notFound);
+
+// Centralized error handler (must be last)
+app.use(errorHandler);
 
 // Connect & start
 const PORT = process.env.PORT || 5001;

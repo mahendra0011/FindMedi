@@ -1,6 +1,7 @@
 import express from 'express';
 import Patient from '../models/Patient.js';
 import { protect } from '../middleware/auth.js';
+import { validate, createPatientSchema, updatePatientSchema } from '../utils/validate.js';
 
 const router = express.Router();
 
@@ -37,7 +38,7 @@ router.get('/:id', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/', protect, async (req, res) => {
+router.post('/', protect, validate(createPatientSchema), async (req, res) => {
   try {
     const targetHospitalId = req.body.hospitalId || req.user.hospitalId || undefined;
     const p = await Patient.create({ ...req.body, hospitalId: targetHospitalId });

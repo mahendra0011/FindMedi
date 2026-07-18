@@ -871,6 +871,8 @@ const mock = {
 };
 
 // ─── Real API (when backend is running) ───────────────────────────────────
+import apiClient from './axios';
+
 const BASE = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 let useBackend = false;
 
@@ -882,29 +884,31 @@ export function getStoredAuthToken() {
 
 async function request(path, options = {}) {
   console.log('API Request:', path);
-  const token = getStoredAuthToken();
-  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
-  const headers = {
-    ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...options.headers,
-  };
-  console.log('API Headers:', headers);
-  const res = await fetch(`${BASE}${path}`, { ...options, headers });
-  console.log('API Response status:', res.status, path);
-  const data = await res.json();
-  if (!res.ok) {
-    const error = new Error(data.message || 'Request failed');
-    Object.assign(error, data, { status: res.status });
+  const { method = 'GET', body, headers: extraHeaders } = options;
+  const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
+  try {
+    const response = await apiClient({
+      url: path,
+      method,
+      data: body,
+      headers: {
+        ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
+        ...extraHeaders,
+      },
+      // FormData ka Content-Type axios auto-set karega
+    });
+    console.log('API Response status:', response.status, path);
+    return response.data;
+  } catch (error) {
+    console.log('API Error:', error.message, path);
     throw error;
   }
-  return data;
 }
 
 // Try backend health on load; fall back silently to mock
-fetch(`${BASE}/health`, { signal: AbortSignal.timeout(20000) })
+apiClient.get('/health', { timeout: 20000 })
   .then(r => {
-    if (r.ok) {
+    if (r.status === 200) {
       useBackend = true;
       console.log('Backend is available');
     } else {
@@ -923,8 +927,8 @@ function isAuthPath(path) {
 // Re-check health if previous check failed and this is an auth request
 async function checkHealth() {
   try {
-    const res = await fetch(`${BASE}/health`, { signal: AbortSignal.timeout(3000) });
-    if (res.ok) {
+    const res = await apiClient.get('/health', { timeout: 3000 });
+    if (res.status === 200) {
       useBackend = true;
       console.log('Backend now available');
       return true;
@@ -995,31 +999,22 @@ async function dispatch(mockFn, realPath, realOpts) {
 }
 
 export async function downloadInvoicePdf(billId, filename = 'invoice.pdf') {
-  const token = getStoredAuthToken();
-  const res = await fetch(`${BASE}/billing/${billId}/invoice`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  });
-
-  if (!res.ok) {
-    let message = 'Unable to download invoice';
-    try {
-      const data = await res.json();
-      message = data.message || message;
-    } catch {
-      // Keep the generic message for non-JSON failures.
-    }
-    throw new Error(message);
+  try {
+    const response = await apiClient.get(`/billing/${billId}/invoice`, {
+      responseType: 'blob',
+    });
+    const blob = new Blob([response.data]);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    throw new Error(error.message || 'Unable to download invoice');
   }
-
-  const blob = await res.blob();
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
 }
 
 // ─── Public API surface ────────────────────────────────────────────────────

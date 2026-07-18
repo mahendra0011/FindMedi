@@ -1,6 +1,7 @@
 import express from 'express';
 import Test from '../models/Test.js';
 import { protect, scopeToHospital } from '../middleware/auth.js';
+import { validate, createTestSchema } from '../utils/validate.js';
 
 const router = express.Router();
 
@@ -31,7 +32,7 @@ router.get('/stats', async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/', protect, scopeToHospital, async (req, res) => {
+router.post('/', protect, scopeToHospital, validate(createTestSchema), async (req, res) => {
   try {
     if (req.user.role !== 'superadmin' && req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Admin access required' });
