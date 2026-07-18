@@ -44,7 +44,7 @@ router.get('/medicines', protect, async (req, res) => {
 
 router.post('/medicines', protect, async (req, res) => {
   try {
-    const medicine = await Medicine.create({ ...req.body, hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined, facilityId: req.user.facilityId || req.user.hospitalId || undefined });
+    const medicine = await Medicine.create({ ...req.body, hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined });
     res.status(201).json(medicine);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -101,7 +101,7 @@ router.post('/prescriptions', protect, async (req, res) => {
     const prescription = await Prescription.create({
       prescriptionId, patientId, patientName,
       doctorId: req.user._id, doctorName: req.user.name,
-      hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined, facilityId: req.user.facilityId || req.user.hospitalId || undefined,
+      hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined,
       medicines: medicines.map(m => ({
         medicineId: m.medicineId, medicineName: m.medicineName,
         dosage: m.dosage, frequency: m.frequency, duration: m.duration,
@@ -265,7 +265,7 @@ router.post('/orders', protect, async (req, res) => {
   try {
     const count = await PharmacyOrder.countDocuments();
     const orderId = `ORD-${String(count + 1).padStart(4, '0')}`;
-    const order = await PharmacyOrder.create({ ...req.body, orderId, hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined, facilityId: req.user.facilityId || req.user.hospitalId || undefined, createdBy: req.user._id });
+    const order = await PharmacyOrder.create({ ...req.body, orderId, hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined, createdBy: req.user._id });
     res.status(201).json(order);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -298,7 +298,7 @@ router.get('/deliveries', protect, async (req, res) => {
 
 router.post('/deliveries', protect, async (req, res) => {
   try {
-    const delivery = await PharmacyDelivery.create({ ...req.body, hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined, facilityId: req.user.facilityId || req.user.hospitalId || undefined });
+    const delivery = await PharmacyDelivery.create({ ...req.body, hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined });
     res.status(201).json(delivery);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -327,7 +327,7 @@ router.get('/offers', protect, async (req, res) => {
 
 router.post('/offers', protect, async (req, res) => {
   try {
-    const offer = await PharmacyOffer.create({ ...req.body, hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined, facilityId: req.user.facilityId || req.user.hospitalId || undefined });
+    const offer = await PharmacyOffer.create({ ...req.body, hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined });
     res.status(201).json(offer);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -362,7 +362,7 @@ router.post('/returns', protect, async (req, res) => {
   try {
     const count = await PharmacyReturn.countDocuments();
     const returnId = `RET-${String(count + 1).padStart(4, '0')}`;
-    const ret = await PharmacyReturn.create({ ...req.body, returnId, hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined, facilityId: req.user.facilityId || req.user.hospitalId || undefined });
+    const ret = await PharmacyReturn.create({ ...req.body, returnId, hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined });
     res.status(201).json(ret);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -391,7 +391,7 @@ router.get('/staff', protect, async (req, res) => {
 
 router.post('/staff', protect, async (req, res) => {
   try {
-    const member = await PharmacyStaff.create({ ...req.body, hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined, facilityId: req.user.facilityId || req.user.hospitalId || undefined });
+    const member = await PharmacyStaff.create({ ...req.body, hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined });
     res.status(201).json(member);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });

@@ -12,6 +12,7 @@ const medicineSchema = new mongoose.Schema({
   sellingPrice: { type: Number, required: true },
   currentStock: { type: Number, required: true, default: 0 },
   reorderLevel: { type: Number, default: 10 },
+  prescriptionReq: { type: Boolean, default: false },
   rackLocation: { type: String, default: '' },
   interactions: [{ type: String }], // Drug interactions with other medicines
   contraindications: [{ type: String }], // Conditions where medicine should not be used

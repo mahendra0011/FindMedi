@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, FlaskConical, Microscope, Building2, Stethoscope,
@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 import TestCard from '@/components/TestCard';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '@/context/CartContext';
+import { api } from '@/lib/api';
 
 const TEST_CATEGORIES = [
   { name:'Blood Tests', icon:Droplets, color:'from-red-500/20 to-red-500/5', textColor:'text-red-500' },
@@ -65,119 +66,6 @@ const CATEGORY_TESTS = {
   'Preventive Health Packages': ['Full Body Checkup', 'Executive Health Checkup', 'Senior Citizen Package', 'Women\'s Health Package', 'Cardiac Risk Package'],
 };
 
-let testIdCounter = 0;
-const sampleTests = [
-  {
-    id: `t${++testIdCounter}`,
-    providerType: 'hospital',
-    providerId: '6a46304386cf291154abc116',
-    testName: 'MRI Brain',
-    prescriptionReq: true,
-    category: 'Radiology',
-    department: 'Cardiology Dept',
-    providerName: 'City Hospital',
-    distance: '2 km',
-    rating: 4.3,
-    reviewsCount: 85,
-    reportTime: '24 hrs',
-    mode: 'Visit Required',
-    linkedDoctor: 'Dr. Sharma',
-    admissionReq: true,
-    price: 3500,
-  },
-  {
-    id: `t${++testIdCounter}`,
-    providerType: 'hospital',
-    providerId: '6a46304386cf291154abc117',
-    testName: 'CT Scan Chest',
-    prescriptionReq: true,
-    category: 'Radiology',
-    department: 'Pulmonology Dept',
-    providerName: 'Apollo Hospital',
-    distance: '3.5 km',
-    rating: 4.5,
-    reviewsCount: 120,
-    reportTime: '48 hrs',
-    mode: 'Visit Required',
-    price: 2800,
-  },
-  {
-    id: `t${++testIdCounter}`,
-    providerType: 'clinic',
-    providerId: 'clinic001',
-    testName: 'Blood Sugar (Random)',
-    prescriptionReq: false,
-    category: 'Blood Test',
-    clinicType: 'Single Doctor Clinic',
-    providerName: "Dr. Verma's Clinic",
-    distance: '0.5 km',
-    rating: 4.5,
-    reviewsCount: 40,
-    reportTime: '2 hrs',
-    doctor: 'Dr. Verma',
-    quickTest: true,
-    walkinAvailable: true,
-    price: 100,
-  },
-  {
-    id: `t${++testIdCounter}`,
-    providerType: 'clinic',
-    providerId: 'clinic002',
-    testName: 'ECG',
-    prescriptionReq: false,
-    category: 'Cardiac Screening',
-    clinicType: 'Single Doctor Clinic',
-    providerName: 'Dr. Gupta Clinic',
-    distance: '1 km',
-    rating: 4.3,
-    reviewsCount: 28,
-    reportTime: '30 mins',
-    doctor: 'Dr. Gupta',
-    quickTest: true,
-    walkinAvailable: true,
-    price: 200,
-  },
-  {
-    id: `t${++testIdCounter}`,
-    providerType: 'pathology',
-    providerId: 'lab001',
-    testName: 'Complete Blood Count (CBC)',
-    prescriptionReq: false,
-    category: 'Blood Test',
-    providerName: 'SRL Diagnostics',
-    nablAccredited: true,
-    distance: '1.2 km',
-    rating: 4.6,
-    reviewsCount: 200,
-    reportTime: '6 hrs',
-    homeCollection: true,
-    homeCollectionFee: 50,
-    reportsOnline: true,
-    packageLink: 'Part of Full Body Checkup',
-    price: 250,
-    originalPrice: 350,
-    discount: 28,
-  },
-  {
-    id: `t${++testIdCounter}`,
-    providerType: 'pathology',
-    providerId: 'lab002',
-    testName: 'Thyroid Profile',
-    prescriptionReq: false,
-    category: 'Hormone Test',
-    providerName: 'Thyrocare Technologies',
-    nablAccredited: true,
-    distance: '2.5 km',
-    rating: 4.8,
-    reviewsCount: 350,
-    reportTime: '24 hrs',
-    homeCollection: true,
-    reportsOnline: true,
-    price: 499,
-    originalPrice: 699,
-    discount: 28,
-  },
-];
 
 export default function AllTests() {
   const navigate = useNavigate();
@@ -194,12 +82,28 @@ export default function AllTests() {
   const [distanceFilter, setDistanceFilter] = useState('any');
   const [ratingFilter, setRatingFilter] = useState(0);
   const [showMoreFilters, setShowMoreFilters] = useState(false);
+  const [tests, setTests] = useState([]);
+  const [loading, setLoading] = useState(true);
   const STORE_ID = 'test-booking';
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        const res = await api.getLabTests();
+        setTests(res.tests || []);
+      } catch (e) { console.error(e); }
+      setLoading(false);
+    };
+    load();
+  }, []);
+
+  if (loading) return <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>;
 
   const visibleCategories = showAllCategories ? TEST_CATEGORIES : TEST_CATEGORIES.slice(0, INITIAL_VISIBLE);
   const activeTests = selectedCategory ? CATEGORY_TESTS[selectedCategory] : [];
 
-  const filteredTests = sampleTests.filter((test) => {
+  const filteredTests = tests.filter((test) => {
     if (providerFilter !== 'all' && test.providerType !== providerFilter) return false;
     if (rxFilter === 'direct' && test.prescriptionReq) return false;
     if (rxFilter === 'rx' && !test.prescriptionReq) return false;
