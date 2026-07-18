@@ -4,10 +4,11 @@ import { protect } from '../middleware/auth.js';
 
 const router = express.Router();
 
-router.get('/', protect, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const filter = {};
     if (req.query.doctorId) filter.doctorId = req.query.doctorId;
+    if (req.query.hospitalId) filter.hospitalId = req.query.hospitalId;
     const reviews = await Review.find(filter).sort({ createdAt: -1 });
     res.json(reviews);
   } catch (err) { res.status(500).json({ message: err.message }); }

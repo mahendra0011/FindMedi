@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   ArrowLeft, Star, CalendarDays, MapPin, Phone, Mail, IndianRupee, Award, Users,
@@ -197,20 +197,7 @@ export default function DoctorDetail() {
   }
 
   if (notFound || !doctor) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-5 px-4">
-        <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center">
-          <UserRound className="w-10 h-10 text-muted-foreground/40" />
-        </div>
-        <div className="text-center">
-          <h2 className="font-heading text-2xl font-bold text-foreground mb-1">Doctor Not Found</h2>
-          <p className="text-muted-foreground max-w-md">The doctor you're looking for doesn't exist or may have been removed.</p>
-        </div>
-        <Button asChild className="rounded-xl">
-          <Link to="/doctors"><ArrowLeft className="w-4 h-4 mr-2" /> Back to Doctors</Link>
-        </Button>
-      </div>
-    );
+    return <Navigate to="/doctors" replace />;
   }
 
   const expYears = getExpYears(doctor.experience);
