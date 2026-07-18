@@ -713,6 +713,14 @@ const mock = {
     if (i >= 0) store.doctors[i].approved = false;
     return { message: 'Doctor rejected' };
   },
+  async uploadDoctorSignature(id, file) {
+    await delay();
+    const i = store.doctors.findIndex(d => d._id === id);
+    if (i < 0) throw new Error('Not found');
+    const url = URL.createObjectURL(file);
+    store.doctors[i].signatureUrl = url;
+    return { signatureUrl: url };
+  },
 
   // Hospital mocks
   async getHospitals(p = {}) {
@@ -1087,6 +1095,11 @@ export const api = {
   updateDoctorSchedule:(id,b)=> dispatch(() => mock.updateDoctorSchedule(id,b),        `/doctors/${id}/schedule`, { method:'PUT', body: JSON.stringify(b) }),
   approveDoctor:   (id)    => dispatch(() => mock.approveDoctor(id),                   `/doctors/${id}/approve`, { method:'PUT' }),
   rejectDoctor:    (id)    => dispatch(() => mock.rejectDoctor(id),                    `/doctors/${id}/reject`,  { method:'PUT' }),
+  uploadDoctorSignature:(id,file) => {
+    const body = new FormData();
+    body.append('signature', file);
+    return dispatch(() => mock.uploadDoctorSignature(id, file), `/doctors/${id}/signature`, { method:'POST', body });
+  },
 
   // Hospital endpoints
   getHospitals:        (p={})  => dispatch(() => mock.getHospitals ? mock.getHospitals(p) : Promise.resolve([]),            '/hospitals?' + new URLSearchParams(p)),
