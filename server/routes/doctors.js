@@ -43,7 +43,7 @@ const findDoctorUser = (doctor, update) => {
 
 router.get('/', async (req, res) => {
   try {
-    const { search, available, specialization, location, includeAll, hospitalId } = req.query;
+    const { search, available, specialization, location, includeAll, hospitalId, doctor_type } = req.query;
     const filter = {};
     const canViewAll = includeAll === 'true' && await isAdminListRequest(req);
     if (!canViewAll) filter.approved = true;
@@ -54,16 +54,17 @@ router.get('/', async (req, res) => {
     if (specialization && specialization !== 'All') filter.specialization = new RegExp(specialization, 'i');
     if (location && location !== 'All') filter.location = new RegExp(location, 'i');
     if (available !== undefined) filter.available = available === 'true';
+    if (doctor_type) filter.doctor_type = doctor_type;
     if (hospitalId) {
       try {
         filter.hospitalId = hospitalId;
-        const doctors = await Doctor.find(filter).sort({ createdAt: -1 });
+        const doctors = await Doctor.find(filter).populate('hospitalId', 'name address city').sort({ createdAt: -1 });
         return res.json(doctors);
       } catch (castErr) {
         return res.json([]);
       }
     }
-    let doctors = await Doctor.find(filter).sort({ createdAt: -1 }).lean();
+    let doctors = await Doctor.find(filter).populate('hospitalId', 'name address city').sort({ createdAt: -1 }).lean();
     const clinicDoctorIds = doctors.filter(d => d.doctor_type === 'clinic').map(d => d._id);
     if (clinicDoctorIds.length) {
       const profiles = await ClinicProfile.find({ doctorId: { $in: clinicDoctorIds } }).lean();

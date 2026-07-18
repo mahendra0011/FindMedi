@@ -94,12 +94,11 @@ export default function FindDoctor() {
   const loadDoctors = async () => {
     setLoading(true);
     try {
-      const params = {};
+      const params = { doctor_type: 'hospital' };
       if (search) params.search = search;
       if (specFilter !== 'All') params.specialization = specFilter;
       const data = await api.getDoctors(params);
-      const hospitalAffiliated = data.filter(d => d.hospitalId);
-      setAllDoctors(hospitalAffiliated);
+      setAllDoctors(data || []);
     } catch (e) { console.error(e); }
     setLoading(false);
   };
@@ -489,8 +488,8 @@ export default function FindDoctor() {
               {doctors.map((doc, i) => {
                 const SpecIcon = ALL_SPECIALTIES.find(s => s.name === doc.specialization)?.icon || Stethoscope;
                 const initials = doc.name?.split(' ').map(n=>n?.[0]).join('').slice(0,2) || 'DR';
-                const clinicName = doc.clinicProfile?.clinic_name || (doc.name ? doc.name.replace('Dr. ','') + ' Clinic' : 'Clinic');
-                const area = doc.clinicProfile?.clinic_address || doc.location || doc.area || doc.locality || doc.address || doc.city || '';
+                const hospitalName = doc.hospitalId?.name || '';
+                const area = doc.hospitalId?.address || doc.hospitalId?.city || doc.location || doc.area || doc.locality || doc.address || doc.city || '';
                 const dist = doc.distance || ((doc._id?.charCodeAt(doc._id.length - 1) || 5) % 5 + 0.5).toFixed(1);
                 return (
                 <motion.div key={doc._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
@@ -521,8 +520,8 @@ export default function FindDoctor() {
                           <span className={cn('w-2 h-2 rounded-full shrink-0', doc.available ? 'bg-emerald-500' : 'bg-red-400')} title={doc.available ? 'Available' : 'Unavailable'} />
                           <BadgeCheck className="w-4 h-4 text-primary shrink-0" />
                         </div>
-                        {/* Clinic Name */}
-                        <p className="text-sm font-medium text-foreground truncate">{clinicName}</p>
+                        {/* Hospital Name */}
+                        <p className="text-sm font-medium text-foreground truncate">{hospitalName}</p>
                         <p className="text-xs text-primary font-medium">{doc.specialization}</p>
                         <div className="flex items-center gap-1 mt-0.5">
                           {renderStars(doc.rating)}
