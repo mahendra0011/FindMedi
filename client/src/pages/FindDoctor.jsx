@@ -595,8 +595,8 @@ export default function FindDoctor() {
                         <CalendarDays className="w-3.5 h-3.5" /> {doc.available ? 'Book Appointment' : 'Unavailable'}
                       </Button>
                       <Button variant="outline" size="sm" className="flex-1 gap-1.5 rounded-xl text-[11px] h-9 group/btn"
-                        onClick={(e) => { e.stopPropagation(); navigate(`/clinic/${doc._id}`); }}>
-                        View Clinic Details
+                        onClick={(e) => { e.stopPropagation(); navigate(`/hospitals/${doc.hospitalId?._id || doc.hospitalId}`); }}>
+                        View Hospital Details
                         <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover/btn:translate-x-0.5" />
                       </Button>
                     </div>
