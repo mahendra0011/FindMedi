@@ -2,6 +2,7 @@ import express from 'express';
 import jwt from 'jsonwebtoken';
 import multer from 'multer';
 import Doctor from '../models/Doctor.js';
+import ClinicProfile from '../models/ClinicProfile.js';
 import User from '../models/User.js';
 import Notification from '../models/Notification.js';
 import { protect, adminOnly, hospitalAdminOnly, superadminOnly, scopeToHospital } from '../middleware/auth.js';
@@ -61,7 +62,16 @@ router.get('/', async (req, res) => {
         return res.json([]);
       }
     }
-    const doctors = await Doctor.find(filter).sort({ createdAt: -1 });
+    let doctors = await Doctor.find(filter).sort({ createdAt: -1 }).lean();
+    const clinicDoctorIds = doctors.filter(d => d.doctor_type === 'clinic').map(d => d._id);
+    if (clinicDoctorIds.length) {
+      const profiles = await ClinicProfile.find({ doctorId: { $in: clinicDoctorIds } }).lean();
+      const profileMap = Object.fromEntries(profiles.map(p => [p.doctorId.toString(), p]));
+      doctors = doctors.map(d => {
+        if (d.doctor_type === 'clinic') d.clinicProfile = profileMap[d._id.toString()] || null;
+        return d;
+      });
+    }
     res.json(doctors);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
@@ -79,10 +89,13 @@ router.get('/user/:userId', protect, async (req, res) => {
 
 router.get('/:id', protect, async (req, res) => {
   try {
-    const doctor = await Doctor.findById(req.params.id);
+    const doctor = await Doctor.findById(req.params.id).lean();
     if (!doctor) return res.status(404).json({ message: 'Doctor not found' });
     if (req.user.role !== 'superadmin' && req.user.hospitalId && doctor.hospitalId && doctor.hospitalId.toString() !== req.user.hospitalId.toString()) {
       return res.status(403).json({ message: 'Access denied' });
+    }
+    if (doctor.doctor_type === 'clinic') {
+      doctor.clinicProfile = await ClinicProfile.findOne({ doctorId: doctor._id }).lean();
     }
     res.json(doctor);
   } catch (err) { res.status(500).json({ message: err.message }); }
@@ -177,6 +190,21 @@ router.put('/:id', protect, async (req, res) => {
     }
     const updated = await Doctor.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
     res.json(updated);
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+router.put('/:id/clinic-profile', protect, async (req, res) => {
+  try {
+    const doctor = await Doctor.findById(req.params.id);
+    if (!doctor) return res.status(404).json({ message: 'Doctor not found' });
+    const { clinicProfile } = req.body;
+    if (!clinicProfile) return res.status(400).json({ message: 'clinicProfile data required' });
+    const profile = await ClinicProfile.findOneAndUpdate(
+      { doctorId: req.params.id },
+      { ...clinicProfile, doctorId: req.params.id },
+      { new: true, upsert: true, runValidators: true }
+    );
+    res.json(profile);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 

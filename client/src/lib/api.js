@@ -1050,6 +1050,7 @@ export const api = {
   createDoctor:  (body)    => dispatch(() => mock.createDoctor(body),                  '/doctors',           { method:'POST',   body: JSON.stringify(body) }),
   updateDoctor:  (id,body) => dispatch(() => mock.updateDoctor(id,body),               `/doctors/${id}`,     { method:'PUT',    body: JSON.stringify(body) }),
   deleteDoctor:  (id)      => dispatch(() => mock.deleteDoctor(id),                    `/doctors/${id}`,     { method:'DELETE' }),
+  updateDoctorClinicProfile: (id,body) => dispatch(() => mock.updateDoctorClinicProfile?.(id,body) || Promise.resolve({}), `/doctors/${id}/clinic-profile`, { method:'PUT', body: JSON.stringify({ clinicProfile: body }) }),
 
   getPatients:   (p={})    => dispatch(() => mock.getPatients(p),                      '/patients?'          + new URLSearchParams(p)),
   createPatient: (body)    => dispatch(() => mock.createPatient(body),                 '/patients',          { method:'POST',   body: JSON.stringify(body) }),

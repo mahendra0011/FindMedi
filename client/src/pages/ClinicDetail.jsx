@@ -21,58 +21,6 @@ import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
-const MOCK_CLINIC = {
-  _id:'cl1',
-  name:'Sharma Skin & Hair Clinic',
-  category:'Skin Clinic',
-  type:'Multi-Specialty Clinic',
-  rating:4.6,
-  reviewsCount:284,
-  verified:true,
-  address:'B-12, Sector 18, Rohini, Delhi - 110089',
-  city:'Delhi',
-  phone:'+91 98765-43210',
-  email:'contact@sharmaclinic.in',
-  open:true,
-  closingTime:'8 PM',
-  established:2015,
-  totalDoctors:4,
-  totalSpecialties:12,
-  totalPatients:15000,
-  description:'Sharma Skin & Hair Clinic is a premier dermatology and trichology center...',
-  specialties:['Skin Treatment','Hair Transplant','Laser Therapy','Dermatology','Cosmetology','Pediatric Dermatology'],
-  treatments:['Acne Treatment','Hair Restoration','PRP Therapy','Laser Hair Removal','Botox','Fillers','Chemical Peel','Microdermabrasion'],
-  facilities:['In-house Pharmacy','In-house Lab','Parking','Wheelchair Access','AC Waiting Area','Card/UPI Accepted'],
-  timing:{ mon:'10 AM - 8 PM', tue:'10 AM - 8 PM', wed:'10 AM - 8 PM', thu:'10 AM - 8 PM', fri:'10 AM - 8 PM', sat:'10 AM - 6 PM', sun:'Closed' },
-  branches:[
-    { name:'Rohini Branch', address:'B-12, Sector 18, Rohini, Delhi', phone:'+91 98765-43210', timing:'Mon-Sat 10AM-8PM' },
-    { name:'Pitampura Branch', address:'C-45, Pitampura, Delhi', phone:'+91 98765-43211', timing:'Mon-Sat 10AM-7PM' },
-  ],
-  license:'DL-CL-2015-00421',
-  insurance:['ICICI Lombard','Star Health','Aditya Birla','NIVA Bupa'],
-  paymentModes:['Cash','UPI','Card','Net Banking'],
-  faqs:[
-    { q:'Do I need a prior appointment?', a:'Walk-ins are welcome but appointments are recommended.' },
-    { q:'Is home collection available for tests?', a:'Yes, we offer free home sample collection.' },
-    { q:'What insurance plans do you accept?', a:'We accept all major insurance plans.' },
-  ],
-  photos:['https://placehold.co/800x400/2563eb/ffffff?text=Clinic+Photo+1','https://placehold.co/800x400/7c3aed/ffffff?text=Clinic+Photo+2','https://placehold.co/800x400/db2777/ffffff?text=Clinic+Photo+3'],
-  social:{ facebook:'#', instagram:'#', youtube:'#' },
-};
-
-const MOCK_DOCTORS = [
-  { _id:'d1', name:'Dr. Ananya Sharma', specialization:'Dermatologist', qualifications:'MBBS, MD Dermatology', rating:4.8, experience:'12 years', available:true, timing:'Mon-Sat 10AM-4PM' },
-  { _id:'d2', name:'Dr. Vikram Mehta', specialization:'Trichologist (Hair Specialist)', qualifications:'MBBS, MD Dermatology, Fellowship in Hair Transplant', rating:4.7, experience:'8 years', available:true, timing:'Mon-Sat 11AM-6PM' },
-  { _id:'d3', name:'Dr. Priya Verma', specialization:'Cosmetologist', qualifications:'MBBS, MD Cosmetology', rating:4.9, experience:'6 years', available:false, timing:'Wed-Mon 10AM-5PM' },
-  { _id:'d4', name:'Dr. Rajesh Kapoor', specialization:'Pediatric Dermatologist', qualifications:'MBBS, MD, Fellowship in Pediatric Dermatology', rating:4.5, experience:'15 years', available:true, timing:'Tue-Sat 2PM-8PM' },
-];
-
-const MOCK_REVIEWS = [
-  { name:'Rahul S.', initials:'R', rating:5, time:'2 days ago', text:'Great clinic! Dr. Sharma is very professional and thorough.' },
-  { name:'Priya M.', initials:'P', rating:4, time:'1 week ago', text:'Very clean and well-maintained clinic. Staff is friendly.' },
-  { name:'Amit K.', initials:'A', rating:5, time:'3 weeks ago', text:'Best skin clinic in the area. Highly recommend!' },
-];
-
 const stagger = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.06 } } };
 const fadeUp = { hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 200, damping: 22 } } };
 
@@ -145,11 +93,61 @@ const StatCard = ({ icon:Icon, value, label, color }) => (
 export default function ClinicDetail() {
   const { clinicId } = useParams();
   const navigate = useNavigate();
-  const clinic = MOCK_CLINIC;
-  const doctors = MOCK_DOCTORS;
+  const [doctor, setDoctor] = useState(null);
+  const [reviews, setReviews] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [activePhoto, setActivePhoto] = useState(0);
   const [showFullDesc, setShowFullDesc] = useState(false);
   const [expandedFaq, setExpandedFaq] = useState(null);
+
+  const cp = doctor?.clinicProfile || {};
+  const clinic = doctor ? {
+    _id: doctor._id,
+    name: cp.clinic_name || (doctor.name?.replace('Dr. ','') + ' Clinic'),
+    category: doctor.specialization + ' Clinic',
+    type: 'Clinic',
+    rating: doctor.rating || 4.5,
+    reviewsCount: doctor.reviews_count || 0,
+    verified: doctor.approved || false,
+    address: cp.clinic_address || doctor.location || '',
+    city: (cp.clinic_address || doctor.location || '')?.split(',').pop()?.trim() || '',
+    phone: doctor.phone || '',
+    email: doctor.email || '',
+    open: doctor.available,
+    closingTime: doctor.time_slots?.slice(-1)?.[0] || '',
+    established: cp.established_year || null,
+    totalDoctors: 1,
+    totalSpecialties: 1,
+    totalPatients: doctor.patients || 0,
+    description: doctor.bio || '',
+    specialties: doctor.specialization ? [doctor.specialization] : [],
+    treatments: cp.clinic_treatments || [],
+    facilities: cp.clinic_facilities || [],
+    timing: cp.clinic_timing || {},
+    branches: [],
+    license: cp.clinic_license || '',
+    insurance: cp.clinic_insurance || [],
+    paymentModes: ['Cash', 'UPI', 'Card'],
+    faqs: cp.clinic_faqs || [],
+    photos: cp.clinic_photos?.length ? cp.clinic_photos : [doctor.profile_photo || 'https://placehold.co/800x400/2563eb/ffffff?text=Clinic+Photo'],
+    social: cp.social || {},
+  } : null;
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        const doc = await api.getDoctor(clinicId);
+        setDoctor(doc);
+        const r = await api.getReviews({ doctorId: clinicId });
+        setReviews(Array.isArray(r) ? r : r?.reviews || []);
+      } catch (e) { console.error(e); }
+      setLoading(false);
+    };
+    load();
+  }, [clinicId]);
+
+  const doctors = doctor ? [doctor] : [];
 
   useEffect(() => { window.scrollTo(0, 0); }, [clinicId]);
   useEffect(() => {
@@ -158,6 +156,17 @@ export default function ClinicDetail() {
       return () => clearInterval(timer);
     }
   }, [clinic?.photos?.length]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading clinic details...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!clinic) {
     return (
@@ -542,21 +551,21 @@ export default function ClinicDetail() {
                   </div>
 
                   <div className="space-y-4">
-                    {MOCK_REVIEWS.map((rev, i) => (
+                    {(reviews.length > 0 ? reviews : []).map((rev, i) => (
                       <div key={i} className="group p-4 rounded-xl border border-border/30 hover:border-border/60 hover:shadow-sm transition-all">
                         <div className="flex items-start gap-3">
                           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-sm font-bold text-primary shrink-0 border-2 border-primary/10">
-                            {rev.initials}
+                            {(rev.patientName || '?')[0]}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-sm font-semibold text-foreground">{rev.name}</span>
+                              <span className="text-sm font-semibold text-foreground">{rev.patientName || 'Anonymous'}</span>
                               <div className="flex items-center gap-0.5">
-                                {[1,2,3,4,5].map(j => <Star key={j} className={cn('w-3 h-3', j <= rev.rating ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground/20')} />)}
+                                {[1,2,3,4,5].map(s => <Star key={s} className={cn('w-3 h-3', s <= rev.rating ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground/20')} />)}
                               </div>
                             </div>
-                            <p className="text-[11px] text-muted-foreground mt-0.5">{rev.time}</p>
-                            <p className="text-xs text-foreground mt-2 leading-relaxed">{rev.text}</p>
+                            <p className="text-[11px] text-muted-foreground mt-0.5">{rev.date || ''}</p>
+                            <p className="text-xs text-foreground mt-2 leading-relaxed">{rev.comment || rev.text || ''}</p>
                           </div>
                         </div>
                       </div>

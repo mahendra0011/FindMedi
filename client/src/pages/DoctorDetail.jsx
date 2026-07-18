@@ -283,13 +283,13 @@ export default function DoctorDetail() {
 
                   {/* Clinic / Hospital Name */}
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-muted-foreground mb-2.5">
-                    {doctor.clinic_name && (
+                    {(doctor.clinicProfile?.clinic_name || '') && (
                       <span className="flex items-center gap-1.5">
                         <Store className="w-4 h-4 text-primary shrink-0" />
-                        <span className="text-primary font-medium">{doctor.clinic_name}</span>
+                        <span className="text-primary font-medium">{(doctor.clinicProfile?.clinic_name || '')}</span>
                       </span>
                     )}
-                    {hospital && !doctor.clinic_name && (
+                    {hospital && !(doctor.clinicProfile?.clinic_name || '') && (
                       <span className="flex items-center gap-1.5">
                         <Building2 className="w-4 h-4 text-primary shrink-0" />
                         <Link to={`/hospitals/${hospital._id}`} className="text-primary hover:underline font-medium">
@@ -562,11 +562,11 @@ export default function DoctorDetail() {
                     <span className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
                       <Building2 className="w-4 h-4 text-primary" />
                     </span>
-                    {doctor.clinic_name ? 'Clinic & Location Details' : 'Hospital & Practice Details'}
+                    {(doctor.clinicProfile?.clinic_name || '') ? 'Clinic & Location Details' : 'Hospital & Practice Details'}
                   </h2>
 
                   {/* ─── PRIVATE PRACTICE VIEW ─── */}
-                  {doctor.clinic_name ? (
+                  {(doctor.clinicProfile?.clinic_name || '') ? (
                     <>
                       {/* Clinic Photos / Gallery */}
                       {doctor.clinic_photos?.length > 0 && (
@@ -779,7 +779,7 @@ export default function DoctorDetail() {
                           <th className="text-left py-3 px-4 font-semibold text-foreground">Day</th>
                           <th className="text-left py-3 px-4 font-semibold text-foreground">Status</th>
                           <th className="text-left py-3 px-4 font-semibold text-foreground">OPD Timings</th>
-                          <th className="text-left py-3 px-4 font-semibold text-foreground">{doctor.clinic_name ? 'Clinic' : 'Hospital'}</th>
+                          <th className="text-left py-3 px-4 font-semibold text-foreground">{(doctor.clinicProfile?.clinic_name || '') ? 'Clinic' : 'Hospital'}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -815,7 +815,7 @@ export default function DoctorDetail() {
                                 {active ? (doctor.opd_timings?.split('|')[0]?.trim() || '9:00 AM – 5:00 PM') : '—'}
                               </td>
                               <td className="py-3 px-4 text-muted-foreground">
-                                {active ? (doctor.clinic_name || hospital?.name || '—') : '—'}
+                                {active ? ((doctor.clinicProfile?.clinic_name || '') || hospital?.name || '—') : '—'}
                               </td>
                             </tr>
                           );
@@ -986,14 +986,14 @@ export default function DoctorDetail() {
                   </div>
 
                   {/* FAQs */}
-                  {doctor.faqs?.length > 0 && (
+                  {(doctor.clinicProfile?.clinic_faqs || []).length > 0 && (
                     <div className="mt-6">
                       <p className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
                         <Quote className="w-4 h-4 text-primary" />
                         Frequently Asked Questions
                       </p>
                       <div className="space-y-2">
-                        {doctor.faqs.map((faq, i) => (
+                        {(doctor.clinicProfile?.clinic_faqs || []).map((faq, i) => (
                           <div key={i} className="rounded-xl border border-border/60 overflow-hidden">
                             <button
                               onClick={() => setExpandedFaq(expandedFaq === i ? null : i)}
@@ -1028,7 +1028,7 @@ export default function DoctorDetail() {
                       <span className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
                         <Users className="w-4 h-4 text-primary" />
                       </span>
-                      {doctor.clinic_name ? 'Other Doctors at Same Clinic' : 'Related Doctors'}
+                      {(doctor.clinicProfile?.clinic_name || '') ? 'Other Doctors at Same Clinic' : 'Related Doctors'}
                     </h2>
 
                     <Tabs defaultValue={relatedDoctors.length > 0 ? 'same-hospital' : 'same-department'} className="w-full">
@@ -1036,7 +1036,7 @@ export default function DoctorDetail() {
                         {relatedDoctors.length > 0 && (
                           <TabsTrigger value="same-hospital" className="rounded-xl text-xs sm:text-sm">
                             <Building2 className="w-4 h-4 mr-1.5" />
-                            {doctor.clinic_name ? 'Same Clinic' : 'Same Hospital'}
+                            {(doctor.clinicProfile?.clinic_name || '') ? 'Same Clinic' : 'Same Hospital'}
                           </TabsTrigger>
                         )}
                         {departmentDoctors.length > 0 && (
