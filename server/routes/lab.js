@@ -231,7 +231,7 @@ router.get('/stats', protect, async (req, res) => {
 });
 
 // ─── Get Available Lab Tests ───────────────────────────────────────────────
-router.get('/tests', protect, async (req, res) => {
+router.get('/tests', async (req, res) => {
   try {
     const tests = await Test.find({}).sort({ name: 1 });
     res.json({ tests: tests.length ? tests : [] });

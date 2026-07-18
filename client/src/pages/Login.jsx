@@ -1,17 +1,21 @@
 import { useState } from 'react';
 import { useNavigate, Navigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Activity, ArrowRight, Shield, Stethoscope, UserRound, Building2 } from 'lucide-react';
+import { Activity, ArrowRight, Shield, Stethoscope, UserRound, Building2, Hospital, Microscope, Pill, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 
 const roles = [
-  { key: 'superadmin', label: 'SuperAdmin', desc: 'Platform management',         icon: Shield,      color: 'text-purple-600',  bg: 'bg-purple-500/10'  },
-  { key: 'admin',   label: 'Admin',   desc: 'Full system access',              icon: Shield,      color: 'text-primary',     bg: 'bg-primary/10'     },
-  { key: 'doctor',  label: 'Doctor',  desc: 'Patient & schedule management',   icon: Stethoscope, color: 'text-info',         bg: 'bg-info/10'        },
-  { key: 'patient', label: 'Patient', desc: 'Book appointments & records',      icon: UserRound,   color: 'text-success',      bg: 'bg-success/10'     },
+  { key: 'superadmin', label: 'SuperAdmin', desc: 'Platform mgmt',         icon: Shield,      color: 'text-purple-600',  bg: 'bg-purple-500/10'  },
+  { key: 'admin',      label: 'Admin',      desc: 'Full system access',    icon: Shield,      color: 'text-primary',     bg: 'bg-primary/10'     },
+  { key: 'hospital',   label: 'Hospital',   desc: 'Hospital admin',        icon: Hospital,    color: 'text-blue-600',    bg: 'bg-blue-500/10'    },
+  { key: 'doctor',     label: 'Hosp Doctor', desc: 'Patient & schedule',   icon: Stethoscope, color: 'text-info',         bg: 'bg-info/10'        },
+  { key: 'clinic',     label: 'Clinic',     desc: 'Clinic management',     icon: Heart,       color: 'text-rose-600',    bg: 'bg-rose-500/10'    },
+  { key: 'lab',        label: 'Diagnostic', desc: 'Lab test mgmt',         icon: Microscope,  color: 'text-emerald-600', bg: 'bg-emerald-500/10' },
+  { key: 'pharmacy',   label: 'Pharmacy',   desc: 'Medicine store',        icon: Pill,        color: 'text-amber-600',   bg: 'bg-amber-500/10'   },
+  { key: 'patient',    label: 'Patient',    desc: 'Appointments & records', icon: UserRound,   color: 'text-success',     bg: 'bg-success/10'     },
 ];
 
 export default function Login() {
@@ -117,56 +121,57 @@ export default function Login() {
           </div>
 
           <h2 className="font-heading text-2xl font-bold text-foreground mb-1">Welcome back</h2>
-          <p className="text-muted-foreground mb-8">Select your role and sign in to continue</p>
+          <p className="text-muted-foreground mb-6">Select your role and sign in to continue</p>
 
-          {/* Role Selection */}
-          <div className="grid grid-cols-3 gap-3 mb-6">
+          {/* Join Platform — moved to top */}
+          <div className="mb-5 p-3 bg-gradient-to-r from-primary/5 to-primary/10 rounded-xl border border-primary/20">
+            <p className="text-xs font-medium text-foreground mb-2">Are you a healthcare provider?</p>
+            <Link to="/join-platform">
+              <Button variant="outline" className="w-full gap-2 rounded-xl border-primary/30 text-primary hover:bg-primary/5 text-xs h-9">
+                <Building2 className="w-3.5 h-3.5" /> Join Platform
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Button>
+            </Link>
+          </div>
+
+          {/* Role Selection — smaller cards, 4 cols */}
+          <div className="grid grid-cols-4 gap-2 mb-6">
             {roles.map(({ key, label, desc, icon: Icon, color, bg }) => (
               <button key={key} onClick={() => pickRole(key)}
-                className={`p-3 rounded-xl border-2 text-center transition-all ${role === key ? 'border-primary bg-accent shadow-md' : 'border-border hover:border-primary/30 hover:bg-muted/50'}`}>
-                <div className={`w-8 h-8 rounded-lg ${bg} flex items-center justify-center mx-auto mb-1.5`}>
-                  <Icon className={`w-4 h-4 ${color}`} />
+                className={`p-2 rounded-lg border text-center transition-all ${role === key ? 'border-primary bg-accent shadow-sm' : 'border-border hover:border-primary/30 hover:bg-muted/50'}`}>
+                <div className={`w-6 h-6 rounded-md ${bg} flex items-center justify-center mx-auto mb-1`}>
+                  <Icon className={`w-3 h-3 ${color}`} />
                 </div>
-                <p className={`text-sm font-semibold ${role === key ? 'text-primary' : 'text-foreground'}`}>{label}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{desc}</p>
+                <p className={`text-[11px] font-semibold leading-tight ${role === key ? 'text-primary' : 'text-foreground'}`}>{label}</p>
+                <p className="text-[8px] text-muted-foreground mt-0.5 leading-tight">{desc}</p>
               </button>
             ))}
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleLogin} className="space-y-3">
             <div>
-              <label className="text-sm font-medium text-foreground mb-1.5 block">Email</label>
-              <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Enter your email" required />
+              <label className="text-sm font-medium text-foreground mb-1 block">Email</label>
+              <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Enter your email" required className="h-10" />
             </div>
             <div>
-              <label className="text-sm font-medium text-foreground mb-1.5 block">Password</label>
-              <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter your password" required />
+              <label className="text-sm font-medium text-foreground mb-1 block">Password</label>
+              <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter your password" required className="h-10" />
             </div>
-            <div className="text-right -mt-2">
+            <div className="text-right -mt-1">
               <Link to="/forgot-password" className="text-xs text-primary font-medium hover:underline">Forgot password?</Link>
             </div>
             {error && <p className="text-sm text-destructive bg-destructive/10 px-3 py-2 rounded-lg">{error}</p>}
-            <Button type="submit" className="w-full gap-2" size="lg" disabled={loading}>
+            <Button type="submit" className="w-full gap-2" disabled={loading}>
               {loading ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
               {loading ? 'Signing in...' : 'Sign In'}
               {!loading && <ArrowRight className="w-4 h-4" />}
             </Button>
           </form>
 
-          <p className="text-sm text-muted-foreground text-center mt-6">
+          <p className="text-sm text-muted-foreground text-center mt-5">
             Don't have an account?{' '}
             <Link to="/signup" className="text-primary font-medium hover:underline">Sign Up</Link>
           </p>
-
-          <div className="mt-4 p-4 bg-gradient-to-r from-primary/5 to-primary/10 rounded-xl border border-primary/20">
-            <p className="text-xs font-medium text-foreground mb-2">Are you a healthcare provider?</p>
-            <Link to="/join-platform">
-              <Button variant="outline" className="w-full gap-2 rounded-xl border-primary/30 text-primary hover:bg-primary/5">
-                <Building2 className="w-4 h-4" /> Join Platform
-                <ArrowRight className="w-4 h-4" />
-              </Button>
-            </Link>
-          </div>
 
           <div className="relative mt-4">
             <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
@@ -185,17 +190,37 @@ export default function Login() {
                 <span className="font-semibold text-purple-600 dark:text-purple-400">Super</span>
                 <span className="block text-muted-foreground truncate">mahendrapra0077</span>
               </button>
-              <button type="button" onClick={() => { setRole('admin'); setEmail('admin@mediCore.com'); setPassword('password'); setError(''); }}
+              <button type="button" onClick={() => { setRole('admin'); setEmail('admin@medicore.com'); setPassword('password'); setError(''); }}
                 className="text-[10px] text-center px-1.5 py-1.5 rounded-lg bg-primary/10 border border-primary/20 hover:bg-primary/20 transition-colors">
                 <span className="font-semibold text-primary">Admin</span>
                 <span className="block text-muted-foreground truncate">admin</span>
               </button>
-              <button type="button" onClick={() => { setRole('doctor'); setEmail('sarah.smith@mediCore.com'); setPassword('password'); setError(''); }}
+              <button type="button" onClick={() => { setRole('admin'); setEmail('hospital@medicore.com'); setPassword('password'); setError(''); }}
+                className="text-[10px] text-center px-1.5 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/20 transition-colors">
+                <span className="font-semibold text-blue-600 dark:text-blue-400">Hosp</span>
+                <span className="block text-muted-foreground truncate">hospital</span>
+              </button>
+              <button type="button" onClick={() => { setRole('doctor'); setEmail('sarah.smith@medicore.com'); setPassword('password'); setError(''); }}
                 className="text-[10px] text-center px-1.5 py-1.5 rounded-lg bg-info/10 border border-info/20 hover:bg-info/20 transition-colors">
                 <span className="font-semibold text-info">Doctor</span>
                 <span className="block text-muted-foreground truncate">sarah.smith</span>
               </button>
-              <button type="button" onClick={() => { setRole('patient'); setEmail('patient@mediCore.com'); setPassword('password'); setError(''); }}
+              <button type="button" onClick={() => { setRole('clinic_doctor'); setEmail('clinic@medicore.com'); setPassword('password'); setError(''); }}
+                className="text-[10px] text-center px-1.5 py-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20 hover:bg-rose-500/20 transition-colors">
+                <span className="font-semibold text-rose-600 dark:text-rose-400">Clinic</span>
+                <span className="block text-muted-foreground truncate">clinic</span>
+              </button>
+              <button type="button" onClick={() => { setRole('lab_owner'); setEmail('diagnostic@medicore.com'); setPassword('password'); setError(''); }}
+                className="text-[10px] text-center px-1.5 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors">
+                <span className="font-semibold text-emerald-600 dark:text-emerald-400">Diag</span>
+                <span className="block text-muted-foreground truncate">diagnostic</span>
+              </button>
+              <button type="button" onClick={() => { setRole('pharmacy_owner'); setEmail('pharmacy@medicore.com'); setPassword('password'); setError(''); }}
+                className="text-[10px] text-center px-1.5 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/20 transition-colors">
+                <span className="font-semibold text-amber-600 dark:text-amber-400">Pharm</span>
+                <span className="block text-muted-foreground truncate">pharmacy</span>
+              </button>
+              <button type="button" onClick={() => { setRole('patient'); setEmail('patient@medicore.com'); setPassword('password'); setError(''); }}
                 className="text-[10px] text-center px-1.5 py-1.5 rounded-lg bg-success/10 border border-success/20 hover:bg-success/20 transition-colors">
                 <span className="font-semibold text-success">Patient</span>
                 <span className="block text-muted-foreground truncate">patient</span>

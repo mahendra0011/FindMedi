@@ -1,0 +1,50 @@
+[
+  {
+    "tokenNumber": 1,
+    "patientId": "patient-rahul",
+    "patient": "Rahul Sharma",
+    "uhid": "UHID20260000001",
+    "doctorId": "doctor-sarah",
+    "doctor": "Dr. Sarah Smith",
+    "department": "Cardiology",
+    "hospitalId": "medicore-hospital",
+    "date": "2026-07-18T00:00:00Z",
+    "time": "09:00 AM",
+    "type": "Consultation",
+    "status": "Confirmed",
+    "priority": "Normal",
+    "queuePosition": 1
+  },
+  {
+    "tokenNumber": 2,
+    "patientId": "patient-sunil",
+    "patient": "Sunil Gupta",
+    "uhid": "UHID20260000003",
+    "doctorId": "doctor-sarah",
+    "doctor": "Dr. Sarah Smith",
+    "department": "Cardiology",
+    "hospitalId": "medicore-hospital",
+    "date": "2026-07-18T00:00:00Z",
+    "time": "09:30 AM",
+    "type": "Follow-up",
+    "status": "Confirmed",
+    "priority": "Normal",
+    "queuePosition": 2
+  },
+  {
+    "tokenNumber": 3,
+    "patientId": "patient-neha",
+    "patient": "Neha Kapoor",
+    "uhid": "UHID20260000004",
+    "doctorId": "doctor-priya",
+    "doctor": "Dr. Priya Patel",
+    "department": "Pediatrics",
+    "hospitalId": "medicore-hospital",
+    "date": "2026-07-18T00:00:00Z",
+    "time": "10:00 AM",
+    "type": "Consultation",
+    "status": "Confirmed",
+    "priority": "Normal",
+    "queuePosition": 1
+  }
+]
