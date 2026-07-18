@@ -28,7 +28,7 @@ router.post('/orders', protect, async (req, res) => {
     const order = await LabOrder.create({
       orderId, patientId, patientName,
       doctorId: req.user._id, doctorName: req.user.name,
-      hospitalId: req.user.hospitalId || undefined,
+      hospitalId: req.user.hospitalId || undefined, facilityId: req.user.facilityId || req.user.hospitalId || undefined,
       tests: tests.map(t => ({
         testName: t.testName, category: t.category || 'Blood',
         priority: t.priority || priority || 'Routine', status: 'Ordered',
@@ -54,6 +54,7 @@ router.get('/orders', protect, async (req, res) => {
     if (req.user.role === 'doctor') filter.doctorId = req.user._id;
     if (req.user.role === 'patient') filter.patientId = req.user._id;
     if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if ((req.user.facilityId || req.user.hospitalId) && req.user.role !== 'superadmin') filter.facilityId = req.user.facilityId || req.user.hospitalId;
 
     // Handle order-level status filter with proper mapping
     if (status && status !== 'All') {
@@ -219,6 +220,7 @@ router.get('/stats', protect, async (req, res) => {
     if (req.user.role === 'doctor') filter.doctorId = req.user._id;
     if (req.user.role === 'patient') filter.patientId = req.user._id;
     if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if ((req.user.facilityId || req.user.hospitalId) && req.user.role !== 'superadmin') filter.facilityId = req.user.facilityId || req.user.hospitalId;
     const total = await LabOrder.countDocuments(filter);
     const pending = await LabOrder.countDocuments({ ...filter, status: { $in: ['Ordered', 'Sample Pending'] } });
     const processing = await LabOrder.countDocuments({ ...filter, status: { $in: ['Processing', 'Under Verification'] } });
@@ -270,6 +272,7 @@ router.get('/bookings', protect, async (req, res) => {
     const { status, date, search } = req.query;
     const filter = {};
     if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if ((req.user.facilityId || req.user.hospitalId) && req.user.role !== 'superadmin') filter.facilityId = req.user.facilityId || req.user.hospitalId;
     if (status && status !== 'All') filter.status = status;
     if (date) filter.bookingDate = { $gte: new Date(date), $lt: new Date(new Date(date).getTime() + 86400000) };
     if (search) filter.$or = [{ bookingId: new RegExp(search, 'i') }, { patientName: new RegExp(search, 'i') }];
@@ -282,7 +285,7 @@ router.post('/bookings', protect, async (req, res) => {
   try {
     const count = await LabBooking.countDocuments();
     const bookingId = `BK-${new Date().getFullYear()}-${String(count + 1).padStart(5, '0')}`;
-    const booking = await LabBooking.create({ ...req.body, bookingId, hospitalId: req.user.hospitalId || undefined, createdBy: req.user._id });
+    const booking = await LabBooking.create({ ...req.body, bookingId, hospitalId: req.user.hospitalId || undefined, facilityId: req.user.facilityId || req.user.hospitalId || undefined, createdBy: req.user._id });
     res.status(201).json(booking);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -307,6 +310,7 @@ router.get('/equipment', protect, async (req, res) => {
   try {
     const filter = {};
     if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if ((req.user.facilityId || req.user.hospitalId) && req.user.role !== 'superadmin') filter.facilityId = req.user.facilityId || req.user.hospitalId;
     const equipment = await Equipment.find(filter).sort({ name: 1 });
     res.json({ equipment });
   } catch (err) { res.status(500).json({ message: err.message }); }
@@ -314,7 +318,7 @@ router.get('/equipment', protect, async (req, res) => {
 
 router.post('/equipment', protect, async (req, res) => {
   try {
-    const item = await Equipment.create({ ...req.body, hospitalId: req.user.hospitalId || undefined });
+    const item = await Equipment.create({ ...req.body, hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined, facilityId: req.user.facilityId || req.user.hospitalId || undefined });
     res.status(201).json(item);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -339,6 +343,7 @@ router.get('/packages', protect, async (req, res) => {
   try {
     const filter = {};
     if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if ((req.user.facilityId || req.user.hospitalId) && req.user.role !== 'superadmin') filter.facilityId = req.user.facilityId || req.user.hospitalId;
     const packages = await HealthPackage.find(filter).sort({ createdAt: -1 });
     res.json({ packages });
   } catch (err) { res.status(500).json({ message: err.message }); }
@@ -346,7 +351,7 @@ router.get('/packages', protect, async (req, res) => {
 
 router.post('/packages', protect, async (req, res) => {
   try {
-    const pkg = await HealthPackage.create({ ...req.body, hospitalId: req.user.hospitalId || undefined });
+    const pkg = await HealthPackage.create({ ...req.body, hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined, facilityId: req.user.facilityId || req.user.hospitalId || undefined });
     res.status(201).json(pkg);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -367,3 +372,4 @@ router.delete('/packages/:id', protect, async (req, res) => {
 });
 
 export default router;
+
