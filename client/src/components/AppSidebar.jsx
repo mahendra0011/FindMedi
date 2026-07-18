@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, UserRound, Stethoscope, CalendarDays, FileText,
   CreditCard, Settings, ChevronLeft, ChevronRight, Activity, LogOut,
-  Home, Search, Star, Users, BarChart3, Bell, Building2, Clock, Calendar, DollarSign, FileUp, Download, TestTube, AlertTriangle, Menu, X, Bed, Pill, FlaskConical, Hospital, Heart, Brain, Syringe, ClipboardList, ShieldCheck, Baby, Ambulance, IndianRupee
+  Home, Search, Star, Users, BarChart3, Bell, Building2, Clock, Calendar, DollarSign, FileUp, Download, TestTube, AlertTriangle, Menu, X, Bed, Pill, FlaskConical, Hospital, Heart, Brain, Syringe, ClipboardList, ShieldCheck, Baby, Ambulance, IndianRupee, History, Flag
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { t } from '@/lib/settings';
@@ -16,14 +16,17 @@ const navConfig = {
     { icon: LayoutDashboard, labelKey: 'nav.dashboard',        path: '/dashboard'        },
     { icon: Building2,       labelKey: 'nav.hospitals',        path: '/superadmin'       },
     { icon: Users,           labelKey: 'nav.manageUsers',      path: '/admin/users'      },
+    { icon: History,         labelKey: 'nav.auditLogs',        path: '/superadmin'       },
+    { icon: DollarSign,      labelKey: 'nav.revenue',          path: '/superadmin'       },
+    { icon: Flag,            labelKey: 'nav.moderation',       path: '/superadmin'       },
     { icon: Stethoscope,     labelKey: 'nav.manageDoctors',    path: '/admin/doctors'    },
     { icon: UserRound,       labelKey: 'nav.managePatients',   path: '/patients'         },
     { icon: CalendarDays,    labelKey: 'nav.appointments',     path: '/appointments'     },
     { icon: FileText,        labelKey: 'nav.medicalRecords',   path: '/records'          },
     { icon: CreditCard,      labelKey: 'nav.billing',          path: '/billing'          },
     { icon: BarChart3,       labelKey: 'nav.analytics',        path: '/admin/analytics'  },
+    { icon: Settings,        labelKey: 'nav.settings',         path: '/superadmin'       },
     { icon: Bell,            labelKey: 'nav.notifications',    path: '/notifications'    },
-    { icon: Settings,        labelKey: 'nav.settings',         path: '/settings'         },
   ],
   admin: [
     { icon: LayoutDashboard, labelKey: 'nav.dashboard',        path: '/dashboard'        },

@@ -12,12 +12,18 @@ const empty = { name:'', specialization:'Cardiology', experience:'', rating:4.5,
 export default function Doctors() {
   const qc = useQueryClient();
   const [search, setSearch] = useState('');
+  const [typeFilter, setTypeFilter] = useState('all');
   const [modal, setModal] = useState(false);
   const [form, setForm] = useState(empty);
 
   const { data: doctors = [], isLoading } = useQuery({
-    queryKey: ['doctors', search],
-    queryFn: () => api.getDoctors(search ? { search } : {}),
+    queryKey: ['doctors', search, typeFilter],
+    queryFn: () => {
+      const params = {};
+      if (search) params.search = search;
+      if (typeFilter !== 'all') params.doctor_type = typeFilter;
+      return api.getDoctors(params);
+    },
   });
 
   const createMut = useMutation({ mutationFn: api.createDoctor, onSuccess: () => { qc.invalidateQueries(['doctors']); setModal(false); setForm(empty); } });
@@ -37,9 +43,19 @@ export default function Doctors() {
         <Button className="gap-2 w-full sm:w-auto" onClick={() => setModal(true)}><Plus className="w-4 h-4" /> Add Doctor</Button>
       </div>
 
-      <div className="relative mb-6 max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input placeholder="Search by name or specialization…" className="pl-10" value={search} onChange={e => setSearch(e.target.value)} />
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
+        <div className="flex gap-1 bg-muted/50 rounded-lg p-1">
+          {['all', 'hospital', 'clinic'].map(t => (
+            <button key={t} onClick={() => setTypeFilter(t)}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors capitalize ${typeFilter === t ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+              {t === 'all' ? 'All' : t === 'hospital' ? 'Hospital' : 'Clinic'}
+            </button>
+          ))}
+        </div>
+        <div className="relative w-full sm:max-w-md sm:ml-auto">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input placeholder="Search by name or specialization…" className="pl-10" value={search} onChange={e => setSearch(e.target.value)} />
+        </div>
       </div>
 
       {isLoading ? (
@@ -57,7 +73,12 @@ export default function Doctors() {
                     : doctor.initials || doctor.name?.charAt(0)}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-heading font-semibold text-card-foreground truncate">{doctor.name}</h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-heading font-semibold text-card-foreground truncate">{doctor.name}</h3>
+                    <span className={`shrink-0 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase ${doctor.doctor_type === 'clinic' ? 'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'}`}>
+                      {doctor.doctor_type === 'clinic' ? 'Clinic' : 'Hospital'}
+                    </span>
+                  </div>
                   <p className="text-sm text-primary font-medium">{doctor.specialization}</p>
                   <div className="flex items-center gap-1 mt-1">
                     <Star className="w-3 h-3 fill-warning text-warning" />
