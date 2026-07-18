@@ -118,6 +118,8 @@ const en = {
   'nav.clinicManagement': 'Clinic Management',
   'nav.staffManagement': 'Staff Management',
   'nav.clinicSettings': 'Clinic Settings',
+  'nav.hospitalSettings': 'Hospital Settings',
+  'nav.announcements': 'Announcements',
   'common.logout': 'Logout',
   'common.saving': 'Saving...',
   'common.updating': 'Updating...',

@@ -94,7 +94,7 @@ export default function FindDoctor() {
   const loadDoctors = async () => {
     setLoading(true);
     try {
-      const params = { doctor_type: 'hospital' };
+      const params = {};
       if (search) params.search = search;
       if (specFilter !== 'All') params.specialization = specFilter;
       const data = await api.getDoctors(params);
@@ -488,8 +488,8 @@ export default function FindDoctor() {
               {doctors.map((doc, i) => {
                 const SpecIcon = ALL_SPECIALTIES.find(s => s.name === doc.specialization)?.icon || Stethoscope;
                 const initials = doc.name?.split(' ').map(n=>n?.[0]).join('').slice(0,2) || 'DR';
-                const hospitalName = doc.hospitalId?.name || '';
-                const area = doc.hospitalId?.address || doc.hospitalId?.city || doc.location || doc.area || doc.locality || doc.address || doc.city || '';
+                const facilityName = doc.doctor_type === 'clinic' ? (doc.clinicProfile?.name || doc.clinicId?.name || '') : (doc.hospitalId?.name || '');
+                const area = doc.doctor_type === 'clinic' ? (doc.clinicProfile?.address || doc.clinicProfile?.city || doc.location || doc.area || doc.address || doc.city || '') : (doc.hospitalId?.address || doc.hospitalId?.city || doc.location || doc.area || doc.locality || doc.address || doc.city || '');
                 const dist = doc.distance || ((doc._id?.charCodeAt(doc._id.length - 1) || 5) % 5 + 0.5).toFixed(1);
                 return (
                 <motion.div key={doc._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
@@ -520,8 +520,8 @@ export default function FindDoctor() {
                           <span className={cn('w-2 h-2 rounded-full shrink-0', doc.available ? 'bg-emerald-500' : 'bg-red-400')} title={doc.available ? 'Available' : 'Unavailable'} />
                           {doc.approved && <BadgeCheck className="w-4 h-4 text-primary shrink-0" />}
                         </div>
-                        {/* Hospital Name */}
-                        <p className="text-sm font-medium text-foreground truncate">{hospitalName}</p>
+                        {/* Facility Name */}
+                        <p className="text-sm font-medium text-foreground truncate">{facilityName}</p>
                         <p className="text-xs text-primary font-medium">{doc.specialization}</p>
                         <div className="flex items-center gap-1 mt-0.5">
                           {renderStars(doc.rating)}
@@ -595,8 +595,15 @@ export default function FindDoctor() {
                         <CalendarDays className="w-3.5 h-3.5" /> {doc.available ? 'Book Appointment' : 'Unavailable'}
                       </Button>
                       <Button variant="outline" size="sm" className="flex-1 gap-1.5 rounded-xl text-[11px] h-9 group/btn"
-                        onClick={(e) => { e.stopPropagation(); navigate(`/hospitals/${doc.hospitalId?._id || doc.hospitalId}`); }}>
-                        View Hospital Details
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (doc.doctor_type === 'clinic') {
+                            navigate(`/clinic/${doc.clinicId?._id || doc.clinicId}`);
+                          } else {
+                            navigate(`/hospitals/${doc.hospitalId?._id || doc.hospitalId}`);
+                          }
+                        }}>
+                        {doc.doctor_type === 'clinic' ? 'View Clinic Details' : 'View Hospital Details'}
                         <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover/btn:translate-x-0.5" />
                       </Button>
                     </div>

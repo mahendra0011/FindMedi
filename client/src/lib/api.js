@@ -289,4 +289,7 @@ export const api = {
   updateLicense:          (id,b)    => request(`/licenses/${id}`, { method:'PUT', body: JSON.stringify(b) }),
   getExpiringLicenses:    ()        => request('/licenses/expiring'),
   getLicenseStats:        ()        => request('/licenses/stats'),
+
+  getAnnouncements:       (p={})    => request('/announcements?' + new URLSearchParams(p)),
+  createAnnouncement:     (body)    => request('/announcements', { method:'POST', body: JSON.stringify(body) }),
 };

@@ -211,6 +211,7 @@ import disputeRoutes from './routes/disputes.js';
 import supportTicketRoutes from './routes/supportTickets.js';
 import categoryRoutes from './routes/categories.js';
 import licenseRoutes from './routes/licenses.js';
+import announcementRoutes from './routes/announcements.js';
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -259,6 +260,7 @@ app.use('/api/disputes', disputeRoutes);
 app.use('/api/support-tickets', supportTicketRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/licenses', licenseRoutes);
+app.use('/api/announcements', announcementRoutes);
 
 // 2FA routes
 app.use('/api/auth/2fa', twoFactorRoutes);
