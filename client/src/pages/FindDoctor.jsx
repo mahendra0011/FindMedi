@@ -51,19 +51,11 @@ function getExpYears(exp) {
   return m ? parseInt(m[1]) : 0;
 }
 
-function getTypeFromHospital(h) {
-  const t = (h.hospitalType || h.type || '');
-  if (t.toLowerCase().includes('government')) return 'Government';
-  if (t.toLowerCase().includes('private')) return 'Private';
-  return t;
-}
-
 export default function FindDoctor() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [doctors, setDoctors] = useState([]);
   const [allDoctors, setAllDoctors] = useState([]);
-  const [hospitals, setHospitals] = useState([]);
   const [search, setSearch] = useState(searchParams.get('search') || '');
   const [loading, setLoading] = useState(true);
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -79,7 +71,7 @@ export default function FindDoctor() {
 
   const [sortBy, setSortBy] = useState('relevance');
   const [consultantType, setConsultantType] = useState('');
-  const [hospitalTypeFilter, setHospitalTypeFilter] = useState('');
+
   const [qualificationFilter, setQualificationFilter] = useState([]);
   const [languageFilter, setLanguageFilter] = useState([]);
   const [surgeryFilter, setSurgeryFilter] = useState('');
@@ -87,14 +79,10 @@ export default function FindDoctor() {
   const [insuranceFilter, setInsuranceFilter] = useState('');
   const [emergencyFilter, setEmergencyFilter] = useState('');
 
-  useEffect(() => {
-    api.getHospitals({ status: 'approved' }).then(d => setHospitals(d)).catch(() => {});
-  }, []);
-
   const loadDoctors = async () => {
     setLoading(true);
     try {
-      const params = {};
+      const params = { doctor_type: 'clinic' };
       if (search) params.search = search;
       if (specFilter !== 'All') params.specialization = specFilter;
       const data = await api.getDoctors(params);
@@ -109,7 +97,7 @@ export default function FindDoctor() {
     let filtered = [...allDoctors];
 
     if (specFilter !== 'All') filtered = filtered.filter(d => d.specialization === specFilter);
-    if (hospitalFilter) filtered = filtered.filter(d => d.hospitalId === hospitalFilter);
+    if (hospitalFilter) filtered = filtered.filter(d => (d.clinicProfile?.clinic_name || d.clinicId?.name || '') === hospitalFilter);
     if (locationFilter && locationFilter !== 'All') filtered = filtered.filter(d => (d.location || '').toLowerCase().includes(locationFilter.toLowerCase()));
     if (availabilityFilter === 'today') filtered = filtered.filter(d => d.available === true && d.next_available_slot?.toLowerCase().includes('today'));
     else if (availabilityFilter === 'tomorrow') filtered = filtered.filter(d => d.available === true && d.next_available_slot?.toLowerCase().includes('tomorrow'));
@@ -129,12 +117,6 @@ export default function FindDoctor() {
     if (ratingFilter > 0) filtered = filtered.filter(d => (d.rating || 0) >= ratingFilter);
 
     if (consultantType) filtered = filtered.filter(d => d.consultantType === consultantType);
-    if (hospitalTypeFilter && hospitalTypeFilter !== 'All') {
-      filtered = filtered.filter(d => {
-        const h = hospitals.find(hh => hh._id === d.hospitalId);
-        return h && getTypeFromHospital(h) === hospitalTypeFilter;
-      });
-    }
     if (qualificationFilter.length > 0) {
       filtered = filtered.filter(d => qualificationFilter.some(q => (d.qualifications || '').includes(q)));
     }
@@ -154,7 +136,7 @@ export default function FindDoctor() {
     else if (sortBy === 'fee') filtered.sort((a, b) => (a.consultation_fees || a.fees || 0) - (b.consultation_fees || b.fees || 0));
 
     setDoctors(filtered);
-  }, [allDoctors, specFilter, hospitalFilter, locationFilter, availabilityFilter, genderFilter, expFilter, feeRange, ratingFilter, consultantType, hospitalTypeFilter, qualificationFilter, languageFilter, surgeryFilter, admissionFilter, insuranceFilter, emergencyFilter, sortBy, hospitals]);
+  }, [allDoctors, specFilter, hospitalFilter, locationFilter, availabilityFilter, genderFilter, expFilter, feeRange, ratingFilter, consultantType, qualificationFilter, languageFilter, surgeryFilter, admissionFilter, insuranceFilter, emergencyFilter, sortBy]);
 
   const renderStars = (rating) => (
     <div className="flex items-center gap-0.5">
@@ -241,9 +223,9 @@ export default function FindDoctor() {
             {/* Main Filters */}
             <select value={hospitalFilter} onChange={e => setHospitalFilter(e.target.value)}
               className="h-9 px-3 rounded-xl border border-border bg-background text-sm max-w-[180px]">
-              <option value="">All Hospitals</option>
-              {hospitals.map(h => (
-                <option key={h._id} value={h._id}>{h.name}</option>
+              <option value="">All Clinics</option>
+              {[...new Set(allDoctors.map(d => d.clinicProfile?.clinic_name || d.clinicId?.name || '').filter(Boolean))].map(n => (
+                <option key={n} value={n}>{n}</option>
               ))}
             </select>
 
@@ -329,7 +311,7 @@ export default function FindDoctor() {
                 setSpecFilter('All'); setHospitalFilter(''); setLocationFilter('');
                 setAvailabilityFilter(''); setGenderFilter(''); setExpFilter('');
                 setFeeRange([0, 2000]); setRatingFilter(0); setSortBy('relevance');
-                setConsultantType(''); setHospitalTypeFilter(''); setQualificationFilter([]);
+                setConsultantType(''); setQualificationFilter([]);
                 setLanguageFilter([]); setSurgeryFilter(''); setAdmissionFilter('');
                 setInsuranceFilter(''); setEmergencyFilter('');
               }} className="text-red-500 hover:text-red-600 h-9 text-xs">
@@ -353,20 +335,6 @@ export default function FindDoctor() {
                             onClick={() => setConsultantType(consultantType === ct.v ? '' : ct.v)}
                             className="text-[11px] h-7">
                             <CircleDot className="w-3 h-3 mr-1" /> {ct.l}
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Hospital Type */}
-                    <div>
-                      <label className="text-xs font-semibold text-muted-foreground mb-2 block">Hospital Type</label>
-                      <div className="flex flex-wrap gap-1.5">
-                        {['Government', 'Private'].map(t => (
-                          <Button key={t} variant={hospitalTypeFilter === t ? 'default' : 'outline'} size="sm"
-                            onClick={() => setHospitalTypeFilter(hospitalTypeFilter === t ? '' : t)}
-                            className="text-[11px] h-7">
-                            <Building2 className="w-3 h-3 mr-1" /> {t}
                           </Button>
                         ))}
                       </div>
@@ -488,8 +456,8 @@ export default function FindDoctor() {
               {doctors.map((doc, i) => {
                 const SpecIcon = ALL_SPECIALTIES.find(s => s.name === doc.specialization)?.icon || Stethoscope;
                 const initials = doc.name?.split(' ').map(n=>n?.[0]).join('').slice(0,2) || 'DR';
-                const facilityName = doc.doctor_type === 'clinic' ? (doc.clinicProfile?.name || doc.clinicId?.name || '') : (doc.hospitalId?.name || '');
-                const area = doc.doctor_type === 'clinic' ? (doc.clinicProfile?.address || doc.clinicProfile?.city || doc.location || doc.area || doc.address || doc.city || '') : (doc.hospitalId?.address || doc.hospitalId?.city || doc.location || doc.area || doc.locality || doc.address || doc.city || '');
+                const clinicName = doc.clinicProfile?.clinic_name || doc.clinicId?.name || '';
+                const area = doc.clinicProfile?.clinic_address || doc.location || doc.area || doc.address || doc.city || '';
                 const dist = doc.distance || ((doc._id?.charCodeAt(doc._id.length - 1) || 5) % 5 + 0.5).toFixed(1);
                 return (
                 <motion.div key={doc._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
@@ -516,12 +484,10 @@ export default function FindDoctor() {
                       </div>
                       <div className="min-w-0 flex-1 pt-1">
                         <div className="flex items-center gap-2">
-                          <h3 className="font-heading font-semibold text-foreground truncate group-hover:text-primary transition-colors">{doc.name}</h3>
-                          <span className={cn('w-2 h-2 rounded-full shrink-0', doc.available ? 'bg-emerald-500' : 'bg-red-400')} title={doc.available ? 'Available' : 'Unavailable'} />
+                          <h3 className="font-heading font-semibold text-foreground truncate group-hover:text-primary transition-colors">{clinicName}</h3>
                           {doc.approved && <BadgeCheck className="w-4 h-4 text-primary shrink-0" />}
                         </div>
-                        {/* Facility Name */}
-                        <p className="text-sm font-medium text-foreground truncate">{facilityName}</p>
+                        <p className="text-sm font-medium text-foreground truncate">{doc.name}</p>
                         <p className="text-xs text-primary font-medium">{doc.specialization}</p>
                         <div className="flex items-center gap-1 mt-0.5">
                           {renderStars(doc.rating)}
@@ -530,7 +496,7 @@ export default function FindDoctor() {
                       </div>
                     </div>
 
-                    {/* Locality + Distance + Next Slot */}
+                    {/* Locality + Distance */}
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mb-3 text-xs text-muted-foreground">
                       {area && (
                         <span className="flex items-center gap-1">
@@ -595,15 +561,8 @@ export default function FindDoctor() {
                         <CalendarDays className="w-3.5 h-3.5" /> {doc.available ? 'Book Appointment' : 'Unavailable'}
                       </Button>
                       <Button variant="outline" size="sm" className="flex-1 gap-1.5 rounded-xl text-[11px] h-9 group/btn"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (doc.doctor_type === 'clinic') {
-                            navigate(`/clinic/${doc.clinicId?._id || doc.clinicId}`);
-                          } else {
-                            navigate(`/hospitals/${doc.hospitalId?._id || doc.hospitalId}`);
-                          }
-                        }}>
-                        {doc.doctor_type === 'clinic' ? 'View Clinic Details' : 'View Hospital Details'}
+                        onClick={(e) => { e.stopPropagation(); navigate(`/clinic/${doc._id}`); }}>
+                        View Clinic Details
                         <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover/btn:translate-x-0.5" />
                       </Button>
                     </div>

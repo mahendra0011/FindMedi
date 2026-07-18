@@ -25,6 +25,7 @@ import Bed from './models/Bed.js';
 import Department from './models/Department.js';
 import Staff from './models/Staff.js';
 import Inventory from './models/Inventory.js';
+import ClinicProfile from './models/ClinicProfile.js';
 
 const readJSON = (file) => JSON.parse(fs.readFileSync(path.join(__dirname, 'mock-data', file), 'utf-8'));
 
@@ -38,7 +39,7 @@ async function seed() {
 
     // ===== CLEAR EXISTING DATA =====
     console.log('Clearing existing data...');
-    const collections = ['hospitals', 'facilities', 'users', 'doctors', 'patients', 'appointments', 'tests', 'medicines', 'beds', 'departments', 'staffs', 'inventories'];
+    const collections = ['hospitals', 'facilities', 'users', 'doctors', 'clinicprofiles', 'patients', 'appointments', 'tests', 'medicines', 'beds', 'departments', 'staffs', 'inventories'];
     for (const col of collections) {
       try { await db.collection(col).deleteMany({}); } catch {}
     }
@@ -102,6 +103,18 @@ async function seed() {
       await Doctor.create(doctorObj);
     }
     console.log(`  ${doctorsData.length} doctors created.`);
+
+    // ===== SEED CLINIC PROFILES =====
+    console.log('Seeding clinic profiles...');
+    const clinicsData = readJSON('clinics.json');
+    for (const c of clinicsData) {
+      const { doctorId, ...rest } = c;
+      const doctor = await Doctor.findOne({ _id: doctorId }).lean();
+      if (doctor) {
+        await ClinicProfile.create({ ...rest, doctorId: doctor._id });
+      }
+    }
+    console.log(`  ${clinicsData.length} clinic profiles created.`);
 
     // ===== SEED PATIENTS =====
     console.log('Seeding patients...');
@@ -209,8 +222,8 @@ async function seed() {
     }
     console.log(`  ${inventoryData.length} inventory items created.`);
 
-    console.log('\n✅ Seed complete! 9 sections seeded.');
-    console.log('   hospitals, facilities, users, doctors, patients, appointments, tests, medicines, beds, departments, staff, inventory');
+    console.log('\n✅ Seed complete! 13 sections seeded.');
+    console.log('   hospitals, facilities, users, doctors, clinicprofiles, patients, appointments, tests, medicines, beds, departments, staff, inventory');
     console.log('\nDemo Accounts:');
     console.log('  superadmin → mahendrapra0077@gmail.com / admin@123');
     console.log('  admin      → admin@medicore.com / password');

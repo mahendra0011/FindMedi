@@ -4,11 +4,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Building2, MapPin, Star, Phone, Stethoscope, CalendarDays,
   IndianRupee, ArrowLeft, Search, Shield, Award, Clock, Users,
-  BedDouble, Ambulance, Share2, ChevronRight, Home, BadgeCheck,
+  BedDouble, Ambulance, Share2, ChevronRight, Home, BadgeCheck, Bookmark,
   Navigation, AlertCircle, HeartPulse, CheckCircle2,
   ChevronDown, ChevronUp, FlaskRound, Quote, Mail,
   Circle, Heart, Eye, Sparkles, TrendingUp, Brain, Bone, Baby, Activity,
-  FlaskConical, ShoppingCart, Lock, Plus, Minus, Zap
+  FlaskConical,   ShoppingCart, Lock, Plus, Minus, Zap, X, UserRound
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -77,9 +77,11 @@ export default function HospitalProfile() {
   const [reviews, setReviews] = useState([]);
   const [docSearch, setDocSearch] = useState('');
   const [docSpecFilter, setDocSpecFilter] = useState('All');
+  const [doctorSectionTab, setDoctorSectionTab] = useState('doctors');
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [showFullDesc, setShowFullDesc] = useState(false);
+  const [activePhoto, setActivePhoto] = useState(0);
   const [suggestedHospitals, setSuggestedHospitals] = useState([]);
   const [activeTab, setActiveTab] = useState('overview');
   const [testSearch, setTestSearch] = useState('');
@@ -162,6 +164,7 @@ export default function HospitalProfile() {
     return { isOpen: false, label: 'Closed', dot: 'bg-red-500', bg: 'bg-red-50 dark:bg-red-500/10 text-red-600 border-red-200 dark:border-red-800' };
   };
   const openStatus = getOpenStatus();
+  const hospitalPhotos = [hospital?.image, hospital?.logo].filter(Boolean);
 
   const initials = (n) => n?.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase() || 'H';
 
@@ -175,7 +178,6 @@ export default function HospitalProfile() {
     if (navigator.share) { try { await navigator.share({ title: hospital?.name, url }); } catch {} }
     else { await navigator.clipboard.writeText(url); toast.success('Link copied!'); }
   };
-  const handleBookTest = () => navigate(`/hospital-tests/${id}`);
   const handleBookDoctor = () => navigate(`/hospitals/${id}/doctors`);
 
   const [testCart, setTestCart] = useState({});
@@ -297,195 +299,174 @@ export default function HospitalProfile() {
         </nav>
       </div>
 
-      {/* ═══════════ HERO GALLERY ═══════════ */}
-      <motion.div variants={fadeIn} className="relative mt-2 mx-4 sm:mx-6 lg:mx-8 rounded-3xl overflow-hidden">
-        <div className="relative h-[300px] sm:h-[420px] md:h-[500px]">
-          <img
-            src={hospital.image || hospital.logo || 'https://images.unsplash.com/photo-1587351021759-3e566b6af7cc?w=1400&h=600&fit=crop'}
-            alt=""
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-transparent to-transparent" />
+      {/* ════════ 1. HERO SECTION ════════ */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
-          {/* ═══ 24/7 Emergency Badge — Top-Left ═══ */}
-          {hospital.emergency24x7 && (
-            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}
-              className="absolute top-5 left-5 z-10"
-            >
-              <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest bg-red-600 text-white shadow-2xl shadow-red-600/40">
-                <span className="relative flex h-2.5 w-2.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white" />
-                </span>
-                24/7 Emergency
-              </span>
-            </motion.div>
-          )}
-
-          {/* ═══ Logo + Hospital Name overlay — Bottom-Left ═══ */}
-          <div className="absolute bottom-6 left-6 sm:left-10 flex items-end gap-5 z-10">
-            <motion.div variants={slideUp}
-              className="w-24 h-24 sm:w-32 sm:h-32 rounded-2xl overflow-hidden shadow-2xl border-[3px] border-white/90 ring-2 ring-primary/30 flex-shrink-0 bg-white"
-            >
-              {hospital.logo || hospital.image ? (
-                <img src={hospital.logo || hospital.image} alt={hospital.name} className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center text-white font-heading font-bold text-3xl sm:text-4xl">{initials(hospital.name)}</div>
+            {/* Gallery */}
+            <div className="lg:col-span-2 relative rounded-2xl overflow-hidden bg-card border border-border/50 h-[300px] sm:h-[420px] group">
+              {hospitalPhotos?.map((p, i) => (
+                <div key={i} className={cn('absolute inset-0 transition-all duration-700', i === activePhoto ? 'opacity-100 scale-100' : 'opacity-0 scale-105')}>
+                  <img src={p} alt={`${hospital.name} photo ${i + 1}`} className="w-full h-full object-cover" />
+                </div>
+              ))}
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+                {hospitalPhotos?.map((_, i) => (
+                  <button key={i} onClick={() => setActivePhoto(i)}
+                    className={cn('h-1.5 rounded-full transition-all duration-300', i === activePhoto ? 'bg-white w-8' : 'bg-white/40 w-1.5 hover:bg-white/70')} />
+                ))}
+              </div>
+              <div className="absolute top-4 right-4 flex gap-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button className="w-9 h-9 rounded-xl bg-black/30 backdrop-blur-sm text-white flex items-center justify-center hover:bg-black/50 transition-all hover:scale-105" onClick={() => toast.success('Bookmarked')}>
+                  <Bookmark className="w-4 h-4" />
+                </button>
+                <button className="w-9 h-9 rounded-xl bg-black/30 backdrop-blur-sm text-white flex items-center justify-center hover:bg-black/50 transition-all hover:scale-105" onClick={handleShare}>
+                  <Share2 className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="absolute top-4 left-4 z-10">
+                <Badge className="bg-primary/90 text-white border-0 text-xs px-3 py-1.5 rounded-full shadow-lg">{hospital.hospitalType || 'Hospital'}</Badge>
+              </div>
+              {hospitalPhotos?.length > 1 && (
+                <div className="absolute bottom-4 left-4 z-10 hidden sm:block">
+                  <Badge variant="secondary" className="bg-black/40 text-white border-0 text-xs px-3 py-1.5 rounded-full backdrop-blur-sm">
+                    {activePhoto + 1} / {hospitalPhotos.length} Photos
+                  </Badge>
+                </div>
               )}
-            </motion.div>
-            <motion.div variants={fadeUp} className="hidden sm:block pb-1">
-              <h1 className="text-white font-heading text-3xl lg:text-4xl font-bold drop-shadow-lg leading-tight">{hospital.name}</h1>
-              {tagline && <p className="text-white/80 text-sm mt-1 font-medium drop-shadow">{tagline}</p>}
-            </motion.div>
+            </div>
+
+            {/* Info Card */}
+            <div className="lg:col-span-1 bg-card rounded-2xl border border-border/50 p-6 flex flex-col shadow-sm">
+              <div className="flex items-start gap-3 mb-3">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shrink-0 border-2 border-primary/10">
+                  <Building2 className="w-7 h-7 text-primary" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h1 className="font-heading font-bold text-xl text-foreground leading-tight">{hospital.name}</h1>
+                    {hospital.status === 'approved' && <BadgeCheck className="w-5 h-5 text-primary shrink-0" />}
+                  </div>
+                  <p className="text-sm font-medium text-primary/80">{hospital.hospitalType || 'Hospital'}</p>
+                  <div className="flex items-center gap-1.5 mt-1.5">
+                    <div className="flex items-center gap-0.5">
+                      {[1, 2, 3, 4, 5].map(i => <Star key={i} className={cn('w-3.5 h-3.5', i <= Math.round(hospital.rating) ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground/20')} />)}
+                    </div>
+                    <span className="text-sm font-bold text-foreground">{hospital.rating}</span>
+                    <span className="text-xs text-muted-foreground">({hospital.reviewsCount || 0} reviews)</span>
+                  </div>
+                </div>
+              </div>
+
+              <Separator className="my-3" />
+
+              <div className="space-y-2.5 text-sm">
+                <div className="flex items-start gap-2.5 text-muted-foreground">
+                  <MapPin className="w-4 h-4 mt-0.5 shrink-0 text-primary" />
+                  <span>{hospital.address}, {hospital.city}{hospital.state ? `, ${hospital.state}` : ''}</span>
+                </div>
+                <a href={`tel:${hospital.phone}`} className="flex items-center gap-2.5 text-primary font-medium hover:underline group">
+                  <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                    <Phone className="w-3.5 h-3.5 text-primary" />
+                  </div>
+                  {hospital.phone}
+                </a>
+                {hospital.email && (
+                  <div className="flex items-center gap-2.5 text-muted-foreground">
+                    <div className="w-7 h-7 rounded-lg bg-muted/50 flex items-center justify-center shrink-0">
+                      <Mail className="w-3.5 h-3.5" />
+                    </div>
+                    {hospital.email}
+                  </div>
+                )}
+              </div>
+
+              <Separator className="my-3" />
+
+              <div className={cn('px-4 py-2.5 rounded-xl border text-sm text-center font-semibold flex items-center justify-center gap-2', openStatus.isOpen ? 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10' : 'bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10')}>
+                <span className={cn('w-2 h-2 rounded-full animate-pulse', openStatus.isOpen ? 'bg-emerald-500' : 'bg-red-500')} />
+                {openStatus.label}
+              </div>
+
+              <div className="flex gap-2 mt-auto pt-3">
+                <Button className="flex-1 gap-2 rounded-xl shadow-lg shadow-primary/20 h-11 hover:shadow-xl hover:shadow-primary/30 transition-all" onClick={handleBookDoctor}>
+                  <CalendarDays className="w-4 h-4" /> Book Appointment
+                </Button>
+                <Button variant="outline" className="rounded-xl h-11 px-3 hover:bg-primary/5 hover:border-primary/30 transition-all" onClick={() => navigate(`/hospitals/${id}/doctors`)}>
+                  <Navigation className="w-4 h-4" />
+                </Button>
+                <a href={`tel:${hospital.phone}`}>
+                  <Button variant="outline" className="rounded-xl h-11 px-3 hover:bg-primary/5 hover:border-primary/30 transition-all">
+                    <Phone className="w-4 h-4" />
+                  </Button>
+                </a>
+              </div>
+            </div>
           </div>
         </div>
       </motion.div>
 
-      {/* ═══════════ FLOATING DETAIL CARD (Zomato-style) ═══════════ */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8 sm:-mt-12 relative z-20">
-        <motion.div variants={slideUp}
-          className="bg-white dark:bg-card rounded-2xl border border-border/50 shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:shadow-[0_12px_40px_rgba(0,0,0,0.3)] overflow-hidden"
-        >
-          <div className="p-5 sm:p-7">
-            {/* Row 1 — Name (mobile), Rating, Status, Share */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-              <div className="flex items-center gap-4 flex-wrap">
-                <div className="sm:hidden w-full">
-                  <h1 className="font-heading text-2xl font-bold text-foreground">{hospital.name}</h1>
-                  {tagline && <p className="text-muted-foreground text-xs mt-0.5">{tagline}</p>}
-                </div>
-                <div className="flex items-center gap-1.5 bg-amber-50 dark:bg-amber-500/10 px-3.5 py-2 rounded-xl border border-amber-200 dark:border-amber-800">
-                  <div className="flex items-center gap-0.5">{renderStars(hospital.rating)}</div>
-                  <span className="font-bold text-foreground text-sm ml-1">{hospital.rating}</span>
-                  <span className="text-muted-foreground text-xs ml-1">({hospital.reviewsCount || 0})</span>
-                </div>
-                <div className={cn('flex items-center gap-1.5 text-xs font-semibold px-3.5 py-1.5 rounded-full border', openStatus.bg)}>
-                  <span className={cn('w-2 h-2 rounded-full', openStatus.dot)} />
-                  {openStatus.label}
-                </div>
-                {hospital.status === 'approved' && (
-                  <div className="flex items-center gap-1 text-xs font-semibold text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 px-3 py-1.5 rounded-full border border-emerald-200 dark:border-emerald-800">
-                    <BadgeCheck className="w-3.5 h-3.5" />
-                    Verified
+      {/* ════════ 2. QUICK STATS STRIP ════════ */}
+      <motion.div variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true }}
+        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+        {[
+          { icon: Building2, label: 'Established', value: establishedYear || '—', color: 'text-primary', desc: establishedYear ? `Since ${establishedYear}` : '—' },
+          { icon: Stethoscope, label: 'Total Doctors', value: hospital.totalDoctors || doctors.length || 0, color: 'text-blue-500', desc: 'Qualified professionals' },
+          { icon: Sparkles, label: 'Departments', value: totalDepts, color: 'text-purple-500', desc: 'Specialties available' },
+          { icon: BedDouble, label: 'Total Beds', value: hospital.bedAvailability || 0, color: 'text-emerald-500', desc: 'Available beds' },
+        ].map(stat => (
+          <motion.div key={stat.label} variants={fadeUp}
+            className="bg-card rounded-2xl border border-border/50 shadow-sm p-5 flex items-center gap-4 hover:shadow-md transition-shadow">
+            <div className={cn('w-12 h-12 rounded-xl bg-gradient-to-br flex items-center justify-center shrink-0 shadow-sm', stat.color.replace('text-', 'from-').replace('-500', '-500/20') + ' to-transparent')}>
+              <stat.icon className={cn('w-6 h-6', stat.color)} />
+            </div>
+            <div>
+              <p className="font-heading text-2xl font-bold text-foreground leading-none mb-0.5">{stat.value}</p>
+              <p className="text-xs text-muted-foreground">{stat.desc}</p>
+            </div>
+          </motion.div>
+        ))}
+      </motion.div>
+
+      {/* ═══════════ MAIN CONTENT + SIDEBAR ═══════════ */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+          {/* ──── LEFT COLUMN ──── */}
+          <div className="lg:col-span-2 space-y-8">
+
+      {/* ═══════════ DOCTOR / TESTS SECTION ═══════════ */}
+      <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}
+        className=""
+      >
+        <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden">
+          <CardContent className="p-6 sm:p-8">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="bg-muted/50 p-0.5 rounded-lg border border-border/40 flex">
+                    <button onClick={() => setDoctorSectionTab('doctors')}
+                      className={cn('px-3 py-1.5 rounded-md text-xs font-semibold transition-all', doctorSectionTab === 'doctors' ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground')}>
+                      Doctors
+                    </button>
+                    <button onClick={() => setDoctorSectionTab('tests')}
+                      className={cn('px-3 py-1.5 rounded-md text-xs font-semibold transition-all', doctorSectionTab === 'tests' ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground')}>
+                      Tests
+                    </button>
                   </div>
+                  <h2 className="font-heading text-xl font-bold text-foreground flex items-center gap-2.5">
+                    <span className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center"><Stethoscope className="w-4 h-4 text-primary" /></span>
+                    {doctorSectionTab === 'doctors' ? <>Doctors <span className="text-base font-normal text-muted-foreground">({doctors.length})</span></> : 'Tests'}
+                  </h2>
+                </div>
+                {doctorSectionTab === 'doctors' && (
+                  <Button variant="ghost" size="sm" className="gap-1 text-primary font-semibold" onClick={() => navigate(`/hospitals/${id}/doctors`)}>
+                    View More <ChevronRight className="w-4 h-4" />
+                  </Button>
                 )}
               </div>
-              <Button size="sm" variant="outline" className="rounded-xl gap-2 shrink-0 self-start" onClick={handleShare}>
-                <Share2 className="w-4 h-4" />
-                <span className="hidden sm:inline">Share</span>
-              </Button>
-            </div>
 
-            {/* Row 2 — Address + Phone */}
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 mb-4 text-sm text-muted-foreground">
-              <span className="flex items-center gap-1.5">
-                <MapPin className="w-4 h-4 text-primary shrink-0" />
-                <span>{hospital.address}, {hospital.city}{hospital.state ? `, ${hospital.state}` : ''}</span>
-              </span>
-              <span className="flex items-center gap-1.5">
-                <Phone className="w-4 h-4 text-primary shrink-0" />
-                <a href={`tel:${hospital.phone}`} className="hover:text-primary font-medium">{hospital.phone}</a>
-              </span>
-              {hospital.licenseNumber && (
-                <span className="flex items-center gap-1.5 text-xs">
-                  <Shield className="w-3.5 h-3.5 text-muted-foreground" />
-                  Lic: {hospital.licenseNumber}
-                </span>
-              )}
-            </div>
-
-            {/* Row 3 — Accreditation Badges inline */}
-            {hospital.accreditations?.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-4">
-                {hospital.accreditations.map(acc => (
-                  <Badge key={acc} variant="outline" className={cn(
-                    'text-xs font-semibold px-3 py-1 gap-1.5',
-                    acc === 'NABH' && 'border-emerald-400 text-emerald-700 bg-emerald-50 dark:bg-emerald-500/10 dark:text-emerald-300',
-                    acc === 'NABL' && 'border-blue-400 text-blue-700 bg-blue-50 dark:bg-blue-500/10 dark:text-blue-300',
-                    acc === 'ISO' && 'border-amber-400 text-amber-700 bg-amber-50 dark:bg-amber-500/10 dark:text-amber-300',
-                  )}>
-                    <CheckCircle2 className="w-3 h-3" />
-                    {acc}
-                  </Badge>
-                ))}
-              </div>
-            )}
-
-            <Separator className="my-4" />
-
-            {/* ═══ ACTION BUTTONS ═══ */}
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="flex gap-3 flex-1">
-                <Button size="lg"
-                  className="flex-1 gap-2.5 rounded-xl h-12 text-base font-semibold shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-all"
-                  onClick={handleBookDoctor}
-                >
-                  <CalendarDays className="w-5 h-5" />
-                  Book Appointment
-                </Button>
-                <Button size="lg" variant="outline"
-                  className="flex-1 gap-2.5 rounded-xl h-12 text-base font-semibold border-primary/30 text-primary hover:bg-primary/5"
-                  onClick={handleBookTest}
-                >
-                  <FlaskRound className="w-5 h-5" />
-                  Book Test
-                </Button>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="secondary" size="lg" className="rounded-xl h-12 px-4 gap-2" asChild>
-                  <a href={`tel:${hospital.phone}`}><Phone className="w-4 h-4" /><span className="hidden sm:inline">Call Now</span></a>
-                </Button>
-                <Button variant="secondary" size="lg" className="rounded-xl h-12 px-4 gap-2" asChild>
-                  <a href={`https://maps.google.com/?q=${encodeURIComponent(`${hospital.address}, ${hospital.city}, ${hospital.state}`)}`} target="_blank" rel="noopener noreferrer">
-                    <Navigation className="w-4 h-4" /><span className="hidden sm:inline">Directions</span>
-                  </a>
-                </Button>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-      </div>
-
-      {/* ═══════════ QUICK STATS STRIP ═══════════ */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12">
-        <motion.div variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true }}
-          className="grid grid-cols-2 sm:grid-cols-4 gap-0 bg-white dark:bg-card rounded-2xl border border-border/50 shadow-sm overflow-hidden divide-x-0 sm:divide-x divide-border/50"
-        >
-          {[
-            { icon: Stethoscope, label: 'Total Doctors', value: hospital.totalDoctors || doctors.length || 0, color: 'text-primary' },
-            { icon: Building2, label: 'Departments', value: totalDepts, color: 'text-blue-500' },
-            { icon: BedDouble, label: 'Total Beds', value: hospital.bedAvailability || 0, color: 'text-amber-500' },
-            { icon: Award, label: 'Experience', value: expYears ? `${expYears}+ Yrs` : '—', color: 'text-emerald-500' },
-          ].map((stat, i) => (
-            <motion.div key={stat.label} variants={fadeUp}
-              className="flex flex-col items-center justify-center py-6 px-4 text-center border-b sm:border-b-0 border-border/50 last:border-b-0"
-            >
-              <stat.icon className={cn('w-6 h-6 mb-2', stat.color)} />
-              <span className="font-heading text-2xl font-bold text-foreground">{stat.value}</span>
-              <span className="text-xs text-muted-foreground mt-0.5">{stat.label}</span>
-            </motion.div>
-          ))}
-        </motion.div>
-      </div>
-
-      {/* ═══════════ DOCTOR CARDS STRIP (Stats ke neeche) ═══════════ */}
-      {doctors.length > 0 && (
-        <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}
-          className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8"
-        >
-          <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden">
-            <CardContent className="p-6 sm:p-8">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="font-heading text-xl font-bold text-foreground flex items-center gap-2.5">
-                  <span className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center"><Stethoscope className="w-4 h-4 text-primary" /></span>
-                  Doctors <span className="text-base font-normal text-muted-foreground">({doctors.length})</span>
-                </h2>
-                <Button variant="ghost" size="sm" className="gap-1 text-primary font-semibold" onClick={() => navigate(`/hospitals/${id}/doctors`)}>
-                  View More <ChevronRight className="w-4 h-4" />
-                </Button>
-              </div>
-
+              <div className={doctorSectionTab !== 'doctors' ? 'hidden' : ''}>
               {/* Search */}
               <div className="relative mb-4">
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -496,7 +477,7 @@ export default function HospitalProfile() {
               </div>
 
               {/* Browse by Specialties */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-3 mb-6">
+              <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-7 gap-2 mb-5">
                 <motion.button
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -504,17 +485,17 @@ export default function HospitalProfile() {
                   whileTap={{ scale: 0.96 }}
                   onClick={() => setDocSpecFilter('All')}
                   className={cn(
-                    'flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border transition-all',
+                    'flex flex-col items-center justify-center gap-1 p-2.5 rounded-xl border transition-all',
                     docSpecFilter === 'All'
-                      ? 'border-primary bg-primary/5 shadow-md shadow-primary/10'
+                      ? 'border-primary bg-primary/5 shadow-sm shadow-primary/10'
                       : 'border-border/60 bg-card hover:border-primary/30 hover:shadow-sm'
                   )}
                 >
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-                    <Stethoscope className="w-5 h-5 text-primary" />
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                    <Stethoscope className="w-4 h-4 text-primary" />
                   </div>
-                  <span className={cn('text-[10px] font-semibold text-center leading-tight', docSpecFilter === 'All' ? 'text-primary' : 'text-foreground')}>All</span>
-                  <span className="text-[9px] text-muted-foreground">{doctors.length}</span>
+                  <span className={cn('text-[9px] font-semibold text-center leading-tight', docSpecFilter === 'All' ? 'text-primary' : 'text-foreground')}>All</span>
+                  <span className="text-[8px] text-muted-foreground -mt-0.5">{doctors.length}</span>
                 </motion.button>
                 {(hospital?.specialties || []).map(s => {
                   const spec = SPEC_CARD_THEME[s];
@@ -528,33 +509,39 @@ export default function HospitalProfile() {
                       whileTap={{ scale: 0.96 }}
                       onClick={() => setDocSpecFilter(s)}
                       className={cn(
-                        'flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border transition-all',
+                        'flex flex-col items-center justify-center gap-1 p-2.5 rounded-xl border transition-all',
                         docSpecFilter === s
-                          ? 'border-primary bg-primary/5 shadow-md shadow-primary/10'
+                          ? 'border-primary bg-primary/5 shadow-sm shadow-primary/10'
                           : 'border-border/60 bg-card hover:border-primary/30 hover:shadow-sm'
                       )}
                     >
-                      <div className={cn('w-10 h-10 rounded-xl bg-gradient-to-br flex items-center justify-center', spec?.color || 'from-primary/20 to-primary/5')}>
-                        <Icon className={cn('w-5 h-5', spec?.textColor || 'text-primary')} />
+                      <div className={cn('w-8 h-8 rounded-lg bg-gradient-to-br flex items-center justify-center', spec?.color || 'from-primary/20 to-primary/5')}>
+                        <Icon className={cn('w-4 h-4', spec?.textColor || 'text-primary')} />
                       </div>
-                      <span className={cn('text-[10px] font-semibold text-center leading-tight', docSpecFilter === s ? 'text-primary' : 'text-foreground')}>{s}</span>
-                      <span className="text-[9px] text-muted-foreground">{count}</span>
+                      <span className={cn('text-[9px] font-semibold text-center leading-tight', docSpecFilter === s ? 'text-primary' : 'text-foreground')}>{s}</span>
+                      <span className="text-[8px] text-muted-foreground -mt-0.5">{count}</span>
                     </motion.button>
                   );
                 })}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredDoctors.slice(0, 3).map((doc) => (
+              {filteredDoctors.length === 0 ? (
+                <div className="text-center py-10">
+                  <Search className="w-8 h-8 text-muted-foreground/20 mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">No doctors found</p>
+                </div>
+              ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {filteredDoctors.slice(0, 2).map((doc) => (
                   <motion.div key={doc._id} variants={fadeUp}
-                    className="bg-card rounded-2xl border border-border/50 overflow-hidden hover:shadow-xl hover:border-primary/30 transition-all"
+                    className="bg-card rounded-2xl border border-border/60 overflow-hidden hover:shadow-xl hover:border-primary/30 transition-all cursor-pointer h-full"
                   >
-                    <div className="p-5">
+                    <div className="p-5 h-full flex flex-col">
                       <div className="flex items-start gap-4 mb-3">
-                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center overflow-hidden shrink-0 border-2 border-primary/10">
+                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center overflow-hidden shrink-0 border-2 border-primary/10">
                           {doc.profile_photo
                             ? <img src={doc.profile_photo} alt="" className="w-full h-full object-cover" />
-                            : <span className="text-primary font-bold text-lg">{doc.name?.split(' ').map(n=>n[0]).join('').slice(0,2)}</span>
+                            : <UserRound className="w-7 h-7 text-primary" />
                           }
                         </div>
                         <div className="min-w-0 flex-1">
@@ -640,10 +627,135 @@ export default function HospitalProfile() {
                   </motion.div>
                 ))}
               </div>
+                )}
+              </div>
+              <div className={doctorSectionTab !== 'tests' ? 'hidden' : ''}>
+                  <div className="flex flex-wrap gap-2">
+                    <select value={testDeptFilter} onChange={e => setTestDeptFilter(e.target.value)}
+                      className="h-8 px-2.5 rounded-lg text-[11px] bg-background border border-border/50 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
+                      <option value="All">All Departments</option>
+                      {DEPARTMENTS.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                    </select>
+                    <select value={testRxFilter} onChange={e => setTestRxFilter(e.target.value)}
+                      className="h-8 px-2.5 rounded-lg text-[11px] bg-background border border-border/50 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
+                      <option value="all">All Tests</option>
+                      <option value="direct">Direct Only</option>
+                      <option value="rx">Prescription Required</option>
+                    </select>
+                    <select value={testHomeFilter} onChange={e => setTestHomeFilter(e.target.value)}
+                      className="h-8 px-2.5 rounded-lg text-[11px] bg-background border border-border/50 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
+                      <option value="all">Any Collection</option>
+                      <option value="home">Home Collection</option>
+                      <option value="lab">Lab Visit Only</option>
+                    </select>
+                    <select value={testSort} onChange={e => setTestSort(e.target.value)}
+                      className="h-8 px-2.5 rounded-lg text-[11px] bg-background border border-border/50 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
+                      <option value="popularity">Sort: Popularity</option>
+                      <option value="price-low">Sort: Price (Low)</option>
+                      <option value="price-high">Sort: Price (High)</option>
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-3">
+                      {filteredDepartments.length === 0 ? (
+                        <div className="text-center py-10 bg-card rounded-xl border border-border/50">
+                          <Search className="w-8 h-8 text-muted-foreground/20 mx-auto mb-2" />
+                          <p className="text-xs text-muted-foreground">No tests match your filters</p>
+                          <Button variant="ghost" size="sm" className="mt-1.5 text-xs" onClick={() => { setTestSearch(''); setTestDeptFilter('All'); setTestRxFilter('all'); setTestHomeFilter('all'); setPriceRange([0, 10000]); }}>
+                            Clear all filters
+                          </Button>
+                        </div>
+                      ) : (
+                        <Accordion type="multiple" className="space-y-2">
+                          {filteredDepartments.map(dept => {
+                            const Icon = dept.icon;
+                            return (
+                              <AccordionItem key={dept.id} value={dept.id} className="border border-border/50 rounded-xl overflow-hidden bg-card">
+                                <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-muted/30 transition-colors">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                                      <Icon className="w-4 h-4 text-primary" />
+                                    </div>
+                                    <span className="text-sm font-semibold">{dept.name}</span>
+                                    <Badge variant="secondary" className="text-[10px] h-4 px-1.5 font-normal">{dept.tests.length}</Badge>
+                                  </div>
+                                </AccordionTrigger>
+                                <AccordionContent className="px-4 pb-3">
+                                  <div className="space-y-1.5">
+                                    {dept.tests.slice(0, 4).map(test => (
+                                      <div key={test.id} className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-muted/30 transition-colors">
+                                        <div className="flex-1 min-w-0">
+                                          <p className="text-xs font-medium text-foreground truncate">{test.name}</p>
+                                          <p className="text-[10px] text-muted-foreground">₹{test.price} <span className="line-through">₹{test.mrp}</span></p>
+                                        </div>
+                                        <div className="flex items-center gap-1 shrink-0 ml-2">
+                                          {testCart[test.id] ? (
+                                            <div className="flex items-center gap-1">
+                                              <button onClick={() => removeTestFromCart(test.id)} className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors"><Minus className="w-3 h-3 text-primary" /></button>
+                                              <span className="text-xs font-semibold w-5 text-center">{testCart[test.id]}</span>
+                                              <button onClick={() => addTestToCart(test.id)} className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors"><Plus className="w-3 h-3 text-primary" /></button>
+                                            </div>
+                                          ) : (
+                                            <button onClick={() => addTestToCart(test.id)} className="w-7 h-7 rounded-lg bg-primary text-primary-foreground text-xs font-semibold flex items-center justify-center hover:bg-primary/90 transition-colors">Add</button>
+                                          )}
+                                        </div>
+                                      </div>
+                                    ))}
+                                    {dept.tests.length > 4 && (
+                                      <button onClick={() => setActiveTab('tests')} className="w-full text-center text-[10px] text-primary font-semibold py-1.5 hover:underline">+{dept.tests.length - 4} more</button>
+                                    )}
+                                  </div>
+                                </AccordionContent>
+                              </AccordionItem>
+                            );
+                          })}
+                        </Accordion>
+                      )}
+                    </div>
+
+                    {/* Selected Tests Summary */}
+                    <div className="bg-card rounded-xl border border-border/50 p-4 h-fit lg:sticky lg:top-24">
+                      <h4 className="text-xs font-semibold text-foreground mb-3 flex items-center gap-2">
+                        <ShoppingCart className="w-3.5 h-3.5 text-primary" /> Selected Tests
+                      </h4>
+                      {Object.keys(testCart).length === 0 ? (
+                        <div className="text-center py-8">
+                          <ShoppingCart className="w-8 h-8 text-muted-foreground/20 mx-auto mb-2" />
+                          <p className="text-xs text-muted-foreground">No tests selected</p>
+                          <p className="text-[10px] text-muted-foreground/60 mt-0.5">Browse and add tests above</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {Object.entries(testCart).map(([testId, qty]) => {
+                            const test = DEPARTMENTS.flatMap(d => d.tests).find(t => t.id === testId);
+                            if (!test) return null;
+                            return (
+                              <div key={testId} className="flex items-center justify-between py-1.5 px-2.5 rounded-lg bg-muted/30">
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-[11px] font-medium text-foreground truncate">{test.name}</p>
+                                  <p className="text-[10px] text-muted-foreground">₹{test.price} x {qty}</p>
+                                </div>
+                                <button onClick={() => removeTestFromCart(testId)} className="w-5 h-5 rounded flex items-center justify-center hover:bg-muted transition-colors shrink-0 ml-1"><X className="w-3 h-3 text-muted-foreground" /></button>
+                              </div>
+                            );
+                          })}
+                          <Separator />
+                          <div className="flex items-center justify-between text-xs font-semibold px-2.5">
+                            <span>Total</span>
+                            <span>₹{Object.entries(testCart).reduce((sum, [testId, qty]) => { const t = DEPARTMENTS.flatMap(d => d.tests).find(t => t.id === testId); return sum + (t?.price || 0) * qty; }, 0)}</span>
+                          </div>
+                          <Button size="sm" className="w-full gap-1.5 rounded-lg text-xs h-8">
+                            <Lock className="w-3 h-3" /> Proceed to Booking
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+              </div>
             </CardContent>
           </Card>
         </motion.div>
-      )}
 
       {/* ═══════════ ABOUT SECTION (Stats ke neeche) ═══════════ */}
       {hospital.description && (
@@ -673,8 +785,8 @@ export default function HospitalProfile() {
       )}
 
 
-      {/* ═══════════ MAIN CONTENT GRID ═══════════ */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      {/* ═══════════ TABS SECTION ═══════════ */}
+      <div>
 
         {/* Tab Navigation */}
         <motion.div variants={fadeUp} className="flex gap-1 mb-8 bg-muted/50 p-1 rounded-2xl border border-border/40 w-fit">
@@ -691,16 +803,12 @@ export default function HospitalProfile() {
               )}>
               <tab.icon className="w-4 h-4" />
               {tab.label}
-              {tab.key === 'tests' && <span className="text-xs text-muted-foreground font-normal">({totalTestCount})</span>}
             </button>
           ))}
         </motion.div>
 
         {activeTab === 'overview' ? (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
-          {/* ──── LEFT COLUMN ──── */}
-          <div className="lg:col-span-2 space-y-8">
+        <div className="space-y-8">
 
             {/* ─── Specialties / Departments Showcase ─── */}
             {hospital.specialties?.length > 0 && (
@@ -711,14 +819,14 @@ export default function HospitalProfile() {
                       <span className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center"><Building2 className="w-4 h-4 text-primary" /></span>
                       Specialties & Departments
                     </h2>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                    <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2">
                       {hospital.specialties.map(spec => {
                         const theme = getSpecTheme(spec);
                         const Icon = theme.icon;
                         return (
-                          <div key={spec} className={cn('flex items-center gap-2.5 px-4 py-3 rounded-xl border', theme.bg, theme.border)}>
-                            <Icon className={cn('w-5 h-5 shrink-0', theme.text)} />
-                            <span className={cn('text-sm font-semibold', theme.text)}>{spec}</span>
+                          <div key={spec} className={cn('flex items-center gap-1.5 px-2.5 py-2 rounded-lg border', theme.bg, theme.border)}>
+                            <Icon className={cn('w-3.5 h-3.5 shrink-0', theme.text)} />
+                            <span className={cn('text-[11px] font-medium', theme.text)}>{spec}</span>
                           </div>
                         );
                       })}
@@ -823,134 +931,6 @@ export default function HospitalProfile() {
               </motion.div>
             )}
 
-          </div>
-
-          {/* ──── RIGHT SIDEBAR ──── */}
-          <div className="space-y-6">
-            {/* Trust & Accreditation */}
-            <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>
-              <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden">
-                <CardContent className="p-6">
-                  <h3 className="font-heading font-semibold text-foreground mb-5 flex items-center gap-2.5">
-                    <span className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center"><Shield className="w-3.5 h-3.5 text-primary" /></span>
-                    Trust & Info
-                  </h3>
-                  <div className="space-y-4">
-                    {hospital.accreditations?.length > 0 && (
-                      <div>
-                        <p className="text-xs text-muted-foreground mb-2 uppercase tracking-wider font-semibold">Accreditations</p>
-                        <div className="flex flex-wrap gap-2">
-                          {hospital.accreditations.map(acc => (
-                            <Badge key={acc} variant="outline" className={cn(
-                              'text-xs font-semibold px-3 py-1 gap-1.5',
-                              acc === 'NABH' && 'border-emerald-400 text-emerald-700 bg-emerald-50 dark:bg-emerald-500/10',
-                              acc === 'NABL' && 'border-blue-400 text-blue-700 bg-blue-50 dark:bg-blue-500/10',
-                              acc === 'ISO' && 'border-amber-400 text-amber-700 bg-amber-50 dark:bg-amber-500/10',
-                            )}>
-                              <CheckCircle2 className="w-3 h-3" /> {acc}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    <Separator />
-                    <div className="space-y-3">
-                      {[['Established', establishedYear || '—'], ['Hospital Type', hospital.hospitalType || '—'], ['License', hospital.licenseNumber || '—'], ['Working Hours', hospital.workingHours?.weekdays || '9:00 AM - 6:00 PM'], ['Saturday', hospital.workingHours?.saturday || '9:00 AM - 2:00 PM'], ['Sunday', hospital.workingHours?.sunday || 'Closed']].map(([label, val]) => (
-                        <div key={label} className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">{label}</span>
-                          <span className="font-semibold text-foreground">{val}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <Separator />
-                    <div className="flex flex-wrap gap-2">
-                      {hospital.ambulanceService && (
-                        <Badge variant="secondary" className="text-xs bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10">
-                          <Ambulance className="w-3 h-3 mr-1" /> Ambulance
-                        </Badge>
-                      )}
-                      {hospital.bedAvailability > 0 && (
-                        <Badge variant="secondary" className="text-xs">
-                          <BedDouble className="w-3 h-3 mr-1" /> {hospital.bedAvailability} Beds
-                        </Badge>
-                      )}
-                    </div>
-                    {hospital.insuranceAccepted?.length > 0 && (
-                      <div className="mt-3 pt-3 border-t border-border/40">
-                        <p className="text-xs text-muted-foreground mb-2 font-semibold">Insurance Accepted</p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {hospital.insuranceAccepted.map((ins, i) => (
-                            <Badge key={i} variant="outline" className="text-[10px] bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/10">
-                              <Shield className="w-2.5 h-2.5 mr-1" /> {ins.provider || ins}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            {/* Amenities */}
-            {(hospital.emergency24x7 || hospital.ambulanceService || hospital.bedAvailability > 0) && (
-              <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>
-                <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden">
-                  <CardContent className="p-6">
-                    <h3 className="font-heading font-semibold text-foreground mb-4 flex items-center gap-2.5">
-                      <span className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center"><Sparkles className="w-3.5 h-3.5 text-primary" /></span>
-                      Amenities
-                    </h3>
-                    <div className="flex flex-wrap gap-2">
-                      {hospital.emergency24x7 && (
-                        <span className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full bg-red-50 text-red-600 border border-red-200 dark:bg-red-500/10">
-                          <HeartPulse className="w-3.5 h-3.5" /> 24/7 Emergency
-                        </span>
-                      )}
-                      {hospital.ambulanceService && (
-                        <span className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 dark:bg-emerald-500/10">
-                          <Ambulance className="w-3.5 h-3.5" /> Ambulance
-                        </span>
-                      )}
-                      {hospital.bedAvailability > 0 && (
-                        <span className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200 dark:bg-blue-500/10">
-                          <BedDouble className="w-3.5 h-3.5" /> {hospital.bedAvailability} Beds
-                        </span>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )}
-
-            {/* Quick Actions Sticky Card */}
-            <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} className="lg:sticky lg:top-24">
-              <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden bg-gradient-to-br from-primary/5 via-primary/[0.02] to-transparent">
-                <CardContent className="p-6">
-                  <h3 className="font-heading font-semibold text-foreground mb-5 flex items-center gap-2.5">
-                    <span className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center"><TrendingUp className="w-3.5 h-3.5 text-primary" /></span>
-                    Quick Actions
-                  </h3>
-                  <div className="space-y-3">
-                    <Button className="w-full gap-2.5 rounded-xl h-11 font-semibold shadow-md" onClick={handleBookDoctor}>
-                      <CalendarDays className="w-4 h-4" /> Book Appointment
-                    </Button>
-                    <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" asChild>
-                      <a href={`tel:${hospital.phone}`}><Phone className="w-4 h-4" /> Call Now</a>
-                    </Button>
-                    <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" asChild>
-                      <a href={`https://maps.google.com/?q=${encodeURIComponent(`${hospital.address}, ${hospital.city}, ${hospital.state}`)}`} target="_blank" rel="noopener noreferrer">
-                        <Navigation className="w-4 h-4" /> Get Directions
-                      </a>
-                    </Button>
-                    <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={handleShare}>
-                      <Share2 className="w-4 h-4" /> Share Hospital
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </div>
         </div>
         ) : (
         /* ═══ TESTS TAB ═══ */
@@ -1220,6 +1200,133 @@ export default function HospitalProfile() {
           </motion.div>
         )}
       </div>
+
+        </div>
+
+        {/* ──── RIGHT SIDEBAR ──── */}
+        <div className="space-y-6 lg:sticky lg:top-24 self-start">
+          {/* Trust & Accreditation */}
+          <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>
+            <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden">
+              <CardContent className="p-6">
+                <h3 className="font-heading font-semibold text-foreground mb-5 flex items-center gap-2.5">
+                  <span className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center"><Shield className="w-3.5 h-3.5 text-primary" /></span>
+                  Trust & Info
+                </h3>
+                <div className="space-y-4">
+                  {hospital.accreditations?.length > 0 && (
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-2 uppercase tracking-wider font-semibold">Accreditations</p>
+                      <div className="flex flex-wrap gap-2">
+                        {hospital.accreditations.map(acc => (
+                          <Badge key={acc} variant="outline" className={cn('text-xs font-semibold px-3 py-1 gap-1.5', acc === 'NABH' && 'border-emerald-400 text-emerald-700 bg-emerald-50 dark:bg-emerald-500/10', acc === 'NABL' && 'border-blue-400 text-blue-700 bg-blue-50 dark:bg-blue-500/10', acc === 'ISO' && 'border-amber-400 text-amber-700 bg-amber-50 dark:bg-amber-500/10')}>
+                            <CheckCircle2 className="w-3 h-3" /> {acc}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <Separator />
+                  <div className="space-y-3">
+                    {[['Established', establishedYear || '—'], ['Hospital Type', hospital.hospitalType || '—'], ['License', hospital.licenseNumber || '—'], ['Working Hours', hospital.workingHours?.weekdays || '9:00 AM - 6:00 PM'], ['Saturday', hospital.workingHours?.saturday || '9:00 AM - 2:00 PM'], ['Sunday', hospital.workingHours?.sunday || 'Closed']].map(([label, val]) => (
+                      <div key={label} className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">{label}</span>
+                        <span className="font-semibold text-foreground">{val}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <Separator />
+                  <div className="flex flex-wrap gap-2">
+                    {hospital.ambulanceService && (
+                      <Badge variant="secondary" className="text-xs bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10">
+                        <Ambulance className="w-3 h-3 mr-1" /> Ambulance
+                      </Badge>
+                    )}
+                    {hospital.bedAvailability > 0 && (
+                      <Badge variant="secondary" className="text-xs bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/10">
+                        <BedDouble className="w-3 h-3 mr-1" /> {hospital.bedAvailability} Beds
+                      </Badge>
+                    )}
+                  </div>
+                  {hospital.insuranceAccepted?.length > 0 && (
+                    <div className="pt-3 border-t border-border/40">
+                      <p className="text-xs text-muted-foreground mb-2 font-semibold">Insurance Accepted</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {hospital.insuranceAccepted.map((ins, i) => (
+                          <Badge key={i} variant="outline" className="text-[10px] bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/10">
+                            <Shield className="w-2.5 h-2.5 mr-1" /> {ins.provider || ins}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Amenities */}
+          {(hospital.emergency24x7 || hospital.ambulanceService || hospital.bedAvailability > 0) && (
+            <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>
+              <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden">
+                <CardContent className="p-6">
+                  <h3 className="font-heading font-semibold text-foreground mb-4 flex items-center gap-2.5">
+                    <span className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center"><Sparkles className="w-3.5 h-3.5 text-primary" /></span>
+                    Amenities
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {hospital.emergency24x7 && (
+                      <span className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full bg-red-50 text-red-600 border border-red-200 dark:bg-red-500/10">
+                        <HeartPulse className="w-3.5 h-3.5" /> 24/7 Emergency
+                      </span>
+                    )}
+                    {hospital.ambulanceService && (
+                      <span className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 dark:bg-emerald-500/10">
+                        <Ambulance className="w-3.5 h-3.5" /> Ambulance
+                      </span>
+                    )}
+                    {hospital.bedAvailability > 0 && (
+                      <span className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200 dark:bg-blue-500/10">
+                        <BedDouble className="w-3.5 h-3.5" /> {hospital.bedAvailability} Beds
+                      </span>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
+          {/* Quick Actions Sticky Card */}
+          <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} className="lg:sticky lg:top-24">
+            <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden bg-gradient-to-br from-primary/5 via-primary/[0.02] to-transparent">
+              <CardContent className="p-6">
+                <h3 className="font-heading font-semibold text-foreground mb-5 flex items-center gap-2.5">
+                  <span className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center"><TrendingUp className="w-3.5 h-3.5 text-primary" /></span>
+                  Quick Actions
+                </h3>
+                <div className="space-y-3">
+                  <Button className="w-full gap-2.5 rounded-xl h-11 font-semibold shadow-md" onClick={handleBookDoctor}>
+                    <CalendarDays className="w-4 h-4" /> Book Appointment
+                  </Button>
+                  <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" asChild>
+                    <a href={`tel:${hospital.phone}`}><Phone className="w-4 h-4" /> Call Now</a>
+                  </Button>
+                  <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" asChild>
+                    <a href={`https://maps.google.com/?q=${encodeURIComponent(`${hospital.address}, ${hospital.city}, ${hospital.state}`)}`} target="_blank" rel="noopener noreferrer">
+                      <Navigation className="w-4 h-4" /> Get Directions
+                    </a>
+                  </Button>
+                  <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={handleShare}>
+                    <Share2 className="w-4 h-4" /> Share Hospital
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+
+      </div>
+    </div>
 
       {/* ═══════════ SUGGESTED HOSPITALS CAROUSEL ═══════════ */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-14 mb-20">

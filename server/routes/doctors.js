@@ -89,11 +89,11 @@ router.get('/user/:userId', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.get('/:id', protect, async (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
     const doctor = await Doctor.findById(req.params.id).lean();
     if (!doctor) return res.status(404).json({ message: 'Doctor not found' });
-    if (req.user.role !== 'superadmin' && req.user.hospitalId && doctor.hospitalId && doctor.hospitalId.toString() !== req.user.hospitalId.toString()) {
+    if (req.user && req.user.role !== 'superadmin' && req.user.hospitalId && doctor.hospitalId && doctor.hospitalId.toString() !== req.user.hospitalId.toString()) {
       return res.status(403).json({ message: 'Access denied' });
     }
     if (doctor.doctor_type === 'clinic') {

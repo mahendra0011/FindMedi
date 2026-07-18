@@ -1,0 +1,125 @@
+[
+  {
+    "doctorId": "doctor-rajesh",
+    "clinic_name": "Green Clinic",
+    "clinic_address": "Green Clinic, Gol Bazar, Jabalpur, MP 482001",
+    "clinic_category": "General Medicine",
+    "clinic_timing": {
+      "mon": "9:00 AM - 7:00 PM",
+      "tue": "9:00 AM - 7:00 PM",
+      "wed": "9:00 AM - 7:00 PM",
+      "thu": "9:00 AM - 7:00 PM",
+      "fri": "9:00 AM - 7:00 PM",
+      "sat": "9:00 AM - 2:00 PM",
+      "sun": "Closed"
+    },
+    "clinic_photos": ["https://images.unsplash.com/photo-1631217868264-e5b90bb7e133?w=800&h=400&fit=crop", "https://images.unsplash.com/photo-1587351021759-3e566b6af7cc?w=800&h=400&fit=crop"],
+    "clinic_facilities": ["Pharmacy", "Laboratory", "ECG", "X-Ray", "Free WiFi"],
+    "clinic_treatments": ["General Consultation", "Diabetes Management", "Hypertension Management", "Thyroid Disorders", "Vaccinations"],
+    "clinic_insurance": ["ICICI Lombard", "HDFC Ergo", "Bajaj Allianz"],
+    "clinic_faqs": [
+      { "question": "What are your consultation hours?", "answer": "We are open Mon-Fri 9 AM to 7 PM and Sat 9 AM to 2 PM." },
+      { "question": "Do you accept insurance?", "answer": "Yes, we accept most major insurance providers." }
+    ],
+    "clinic_license": "CL-MP-2024-001",
+    "established_year": 2018,
+    "social": { "facebook": "https://facebook.com/greenclinic", "instagram": "https://instagram.com/greenclinic" }
+  },
+  {
+    "doctorId": "doctor-meera",
+    "clinic_name": "Meera Skin & Hair Clinic",
+    "clinic_address": "Shop 12, Krishna Complex, Napier Town, Jabalpur, MP 482001",
+    "clinic_category": "Dermatology",
+    "clinic_timing": {
+      "mon": "10:00 AM - 6:00 PM",
+      "tue": "10:00 AM - 6:00 PM",
+      "wed": "10:00 AM - 6:00 PM",
+      "thu": "10:00 AM - 6:00 PM",
+      "fri": "10:00 AM - 6:00 PM",
+      "sat": "10:00 AM - 2:00 PM",
+      "sun": "Closed"
+    },
+    "clinic_photos": ["https://images.unsplash.com/photo-1585435557343-3b092031a831?w=800&h=400&fit=crop"],
+    "clinic_facilities": ["Laser Treatment", "Chemical Peel", "Microdermabrasion", "Dermatology OPD"],
+    "clinic_treatments": ["Acne Treatment", "Hair Fall Treatment", "Skin Allergy", "Anti-Aging", "Wart Removal"],
+    "clinic_insurance": ["ICICI Lombard", "Star Health"],
+    "clinic_faqs": [
+      { "question": "Do you offer laser hair removal?", "answer": "Yes, we have advanced diode laser for permanent hair reduction." }
+    ],
+    "clinic_license": "CL-MP-2024-002",
+    "established_year": 2020,
+    "social": {}
+  },
+  {
+    "doctorId": "doctor-sunil",
+    "clinic_name": "Sunil Child Care Centre",
+    "clinic_address": "Rajiv Gandhi Nagar, Adhartal, Jabalpur, MP 482004",
+    "clinic_category": "Pediatrics",
+    "clinic_timing": {
+      "mon": "9:00 AM - 8:00 PM",
+      "tue": "9:00 AM - 8:00 PM",
+      "wed": "9:00 AM - 8:00 PM",
+      "thu": "9:00 AM - 8:00 PM",
+      "fri": "9:00 AM - 8:00 PM",
+      "sat": "9:00 AM - 4:00 PM",
+      "sun": "10:00 AM - 1:00 PM"
+    },
+    "clinic_photos": [],
+    "clinic_facilities": ["Pediatric OPD", "Vaccination Room", "Play Area", "Pharmacy"],
+    "clinic_treatments": ["Newborn Care", "Childhood Vaccinations", "Growth Monitoring", "Asthma Management", "Nutrition Counseling"],
+    "clinic_insurance": ["HDFC Ergo", "Reliance Health"],
+    "clinic_faqs": [],
+    "clinic_license": "CL-MP-2024-003",
+    "established_year": 2016,
+    "social": {}
+  },
+  {
+    "doctorId": "doctor-neha",
+    "clinic_name": "Neha Women's Health Clinic",
+    "clinic_address": "First Floor, Shubham Tower, Marhatal, Jabalpur, MP 482002",
+    "clinic_category": "Gynecology",
+    "clinic_timing": {
+      "mon": "10:00 AM - 5:00 PM",
+      "tue": "10:00 AM - 5:00 PM",
+      "wed": "10:00 AM - 5:00 PM",
+      "thu": "10:00 AM - 5:00 PM",
+      "fri": "10:00 AM - 5:00 PM",
+      "sat": "10:00 AM - 1:00 PM",
+      "sun": "Closed"
+    },
+    "clinic_photos": [],
+    "clinic_facilities": ["Sonography", "Maternity Ward", "Pharmacy", "Laboratory"],
+    "clinic_treatments": ["Pregnancy Care", "PCOD Management", "Menopause Treatment", "Family Planning", "Wellness Checkup"],
+    "clinic_insurance": ["ICICI Lombard", "Bajaj Allianz", "Star Health"],
+    "clinic_faqs": [
+      { "question": "Do you handle high-risk pregnancies?", "answer": "Yes, we have experienced specialists for high-risk pregnancy management." },
+      { "question": "Is sonography available on site?", "answer": "Yes, we have a dedicated sonography suite." }
+    ],
+    "clinic_license": "CL-MP-2024-004",
+    "established_year": 2019,
+    "social": {}
+  },
+  {
+    "doctorId": "doctor-arjun",
+    "clinic_name": "Arjun Ortho & Physio Clinic",
+    "clinic_address": "Plot 5, Scheme 78, Vijay Nagar, Jabalpur, MP 482003",
+    "clinic_category": "Orthopedics",
+    "clinic_timing": {
+      "mon": "8:00 AM - 6:00 PM",
+      "tue": "8:00 AM - 6:00 PM",
+      "wed": "8:00 AM - 6:00 PM",
+      "thu": "8:00 AM - 6:00 PM",
+      "fri": "8:00 AM - 6:00 PM",
+      "sat": "8:00 AM - 2:00 PM",
+      "sun": "Closed"
+    },
+    "clinic_photos": [],
+    "clinic_facilities": ["X-Ray", "Physiotherapy Room", "Plaster Room", "Rehabilitation Center"],
+    "clinic_treatments": ["Fracture Management", "Joint Pain Treatment", "Sports Injury", "Back Pain Management", "Physiotherapy"],
+    "clinic_insurance": ["ICICI Lombard", "HDFC Ergo", "New India Assurance"],
+    "clinic_faqs": [],
+    "clinic_license": "CL-MP-2024-005",
+    "established_year": 2017,
+    "social": {}
+  }
+]
