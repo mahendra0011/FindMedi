@@ -31,6 +31,12 @@ const hospitalSchema = new mongoose.Schema({
   bedAvailability: { type: Number, default: 0 },              // Bed availability status
   ambulanceService: { type: Boolean, default: false },        // Ambulance Service available
   image: { type: String, default: '' },                     // Cover image for hospital profile
+  insuranceAccepted: [{ provider: String, type: String }],  // Insurance providers accepted
+  workingHours: {
+    weekdays: { type: String, default: '9:00 AM - 6:00 PM' },
+    saturday: { type: String, default: '9:00 AM - 2:00 PM' },
+    sunday: { type: String, default: 'Closed' },
+  },
 });
 
 export default mongoose.model('Hospital', hospitalSchema);

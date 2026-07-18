@@ -4,7 +4,7 @@ import {
   Building2, MapPin, Phone, Star, CalendarDays, Users,
   ShieldCheck, Truck, BedDouble, Stethoscope, Heart, Brain,
   Bone, Baby, Eye, Activity, Droplets, ArrowRight, Ambulance,
-  FlaskConical
+  FlaskConical, BadgeCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -21,7 +21,7 @@ const HOSPITAL_TYPE_STYLES = {
   'Private': 'bg-sky-500/15 text-sky-600 border-sky-500/30',
 };
 
-export default function HospitalCard({ hospital, index = 0 }) {
+export default function HospitalCard({ hospital, index = 0, distance }) {
   const navigate = useNavigate();
   const yearsSinceEst = hospital.establishedYear
     ? new Date().getFullYear() - hospital.establishedYear
@@ -109,6 +109,11 @@ export default function HospitalCard({ hospital, index = 0 }) {
           {/* Top badges row ─ Emergency + Accreditation */}
           <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-2">
             <div className="flex flex-wrap gap-1.5">
+              {hospital.status === 'approved' && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-success/90 text-white shadow-lg shadow-success/30">
+                  <BadgeCheck className="w-3 h-3" /> Verified
+                </span>
+              )}
               {hospital.emergency24x7 && (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-red-500/90 text-white shadow-lg shadow-red-500/30 animate-pulse">
                   <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping absolute" />
@@ -216,6 +221,14 @@ export default function HospitalCard({ hospital, index = 0 }) {
             <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-md">
               <BedDouble className="w-3 h-3 text-primary/60" />
               {hospital.bedAvailability} Beds
+            </span>
+          )}
+
+          {/* Distance */}
+          {distance && (
+            <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-md">
+              <MapPin className="w-3 h-3 text-primary/60" />
+              {distance}
             </span>
           )}
 
