@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { api } from '@/lib/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, FlaskConical, Shield, Star, MapPin, Home, Clock,
@@ -10,21 +11,6 @@ import { cn } from '@/lib/utils';
 import PathologyClinicCard from '@/components/PathologyClinicCard';
 import DiagnosticCenterCard from '@/components/DiagnosticCenterCard';
 import ImagingCenterCard from '@/components/ImagingCenterCard';
-
-const allClinics = [
-  // Pathology Labs
-  { _id: '1', name: 'SRL Diagnostics', type: 'Pathology Lab', providerCategory: 'Pathology Lab', rating: 4.6, reviewsCount: 200, verified: true, open: true, tags: ['24x7', 'Home Collection', 'NABL Accredited', 'Reports Online'], testsAvailable: 250, homeCollection: true, reportTime: 'Within 6 hrs', distance: '1.2 km', phone: '9876543210', startingPrice: 150, hasOffer: true },
-  { _id: '3', name: 'Metropolis Healthcare', type: 'Pathology Lab', providerCategory: 'Pathology Lab', rating: 4.4, reviewsCount: 180, verified: true, open: false, tags: ['NABL Accredited', 'Reports Online'], testsAvailable: 300, homeCollection: false, reportTime: 'Within 12 hrs', distance: '0.8 km', phone: '9876543212', startingPrice: 199 },
-  { _id: '5', name: 'Dr. Lal PathLabs', type: 'Pathology Lab', providerCategory: 'Pathology Lab', rating: 4.7, reviewsCount: 550, verified: true, open: true, tags: ['Home Collection', 'NABL Accredited', 'Reports Online'], testsAvailable: 450, homeCollection: true, reportTime: 'Within 12 hrs', distance: '4.5 km', phone: '9876543214', startingPrice: 120 },
-  // Diagnostic Centers
-  { _id: '2', name: 'Thyrocare Technologies', type: 'Diagnostic Center', providerCategory: 'Diagnostic Center', rating: 4.8, reviewsCount: 350, verified: true, open: true, tags: ['NABL Accredited', 'Home Collection', 'Reports Online', 'Imaging Available'], testsAvailable: 500, homeCollection: true, reportTime: 'Within 24 hrs', distance: '2.5 km', phone: '9876543211', startingPrice: 299, imagingFields: 'MRI, CT, X-Ray, Ultrasound', cardiacFields: 'ECG, 2D Echo' },
-  { _id: '4', name: 'Apollo Diagnostics', type: 'Diagnostic Center', providerCategory: 'Diagnostic Center', rating: 4.7, reviewsCount: 420, verified: true, open: true, tags: ['NABL Accredited', 'Home Collection', 'Reports Online', '24x7', 'Imaging Available'], testsAvailable: 400, homeCollection: true, reportTime: 'Within 4 hrs', distance: '3.0 km', phone: '9876543213', startingPrice: 350, hasOffer: true, imagingFields: 'MRI, CT Scan, X-Ray, Ultrasound', cardiacFields: 'ECG, 2D Echo, TMT' },
-  { _id: '6', name: 'Vijaya Diagnostic Centre', type: 'Diagnostic Center', providerCategory: 'Diagnostic Center', rating: 4.5, reviewsCount: 310, verified: true, open: true, tags: ['NABL Accredited', 'Home Collection', 'Imaging Available'], testsAvailable: 350, homeCollection: true, reportTime: 'Within 6 hrs', distance: '6.0 km', phone: '9876543215', startingPrice: 180, imagingFields: 'X-Ray, Ultrasound', cardiacFields: 'ECG' },
-  // Imaging Centers
-  { _id: '7', name: 'Siemens Healthineers Imaging', type: 'Imaging Center', providerCategory: 'Imaging Center', rating: 4.9, reviewsCount: 220, verified: true, open: true, tags: ['MRI Available', 'CT Available', 'Reports Online', 'Emergency Imaging'], testsAvailable: 120, homeCollection: false, reportTime: 'Within 4 hrs', distance: '3.5 km', phone: '9876543216', startingPrice: 500, imagingTypes: ['MRI', 'CT', 'X-Ray', 'Ultrasound'], emergencyImaging: true, hasOffer: true },
-  { _id: '8', name: 'W Pratiksha Hospital - Radiology', type: 'Imaging Center', providerCategory: 'Imaging Center', rating: 4.3, reviewsCount: 140, verified: true, open: true, tags: ['MRI Available', 'CT Available', 'X-Ray Available', 'Digital X-Ray'], testsAvailable: 80, homeCollection: false, reportTime: 'Within 6 hrs', distance: '5.0 km', phone: '9876543217', startingPrice: 750, imagingTypes: ['MRI', 'CT Scan', 'X-Ray', 'Mammography'], emergencyImaging: false },
-  { _id: '9', name: 'Mahajan Imaging Centre', type: 'Imaging Center', providerCategory: 'Imaging Center', rating: 4.7, reviewsCount: 190, verified: true, open: false, tags: ['MRI Available', 'CT Available', 'Reports Online'], testsAvailable: 60, homeCollection: false, reportTime: 'Within 12 hrs', distance: '2.0 km', phone: '9876543218', startingPrice: 600, imagingTypes: ['MRI', 'CT Scan', 'Ultrasound'], emergencyImaging: false },
-];
 
 const CATEGORIES = [
   { key: 'All', label: 'All', icon: null },
@@ -44,6 +30,21 @@ const parseHrs = (t) => {
 };
 
 export default function BookTest() {
+  const [clinics, setClinics] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        const res = await api.getFacilities({ type: 'lab' });
+        setClinics(Array.isArray(res) ? res : res?.facilities || []);
+      } catch (e) { console.error(e); }
+      setLoading(false);
+    };
+    load();
+  }, []);
+
   const [activeCategory, setActiveCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [openNow, setOpenNow] = useState(false);
@@ -60,7 +61,7 @@ export default function BookTest() {
   const [reportsOnline, setReportsOnline] = useState(false);
   const [discountOnly, setDiscountOnly] = useState(false);
 
-  const categoryData = activeCategory === 'All' ? allClinics : allClinics.filter(c => c.providerCategory === activeCategory);
+  const categoryData = activeCategory === 'All' ? clinics : clinics.filter(c => c.providerCategory === activeCategory);
 
   const filtered = categoryData.filter((c) => {
     if (searchQuery && !c.name.toLowerCase().includes(searchQuery.toLowerCase()) && !c.type.toLowerCase().includes(searchQuery.toLowerCase())) return false;
@@ -140,7 +141,15 @@ export default function BookTest() {
       <div className="flex gap-2 mb-6">
         {CATEGORIES.map(cat => {
           const Icon = cat.icon;
-          return (
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  return (
             <button key={cat.key} onClick={() => { setActiveCategory(cat.key); setSearchQuery(''); clearFilters(); }}
               className={cn(
                 'flex items-center gap-2 h-10 px-4 rounded-xl text-sm font-semibold border transition-all',

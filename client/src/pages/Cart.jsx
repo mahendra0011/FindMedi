@@ -5,14 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
+import { api } from '@/lib/api';
 import { useCart } from '@/context/CartContext';
 import { toast } from 'sonner';
-
-const MOCK_STORES = [
-  { id:'s1', name:'MedPlus Pharmacy', photo:'https://images.unsplash.com/photo-1585435557343-3b092031a831?w=400&h=300&fit=crop', verified:true, deliveryCharges:20, freeDeliveryAbove:200 },
-  { id:'s2', name:'HealthFirst Medicals', photo:'https://images.unsplash.com/photo-1631217868264-e5b90bb7e133?w=400&h=300&fit=crop', verified:true, deliveryCharges:15, freeDeliveryAbove:150 },
-  { id:'s3', name:'City Drug House', photo:'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?w=400&h=300&fit=crop', verified:false, deliveryCharges:25, freeDeliveryAbove:300 },
-];
 
 export default function Cart() {
   const navigate = useNavigate();
@@ -20,12 +15,24 @@ export default function Cart() {
   const [savedForLater, setSavedForLater] = useState(() => {
     try { return JSON.parse(localStorage.getItem('mediCore_saved')) || {}; } catch { return {}; }
   });
+  const [fetchedStores, setFetchedStores] = useState([]);
 
   useEffect(() => {
     localStorage.setItem('mediCore_saved', JSON.stringify(savedForLater));
   }, [savedForLater]);
 
-  const getStore = (storeId) => MOCK_STORES.find(s => s.id === storeId);
+  useEffect(() => {
+    api.getFacilities({ type: 'pharmacy' }).then(res => {
+      const list = Array.isArray(res) ? res : res?.facilities || [];
+      setFetchedStores(list);
+    }).catch(() => {});
+  }, []);
+
+  const getStore = (storeId) => {
+    const found = fetchedStores.find(s => s._id === storeId || s.id === storeId);
+    if (found) return { id: found._id || found.id, name: found.name || found.clinic_name || 'Store', photo: found.photo || '', verified: found.verified || false, deliveryCharges: found.deliveryCharges || 20, freeDeliveryAbove: found.freeDeliveryAbove || 200 };
+    return { name: 'Store', deliveryCharges: 20, freeDeliveryAbove: 200 };
+  };
   const isRxItem = (item) => item.rx === true;
 
   const grandTotal = stores.reduce((s, st) => {

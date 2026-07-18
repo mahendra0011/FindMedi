@@ -3,8 +3,8 @@ import LabOrder from '../models/LabOrder.js';
 import LabBooking from '../models/LabBooking.js';
 import Equipment from '../models/Equipment.js';
 import HealthPackage from '../models/HealthPackage.js';
+import Test from '../models/Test.js';
 import Notification from '../models/Notification.js';
-import User from '../models/User.js';
 import { protect } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -231,39 +231,11 @@ router.get('/stats', protect, async (req, res) => {
 });
 
 // ─── Get Available Lab Tests ───────────────────────────────────────────────
-router.get('/tests', protect, (req, res) => {
-  const labTests = [
-    { name: 'Complete Blood Count (CBC)', category: 'Blood', normalRange: '4.5-11.0', unit: '10^3/µL' },
-    { name: 'Hemoglobin (Hb)', category: 'Blood', normalRange: '13.5-17.5', unit: 'g/dL' },
-    { name: 'White Blood Cells (WBC)', category: 'Blood', normalRange: '4.5-11.0', unit: '10^3/µL' },
-    { name: 'Platelet Count', category: 'Blood', normalRange: '150-450', unit: '10^3/µL' },
-    { name: 'Blood Sugar (Fasting)', category: 'Blood', normalRange: '70-100', unit: 'mg/dL' },
-    { name: 'Blood Sugar (Random)', category: 'Blood', normalRange: '70-140', unit: 'mg/dL' },
-    { name: 'HbA1c', category: 'Blood', normalRange: '4.0-5.6', unit: '%' },
-    { name: 'Liver Function Test (LFT)', category: 'Blood', normalRange: '10-40', unit: 'U/L' },
-    { name: 'Kidney Function Test (KFT)', category: 'Blood', normalRange: '0.6-1.2', unit: 'mg/dL' },
-    { name: 'Serum Creatinine', category: 'Blood', normalRange: '0.6-1.2', unit: 'mg/dL' },
-    { name: 'Blood Urea Nitrogen (BUN)', category: 'Blood', normalRange: '7-20', unit: 'mg/dL' },
-    { name: 'Uric Acid', category: 'Blood', normalRange: '3.5-7.2', unit: 'mg/dL' },
-    { name: 'Cholesterol Total', category: 'Blood', normalRange: '125-200', unit: 'mg/dL' },
-    { name: 'HDL Cholesterol', category: 'Blood', normalRange: '40-60', unit: 'mg/dL' },
-    { name: 'LDL Cholesterol', category: 'Blood', normalRange: '<100', unit: 'mg/dL' },
-    { name: 'Triglycerides', category: 'Blood', normalRange: '<150', unit: 'mg/dL' },
-    { name: 'Thyroid (TSH)', category: 'Blood', normalRange: '0.4-4.0', unit: 'mIU/L' },
-    { name: 'Vitamin D', category: 'Blood', normalRange: '30-100', unit: 'ng/mL' },
-    { name: 'Vitamin B12', category: 'Blood', normalRange: '200-900', unit: 'pg/mL' },
-    { name: 'Iron Studies', category: 'Blood', normalRange: '60-170', unit: 'µg/dL' },
-    { name: 'Urine Routine', category: 'Urine', normalRange: 'Normal', unit: '' },
-    { name: 'Urine Culture', category: 'Urine', normalRange: 'No Growth', unit: '' },
-    { name: 'Urine Microalbumin', category: 'Urine', normalRange: '<30', unit: 'mg/L' },
-    { name: 'Troponin I', category: 'Cardiac', normalRange: '<0.04', unit: 'ng/mL' },
-    { name: 'CK-MB', category: 'Cardiac', normalRange: '<25', unit: 'U/L' },
-    { name: 'NT-proBNP', category: 'Cardiac', normalRange: '<125', unit: 'pg/mL' },
-    { name: 'Chest X-Ray', category: 'Imaging', normalRange: 'Normal', unit: '' },
-    { name: 'ECG', category: 'Cardiac', normalRange: 'Normal Sinus Rhythm', unit: '' },
-    { name: 'Ultrasound Abdomen', category: 'Imaging', normalRange: 'Normal', unit: '' },
-  ];
-  res.json({ tests: labTests });
+router.get('/tests', protect, async (req, res) => {
+  try {
+    const tests = await Test.find({}).sort({ name: 1 });
+    res.json({ tests: tests.length ? tests : [] });
+  } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
 // ─── Lab Bookings ──────────────────────────────────────────────────────────
@@ -283,6 +255,14 @@ router.get('/bookings', protect, async (req, res) => {
 
 router.post('/bookings', protect, async (req, res) => {
   try {
+    const { testIds, tests, prescriptionUrl } = req.body;
+    const requestedTests = testIds || (tests || []).map(t => t._id || t.id || t.name).filter(Boolean);
+    if (requestedTests.length) {
+      const rxTests = await Test.find({ _id: { $in: requestedTests }, prescriptionReq: true }).select('_id name');
+      if (rxTests.length && !prescriptionUrl) {
+        return res.status(400).json({ message: `Prescription required for test(s): ${rxTests.map(t => t.name).join(', ')}` });
+      }
+    }
     const count = await LabBooking.countDocuments();
     const bookingId = `BK-${new Date().getFullYear()}-${String(count + 1).padStart(5, '0')}`;
     const booking = await LabBooking.create({ ...req.body, bookingId, hospitalId: req.user.hospitalId || undefined, facilityId: req.user.facilityId || req.user.hospitalId || undefined, createdBy: req.user._id });
@@ -318,7 +298,7 @@ router.get('/equipment', protect, async (req, res) => {
 
 router.post('/equipment', protect, async (req, res) => {
   try {
-    const item = await Equipment.create({ ...req.body, hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined, facilityId: req.user.facilityId || req.user.hospitalId || undefined });
+    const item = await Equipment.create({ ...req.body, hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined });
     res.status(201).json(item);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -351,7 +331,7 @@ router.get('/packages', protect, async (req, res) => {
 
 router.post('/packages', protect, async (req, res) => {
   try {
-    const pkg = await HealthPackage.create({ ...req.body, hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined, facilityId: req.user.facilityId || req.user.hospitalId || undefined });
+    const pkg = await HealthPackage.create({ ...req.body, hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined });
     res.status(201).json(pkg);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
