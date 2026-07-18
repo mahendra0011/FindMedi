@@ -62,6 +62,8 @@ export const protect = async (req, res, next) => {
       name: user.name,
       email: user.email,
       hospitalId: user.hospitalId || null,
+      facilityId: user.facilityId || null,
+      facilityType: user.facilityType || '',
     };
     req.authUser = user;
     next();
@@ -101,6 +103,29 @@ export const scopeToHospital = (req, res, next) => {
     return res.status(403).json({ message: 'No hospital linked to this account' });
   }
   req.hospitalId = req.user.hospitalId.toString();
+  next();
+};
+
+export const scopeToFacility = (req, res, next) => {
+  if (req.user?.role === 'superadmin') return next();
+  if (!req.user?.facilityId && !req.user?.hospitalId) {
+    return res.status(403).json({ message: 'No facility linked to this account' });
+  }
+  req.facilityId = (req.user.facilityId || req.user.hospitalId).toString();
+  req.facilityType = req.user.facilityType || 'hospital';
+  next();
+};
+
+export const sameFacility = (req, res, next) => {
+  if (req.user?.role === 'superadmin') return next();
+  const targetId = req.body?.facilityId || req.query?.facilityId || req.params?.facilityId;
+  const userFacilityId = (req.user.facilityId || req.user.hospitalId)?.toString();
+  if (!userFacilityId) {
+    return res.status(403).json({ message: 'No facility linked' });
+  }
+  if (targetId && targetId !== userFacilityId) {
+    return res.status(403).json({ message: 'Cross-facility access denied' });
+  }
   next();
 };
 

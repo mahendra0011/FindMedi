@@ -36,6 +36,7 @@ const billingSchema = new mongoose.Schema({
   insuranceApprovedAmount: { type: Number, default: 0 },
   insuranceStatus: { type: String, enum: ['Not Submitted', 'Submitted', 'Approved', 'Rejected', 'Partial'], default: 'Not Submitted' },
   hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
+  facilityId: { type: mongoose.Schema.Types.ObjectId, ref: 'Facility', index: true },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });
