@@ -82,7 +82,7 @@ export default function FindDoctor() {
   const loadDoctors = async () => {
     setLoading(true);
     try {
-      const params = { doctor_type: 'clinic' };
+      const params = { doctor_type: 'hospital' };
       if (search) params.search = search;
       if (specFilter !== 'All') params.specialization = specFilter;
       const data = await api.getDoctors(params);
@@ -97,7 +97,7 @@ export default function FindDoctor() {
     let filtered = [...allDoctors];
 
     if (specFilter !== 'All') filtered = filtered.filter(d => d.specialization === specFilter);
-    if (hospitalFilter) filtered = filtered.filter(d => (d.clinicProfile?.clinic_name || d.clinicId?.name || '') === hospitalFilter);
+    if (hospitalFilter) filtered = filtered.filter(d => (d.hospitalId?.name || '') === hospitalFilter);
     if (locationFilter && locationFilter !== 'All') filtered = filtered.filter(d => (d.location || '').toLowerCase().includes(locationFilter.toLowerCase()));
     if (availabilityFilter === 'today') filtered = filtered.filter(d => d.available === true && d.next_available_slot?.toLowerCase().includes('today'));
     else if (availabilityFilter === 'tomorrow') filtered = filtered.filter(d => d.available === true && d.next_available_slot?.toLowerCase().includes('tomorrow'));
@@ -145,8 +145,6 @@ export default function FindDoctor() {
       ))}
     </div>
   );
-
-  const getHospitalName = (id) => hospitals.find(h => h._id === id)?.name || '';
 
   const activeFilterCount = [
     specFilter !== 'All', !!hospitalFilter, !!locationFilter, !!availabilityFilter,
@@ -223,8 +221,8 @@ export default function FindDoctor() {
             {/* Main Filters */}
             <select value={hospitalFilter} onChange={e => setHospitalFilter(e.target.value)}
               className="h-9 px-3 rounded-xl border border-border bg-background text-sm max-w-[180px]">
-              <option value="">All Clinics</option>
-              {[...new Set(allDoctors.map(d => d.clinicProfile?.clinic_name || d.clinicId?.name || '').filter(Boolean))].map(n => (
+              <option value="">All Hospitals</option>
+              {[...new Set(allDoctors.map(d => d.hospitalId?.name || '').filter(Boolean))].map(n => (
                 <option key={n} value={n}>{n}</option>
               ))}
             </select>
@@ -456,13 +454,13 @@ export default function FindDoctor() {
               {doctors.map((doc, i) => {
                 const SpecIcon = ALL_SPECIALTIES.find(s => s.name === doc.specialization)?.icon || Stethoscope;
                 const initials = doc.name?.split(' ').map(n=>n?.[0]).join('').slice(0,2) || 'DR';
-                const clinicName = doc.clinicProfile?.clinic_name || doc.clinicId?.name || '';
-                const area = doc.clinicProfile?.clinic_address || doc.location || doc.area || doc.address || doc.city || '';
+                const hospitalName = doc.hospitalId?.name || '';
+                const area = doc.hospitalId?.address || doc.location || doc.area || doc.address || doc.city || '';
                 const dist = doc.distance || ((doc._id?.charCodeAt(doc._id.length - 1) || 5) % 5 + 0.5).toFixed(1);
                 return (
                 <motion.div key={doc._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
                   className="group bg-card rounded-2xl border border-border/60 overflow-hidden hover:shadow-xl hover:shadow-primary/5 hover:border-primary/30 transition-all cursor-pointer relative"
-                  onClick={() => navigate(`/doctors/${doc._id}`)}>
+                  onClick={() => navigate(`/hospital-doctors/${doc._id}`)}>
                   {/* Corner Badge — Next Available Slot */}
                   <div className={cn('absolute top-0 right-0 z-10 px-3 py-1.5 rounded-bl-2xl text-[11px] font-semibold border-l border-b shadow-sm', doc.available
                     ? 'bg-primary/5 text-primary border-primary/20 dark:bg-primary/10'
@@ -484,7 +482,7 @@ export default function FindDoctor() {
                       </div>
                       <div className="min-w-0 flex-1 pt-1">
                         <div className="flex items-center gap-2">
-                          <h3 className="font-heading font-semibold text-foreground truncate group-hover:text-primary transition-colors">{clinicName}</h3>
+                          <h3 className="font-heading font-semibold text-foreground truncate group-hover:text-primary transition-colors">{hospitalName}</h3>
                           {doc.approved && <BadgeCheck className="w-4 h-4 text-primary shrink-0" />}
                         </div>
                         <p className="text-sm font-medium text-foreground truncate">{doc.name}</p>
@@ -557,12 +555,12 @@ export default function FindDoctor() {
 
                     <div className="flex gap-2">
                       <Button size="sm" className="flex-1 gap-1.5 rounded-xl text-[11px] h-9 shadow-lg shadow-primary/20" disabled={!doc.available}
-                        onClick={(e) => { e.stopPropagation(); navigate(`/doctors/${doc._id}`); }}>
+                        onClick={(e) => { e.stopPropagation(); navigate(`/hospital-doctors/${doc._id}`); }}>
                         <CalendarDays className="w-3.5 h-3.5" /> {doc.available ? 'Book Appointment' : 'Unavailable'}
                       </Button>
                       <Button variant="outline" size="sm" className="flex-1 gap-1.5 rounded-xl text-[11px] h-9 group/btn"
-                        onClick={(e) => { e.stopPropagation(); navigate(`/clinic/${doc._id}`); }}>
-                        View Clinic Details
+                        onClick={(e) => { e.stopPropagation(); navigate(`/hospitals/${doc.hospitalId?._id || ''}`); }}>
+                        View Hospital
                         <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover/btn:translate-x-0.5" />
                       </Button>
                     </div>

@@ -136,7 +136,7 @@ export default function AllTests() {
     onUploadRx: () => { addItem(test, STORE_ID); },
     onViewProvider: () => {
       if (test.providerType === 'hospital') navigate(`/hospitals/${test.providerId}`);
-      else if (test.providerType === 'clinic') navigate(`/doctors/${test.providerId}`);
+      else if (test.providerType === 'clinic') navigate(`/clinic-doctors/${test.providerId}`);
       else navigate(`/lab/${test.providerId}`);
     },
   }));

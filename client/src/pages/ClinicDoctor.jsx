@@ -7,7 +7,7 @@ import {
   BookMarked, ChevronRight, GraduationCap, Briefcase, Shield, Trophy,
   HeartPulse, Syringe, Ambulance, Plus, Minus, ChevronDown, ChevronUp,
   Quote, Home, ExternalLink, Sparkles, Languages, CircleDot, FileText, BedDouble,
-  CreditCard, Image, Pill, Car, Accessibility, Wind, FlaskConical, DoorOpen, Store
+  CreditCard, Image, Pill, Car, Accessibility, Wind, FlaskConical, DoorOpen, Store, ArrowRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -210,7 +210,7 @@ export default function ClinicDoctor() {
           <ChevronRight className="w-3.5 h-3.5" />
           <Link to="/doctors" className="hover:text-primary transition-colors">Doctors</Link>
           <ChevronRight className="w-3.5 h-3.5" />
-          <span className="text-foreground font-medium truncate max-w-[200px]">Dr. {doctor.name}</span>
+          <span className="text-foreground font-medium truncate max-w-[200px]">{doctor.name}</span>
         </nav>
       </div>
 
@@ -243,7 +243,7 @@ export default function ClinicDoctor() {
                 {/* Info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-1.5">
-                    <h1 className="font-heading text-2xl sm:text-3xl font-bold text-foreground">Dr. {doctor.name}</h1>
+                    <h1 className="font-heading text-2xl sm:text-3xl font-bold text-foreground">{doctor.name}</h1>
                     {doctor.approved !== false && (
                       <Badge variant="outline" className="w-fit text-xs bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-800">
                         <BadgeCheck className="w-3 h-3 mr-1" /> Verified
@@ -351,7 +351,7 @@ export default function ClinicDoctor() {
                     <span className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
                       <FileText className="w-4 h-4 text-primary" />
                     </span>
-                    About Dr. {doctor.name}
+                    About {doctor.name}
                   </h2>
 
                   {doctor.bio && (
@@ -535,6 +535,30 @@ export default function ClinicDoctor() {
                     </span>
                     Clinic & Location Details
                   </h2>
+
+                  {/* Linked Clinic Card */}
+                  {(doctor.clinicProfile?.clinic_name || '') && (
+                    <div className="mb-6 p-4 rounded-xl bg-gradient-to-br from-primary/5 to-primary/0 border border-primary/20 hover:border-primary/40 transition-colors cursor-pointer"
+                      onClick={() => navigate(`/clinic/${doctor._id}`)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                            <Building2 className="w-5 h-5 text-primary" />
+                          </div>
+                          <div>
+                            <p className="font-semibold text-foreground">{doctor.clinicProfile?.clinic_name}</p>
+                            <p className="text-xs text-muted-foreground">{doctor.clinicProfile?.clinic_address || doctor.location || ''}</p>
+                          </div>
+                        </div>
+                        <Button variant="outline" size="sm" className="rounded-xl gap-1.5 shrink-0"
+                          onClick={(e) => { e.stopPropagation(); navigate(`/clinic/${doctor._id}`); }}>
+                          View Clinic
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Clinic Photos / Gallery */}
                   {doctor.clinic_photos?.length > 0 && (
@@ -728,7 +752,7 @@ export default function ClinicDoctor() {
                                 {active ? (doctor.opd_timings?.split('|')[0]?.trim() || '9:00 AM – 5:00 PM') : '—'}
                               </td>
                               <td className="py-3 px-4 text-muted-foreground">
-                                {active ? ((doctor.clinicProfile?.clinic_name || '') || '—') : '—'}
+                                {active ? (doctor.clinicProfile?.clinic_name || '—') : '—'}
                               </td>
                             </tr>
                           );
@@ -966,7 +990,7 @@ export default function ClinicDoctor() {
                             {relatedDoctors.map((doc, i) => (
                               <motion.div key={doc._id} variants={fadeUp}
                                 className="bg-card rounded-xl border border-border/50 p-4 hover:shadow-lg hover:border-primary/20 transition-all cursor-pointer group"
-                                onClick={() => navigate(`/doctors/${doc._id}`)}
+                                onClick={() => navigate(`/clinic-doctors/${doc._id}`)}
                               >
                                 <div className="flex items-start gap-3 mb-3">
                                   <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-primary font-bold text-base overflow-hidden shrink-0 border border-border/40 group-hover:border-primary/30">
@@ -987,7 +1011,7 @@ export default function ClinicDoctor() {
                                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                                   <span className="flex items-center gap-1"><Award className="w-3 h-3 text-primary" />{doc.experience}</span>
                                   <Button size="sm" variant="ghost" className="h-7 px-3 rounded-lg gap-1"
-                                    onClick={(e) => { e.stopPropagation(); navigate(`/doctors/${doc._id}`); }}
+                                    onClick={(e) => { e.stopPropagation(); navigate(`/clinic-doctors/${doc._id}`); }}
                                   >
                                     View <ChevronRight className="w-3 h-3" />
                                   </Button>
@@ -1004,7 +1028,7 @@ export default function ClinicDoctor() {
                             {departmentDoctors.map((doc, i) => (
                               <motion.div key={doc._id} variants={fadeUp}
                                 className="bg-card rounded-xl border border-border/50 p-4 hover:shadow-lg hover:border-primary/20 transition-all cursor-pointer group"
-                                onClick={() => navigate(`/doctors/${doc._id}`)}
+                                onClick={() => navigate(`/clinic-doctors/${doc._id}`)}
                               >
                                 <div className="flex items-start gap-3 mb-3">
                                   <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-primary font-bold text-base overflow-hidden shrink-0 border border-border/40 group-hover:border-primary/30">
@@ -1025,7 +1049,7 @@ export default function ClinicDoctor() {
                                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                                   <span className="flex items-center gap-1"><Award className="w-3 h-3 text-primary" />{doc.experience}</span>
                                   <Button size="sm" variant="ghost" className="h-7 px-3 rounded-lg gap-1"
-                                    onClick={(e) => { e.stopPropagation(); navigate(`/doctors/${doc._id}`); }}
+                                    onClick={(e) => { e.stopPropagation(); navigate(`/clinic-doctors/${doc._id}`); }}
                                   >
                                     View <ChevronRight className="w-3 h-3" />
                                   </Button>
