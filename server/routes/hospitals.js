@@ -147,6 +147,21 @@ router.put('/:id/suspend', protect, superadminOnly, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
+router.delete('/:id', protect, superadminOnly, async (req, res) => {
+  try {
+    const hospital = await Hospital.findById(req.params.id);
+    if (!hospital) return res.status(404).json({ message: 'Hospital not found' });
+
+    const hospitalId = hospital._id;
+
+    await Doctor.deleteMany({ hospitalId });
+    await User.deleteMany({ hospitalId, role: 'admin' });
+    await Hospital.findByIdAndDelete(hospitalId);
+
+    res.json({ message: 'Hospital permanently deleted' });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
 router.put('/:id', protect, hospitalAdminOnly, async (req, res) => {
   try {
     const hospital = await Hospital.findById(req.params.id);

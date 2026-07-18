@@ -8,6 +8,9 @@ const reviewSchema = new mongoose.Schema({
   comment: { type: String, default: '' },
   date: { type: String, default: () => new Date().toISOString().split('T')[0] },
   hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
+  flagged: { type: Boolean, default: false },
+  flagReason: { type: String, default: '' },
+  flaggedBy: { type: String, default: '' },
   createdAt: { type: Date, default: Date.now },
 });
 

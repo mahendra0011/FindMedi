@@ -203,6 +203,10 @@ import clinicRoutes from './routes/clinics.js';
 import platformRoutes from './routes/platform.js';
 import twoFactorRoutes from './routes/twoFactor.js';
 import patientPortalRoutes from './routes/patient.js';
+import auditLogRoutes from './routes/auditLogs.js';
+import reviewModerationRoutes from './routes/reviewModeration.js';
+import systemSettingRoutes from './routes/systemSettings.js';
+import commissionRoutes from './routes/commission.js';
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -243,6 +247,10 @@ app.use('/api/facilities', facilityRoutes);
 app.use('/api/clinics', clinicRoutes);
 app.use('/api/platform', platformRoutes);
 app.use('/api/patient', patientPortalRoutes);
+app.use('/api/audit-logs', auditLogRoutes);
+app.use('/api/reviews/moderation', reviewModerationRoutes);
+app.use('/api/system-settings', systemSettingRoutes);
+app.use('/api/commission', commissionRoutes);
 
 // 2FA routes
 app.use('/api/auth/2fa', twoFactorRoutes);

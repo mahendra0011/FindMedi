@@ -143,12 +143,12 @@ const testimonials = [
 ];
 
 const doctors = [
-  { name: "Dr. Richard James", specialty: "General Physician", available: true, rating: 4.9, patients: 1200 },
-  { name: "Dr. Emily Larson", specialty: "Gynecologist", available: true, rating: 4.8, patients: 980 },
-  { name: "Dr. Sarah Patel", specialty: "Dermatologist", available: true, rating: 4.9, patients: 850 },
-  { name: "Dr. Christopher Lee", specialty: "Pediatricians", available: true, rating: 4.7, patients: 720 },
-  { name: "Dr. Jennifer Garcia", specialty: "Neurologist", available: true, rating: 4.8, patients: 640 },
-  { name: "Dr. Andrew Williams", specialty: "Gastroenterologist", available: true, rating: 4.9, patients: 580 },
+  { name: "Dr. Richard James", specialty: "General Physician", available: true, rating: 4.9, patients: 1200, doctor_type: "hospital" },
+  { name: "Dr. Emily Larson", specialty: "Gynecologist", available: true, rating: 4.8, patients: 980, doctor_type: "clinic" },
+  { name: "Dr. Sarah Patel", specialty: "Dermatologist", available: true, rating: 4.9, patients: 850, doctor_type: "hospital" },
+  { name: "Dr. Christopher Lee", specialty: "Pediatricians", available: true, rating: 4.7, patients: 720, doctor_type: "clinic" },
+  { name: "Dr. Jennifer Garcia", specialty: "Neurologist", available: true, rating: 4.8, patients: 640, doctor_type: "hospital" },
+  { name: "Dr. Andrew Williams", specialty: "Gastroenterologist", available: true, rating: 4.9, patients: 580, doctor_type: "clinic" },
 ];
 
 const isDocumentDark = () => (
@@ -654,6 +654,11 @@ const Home = () => {
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <h3 className="font-semibold text-foreground">{doc.name}</h3>
+                        {doc.doctor_type && (
+                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase ${doc.doctor_type === 'clinic' ? 'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'}`}>
+                            {doc.doctor_type === 'clinic' ? 'Clinic' : 'Hospital'}
+                          </span>
+                        )}
                         {doc.available && (
                           <span className="w-2 h-2 rounded-full bg-green-500" />
                         )}

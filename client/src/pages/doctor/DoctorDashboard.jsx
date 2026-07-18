@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { CalendarDays, Clock, User, CheckCircle, XCircle, AlertCircle, Star, TrendingUp, DollarSign, Stethoscope, Activity, Heart, FileText, Users } from 'lucide-react';
+import { CalendarDays, Clock, User, CheckCircle, XCircle, AlertCircle, Star, TrendingUp, DollarSign, Stethoscope, Activity, Heart, FileText, Users, FlaskConical, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
@@ -17,16 +17,18 @@ export default function DoctorDashboard() {
   const [appointments, setAppointments] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [bills, setBills] = useState([]);
+  const [labReports, setLabReports] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
       setLoading(true);
       try {
-        const [a, r, b] = await Promise.all([
+        const [a, r, b, records] = await Promise.all([
           api.getAppointments(),
           api.getReviews(),
           api.getBilling(),
+          api.getRecords(),
         ]);
         const myAppointments = a?.filter(apt => 
           apt.doctor?.toLowerCase().includes(user?.name?.toLowerCase())
@@ -39,6 +41,13 @@ export default function DoctorDashboard() {
           bill.doctor?.toLowerCase().includes(user?.name?.toLowerCase())
         ) || [];
         setBills(myBills);
+
+        const allRecords = records?.records || records || [];
+        const myLabReports = allRecords
+          .filter(rec => rec.type === 'lab_report')
+          .slice(-10)
+          .reverse();
+        setLabReports(myLabReports);
       } catch (e) { console.error(e); }
       setLoading(false);
     };
@@ -200,6 +209,42 @@ export default function DoctorDashboard() {
           )}
         </div>
       </div>
+
+      {/* Recent Lab Reports */}
+      {labReports.length > 0 && (
+        <div className="bg-card rounded-2xl border border-border/60 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-heading text-lg font-semibold text-foreground flex items-center gap-2">
+              <FlaskConical className="w-5 h-5 text-primary" /> Recent Lab Reports
+            </h2>
+            <span className="text-xs text-muted-foreground">{labReports.length} total</span>
+          </div>
+          <div className="space-y-2">
+            {labReports.slice(0, 5).map((report, idx) => (
+              <div key={report._id || idx} className="flex items-center justify-between p-3 bg-muted/30 rounded-xl hover:bg-muted/50 transition-all">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 rounded-lg bg-violet-500/10 flex items-center justify-center shrink-0">
+                    <FlaskConical className="w-4 h-4 text-violet-500" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-medium text-foreground text-sm truncate">{report.patient || 'Unknown Patient'}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {report.data?.tests?.length || 0} tests
+                      {report.data?.reportId && ` · ${report.data.reportId}`}
+                      {report.createdAt && ` · ${new Date(report.createdAt).toLocaleDateString()}`}
+                    </p>
+                  </div>
+                </div>
+                {report.data?.tests && report.data.tests.length > 0 && (
+                  <span className="shrink-0 text-xs font-medium text-success">
+                    {report.data.tests.filter(t => t.result).length}/{report.data.tests.length} done
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Quick Stats Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

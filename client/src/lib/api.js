@@ -145,6 +145,7 @@ export const api = {
   approveHospital:      (id)    => request(`/hospitals/${id}/approve`, { method:'PUT' }),
   rejectHospital:       (id,b)  => request(`/hospitals/${id}/reject`,  { method:'PUT', body: JSON.stringify(b) }),
   suspendHospital:      (id)    => request(`/hospitals/${id}/suspend`, { method:'PUT' }),
+  deleteHospital:       (id)    => request(`/hospitals/${id}`,         { method:'DELETE' }),
   getPendingHospitals:  ()      => request('/hospitals/pending'),
   getMyHospital:        ()      => request('/hospitals/admin/mine'),
   registerPlatform:     (body)  => request('/platform/register', { method:'POST', body: JSON.stringify(body) }),
@@ -245,4 +246,22 @@ export const api = {
   adjustPharmacyMedicineStock: (id,body) => request(`/pharmacy/medicines/${id}/stock`, { method:'PUT', body: JSON.stringify(body) }),
   createPharmacyDelivery:      (body)    => request('/pharmacy/deliveries', { method:'POST', body: JSON.stringify(body) }),
   updatePharmacyDelivery:      (id,body) => request(`/pharmacy/deliveries/${id}`, { method:'PUT', body: JSON.stringify(body) }),
+
+  getAuditLogs:               (p={})    => request('/audit-logs?' + new URLSearchParams(p)),
+  getAuditLogStats:           ()        => request('/audit-logs/stats'),
+
+  getFlaggedReviews:          (p={})    => request('/reviews/moderation?' + new URLSearchParams(p)),
+  flagReview:                 (id,b)    => request(`/reviews/moderation/${id}/flag`,   { method:'PUT', body: JSON.stringify(b) }),
+  unflagReview:               (id)      => request(`/reviews/moderation/${id}/unflag`, { method:'PUT' }),
+
+  getSystemSettings:          ()        => request('/system-settings'),
+  updateSystemSetting:        (key,b)   => request(`/system-settings/${key}`, { method:'PUT', body: JSON.stringify(b) }),
+
+  getCommissionConfigs:       ()        => request('/commission/config'),
+  updateCommissionConfig:     (id,b)    => request(`/commission/config/${id}`, { method:'PUT', body: JSON.stringify(b) }),
+  getTransactionLedger:       (p={})    => request('/commission/ledger?' + new URLSearchParams(p)),
+  getPayouts:                 (p={})    => request('/commission/payouts?' + new URLSearchParams(p)),
+  createPayout:               (body)    => request('/commission/payouts', { method:'POST', body: JSON.stringify(body) }),
+  markPayoutPaid:             (id,b)    => request(`/commission/payouts/${id}/pay`, { method:'PUT', body: JSON.stringify(b) }),
+  getCommissionStats:         ()        => request('/commission/stats'),
 };
