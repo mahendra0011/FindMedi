@@ -11,7 +11,7 @@ import {
   FlaskConical, ShoppingCart, Lock, Plus, Minus, Zap,
   ChevronLeft, Scissors, Syringe, Droplets, Pill, Microscope,
   Car, Wind, CreditCard, Bookmark,
-  Globe, Printer, Info, HelpCircle, Accessibility,
+  Globe, Printer, Info, HelpCircle, Accessibility, Loader2,
   Ambulance as AmbulanceIcon, Percent, Handshake, ClipboardList
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
+import { api } from '@/lib/api';
 import { toast } from 'sonner';
 
 const stagger = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.06 } } };
