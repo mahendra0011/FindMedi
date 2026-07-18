@@ -15,6 +15,7 @@ export default function PatientDoctors() {
   const [search, setSearch] = useState('');
   const [specFilter, setSpecFilter] = useState('All');
   const [hospitalFilter, setHospitalFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState('all');
   const [loading, setLoading] = useState(true);
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [viewProfile, setViewProfile] = useState(null);
@@ -30,13 +31,14 @@ export default function PatientDoctors() {
     try {
       const params = { search, specialization: specFilter };
       if (hospitalFilter) params.hospitalId = hospitalFilter;
+      if (typeFilter !== 'all') params.doctor_type = typeFilter;
       const data = await api.getDoctors(params);
       setDoctors(data);
     } catch (e) { console.error(e); }
     setLoading(false);
   };
 
-  useEffect(() => { loadDoctors(); }, [search, specFilter, hospitalFilter]);
+  useEffect(() => { loadDoctors(); }, [search, specFilter, hospitalFilter, typeFilter]);
 
   useEffect(() => {
     api.getHospitals({ status: 'approved' }).then(setHospitals).catch(() => {});
@@ -95,6 +97,17 @@ export default function PatientDoctors() {
             </select>
           </div>
             <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Doctor Type</label>
+              <div className="flex gap-1">
+                {['all', 'hospital', 'clinic'].map(t => (
+                  <button key={t} onClick={() => setTypeFilter(t)}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors capitalize ${typeFilter === t ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>
+                    {t === 'all' ? 'All Doctors' : t === 'hospital' ? 'Hospital Doctors' : 'Clinic Doctors'}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Specialization</label>
               <div className="flex gap-2 flex-wrap">
                 {specializations.map(s => (
@@ -127,10 +140,18 @@ export default function PatientDoctors() {
                 <div className="min-w-0 flex-1">
                   <h3 className="font-heading font-semibold text-foreground truncate">{doc.name}</h3>
                   <p className="text-sm text-primary font-medium">{doc.specialization}</p>
-                  {doc.hospitalId?.name && (
-                    <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                      <Building2 className="w-3 h-3" />{doc.hospitalId.name}
-                    </p>
+                  {doc.doctor_type === 'clinic' ? (
+                    doc.clinicProfile?.clinic_name && (
+                      <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                        <Building2 className="w-3 h-3" />{doc.clinicProfile.clinic_name}
+                      </p>
+                    )
+                  ) : (
+                    doc.hospitalId?.name && (
+                      <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                        <Building2 className="w-3 h-3" />{doc.hospitalId.name}
+                      </p>
+                    )
                   )}
                 </div>
                 <div className={`px-2 py-0.5 rounded-full text-xs font-semibold ${doc.available ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}`}>
