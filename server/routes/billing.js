@@ -5,6 +5,7 @@ import User from '../models/User.js';
 import Doctor from '../models/Doctor.js';
 import { protect } from '../middleware/auth.js';
 import { generateInvoicePDF } from '../services/pdfService.js';
+import { validate, createBillSchema } from '../utils/validate.js';
 
 const router = express.Router();
 

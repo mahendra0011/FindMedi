@@ -5,8 +5,7 @@ import {
   FlaskConical, Search, Clock, Home, Lock, ShoppingCart,
   ChevronRight, Heart, Sparkles, Plus, Minus, Activity,
   ArrowLeft, MapPin, Phone, Star, BadgeCheck,
-  Building2, BedDouble, Stethoscope, X, Upload,
-  Camera, FileText, CreditCard, Wallet, CheckCircle,
+  Building2, X, CreditCard, Wallet, CheckCircle,
   Calendar, Sun, Moon, MapPinHouse, ChevronLeft,
   Banknote, Shield, ShieldCheck
 } from 'lucide-react';
@@ -14,33 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-
-const ALL_TESTS = [
-  { id:'ht1', name:'Complete Blood Count (CBC)', dept:'Pathology', price:249, mrp:399, reportTime:'6 hrs', homeCollection:true, rx:false, popular:true },
-  { id:'ht2', name:'Lipid Profile', dept:'Pathology', price:349, mrp:599, reportTime:'8 hrs', homeCollection:true, rx:false, popular:true },
-  { id:'ht3', name:'Blood Glucose (Fasting)', dept:'Pathology', price:99, mrp:150, reportTime:'4 hrs', homeCollection:true, rx:false, popular:false },
-  { id:'ht4', name:'Liver Function Test', dept:'Pathology', price:499, mrp:799, reportTime:'10 hrs', homeCollection:true, rx:false, popular:false },
-  { id:'ht5', name:'Kidney Function Test', dept:'Pathology', price:449, mrp:699, reportTime:'10 hrs', homeCollection:true, rx:false, popular:false },
-  { id:'ht6', name:'HbA1c', dept:'Pathology', price:299, mrp:499, reportTime:'8 hrs', homeCollection:true, rx:false, popular:false },
-  { id:'ht15', name:'Thyroid Profile (T3,T4,TSH)', dept:'Pathology', price:449, mrp:699, reportTime:'12 hrs', homeCollection:true, rx:false, popular:false },
-  { id:'ht16', name:'Vitamin D Total', dept:'Pathology', price:799, mrp:1299, reportTime:'24 hrs', homeCollection:true, rx:false, popular:true },
-  { id:'ht17', name:'Urine Routine', dept:'Pathology', price:129, mrp:199, reportTime:'6 hrs', homeCollection:true, rx:false, popular:false },
-  { id:'ht18', name:'Stool Examination', dept:'Pathology', price:199, mrp:299, reportTime:'8 hrs', homeCollection:true, rx:false, popular:false },
-  { id:'ht19', name:'Iron Studies', dept:'Pathology', price:399, mrp:599, reportTime:'12 hrs', homeCollection:true, rx:false, popular:false },
-  { id:'ht14', name:'Chest X-Ray', dept:'Radiology', price:499, mrp:899, reportTime:'2 hrs', homeCollection:false, rx:true, popular:false },
-  { id:'ht21', name:'MRI Brain', dept:'Radiology', price:4999, mrp:8999, reportTime:'4 hrs', homeCollection:false, rx:true, popular:false },
-  { id:'ht22', name:'CT Abdomen', dept:'Radiology', price:3999, mrp:6999, reportTime:'6 hrs', homeCollection:false, rx:true, popular:false },
-  { id:'ht23', name:'Ultrasound Abdomen', dept:'Radiology', price:1499, mrp:2499, reportTime:'1 hr', homeCollection:false, rx:true, popular:false },
-  { id:'ht24', name:'Mammography', dept:'Radiology', price:2499, mrp:3999, reportTime:'2 hrs', homeCollection:false, rx:true, popular:false },
-  { id:'ht11', name:'ECG', dept:'Cardiology', price:249, mrp:399, reportTime:'30 mins', homeCollection:false, rx:true, popular:false },
-  { id:'ht12', name:'2D Echo', dept:'Cardiology', price:1799, mrp:2499, reportTime:'1 hr', homeCollection:false, rx:true, popular:false },
-  { id:'ht26', name:'TMT (Stress Test)', dept:'Cardiology', price:2499, mrp:3999, reportTime:'2 hrs', homeCollection:false, rx:true, popular:false },
-  { id:'ht27', name:'Holter Monitoring', dept:'Cardiology', price:3499, mrp:4999, reportTime:'48 hrs', homeCollection:false, rx:true, popular:false },
-  { id:'hp1', name:'Full Body Checkup (70 parameters)', dept:'Health Packages', price:1499, mrp:2999, reportTime:'24 hrs', homeCollection:true, rx:false, popular:true, package:true, includes:['CBC','Blood Sugar','Lipid Profile','Liver Function','Kidney Function','Thyroid','Vitamin D','Urine Routine'] },
-  { id:'hp2', name:'Diabetes Screening Package', dept:'Health Packages', price:699, mrp:1299, reportTime:'12 hrs', homeCollection:true, rx:false, popular:false, package:true, includes:['Fasting Blood Sugar','HbA1c','Urine Routine','Lipid Profile'] },
-  { id:'hp3', name:'Senior Citizen Package', dept:'Health Packages', price:1999, mrp:3999, reportTime:'24 hrs', homeCollection:true, rx:false, popular:false, package:true, includes:['CBC','Lipid Profile','Kidney Function','Liver Function','Thyroid','Vitamin B12','ECG'] },
-  { id:'hp4', name:'Cardiac Risk Assessment', dept:'Health Packages', price:2499, mrp:4999, reportTime:'24 hrs', homeCollection:true, rx:false, popular:true, package:true, includes:['Lipid Profile','ECG','Troponin I','CRP','Homocysteine'] },
-];
+import { api } from '@/lib/api';
 
 const DEPARTMENTS = [
   { id:'all', name:'All Departments', icon:FlaskConical, color:'from-primary/20 to-primary/5', textColor:'text-primary', hoverColor:'hover:border-primary/40' },
@@ -49,12 +22,6 @@ const DEPARTMENTS = [
   { id:'Cardiology', name:'Cardiology', icon:Heart, color:'from-red-500/20 to-red-500/5', textColor:'text-red-500', hoverColor:'hover:border-red-500/40' },
   { id:'Health Packages', name:'Health Packages', icon:Sparkles, color:'from-emerald-400/25 to-emerald-400/5', textColor:'text-emerald-500', hoverColor:'hover:border-emerald-500/40' },
 ];
-
-const MOCK_HOSPITAL = {
-  _id:'h1', name:'City Hospital', type:'Multi-Speciality',
-  rating:4.5, city:'New York', address:'123, Health Avenue, New York',
-  phone:'9876543210', verified:true,
-};
 
 const TIME_SLOTS = ['09:00-10:00','10:00-11:00','11:00-12:00','12:00-13:00','14:00-15:00','15:00-16:00','16:00-17:00','17:00-18:00'];
 
@@ -82,6 +49,47 @@ export default function HospitalTestBooking() {
   const [paymentMethod, setPaymentMethod] = useState('upi');
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
   const [bookingId, setBookingId] = useState('');
+  const [hospital, setHospital] = useState(null);
+  const [tests, setTests] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    const load = async () => {
+      setLoading(true);
+      try {
+        const [hospitalRes, testsRes] = await Promise.allSettled([
+          api.getHospital(hospitalId),
+          api.getTests(),
+        ]);
+        if (hospitalRes.status === 'fulfilled') {
+          const h = hospitalRes.value?.hospital || hospitalRes.value;
+          setHospital(h || null);
+        }
+        if (testsRes.status === 'fulfilled') {
+          const list = Array.isArray(testsRes.value) ? testsRes.value : testsRes.value?.tests || [];
+          const mapped = list.map(t => ({
+            id: t._id,
+            _id: t._id,
+            name: t.name,
+            dept: t.category || t.department || 'Pathology',
+            category: t.category,
+            department: t.department,
+            price: t.price,
+            mrp: t.mrp || t.price,
+            reportTime: t.reportTime || '24 hrs',
+            homeCollection: t.homeCollection || false,
+            rx: t.prescriptionReq || false,
+            prescriptionReq: t.prescriptionReq || false,
+            popular: t.popular || false,
+          }));
+          setTests(mapped);
+        }
+      } catch (e) { console.error(e); }
+      setLoading(false);
+    };
+    load();
+  }, [hospitalId]);
 
   const addToCart = (testId) => setTestCart(p => ({ ...p, [testId]: (p[testId] || 0) + 1 }));
   const removeFromCart = (testId) => setTestCart(p => {
@@ -91,14 +99,14 @@ export default function HospitalTestBooking() {
     return next;
   });
 
-  const filtered = ALL_TESTS.filter(t => {
+  const filtered = tests.filter(t => {
     if (deptFilter !== 'all' && t.dept !== deptFilter) return false;
     if (testSearch && !t.name.toLowerCase().includes(testSearch.toLowerCase())) return false;
     return true;
   });
 
   const cartItems = Object.entries(testCart).map(([tid, qty]) => {
-    const test = ALL_TESTS.find(t => t.id === tid);
+    const test = tests.find(t => t.id === tid);
     return { ...test, qty };
   }).filter(Boolean);
 
@@ -125,7 +133,15 @@ export default function HospitalTestBooking() {
     setTestCart({});
   };
 
-  useEffect(() => { window.scrollTo(0, 0); }, [hospitalId]);
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  const displayHospital = hospital || { _id: hospitalId, name: 'Hospital', rating: 0, address: '', verified: false };
 
   const StepContent = ({ step }) => {
     switch (step) {
@@ -451,12 +467,12 @@ export default function HospitalTestBooking() {
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <h1 className="font-heading font-bold text-foreground text-base truncate">{MOCK_HOSPITAL.name}</h1>
-              {MOCK_HOSPITAL.verified && <BadgeCheck className="w-4 h-4 text-primary shrink-0" />}
+              <h1 className="font-heading font-bold text-foreground text-base truncate">{displayHospital.name}</h1>
+              {displayHospital.verified && <BadgeCheck className="w-4 h-4 text-primary shrink-0" />}
             </div>
             <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
-              <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{MOCK_HOSPITAL.address}</span>
-              <span className="flex items-center gap-1"><Star className="w-3 h-3 text-amber-400 fill-amber-400" />{MOCK_HOSPITAL.rating}</span>
+              <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{displayHospital.address || displayHospital.city || 'Address not available'}</span>
+              <span className="flex items-center gap-1"><Star className="w-3 h-3 text-amber-400 fill-amber-400" />{displayHospital.rating || '—'}</span>
             </div>
           </div>
           <Link to={`/hospitals/${hospitalId}`}>
@@ -468,7 +484,7 @@ export default function HospitalTestBooking() {
 
         {/* Header */}
         <h2 className="font-heading text-xl font-bold text-foreground mb-1">
-          {ALL_TESTS.length}+ Tests Available at {MOCK_HOSPITAL.name}
+          {tests.length} Tests Available at {displayHospital.name}
         </h2>
         <p className="text-sm text-muted-foreground mb-4">Select tests to book</p>
 
@@ -484,7 +500,7 @@ export default function HospitalTestBooking() {
           {DEPARTMENTS.map(dept => {
             const Icon = dept.icon;
             const isActive = deptFilter === dept.id;
-            const count = dept.id === 'all' ? ALL_TESTS.length : ALL_TESTS.filter(t => t.dept === dept.id).length;
+            const count = dept.id === 'all' ? tests.length : tests.filter(t => t.dept === dept.id).length;
             return (
               <motion.button key={dept.id}
                 initial={{ opacity: 0, scale: 0.9 }}

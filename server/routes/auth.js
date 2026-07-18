@@ -4,8 +4,8 @@ import multer from 'multer';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { body, validationResult } from 'express-validator';
 import User from '../models/User.js';
+import RefreshToken from '../models/RefreshToken.js';
 import Doctor from '../models/Doctor.js';
 import Patient from '../models/Patient.js';
 import Notification from '../models/Notification.js';
@@ -19,6 +19,16 @@ import {
   sendPasswordChangedEmail,
 } from '../services/notificationService.js';
 import { OAuth2Client } from 'google-auth-library';
+import {
+  validate,
+  registerSchema,
+  loginSchema,
+  changePasswordSchema,
+  resetPasswordSchema,
+  forgotPasswordSchema,
+  verifyOtpSchema,
+  passwordSchema,
+} from '../utils/validate.js';
 
 const router = express.Router();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -82,11 +92,28 @@ const saveAvatarLocally = async (file, req) => {
   };
 };
 
-const sign = (user) => jwt.sign(
+const signAccessToken = (user) => jwt.sign(
   { id: user._id, role: user.role, name: user.name, email: user.email },
-  process.env.JWT_SECRET || 'secret',
-  { expiresIn: '30d' }
+  process.env.JWT_SECRET,
+  { expiresIn: '15m' }
 );
+
+const signRefreshToken = (user) => jwt.sign(
+  { id: user._id },
+  process.env.JWT_SECRET,
+  { expiresIn: '7d' }
+);
+
+const sign = (user) => {
+  const accessToken = signAccessToken(user);
+  const refreshToken = signRefreshToken(user);
+  RefreshToken.create({
+    userId: user._id,
+    token: refreshToken,
+    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+  }).catch(err => console.error('Failed to save refresh token:', err.message));
+  return accessToken;
+};
 
 const initialsFor = (name = '') => name
   .split(' ')
@@ -166,20 +193,7 @@ const sendVerificationOtp = (user) => createAndSendOTP({
 });
 
 // POST /api/auth/register
-const validateRegister = [
-  body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
-  body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters'),
-  body('name').trim().isLength({ min: 2 }).withMessage('Name is required'),
-  body('phone').optional().isMobilePhone().withMessage('Valid phone number is required'),
-  body('gender').optional().isIn(['Male', 'Female', 'Other']).withMessage('Gender must be Male, Female, or Other'),
-  body('role').optional().isIn(['patient', 'doctor', 'admin']).withMessage('Invalid role'),
-];
-
-router.post('/register', validateRegister, async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ message: errors.array()[0].msg });
-  }
+router.post('/register', validate(registerSchema), async (req, res) => {
   try {
     const {
       name,
@@ -196,14 +210,6 @@ router.post('/register', validateRegister, async (req, res) => {
       licenseNumber = '',
       consultationFee = 0,
     } = req.body;
-
-    if (!name || !email || !password) {
-      return res.status(400).json({ message: 'Name, email and password are required' });
-    }
-
-    if (password.length < 6) {
-      return res.status(400).json({ message: 'Password must be at least 6 characters' });
-    }
 
     const normalizedRole = ['admin', 'doctor', 'patient'].includes(role) ? role : 'patient';
     const lowerEmail = email.toLowerCase();
@@ -313,13 +319,9 @@ router.post('/register', validateRegister, async (req, res) => {
 });
 
 // POST /api/auth/verify-otp
-router.post('/verify-otp', async (req, res) => {
+router.post('/verify-otp', validate(verifyOtpSchema), async (req, res) => {
   try {
     const { email, otp } = req.body;
-
-    if (!email || !otp) {
-      return res.status(400).json({ message: 'Email and OTP are required' });
-    }
 
     const lowerEmail = email.toLowerCase();
     const user = await User.findOne({ email: lowerEmail });
@@ -422,17 +424,7 @@ router.post('/resend-otp', async (req, res) => {
 });
 
 // POST /api/auth/login
-const validateLogin = [
-  body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
-  body('password').notEmpty().withMessage('Password is required'),
-  body('role').optional().isIn(['patient', 'doctor', 'admin']).withMessage('Invalid role'),
-];
-
-router.post('/login', validateLogin, async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ message: errors.array()[0].msg });
-  }
+router.post('/login', validate(loginSchema), async (req, res) => {
   try {
     const { email, password, role } = req.body;
 
@@ -511,10 +503,9 @@ router.post('/login', validateLogin, async (req, res) => {
 });
 
 // POST /api/auth/forgot-password
-router.post('/forgot-password', async (req, res) => {
+router.post('/forgot-password', validate(forgotPasswordSchema), async (req, res) => {
   try {
     const { email } = req.body;
-    if (!email) return res.status(400).json({ message: 'Email is required' });
 
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) {
@@ -546,16 +537,9 @@ router.post('/forgot-password', async (req, res) => {
 });
 
 // POST /api/auth/reset-password
-router.post('/reset-password', async (req, res) => {
+router.post('/reset-password', validate(resetPasswordSchema), async (req, res) => {
   try {
     const { email, otp, password } = req.body;
-    if (!email || !otp || !password) {
-      return res.status(400).json({ message: 'Email, OTP and new password are required' });
-    }
-
-    if (password.length < 6) {
-      return res.status(400).json({ message: 'Password must be at least 6 characters' });
-    }
 
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) return res.status(404).json({ message: 'User not found' });
@@ -592,11 +576,12 @@ router.post('/doctor-setup', async (req, res) => {
       return res.status(400).json({ message: 'Token and password are required' });
     }
 
-    if (password.length < 6) {
-      return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    const pwResult = passwordSchema.safeParse(password);
+    if (!pwResult.success) {
+      return res.status(400).json({ message: pwResult.error.issues[0].message });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     if (decoded.type !== 'doctor_setup') {
       return res.status(400).json({ message: 'Invalid setup token' });
     }
@@ -687,17 +672,9 @@ router.get('/me', protect, async (req, res) => {
 });
 
 // PUT /api/auth/change-password
-router.put('/change-password', protect, async (req, res) => {
+router.put('/change-password', protect, validate(changePasswordSchema), async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
-
-    if (!currentPassword || !newPassword) {
-      return res.status(400).json({ message: 'Current password and new password are required' });
-    }
-
-    if (newPassword.length < 6) {
-      return res.status(400).json({ message: 'New password must be at least 6 characters' });
-    }
 
     const user = await User.findById(req.user.id);
     if (!user || !(await user.comparePassword(currentPassword))) {
@@ -820,6 +797,61 @@ router.put('/profile', protect, async (req, res) => {
     }
 
     res.json(await userResponse(user));
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// POST /api/auth/refresh
+router.post('/refresh', async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+    if (!refreshToken) {
+      return res.status(400).json({ message: 'Refresh token is required' });
+    }
+
+    const stored = await RefreshToken.findOne({ token: refreshToken });
+    if (!stored) {
+      return res.status(401).json({ message: 'Invalid refresh token' });
+    }
+
+    if (stored.expiresAt < new Date()) {
+      await RefreshToken.deleteOne({ _id: stored._id });
+      return res.status(401).json({ message: 'Refresh token expired. Please login again.' });
+    }
+
+    jwt.verify(refreshToken, process.env.JWT_SECRET, async (err, decoded) => {
+      if (err) {
+        await RefreshToken.deleteOne({ _id: stored._id });
+        return res.status(401).json({ message: 'Invalid refresh token' });
+      }
+
+      const user = await User.findById(decoded.id).select('-password');
+      if (!user) {
+        await RefreshToken.deleteOne({ _id: stored._id });
+        return res.status(401).json({ message: 'User not found' });
+      }
+
+      if (user.status === 'blocked') {
+        return res.status(403).json({ message: 'Account blocked' });
+      }
+
+      await RefreshToken.deleteOne({ _id: stored._id });
+
+      const newAccessToken = signAccessToken(user);
+      const newRefreshToken = signRefreshToken(user);
+
+      await RefreshToken.create({
+        userId: user._id,
+        token: newRefreshToken,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      });
+
+      res.json({
+        token: newAccessToken,
+        refreshToken: newRefreshToken,
+      });
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

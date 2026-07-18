@@ -8,10 +8,29 @@ import { uploadFileToCloudinary } from '../services/cloudinaryService.js';
 
 const router = express.Router();
 
+const ALLOWED_MIME_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'text/plain',
+]);
+
 const storage = multer.memoryStorage();
 const upload = multer({
   storage,
   limits: { fileSize: 25 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (!ALLOWED_MIME_TYPES.has(file.mimetype)) {
+      return cb(new Error('Invalid file type. Only images, PDFs, documents, and text files are allowed.'), false);
+    }
+    cb(null, true);
+  },
 });
 
 // Proxy download route — redirect to stored file URL (Cloudinary or legacy Drive)
