@@ -198,6 +198,9 @@ export const api = {
   createPharmacyReturn:   (body)    => request('/pharmacy/returns', { method:'POST', body: JSON.stringify(body) }),
   updatePharmacyReturn:   (id,body) => request(`/pharmacy/returns/${id}`, { method:'PUT', body: JSON.stringify(body) }),
   getPharmacyDeliveries:  (p={})    => request('/pharmacy/deliveries?' + new URLSearchParams(p)),
+  getPharmacyPrescriptions: (p={})  => request('/pharmacy/prescriptions?' + new URLSearchParams(p)),
+  getPharmacyPrescription:  (id)    => request(`/pharmacy/prescriptions/${id}`),
+  dispensePharmacyMedicine: (id,b)  => request(`/pharmacy/prescriptions/${id}/dispense`, { method:'PUT', body: JSON.stringify(b) }),
 
   getLabStats:        ()        => request('/lab/stats'),
   getLabBookings:     (p={})    => request('/lab/bookings?' + new URLSearchParams(p)),
@@ -264,4 +267,26 @@ export const api = {
   createPayout:               (body)    => request('/commission/payouts', { method:'POST', body: JSON.stringify(body) }),
   markPayoutPaid:             (id,b)    => request(`/commission/payouts/${id}/pay`, { method:'PUT', body: JSON.stringify(b) }),
   getCommissionStats:         ()        => request('/commission/stats'),
+
+  getDisputes:            (p={})    => request('/disputes?' + new URLSearchParams(p)),
+  updateDisputeStatus:    (id,b)    => request(`/disputes/${id}/status`, { method:'PUT', body: JSON.stringify(b) }),
+  assignDispute:          (id,b)    => request(`/disputes/${id}/assign`, { method:'PUT', body: JSON.stringify(b) }),
+  getDisputeStats:        ()        => request('/disputes/stats'),
+
+  getSupportTickets:      (p={})    => request('/support-tickets?' + new URLSearchParams(p)),
+  updateTicketStatus:     (id,b)    => request(`/support-tickets/${id}/status`, { method:'PUT', body: JSON.stringify(b) }),
+  assignTicket:           (id,b)    => request(`/support-tickets/${id}/assign`, { method:'PUT', body: JSON.stringify(b) }),
+  addTicketMessage:       (id,b)    => request(`/support-tickets/${id}/messages`, { method:'POST', body: JSON.stringify(b) }),
+  getTicketStats:         ()        => request('/support-tickets/stats'),
+
+  getCategories:          (p={})    => request('/categories?' + new URLSearchParams(p)),
+  createCategory:         (body)    => request('/categories', { method:'POST', body: JSON.stringify(body) }),
+  updateCategory:         (id,b)    => request(`/categories/${id}`, { method:'PUT', body: JSON.stringify(b) }),
+  deleteCategory:         (id)      => request(`/categories/${id}`, { method:'DELETE' }),
+  mergeCategories:        (body)    => request('/categories/merge', { method:'POST', body: JSON.stringify(body) }),
+
+  getLicenses:            (p={})    => request('/licenses?' + new URLSearchParams(p)),
+  updateLicense:          (id,b)    => request(`/licenses/${id}`, { method:'PUT', body: JSON.stringify(b) }),
+  getExpiringLicenses:    ()        => request('/licenses/expiring'),
+  getLicenseStats:        ()        => request('/licenses/stats'),
 };

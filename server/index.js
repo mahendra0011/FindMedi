@@ -207,6 +207,10 @@ import auditLogRoutes from './routes/auditLogs.js';
 import reviewModerationRoutes from './routes/reviewModeration.js';
 import systemSettingRoutes from './routes/systemSettings.js';
 import commissionRoutes from './routes/commission.js';
+import disputeRoutes from './routes/disputes.js';
+import supportTicketRoutes from './routes/supportTickets.js';
+import categoryRoutes from './routes/categories.js';
+import licenseRoutes from './routes/licenses.js';
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -251,6 +255,10 @@ app.use('/api/audit-logs', auditLogRoutes);
 app.use('/api/reviews/moderation', reviewModerationRoutes);
 app.use('/api/system-settings', systemSettingRoutes);
 app.use('/api/commission', commissionRoutes);
+app.use('/api/disputes', disputeRoutes);
+app.use('/api/support-tickets', supportTicketRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/licenses', licenseRoutes);
 
 // 2FA routes
 app.use('/api/auth/2fa', twoFactorRoutes);
