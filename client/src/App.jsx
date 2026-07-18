@@ -37,7 +37,6 @@ import Checkout from './pages/Checkout';
 import OrderConfirmation from './pages/OrderConfirmation';
 import OrderTracking from './pages/OrderTracking';
 import PaymentGateway from './pages/PaymentGateway';
-import DoctorDetail from './pages/DoctorDetail';
 import HospitalDoctor from './pages/HospitalDoctor';
 import ClinicDoctor from './pages/ClinicDoctor';
 import Signup from './pages/Signup';
@@ -348,9 +347,8 @@ const App = () => (
                    <Route path="/hospitals/:hospitalId/doctors" element={<PublicLayout><HospitalDoctors /></PublicLayout>} />
                    <Route path="/register-hospital" element={<HospitalRegister />} />
                    <Route path="/register-facility" element={<FacilityRegister />} />
-                   <Route path="/doctors" element={<PublicLayout><FindDoctor /></PublicLayout>} />
-                     <Route path="/doctors/:id" element={<PublicLayout><DoctorDetail /></PublicLayout>} />
-                     <Route path="/hospital-doctors/:id" element={<PublicLayout><HospitalDoctor /></PublicLayout>} />
+                    <Route path="/doctors" element={<PublicLayout><FindDoctor /></PublicLayout>} />
+                      <Route path="/hospital-doctors/:id" element={<PublicLayout><HospitalDoctor /></PublicLayout>} />
                      <Route path="/clinic-doctors/:id" element={<PublicLayout><ClinicDoctor /></PublicLayout>} />
                      <Route path="/clinic" element={<PublicLayout><ClinicDirectory /></PublicLayout>} />
                      <Route path="/clinic/:clinicId" element={<PublicLayout><ClinicDetail /></PublicLayout>} />

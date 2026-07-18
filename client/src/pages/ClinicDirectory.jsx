@@ -101,16 +101,36 @@ export default function ClinicDirectory() {
                         <h3 className="font-heading font-semibold text-foreground truncate group-hover:text-primary transition-colors">{clinicName}</h3>
                         {doc.approved && <BadgeCheck className="w-4 h-4 text-primary shrink-0" />}
                       </div>
-                      <p className="text-xs text-muted-foreground">Dr. {doc.name}</p>
+                      <p className="text-xs text-muted-foreground">{doc.name}</p>
                       <p className="text-xs text-primary font-medium">{doc.specialization}</p>
                       <div className="flex items-center gap-1 mt-0.5">
                         {renderStars(doc.rating)}
                         <span className="text-xs text-muted-foreground ml-1">{doc.rating} ({doc.reviews_count || 0})</span>
                       </div>
+
+                      {doc.available && (
+                        <Badge className="mt-1.5 text-[10px] bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-800">
+                          <CalendarDays className="w-3 h-3 mr-1" />
+                          {doc.next_available_slot || 'Available Today'}
+                        </Badge>
+                      )}
+
+                      {doc.qualifications && (
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {doc.qualifications.split(',').map(q => q.trim()).filter(Boolean).map(q => (
+                            <Badge key={q} variant="secondary" className="text-[10px] bg-muted/50">{q}</Badge>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1"><Award className="w-3 h-3 text-primary" />{doc.experience}</span>
+                        <span className="flex items-center gap-1"><Users className="w-3 h-3 text-primary" />{doc.patients || 0}+ patients</span>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="bg-gradient-to-br from-muted/40 to-muted/10 rounded-xl border border-border/40 p-3 mb-3 space-y-0">
+                  <div className="bg-gradient-to-br from-muted/40 to-muted/10 rounded-xl border border-border/40 p-3 mt-3 space-y-0">
                     <div className="flex items-center justify-between text-sm py-1">
                       <span className="text-muted-foreground flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-primary" />Location</span>
                       <span className="font-semibold text-foreground truncate ml-2">{area || '—'}</span>
@@ -143,7 +163,7 @@ export default function ClinicDirectory() {
                       <CalendarDays className="w-3.5 h-3.5" /> {doc.available ? 'Book Appointment' : 'Unavailable'}
                     </Button>
                     <Button variant="outline" size="sm" className="flex-1 gap-1.5 rounded-xl text-[11px] h-9 group/btn"
-                      onClick={(e) => { e.stopPropagation(); navigate(`/doctors/${doc._id}`); }}>
+                      onClick={(e) => { e.stopPropagation(); navigate(`/clinic-doctors/${doc._id}`); }}>
                       View Doctor Details
                       <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover/btn:translate-x-0.5" />
                     </Button>
