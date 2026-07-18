@@ -6,16 +6,16 @@ import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 
 const bbApi = {
-  getUnits: (p) => api.dispatch(() => Promise.resolve({ units: [] }), '/bloodbank/units?' + new URLSearchParams(p)),
-  addUnit: (b) => api.dispatch(() => Promise.resolve({}), '/bloodbank/units', { method: 'POST', body: JSON.stringify(b) }),
-  getRequests: (p) => api.dispatch(() => Promise.resolve({ requests: [] }), '/bloodbank/requests?' + new URLSearchParams(p)),
-  createRequest: (b) => api.dispatch(() => Promise.resolve({}), '/bloodbank/requests', { method: 'POST', body: JSON.stringify(b) }),
-  crossMatch: (id, b) => api.dispatch(() => Promise.resolve({}), `/bloodbank/requests/${id}/crossmatch`, { method: 'PUT', body: JSON.stringify(b) }),
-  issueUnits: (id, b) => api.dispatch(() => Promise.resolve({}), `/bloodbank/requests/${id}/issue`, { method: 'PUT', body: JSON.stringify(b) }),
-  startTransfusion: (id, b) => api.dispatch(() => Promise.resolve({}), `/bloodbank/requests/${id}/start-transfusion`, { method: 'PUT', body: JSON.stringify(b) }),
-  completeTransfusion: (id, b) => api.dispatch(() => Promise.resolve({}), `/bloodbank/requests/${id}/transfuse`, { method: 'PUT', body: JSON.stringify(b) }),
-  reportReaction: (id, b) => api.dispatch(() => Promise.resolve({}), `/bloodbank/requests/${id}/reaction`, { method: 'PUT', body: JSON.stringify(b) }),
-  getStats: () => api.dispatch(() => Promise.resolve({ total: 0, available: 0, expired: 0, pending: 0, issued: 0, crossMatching: 0, groups: [] }), '/bloodbank/stats'),
+  getUnits: (p) => api.getBloodUnits(p),
+  addUnit: (b) => api.addBloodUnit(b),
+  getRequests: (p) => api.getBloodRequests(p),
+  createRequest: (b) => api.createBloodRequest(b),
+  crossMatch: (id, b) => api.crossMatchBlood(id, b),
+  issueUnits: (id, b) => api.issueBloodUnits(id, b),
+  startTransfusion: (id, b) => api.startTransfusion(id, b),
+  completeTransfusion: (id, b) => api.completeTransfusion(id, b),
+  reportReaction: (id, b) => api.reportReaction(id, b),
+  getStats: () => api.getBloodBankStats(),
 };
 
 const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];

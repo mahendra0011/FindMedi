@@ -6,15 +6,15 @@ import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 
 const dietApi = {
-  getOrders: (p = {}) => api.dispatch(() => Promise.resolve({ orders: [] }), '/diet/orders?' + new URLSearchParams(p)),
-  createOrder: (b) => api.dispatch(() => Promise.resolve({}), '/diet/orders', { method: 'POST', body: JSON.stringify(b) }),
-  deliverMeal: (id, b) => api.dispatch(() => Promise.resolve({}), `/diet/orders/${id}/deliver-meal`, { method: 'PUT', body: JSON.stringify(b) }),
-  confirmMeal: (id, b) => api.dispatch(() => Promise.resolve({}), `/diet/orders/${id}/confirm-meal`, { method: 'PUT', body: JSON.stringify(b) }),
-  review: (id, b) => api.dispatch(() => Promise.resolve({}), `/diet/orders/${id}/review`, { method: 'PUT', body: JSON.stringify(b) }),
-  addFeedback: (id, b) => api.dispatch(() => Promise.resolve({}), `/diet/orders/${id}/feedback`, { method: 'PUT', body: JSON.stringify(b) }),
-  notifyKitchen: (id) => api.dispatch(() => Promise.resolve({}), `/diet/orders/${id}/notify`, { method: 'PUT' }),
-  addToBilling: (id, b) => api.dispatch(() => Promise.resolve({}), `/diet/orders/${id}/billing`, { method: 'POST', body: JSON.stringify(b) }),
-  getStats: () => api.dispatch(() => Promise.resolve({ active: 0, todayMeals: 0, pendingReview: 0, total: 0 }), '/diet/stats'),
+  getOrders: (p) => api.getDietOrders(p),
+  createOrder: (b) => api.createDietOrder(b),
+  deliverMeal: (id, b) => api.deliverMeal(id, b),
+  confirmMeal: (id, b) => api.confirmMeal(id, b),
+  review: (id, b) => api.reviewDiet(id, b),
+  addFeedback: (id, b) => api.addDietFeedback(id, b),
+  notifyKitchen: (id) => api.notifyKitchen(id),
+  addToBilling: (id, b) => api.addDietToBilling(id, b),
+  getStats: () => api.getDietStats(),
 };
 
 const dietTypeColors = {

@@ -43,10 +43,6 @@ apiClient.interceptors.response.use(
       if (status === 401) {
         localStorage.removeItem('hms_token');
         localStorage.removeItem('token');
-        // Optionally redirect to login
-        if (window.location.pathname !== '/login') {
-          window.location.href = '/#/login';
-        }
       }
 
       const enhanced = new Error(message);

@@ -19,6 +19,12 @@ import User from './models/User.js';
 import Doctor from './models/Doctor.js';
 import Patient from './models/Patient.js';
 import Appointment from './models/Appointment.js';
+import Test from './models/Test.js';
+import Medicine from './models/Medicine.js';
+import Bed from './models/Bed.js';
+import Department from './models/Department.js';
+import Staff from './models/Staff.js';
+import Inventory from './models/Inventory.js';
 
 const readJSON = (file) => JSON.parse(fs.readFileSync(path.join(__dirname, 'mock-data', file), 'utf-8'));
 
@@ -32,9 +38,9 @@ async function seed() {
 
     // ===== CLEAR EXISTING DATA =====
     console.log('Clearing existing data...');
-    const collections = ['hospitals', 'facilities', 'users', 'doctors', 'patients', 'appointments'];
+    const collections = ['hospitals', 'facilities', 'users', 'doctors', 'patients', 'appointments', 'tests', 'medicines', 'beds', 'departments', 'staffs', 'inventories'];
     for (const col of collections) {
-      try { await db.collection(col).deleteMany({}); } catch (e) { /* ignore */ }
+      try { await db.collection(col).deleteMany({}); } catch {}
     }
     console.log('Cleared.');
 
@@ -129,7 +135,82 @@ async function seed() {
     }
     console.log(`  ${appointmentsData.length} appointments created.`);
 
-    console.log('\n✅ Seed complete!');
+    // ===== SEED TESTS =====
+    console.log('Seeding tests...');
+    const testsData = readJSON('tests.json');
+    for (const t of testsData) {
+      const { hospitalId, ...rest } = t;
+      const testObj = { ...rest };
+      if (hospitalId && hospitalsMap[hospitalId]) testObj.hospitalId = hospitalsMap[hospitalId];
+      await Test.create(testObj);
+    }
+    console.log(`  ${testsData.length} tests created.`);
+
+    // ===== SEED MEDICINES =====
+    console.log('Seeding medicines...');
+    const medicinesData = readJSON('medicines.json');
+    for (const m of medicinesData) {
+      const { hospitalId, ...rest } = m;
+      const medObj = { ...rest };
+      if (hospitalId && hospitalsMap[hospitalId]) medObj.hospitalId = hospitalsMap[hospitalId];
+      await Medicine.create(medObj);
+    }
+    console.log(`  ${medicinesData.length} medicines created.`);
+
+    // ===== SEED BEDS =====
+    console.log('Seeding beds...');
+    const bedsData = readJSON('beds.json');
+    const patientsList2 = await Patient.find({}).lean();
+    for (const b of bedsData) {
+      const { hospitalId, currentPatientId, ...rest } = b;
+      const bedObj = { ...rest };
+      if (hospitalId && hospitalsMap[hospitalId]) bedObj.hospitalId = hospitalsMap[hospitalId];
+      if (currentPatientId) {
+        const pat = patientsList2.find(p => p.name === b.currentPatientName);
+        if (pat) {
+          bedObj.currentPatientId = pat._id;
+          bedObj.admissionId = new mongoose.Types.ObjectId();
+        }
+      }
+      await Bed.create(bedObj);
+    }
+    console.log(`  ${bedsData.length} beds created.`);
+
+    // ===== SEED DEPARTMENTS =====
+    console.log('Seeding departments...');
+    const departmentsData = readJSON('departments.json');
+    for (const d of departmentsData) {
+      const { hospitalId, ...rest } = d;
+      const deptObj = { ...rest };
+      if (hospitalId && hospitalsMap[hospitalId]) deptObj.hospitalId = hospitalsMap[hospitalId];
+      await Department.create(deptObj);
+    }
+    console.log(`  ${departmentsData.length} departments created.`);
+
+    // ===== SEED STAFF =====
+    console.log('Seeding staff...');
+    const staffData = readJSON('staff.json');
+    for (const s of staffData) {
+      const { hospitalId, ...rest } = s;
+      const staffObj = { ...rest };
+      if (hospitalId && hospitalsMap[hospitalId]) staffObj.hospitalId = hospitalsMap[hospitalId];
+      await Staff.create(staffObj);
+    }
+    console.log(`  ${staffData.length} staff created.`);
+
+    // ===== SEED INVENTORY =====
+    console.log('Seeding inventory...');
+    const inventoryData = readJSON('inventory.json');
+    for (const i of inventoryData) {
+      const { hospitalId, ...rest } = i;
+      const invObj = { ...rest };
+      if (hospitalId && hospitalsMap[hospitalId]) invObj.hospitalId = hospitalsMap[hospitalId];
+      await Inventory.create(invObj);
+    }
+    console.log(`  ${inventoryData.length} inventory items created.`);
+
+    console.log('\n✅ Seed complete! 9 sections seeded.');
+    console.log('   hospitals, facilities, users, doctors, patients, appointments, tests, medicines, beds, departments, staff, inventory');
     console.log('\nDemo Accounts:');
     console.log('  superadmin → mahendrapra0077@gmail.com / admin@123');
     console.log('  admin      → admin@medicore.com / password');

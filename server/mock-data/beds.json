@@ -1,0 +1,20 @@
+[
+  { "bedNumber": "G-01", "ward": "General", "bedType": "General", "status": "Occupied", "dailyRate": 1500, "floor": "1st Floor", "isAC": false, "hospitalId": "medicore-hospital", "currentPatientName": "Rahul Sharma", "currentPatientId": "patient-rahul" },
+  { "bedNumber": "G-02", "ward": "General", "bedType": "General", "status": "Available", "dailyRate": 1500, "floor": "1st Floor", "isAC": false, "hospitalId": "medicore-hospital" },
+  { "bedNumber": "G-03", "ward": "General", "bedType": "General", "status": "Available", "dailyRate": 1500, "floor": "1st Floor", "isAC": false, "hospitalId": "medicore-hospital" },
+  { "bedNumber": "G-04", "ward": "General", "bedType": "General", "status": "Under Cleaning", "dailyRate": 1500, "floor": "1st Floor", "isAC": false, "hospitalId": "medicore-hospital" },
+  { "bedNumber": "G-05", "ward": "General", "bedType": "General", "status": "Occupied", "dailyRate": 1500, "floor": "1st Floor", "isAC": false, "hospitalId": "medicore-hospital", "currentPatientName": "Sunil Gupta" },
+  { "bedNumber": "SP-01", "ward": "Semi-Private", "bedType": "Semi-Private", "status": "Available", "dailyRate": 2500, "floor": "2nd Floor", "isAC": true, "hospitalId": "medicore-hospital" },
+  { "bedNumber": "SP-02", "ward": "Semi-Private", "bedType": "Semi-Private", "status": "Available", "dailyRate": 2500, "floor": "2nd Floor", "isAC": true, "hospitalId": "medicore-hospital" },
+  { "bedNumber": "SP-03", "ward": "Semi-Private", "bedType": "Semi-Private", "status": "Maintenance", "dailyRate": 2500, "floor": "2nd Floor", "isAC": true, "hospitalId": "medicore-hospital" },
+  { "bedNumber": "P-01", "ward": "Private", "bedType": "Private", "status": "Available", "dailyRate": 4000, "floor": "3rd Floor", "isAC": true, "hospitalId": "medicore-hospital" },
+  { "bedNumber": "P-02", "ward": "Private", "bedType": "Private", "status": "Occupied", "dailyRate": 4000, "floor": "3rd Floor", "isAC": true, "hospitalId": "medicore-hospital", "currentPatientName": "Anita Verma" },
+  { "bedNumber": "P-03", "ward": "Private", "bedType": "Private", "status": "Available", "dailyRate": 4000, "floor": "3rd Floor", "isAC": true, "hospitalId": "medicore-hospital" },
+  { "bedNumber": "ICU-01", "ward": "ICU", "bedType": "ICU", "status": "Occupied", "dailyRate": 8000, "floor": "4th Floor", "isAC": true, "hospitalId": "medicore-hospital", "currentPatientName": "Suresh Yadav" },
+  { "bedNumber": "ICU-02", "ward": "ICU", "bedType": "ICU", "status": "Available", "dailyRate": 8000, "floor": "4th Floor", "isAC": true, "hospitalId": "medicore-hospital" },
+  { "bedNumber": "ICU-03", "ward": "ICU", "bedType": "ICU", "status": "Maintenance", "dailyRate": 8000, "floor": "4th Floor", "isAC": true, "hospitalId": "medicore-hospital" },
+  { "bedNumber": "NICU-01", "ward": "NICU", "bedType": "NICU", "status": "Available", "dailyRate": 10000, "floor": "5th Floor", "isAC": true, "hospitalId": "medicore-hospital" },
+  { "bedNumber": "NICU-02", "ward": "NICU", "bedType": "NICU", "status": "Available", "dailyRate": 10000, "floor": "5th Floor", "isAC": true, "hospitalId": "medicore-hospital" },
+  { "bedNumber": "ER-01", "ward": "Emergency", "bedType": "General", "status": "Available", "dailyRate": 2000, "floor": "Ground Floor", "isAC": false, "hospitalId": "medicore-hospital" },
+  { "bedNumber": "ER-02", "ward": "Emergency", "bedType": "General", "status": "Occupied", "dailyRate": 2000, "floor": "Ground Floor", "isAC": false, "hospitalId": "medicore-hospital" }
+]

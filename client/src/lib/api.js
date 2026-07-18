@@ -2,6 +2,10 @@ import apiClient from './axios';
 
 const BASE = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
+export function dispatch(_fallback, path, options = {}) {
+  return request(path, options);
+}
+
 export function getStoredAuthToken() {
   if (typeof localStorage === 'undefined') return null;
   return localStorage.getItem('hms_token') || localStorage.getItem('token');
@@ -46,6 +50,7 @@ export async function downloadInvoicePdf(billId, filename = 'invoice.pdf') {
 }
 
 export const api = {
+  dispatch,
   login:              (body)    => request('/auth/login',            { method:'POST', body: JSON.stringify(body) }),
   googleAuth:         (body)    => request('/auth/google',           { method:'POST', body: JSON.stringify(body) }),
   setDoctorPassword:  (body)    => request('/auth/doctor-setup',     { method:'POST', body: JSON.stringify(body) }),
@@ -69,6 +74,7 @@ export const api = {
   blockUser:          (id)      => request(`/users/${id}/block`,     { method:'PUT' }),
 
   getDoctors:         (p={})    => request('/doctors?' + new URLSearchParams(p)),
+  getDoctor:           (id)      => request(`/doctors/${id}`),
   createDoctor:       (body)    => request('/doctors',               { method:'POST',   body: JSON.stringify(body) }),
   updateDoctor:       (id,body) => request(`/doctors/${id}`,         { method:'PUT',    body: JSON.stringify(body) }),
   deleteDoctor:       (id)      => request(`/doctors/${id}`,         { method:'DELETE' }),
@@ -116,8 +122,6 @@ export const api = {
   markNotificationRead:     (id)    => request(`/notifications/${id}/read`,    { method:'PUT' }),
   createNotification:       (body)  => request('/notifications',                { method:'POST', body: JSON.stringify(body) }),
   deleteNotification:       (id)    => request(`/notifications/${id}`,          { method:'DELETE' }),
-  broadcastNotification:    (body)  => request('/notifications/broadcast',      { method:'POST', body: JSON.stringify(body) }),
-
   getDepartments:    ()        => request('/departments'),
   createDepartment:  (body)    => request('/departments',           { method:'POST',   body: JSON.stringify(body) }),
   updateDepartment:  (id,b)    => request(`/departments/${id}`,     { method:'PUT',    body: JSON.stringify(b) }),
@@ -209,4 +213,36 @@ export const api = {
   createLabPackage:   (body)    => request('/lab/packages', { method:'POST', body: JSON.stringify(body) }),
   updateLabPackage:   (id,body) => request(`/lab/packages/${id}`, { method:'PUT', body: JSON.stringify(body) }),
   deleteLabPackage:   (id)      => request(`/lab/packages/${id}`, { method:'DELETE' }),
+  createLabOrder:     (body)    => request('/lab/orders', { method:'POST', body: JSON.stringify(body) }),
+  getLabOrder:        (id)      => request(`/lab/orders/${id}`),
+  registerSample:     (id,body) => request(`/lab/orders/${id}/register-sample`, { method:'PUT', body: JSON.stringify(body) }),
+  collectSample:      (id,body) => request(`/lab/orders/${id}/collect-sample`, { method:'PUT', body: JSON.stringify(body) }),
+  enterResult:        (id,body) => request(`/lab/orders/${id}/enter-result`, { method:'PUT', body: JSON.stringify(body) }),
+  verifyLabResult:    (id,body) => request(`/lab/orders/${id}/verify`, { method:'PUT', body: JSON.stringify(body) }),
+  deliverLabReport:   (id,body) => request(`/lab/orders/${id}/deliver-report`, { method:'PUT', body: JSON.stringify(body) }),
+
+  getBloodUnits:      (p={})    => request('/bloodbank/units?' + new URLSearchParams(p)),
+  addBloodUnit:       (body)    => request('/bloodbank/units', { method:'POST', body: JSON.stringify(body) }),
+  getBloodRequests:   (p={})    => request('/bloodbank/requests?' + new URLSearchParams(p)),
+  createBloodRequest: (body)    => request('/bloodbank/requests', { method:'POST', body: JSON.stringify(body) }),
+  crossMatchBlood:    (id,body) => request(`/bloodbank/requests/${id}/crossmatch`, { method:'PUT', body: JSON.stringify(body) }),
+  issueBloodUnits:    (id,body) => request(`/bloodbank/requests/${id}/issue`, { method:'PUT', body: JSON.stringify(body) }),
+  startTransfusion:   (id,body) => request(`/bloodbank/requests/${id}/start-transfusion`, { method:'PUT', body: JSON.stringify(body) }),
+  completeTransfusion:(id,body) => request(`/bloodbank/requests/${id}/transfuse`, { method:'PUT', body: JSON.stringify(body) }),
+  reportReaction:     (id,body) => request(`/bloodbank/requests/${id}/reaction`, { method:'PUT', body: JSON.stringify(body) }),
+  getBloodBankStats:  ()        => request('/bloodbank/stats'),
+
+  getDietOrders:      (p={})    => request('/diet/orders?' + new URLSearchParams(p)),
+  createDietOrder:    (body)    => request('/diet/orders', { method:'POST', body: JSON.stringify(body) }),
+  deliverMeal:        (id,body) => request(`/diet/orders/${id}/deliver-meal`, { method:'PUT', body: JSON.stringify(body) }),
+  confirmMeal:        (id,body) => request(`/diet/orders/${id}/confirm-meal`, { method:'PUT', body: JSON.stringify(body) }),
+  reviewDiet:         (id,body) => request(`/diet/orders/${id}/review`, { method:'PUT', body: JSON.stringify(body) }),
+  addDietFeedback:    (id,body) => request(`/diet/orders/${id}/feedback`, { method:'PUT', body: JSON.stringify(body) }),
+  notifyKitchen:      (id)      => request(`/diet/orders/${id}/notify`, { method:'PUT' }),
+  addDietToBilling:   (id,body) => request(`/diet/orders/${id}/create-billing`, { method:'POST', body: JSON.stringify(body) }),
+  getDietStats:       ()        => request('/diet/stats'),
+
+  adjustPharmacyMedicineStock: (id,body) => request(`/pharmacy/medicines/${id}/stock`, { method:'PUT', body: JSON.stringify(body) }),
+  createPharmacyDelivery:      (body)    => request('/pharmacy/deliveries', { method:'POST', body: JSON.stringify(body) }),
+  updatePharmacyDelivery:      (id,body) => request(`/pharmacy/deliveries/${id}`, { method:'PUT', body: JSON.stringify(body) }),
 };

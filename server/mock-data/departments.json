@@ -1,0 +1,12 @@
+[
+  { "name": "Cardiology", "description": "Heart and cardiovascular care", "head": "Dr. Sarah Smith", "active": true, "hospitalId": "medicore-hospital" },
+  { "name": "Neurology", "description": "Brain and nervous system treatment", "head": "Dr. Vikram Mehta", "active": true, "hospitalId": "medicore-hospital" },
+  { "name": "Orthopedics", "description": "Bone and joint care", "head": "Dr. Arjun Singh", "active": true, "hospitalId": "medicore-hospital" },
+  { "name": "Pediatrics", "description": "Child healthcare", "head": "Dr. Priya Patel", "active": true, "hospitalId": "medicore-hospital" },
+  { "name": "Gynecology", "description": "Women's health and maternity", "head": "Dr. Neha Gupta", "active": true, "hospitalId": "medicore-hospital" },
+  { "name": "Dermatology", "description": "Skin care and treatment", "head": "Dr. Anjali Sharma", "active": true, "hospitalId": "medicore-hospital" },
+  { "name": "ENT", "description": "Ear, Nose, and Throat treatment", "head": "Dr. Rakesh Verma", "active": true, "hospitalId": "medicore-hospital" },
+  { "name": "Ophthalmology", "description": "Eye care and surgery", "head": "Dr. Suresh Mehta", "active": true, "hospitalId": "medicore-hospital" },
+  { "name": "General Medicine", "description": "General healthcare and internal medicine", "head": "Dr. Rajesh Kumar", "active": true, "hospitalId": "medicore-hospital" },
+  { "name": "Radiology", "description": "Diagnostic imaging and radiology", "head": "Dr. Amit Joshi", "active": true, "hospitalId": "medicore-hospital" }
+]

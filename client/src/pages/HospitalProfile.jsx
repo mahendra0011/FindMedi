@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useParams, Link, useNavigate, useSearchParams, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Building2, MapPin, Star, Phone, Stethoscope, CalendarDays,
@@ -112,7 +112,7 @@ export default function HospitalProfile() {
         const [hospData, docs, revs] = await Promise.all([
           api.getHospital(id),
           api.getDoctors({ hospitalId: id }).catch(() => []),
-          api.getHospitalReviews(id).catch(() => []),
+          api.getReviews({ hospitalId: id }).catch(() => []),
         ]);
         const hosp = hospData?.hospital || hospData;
         if (!hosp) { setNotFound(true); return; }
@@ -278,16 +278,9 @@ export default function HospitalProfile() {
       </div>
     </div>
   );
-  if (notFound || !hospital) return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-5 px-4">
-      <div className="w-20 h-20 rounded-2xl bg-muted flex items-center justify-center"><Building2 className="w-10 h-10 text-muted-foreground/40" /></div>
-      <div className="text-center">
-        <h2 className="font-heading text-2xl font-bold text-foreground mb-1">Hospital Not Found</h2>
-        <p className="text-muted-foreground max-w-md">The hospital you're looking for doesn't exist or may have been removed.</p>
-      </div>
-      <Button asChild className="rounded-xl"><Link to="/hospitals"><ArrowLeft className="w-4 h-4 mr-2" /> Back to Hospitals</Link></Button>
-    </div>
-  );
+  if (notFound || !hospital) {
+    return <Navigate to="/hospitals" replace />;
+  }
 
   return (
     <motion.div initial="hidden" animate="show" className="bg-background min-h-screen">
