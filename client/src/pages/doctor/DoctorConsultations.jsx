@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileText, User, Calendar, Save, Stethoscope, Pill, FlaskConical, Activity, Clock, Phone, Mail, MapPin, AlertCircle, ChevronDown, ChevronUp, Search, Filter } from 'lucide-react';
+import { FileText, User, Calendar, Save, Stethoscope, Pill, FlaskConical, Activity, Clock, Phone, Mail, MapPin, AlertCircle, ChevronDown, ChevronUp, Search, Filter, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -49,6 +49,24 @@ export default function DoctorConsultations() {
   };
 
   useEffect(() => { loadRecords(); }, [user?.name]);
+
+  const handleDownloadPdf = async (recordId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const base = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const res = await fetch(`${base}/api/records/${recordId}/prescription-pdf`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('Download failed');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `prescription-${recordId.slice(-8)}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) { console.error(e); }
+  };
 
   const filteredRecords = records.filter(r => {
     const matchesSearch = !search || 
@@ -284,6 +302,13 @@ export default function DoctorConsultations() {
                             <p className="text-sm text-foreground bg-muted/30 rounded-lg p-3">{rec.notes}</p>
                           </div>
                         )}
+
+                        {/* Download PDF */}
+                        <div className="md:col-span-2 flex justify-end">
+                          <Button variant="outline" size="sm" className="gap-2" onClick={() => handleDownloadPdf(rec._id)}>
+                            <Download className="w-4 h-4" /> Download PDF
+                          </Button>
+                        </div>
                       </div>
                     </motion.div>
                   )}

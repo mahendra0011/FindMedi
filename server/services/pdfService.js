@@ -1,4 +1,5 @@
 import PDFDocument from 'pdfkit';
+import fetch from 'node-fetch';
 
 const HOSPITAL = {
   name: 'MediCore Hospital',
@@ -229,63 +230,78 @@ const drawStatusPill = (doc, status, x, y) => {
   doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(9).text(normalized, x, y + 6, { width: 84, align: 'center' });
 };
 
-const drawSignature = (doc, label = 'Authorized Signatory') => {
+const fetchImageBuffer = async (url) => {
+  if (!url) return null;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const buffer = await res.buffer();
+    return buffer;
+  } catch { return null; }
+};
+
+const drawSignature = (doc, label = 'Authorized Signatory', signatureBuffer = null) => {
   ensureSpace(doc, 64);
   const { right } = doc.page.margins;
   const width = 170;
   const x = doc.page.width - right - width;
   const y = doc.y + 18;
+
+  if (signatureBuffer) doc.image(signatureBuffer, x + 35, y - 42, { width: 100, height: 40 });
   doc.strokeColor(COLORS.border).lineWidth(0.6).moveTo(x, y).lineTo(x + width, y).stroke();
   doc.fillColor(COLORS.muted).font('Helvetica').fontSize(8).text(label, x, y + 8, { width, align: 'center' });
   doc.y = y + 28;
 };
 
-export const generatePrescriptionPDF = async (data) => collectPdf((doc) => {
-  drawHeader(doc, 'Prescription', { id: data.prescriptionId || data.reportId || `RX-${Date.now()}`, date: data.date || new Date() });
-  drawInfoGrid(doc, [
-    {
-      title: 'Patient',
-      rows: [
-        { label: 'Name', value: data.patient?.name },
-        { label: 'Age', value: data.patient?.age },
-        { label: 'Gender', value: data.patient?.gender },
-        { label: 'Phone', value: data.patient?.phone },
-      ],
-    },
-    {
-      title: 'Doctor',
-      rows: [
-        { label: 'Name', value: doctorName(data.doctor?.name) },
-        { label: 'Speciality', value: data.doctor?.specialization },
-        { label: 'Email', value: data.doctor?.email },
-        { label: 'Follow-up', value: data.followUp },
-      ],
-    },
-  ]);
+export const generatePrescriptionPDF = async (data) => {
+  const signatureBuffer = data.doctor?.signatureUrl ? await fetchImageBuffer(data.doctor.signatureUrl) : null;
+  return collectPdf((doc) => {
+    drawHeader(doc, 'Prescription', { id: data.prescriptionId || data.reportId || `RX-${Date.now()}`, date: data.date || new Date() });
+    drawInfoGrid(doc, [
+      {
+        title: 'Patient',
+        rows: [
+          { label: 'Name', value: data.patient?.name },
+          { label: 'Age', value: data.patient?.age },
+          { label: 'Gender', value: data.patient?.gender },
+          { label: 'Phone', value: data.patient?.phone },
+        ],
+      },
+      {
+        title: 'Doctor',
+        rows: [
+          { label: 'Name', value: doctorName(data.doctor?.name) },
+          { label: 'Speciality', value: data.doctor?.specialization },
+          { label: 'Email', value: data.doctor?.email },
+          { label: 'Follow-up', value: data.followUp },
+        ],
+      },
+    ]);
 
-  drawSectionTitle(doc, 'Clinical Notes');
-  drawTextBlock(doc, 'Chief Complaints', data.chiefComplaints);
-  drawTextBlock(doc, 'Diagnosis', data.diagnosis);
+    drawSectionTitle(doc, 'Clinical Notes');
+    drawTextBlock(doc, 'Chief Complaints', data.chiefComplaints);
+    drawTextBlock(doc, 'Diagnosis', data.diagnosis);
 
-  drawSectionTitle(doc, 'Medications');
-  drawTable(doc, [
-    { key: 'index', label: '#', width: 0.08, align: 'center' },
-    { key: 'name', label: 'Medicine', width: 0.34, bold: true },
-    { key: 'dosage', label: 'Dosage', width: 0.18 },
-    { key: 'frequency', label: 'Frequency', width: 0.18 },
-    { key: 'instructions', label: 'Instructions', width: 0.22 },
-  ], cleanRows((data.medications || []).filter(med => med?.name).map((med, index) => ({
-    index: index + 1,
-    name: med.name,
-    dosage: med.dosage,
-    frequency: med.frequency,
-    instructions: med.instructions,
-  })), { index: '-', name: 'No medications prescribed', dosage: '-', frequency: '-', instructions: '-' }));
+    drawSectionTitle(doc, 'Medications');
+    drawTable(doc, [
+      { key: 'index', label: '#', width: 0.08, align: 'center' },
+      { key: 'name', label: 'Medicine', width: 0.34, bold: true },
+      { key: 'dosage', label: 'Dosage', width: 0.18 },
+      { key: 'frequency', label: 'Frequency', width: 0.18 },
+      { key: 'instructions', label: 'Instructions', width: 0.22 },
+    ], cleanRows((data.medications || []).filter(med => med?.name).map((med, index) => ({
+      index: index + 1,
+      name: med.name,
+      dosage: med.dosage,
+      frequency: med.frequency,
+      instructions: med.instructions,
+    })), { index: '-', name: 'No medications prescribed', dosage: '-', frequency: '-', instructions: '-' }));
 
-  drawSectionTitle(doc, 'Advice');
-  drawTextBlock(doc, 'Instructions for Patient', data.advice || 'No specific advice');
-  drawSignature(doc, doctorName(data.doctor?.name));
-});
+    drawSectionTitle(doc, 'Advice');
+    drawTextBlock(doc, 'Instructions for Patient', data.advice || 'No specific advice');
+    drawSignature(doc, doctorName(data.doctor?.name), signatureBuffer);
+  });
+};
 
 export const generateLabReportPDF = async (data) => collectPdf((doc) => {
   drawHeader(doc, 'Laboratory Report', { id: data.reportId || `LAB-${Date.now()}`, date: data.reportDate || new Date() });

@@ -1,12 +1,23 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
+import multer from 'multer';
 import Doctor from '../models/Doctor.js';
 import User from '../models/User.js';
 import Notification from '../models/Notification.js';
 import { protect, adminOnly, hospitalAdminOnly, superadminOnly, scopeToHospital } from '../middleware/auth.js';
 import { sendDoctorApprovalEmail, sendDoctorRejectionEmail, sendEmail } from '../services/notificationService.js';
+import { uploadFileToCloudinary } from '../services/cloudinaryService.js';
 
 const router = express.Router();
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'image/png' || file.mimetype === 'image/jpeg') return cb(null, true);
+    cb(new Error('Only PNG and JPG images are allowed'));
+  },
+});
 
 const isAdminListRequest = async (req) => {
   const auth = req.headers.authorization;
@@ -243,6 +254,20 @@ router.put('/:id/schedule', protect, async (req, res) => {
     if (req.body.leaves) update.leaves = req.body.leaves;
     const updated = await Doctor.findByIdAndUpdate(req.params.id, update, { new: true });
     res.json(updated);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+router.post('/:id/signature', protect, upload.single('signature'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+    const doctor = await Doctor.findById(req.params.id);
+    if (!doctor) return res.status(404).json({ message: 'Doctor not found' });
+    if (doctor.user_id !== req.user._id.toString() && req.user.role !== 'superadmin') {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+    const cloudResult = await uploadFileToCloudinary(req.file.buffer, req.file.originalname, req.file.mimetype);
+    const updated = await Doctor.findByIdAndUpdate(req.params.id, { signatureUrl: cloudResult.url }, { new: true });
+    res.json({ signatureUrl: updated.signatureUrl });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 

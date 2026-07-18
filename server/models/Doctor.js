@@ -30,6 +30,7 @@ const doctorSchema = new mongoose.Schema({
   user_id: { type: String, default: '' },
   hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
   reviews_count: { type: Number, default: 0 },
+  signatureUrl: { type: String, default: '' },
   createdAt: { type: Date, default: Date.now },
 });
 

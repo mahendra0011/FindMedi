@@ -2,7 +2,9 @@ import express from 'express';
 import Record from '../models/Record.js';
 import Notification from '../models/Notification.js';
 import User from '../models/User.js';
+import Doctor from '../models/Doctor.js';
 import { protect } from '../middleware/auth.js';
+import { generatePrescriptionPDF } from '../services/pdfService.js';
 
 const router = express.Router();
 
@@ -152,6 +154,38 @@ router.put('/:id', protect, async (req, res) => {
       .populate('doctorId', 'name specialization');
     res.json(r);
   } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+router.get('/:id/prescription-pdf', protect, async (req, res) => {
+  try {
+    const record = await Record.findById(req.params.id).populate('doctorId', 'name specialization email signatureUrl');
+    if (!record) return res.status(404).json({ message: 'Record not found' });
+    if (req.user.role === 'patient' && record.patientId?.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+    let docSignatureUrl = '';
+    if (record.doctorId?.signatureUrl) {
+      docSignatureUrl = record.doctorId.signatureUrl;
+    } else {
+      const doctorDoc = await Doctor.findOne({ user_id: record.doctorId?._id || record.doctorId });
+      if (doctorDoc?.signatureUrl) docSignatureUrl = doctorDoc.signatureUrl;
+    }
+    const pdfData = {
+      prescriptionId: record._id.toString().slice(-8).toUpperCase(),
+      date: record.date || new Date(),
+      patient: { name: record.patient, age: record.data?.patient?.age, gender: record.data?.patient?.gender, phone: record.data?.patient?.phone },
+      doctor: { name: record.doctor, specialization: record.doctorId?.specialization, email: record.doctorId?.email, signatureUrl: docSignatureUrl },
+      chiefComplaints: record.data?.chiefComplaints || record.notes || '',
+      diagnosis: record.diagnosis || '',
+      medications: record.data?.medications?.length ? record.data.medications.map(m => typeof m === 'string' ? { name: m, dosage: '', frequency: '', instructions: '' } : m) : [],
+      advice: record.data?.advice || '',
+      followUp: record.data?.followUp || '',
+    };
+    const pdfBuffer = await generatePrescriptionPDF(pdfData);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="prescription-${record._id}.pdf"`);
+    res.send(pdfBuffer);
+  } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
 router.delete('/:id', protect, async (req, res) => {

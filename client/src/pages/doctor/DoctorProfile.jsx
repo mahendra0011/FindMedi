@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { User, Mail, Phone, MapPin, Stethoscope, Award, Clock, Hash, Save, Upload, AlertCircle, CheckCircle, Camera } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Stethoscope, Award, Clock, Hash, Save, Upload, AlertCircle, CheckCircle, Camera, Pen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -21,6 +21,8 @@ export default function DoctorProfile() {
   const [address, setAddress] = useState('');
   const [consultationFee, setConsultationFee] = useState('');
   const [avatar, setAvatar] = useState('');
+  const [signatureUrl, setSignatureUrl] = useState('');
+  const [signatureUploading, setSignatureUploading] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -37,6 +39,7 @@ export default function DoctorProfile() {
           setAddress(myDoc.location || '');
           setConsultationFee(myDoc.consultation_fees || myDoc.fees || '');
           setAvatar(myDoc.avatar || '');
+          setSignatureUrl(myDoc.signatureUrl || '');
         }
       } catch (e) { console.error(e); }
       setLoading(false);
@@ -56,6 +59,17 @@ export default function DoctorProfile() {
       setTimeout(() => setSaved(false), 3000);
     } catch (e) { console.error(e); }
     setSaving(false);
+  };
+
+  const handleSignatureUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !doctor) return;
+    setSignatureUploading(true);
+    try {
+      const res = await api.uploadDoctorSignature(doctor._id, file);
+      setSignatureUrl(res.signatureUrl);
+    } catch (err) { console.error(err); }
+    setSignatureUploading(false);
   };
 
   const handleAvatarChange = (e) => {
@@ -189,6 +203,31 @@ export default function DoctorProfile() {
           <textarea value={bio} onChange={e => setBio(e.target.value)}
             placeholder="Write a short professional bio..."
             className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm resize-none h-24" />
+        </div>
+
+        <hr className="border-border/60" />
+
+        <div>
+          <h3 className="font-heading text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+            <Pen className="w-5 h-5 text-primary" /> Digital Signature
+          </h3>
+          <p className="text-sm text-muted-foreground mb-4">Upload your signature image to appear on prescriptions. Supports PNG and JPG.</p>
+          <div className="flex flex-col sm:flex-row items-start gap-6">
+            <div className="w-48 h-20 rounded-xl border-2 border-dashed border-border flex items-center justify-center bg-muted/20 overflow-hidden">
+              {signatureUrl ? (
+                <img src={signatureUrl} alt="Signature" className="max-w-full max-h-full object-contain" />
+              ) : (
+                <span className="text-xs text-muted-foreground">No signature</span>
+              )}
+            </div>
+            <div className="flex-1">
+              <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors">
+                <Upload className="w-4 h-4" />
+                {signatureUploading ? 'Uploading...' : signatureUrl ? 'Replace Signature' : 'Upload Signature'}
+                <input type="file" accept="image/png,image/jpeg" className="hidden" onChange={handleSignatureUpload} disabled={signatureUploading} />
+              </label>
+            </div>
+          </div>
         </div>
 
         <hr className="border-border/60" />
