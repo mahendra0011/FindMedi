@@ -110,6 +110,8 @@ import AdminReviews from './pages/admin/AdminReviews';
 import AdminEmergency from './pages/admin/AdminEmergency';
 import AdminBedManagement from './pages/admin/AdminBedManagement';
 import AdminTestCatalog from './pages/admin/AdminTestCatalog';
+import AdminHospitalSettings from './pages/admin/AdminHospitalSettings';
+import AdminAnnouncements from './pages/admin/AdminAnnouncements';
 import DiagnosticDashboard from './pages/DiagnosticDashboard';
 import PDFReports from './pages/PDFReports';
 import ImportExport from './pages/ImportExport';
@@ -419,6 +421,8 @@ const App = () => (
                     <Route path="/admin/reviews" element={<RoleRoute allowedRoles={['admin']}><AdminReviews /></RoleRoute>} />
                     <Route path="/admin/beds" element={<RoleRoute allowedRoles={['admin']}><AdminBedManagement /></RoleRoute>} />
                     <Route path="/admin/test-catalog" element={<RoleRoute allowedRoles={['admin']}><AdminTestCatalog /></RoleRoute>} />
+                    <Route path="/admin/hospital-settings" element={<RoleRoute allowedRoles={['admin']}><AdminHospitalSettings /></RoleRoute>} />
+                    <Route path="/admin/announcements" element={<RoleRoute allowedRoles={['admin']}><AdminAnnouncements /></RoleRoute>} />
                     <Route path="/admin/diagnostic" element={<RoleRoute allowedRoles={['admin', 'doctor', 'lab_receptionist', 'lab_technician', 'pathologist']}><DiagnosticDashboard /></RoleRoute>} />
                     <Route path="/doctors" element={<RoleRoute allowedRoles={['admin']}><Doctors /></RoleRoute>} />
                     <Route path="/patients" element={<RoleRoute allowedRoles={['admin']}><Patients /></RoleRoute>} />
