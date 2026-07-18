@@ -496,7 +496,7 @@ export default function HospitalTestBooking() {
         </div>
 
         {/* Department Filter Chips */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-3 mb-6">
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2 mb-5">
           {DEPARTMENTS.map(dept => {
             const Icon = dept.icon;
             const isActive = deptFilter === dept.id;
@@ -509,15 +509,15 @@ export default function HospitalTestBooking() {
                 whileTap={{ scale: 0.96 }}
                 onClick={() => setDeptFilter(dept.id)}
                 className={cn(
-                  'flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border transition-all',
-                  isActive ? 'border-primary bg-primary/5 shadow-md shadow-primary/10' : 'border-border/60 bg-card hover:shadow-sm',
+                  'flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl border transition-all',
+                  isActive ? 'border-primary bg-primary/5 shadow-sm shadow-primary/10' : 'border-border/60 bg-card hover:shadow-sm',
                   dept.hoverColor
                 )}>
-                <div className={cn('w-12 h-12 rounded-xl bg-gradient-to-br flex items-center justify-center', dept.color)}>
-                  <Icon className={cn('w-6 h-6', dept.textColor)} />
+                <div className={cn('w-10 h-10 rounded-lg bg-gradient-to-br flex items-center justify-center', dept.color)}>
+                  <Icon className={cn('w-5 h-5', dept.textColor)} />
                 </div>
-                <span className={cn('text-xs font-semibold text-center leading-tight', isActive ? 'text-primary' : 'text-foreground')}>{dept.name}</span>
-                <span className="text-[10px] text-muted-foreground">{count}</span>
+                <span className={cn('text-[11px] font-semibold text-center leading-tight', isActive ? 'text-primary' : 'text-foreground')}>{dept.name}</span>
+                <span className="text-[9px] text-muted-foreground">{count}</span>
               </motion.button>
             );
           })}

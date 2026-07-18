@@ -7,7 +7,7 @@ import {
   BookMarked, ChevronRight, GraduationCap, Briefcase, Shield, Trophy,
   HeartPulse, Syringe, Ambulance, Plus, Minus, ChevronDown, ChevronUp,
   Quote, Home, ExternalLink, Sparkles, Languages, CircleDot, FileText, BedDouble,
-  CreditCard, Image, Pill, Car, Accessibility, Wind, FlaskConical, DoorOpen, Store
+  CreditCard, Image, Pill, Car, Accessibility, Wind, FlaskConical, DoorOpen
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -56,12 +56,11 @@ function getExpYears(exp) {
 const DAY_ORDER = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
 const DAY_LABELS = { sunday: 'Sunday', monday: 'Monday', tuesday: 'Tuesday', wednesday: 'Wednesday', thursday: 'Thursday', friday: 'Friday', saturday: 'Saturday' };
 
-export default function DoctorDetail() {
+export default function HospitalDoctor() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [doctor, setDoctor] = useState(null);
-  const [hospital, setHospital] = useState(null);
   const [relatedDoctors, setRelatedDoctors] = useState([]);
   const [departmentDoctors, setDepartmentDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -92,19 +91,11 @@ export default function DoctorDetail() {
         if (!doc) { setNotFound(true); return; }
         setDoctor(doc);
 
-        if (doc.hospitalId) {
-          const hosp = await api.getHospital(doc.hospitalId).catch(() => null);
-          setHospital(hosp?.hospital || hosp || null);
-        }
-
         const rv = await api.getReviews({ doctorId: id }).catch(() => []);
         setReviews(Array.isArray(rv) ? rv : []);
 
         const allDocs = await api.getDoctors({}).catch(() => []);
         const filtered = (allDocs || []).filter(d => d._id !== id);
-        if (doc.hospitalId) {
-          setRelatedDoctors(filtered.filter(d => d.hospitalId === doc.hospitalId).slice(0, 4));
-        }
         if (doc.specialization) {
           setDepartmentDoctors(filtered.filter(d => d.specialization === doc.specialization).slice(0, 4));
         }
@@ -216,9 +207,6 @@ export default function DoctorDetail() {
           <ChevronRight className="w-3.5 h-3.5" />
           <Link to="/doctors" className="hover:text-primary transition-colors">Doctors</Link>
           <ChevronRight className="w-3.5 h-3.5" />
-          {hospital?.city && (
-            <><Link to={`/doctors?city=${encodeURIComponent(hospital.city)}`} className="hover:text-primary transition-colors">{hospital.city}</Link><ChevronRight className="w-3.5 h-3.5" /></>
-          )}
           <span className="text-foreground font-medium truncate max-w-[200px]">Dr. {doctor.name}</span>
         </nav>
       </div>
@@ -269,22 +257,8 @@ export default function DoctorDetail() {
                     </p>
                   )}
 
-                  {/* Clinic / Hospital Name */}
+                  {/* Department */}
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-muted-foreground mb-2.5">
-                    {(doctor.clinicProfile?.clinic_name || '') && (
-                      <span className="flex items-center gap-1.5">
-                        <Store className="w-4 h-4 text-primary shrink-0" />
-                        <span className="text-primary font-medium">{(doctor.clinicProfile?.clinic_name || '')}</span>
-                      </span>
-                    )}
-                    {hospital && !(doctor.clinicProfile?.clinic_name || '') && (
-                      <span className="flex items-center gap-1.5">
-                        <Building2 className="w-4 h-4 text-primary shrink-0" />
-                        <Link to={`/hospitals/${hospital._id}`} className="text-primary hover:underline font-medium">
-                          {hospital.name}
-                        </Link>
-                      </span>
-                    )}
                     {doctor.department && (
                       <span className="flex items-center gap-1.5">
                         <Building2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
@@ -297,7 +271,7 @@ export default function DoctorDetail() {
                   <div className="flex flex-wrap items-center gap-2 mb-2.5">
                     {doctor.practice_type === 'private' && (
                       <Badge variant="secondary" className="text-xs bg-violet-50 text-violet-600 border-violet-200 dark:bg-violet-500/10 dark:text-violet-400 dark:border-violet-800">
-                        <Store className="w-3 h-3 mr-1" />
+                        <Building2 className="w-3 h-3 mr-1" />
                         Private Practice / Own Clinic
                       </Badge>
                     )}
@@ -542,7 +516,7 @@ export default function DoctorDetail() {
               </Card>
             </motion.div>
 
-            {/* ═══ 5. CLINIC & LOCATION DETAILS / HOSPITAL & PRACTICE DETAILS ═══ */}
+            {/* ═══ 5. HOSPITAL & PRACTICE DETAILS ═══ */}
             <motion.div variants={fadeUp}>
               <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden">
                 <CardContent className="p-6 sm:p-8">
@@ -550,186 +524,31 @@ export default function DoctorDetail() {
                     <span className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
                       <Building2 className="w-4 h-4 text-primary" />
                     </span>
-                    {(doctor.clinicProfile?.clinic_name || '') ? 'Clinic & Location Details' : 'Hospital & Practice Details'}
+                    Hospital & Practice Details
                   </h2>
 
-                  {/* ─── PRIVATE PRACTICE VIEW ─── */}
-                  {(doctor.clinicProfile?.clinic_name || '') ? (
-                    <>
-                      {/* Clinic Photos / Gallery */}
-                      {doctor.clinic_photos?.length > 0 && (
-                        <div className="mb-6">
-                          <p className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-                            <Image className="w-4 h-4 text-primary" />
-                            Clinic Gallery
-                          </p>
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                            {doctor.clinic_photos.map((photo, i) => (
-                              <div key={i} className="aspect-[3/2] rounded-xl overflow-hidden border border-border/40 bg-muted">
-                                <img src={photo} alt={`Clinic photo ${i + 1}`} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
-                              </div>
-                            ))}
-                          </div>
+                  {/* Availability Grid */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+                    {[
+                      { label: 'Admission', available: doctor.admission_available, icon: HeartPulse, color: 'text-rose-500', bg: 'bg-rose-50 dark:bg-rose-500/10 border-rose-200 dark:border-rose-800' },
+                      { label: 'Surgery', available: doctor.surgery_available, icon: Syringe, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-800' },
+                      { label: 'Emergency', available: doctor.emergency_consultation, icon: Ambulance, color: 'text-red-500', bg: 'bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-800' },
+                      { label: 'Inpatient', available: doctor.admission_available, icon: BedDouble, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-800' },
+                    ].map(item => {
+                      const Icon = item.icon;
+                      return (
+                        <div key={item.label} className={cn('flex flex-col items-center gap-1.5 px-3 py-3 rounded-xl border', item.bg)}>
+                          <Icon className={cn('w-5 h-5', item.color)} />
+                          <span className={cn('text-xs font-semibold', item.color)}>{item.label}</span>
+                          <span className={cn('text-xs font-bold', item.available ? 'text-emerald-600' : 'text-muted-foreground')}>
+                            {item.available ? 'Available' : 'N/A'}
+                          </span>
                         </div>
-                      )}
+                      );
+                    })}
+                  </div>
 
-                      {/* Multiple Clinic Locations */}
-                      {doctor.clinic_locations?.length > 0 && (
-                        <div className="mb-6">
-                          <p className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-                            <MapPin className="w-4 h-4 text-primary" />
-                            Clinic Locations ({doctor.clinic_locations.length})
-                          </p>
-                          <div className="space-y-3">
-                            {doctor.clinic_locations.map((loc, i) => (
-                              <div key={i} className={cn(
-                                'p-4 rounded-xl border transition-colors',
-                                loc.is_primary
-                                  ? 'bg-primary/5 border-primary/30'
-                                  : 'bg-muted/30 border-border/60'
-                              )}>
-                                <div className="flex items-start justify-between gap-3">
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 mb-1">
-                                      <p className="font-semibold text-foreground text-sm">{loc.name}</p>
-                                      {loc.is_primary && (
-                                        <Badge variant="outline" className="text-[10px] h-5 bg-primary/10 text-primary border-primary/30 px-2">Primary</Badge>
-                                      )}
-                                    </div>
-                                    <p className="text-xs text-muted-foreground flex items-center gap-1 mb-1">
-                                      <MapPin className="w-3 h-3 shrink-0" />
-                                      {loc.address}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                      <Clock className="w-3 h-3 shrink-0" />
-                                      {loc.timing}
-                                    </p>
-                                  </div>
-                                  {loc.phone && (
-                                    <a href={`tel:${loc.phone}`}
-                                      className="shrink-0 p-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-                                    >
-                                      <Phone className="w-4 h-4" />
-                                    </a>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Direct Clinic Reception */}
-                      {doctor.clinic_reception_phone && (
-                        <div className="mb-6 p-4 rounded-xl bg-muted/30 border border-border/60 flex items-center justify-between">
-                          <div>
-                            <p className="text-sm font-semibold text-foreground">Clinic Reception</p>
-                            <p className="text-xs text-muted-foreground">Call for appointments & queries</p>
-                          </div>
-                          <a href={`tel:${doctor.clinic_reception_phone}`}
-                            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors"
-                          >
-                            <Phone className="w-4 h-4" />
-                            {doctor.clinic_reception_phone}
-                          </a>
-                        </div>
-                      )}
-
-                      {/* In-house Facilities */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-                        {[
-                          { label: 'Pharmacy', available: doctor.in_house_pharmacy, icon: Pill, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-800' },
-                          { label: 'Lab / Diagnostic', available: doctor.in_house_lab, icon: FlaskConical, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-800' },
-                          { label: 'Admission', available: doctor.admission_available, icon: HeartPulse, color: 'text-rose-500', bg: 'bg-rose-50 dark:bg-rose-500/10 border-rose-200 dark:border-rose-800' },
-                          { label: 'Emergency', available: doctor.emergency_consultation, icon: Ambulance, color: 'text-red-500', bg: 'bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-800' },
-                        ].map(item => {
-                          const Icon = item.icon;
-                          return (
-                            <div key={item.label} className={cn('flex flex-col items-center gap-1.5 px-3 py-3 rounded-xl border', item.bg)}>
-                              <Icon className={cn('w-5 h-5', item.color)} />
-                              <span className={cn('text-xs font-semibold', item.color)}>{item.label}</span>
-                              <span className={cn('text-xs font-bold', item.available ? 'text-emerald-600' : 'text-muted-foreground')}>
-                                {item.available ? 'Available' : 'N/A'}
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-
-                      {/* Clinic Facilities */}
-                      {doctor.facilities?.length > 0 && (
-                        <div className="mb-6">
-                          <p className="text-sm font-semibold text-foreground mb-3">Facilities</p>
-                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                            {doctor.facilities.map((fac, i) => (
-                              <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/30 border border-border/60 text-sm text-muted-foreground">
-                                {fac.toLowerCase().includes('parking') && <Car className="w-3.5 h-3.5 text-primary shrink-0" />}
-                                {fac.toLowerCase().includes('wheelchair') && <Accessibility className="w-3.5 h-3.5 text-primary shrink-0" />}
-                                {fac.toLowerCase().includes('ac') && <Wind className="w-3.5 h-3.5 text-primary shrink-0" />}
-                                {!fac.toLowerCase().includes('parking') && !fac.toLowerCase().includes('wheelchair') && !fac.toLowerCase().includes('ac') && <CheckCircle className="w-3.5 h-3.5 text-primary shrink-0" />}
-                                {fac}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <>
-                      {/* ─── HOSPITAL VIEW ─── */}
-                      {/* Mini Hospital Card */}
-                      {hospital && (
-                        <div className="flex items-center gap-4 p-4 rounded-xl bg-muted/30 border border-border/60 mb-6">
-                          <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-primary font-bold text-xl overflow-hidden shrink-0 border border-border/40">
-                            {hospital.logo
-                              ? <img src={hospital.logo} alt="" className="w-full h-full object-cover" />
-                              : getInitials(hospital.name)
-                            }
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <Link to={`/hospitals/${hospital._id}`} className="font-heading font-semibold text-foreground hover:text-primary transition-colors flex items-center gap-1">
-                              {hospital.name}
-                              <ExternalLink className="w-3.5 h-3.5" />
-                            </Link>
-                            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                              <MapPin className="w-3 h-3 shrink-0" />
-                              {hospital.address}, {hospital.city}
-                            </p>
-                            <div className="flex items-center gap-2 mt-1.5">
-                              <div className="flex items-center gap-0.5">{renderStars(hospital.rating || 4.5, 'w-3 h-3')}</div>
-                              <span className="text-xs text-muted-foreground">{hospital.rating || 4.5}</span>
-                            </div>
-                          </div>
-                          <Button variant="outline" size="sm" className="shrink-0 rounded-xl" asChild>
-                            <Link to={`/hospitals/${hospital._id}`}>View Profile</Link>
-                          </Button>
-                        </div>
-                      )}
-
-                      {/* Availability Grid */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-                        {[
-                          { label: 'Admission', available: doctor.admission_available, icon: HeartPulse, color: 'text-rose-500', bg: 'bg-rose-50 dark:bg-rose-500/10 border-rose-200 dark:border-rose-800' },
-                          { label: 'Surgery', available: doctor.surgery_available, icon: Syringe, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-800' },
-                          { label: 'Emergency', available: doctor.emergency_consultation, icon: Ambulance, color: 'text-red-500', bg: 'bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-800' },
-                          { label: 'Inpatient', available: doctor.admission_available, icon: BedDouble, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-800' },
-                        ].map(item => {
-                          const Icon = item.icon;
-                          return (
-                            <div key={item.label} className={cn('flex flex-col items-center gap-1.5 px-3 py-3 rounded-xl border', item.bg)}>
-                              <Icon className={cn('w-5 h-5', item.color)} />
-                              <span className={cn('text-xs font-semibold', item.color)}>{item.label}</span>
-                              <span className={cn('text-xs font-bold', item.available ? 'text-emerald-600' : 'text-muted-foreground')}>
-                                {item.available ? 'Available' : 'N/A'}
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </>
-                  )}
-
-                  {/* Insurance Accepted (common for both views) */}
+                  {/* Insurance Accepted */}
                   {doctor.insurance_accepted?.length > 0 && (
                     <div>
                       <p className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
@@ -803,7 +622,7 @@ export default function DoctorDetail() {
                                 {active ? (doctor.opd_timings?.split('|')[0]?.trim() || '9:00 AM – 5:00 PM') : '—'}
                               </td>
                               <td className="py-3 px-4 text-muted-foreground">
-                                {active ? ((doctor.clinicProfile?.clinic_name || '') || hospital?.name || '—') : '—'}
+                                {active ? ((doctor.clinicProfile?.clinic_name || '') || '—') : '—'}
                               </td>
                             </tr>
                           );
@@ -972,37 +791,6 @@ export default function DoctorDetail() {
                       </div>
                     )}
                   </div>
-
-                  {/* FAQs */}
-                  {(doctor.clinicProfile?.clinic_faqs || []).length > 0 && (
-                    <div className="mt-6">
-                      <p className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
-                        <Quote className="w-4 h-4 text-primary" />
-                        Frequently Asked Questions
-                      </p>
-                      <div className="space-y-2">
-                        {(doctor.clinicProfile?.clinic_faqs || []).map((faq, i) => (
-                          <div key={i} className="rounded-xl border border-border/60 overflow-hidden">
-                            <button
-                              onClick={() => setExpandedFaq(expandedFaq === i ? null : i)}
-                              className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-muted/20 transition-colors"
-                            >
-                              <span className="text-sm font-medium text-foreground">{faq.q}</span>
-                              {expandedFaq === i
-                                ? <Minus className="w-4 h-4 text-muted-foreground shrink-0 ml-2" />
-                                : <Plus className="w-4 h-4 text-muted-foreground shrink-0 ml-2" />
-                              }
-                            </button>
-                            {expandedFaq === i && (
-                              <div className="px-4 pb-3">
-                                <p className="text-sm text-muted-foreground leading-relaxed">{faq.a}</p>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </CardContent>
               </Card>
             </motion.div>
@@ -1016,7 +804,7 @@ export default function DoctorDetail() {
                       <span className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
                         <Users className="w-4 h-4 text-primary" />
                       </span>
-                      {(doctor.clinicProfile?.clinic_name || '') ? 'Other Doctors at Same Clinic' : 'Related Doctors'}
+                      Related Doctors
                     </h2>
 
                     <Tabs defaultValue={relatedDoctors.length > 0 ? 'same-hospital' : 'same-department'} className="w-full">
@@ -1024,7 +812,7 @@ export default function DoctorDetail() {
                         {relatedDoctors.length > 0 && (
                           <TabsTrigger value="same-hospital" className="rounded-xl text-xs sm:text-sm">
                             <Building2 className="w-4 h-4 mr-1.5" />
-                            {(doctor.clinicProfile?.clinic_name || '') ? 'Same Clinic' : 'Same Hospital'}
+                            Same Hospital
                           </TabsTrigger>
                         )}
                         {departmentDoctors.length > 0 && (
@@ -1041,7 +829,7 @@ export default function DoctorDetail() {
                             {relatedDoctors.map((doc, i) => (
                               <motion.div key={doc._id} variants={fadeUp}
                                 className="bg-card rounded-xl border border-border/50 p-4 hover:shadow-lg hover:border-primary/20 transition-all cursor-pointer group"
-                                onClick={() => navigate(`/doctors/${doc._id}`)}
+                                onClick={() => navigate(`/hospital-doctors/${doc._id}`)}
                               >
                                 <div className="flex items-start gap-3 mb-3">
                                   <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-primary font-bold text-base overflow-hidden shrink-0 border border-border/40 group-hover:border-primary/30">
@@ -1062,7 +850,7 @@ export default function DoctorDetail() {
                                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                                   <span className="flex items-center gap-1"><Award className="w-3 h-3 text-primary" />{doc.experience}</span>
                                   <Button size="sm" variant="ghost" className="h-7 px-3 rounded-lg gap-1"
-                                    onClick={(e) => { e.stopPropagation(); navigate(`/doctors/${doc._id}`); }}
+                                    onClick={(e) => { e.stopPropagation(); navigate(`/hospital-doctors/${doc._id}`); }}
                                   >
                                     View <ChevronRight className="w-3 h-3" />
                                   </Button>
@@ -1079,7 +867,7 @@ export default function DoctorDetail() {
                             {departmentDoctors.map((doc, i) => (
                               <motion.div key={doc._id} variants={fadeUp}
                                 className="bg-card rounded-xl border border-border/50 p-4 hover:shadow-lg hover:border-primary/20 transition-all cursor-pointer group"
-                                onClick={() => navigate(`/doctors/${doc._id}`)}
+                                onClick={() => navigate(`/hospital-doctors/${doc._id}`)}
                               >
                                 <div className="flex items-start gap-3 mb-3">
                                   <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-primary font-bold text-base overflow-hidden shrink-0 border border-border/40 group-hover:border-primary/30">
@@ -1100,7 +888,7 @@ export default function DoctorDetail() {
                                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                                   <span className="flex items-center gap-1"><Award className="w-3 h-3 text-primary" />{doc.experience}</span>
                                   <Button size="sm" variant="ghost" className="h-7 px-3 rounded-lg gap-1"
-                                    onClick={(e) => { e.stopPropagation(); navigate(`/doctors/${doc._id}`); }}
+                                    onClick={(e) => { e.stopPropagation(); navigate(`/hospital-doctors/${doc._id}`); }}
                                   >
                                     View <ChevronRight className="w-3 h-3" />
                                   </Button>
@@ -1274,12 +1062,12 @@ export default function DoctorDetail() {
                     <CalendarDays className="w-4 h-4 mr-2" /> Confirm Booking
                   </Button>
 
-                  {/* Call Clinic / Hospital Reception */}
-                  {(doctor.clinic_reception_phone || hospital?.phone) && (
+                  {/* Call Hospital Reception */}
+                  {doctor.clinic_reception_phone && (
                     <Button variant="outline" className="w-full rounded-xl h-11 gap-2" asChild>
-                      <a href={`tel:${doctor.clinic_reception_phone || hospital?.phone}`}>
+                      <a href={`tel:${doctor.clinic_reception_phone}`}>
                         <Phone className="w-4 h-4" />
-                        {doctor.clinic_reception_phone ? 'Call Clinic' : 'Call Hospital Reception'}
+                        Call Hospital Reception
                       </a>
                     </Button>
                   )}

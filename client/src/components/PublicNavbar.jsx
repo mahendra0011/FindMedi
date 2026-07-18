@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils';
 const NAV_ITEMS = [
   { label: 'Home', path: '/' },
   { label: 'Find Hospital', path: '/hospitals' },
-  { label: 'Find Clinic', path: '/doctors' },
+  { label: 'Find Clinic', path: '/clinic' },
   { label: 'Find Diagnostic Centers', path: '/book-test' },
   { label: 'Book Test', path: '/all-tests' },
   { label: 'Buy Medicine', path: '/buy-medicine' },
