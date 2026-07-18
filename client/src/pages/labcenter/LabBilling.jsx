@@ -1,36 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { IndianRupee, Calendar, User, Search, Plus, X, Send, CreditCard, CheckCircle, Clock } from 'lucide-react';
+import { IndianRupee, Calendar, User, Search, Plus, X, Send, CreditCard, CheckCircle, Clock, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { api } from '@/lib/api';
 
-const STORAGE_KEY = 'medicore_labcenter_bills';
-const TESTS_KEY = 'medicore_labcenter_tests';
 const statusColors = { Paid: 'bg-success/10 text-success', Pending: 'bg-warning/10 text-warning', Overdue: 'bg-destructive/10 text-destructive' };
 
-const mockTests = [
-  { _id: 't1', name: 'Complete Blood Count', price: 500 },
-  { _id: 't2', name: 'Blood Sugar Fasting', price: 200 },
-  { _id: 't3', name: 'Lipid Profile', price: 600 },
-  { _id: 't4', name: 'Liver Function Test', price: 400 },
-  { _id: 't5', name: 'Thyroid Profile', price: 550 },
-  { _id: 't6', name: 'Kidney Function Test', price: 350 },
-];
-
-const generateMockBills = () => [
-  { _id: 'bill_1', invoiceId: 'INV-001', patient: 'Rahul Mehta', tests: ['t1', 't3', 't4'], amount: 1500, discount: 10, total: 1350, date: '2026-07-10', status: 'Paid' },
-  { _id: 'bill_2', invoiceId: 'INV-002', patient: 'Sneha Patel', tests: ['t2', 't5'], amount: 750, discount: 0, total: 750, date: '2026-07-12', status: 'Paid' },
-  { _id: 'bill_3', invoiceId: 'INV-003', patient: 'Vikram Singh', tests: ['t1', 't2', 't3', 't6'], amount: 1650, discount: 15, total: 1402, date: '2026-07-14', status: 'Pending' },
-  { _id: 'bill_4', invoiceId: 'INV-004', patient: 'Anita Desai', tests: ['t4', 't5'], amount: 950, discount: 5, total: 902, date: '2026-07-15', status: 'Pending' },
-  { _id: 'bill_5', invoiceId: 'INV-005', patient: 'Deepak Joshi', tests: ['t1', 't6'], amount: 850, discount: 0, total: 850, date: '2026-06-28', status: 'Overdue' },
-];
-
 export default function LabBilling() {
-  const [bills, setBills] = useState(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    return stored ? JSON.parse(stored) : generateMockBills();
-  });
+  const [bills, setBills] = useState([]);
+  const [tests, setTests] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [showForm, setShowForm] = useState(false);
@@ -39,18 +20,31 @@ export default function LabBilling() {
   const [discount, setDiscount] = useState(0);
   const [saving, setSaving] = useState(false);
 
-  const tests = JSON.parse(localStorage.getItem(TESTS_KEY) || JSON.stringify(mockTests));
+  useEffect(() => {
+    Promise.all([
+      api.getLabBookings({ status: 'Completed' }).then(res => {
+        const bookings = res.bookings || [];
+        setBills(bookings.map((b, i) => ({
+          _id: b._id || `bill_${i}`,
+          invoiceId: b.invoiceId || `INV-${String(i + 1).padStart(3, '0')}`,
+          patient: b.patient || b.patientName || 'Unknown',
+          tests: b.tests || [],
+          amount: b.amount || 0,
+          discount: b.discount || 0,
+          total: b.total || b.amount || 0,
+          date: b.date || b.createdAt?.split('T')[0] || '',
+          status: b.status || 'Completed',
+        })));
+      }),
+      api.getLabTests().then(res => setTests(res.tests || [])),
+    ]).catch(console.error).finally(() => setLoading(false));
+  }, []);
 
   const subTotal = selectedTests.reduce((s, tid) => {
     const t = tests.find(tt => tt._id === tid);
     return s + (t?.price || 0);
   }, 0);
   const total = subTotal - (subTotal * (discount || 0) / 100);
-
-  const saveBills = (data) => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    setBills(data);
-  };
 
   const filtered = bills.filter(b => {
     const ms = !search || b.patient?.toLowerCase().includes(search.toLowerCase()) || b.invoiceId?.toLowerCase().includes(search.toLowerCase());
@@ -62,26 +56,49 @@ export default function LabBilling() {
     if (!patientName || selectedTests.length === 0) return;
     setSaving(true);
     try {
-      const invNum = `INV-${String(bills.length + 1).padStart(3, '0')}`;
-      const bill = {
-        _id: `bill_${Date.now()}`, invoiceId: invNum, patient: patientName,
-        tests: selectedTests, amount: subTotal, discount: Number(discount), total: Math.round(total),
-        date: new Date().toISOString().split('T')[0], status: 'Pending',
-      };
-      saveBills([bill, ...bills]);
+      const newBooking = await api.createLabBooking({
+        patient: patientName,
+        tests: selectedTests,
+        amount: subTotal,
+        discount: Number(discount),
+        total: Math.round(total),
+        status: 'Pending',
+      });
+      setBills(prev => [{
+        _id: newBooking._id || `bill_${Date.now()}`,
+        invoiceId: newBooking.invoiceId || `INV-${String(prev.length + 1).padStart(3, '0')}`,
+        patient: patientName,
+        tests: selectedTests,
+        amount: subTotal,
+        discount: Number(discount),
+        total: Math.round(total),
+        date: new Date().toISOString().split('T')[0],
+        status: 'Pending',
+      }, ...prev]);
       setShowForm(false);
       setPatientName(''); setSelectedTests([]); setDiscount(0);
     } catch (e) { console.error(e); }
     setSaving(false);
   };
 
-  const markPaid = (id) => {
-    saveBills(bills.map(b => b._id === id ? { ...b, status: 'Paid' } : b));
+  const markPaid = async (id) => {
+    try {
+      await api.updateLabBooking(id, { status: 'Paid' });
+      setBills(prev => prev.map(b => b._id === id ? { ...b, status: 'Paid' } : b));
+    } catch (e) { console.error(e); }
   };
 
   const totalCollected = bills.filter(b => b.status === 'Paid').reduce((s, b) => s + (b.total || b.amount), 0);
   const totalPending = bills.filter(b => b.status === 'Pending').reduce((s, b) => s + (b.total || b.amount), 0);
   const totalOverdue = bills.filter(b => b.status === 'Overdue').reduce((s, b) => s + (b.total || b.amount), 0);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

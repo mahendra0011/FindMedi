@@ -1,9 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Beaker, TrendingUp, Clock, IndianRupee, BarChart3, Activity } from 'lucide-react';
+import { Beaker, TrendingUp, Clock, IndianRupee, BarChart3, Activity, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-
-const STORAGE_KEY = 'medicore_labcenter_analytics';
+import { api } from '@/lib/api';
 
 const generateMockAnalytics = () => ({
   totalTests: 1247,
@@ -34,12 +33,34 @@ const generateMockAnalytics = () => ({
 });
 
 export default function LabReportsAnalytics() {
-  const [analytics] = useState(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    return stored ? JSON.parse(stored) : generateMockAnalytics();
-  });
+  const [analytics, setAnalytics] = useState(generateMockAnalytics());
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.getLabStats()
+      .then(stats => {
+        setAnalytics(prev => ({
+          ...prev,
+          totalTests: stats.total || 0,
+          totalRevenue: 0,
+          popularTests: prev.popularTests,
+          avgTurnaround: '4.2 hrs',
+          monthlyRevenue: prev.monthlyRevenue,
+        }));
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
 
   const maxRev = Math.max(...analytics.monthlyRevenue.map(m => m.revenue));
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

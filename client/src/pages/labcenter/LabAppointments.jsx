@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { CalendarDays, Clock, User, CheckCircle, XCircle, RefreshCw, Search, Filter, Activity, Heart } from 'lucide-react';
+import { CalendarDays, Clock, User, CheckCircle, XCircle, RefreshCw, Search, Filter, Activity, Heart, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { api } from '@/lib/api';
 
 const statusColors = { Scheduled: 'bg-info/10 text-info', Completed: 'bg-success/10 text-success', Cancelled: 'bg-destructive/10 text-destructive' };
 const modalities = ['MRI', 'CT Scan', 'X-Ray', 'Ultrasound', 'Echo', 'ECG', 'Mammography'];
@@ -17,22 +18,33 @@ const defaultAppts = [
 ];
 
 export default function LabAppointments() {
-  const [appts, setAppts] = useState(() => {
-    const stored = localStorage.getItem('medicore_labcenter_appointments');
-    return stored ? JSON.parse(stored) : defaultAppts;
-  });
+  const [appts, setAppts] = useState(defaultAppts);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('All');
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => { localStorage.setItem('medicore_labcenter_appointments', JSON.stringify(appts)); }, [appts]);
+  useEffect(() => {
+    api.getLabBookings({}).then(res => {
+      if (res.bookings && res.bookings.length > 0) setAppts(res.bookings);
+    }).catch(console.error).finally(() => setLoading(false));
+  }, []);
 
-  const handleStatus = (id, status) => setAppts(prev => prev.map(a => a._id === id ? { ...a, status } : a));
+  const handleStatus = (id, status) => {
+    setAppts(prev => prev.map(a => a._id === id ? { ...a, status } : a));
+    api.updateLabBooking(id, { status }).catch(console.error);
+  };
 
   const filtered = appts.filter(a => {
     const ms = !search || a.patient.toLowerCase().includes(search.toLowerCase());
     const mf = filter === 'All' || a.status === filter;
     return ms && mf;
   });
+
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <Loader2 className="w-8 h-8 animate-spin text-primary" />
+    </div>
+  );
 
   return (
     <div className="space-y-6">

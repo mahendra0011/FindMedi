@@ -4,35 +4,44 @@ import { FileText, User, Search, CheckCircle, XCircle, Calendar, Eye, Clock } fr
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-
-const defaultRxQueue = [
-  { _id: 'rx1', patientName: 'Ravi Kumar', doctorName: 'Dr. Sharma', tests: ['Complete Blood Count', 'Lipid Profile'], uploadedAt: new Date().toISOString().split('T')[0], status: 'Pending', notes: '' },
-  { _id: 'rx2', patientName: 'Sneha Reddy', doctorName: 'Dr. Patel', tests: ['MRI Brain (Plain)'], uploadedAt: new Date(Date.now() - 86400000).toISOString().split('T')[0], status: 'Pending', notes: '' },
-  { _id: 'rx3', patientName: 'Amit Patel', doctorName: 'Dr. Verma', tests: ['X-Ray Chest PA View', 'ECG'], uploadedAt: new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0], status: 'Verified', notes: 'Rx verified' },
-];
+import { api } from '@/lib/api';
 
 const statusColors = { Pending: 'bg-warning/10 text-warning', Verified: 'bg-success/10 text-success', Rejected: 'bg-destructive/10 text-destructive' };
 
 export default function LabPrescriptionQueue() {
-  const [queue, setQueue] = useState(() => {
-    const stored = localStorage.getItem('medicore_labcenter_rx_queue');
-    return stored ? JSON.parse(stored) : defaultRxQueue;
-  });
+  const [queue, setQueue] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('All');
   const [selectedRx, setSelectedRx] = useState(null);
 
-  useEffect(() => { localStorage.setItem('medicore_labcenter_rx_queue', JSON.stringify(queue)); }, [queue]);
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await api.getLabBookings({});
+        setQueue(res.bookings || []);
+      } catch (e) { console.error(e); }
+      setLoading(false);
+    };
+    load();
+  }, []);
 
   const filtered = queue.filter(r => {
-    const ms = !search || r.patientName.toLowerCase().includes(search.toLowerCase());
+    const ms = !search || (r.patientName || '').toLowerCase().includes(search.toLowerCase());
     const mf = filter === 'All' || r.status === filter;
     return ms && mf;
   });
 
-  const handleAction = (id, status) => {
-    setQueue(prev => prev.map(r => r._id === id ? { ...r, status } : r));
+  const handleAction = async (id, status) => {
+    try {
+      await api.updateLabBooking(id, { status });
+      setQueue(prev => prev.map(r => r._id === id ? { ...r, status } : r));
+    } catch (e) { console.error(e); }
   };
+
+  if (loading) {
+    return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
+  }
 
   return (
     <div className="space-y-6">
@@ -79,7 +88,7 @@ export default function LabPrescriptionQueue() {
                         <Calendar className="w-3 h-3" /> {rx.uploadedAt}
                       </div>
                       <div className="flex flex-wrap gap-1.5 mt-2">
-                        {rx.tests.map((t, j) => <Badge key={j} variant="secondary" className="text-[10px]">{t}</Badge>)}
+                        {rx.tests?.map((t, j) => <Badge key={j} variant="secondary" className="text-[10px]">{t}</Badge>)}
                       </div>
                     </div>
                   </div>
@@ -129,7 +138,7 @@ export default function LabPrescriptionQueue() {
               <div>
                 <p className="text-xs text-muted-foreground mb-1">Requested Tests</p>
                 <div className="flex flex-wrap gap-1.5">
-                  {selectedRx.tests.map((t, j) => <Badge key={j}>{t}</Badge>)}
+                  {selectedRx.tests?.map((t, j) => <Badge key={j}>{t}</Badge>)}
                 </div>
               </div>
             </div>

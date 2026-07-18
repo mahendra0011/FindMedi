@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Star, Calendar, MessageSquare } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { api } from '@/lib/api';
 
 const STORAGE_KEY = 'medicore_labcenter_reviews';
+// TODO: Replace localStorage with api calls once reviews endpoint is added to lab routes
 
 const generateMockReviews = () => [
   { _id: 'rv_1', patientName: 'Rahul Mehta', rating: 5, comment: 'Excellent service! The staff was very professional and the reports were delivered on time.', date: '2026-07-10' },
