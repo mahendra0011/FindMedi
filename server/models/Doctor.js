@@ -29,6 +29,8 @@ const doctorSchema = new mongoose.Schema({
   approved: { type: Boolean, default: false },
   user_id: { type: String, default: '' },
   hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
+  facilityId: { type: mongoose.Schema.Types.ObjectId, ref: 'Facility', index: true },
+  facilityType: { type: String, enum: ['hospital', 'clinic', 'lab', 'pharmacy', ''], default: '' },
   reviews_count: { type: Number, default: 0 },
   signatureUrl: { type: String, default: '' },
   createdAt: { type: Date, default: Date.now },
