@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
-  Shield, Building2, CheckCircle, XCircle, AlertTriangle,
+  Shield, Building2, Building, CheckCircle, XCircle, AlertTriangle,
   Clock, TrendingUp, Users, Ban, Search, Mail, MapPin, FileText
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -28,6 +28,7 @@ const planColors = {
 const TABS = [
   { key: 'pending', label: 'Pending Approvals', icon: Clock },
   { key: 'all', label: 'All Hospitals', icon: Building2 },
+  { key: 'facilities', label: 'Facilities', icon: Building },
   { key: 'stats', label: 'Platform Stats', icon: TrendingUp },
 ];
 
@@ -40,6 +41,11 @@ export default function SuperAdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [rejectingId, setRejectingId] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
+  const [facilityType, setFacilityType] = useState('');
+  const [pendingFacilities, setPendingFacilities] = useState([]);
+  const [facilityLoading, setFacilityLoading] = useState(false);
+  const [facilityRejectingId, setFacilityRejectingId] = useState(null);
+  const [facilityRejectReason, setFacilityRejectReason] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -96,6 +102,58 @@ export default function SuperAdminDashboard() {
       toast.error('Failed to suspend hospital');
     }
   }
+
+  async function fetchFacilities(type) {
+    setFacilityLoading(true);
+    try {
+      const data = await api.getPendingFacilities(type || '');
+      setPendingFacilities(data || []);
+    } catch {
+      toast.error('Failed to load facilities');
+    } finally {
+      setFacilityLoading(false);
+    }
+  }
+
+  async function handleApproveFacility(id) {
+    try {
+      await api.approveFacility(id);
+      toast.success('Facility approved successfully');
+      fetchFacilities(facilityType);
+    } catch {
+      toast.error('Failed to approve facility');
+    }
+  }
+
+  async function handleRejectFacility(id) {
+    if (!facilityRejectReason.trim()) {
+      toast.error('Please provide a rejection reason');
+      return;
+    }
+    try {
+      await api.rejectFacility(id, { reason: facilityRejectReason });
+      toast.success('Facility rejected');
+      setFacilityRejectingId(null);
+      setFacilityRejectReason('');
+      fetchFacilities(facilityType);
+    } catch {
+      toast.error('Failed to reject facility');
+    }
+  }
+
+  useEffect(() => {
+    if (activeTab === 'facilities') {
+      fetchFacilities(facilityType);
+    }
+  }, [activeTab, facilityType]);
+
+  const FACILITY_TYPES = [
+    { key: '', label: 'All' },
+    { key: 'hospital', label: 'Hospital' },
+    { key: 'clinic', label: 'Clinic' },
+    { key: 'lab', label: 'Lab' },
+    { key: 'pharmacy', label: 'Pharmacy' },
+  ];
 
   const filteredHospitals = allHospitals.filter(h => {
     if (!searchTerm) return true;
@@ -388,6 +446,155 @@ export default function SuperAdminDashboard() {
               </tbody>
             </table>
           </div>
+        </motion.div>
+      )}
+
+      {/* Facilities Tab */}
+      {activeTab === 'facilities' && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25 }}
+        >
+          {/* Type filter */}
+          <div className="flex gap-2 mb-5">
+            {FACILITY_TYPES.map(t => (
+              <button
+                key={t.key}
+                onClick={() => setFacilityType(t.key)}
+                className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                  facilityType === t.key
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'bg-muted/60 text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          {facilityLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+              {[1, 2, 3].map(i => (
+                <Card key={i}>
+                  <CardContent className="p-6">
+                    <div className="h-4 w-3/4 bg-muted rounded animate-pulse mb-3" />
+                    <div className="h-3 w-1/2 bg-muted rounded animate-pulse mb-2" />
+                    <div className="h-3 w-2/3 bg-muted rounded animate-pulse" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : pendingFacilities.length === 0 ? (
+            <div className="text-center py-20">
+              <div className="w-16 h-16 rounded-2xl bg-success/10 flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="w-8 h-8 text-success" />
+              </div>
+              <h3 className="font-heading font-semibold text-lg text-foreground mb-1">All Caught Up</h3>
+              <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                No pending facility registrations for this type.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+              {pendingFacilities.map((facility, i) => (
+                <motion.div
+                  key={facility._id}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: i * 0.05 }}
+                >
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                          <Building className="w-5 h-5 text-primary" />
+                        </div>
+                        <div className="flex gap-2">
+                          <Badge className="bg-warning/10 text-warning border-0">
+                            <Clock className="w-3 h-3 mr-1" />
+                            Pending
+                          </Badge>
+                          <Badge className="bg-primary/10 text-primary border-0 capitalize">
+                            {facility.type || 'hospital'}
+                          </Badge>
+                        </div>
+                      </div>
+
+                      <h3 className="font-heading font-semibold text-lg text-foreground mb-3">
+                        {facility.name}
+                      </h3>
+
+                      <div className="space-y-2 mb-5">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Mail className="w-3.5 h-3.5 shrink-0" />
+                          <span className="truncate">{facility.email}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <MapPin className="w-3.5 h-3.5 shrink-0" />
+                          <span>{facility.city}{facility.state ? `, ${facility.state}` : ''}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <FileText className="w-3.5 h-3.5 shrink-0" />
+                          <span>{facility.createdAt ? new Date(facility.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}</span>
+                        </div>
+                      </div>
+
+                      {facilityRejectingId === facility._id ? (
+                        <div className="space-y-3">
+                          <Input
+                            placeholder="Reason for rejection..."
+                            value={facilityRejectReason}
+                            onChange={e => setFacilityRejectReason(e.target.value)}
+                            className="text-sm"
+                          />
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleRejectFacility(facility._id)}
+                              className="gap-1.5"
+                            >
+                              <XCircle className="w-3.5 h-3.5" />
+                              Confirm Reject
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => { setFacilityRejectingId(null); setFacilityRejectReason(''); }}
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="default"
+                            className="bg-success hover:bg-success/90 gap-1.5"
+                            onClick={() => handleApproveFacility(facility._id)}
+                          >
+                            <CheckCircle className="w-3.5 h-3.5" />
+                            Approve
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-destructive border-destructive/30 hover:bg-destructive/10 gap-1.5"
+                            onClick={() => setFacilityRejectingId(facility._id)}
+                          >
+                            <XCircle className="w-3.5 h-3.5" />
+                            Reject
+                          </Button>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
+          )}
         </motion.div>
       )}
 

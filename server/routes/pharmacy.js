@@ -23,6 +23,8 @@ router.get('/medicines', protect, async (req, res) => {
     const { search, category, lowStock } = req.query;
     const filter = {};
     if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if ((req.user.facilityId || req.user.hospitalId) && req.user.role !== 'superadmin') filter.facilityId = req.user.facilityId || req.user.hospitalId;
+    if ((req.user.facilityId || req.user.hospitalId) && req.user.role !== 'superadmin') filter.facilityId = req.user.facilityId || req.user.hospitalId;
     if (search) filter.$or = [
       { name: new RegExp(search, 'i') },
       { genericName: new RegExp(search, 'i') },
@@ -31,6 +33,7 @@ router.get('/medicines', protect, async (req, res) => {
     if (category && category !== 'All') filter.category = category;
     if (lowStock === 'true') {
       const medicines = await Medicine.find(filter).sort({ name: 1 });
+
       const lowStockMedicines = medicines.filter(m => m.currentStock <= m.reorderLevel);
       return res.json({ medicines: lowStockMedicines });
     }
@@ -41,7 +44,7 @@ router.get('/medicines', protect, async (req, res) => {
 
 router.post('/medicines', protect, async (req, res) => {
   try {
-    const medicine = await Medicine.create({ ...req.body, hospitalId: req.user.hospitalId || undefined });
+    const medicine = await Medicine.create({ ...req.body, hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined, facilityId: req.user.facilityId || req.user.hospitalId || undefined });
     res.status(201).json(medicine);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -98,7 +101,7 @@ router.post('/prescriptions', protect, async (req, res) => {
     const prescription = await Prescription.create({
       prescriptionId, patientId, patientName,
       doctorId: req.user._id, doctorName: req.user.name,
-      hospitalId: req.user.hospitalId || undefined,
+      hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined, facilityId: req.user.facilityId || req.user.hospitalId || undefined,
       medicines: medicines.map(m => ({
         medicineId: m.medicineId, medicineName: m.medicineName,
         dosage: m.dosage, frequency: m.frequency, duration: m.duration,
@@ -125,6 +128,7 @@ router.get('/prescriptions', protect, async (req, res) => {
     if (req.user.role === 'doctor') filter.doctorId = req.user._id;
     if (req.user.role === 'patient') filter.patientId = req.user._id;
     if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if ((req.user.facilityId || req.user.hospitalId) && req.user.role !== 'superadmin') filter.facilityId = req.user.facilityId || req.user.hospitalId;
     if (status && status !== 'All') filter.status = status;
     if (patientId) filter.patientId = patientId;
     if (doctorId) filter.doctorId = doctorId;
@@ -222,9 +226,9 @@ router.put('/prescriptions/:id/dispense', protect, async (req, res) => {
 router.get('/stats', protect, async (req, res) => {
   try {
     const medFilter = {};
-    if (req.user.hospitalId && req.user.role !== 'superadmin') medFilter.hospitalId = req.user.hospitalId;
+    if (req.user.hospitalId && req.user.role !== 'superadmin') { medFilter.hospitalId = req.user.hospitalId; medFilter.facilityId = req.user.facilityId || req.user.hospitalId; }
     const rxFilter = {};
-    if (req.user.hospitalId && req.user.role !== 'superadmin') rxFilter.hospitalId = req.user.hospitalId;
+    if (req.user.hospitalId && req.user.role !== 'superadmin') { rxFilter.hospitalId = req.user.hospitalId; rxFilter.facilityId = req.user.facilityId || req.user.hospitalId; }
     const totalMedicines = await Medicine.countDocuments({ isActive: true, ...medFilter });
     const lowStock = await Medicine.countDocuments({ 
       isActive: true, ...medFilter,
@@ -249,6 +253,7 @@ router.get('/orders', protect, async (req, res) => {
     const { status, search } = req.query;
     const filter = {};
     if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if ((req.user.facilityId || req.user.hospitalId) && req.user.role !== 'superadmin') filter.facilityId = req.user.facilityId || req.user.hospitalId;
     if (status && status !== 'All') filter.status = status;
     if (search) filter.$or = [{ orderId: new RegExp(search, 'i') }, { patientName: new RegExp(search, 'i') }];
     const orders = await PharmacyOrder.find(filter).sort({ orderDate: -1 });
@@ -260,7 +265,7 @@ router.post('/orders', protect, async (req, res) => {
   try {
     const count = await PharmacyOrder.countDocuments();
     const orderId = `ORD-${String(count + 1).padStart(4, '0')}`;
-    const order = await PharmacyOrder.create({ ...req.body, orderId, hospitalId: req.user.hospitalId || undefined, createdBy: req.user._id });
+    const order = await PharmacyOrder.create({ ...req.body, orderId, hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined, facilityId: req.user.facilityId || req.user.hospitalId || undefined, createdBy: req.user._id });
     res.status(201).json(order);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -285,6 +290,7 @@ router.get('/deliveries', protect, async (req, res) => {
   try {
     const filter = {};
     if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if ((req.user.facilityId || req.user.hospitalId) && req.user.role !== 'superadmin') filter.facilityId = req.user.facilityId || req.user.hospitalId;
     const deliveries = await PharmacyDelivery.find(filter).sort({ assignedAt: -1 });
     res.json({ deliveries });
   } catch (err) { res.status(500).json({ message: err.message }); }
@@ -292,7 +298,7 @@ router.get('/deliveries', protect, async (req, res) => {
 
 router.post('/deliveries', protect, async (req, res) => {
   try {
-    const delivery = await PharmacyDelivery.create({ ...req.body, hospitalId: req.user.hospitalId || undefined });
+    const delivery = await PharmacyDelivery.create({ ...req.body, hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined, facilityId: req.user.facilityId || req.user.hospitalId || undefined });
     res.status(201).json(delivery);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -313,6 +319,7 @@ router.get('/offers', protect, async (req, res) => {
   try {
     const filter = {};
     if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if ((req.user.facilityId || req.user.hospitalId) && req.user.role !== 'superadmin') filter.facilityId = req.user.facilityId || req.user.hospitalId;
     const offers = await PharmacyOffer.find(filter).sort({ createdAt: -1 });
     res.json({ offers });
   } catch (err) { res.status(500).json({ message: err.message }); }
@@ -320,7 +327,7 @@ router.get('/offers', protect, async (req, res) => {
 
 router.post('/offers', protect, async (req, res) => {
   try {
-    const offer = await PharmacyOffer.create({ ...req.body, hospitalId: req.user.hospitalId || undefined });
+    const offer = await PharmacyOffer.create({ ...req.body, hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined, facilityId: req.user.facilityId || req.user.hospitalId || undefined });
     res.status(201).json(offer);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -345,6 +352,7 @@ router.get('/returns', protect, async (req, res) => {
   try {
     const filter = {};
     if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if ((req.user.facilityId || req.user.hospitalId) && req.user.role !== 'superadmin') filter.facilityId = req.user.facilityId || req.user.hospitalId;
     const returns = await PharmacyReturn.find(filter).sort({ initiatedAt: -1 });
     res.json({ returns });
   } catch (err) { res.status(500).json({ message: err.message }); }
@@ -354,7 +362,7 @@ router.post('/returns', protect, async (req, res) => {
   try {
     const count = await PharmacyReturn.countDocuments();
     const returnId = `RET-${String(count + 1).padStart(4, '0')}`;
-    const ret = await PharmacyReturn.create({ ...req.body, returnId, hospitalId: req.user.hospitalId || undefined });
+    const ret = await PharmacyReturn.create({ ...req.body, returnId, hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined, facilityId: req.user.facilityId || req.user.hospitalId || undefined });
     res.status(201).json(ret);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -375,6 +383,7 @@ router.get('/staff', protect, async (req, res) => {
   try {
     const filter = {};
     if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if ((req.user.facilityId || req.user.hospitalId) && req.user.role !== 'superadmin') filter.facilityId = req.user.facilityId || req.user.hospitalId;
     const staff = await PharmacyStaff.find(filter).sort({ joinedAt: -1 });
     res.json({ staff });
   } catch (err) { res.status(500).json({ message: err.message }); }
@@ -382,7 +391,7 @@ router.get('/staff', protect, async (req, res) => {
 
 router.post('/staff', protect, async (req, res) => {
   try {
-    const member = await PharmacyStaff.create({ ...req.body, hospitalId: req.user.hospitalId || undefined });
+    const member = await PharmacyStaff.create({ ...req.body, hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined, facilityId: req.user.facilityId || req.user.hospitalId || undefined });
     res.status(201).json(member);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -403,3 +412,4 @@ router.delete('/staff/:id', protect, async (req, res) => {
 });
 
 export default router;
+

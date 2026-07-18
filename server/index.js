@@ -172,6 +172,8 @@ import nursingRoutes from './routes/nursing.js';
 import bedRoutes from './routes/beds.js';
 import testRoutes from './routes/tests.js';
 import hospitalRoutes from './routes/hospitals.js';
+import facilityRoutes from './routes/facilities.js';
+import clinicRoutes from './routes/clinics.js';
 import patientPortalRoutes from './routes/patient.js';
 
 // Routes
@@ -209,6 +211,8 @@ app.use('/api/nursing', nursingRoutes);
 app.use('/api/beds', bedRoutes);
 app.use('/api/tests', testRoutes);
 app.use('/api/hospitals', hospitalRoutes);
+app.use('/api/facilities', facilityRoutes);
+app.use('/api/clinics', clinicRoutes);
 app.use('/api/patient', patientPortalRoutes);
 
 app.get('/api/health', (_, res) => res.json({ status: 'ok', time: new Date() }));

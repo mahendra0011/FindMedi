@@ -722,6 +722,17 @@ const mock = {
     return { signatureUrl: url };
   },
 
+  // Facility mocks
+  async getFacilities(p = {}) { await delay(); return []; },
+  async getFacility(id) { await delay(); return null; },
+  async registerFacility(body) { await delay(); return { message: 'Registered', facilityId: 'mock-id' }; },
+  async approveFacility(id) { await delay(); return { message: 'Approved' }; },
+  async rejectFacility(id, body) { await delay(); return { message: 'Rejected', reason: body?.reason }; },
+  async suspendFacility(id) { await delay(); return { message: 'Suspended' }; },
+  async updateFacility(id, body) { await delay(); return {}; },
+  async getMyFacility() { await delay(); return null; },
+  async getPendingFacilities(type) { await delay(); return []; },
+
   // Hospital mocks
   async getHospitals(p = {}) {
     await delay();
@@ -1124,5 +1135,21 @@ export const api = {
   createTest:      (body)  => dispatch(() => mock.createTest ? mock.createTest(body) : Promise.resolve({}),          '/tests',      { method:'POST',   body: JSON.stringify(body) }),
   updateTest:      (id,b)  => dispatch(() => mock.updateTest ? mock.updateTest(id,b) : Promise.resolve({}),          `/tests/${id}`, { method:'PUT',    body: JSON.stringify(b) }),
   deleteTest:      (id)    => dispatch(() => mock.deleteTest ? mock.deleteTest(id) : Promise.resolve({}),            `/tests/${id}`, { method:'DELETE' }),
+
+  // Facility endpoints
+  getFacilities: (p={}) => dispatch(() => mock.getFacilities(p), '/facilities?' + new URLSearchParams(p)),
+  getFacility: (id) => dispatch(() => mock.getFacility(id), `/facilities/${id}`),
+  registerFacility: (body) => dispatch(() => mock.registerFacility(body), '/facilities/register', { method:'POST', body: JSON.stringify(body) }),
+  approveFacility: (id) => dispatch(() => mock.approveFacility(id), `/facilities/${id}/approve`, { method:'PUT' }),
+  rejectFacility: (id,b) => dispatch(() => mock.rejectFacility(id,b), `/facilities/${id}/reject`, { method:'PUT', body: JSON.stringify(b || { reason: '' }) }),
+  suspendFacility: (id) => dispatch(() => mock.suspendFacility(id), `/facilities/${id}/suspend`, { method:'PUT' }),
+  updateFacility: (id,b) => dispatch(() => mock.updateFacility(id,b), `/facilities/${id}`, { method:'PUT', body: JSON.stringify(b) }),
+  getMyFacility: () => dispatch(() => mock.getMyFacility(), '/facilities/mine'),
+  getPendingFacilities: (type) => dispatch(() => mock.getPendingFacilities(type), '/facilities/pending?' + (type ? new URLSearchParams({ type }) : '')),
+  getClinicProfile: () => dispatch(() => Promise.resolve({ facility: null, doctor: null }), '/clinics/profile'),
+  updateClinicProfile: (body) => dispatch(() => Promise.resolve({}), '/clinics/profile', { method:'PUT', body: JSON.stringify(body) }),
+  getClinicStaff: () => dispatch(() => Promise.resolve({ staff: [] }), '/clinics/staff'),
+  createClinicStaff: (body) => dispatch(() => Promise.resolve({}), '/clinics/staff', { method:'POST', body: JSON.stringify(body) }),
+  deleteClinicStaff: (id) => dispatch(() => Promise.resolve({}), `/clinics/staff/${id}`, { method:'DELETE' }),
 };
 // 2

@@ -134,6 +134,7 @@ import DoctorConsultation from './pages/DoctorConsultation';
 import HospitalDirectory from './pages/HospitalDirectory';
 import HospitalProfile from './pages/HospitalProfile';
 import HospitalRegister from './pages/HospitalRegister';
+import FacilityRegister from './pages/register/FacilityRegister';
 import HospitalDoctors from './pages/HospitalDoctors';
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
 
@@ -306,6 +307,7 @@ const App = () => (
                    <Route path="/hospitals/:id" element={<PublicLayout><HospitalProfile /></PublicLayout>} />
                    <Route path="/hospitals/:hospitalId/doctors" element={<PublicLayout><HospitalDoctors /></PublicLayout>} />
                    <Route path="/register-hospital" element={<HospitalRegister />} />
+                   <Route path="/register-facility" element={<FacilityRegister />} />
                    <Route path="/doctors" element={<PublicLayout><FindDoctor /></PublicLayout>} />
                     <Route path="/doctors/:id" element={<PublicLayout><DoctorDetail /></PublicLayout>} />
                     <Route path="/clinic/:clinicId" element={<PublicLayout><ClinicDetail /></PublicLayout>} />
