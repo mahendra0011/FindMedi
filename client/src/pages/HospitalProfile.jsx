@@ -855,7 +855,7 @@ export default function HospitalProfile() {
                     )}
                     <Separator />
                     <div className="space-y-3">
-                      {[['Established', establishedYear || '—'], ['Hospital Type', hospital.hospitalType || '—'], ['License', hospital.licenseNumber || '—']].map(([label, val]) => (
+                      {[['Established', establishedYear || '—'], ['Hospital Type', hospital.hospitalType || '—'], ['License', hospital.licenseNumber || '—'], ['Working Hours', hospital.workingHours?.weekdays || '9:00 AM - 6:00 PM'], ['Saturday', hospital.workingHours?.saturday || '9:00 AM - 2:00 PM'], ['Sunday', hospital.workingHours?.sunday || 'Closed']].map(([label, val]) => (
                         <div key={label} className="flex items-center justify-between text-sm">
                           <span className="text-muted-foreground">{label}</span>
                           <span className="font-semibold text-foreground">{val}</span>
@@ -875,6 +875,18 @@ export default function HospitalProfile() {
                         </Badge>
                       )}
                     </div>
+                    {hospital.insuranceAccepted?.length > 0 && (
+                      <div className="mt-3 pt-3 border-t border-border/40">
+                        <p className="text-xs text-muted-foreground mb-2 font-semibold">Insurance Accepted</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {hospital.insuranceAccepted.map((ins, i) => (
+                            <Badge key={i} variant="outline" className="text-[10px] bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/10">
+                              <Shield className="w-2.5 h-2.5 mr-1" /> {ins.provider || ins}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>

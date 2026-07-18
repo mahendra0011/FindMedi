@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import {
   LayoutDashboard, Pill, Package, ShoppingCart, Users,
   Tag, RefreshCw, Settings, ChevronLeft, ChevronRight,
-  Activity, LogOut, Home, Menu, FileText, BarChart3, Truck
+  Activity, LogOut, Home, Menu, FileText, BarChart3, Truck, Star
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -16,6 +16,7 @@ const navItems = [
   { icon: ShoppingCart,    label: 'Orders',   path: '/pharmacy-business/orders' },
   { icon: FileText,        label: 'Prescriptions', path: '/pharmacy-business/prescriptions' },
   { icon: Users,           label: 'Staff',    path: '/pharmacy-business/staff' },
+  { icon: Star,            label: 'Reviews',  path: '/pharmacy-business/reviews' },
   { icon: Tag,             label: 'Offers',   path: '/pharmacy-business/offers' },
   { icon: RefreshCw,       label: 'Returns',  path: '/pharmacy-business/returns' },
   { icon: BarChart3,       label: 'Analytics', path: '/pharmacy-business/analytics' },

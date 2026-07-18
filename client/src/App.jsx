@@ -153,6 +153,7 @@ import PharmacyReturns from './pages/pharmacy/PharmacyReturns';
 import PharmacySettings from './pages/pharmacy/PharmacySettings';
 import PharmacyPrescriptionQueue from './pages/pharmacy/PharmacyPrescriptionQueue';
 import PharmacyAnalytics from './pages/pharmacy/PharmacyAnalytics';
+import PharmacyReviews from './pages/pharmacy/PharmacyReviews';
 import PharmacyDelivery from './pages/pharmacy/PharmacyDelivery';
 
 // Lab Business pages
@@ -373,6 +374,7 @@ const App = () => (
                     <Route path="orders" element={<RoleRoute allowedRoles={['pharmacy_owner']}><PharmacyOrders /></RoleRoute>} />
                     <Route path="prescriptions" element={<RoleRoute allowedRoles={['pharmacy_owner']}><PharmacyPrescriptionQueue /></RoleRoute>} />
                     <Route path="staff" element={<RoleRoute allowedRoles={['pharmacy_owner']}><PharmacyStaff /></RoleRoute>} />
+                    <Route path="reviews" element={<RoleRoute allowedRoles={['pharmacy_owner']}><PharmacyReviews /></RoleRoute>} />
                     <Route path="offers" element={<RoleRoute allowedRoles={['pharmacy_owner']}><PharmacyOffers /></RoleRoute>} />
                     <Route path="returns" element={<RoleRoute allowedRoles={['pharmacy_owner']}><PharmacyReturns /></RoleRoute>} />
                     <Route path="analytics" element={<RoleRoute allowedRoles={['pharmacy_owner']}><PharmacyAnalytics /></RoleRoute>} />

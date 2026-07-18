@@ -518,7 +518,7 @@ export default function FindDoctor() {
                         <div className="flex items-center gap-2">
                           <h3 className="font-heading font-semibold text-foreground truncate group-hover:text-primary transition-colors">{doc.name}</h3>
                           <span className={cn('w-2 h-2 rounded-full shrink-0', doc.available ? 'bg-emerald-500' : 'bg-red-400')} title={doc.available ? 'Available' : 'Unavailable'} />
-                          <BadgeCheck className="w-4 h-4 text-primary shrink-0" />
+                          {doc.approved && <BadgeCheck className="w-4 h-4 text-primary shrink-0" />}
                         </div>
                         {/* Hospital Name */}
                         <p className="text-sm font-medium text-foreground truncate">{hospitalName}</p>
