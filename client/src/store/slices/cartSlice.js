@@ -1,4 +1,4 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice, createSelector } from '@reduxjs/toolkit';
 
 const STORAGE_KEY = 'mediCore_cart';
 
@@ -58,20 +58,21 @@ const cartSlice = createSlice({
 // ─── Selectors ─────────────────────────────────────────────────────────────
 export const selectCart = (state) => state.cart;
 
-export const selectCartEntries = (state) => {
-  const cart = state.cart;
-  return Object.entries(cart)
-    .filter(([, v]) => v && v.qty > 0)
-    .map(([key, val]) => ({ key, ...val }));
-};
+const computeEntries = (cart) => Object.entries(cart)
+  .filter(([, v]) => v && v.qty > 0)
+  .map(([key, val]) => ({ key, ...val }));
 
-export const selectCartTotalItems = (state) => {
-  const cart = state.cart;
-  return Object.values(cart).reduce((sum, v) => sum + (v?.qty || 0), 0);
-};
+export const selectCartEntries = createSelector(
+  [selectCart],
+  computeEntries
+);
 
-export const selectCartStores = (state) => {
-  const entries = selectCartEntries(state);
+export const selectCartTotalItems = createSelector(
+  [selectCart],
+  (cart) => Object.values(cart).reduce((sum, v) => sum + (v?.qty || 0), 0)
+);
+
+const computeStores = (entries) => {
   const storesMap = {};
   entries.forEach(val => {
     if (!storesMap[val.storeId]) {
@@ -82,6 +83,11 @@ export const selectCartStores = (state) => {
   });
   return Object.values(storesMap);
 };
+
+export const selectCartStores = createSelector(
+  [selectCartEntries],
+  computeStores
+);
 
 export const { addItem, updateQty, removeItem, clearCart } = cartSlice.actions;
 export default cartSlice.reducer;

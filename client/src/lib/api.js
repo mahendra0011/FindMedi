@@ -147,6 +147,14 @@ const MOCK_BEDS = [
   { _id:'b10', bedNumber:'NICU-01', ward:'NICU', bedType:'NICU', status:'Available', dailyRate:10000, floor:'5th Floor', isAC:true, hospitalId:'h1' },
 ];
 
+const MOCK_FACILITIES = [
+  { _id:'f1', name:'MediCore Diagnostic Lab', slug:'medicore-diagnostic-lab', type:'Pathology Lab', providerCategory:'Pathology Lab', backendType:'lab', email:'lab@medicore.com', phone:'+91 98765 43210', address:'Sector 62, Noida', city:'Noida', state:'UP', logo:'', rating:4.7, reviewsCount:312, verified:true, open:true, homeCollection:true, distance:'1.2 km', reportTime:'Within 6 hrs', startingPrice:199, testsAvailable:350, hasOffer:true, tags:['Reports Online','24x7'], description:'NABL accredited diagnostic lab with 350+ tests. Free home collection with 6hr report delivery.' },
+  { _id:'f2', name:'City Diagnostics Center', slug:'city-diagnostics-center', type:'Diagnostic Center', providerCategory:'Diagnostic Center', backendType:'lab', email:'info@citydx.com', phone:'+91 98765 43211', address:'Connaught Place, Delhi', city:'Delhi', state:'DL', logo:'', rating:4.5, reviewsCount:245, verified:true, open:true, homeCollection:true, distance:'3.5 km', reportTime:'Within 12 hrs', startingPrice:299, testsAvailable:280, hasOffer:false, tags:['Reports Online','NABL Accredited'], description:'Full-service diagnostic center with advanced imaging and pathology services.' },
+  { _id:'f3', name:'Green Path Labs', slug:'green-path-labs', type:'Pathology Lab', providerCategory:'Pathology Lab', backendType:'lab', email:'care@greenpath.com', phone:'+91 98765 43212', address:'Lajpat Nagar, Delhi', city:'Delhi', state:'DL', logo:'', rating:4.3, reviewsCount:178, verified:true, open:true, homeCollection:true, distance:'4.8 km', reportTime:'Within 8 hrs', startingPrice:149, testsAvailable:200, hasOffer:true, tags:['Reports Online'], description:'Affordable diagnostic services with quick turnaround times and free home collection.' },
+  { _id:'f4', name:'Radiance Imaging Centre', slug:'radiance-imaging-centre', type:'Imaging Center', providerCategory:'Imaging Center', backendType:'lab', email:'contact@radiance.com', phone:'+91 98765 43213', address:'Karol Bagh, Delhi', city:'Delhi', state:'DL', logo:'', rating:4.8, reviewsCount:456, verified:true, open:false, homeCollection:false, distance:'5.2 km', reportTime:'Within 2 hrs', startingPrice:999, testsAvailable:50, hasOffer:true, tags:['24x7','Digital X-Ray','MRI','CT Scan'], description:'Advanced imaging center with state-of-the-art MRI, CT Scan, and Digital X-Ray facilities.' },
+  { _id:'f5', name:'QuickTest Health Lab', slug:'quicktest-health-lab', type:'Pathology Lab', providerCategory:'Pathology Lab', backendType:'lab', email:'hello@quicktest.in', phone:'+91 98765 43214', address:'Saket, Delhi', city:'Delhi', state:'DL', logo:'', rating:4.1, reviewsCount:98, verified:false, open:true, homeCollection:true, distance:'6.0 km', reportTime:'Within 4 hrs', startingPrice:99, testsAvailable:150, hasOffer:true, tags:['Reports Online','Quick Reports'], description:'Fast and affordable lab tests with 4hr report delivery. Walk-in and home collection available.' },
+];
+
 const MOCK_TESTS = [
   { _id:'t1', name:'Complete Blood Count (CBC)', category:'Blood Test', department:'Pathology', price:299, mrp:499, discount:40, reportTime:'6 hrs', prescriptionReq:false, homeCollection:true, homeCollectionFee:50, popular:true, nablAccredited:true, reportsOnline:true, description:'Measures overall health and detects a wide range of disorders.', preparation:'No special preparation required' },
   { _id:'t2', name:'Lipid Profile', category:'Blood Test', department:'Pathology', price:399, mrp:699, discount:43, reportTime:'12 hrs', prescriptionReq:false, homeCollection:true, homeCollectionFee:50, popular:true, nablAccredited:true, reportsOnline:true, description:'Measures cholesterol levels and helps assess cardiovascular risk.', preparation:'Fasting for 9-12 hours required' },
@@ -173,6 +181,7 @@ let store = {
   hospitals:    [...MOCK_HOSPITALS],
   beds:         [...MOCK_BEDS],
   tests:        [...MOCK_TESTS],
+  facilities:   [...MOCK_FACILITIES],
 };
 
 let nextId = 100;
@@ -723,7 +732,24 @@ const mock = {
   },
 
   // Facility mocks
-  async getFacilities(p = {}) { await delay(); return []; },
+  async getFacilities(p = {}) {
+    await delay();
+    let list = [...store.facilities];
+    if (p.type && p.type !== 'All') {
+      const t = p.type.toLowerCase();
+      list = list.filter(f => (f.backendType && f.backendType.toLowerCase() === t)
+        || f.type.toLowerCase() === t
+        || f.providerCategory?.toLowerCase() === t);
+    }
+    if (p.search) {
+      const q = p.search.toLowerCase();
+      list = list.filter(f => f.name.toLowerCase().includes(q) || f.city?.toLowerCase().includes(q));
+    }
+    if (p.city) {
+      list = list.filter(f => f.city?.toLowerCase() === p.city.toLowerCase());
+    }
+    return list;
+  },
   async getFacility(id) { await delay(); return null; },
   async registerFacility(body) { await delay(); return { message: 'Registered', facilityId: 'mock-id' }; },
   async approveFacility(id) { await delay(); return { message: 'Approved' }; },
