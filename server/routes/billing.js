@@ -109,7 +109,7 @@ router.get('/', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/', protect, async (req, res) => {
+router.post('/', protect, validate(createBillSchema), async (req, res) => {
   try {
     const { doctorId, doctor, service, amount, date, patient, patientId, services, source } = req.body;
     

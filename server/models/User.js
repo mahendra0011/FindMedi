@@ -37,6 +37,12 @@ const userSchema = new mongoose.Schema({
     default: 'not_required',
     index: true,
   },
+  // 2FA fields
+  twoFactorEnabled: { type: Boolean, default: false },
+  twoFactorSecret: { type: String, default: '' },
+  twoFactorBackupCodes: [{ type: String }], // Hashed backup codes
+  twoFactorTempSecret: { type: String, default: '' }, // Temp secret during setup
+
   settings: {
     type: Object,
     default: () => ({

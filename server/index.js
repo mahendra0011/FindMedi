@@ -200,6 +200,7 @@ import testRoutes from './routes/tests.js';
 import hospitalRoutes from './routes/hospitals.js';
 import facilityRoutes from './routes/facilities.js';
 import clinicRoutes from './routes/clinics.js';
+import twoFactorRoutes from './routes/twoFactor.js';
 import patientPortalRoutes from './routes/patient.js';
 
 // Routes
@@ -240,6 +241,9 @@ app.use('/api/hospitals', hospitalRoutes);
 app.use('/api/facilities', facilityRoutes);
 app.use('/api/clinics', clinicRoutes);
 app.use('/api/patient', patientPortalRoutes);
+
+// 2FA routes
+app.use('/api/auth/2fa', twoFactorRoutes);
 
 app.get('/api/health', (_, res) => res.json({ status: 'ok', time: new Date() }));
 
