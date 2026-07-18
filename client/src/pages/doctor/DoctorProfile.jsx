@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { User, Mail, Phone, MapPin, Stethoscope, Award, Clock, Hash, Save, Upload, AlertCircle, CheckCircle, Camera, Pen } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Stethoscope, Award, Clock, Hash, Save, Upload, AlertCircle, CheckCircle, Camera, Pen, Building2, Sun, Image, Pill, Shield, HelpCircle, CalendarDays } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -24,6 +24,21 @@ export default function DoctorProfile() {
   const [signatureUrl, setSignatureUrl] = useState('');
   const [signatureUploading, setSignatureUploading] = useState(false);
 
+  const [clinicName, setClinicName] = useState('');
+  const [clinicAddress, setClinicAddress] = useState('');
+  const [clinicLicense, setClinicLicense] = useState('');
+  const [establishedYear, setEstablishedYear] = useState('');
+  const [clinicTimingMon, setClinicTimingMon] = useState('');
+  const [clinicTimingTue, setClinicTimingTue] = useState('');
+  const [clinicTimingWed, setClinicTimingWed] = useState('');
+  const [clinicTimingThu, setClinicTimingThu] = useState('');
+  const [clinicTimingFri, setClinicTimingFri] = useState('');
+  const [clinicTimingSat, setClinicTimingSat] = useState('');
+  const [clinicTimingSun, setClinicTimingSun] = useState('');
+  const [clinicFacilities, setClinicFacilities] = useState('');
+  const [clinicTreatments, setClinicTreatments] = useState('');
+  const [clinicInsurance, setClinicInsurance] = useState('');
+
   useEffect(() => {
     const load = async () => {
       setLoading(true);
@@ -40,6 +55,22 @@ export default function DoctorProfile() {
           setConsultationFee(myDoc.consultation_fees || myDoc.fees || '');
           setAvatar(myDoc.avatar || '');
           setSignatureUrl(myDoc.signatureUrl || '');
+          const cp = myDoc.clinicProfile || {};
+          setClinicName(cp.clinic_name || '');
+          setClinicAddress(cp.clinic_address || '');
+          setClinicLicense(cp.clinic_license || '');
+          setEstablishedYear(cp.established_year ? String(cp.established_year) : '');
+          const t = cp.clinic_timing || {};
+          setClinicTimingMon(t.mon || '');
+          setClinicTimingTue(t.tue || '');
+          setClinicTimingWed(t.wed || '');
+          setClinicTimingThu(t.thu || '');
+          setClinicTimingFri(t.fri || '');
+          setClinicTimingSat(t.sat || '');
+          setClinicTimingSun(t.sun || '');
+          setClinicFacilities((cp.clinic_facilities || []).join(', '));
+          setClinicTreatments((cp.clinic_treatments || []).join(', '));
+          setClinicInsurance((cp.clinic_insurance || []).join(', '));
         }
       } catch (e) { console.error(e); }
       setLoading(false);
@@ -53,6 +84,21 @@ export default function DoctorProfile() {
       const body = { bio, qualifications: qualification, experience, phone, location: address, consultation_fees: consultationFee, avatar };
       if (doctor) {
         await api.updateDoctor(doctor._id, body);
+        if (doctor.doctor_type === 'clinic') {
+          await api.updateDoctorClinicProfile(doctor._id, {
+            clinic_name: clinicName,
+            clinic_address: clinicAddress,
+            clinic_license: clinicLicense,
+            established_year: establishedYear ? parseInt(establishedYear) : null,
+            clinic_timing: {
+              mon: clinicTimingMon, tue: clinicTimingTue, wed: clinicTimingWed,
+              thu: clinicTimingThu, fri: clinicTimingFri, sat: clinicTimingSat, sun: clinicTimingSun,
+            },
+            clinic_facilities: clinicFacilities.split(',').map(s => s.trim()).filter(Boolean),
+            clinic_treatments: clinicTreatments.split(',').map(s => s.trim()).filter(Boolean),
+            clinic_insurance: clinicInsurance.split(',').map(s => s.trim()).filter(Boolean),
+          });
+        }
       }
       await api.updateProfile({ bio: body.bio, phone: body.phone, address: body.location });
       setSaved(true);
@@ -193,6 +239,83 @@ export default function DoctorProfile() {
             </div>
           </div>
         </div>
+
+        {doctor?.doctor_type === 'clinic' && (
+          <>
+            <hr className="border-border/60" />
+
+            <div>
+              <h3 className="font-heading text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                <Building2 className="w-5 h-5 text-primary" /> Clinic Details
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="sm:col-span-2">
+                  <label className="text-sm font-medium text-foreground mb-1.5 block">Clinic Name</label>
+                  <Input value={clinicName} onChange={e => setClinicName(e.target.value)} placeholder="e.g. Sharma Skin Clinic" />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="text-sm font-medium text-foreground mb-1.5 block">Clinic Address</label>
+                  <Input value={clinicAddress} onChange={e => setClinicAddress(e.target.value)} placeholder="Full clinic address" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-1.5 block flex items-center gap-1">
+                    <Hash className="w-3.5 h-3.5 text-muted-foreground" /> Clinic License
+                  </label>
+                  <Input value={clinicLicense} onChange={e => setClinicLicense(e.target.value)} placeholder="License number" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-1.5 block flex items-center gap-1">
+                    <CalendarDays className="w-3.5 h-3.5 text-muted-foreground" /> Established Year
+                  </label>
+                  <Input type="number" value={establishedYear} onChange={e => setEstablishedYear(e.target.value)} placeholder="e.g. 2015" />
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <label className="text-sm font-medium text-foreground mb-1.5 block flex items-center gap-1">
+                  <Clock className="w-3.5 h-3.5 text-muted-foreground" /> Clinic Timing
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {[
+                    ['Mon', clinicTimingMon, setClinicTimingMon],
+                    ['Tue', clinicTimingTue, setClinicTimingTue],
+                    ['Wed', clinicTimingWed, setClinicTimingWed],
+                    ['Thu', clinicTimingThu, setClinicTimingThu],
+                    ['Fri', clinicTimingFri, setClinicTimingFri],
+                    ['Sat', clinicTimingSat, setClinicTimingSat],
+                    ['Sun', clinicTimingSun, setClinicTimingSun],
+                  ].map(([day, val, set]) => (
+                    <div key={day}>
+                      <label className="text-xs text-muted-foreground">{day}</label>
+                      <Input value={val} onChange={e => set(e.target.value)} placeholder="e.g. 10AM-8PM" className="text-xs" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <label className="text-sm font-medium text-foreground mb-1.5 block flex items-center gap-1">
+                  <Pill className="w-3.5 h-3.5 text-muted-foreground" /> Facilities <span className="text-xs text-muted-foreground font-normal">(comma separated)</span>
+                </label>
+                <Input value={clinicFacilities} onChange={e => setClinicFacilities(e.target.value)} placeholder="Parking, Wheelchair Access, AC Waiting Area, In-house Pharmacy" />
+              </div>
+
+              <div className="mt-4">
+                <label className="text-sm font-medium text-foreground mb-1.5 block flex items-center gap-1">
+                  <Shield className="w-3.5 h-3.5 text-muted-foreground" /> Treatments <span className="text-xs text-muted-foreground font-normal">(comma separated)</span>
+                </label>
+                <Input value={clinicTreatments} onChange={e => setClinicTreatments(e.target.value)} placeholder="Acne Treatment, Hair Restoration, PRP Therapy, Laser Hair Removal" />
+              </div>
+
+              <div className="mt-4">
+                <label className="text-sm font-medium text-foreground mb-1.5 block flex items-center gap-1">
+                  <HelpCircle className="w-3.5 h-3.5 text-muted-foreground" /> Insurance Accepted <span className="text-xs text-muted-foreground font-normal">(comma separated)</span>
+                </label>
+                <Input value={clinicInsurance} onChange={e => setClinicInsurance(e.target.value)} placeholder="ICICI Lombard, Star Health, Aditya Birla" />
+              </div>
+            </div>
+          </>
+        )}
 
         <hr className="border-border/60" />
 

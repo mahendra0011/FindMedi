@@ -33,6 +33,7 @@ const doctorSchema = new mongoose.Schema({
   facilityType: { type: String, enum: ['hospital', 'clinic', 'lab', 'pharmacy', ''], default: '' },
   reviews_count: { type: Number, default: 0 },
   signatureUrl: { type: String, default: '' },
+  doctor_type: { type: String, enum: ['hospital', 'clinic'], default: 'hospital' },
   createdAt: { type: Date, default: Date.now },
 });
 

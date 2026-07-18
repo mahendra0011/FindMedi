@@ -489,8 +489,8 @@ export default function FindDoctor() {
               {doctors.map((doc, i) => {
                 const SpecIcon = ALL_SPECIALTIES.find(s => s.name === doc.specialization)?.icon || Stethoscope;
                 const initials = doc.name?.split(' ').map(n=>n?.[0]).join('').slice(0,2) || 'DR';
-                const clinicName = doc.clinic_name || (doc.name ? doc.name.replace('Dr. ','') + ' Clinic' : 'Clinic');
-                const area = doc.area || doc.locality || doc.location || doc.address || doc.clinic_address || doc.city || '';
+                const clinicName = doc.clinicProfile?.clinic_name || (doc.name ? doc.name.replace('Dr. ','') + ' Clinic' : 'Clinic');
+                const area = doc.clinicProfile?.clinic_address || doc.location || doc.area || doc.locality || doc.address || doc.city || '';
                 const dist = doc.distance || ((doc._id?.charCodeAt(doc._id.length - 1) || 5) % 5 + 0.5).toFixed(1);
                 return (
                 <motion.div key={doc._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
