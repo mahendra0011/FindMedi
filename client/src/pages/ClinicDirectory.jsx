@@ -110,23 +110,25 @@ export default function ClinicDirectory() {
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mb-3 text-xs text-muted-foreground">
-                    {area && (
-                      <span className="flex items-center gap-1">
-                        <MapPin className="w-3 h-3 text-primary shrink-0" /> {area}
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="bg-gradient-to-br from-muted/40 to-muted/10 rounded-xl border border-border/40 p-3 mb-3">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground flex items-center gap-1.5"><Award className="w-3.5 h-3.5 text-primary" />Experience</span>
-                      <span className="font-semibold text-foreground">{doc.experience}</span>
+                  <div className="bg-gradient-to-br from-muted/40 to-muted/10 rounded-xl border border-border/40 p-3 mb-3 space-y-0">
+                    <div className="flex items-center justify-between text-sm py-1">
+                      <span className="text-muted-foreground flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-primary" />Location</span>
+                      <span className="font-semibold text-foreground truncate ml-2">{area || '—'}</span>
                     </div>
                     <Separator className="bg-border/30 my-2.5" />
-                    <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center justify-between text-sm py-1">
                       <span className="text-muted-foreground flex items-center gap-1.5"><Phone className="w-3.5 h-3.5 text-primary" />Phone</span>
                       <span className="font-semibold text-foreground">{doc.phone || 'N/A'}</span>
+                    </div>
+                    <Separator className="bg-border/30 my-2.5" />
+                    <div className="flex items-center justify-between text-sm py-1">
+                      <span className="text-muted-foreground flex items-center gap-1.5"><Mail className="w-3.5 h-3.5 text-primary" />Email</span>
+                      <span className="font-semibold text-foreground truncate">{doc.email || 'N/A'}</span>
+                    </div>
+                    <Separator className="bg-border/30 my-2.5" />
+                    <div className="flex items-center justify-between text-sm py-1">
+                      <span className="text-muted-foreground flex items-center gap-1.5"><Globe className="w-3.5 h-3.5 text-primary" />Languages</span>
+                      <span className="font-semibold text-foreground truncate">{doc.languages?.join(', ') || doc.language || '—'}</span>
                     </div>
                   </div>
 

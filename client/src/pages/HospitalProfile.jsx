@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
+import HospitalCard from '@/components/HospitalCard';
 
 // Carousel icons
 import { ChevronLeft } from 'lucide-react';
@@ -41,6 +42,12 @@ const slideUp = {
   hidden: { opacity: 0, y: 50 },
   show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 180, damping: 20 } }
 };
+
+const EXPERIENCE_RANGES = [
+  { label: '0\u20135 years', min: 0, max: 5 },
+  { label: '5\u201310 years', min: 5, max: 10 },
+  { label: '10+ years', min: 10, max: 999 },
+];
 
 // ─── Specialty Theme Colors ────────────────────────────────────────────────
 const SPEC_THEME = {
@@ -78,12 +85,17 @@ export default function HospitalProfile() {
   const [docSearch, setDocSearch] = useState('');
   const [docSpecFilter, setDocSpecFilter] = useState('All');
   const [doctorSectionTab, setDoctorSectionTab] = useState('doctors');
+  const [availabilityFilter, setAvailabilityFilter] = useState('');
+  const [genderFilter, setGenderFilter] = useState('');
+  const [expFilter, setExpFilter] = useState('');
+  const [feeRange, setFeeRange] = useState([0, 2000]);
+  const [ratingFilter, setRatingFilter] = useState(0);
+  const [sortBy, setSortBy] = useState('relevance');
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [showFullDesc, setShowFullDesc] = useState(false);
   const [activePhoto, setActivePhoto] = useState(0);
   const [suggestedHospitals, setSuggestedHospitals] = useState([]);
-  const [activeTab, setActiveTab] = useState('overview');
   const [testSearch, setTestSearch] = useState('');
   const [testDeptFilter, setTestDeptFilter] = useState('All');
   const [testRxFilter, setTestRxFilter] = useState('all');
@@ -141,8 +153,7 @@ export default function HospitalProfile() {
           .map(item => item.h);
         setSuggestedHospitals(scored);
       } catch (e) { console.log('Could not load suggested hospitals', e); }
-      const tabParam = searchParams.get('tab');
-      if (tabParam === 'tests') setActiveTab('tests');
+    
     } catch { setNotFound(true); }
     setLoading(false);
     })();
@@ -245,7 +256,7 @@ export default function HospitalProfile() {
   const allTests = DEPARTMENTS.flatMap(d => d.tests);
   const totalTestCount = allTests.length;
 
-  const filteredDepartments = DEPARTMENTS.map(dept => {
+  const filteredDepartments = DEPARTMENTS.filter(dept => testDeptFilter === 'All' || dept.id === testDeptFilter).map(dept => {
     const filtered = dept.tests.filter(t => {
       if (testSearch && !t.name.toLowerCase().includes(testSearch.toLowerCase())) return false;
       if (testRxFilter === 'rx' && !t.rx) return false;
@@ -268,7 +279,26 @@ export default function HospitalProfile() {
     const q = docSearch.toLowerCase();
     if (q && !d.name?.toLowerCase().includes(q) && !d.specialization?.toLowerCase().includes(q)) return false;
     if (docSpecFilter !== 'All' && d.specialization !== docSpecFilter) return false;
+    if (availabilityFilter === 'available' && !d.available) return false;
+    if (availabilityFilter === 'today' && !(d.available && d.next_available_slot?.toLowerCase().includes('today'))) return false;
+    if (availabilityFilter === 'tomorrow' && !(d.available && d.next_available_slot?.toLowerCase().includes('tomorrow'))) return false;
+    if (genderFilter && d.gender !== genderFilter) return false;
+    if (expFilter) {
+      const r = EXPERIENCE_RANGES.find(e => e.label === expFilter);
+      if (r) {
+        const y = parseInt(d.experience) || 0;
+        if (y < r.min || y >= r.max) return false;
+      }
+    }
+    const fee = d.consultation_fees || d.fees || 0;
+    if (fee < feeRange[0] || fee > feeRange[1]) return false;
+    if (ratingFilter > 0 && (d.rating || 0) < ratingFilter) return false;
     return true;
+  }).sort((a, b) => {
+    if (sortBy === 'rating') return (b.rating || 0) - (a.rating || 0);
+    if (sortBy === 'experience') return (parseInt(b.experience) || 0) - (parseInt(a.experience) || 0);
+    if (sortBy === 'fee') return (a.consultation_fees || a.fees || 0) - (b.consultation_fees || b.fees || 0);
+    return 0;
   });
 
   // ─── Loading / 404 ─────────────────────────────────────────────────────────
@@ -459,14 +489,35 @@ export default function HospitalProfile() {
                     {doctorSectionTab === 'doctors' ? <>Doctors <span className="text-base font-normal text-muted-foreground">({doctors.length})</span></> : 'Tests'}
                   </h2>
                 </div>
-                {doctorSectionTab === 'doctors' && (
-                  <Button variant="ghost" size="sm" className="gap-1 text-primary font-semibold" onClick={() => navigate(`/hospitals/${id}/doctors`)}>
+                {doctorSectionTab === 'doctors' ? (
+                  <Button variant="ghost" size="sm" className="gap-1 text-primary font-semibold shrink-0" onClick={() => navigate(`/hospitals/${id}/doctors`)}>
                     View More <ChevronRight className="w-4 h-4" />
+                  </Button>
+                ) : (
+                  <Button variant="ghost" size="sm" className="gap-1 text-primary font-semibold shrink-0" onClick={() => navigate(`/hospital-tests/${id}`)}>
+                    View All Tests <ChevronRight className="w-4 h-4" />
                   </Button>
                 )}
               </div>
 
               <div className={doctorSectionTab !== 'doctors' ? 'hidden' : ''}>
+              {/* Browse by Specialties */}
+              <div className="flex flex-wrap gap-2 mb-4">
+                <button onClick={() => setDocSpecFilter('All')}
+                  className={cn('px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-all', docSpecFilter === 'All' ? 'border-primary bg-primary/5 text-primary' : 'border-border/60 bg-card text-muted-foreground hover:text-foreground')}>
+                  All ({doctors.length})
+                </button>
+                {(hospital?.specialties || []).map(s => {
+                  const count = doctors.filter(d => d.specialization === s).length;
+                  return (
+                    <button key={s} onClick={() => setDocSpecFilter(s)}
+                      className={cn('px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-all', docSpecFilter === s ? 'border-primary bg-primary/5 text-primary' : 'border-border/60 bg-card text-muted-foreground hover:text-foreground')}>
+                      {s} ({count})
+                    </button>
+                  );
+                })}
+              </div>
+
               {/* Search */}
               <div className="relative mb-4">
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -476,53 +527,56 @@ export default function HospitalProfile() {
                 />
               </div>
 
-              {/* Browse by Specialties */}
-              <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-7 gap-2 mb-5">
-                <motion.button
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  whileHover={{ scale: 1.04 }}
-                  whileTap={{ scale: 0.96 }}
-                  onClick={() => setDocSpecFilter('All')}
-                  className={cn(
-                    'flex flex-col items-center justify-center gap-1 p-2.5 rounded-xl border transition-all',
-                    docSpecFilter === 'All'
-                      ? 'border-primary bg-primary/5 shadow-sm shadow-primary/10'
-                      : 'border-border/60 bg-card hover:border-primary/30 hover:shadow-sm'
-                  )}
-                >
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-                    <Stethoscope className="w-4 h-4 text-primary" />
-                  </div>
-                  <span className={cn('text-[9px] font-semibold text-center leading-tight', docSpecFilter === 'All' ? 'text-primary' : 'text-foreground')}>All</span>
-                  <span className="text-[8px] text-muted-foreground -mt-0.5">{doctors.length}</span>
-                </motion.button>
-                {(hospital?.specialties || []).map(s => {
-                  const spec = SPEC_CARD_THEME[s];
-                  const Icon = spec?.icon || Stethoscope;
-                  const count = doctors.filter(d => d.specialization === s).length;
-                  return (
-                    <motion.button key={s}
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      whileHover={{ scale: 1.04 }}
-                      whileTap={{ scale: 0.96 }}
-                      onClick={() => setDocSpecFilter(s)}
-                      className={cn(
-                        'flex flex-col items-center justify-center gap-1 p-2.5 rounded-xl border transition-all',
-                        docSpecFilter === s
-                          ? 'border-primary bg-primary/5 shadow-sm shadow-primary/10'
-                          : 'border-border/60 bg-card hover:border-primary/30 hover:shadow-sm'
-                      )}
-                    >
-                      <div className={cn('w-8 h-8 rounded-lg bg-gradient-to-br flex items-center justify-center', spec?.color || 'from-primary/20 to-primary/5')}>
-                        <Icon className={cn('w-4 h-4', spec?.textColor || 'text-primary')} />
-                      </div>
-                      <span className={cn('text-[9px] font-semibold text-center leading-tight', docSpecFilter === s ? 'text-primary' : 'text-foreground')}>{s}</span>
-                      <span className="text-[8px] text-muted-foreground -mt-0.5">{count}</span>
-                    </motion.button>
-                  );
-                })}
+              {/* Filters Bar */}
+              <div className="flex flex-wrap items-center gap-2 mb-4">
+                <select value={availabilityFilter} onChange={e => setAvailabilityFilter(e.target.value)}
+                  className="h-8 px-2.5 rounded-lg text-[11px] bg-background border border-border/50 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
+                  <option value="">Availability</option>
+                  <option value="available">Available Now</option>
+                  <option value="today">Today</option>
+                  <option value="tomorrow">Tomorrow</option>
+                </select>
+                <select value={genderFilter} onChange={e => setGenderFilter(e.target.value)}
+                  className="h-8 px-2.5 rounded-lg text-[11px] bg-background border border-border/50 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
+                  <option value="">Gender</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                </select>
+                <select value={expFilter} onChange={e => setExpFilter(e.target.value)}
+                  className="h-8 px-2.5 rounded-lg text-[11px] bg-background border border-border/50 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
+                  <option value="">Experience</option>
+                  {EXPERIENCE_RANGES.map(r => (
+                    <option key={r.label} value={r.label}>{r.label}</option>
+                  ))}
+                </select>
+                <div className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg border border-border/50 bg-background text-[11px]">
+                  <IndianRupee className="w-3 h-3 text-muted-foreground shrink-0" />
+                  <input type="range" min={0} max={2000} step={100} value={feeRange[0]}
+                    onChange={e => setFeeRange([parseInt(e.target.value), feeRange[1]])}
+                    className="w-14 h-1 accent-primary" />
+                  <span className="text-[10px] text-muted-foreground w-10 text-right">{feeRange[0]}</span>
+                  <span className="text-[10px] text-muted-foreground">-</span>
+                  <input type="range" min={0} max={2000} step={100} value={feeRange[1]}
+                    onChange={e => setFeeRange([feeRange[0], parseInt(e.target.value)])}
+                    className="w-14 h-1 accent-primary" />
+                  <span className="text-[10px] text-muted-foreground w-10">{feeRange[1]}</span>
+                </div>
+                <div className="flex gap-1">
+                  {[4, 3].map(r => (
+                    <Button key={r} variant={ratingFilter === r ? 'default' : 'outline'} size="sm"
+                      onClick={() => setRatingFilter(ratingFilter === r ? 0 : r)}
+                      className="h-8 text-[11px] px-2 rounded-lg">
+                      <Star className="w-3 h-3 mr-0.5" /> {r}★ & above
+                    </Button>
+                  ))}
+                </div>
+                <select value={sortBy} onChange={e => setSortBy(e.target.value)}
+                  className="h-8 px-2.5 rounded-lg text-[11px] bg-background border border-border/50 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
+                  <option value="relevance">Sort: Relevance</option>
+                  <option value="rating">Rating</option>
+                  <option value="experience">Experience</option>
+                  <option value="fee">Fee (Low)</option>
+                </select>
               </div>
 
               {filteredDoctors.length === 0 ? (
@@ -614,12 +668,12 @@ export default function HospitalProfile() {
                       </div>
 
                       <div className="flex gap-2">
-                        <Button className="flex-1 gap-2 rounded-xl shadow-lg shadow-primary/20" size="sm" disabled={!doc.available}
-                          onClick={(e) => { e.stopPropagation(); navigate(`/doctors/${doc._id}`); }}>
-                          <CalendarDays className="w-3.5 h-3.5" /> Book Appointment
-                        </Button>
-                        <Button variant="outline" className="gap-2 rounded-xl" size="sm"
-                          onClick={(e) => { e.stopPropagation(); navigate(`/doctors/${doc._id}`); }}>
+                          <Button className="flex-1 gap-2 rounded-xl shadow-lg shadow-primary/20" size="sm" disabled={!doc.available}
+                            onClick={(e) => { e.stopPropagation(); navigate(`/hospital-doctors/${doc._id}`); }}>
+                            <CalendarDays className="w-3.5 h-3.5" /> Book Appointment
+                          </Button>
+                          <Button variant="outline" className="gap-2 rounded-xl" size="sm"
+                            onClick={(e) => { e.stopPropagation(); navigate(`/hospital-doctors/${doc._id}`); }}>
                           View Profile
                         </Button>
                       </div>
@@ -630,128 +684,96 @@ export default function HospitalProfile() {
                 )}
               </div>
               <div className={doctorSectionTab !== 'tests' ? 'hidden' : ''}>
-                  <div className="flex flex-wrap gap-2">
-                    <select value={testDeptFilter} onChange={e => setTestDeptFilter(e.target.value)}
-                      className="h-8 px-2.5 rounded-lg text-[11px] bg-background border border-border/50 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
-                      <option value="All">All Departments</option>
-                      {DEPARTMENTS.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                    </select>
-                    <select value={testRxFilter} onChange={e => setTestRxFilter(e.target.value)}
-                      className="h-8 px-2.5 rounded-lg text-[11px] bg-background border border-border/50 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
-                      <option value="all">All Tests</option>
-                      <option value="direct">Direct Only</option>
-                      <option value="rx">Prescription Required</option>
-                    </select>
-                    <select value={testHomeFilter} onChange={e => setTestHomeFilter(e.target.value)}
-                      className="h-8 px-2.5 rounded-lg text-[11px] bg-background border border-border/50 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
-                      <option value="all">Any Collection</option>
-                      <option value="home">Home Collection</option>
-                      <option value="lab">Lab Visit Only</option>
-                    </select>
-                    <select value={testSort} onChange={e => setTestSort(e.target.value)}
-                      className="h-8 px-2.5 rounded-lg text-[11px] bg-background border border-border/50 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
-                      <option value="popularity">Sort: Popularity</option>
-                      <option value="price-low">Sort: Price (Low)</option>
-                      <option value="price-high">Sort: Price (High)</option>
-                    </select>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-3">
-                      {filteredDepartments.length === 0 ? (
-                        <div className="text-center py-10 bg-card rounded-xl border border-border/50">
-                          <Search className="w-8 h-8 text-muted-foreground/20 mx-auto mb-2" />
-                          <p className="text-xs text-muted-foreground">No tests match your filters</p>
-                          <Button variant="ghost" size="sm" className="mt-1.5 text-xs" onClick={() => { setTestSearch(''); setTestDeptFilter('All'); setTestRxFilter('all'); setTestHomeFilter('all'); setPriceRange([0, 10000]); }}>
-                            Clear all filters
-                          </Button>
-                        </div>
-                      ) : (
-                        <Accordion type="multiple" className="space-y-2">
-                          {filteredDepartments.map(dept => {
-                            const Icon = dept.icon;
-                            return (
-                              <AccordionItem key={dept.id} value={dept.id} className="border border-border/50 rounded-xl overflow-hidden bg-card">
-                                <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-muted/30 transition-colors">
-                                  <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-                                      <Icon className="w-4 h-4 text-primary" />
-                                    </div>
-                                    <span className="text-sm font-semibold">{dept.name}</span>
-                                    <Badge variant="secondary" className="text-[10px] h-4 px-1.5 font-normal">{dept.tests.length}</Badge>
-                                  </div>
-                                </AccordionTrigger>
-                                <AccordionContent className="px-4 pb-3">
-                                  <div className="space-y-1.5">
-                                    {dept.tests.slice(0, 4).map(test => (
-                                      <div key={test.id} className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-muted/30 transition-colors">
-                                        <div className="flex-1 min-w-0">
-                                          <p className="text-xs font-medium text-foreground truncate">{test.name}</p>
-                                          <p className="text-[10px] text-muted-foreground">₹{test.price} <span className="line-through">₹{test.mrp}</span></p>
-                                        </div>
-                                        <div className="flex items-center gap-1 shrink-0 ml-2">
-                                          {testCart[test.id] ? (
-                                            <div className="flex items-center gap-1">
-                                              <button onClick={() => removeTestFromCart(test.id)} className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors"><Minus className="w-3 h-3 text-primary" /></button>
-                                              <span className="text-xs font-semibold w-5 text-center">{testCart[test.id]}</span>
-                                              <button onClick={() => addTestToCart(test.id)} className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors"><Plus className="w-3 h-3 text-primary" /></button>
-                                            </div>
-                                          ) : (
-                                            <button onClick={() => addTestToCart(test.id)} className="w-7 h-7 rounded-lg bg-primary text-primary-foreground text-xs font-semibold flex items-center justify-center hover:bg-primary/90 transition-colors">Add</button>
-                                          )}
-                                        </div>
-                                      </div>
-                                    ))}
-                                    {dept.tests.length > 4 && (
-                                      <button onClick={() => setActiveTab('tests')} className="w-full text-center text-[10px] text-primary font-semibold py-1.5 hover:underline">+{dept.tests.length - 4} more</button>
-                                    )}
-                                  </div>
-                                </AccordionContent>
-                              </AccordionItem>
-                            );
-                          })}
-                        </Accordion>
-                      )}
-                    </div>
-
-                    {/* Selected Tests Summary */}
-                    <div className="bg-card rounded-xl border border-border/50 p-4 h-fit lg:sticky lg:top-24">
-                      <h4 className="text-xs font-semibold text-foreground mb-3 flex items-center gap-2">
-                        <ShoppingCart className="w-3.5 h-3.5 text-primary" /> Selected Tests
-                      </h4>
-                      {Object.keys(testCart).length === 0 ? (
-                        <div className="text-center py-8">
-                          <ShoppingCart className="w-8 h-8 text-muted-foreground/20 mx-auto mb-2" />
-                          <p className="text-xs text-muted-foreground">No tests selected</p>
-                          <p className="text-[10px] text-muted-foreground/60 mt-0.5">Browse and add tests above</p>
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          {Object.entries(testCart).map(([testId, qty]) => {
-                            const test = DEPARTMENTS.flatMap(d => d.tests).find(t => t.id === testId);
-                            if (!test) return null;
-                            return (
-                              <div key={testId} className="flex items-center justify-between py-1.5 px-2.5 rounded-lg bg-muted/30">
-                                <div className="min-w-0 flex-1">
-                                  <p className="text-[11px] font-medium text-foreground truncate">{test.name}</p>
-                                  <p className="text-[10px] text-muted-foreground">₹{test.price} x {qty}</p>
-                                </div>
-                                <button onClick={() => removeTestFromCart(testId)} className="w-5 h-5 rounded flex items-center justify-center hover:bg-muted transition-colors shrink-0 ml-1"><X className="w-3 h-3 text-muted-foreground" /></button>
-                              </div>
-                            );
-                          })}
-                          <Separator />
-                          <div className="flex items-center justify-between text-xs font-semibold px-2.5">
-                            <span>Total</span>
-                            <span>₹{Object.entries(testCart).reduce((sum, [testId, qty]) => { const t = DEPARTMENTS.flatMap(d => d.tests).find(t => t.id === testId); return sum + (t?.price || 0) * qty; }, 0)}</span>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  <button onClick={() => setTestDeptFilter('All')}
+                    className={cn('px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-all', testDeptFilter === 'All' ? 'border-primary bg-primary/5 text-primary' : 'border-border/60 bg-card text-muted-foreground hover:text-foreground')}>
+                    All ({allTests.length})
+                  </button>
+                  {DEPARTMENTS.map(d => (
+                    <button key={d.id} onClick={() => setTestDeptFilter(d.id)}
+                      className={cn('px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-all', testDeptFilter === d.id ? 'border-primary bg-primary/5 text-primary' : 'border-border/60 bg-card text-muted-foreground hover:text-foreground')}>
+                      {d.name} ({d.tests.length})
+                    </button>
+                  ))}
+                </div>
+                <div className="relative mb-4">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input value={testSearch} onChange={e => setTestSearch(e.target.value)}
+                    placeholder="Search tests..." className="pl-10 h-9 text-xs rounded-xl bg-background border-border/50" />
+                </div>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  <select value={priceRange} onChange={e => setPriceRange(e.target.value)}
+                    className="h-8 px-2.5 rounded-lg text-[11px] bg-background border border-border/50 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
+                    <option value="all">Price: All</option>
+                    <option value="0-500">Under ₹500</option>
+                    <option value="500-2000">₹500 - ₹2000</option>
+                    <option value="2000+">₹2000+</option>
+                  </select>
+                  <select value={testRxFilter} onChange={e => setTestRxFilter(e.target.value)}
+                    className="h-8 px-2.5 rounded-lg text-[11px] bg-background border border-border/50 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
+                    <option value="all">All Tests</option>
+                    <option value="direct">Direct Only</option>
+                    <option value="rx">Prescription Required</option>
+                  </select>
+                  <select value={testHomeFilter} onChange={e => setTestHomeFilter(e.target.value)}
+                    className="h-8 px-2.5 rounded-lg text-[11px] bg-background border border-border/50 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
+                    <option value="all">Any Collection</option>
+                    <option value="home">Home Collection</option>
+                    <option value="lab">Lab Visit Only</option>
+                  </select>
+                  <select value={testSort} onChange={e => setTestSort(e.target.value)}
+                    className="h-8 px-2.5 rounded-lg text-[11px] bg-background border border-border/50 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
+                    <option value="popularity">Sort: Popularity</option>
+                    <option value="price-low">Sort: Price (Low)</option>
+                    <option value="price-high">Sort: Price (High)</option>
+                  </select>
+                </div>
+                <div className="max-h-[420px] overflow-y-auto pr-1 -mr-1 scrollbar-thin"
+                  style={{ scrollbarWidth: 'thin', scrollbarColor: 'hsl(var(--border)) transparent' }}>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {filteredDepartments.flatMap(dept => dept.tests).map((test, i) => {
+                    const dept = DEPARTMENTS.find(d => d.tests.includes(test));
+                    if (!dept) return null;
+                    return (
+                      <motion.div key={test.id}
+                        variants={fadeUp}
+                        className="bg-card rounded-2xl border border-border/50 overflow-hidden hover:shadow-lg hover:border-primary/20 transition-all group flex flex-col"
+                      >
+                        <div className="p-3 pb-2.5 flex-1 flex flex-col">
+                          <div className="flex items-start justify-between gap-2 mb-1">
+                            <h4 className="font-heading font-semibold text-xs text-foreground leading-tight">{test.name}</h4>
+                            {test.rx ? (
+                              <span className="inline-flex items-center gap-0.5 text-[7px] font-bold text-amber-600 bg-amber-500/10 px-1.5 py-0.5 rounded shrink-0"><Lock className="w-2 h-2" /> Rx</span>
+                            ) : (
+                              <span className="inline-flex items-center gap-0.5 text-[7px] font-bold text-emerald-600 bg-emerald-500/10 px-1.5 py-0.5 rounded shrink-0">Direct</span>
+                            )}
                           </div>
-                          <Button size="sm" className="w-full gap-1.5 rounded-lg text-xs h-8">
-                            <Lock className="w-3 h-3" /> Proceed to Booking
-                          </Button>
+                          <p className="text-[9px] text-muted-foreground mb-1">{dept.name}</p>
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="inline-flex items-center gap-0.5 text-[9px] text-muted-foreground">
+                              <Clock className="w-2 h-2" /> {test.reportTime}
+                            </span>
+                            {test.homeCollection && (
+                              <span className="inline-flex items-center gap-0.5 text-[8px] font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+                                <Home className="w-1.5 h-1.5" /> Home
+                              </span>
+                            )}
+                          </div>
+                          <div className="mt-auto flex items-center justify-between pt-2 border-t border-border/30">
+                            <div>
+                              <span className="text-sm font-bold text-foreground">₹{test.price}</span>
+                              {test.mrp > test.price && <span className="text-[9px] text-muted-foreground line-through ml-1">₹{test.mrp}</span>}
+                            </div>
+                            <Button size="sm" className="rounded-lg text-[9px] h-7 px-2.5" onClick={() => navigate(`/hospital-tests/${id}`)}>
+                              Book
+                            </Button>
+                          </div>
                         </div>
-                      )}
-                    </div>
-                  </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -784,156 +806,165 @@ export default function HospitalProfile() {
         </motion.div>
       )}
 
-
-      {/* ═══════════ TABS SECTION ═══════════ */}
-      <div>
-
-        {/* Tab Navigation */}
-        <motion.div variants={fadeUp} className="flex gap-1 mb-8 bg-muted/50 p-1 rounded-2xl border border-border/40 w-fit">
-          {[
-            { key:'overview', label:'Overview', icon:Building2 },
-            { key:'tests', label:'Tests', icon:FlaskConical },
-          ].map(tab => (
-            <button key={tab.key} onClick={() => setActiveTab(tab.key)}
-              className={cn(
-                'flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all',
-                activeTab === tab.key
-                  ? 'bg-card text-foreground shadow-sm border border-border/50'
-                  : 'text-muted-foreground hover:text-foreground'
-              )}>
-              <tab.icon className="w-4 h-4" />
-              {tab.label}
-            </button>
-          ))}
+      {/* ─── Specialties & Departments ─── */}
+      {hospital.specialties?.length > 0 && (
+        <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>
+          <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden">
+            <CardContent className="p-6 sm:p-8">
+              <h2 className="font-heading text-xl font-bold text-foreground mb-5 flex items-center gap-2.5">
+                <span className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center"><Building2 className="w-4 h-4 text-primary" /></span>
+                Specialties & Departments
+              </h2>
+              <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2">
+                {hospital.specialties.map(spec => {
+                  const theme = getSpecTheme(spec);
+                  const Icon = theme.icon;
+                  return (
+                    <div key={spec} className={cn('flex items-center gap-1.5 px-2.5 py-2 rounded-lg border', theme.bg, theme.border)}>
+                      <Icon className={cn('w-3.5 h-3.5 shrink-0', theme.text)} />
+                      <span className={cn('text-[11px] font-medium', theme.text)}>{spec}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
         </motion.div>
+      )}
 
-        {activeTab === 'overview' ? (
-        <div className="space-y-8">
-
-            {/* ─── Specialties / Departments Showcase ─── */}
-            {hospital.specialties?.length > 0 && (
-              <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>
-                <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden">
-                  <CardContent className="p-6 sm:p-8">
-                    <h2 className="font-heading text-xl font-bold text-foreground mb-5 flex items-center gap-2.5">
-                      <span className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center"><Building2 className="w-4 h-4 text-primary" /></span>
-                      Specialties & Departments
-                    </h2>
-                    <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2">
-                      {hospital.specialties.map(spec => {
-                        const theme = getSpecTheme(spec);
-                        const Icon = theme.icon;
-                        return (
-                          <div key={spec} className={cn('flex items-center gap-1.5 px-2.5 py-2 rounded-lg border', theme.bg, theme.border)}>
-                            <Icon className={cn('w-3.5 h-3.5 shrink-0', theme.text)} />
-                            <span className={cn('text-[11px] font-medium', theme.text)}>{spec}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )}
-
-            {/* ─── Location & Contact ─── */}
-            <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>
-              <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden">
-                <CardContent className="p-6 sm:p-8">
-                  <h2 className="font-heading text-xl font-bold text-foreground mb-6 flex items-center gap-2.5">
-                    <span className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center"><MapPin className="w-4 h-4 text-primary" /></span>
-                    Location & Contact
-                  </h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    <div className="space-y-4">
-                      <div className="flex items-start gap-3.5">
-                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 mt-0.5"><MapPin className="w-4 h-4 text-primary" /></div>
-                        <div>
-                          <p className="font-semibold text-foreground text-sm mb-0.5">Address</p>
-                          <p className="text-sm text-muted-foreground">{hospital.address}, {hospital.city}{hospital.state ? `, ${hospital.state}` : ''}</p>
-                        </div>
-                      </div>
-                      <Button variant="outline" size="sm" className="rounded-xl gap-2" asChild>
-                        <a href={`https://maps.google.com/?q=${encodeURIComponent(`${hospital.address}, ${hospital.city}, ${hospital.state}`)}`} target="_blank" rel="noopener noreferrer">
-                          <Navigation className="w-4 h-4" /> Get Directions
-                        </a>
-                      </Button>
-                    </div>
-                    <div className="space-y-5">
-                      <div className="flex items-start gap-3.5">
-                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 mt-0.5"><Phone className="w-4 h-4 text-primary" /></div>
-                        <div>
-                          <p className="font-semibold text-foreground text-sm mb-0.5">Phone</p>
-                          <a href={`tel:${hospital.phone}`} className="text-sm text-primary font-semibold hover:underline">{hospital.phone}</a>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-3.5">
-                        <div className="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-500/10 flex items-center justify-center shrink-0 mt-0.5"><AlertCircle className="w-4 h-4 text-red-600" /></div>
-                        <div>
-                          <p className="font-semibold text-red-600 flex items-center gap-1.5 text-sm mb-0.5"><HeartPulse className="w-3.5 h-3.5" /> Emergency</p>
-                          <a href={`tel:${hospital.emergencyNumber || hospital.phone}`} className="text-sm font-bold text-red-600 hover:underline">{hospital.emergencyNumber || hospital.phone}</a>
-                          <p className="text-xs text-muted-foreground mt-0.5">Available 24/7</p>
-                        </div>
-                      </div>
-                      {hospital.email && (
-                        <div className="flex items-start gap-3.5">
-                          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 mt-0.5"><Mail className="w-4 h-4 text-primary" /></div>
-                          <div>
-                            <p className="font-semibold text-foreground text-sm mb-0.5">Email</p>
-                            <p className="text-sm text-muted-foreground">{hospital.email}</p>
-                          </div>
-                        </div>
-                      )}
+      {/* ─── Location & Contact ─── */}
+      <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>
+        <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden">
+          <CardContent className="p-6 sm:p-8">
+            <h2 className="font-heading text-xl font-bold text-foreground mb-6 flex items-center gap-2.5">
+              <span className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center"><MapPin className="w-4 h-4 text-primary" /></span>
+              Location & Contact
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div className="flex items-start gap-3.5">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 mt-0.5"><MapPin className="w-4 h-4 text-primary" /></div>
+                  <div>
+                    <p className="font-semibold text-foreground text-sm mb-0.5">Address</p>
+                    <p className="text-sm text-muted-foreground">{hospital.address}, {hospital.city}{hospital.state ? `, ${hospital.state}` : ''}</p>
+                  </div>
+                </div>
+                <Button variant="outline" size="sm" className="rounded-xl gap-2" asChild>
+                  <a href={`https://maps.google.com/?q=${encodeURIComponent(`${hospital.address}, ${hospital.city}, ${hospital.state}`)}`} target="_blank" rel="noopener noreferrer">
+                    <Navigation className="w-4 h-4" /> Get Directions
+                  </a>
+                </Button>
+              </div>
+              <div className="space-y-5">
+                <div className="flex items-start gap-3.5">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 mt-0.5"><Phone className="w-4 h-4 text-primary" /></div>
+                  <div>
+                    <p className="font-semibold text-foreground text-sm mb-0.5">Phone</p>
+                    <a href={`tel:${hospital.phone}`} className="text-sm text-primary font-semibold hover:underline">{hospital.phone}</a>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3.5">
+                  <div className="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-500/10 flex items-center justify-center shrink-0 mt-0.5"><AlertCircle className="w-4 h-4 text-red-600" /></div>
+                  <div>
+                    <p className="font-semibold text-red-600 flex items-center gap-1.5 text-sm mb-0.5"><HeartPulse className="w-3.5 h-3.5" /> Emergency</p>
+                    <a href={`tel:${hospital.emergencyNumber || hospital.phone}`} className="text-sm font-bold text-red-600 hover:underline">{hospital.emergencyNumber || hospital.phone}</a>
+                    <p className="text-xs text-muted-foreground mt-0.5">Available 24/7</p>
+                  </div>
+                </div>
+                {hospital.email && (
+                  <div className="flex items-start gap-3.5">
+                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 mt-0.5"><Mail className="w-4 h-4 text-primary" /></div>
+                    <div>
+                      <p className="font-semibold text-foreground text-sm mb-0.5">Email</p>
+                      <p className="text-sm text-muted-foreground">{hospital.email}</p>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            </motion.div>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
 
-            {/* ─── REVIEWS SECTION ─── */}
+      {/* ─── Patient Reviews ─── */}
+      <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>
+        <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden">
+          <CardContent className="p-6 sm:p-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="font-heading text-xl font-bold text-foreground flex items-center gap-2.5">
+                <span className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center"><Star className="w-4 h-4 text-primary fill-primary" /></span>
+                Patient Reviews <span className="text-base font-normal text-muted-foreground ml-1">({hospital.reviewsCount || reviews.length})</span>
+              </h2>
+              <Button variant="outline" size="sm" className="rounded-lg text-xs gap-1.5" onClick={() => toast.success('Review submitted successfully!')}>
+                <Star className="w-3.5 h-3.5" /> Write a Review
+              </Button>
+            </div>
+
             {reviews.length > 0 && (
-              <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>
-                <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden">
-                  <CardContent className="p-6 sm:p-8">
-                    <h2 className="font-heading text-xl font-bold text-foreground mb-5 flex items-center gap-2.5">
-                      <span className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center"><Star className="w-4 h-4 text-primary fill-primary" /></span>
-                      Patient Reviews <span className="text-base font-normal text-muted-foreground ml-1">({reviews.length})</span>
-                    </h2>
-                    <div className="space-y-5">
-                      {reviews.map((review, i) => (
-                        <motion.div key={review._id || i} variants={fadeUp}
-                          className="border-b border-border/40 last:border-0 pb-5 last:pb-0"
-                        >
-                          <div className="flex items-start gap-3">
-                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm shrink-0">
-                              {review.patientName?.split(' ').map(n=>n[0]).join('').slice(0,2) || 'U'}
-                            </div>
-                            <div className="flex-1">
-                              <div className="flex items-center justify-between">
-                                <p className="font-semibold text-foreground text-sm">{review.patientName}</p>
-                                <span className="text-xs text-muted-foreground">{review.date ? new Date(review.date).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' }) : ''}</span>
-                              </div>
-                              <div className="flex items-center gap-0.5 mt-1 mb-1.5">
-                                {[1,2,3,4,5].map(s => (
-                                  <Star key={s} className={cn('w-3.5 h-3.5', s <= review.rating ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground/20')} />
-                                ))}
-                              </div>
-                              {review.comment && (
-                                <p className="text-sm text-muted-foreground leading-relaxed">{review.comment}</p>
-                              )}
+              <>
+                <div className="flex flex-col sm:flex-row items-start gap-6 mb-6 p-5 bg-gradient-to-br from-muted/30 to-muted/10 rounded-xl border border-border/40">
+                  <div className="text-center min-w-[100px]">
+                    <div className="text-4xl font-bold text-foreground">{hospital.rating || 0}</div>
+                    <div className="flex items-center gap-0.5 mt-1 justify-center">
+                      {[1,2,3,4,5].map(i => <Star key={i} className={cn('w-4 h-4', i <= Math.round(hospital.rating || 0) ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground/20')} />)}
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-1">{hospital.reviewsCount || reviews.length} total reviews</p>
+                  </div>
+                  <div className="flex-1 w-full space-y-1.5">
+                    {[5,4,3,2,1].map(r => {
+                      const count = reviews.filter(rev => rev.rating === r).length;
+                      const pct = reviews.length > 0 ? (count / reviews.length) * 100 : 0;
+                      return (
+                        <div key={r} className="flex items-center gap-2 text-xs">
+                          <span className="w-3 text-muted-foreground font-medium">{r}</span>
+                          <Star className="w-3 h-3 text-amber-400 fill-amber-400 shrink-0" />
+                          <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+                            <div className="h-full rounded-full bg-gradient-to-r from-amber-400 to-amber-500" style={{ width: `${pct}%` }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  {reviews.map((review, i) => (
+                    <motion.div key={review._id || i} variants={fadeUp}
+                      className="group p-4 rounded-xl border border-border/30 hover:border-border/60 hover:shadow-sm transition-all"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-sm font-bold text-primary shrink-0 border-2 border-primary/10">
+                          {(review.patientName || '?')[0]}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm font-semibold text-foreground">{review.patientName || 'Anonymous'}</span>
+                            <div className="flex items-center gap-0.5">
+                              {[1,2,3,4,5].map(s => <Star key={s} className={cn('w-3 h-3', s <= review.rating ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground/20')} />)}
                             </div>
                           </div>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">{review.date ? new Date(review.date).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' }) : ''}</p>
+                          <p className="text-xs text-foreground mt-2 leading-relaxed">{review.comment || review.text || ''}</p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </>
             )}
 
-        </div>
-        ) : (
-        /* ═══ TESTS TAB ═══ */
+            {reviews.length === 0 && (
+              <div className="text-center py-12">
+                <Star className="w-12 h-12 text-muted-foreground/20 mx-auto mb-3" />
+                <p className="text-sm text-muted-foreground">No reviews yet. Be the first to share your experience!</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* ═══════════ TESTS SECTION ═══════════ */}
+      <div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-6">
 
@@ -950,33 +981,6 @@ export default function HospitalProfile() {
                 <Input value={testSearch} onChange={e => setTestSearch(e.target.value)}
                   placeholder="Search tests in this hospital..." className="pl-10 h-11 text-sm rounded-xl bg-background border-border/50" />
               </div>
-            </motion.div>
-
-            {/* Filters Row */}
-            <motion.div {...fadeUp} className="flex flex-wrap gap-2">
-              <select value={testDeptFilter} onChange={e => setTestDeptFilter(e.target.value)}
-                className="h-9 px-3 rounded-lg text-xs bg-background border border-border/50 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
-                <option value="All">All Departments</option>
-                {DEPARTMENTS.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-              </select>
-              <select value={testRxFilter} onChange={e => setTestRxFilter(e.target.value)}
-                className="h-9 px-3 rounded-lg text-xs bg-background border border-border/50 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
-                <option value="all">All Tests</option>
-                <option value="direct">Direct Only</option>
-                <option value="rx">Prescription Required</option>
-              </select>
-              <select value={testHomeFilter} onChange={e => setTestHomeFilter(e.target.value)}
-                className="h-9 px-3 rounded-lg text-xs bg-background border border-border/50 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
-                <option value="all">Any Collection</option>
-                <option value="home">Home Collection</option>
-                <option value="lab">Lab Visit Only</option>
-              </select>
-              <select value={testSort} onChange={e => setTestSort(e.target.value)}
-                className="h-9 px-3 rounded-lg text-xs bg-background border border-border/50 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
-                <option value="popularity">Sort: Popularity</option>
-                <option value="price-low">Sort: Price (Low)</option>
-                <option value="price-high">Sort: Price (High)</option>
-              </select>
             </motion.div>
 
             {/* Accordion */}
@@ -1119,86 +1123,7 @@ export default function HospitalProfile() {
             </motion.div>
 
           </div>
-
-          {/* Tests Sidebar */}
-          <div className="space-y-6">
-            <motion.div variants={fadeUp} className="bg-card rounded-2xl border border-border/50 overflow-hidden shadow-sm lg:sticky lg:top-24">
-              <div className="px-5 py-3.5 border-b border-border/30 bg-gradient-to-r from-primary/[0.04] to-transparent">
-                <h4 className="font-heading font-semibold text-foreground flex items-center gap-2 text-sm">
-                  <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-                    <ShoppingCart className="w-4 h-4 text-primary" />
-                  </div>
-                  Selected Tests
-                </h4>
-              </div>
-              <div className="p-5">
-                {Object.keys(testCart).length === 0 ? (
-                  <div className="text-center py-6">
-                    <FlaskConical className="w-10 h-10 text-muted-foreground/20 mx-auto mb-2" />
-                    <p className="text-xs text-muted-foreground">No tests selected</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {Object.entries(testCart).map(([tid, qty]) => {
-                      const test = allTests.find(t => t.id === tid);
-                      if (!test) return null;
-                      return (
-                        <div key={tid} className="flex items-center justify-between py-2 border-b border-border/20 last:border-0">
-                          <div className="min-w-0 flex-1">
-                            <p className="text-xs font-semibold text-foreground truncate">{test.name}</p>
-                            <p className="text-[10px] text-muted-foreground">₹{test.price} x {qty}</p>
-                          </div>
-                          <span className="text-xs font-bold text-foreground shrink-0 ml-2">₹{test.price * qty}</span>
-                        </div>
-                      );
-                    })}
-                    <div className="flex items-center justify-between pt-2 border-t border-border/30">
-                      <span className="text-xs font-semibold text-foreground">Total</span>
-                      <span className="text-sm font-bold text-primary">
-                        ₹{Object.entries(testCart).reduce((s, [tid, qty]) => {
-                          const test = allTests.find(t => t.id === tid);
-                          return s + (test ? test.price * qty : 0);
-                        }, 0)}
-                      </span>
-                    </div>
-                    <Button className="w-full gap-1.5 rounded-xl h-10 text-xs font-semibold mt-2 shadow-lg shadow-primary/20" onClick={() => navigate('/book-test')}>
-                      Book Now <ChevronRight className="w-3.5 h-3.5" />
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          </div>
         </div>
-        )}
-
-        {/* Bottom Sticky Bar — Tests Tab */}
-        {activeTab === 'tests' && Object.keys(testCart).length > 0 && (
-          <motion.div initial={{ y: 100 }} animate={{ y: 0 }}
-            className="fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-xl border-t border-border/50 shadow-2xl">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-                  <FlaskConical className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <span className="text-xs text-muted-foreground">
-                    {Object.keys(testCart).reduce((s, k) => s + testCart[k], 0)} test{Object.keys(testCart).reduce((s, k) => s + testCart[k], 0) > 1 ? 's' : ''} selected
-                  </span>
-                  <span className="text-lg font-bold text-foreground block leading-tight">
-                    ₹{Object.entries(testCart).reduce((s, [tid, qty]) => {
-                      const test = allTests.find(t => t.id === tid);
-                      return s + (test ? test.price * qty : 0);
-                    }, 0)}
-                  </span>
-                </div>
-              </div>
-              <Button className="gap-2 rounded-xl shadow-lg shadow-primary/30 px-6 h-11" onClick={() => navigate('/book-test')}>
-                Book Now <ChevronRight className="w-5 h-5" />
-              </Button>
-            </div>
-          </motion.div>
-        )}
       </div>
 
         </div>
@@ -1344,27 +1269,9 @@ export default function HospitalProfile() {
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
             >
               {(suggestedHospitals || []).map((h) => (
-                <Card
-                  key={h._id}
-                  onClick={() => navigate(`/hospitals/${h._id}`)}
-                  className="min-w-[260px] md:min-w-[280px] snap-start cursor-pointer hover:shadow-lg hover:shadow-primary/5 hover:border-primary/20 transition-all"
-                >
-                  <div className="h-32 w-full overflow-hidden rounded-b-none">
-                    <img
-                      src={h.image || h.logo}
-                      alt={h.name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <CardContent className="p-4">
-                    <h3 className="font-heading font-semibold text-sm text-foreground truncate">{h.name}</h3>
-                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{h.description}</p>
-                    <div className="flex items-center justify-between mt-3">
-                      <Badge variant="secondary" className="text-[11px] rounded-lg">{h.hospitalType}</Badge>
-                      <span className="text-[11px] text-muted-foreground">{h.city}, {h.state}</span>
-                    </div>
-                  </CardContent>
-                </Card>
+                <div key={h._id} className="min-w-[260px] md:min-w-[280px] snap-start shrink-0">
+                  <HospitalCard hospital={h} index={0} />
+                </div>
               ))}
             </div>
 

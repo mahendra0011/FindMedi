@@ -499,11 +499,11 @@ export default function HospitalDoctors() {
 
                   <div className="flex gap-2">
                     <Button className="flex-1 gap-2 rounded-xl shadow-lg shadow-primary/20" size="sm" disabled={!doc.available}
-                      onClick={(e) => { e.stopPropagation(); navigate(`/doctors/${doc._id}`); }}>
+                      onClick={(e) => { e.stopPropagation(); navigate(`/hospital-doctors/${doc._id}`); }}>
                       <CalendarDays className="w-3.5 h-3.5" /> Book Appointment
                     </Button>
                     <Button variant="outline" className="gap-2 rounded-xl" size="sm"
-                      onClick={(e) => { e.stopPropagation(); navigate(`/doctors/${doc._id}`); }}>
+                      onClick={(e) => { e.stopPropagation(); navigate(`/hospital-doctors/${doc._id}`); }}>
                       <Eye className="w-3.5 h-3.5" /> View Profile
                     </Button>
                   </div>

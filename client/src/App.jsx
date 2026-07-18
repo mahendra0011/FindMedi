@@ -38,6 +38,8 @@ import OrderConfirmation from './pages/OrderConfirmation';
 import OrderTracking from './pages/OrderTracking';
 import PaymentGateway from './pages/PaymentGateway';
 import DoctorDetail from './pages/DoctorDetail';
+import HospitalDoctor from './pages/HospitalDoctor';
+import ClinicDoctor from './pages/ClinicDoctor';
 import Signup from './pages/Signup';
 import ForgotPassword from './pages/ForgotPassword';
 import PendingApproval from './pages/PendingApproval';
@@ -99,6 +101,7 @@ import ClinicReviews from './pages/clinic/ClinicReviews';
 import ClinicSettings from './pages/clinic/ClinicSettings';
 import ClinicStaff from './pages/clinic/ClinicStaff';
 import ClinicNotifications from './pages/clinic/ClinicNotifications';
+import ClinicDirectory from './pages/ClinicDirectory';
 
 // Admin pages
 import AdminUsers from './pages/admin/AdminUsers';
@@ -346,8 +349,11 @@ const App = () => (
                    <Route path="/register-hospital" element={<HospitalRegister />} />
                    <Route path="/register-facility" element={<FacilityRegister />} />
                    <Route path="/doctors" element={<PublicLayout><FindDoctor /></PublicLayout>} />
-                    <Route path="/doctors/:id" element={<PublicLayout><DoctorDetail /></PublicLayout>} />
-                    <Route path="/clinic/:clinicId" element={<PublicLayout><ClinicDetail /></PublicLayout>} />
+                     <Route path="/doctors/:id" element={<PublicLayout><DoctorDetail /></PublicLayout>} />
+                     <Route path="/hospital-doctors/:id" element={<PublicLayout><HospitalDoctor /></PublicLayout>} />
+                     <Route path="/clinic-doctors/:id" element={<PublicLayout><ClinicDoctor /></PublicLayout>} />
+                     <Route path="/clinic" element={<PublicLayout><ClinicDirectory /></PublicLayout>} />
+                     <Route path="/clinic/:clinicId" element={<PublicLayout><ClinicDetail /></PublicLayout>} />
                     <Route path="/hospital-tests/:hospitalId" element={<PublicLayout><HospitalTestBooking /></PublicLayout>} />
                      <Route path="/book-test" element={<PublicLayout><BookTest /></PublicLayout>} />
                      <Route path="/all-tests" element={<PublicLayout><AllTests /></PublicLayout>} />
