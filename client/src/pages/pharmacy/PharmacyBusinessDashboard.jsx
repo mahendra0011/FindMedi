@@ -2,33 +2,12 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   Pill, ShoppingCart, DollarSign, AlertTriangle,
-  Package, Clock, User, TrendingUp
+  Package, Clock
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
+import { api } from '@/lib/api';
 import StatCard from '@/components/StatCard';
-
-const MOCK_DATA = {
-  stats: {
-    totalMedicines: 1247,
-    activeOrders: 48,
-    todayRevenue: 28450,
-    lowStockItems: 12,
-  },
-  recentOrders: [
-    { _id: 'o1', orderId: '#ORD-001', customer: 'Sarah Johnson', items: 3, total: 1250, status: 'Completed', time: '10:00 AM' },
-    { _id: 'o2', orderId: '#ORD-002', customer: 'Mike Chen', items: 1, total: 450, status: 'Processing', time: '11:30 AM' },
-    { _id: 'o3', orderId: '#ORD-003', customer: 'Emma Wilson', items: 5, total: 2320, status: 'Completed', time: '2:00 PM' },
-    { _id: 'o4', orderId: '#ORD-004', customer: 'James Brown', items: 2, total: 890, status: 'Pending', time: '3:30 PM' },
-    { _id: 'o5', orderId: '#ORD-005', customer: 'Lisa Davis', items: 4, total: 1670, status: 'Cancelled', time: '4:00 PM' },
-  ],
-  lowStock: [
-    { _id: 'ls1', name: 'Amoxicillin 500mg', batch: 'B202401', stock: 15, minLevel: 50 },
-    { _id: 'ls2', name: 'Paracetamol 500mg', batch: 'B202402', stock: 22, minLevel: 100 },
-    { _id: 'ls3', name: 'Omeprazole 20mg', batch: 'B202403', stock: 8, minLevel: 40 },
-    { _id: 'ls4', name: 'Atorvastatin 10mg', batch: 'B202404', stock: 12, minLevel: 60 },
-  ],
-};
 
 const statusColors = {
   Completed: 'bg-success/10 text-success',
@@ -39,15 +18,27 @@ const statusColors = {
 
 export default function PharmacyBusinessDashboard() {
   const { user } = useAuth();
-  const [data, setData] = useState(MOCK_DATA);
+  const [stats, setStats] = useState(null);
+  const [recentOrders, setRecentOrders] = useState([]);
+  const [lowStock, setLowStock] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setData(MOCK_DATA);
+    const load = async () => {
+      setLoading(true);
+      try {
+        const [s, o, m] = await Promise.all([
+          api.getPharmacyStats(),
+          api.getPharmacyOrders({}),
+          api.getPharmacyMedicines({ lowStock: 'true' }),
+        ]);
+        setStats(s);
+        setRecentOrders((o.orders || []).slice(0, 5));
+        setLowStock((m.medicines || []).slice(0, 5));
+      } catch (e) { console.error(e); }
       setLoading(false);
-    }, 300);
-    return () => clearTimeout(timer);
+    };
+    load();
   }, []);
 
   if (loading) {
@@ -57,8 +48,6 @@ export default function PharmacyBusinessDashboard() {
       </div>
     );
   }
-
-  const { stats, recentOrders, lowStock } = data;
 
   return (
     <div>
@@ -71,7 +60,6 @@ export default function PharmacyBusinessDashboard() {
         </div>
       </div>
 
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
         <StatCard
           title="Total Medicines"
@@ -84,8 +72,8 @@ export default function PharmacyBusinessDashboard() {
         />
         <StatCard
           title="Active Orders"
-          value={stats?.activeOrders ?? '—'}
-          change="8 pending fulfillment"
+          value={stats?.totalOrders ?? '—'}
+          change={`${stats?.pendingDispense || 0} pending fulfillment`}
           changeType="neutral"
           icon={ShoppingCart}
           iconColor="text-warning"
@@ -93,7 +81,7 @@ export default function PharmacyBusinessDashboard() {
         />
         <StatCard
           title="Today's Revenue"
-          value={`Rs ${(stats?.todayRevenue ?? 0).toLocaleString()}`}
+          value={`Rs ${(stats?.revenue ?? 0).toLocaleString()}`}
           change="+15% vs yesterday"
           changeType="positive"
           icon={DollarSign}
@@ -102,7 +90,7 @@ export default function PharmacyBusinessDashboard() {
         />
         <StatCard
           title="Low Stock Items"
-          value={stats?.lowStockItems ?? '—'}
+          value={stats?.lowStock ?? '—'}
           change="Needs immediate attention"
           changeType="negative"
           icon={AlertTriangle}
@@ -112,7 +100,6 @@ export default function PharmacyBusinessDashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Recent Orders */}
         <div className="lg:col-span-2 bg-card rounded-xl border p-6 shadow-sm">
           <div className="flex items-center justify-between mb-5">
             <h3 className="font-heading font-semibold text-lg text-card-foreground flex items-center gap-2">
@@ -126,13 +113,12 @@ export default function PharmacyBusinessDashboard() {
                 <tr className="border-b border-border">
                   <th className="text-left py-3 px-2 text-muted-foreground font-medium">Order</th>
                   <th className="text-left py-3 px-2 text-muted-foreground font-medium">Customer</th>
-                  <th className="text-center py-3 px-2 text-muted-foreground font-medium">Items</th>
                   <th className="text-right py-3 px-2 text-muted-foreground font-medium">Total</th>
                   <th className="text-right py-3 px-2 text-muted-foreground font-medium">Status</th>
                 </tr>
               </thead>
               <tbody>
-                {recentOrders?.map((order, i) => (
+                {recentOrders.map((order, i) => (
                   <motion.tr
                     key={order._id}
                     initial={{ opacity: 0, y: 8 }}
@@ -141,31 +127,32 @@ export default function PharmacyBusinessDashboard() {
                     className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors"
                   >
                     <td className="py-3 px-2">
-                      <span className="font-medium text-card-foreground">{order.orderId}</span>
+                      <span className="font-medium text-card-foreground">{order.orderId || order._id?.slice(-6)}</span>
                     </td>
                     <td className="py-3 px-2">
                       <div className="flex items-center gap-2">
                         <div className="w-7 h-7 rounded-full bg-accent flex items-center justify-center text-xs font-bold text-accent-foreground">
-                          {order.customer?.charAt(0)}
+                          {(order.patientName || '?').charAt(0)}
                         </div>
-                        <span className="text-muted-foreground">{order.customer}</span>
+                        <span className="text-muted-foreground">{order.patientName || order.customer || '—'}</span>
                       </div>
                     </td>
-                    <td className="py-3 px-2 text-center text-muted-foreground">{order.items}</td>
-                    <td className="py-3 px-2 text-right font-medium text-card-foreground">Rs {order.total?.toLocaleString()}</td>
+                    <td className="py-3 px-2 text-right font-medium text-card-foreground">Rs {(order.total || order.amount || 0).toLocaleString()}</td>
                     <td className="py-3 px-2 text-right">
-                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusColors[order.status] ?? 'bg-muted text-muted-foreground'}`}>
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusColors[order.status] || 'bg-muted text-muted-foreground'}`}>
                         {order.status}
                       </span>
                     </td>
                   </motion.tr>
                 ))}
+                {recentOrders.length === 0 && (
+                  <tr><td colSpan={4} className="py-8 text-center text-muted-foreground text-sm">No orders yet</td></tr>
+                )}
               </tbody>
             </table>
           </div>
         </div>
 
-        {/* Low Stock Alerts */}
         <div className="bg-card rounded-xl border p-6 shadow-sm">
           <div className="flex items-center justify-between mb-5">
             <h3 className="font-heading font-semibold text-lg text-card-foreground flex items-center gap-2">
@@ -174,7 +161,7 @@ export default function PharmacyBusinessDashboard() {
             <Link to="/pharmacy-business/inventory" className="text-xs text-primary hover:underline">Manage</Link>
           </div>
           <div className="space-y-3">
-            {lowStock?.map((item, i) => (
+            {lowStock.map((item, i) => (
               <motion.div
                 key={item._id}
                 initial={{ opacity: 0, x: -10 }}
@@ -184,14 +171,17 @@ export default function PharmacyBusinessDashboard() {
               >
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-card-foreground truncate">{item.name}</p>
-                  <p className="text-xs text-muted-foreground">Batch: {item.batch}</p>
+                  <p className="text-xs text-muted-foreground">Batch: {item.batchNumber || item.batch || '—'}</p>
                 </div>
                 <div className="text-right flex-shrink-0 ml-3">
-                  <p className="text-sm font-bold text-destructive">{item.stock}</p>
-                  <p className="text-xs text-muted-foreground">Min: {item.minLevel}</p>
+                  <p className="text-sm font-bold text-destructive">{item.currentStock ?? item.stock ?? 0}</p>
+                  <p className="text-xs text-muted-foreground">Min: {item.reorderLevel ?? item.minLevel ?? 0}</p>
                 </div>
               </motion.div>
             ))}
+            {lowStock.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-4">All items well-stocked</p>
+            )}
           </div>
         </div>
       </div>

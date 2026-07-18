@@ -138,6 +138,33 @@ import FacilityRegister from './pages/register/FacilityRegister';
 import HospitalDoctors from './pages/HospitalDoctors';
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
 
+// Pharmacy Business pages
+import PharmacyBusinessLayout from './pages/pharmacy/PharmacyBusinessLayout';
+import PharmacyBusinessDashboard from './pages/pharmacy/PharmacyBusinessDashboard';
+import PharmacyInventory from './pages/pharmacy/PharmacyInventory';
+import PharmacyOrders from './pages/pharmacy/PharmacyOrders';
+import PharmacyStaff from './pages/pharmacy/PharmacyStaff';
+import PharmacyOffers from './pages/pharmacy/PharmacyOffers';
+import PharmacyReturns from './pages/pharmacy/PharmacyReturns';
+import PharmacySettings from './pages/pharmacy/PharmacySettings';
+
+// Lab Business pages
+import LabBusinessLayout from './pages/labcenter/LabBusinessLayout';
+import LabCenterDashboard from './pages/labcenter/LabCenterDashboard';
+import LabAppointments from './pages/labcenter/LabAppointments';
+import LabBilling from './pages/labcenter/LabBilling';
+import LabBookingManagement from './pages/labcenter/LabBookingManagement';
+import LabEquipment from './pages/labcenter/LabEquipment';
+import LabPackages from './pages/labcenter/LabPackages';
+import LabPrescriptionQueue from './pages/labcenter/LabPrescriptionQueue';
+import LabReports from './pages/labcenter/LabReports';
+import LabReportsAnalytics from './pages/labcenter/LabReportsAnalytics';
+import LabReviews from './pages/labcenter/LabReviews';
+import LabSampleCollection from './pages/labcenter/LabSampleCollection';
+import LabSettings from './pages/labcenter/LabSettings';
+import LabStaff from './pages/labcenter/LabStaff';
+import LabTestCatalog from './pages/labcenter/LabTestCatalog';
+
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1, staleTime: 30_000 } } });
 
 // Auth initializer component
@@ -330,6 +357,37 @@ const App = () => (
                    <Route path="/order-confirmation" element={<PublicLayout><OrderConfirmation /></PublicLayout>} />
                     <Route path="/order-tracking/:orderId" element={<PublicLayout><OrderTracking /></PublicLayout>} />
                     <Route path="/payment-gateway" element={<PublicLayout><PaymentGateway /></PublicLayout>} />
+
+                  {/* Pharmacy Business routes */}
+                  <Route path="/pharmacy-business" element={<PharmacyBusinessLayout />}>
+                    <Route index element={<Navigate to="/pharmacy-business/dashboard" replace />} />
+                    <Route path="dashboard" element={<RoleRoute allowedRoles={['pharmacy_owner']}><PharmacyBusinessDashboard /></RoleRoute>} />
+                    <Route path="inventory" element={<RoleRoute allowedRoles={['pharmacy_owner']}><PharmacyInventory /></RoleRoute>} />
+                    <Route path="orders" element={<RoleRoute allowedRoles={['pharmacy_owner']}><PharmacyOrders /></RoleRoute>} />
+                    <Route path="staff" element={<RoleRoute allowedRoles={['pharmacy_owner']}><PharmacyStaff /></RoleRoute>} />
+                    <Route path="offers" element={<RoleRoute allowedRoles={['pharmacy_owner']}><PharmacyOffers /></RoleRoute>} />
+                    <Route path="returns" element={<RoleRoute allowedRoles={['pharmacy_owner']}><PharmacyReturns /></RoleRoute>} />
+                    <Route path="settings" element={<RoleRoute allowedRoles={['pharmacy_owner']}><PharmacySettings /></RoleRoute>} />
+                  </Route>
+
+                  {/* Lab Business routes */}
+                  <Route path="/lab-business" element={<LabBusinessLayout />}>
+                    <Route index element={<Navigate to="/lab-business/dashboard" replace />} />
+                    <Route path="dashboard" element={<RoleRoute allowedRoles={['lab_owner']}><LabCenterDashboard /></RoleRoute>} />
+                    <Route path="appointments" element={<RoleRoute allowedRoles={['lab_owner']}><LabAppointments /></RoleRoute>} />
+                    <Route path="reports" element={<RoleRoute allowedRoles={['lab_owner']}><LabReports /></RoleRoute>} />
+                    <Route path="tests" element={<RoleRoute allowedRoles={['lab_owner']}><LabTestCatalog /></RoleRoute>} />
+                    <Route path="equipment" element={<RoleRoute allowedRoles={['lab_owner']}><LabEquipment /></RoleRoute>} />
+                    <Route path="packages" element={<RoleRoute allowedRoles={['lab_owner']}><LabPackages /></RoleRoute>} />
+                    <Route path="staff" element={<RoleRoute allowedRoles={['lab_owner']}><LabStaff /></RoleRoute>} />
+                    <Route path="settings" element={<RoleRoute allowedRoles={['lab_owner']}><LabSettings /></RoleRoute>} />
+                    <Route path="billing" element={<RoleRoute allowedRoles={['lab_owner']}><LabBilling /></RoleRoute>} />
+                    <Route path="bookings" element={<RoleRoute allowedRoles={['lab_owner']}><LabBookingManagement /></RoleRoute>} />
+                    <Route path="prescriptions" element={<RoleRoute allowedRoles={['lab_owner']}><LabPrescriptionQueue /></RoleRoute>} />
+                    <Route path="samples" element={<RoleRoute allowedRoles={['lab_owner']}><LabSampleCollection /></RoleRoute>} />
+                    <Route path="analytics" element={<RoleRoute allowedRoles={['lab_owner']}><LabReportsAnalytics /></RoleRoute>} />
+                    <Route path="reviews" element={<RoleRoute allowedRoles={['lab_owner']}><LabReviews /></RoleRoute>} />
+                  </Route>
 
                   {/* Authenticated dashboard shell */}
                   <Route element={<DashboardShell />}>
