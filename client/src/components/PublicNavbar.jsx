@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Activity, Menu, X, Moon, Sun, UserRound, MapPin, ChevronDown, ShoppingCart } from 'lucide-react';
+import { Activity, Menu, X, Moon, Sun, UserRound, MapPin, ChevronDown, ShoppingCart, Lock, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
-import { allCities } from '@/data/cities';
+import { allCities, getStateForCity } from '@/data/cities';
 import { cn } from '@/lib/utils';
 
 const NAV_ITEMS = [
@@ -37,14 +37,15 @@ export default function PublicNavbar() {
   const [selectedCity, setSelectedCity] = useState(() => localStorage.getItem('mediCore_city') || 'Jabalpur');
 
   const handleCitySelect = (cityName) => {
+    if (cityName !== 'Jabalpur') return;
     setSelectedCity(cityName);
-    if (cityName) {
-      localStorage.setItem('mediCore_city', cityName);
-    } else {
-      localStorage.removeItem('mediCore_city');
-    }
+    localStorage.setItem('mediCore_city', cityName);
     setCityOpen(false);
   };
+
+  const displayedCities = allCities.filter(c =>
+    c.name === 'Jabalpur' || !['Jabalpur'].includes(c.name)
+  );
 
   const isActive = (path) => {
     if (path === '/') return location.pathname === '/';
@@ -152,21 +153,30 @@ export default function PublicNavbar() {
                 <CommandInput placeholder="Search city..." />
                 <CommandList>
                   <CommandEmpty>No city found</CommandEmpty>
-                  <CommandGroup>
-                    <CommandItem onSelect={() => handleCitySelect('')} className="text-sm">
-                      <MapPin className="w-3.5 h-3.5 mr-2 text-muted-foreground" />
-                      All Cities
-                    </CommandItem>
-                    {allCities.map((city) => (
+                  <CommandGroup heading="Available">
+                    {allCities.filter(c => c.name === 'Jabalpur').map((city) => (
                       <CommandItem
                         key={city.name}
                         onSelect={() => handleCitySelect(city.name)}
                         className="text-sm"
                       >
-                        <MapPin className="w-3.5 h-3.5 mr-2 text-muted-foreground" />
-                        <span>{city.name}</span>
+                        <MapPin className="w-3.5 h-3.5 mr-2 text-primary" />
+                        <span className="font-medium">{city.name}</span>
                         <span className="ml-auto text-[10px] text-muted-foreground">{city.state}</span>
+                        {selectedCity === city.name && <Check className="w-3.5 h-3.5 ml-1.5 text-primary" />}
                       </CommandItem>
+                    ))}
+                  </CommandGroup>
+                  <CommandGroup heading="Coming Soon">
+                    {allCities.filter(c => c.name !== 'Jabalpur').map((city) => (
+                      <div
+                        key={city.name}
+                        className="flex items-center gap-2 px-2 py-1.5 text-sm text-muted-foreground/50 cursor-not-allowed select-none"
+                      >
+                        <Lock className="w-3.5 h-3.5 ml-2 shrink-0" />
+                        <span>{city.name}</span>
+                        <span className="ml-auto text-[10px]">{city.state}</span>
+                      </div>
                     ))}
                   </CommandGroup>
                 </CommandList>
