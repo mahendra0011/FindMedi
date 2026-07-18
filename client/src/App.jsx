@@ -66,6 +66,8 @@ import PatientServices from './pages/patient/PatientServices';
 import PatientEmergency from './pages/patient/PatientEmergency';
 import PatientBookings from './pages/patient/PatientBookings';
 import PatientDashboard from './pages/patient/PatientDashboard';
+import PatientPrescriptions from './pages/patient/PatientPrescriptions';
+import PatientMedicineOrders from './pages/patient/PatientMedicineOrders';
 
 // Doctor pages
 import DoctorDashboard from './pages/doctor/DoctorDashboard';
@@ -73,6 +75,7 @@ import DoctorAppointments from './pages/doctor/DoctorAppointments';
 import DoctorPatients from './pages/doctor/DoctorPatients';
 import DoctorConsultations from './pages/doctor/DoctorConsultations';
 import DoctorReviews from './pages/doctor/DoctorReviews';
+import DoctorTestResults from './pages/doctor/DoctorTestResults';
 import DoctorEarnings from './pages/doctor/DoctorEarnings';
 import DoctorSchedule from './pages/doctor/DoctorSchedule';
 import DoctorEmergency from './pages/doctor/DoctorEmergency';
@@ -99,6 +102,7 @@ import ClinicNotifications from './pages/clinic/ClinicNotifications';
 
 // Admin pages
 import AdminUsers from './pages/admin/AdminUsers';
+import AdminPrescriptionQueue from './pages/admin/AdminPrescriptionQueue';
 import AdminDoctors from './pages/admin/AdminDoctors';
 import AdminAnalytics from './pages/admin/AdminAnalytics';
 import AdminDepartments from './pages/admin/AdminDepartments';
@@ -147,6 +151,9 @@ import PharmacyStaff from './pages/pharmacy/PharmacyStaff';
 import PharmacyOffers from './pages/pharmacy/PharmacyOffers';
 import PharmacyReturns from './pages/pharmacy/PharmacyReturns';
 import PharmacySettings from './pages/pharmacy/PharmacySettings';
+import PharmacyPrescriptionQueue from './pages/pharmacy/PharmacyPrescriptionQueue';
+import PharmacyAnalytics from './pages/pharmacy/PharmacyAnalytics';
+import PharmacyDelivery from './pages/pharmacy/PharmacyDelivery';
 
 // Lab Business pages
 import LabBusinessLayout from './pages/labcenter/LabBusinessLayout';
@@ -364,9 +371,12 @@ const App = () => (
                     <Route path="dashboard" element={<RoleRoute allowedRoles={['pharmacy_owner']}><PharmacyBusinessDashboard /></RoleRoute>} />
                     <Route path="inventory" element={<RoleRoute allowedRoles={['pharmacy_owner']}><PharmacyInventory /></RoleRoute>} />
                     <Route path="orders" element={<RoleRoute allowedRoles={['pharmacy_owner']}><PharmacyOrders /></RoleRoute>} />
+                    <Route path="prescriptions" element={<RoleRoute allowedRoles={['pharmacy_owner']}><PharmacyPrescriptionQueue /></RoleRoute>} />
                     <Route path="staff" element={<RoleRoute allowedRoles={['pharmacy_owner']}><PharmacyStaff /></RoleRoute>} />
                     <Route path="offers" element={<RoleRoute allowedRoles={['pharmacy_owner']}><PharmacyOffers /></RoleRoute>} />
                     <Route path="returns" element={<RoleRoute allowedRoles={['pharmacy_owner']}><PharmacyReturns /></RoleRoute>} />
+                    <Route path="analytics" element={<RoleRoute allowedRoles={['pharmacy_owner']}><PharmacyAnalytics /></RoleRoute>} />
+                    <Route path="delivery" element={<RoleRoute allowedRoles={['pharmacy_owner']}><PharmacyDelivery /></RoleRoute>} />
                     <Route path="settings" element={<RoleRoute allowedRoles={['pharmacy_owner']}><PharmacySettings /></RoleRoute>} />
                   </Route>
 
@@ -400,6 +410,7 @@ const App = () => (
                     <Route path="/superadmin" element={<RoleRoute allowedRoles={['superadmin']}><SuperAdminDashboard /></RoleRoute>} />
                     <Route path="/admin/users" element={<RoleRoute allowedRoles={['admin', 'superadmin']}><AdminUsers /></RoleRoute>} />
                     <Route path="/admin/doctors" element={<RoleRoute allowedRoles={['admin']}><AdminDoctors /></RoleRoute>} />
+                    <Route path="/admin/prescriptions" element={<RoleRoute allowedRoles={['admin']}><AdminPrescriptionQueue /></RoleRoute>} />
                     <Route path="/admin/analytics" element={<RoleRoute allowedRoles={['admin']}><AdminAnalytics /></RoleRoute>} />
                     <Route path="/admin/departments" element={<RoleRoute allowedRoles={['admin']}><AdminDepartments /></RoleRoute>} />
                     <Route path="/admin/emergency" element={<RoleRoute allowedRoles={['admin']}><AdminEmergency /></RoleRoute>} />
@@ -439,6 +450,8 @@ const App = () => (
                     <Route path="/patient/reports" element={<RoleRoute allowedRoles={['patient']}><PatientReports /></RoleRoute>} />
                     <Route path="/patient/reviews" element={<RoleRoute allowedRoles={['patient']}><PatientReviews /></RoleRoute>} />
                     <Route path="/patient/billing" element={<RoleRoute allowedRoles={['patient']}><PatientBilling /></RoleRoute>} />
+                    <Route path="/patient/prescriptions" element={<RoleRoute allowedRoles={['patient']}><PatientPrescriptions /></RoleRoute>} />
+                    <Route path="/patient/medicine-orders" element={<RoleRoute allowedRoles={['patient']}><PatientMedicineOrders /></RoleRoute>} />
                     <Route path="/patient/payment" element={<RoleRoute allowedRoles={['patient']}><PatientPayment /></RoleRoute>} />
                     <Route path="/patient/services" element={<RoleRoute allowedRoles={['patient']}><PatientServices /></RoleRoute>} />
                     <Route path="/patient/bookings" element={<RoleRoute allowedRoles={['patient']}><PatientBookings /></RoleRoute>} />
@@ -451,6 +464,7 @@ const App = () => (
                     <Route path="/doctor/reviews" element={<RoleRoute allowedRoles={['doctor']}><DoctorReviews /></RoleRoute>} />
                     <Route path="/doctor/earnings" element={<RoleRoute allowedRoles={['doctor']}><DoctorEarnings /></RoleRoute>} />
                     <Route path="/doctor/schedule" element={<RoleRoute allowedRoles={['doctor']}><DoctorSchedule /></RoleRoute>} />
+                    <Route path="/doctor/test-results" element={<RoleRoute allowedRoles={['doctor']}><DoctorTestResults /></RoleRoute>} />
                     <Route path="/doctor/emergency" element={<RoleRoute allowedRoles={['doctor']}><DoctorEmergency /></RoleRoute>} />
                     <Route path="/doctor/prescriptions" element={<RoleRoute allowedRoles={['doctor']}><DoctorPrescriptions /></RoleRoute>} />
                     <Route path="/doctor/leave-requests" element={<RoleRoute allowedRoles={['doctor']}><DoctorLeaveRequests /></RoleRoute>} />

@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, UserRound, Stethoscope, CalendarDays, FileText,
   CreditCard, Settings, ChevronLeft, ChevronRight, Activity, LogOut,
-  Home, Search, Star, Users, BarChart3, Bell, Building2, Clock, Calendar, DollarSign, FileUp, Download, TestTube, AlertTriangle, Menu, X, Bed, Pill, FlaskConical, Hospital, Heart, Brain, Syringe, ClipboardList, ShieldCheck, Baby, Ambulance, IndianRupee, History, Flag
+  Home, Search, Star, Users, BarChart3, Bell, Building2, Clock, Calendar, DollarSign, FileUp, Download, TestTube, AlertTriangle, Menu, X, Bed, Pill, FlaskConical, Hospital, Heart, Brain, Syringe, ClipboardList, ShieldCheck, Baby, Ambulance, IndianRupee, History, Flag, ShoppingCart
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { t } from '@/lib/settings';
@@ -36,6 +36,7 @@ const navConfig = {
     { icon: CalendarDays,    labelKey: 'nav.appointments',     path: '/appointments'     },
     { icon: FileText,        labelKey: 'nav.medicalRecords',   path: '/records'          },
     { icon: CreditCard,      labelKey: 'nav.billing',          path: '/billing'          },
+    { icon: Pill,            labelKey: 'nav.prescriptionQueue', path: '/admin/prescriptions' },
     { icon: Building2,       labelKey: 'nav.departments',      path: '/admin/departments'},
     { icon: Star,            labelKey: 'nav.reviews',          path: '/admin/reviews'    },
     { icon: BarChart3,       labelKey: 'nav.analytics',        path: '/admin/analytics'  },
@@ -90,6 +91,7 @@ const navConfig = {
     { icon: Clock,           labelKey: 'nav.mySchedule',      path: '/doctor/schedule'     },
     { icon: Calendar,        labelKey: 'nav.leaveRequests',   path: '/doctor/leave-requests'},
     { icon: Download,        labelKey: 'nav.reports',         path: '/reports'             },
+    { icon: FlaskConical,    labelKey: 'nav.testResults',     path: '/doctor/test-results' },
     { icon: TestTube,        labelKey: 'nav.lab',             path: '/lab'                 },
     { icon: Star,            labelKey: 'nav.myReviews',       path: '/doctor/reviews'      },
     { icon: DollarSign,      labelKey: 'nav.myEarnings',      path: '/doctor/earnings'     },
@@ -109,6 +111,8 @@ const navConfig = {
     { icon: FileUp,          labelKey: 'nav.uploadFiles',     path: '/upload'               },
     { icon: Download,        labelKey: 'nav.myReports',       path: '/patient/reports'      },
     { icon: CreditCard,      labelKey: 'nav.myBilling',       path: '/patient/billing'      },
+    { icon: Pill,            labelKey: 'nav.myPrescriptions', path: '/patient/prescriptions' },
+    { icon: ShoppingCart,    labelKey: 'nav.myMedicineOrders', path: '/patient/medicine-orders' },
     { icon: DollarSign,      labelKey: 'nav.payments',        path: '/patient/payment'      },
     { icon: Star,            labelKey: 'nav.myReviews',       path: '/patient/reviews'      },
     { icon: Bell,            labelKey: 'nav.notifications',   path: '/notifications'        },
