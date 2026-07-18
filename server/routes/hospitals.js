@@ -69,7 +69,7 @@ router.get('/:id', async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/register', async (req, res) => {
+router.post('/register', validate(registerHospitalSchema), async (req, res) => {
   try {
     const { name, email, phone, address, city, state, licenseNumber, adminName, adminEmail, adminPhone } = req.body;
 

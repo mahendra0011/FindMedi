@@ -60,7 +60,7 @@ export default function HospitalTestBooking() {
       try {
         const [hospitalRes, testsRes] = await Promise.allSettled([
           api.getHospital(hospitalId),
-          api.getTests(),
+          api.getTests({ hospitalId }),
         ]);
         if (hospitalRes.status === 'fulfilled') {
           const h = hospitalRes.value?.hospital || hospitalRes.value;

@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { BarChart3, TrendingUp, Users, Stethoscope, CalendarDays, IndianRupee, Activity } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
+import { useApiQuery } from '@/hooks/useApiQuery';
 import StatCard from '@/components/StatCard';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, Legend } from 'recharts';
 
@@ -10,24 +10,10 @@ const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
 
 export default function AdminAnalytics() {
   const { user } = useAuth();
-  const [stats, setStats] = useState(null);
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { data: stats, isLoading: statsLoading } = useApiQuery(['admin', 'stats'], () => api.dashboardStats());
+  const { data: users = [], isLoading: usersLoading } = useApiQuery(['admin', 'users'], () => api.getUsers());
 
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      try {
-        const [s, u] = await Promise.all([api.dashboardStats(), api.getUsers()]);
-        setStats(s);
-        setUsers(u);
-      } catch (e) { console.error(e); }
-      setLoading(false);
-    };
-    load();
-  }, []);
-
-  if (loading) return <div className="flex justify-center py-12"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>;
+  if (statsLoading || usersLoading) return <div className="flex justify-center py-12"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>;
 
   return (
     <div className="space-y-6">
