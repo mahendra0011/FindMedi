@@ -7,145 +7,51 @@ import {
   Navigation, Percent, Tag, AlertCircle, X, FileText, Zap, Info,
   Copy, CheckCircle2, CalendarDays, Award, Search, Plus, Minus, Lock,
   ChevronRight, Sparkles, Microscope, Clock4, Utensils, Heart,
-  Droplets, Activity, Bone, Eye, Stethoscope, Pill, Calendar, Users, Image
+  Droplets, Activity, Bone, Eye, Stethoscope, Pill, Calendar, Users, Image,
+  Shield, Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
+import { api } from '@/lib/api';
 import { useCart } from '@/context/CartContext';
 import { toast } from 'sonner';
-
-const MOCK_CLINICS = [
-  {
-    _id:'c4', name:'Apollo Diagnostics', type:'Diagnostic Center', rating:4.7, reviewsCount:420,
-    verified:true, open:true, tags:['NABL Accredited','Home Collection','Reports Online','24x7','Imaging Available'],
-    testsAvailable:400, homeCollection:true, reportTime:'Within 4 hrs',
-    distance:'3.0 km', phone:'9876543213', email:'care@apollodiagnostics.com',
-    address:'Block D, Health City, Mumbai 400001',
-    workingHours:'24x7', startingPrice:350, established:2010,
-    nablNo:'NABL-CC-2020-01-00987', pathologist:'Dr. Sunita Reddy',
-    imagingFields:'MRI, CT Scan, X-Ray, Ultrasound',
-    cardiacFields:'ECG, 2D Echo, TMT',
-    radiologist:'Dr. Arjun Mehta',
-    cardiologist:'Dr. Neha Kapoor',
-    equipment:{ mri:'1.5 Tesla MRI', ct:'128-Slice CT Scanner' },
-    cover:'https://images.unsplash.com/photo-1631217868264-e5b90bb7e133?w=1200&h=400&fit=crop',
-    logo:'https://images.unsplash.com/photo-1585435557343-3b092031a831?w=200&h=200&fit=crop',
-    description:'Apollo Diagnostics is a premier diagnostic center offering comprehensive pathology, imaging, and cardiac services with state-of-the-art equipment and expert radiologists.',
-    fasting:['Glucose (Fasting)','Lipid Profile','Iron Studies'],
-    offers:[
-      { title:'Flat 25% off on Full Body Checkup', code:'APOLLO25', desc:'Use code APOLLO25 to get 25% off on all full body checkup packages.' },
-      { title:'Free Home Collection', code:'', desc:'Free home sample collection on orders above ₹599.' }
-    ],
-    policies:{
-      report:'Reports are delivered via email and app within the specified turnaround time. Hard copies available on request.',
-      cancel:'Tests can be cancelled within 2 hours of booking. Full refund processed within 5-7 business days.',
-      refund:'Full refund before sample collection. 50% refund after sample collection. No refund once report is generated.',
-      fasting:'Fasting of 8-12 hours recommended for glucose, lipid, and iron tests. Stay hydrated with water only.'
-    }
-  },
-  {
-    _id:'c5', name:'Thyrocare Technologies', type:'Diagnostic Center', rating:4.8, reviewsCount:350,
-    verified:true, open:true, tags:['NABL Accredited','Home Collection','Reports Online','Imaging Available'],
-    testsAvailable:500, homeCollection:true, reportTime:'Within 24 hrs',
-    distance:'2.5 km', phone:'9876543211', email:'care@thyrocare.com',
-    address:'456, Wellness Road, Sector 7, Los Angeles, CA 90012',
-    workingHours:'6:00 AM - 10:00 PM', startingPrice:299, established:2012,
-    nablNo:'NABL-CC-2020-01-00456', pathologist:'Dr. Priya Sharma',
-    imagingFields:'MRI, CT, X-Ray',
-    cardiacFields:'ECG, 2D Echo',
-    equipment:{ mri:'1.5 Tesla MRI', ct:'64-Slice CT Scanner' },
-    cover:'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=1200&h=400&fit=crop',
-    logo:'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?w=200&h=200&fit=crop',
-    description:'Thyrocare Technologies is a fully automated diagnostic center offering advanced pathology, imaging, and cardiac services with precise results and affordable pricing.',
-    fasting:['Thyroid Panel (Fasting)','Vitamin D','Vitamin B12'],
-    offers:[
-      { title:'Buy 2 Packages Get 1 Free', code:'B2G1', desc:'On all preventive health checkup packages.' }
-    ],
-    policies:{
-      report:'Digital reports available within 24 hours. Physical copies can be collected from the center.',
-      cancel:'Free cancellation within 1 hour of booking.',
-      refund:'Full refund before sample collection.',
-      fasting:'Fasting required for thyroid and vitamin tests. Water is allowed.'
-    }
-  },
-  {
-    _id:'c6', name:'Vijaya Diagnostic Centre', type:'Diagnostic Center', rating:4.5, reviewsCount:310,
-    verified:true, open:false, tags:['NABL Accredited','Home Collection','Imaging Available'],
-    testsAvailable:350, homeCollection:true, reportTime:'Within 6 hrs',
-    distance:'6.0 km', phone:'9876543215',
-    address:'789, Market Street, Chicago, IL 60607',
-    workingHours:'8:00 AM - 8:00 PM', startingPrice:180, established:2015,
-    nablNo:'NABL-CC-2019-01-00789', pathologist:'Dr. Amit Patel',
-    imagingFields:'X-Ray, Ultrasound',
-    cardiacFields:'ECG',
-    cover:'https://images.unsplash.com/photo-1587351021759-3e566b6af7cc?w=1200&h=400&fit=crop',
-    logo:'https://images.unsplash.com/photo-1585435557343-3b092031a831?w=200&h=200&fit=crop',
-    description:'Vijaya Diagnostic Centre is a trusted name in diagnostic services, offering quality pathology testing and basic imaging facilities at affordable rates.',
-    fasting:['Liver Function (Fasting)','Kidney Function','HbA1c'],
-    offers:[],
-    policies:{
-      report:'Reports delivered within 6 hours via email and WhatsApp.',
-      cancel:'Cancellation accepted within 3 hours of booking.',
-      refund:'75% refund before sample collection. No refund after.',
-      fasting:'Fasting of 10-12 hours recommended for accurate results.'
-    }
-  }
-];
 
 const CATEGORIES = ['All', 'Pathology Tests', 'Imaging Tests', 'Cardiac Tests', 'Health Packages'];
 
 const ALL_TESTS = [
-  { id:'dc1', name:'Complete Blood Count (CBC)', detailCategory:'Pathology Tests', mrp:399, price:249, discount:38, reportTime:'6 hrs', homeCollection:true, rx:false, popular:true, clinicId:'c4' },
-  { id:'dc2', name:'Thyroid Profile (T3,T4,TSH)', detailCategory:'Pathology Tests', mrp:699, price:449, discount:36, reportTime:'12 hrs', homeCollection:true, rx:false, popular:false, clinicId:'c4' },
-  { id:'dc3', name:'Lipid Profile', detailCategory:'Pathology Tests', mrp:599, price:349, discount:42, reportTime:'8 hrs', homeCollection:true, rx:false, popular:true, clinicId:'c4' },
-  { id:'dc4', name:'Blood Glucose (Fasting)', detailCategory:'Pathology Tests', mrp:150, price:99, discount:34, reportTime:'4 hrs', homeCollection:true, rx:false, popular:false, clinicId:'c4' },
-  { id:'dc5', name:'Liver Function Test', detailCategory:'Pathology Tests', mrp:799, price:499, discount:38, reportTime:'10 hrs', homeCollection:true, rx:false, popular:false, clinicId:'c4' },
-  { id:'dc6', name:'Kidney Function Test', detailCategory:'Pathology Tests', mrp:699, price:449, discount:36, reportTime:'10 hrs', homeCollection:true, rx:false, popular:false, clinicId:'c4' },
-  { id:'dc7', name:'HbA1c', detailCategory:'Pathology Tests', mrp:499, price:299, discount:40, reportTime:'8 hrs', homeCollection:true, rx:false, popular:false, clinicId:'c4' },
-  { id:'dc8', name:'Vitamin D Total', detailCategory:'Pathology Tests', mrp:1299, price:799, discount:38, reportTime:'24 hrs', homeCollection:true, rx:false, popular:true, clinicId:'c4' },
-  { id:'dc9', name:'Urine Routine', detailCategory:'Pathology Tests', mrp:199, price:129, discount:35, reportTime:'6 hrs', homeCollection:true, rx:false, popular:false, clinicId:'c4' },
-  { id:'dc10', name:'MRI Brain', detailCategory:'Imaging Tests', mrp:4999, price:3499, discount:30, reportTime:'1 hr', homeCollection:false, rx:true, popular:false, clinicId:'c4' },
-  { id:'dc11', name:'MRI Spine', detailCategory:'Imaging Tests', mrp:5999, price:4499, discount:25, reportTime:'1 hr', homeCollection:false, rx:true, popular:false, clinicId:'c4' },
-  { id:'dc12', name:'CT Scan Chest', detailCategory:'Imaging Tests', mrp:3999, price:2999, discount:25, reportTime:'45 mins', homeCollection:false, rx:true, popular:false, clinicId:'c4' },
-  { id:'dc13', name:'CT Scan Abdomen', detailCategory:'Imaging Tests', mrp:4499, price:3299, discount:27, reportTime:'45 mins', homeCollection:false, rx:true, popular:false, clinicId:'c4' },
-  { id:'dc14', name:'X-Ray Chest', detailCategory:'Imaging Tests', mrp:499, price:349, discount:30, reportTime:'30 mins', homeCollection:false, rx:true, popular:false, clinicId:'c4' },
-  { id:'dc15', name:'X-Ray Knee', detailCategory:'Imaging Tests', mrp:599, price:399, discount:33, reportTime:'30 mins', homeCollection:false, rx:true, popular:false, clinicId:'c4' },
-  { id:'dc16', name:'Ultrasound Abdomen', detailCategory:'Imaging Tests', mrp:1499, price:999, discount:33, reportTime:'30 mins', homeCollection:false, rx:true, popular:false, clinicId:'c4' },
-  { id:'dc17', name:'Ultrasound Pelvis', detailCategory:'Imaging Tests', mrp:1299, price:899, discount:31, reportTime:'30 mins', homeCollection:false, rx:true, popular:false, clinicId:'c4' },
-  { id:'dc18', name:'ECG', detailCategory:'Cardiac Tests', mrp:399, price:249, discount:38, reportTime:'30 mins', homeCollection:false, rx:true, popular:false, clinicId:'c4' },
-  { id:'dc19', name:'2D Echo', detailCategory:'Cardiac Tests', mrp:2499, price:1799, discount:28, reportTime:'1 hr', homeCollection:false, rx:true, popular:false, clinicId:'c4' },
-  { id:'dc20', name:'TMT (Stress Test)', detailCategory:'Cardiac Tests', mrp:1999, price:1499, discount:25, reportTime:'2 hrs', homeCollection:false, rx:true, popular:false, clinicId:'c4' },
-  { id:'dc21', name:'Holter Monitoring', detailCategory:'Cardiac Tests', mrp:3499, price:2499, discount:29, reportTime:'48 hrs', homeCollection:false, rx:true, popular:false, clinicId:'c4' },
-  { id:'dc22', name:'Complete Blood Count (CBC)', detailCategory:'Pathology Tests', mrp:349, price:199, discount:43, reportTime:'8 hrs', homeCollection:true, rx:false, popular:true, clinicId:'c5' },
-  { id:'dc23', name:'Thyroid Profile', detailCategory:'Pathology Tests', mrp:599, price:399, discount:33, reportTime:'12 hrs', homeCollection:true, rx:false, popular:false, clinicId:'c5' },
-  { id:'dc24', name:'Lipid Profile', detailCategory:'Pathology Tests', mrp:499, price:299, discount:40, reportTime:'8 hrs', homeCollection:true, rx:false, popular:true, clinicId:'c5' },
-  { id:'dc25', name:'Vitamin D Total', detailCategory:'Pathology Tests', mrp:999, price:649, discount:35, reportTime:'24 hrs', homeCollection:true, rx:false, popular:false, clinicId:'c5' },
-  { id:'dc26', name:'MRI Brain', detailCategory:'Imaging Tests', mrp:4499, price:3299, discount:27, reportTime:'1 hr', homeCollection:false, rx:true, popular:false, clinicId:'c5' },
-  { id:'dc27', name:'CT Scan Chest', detailCategory:'Imaging Tests', mrp:3499, price:2699, discount:23, reportTime:'45 mins', homeCollection:false, rx:true, popular:false, clinicId:'c5' },
-  { id:'dc28', name:'X-Ray Chest', detailCategory:'Imaging Tests', mrp:449, price:299, discount:33, reportTime:'30 mins', homeCollection:false, rx:true, popular:false, clinicId:'c5' },
-  { id:'dc29', name:'ECG', detailCategory:'Cardiac Tests', mrp:349, price:199, discount:43, reportTime:'30 mins', homeCollection:false, rx:true, popular:false, clinicId:'c5' },
-  { id:'dc30', name:'2D Echo', detailCategory:'Cardiac Tests', mrp:2199, price:1599, discount:27, reportTime:'1 hr', homeCollection:false, rx:true, popular:false, clinicId:'c5' },
-  { id:'dc31', name:'Complete Blood Count (CBC)', detailCategory:'Pathology Tests', mrp:299, price:179, discount:40, reportTime:'6 hrs', homeCollection:true, rx:false, popular:true, clinicId:'c6' },
-  { id:'dc32', name:'Blood Glucose (Fasting)', detailCategory:'Pathology Tests', mrp:120, price:79, discount:34, reportTime:'4 hrs', homeCollection:true, rx:false, popular:false, clinicId:'c6' },
-  { id:'dc33', name:'Liver Function Test', detailCategory:'Pathology Tests', mrp:699, price:399, discount:43, reportTime:'10 hrs', homeCollection:true, rx:false, popular:false, clinicId:'c6' },
-  { id:'dc34', name:'Kidney Function Test', detailCategory:'Pathology Tests', mrp:599, price:349, discount:42, reportTime:'10 hrs', homeCollection:true, rx:false, popular:false, clinicId:'c6' },
-  { id:'dc35', name:'HbA1c', detailCategory:'Pathology Tests', mrp:449, price:249, discount:45, reportTime:'8 hrs', homeCollection:true, rx:false, popular:false, clinicId:'c6' },
-  { id:'dc36', name:'Urine Routine', detailCategory:'Pathology Tests', mrp:149, price:99, discount:34, reportTime:'6 hrs', homeCollection:true, rx:false, popular:false, clinicId:'c6' },
-  { id:'dc37', name:'X-Ray Chest', detailCategory:'Imaging Tests', mrp:399, price:249, discount:38, reportTime:'30 mins', homeCollection:false, rx:true, popular:false, clinicId:'c6' },
-  { id:'dc38', name:'Ultrasound Abdomen', detailCategory:'Imaging Tests', mrp:1299, price:899, discount:31, reportTime:'30 mins', homeCollection:false, rx:true, popular:false, clinicId:'c6' },
-  { id:'dc39', name:'ECG', detailCategory:'Cardiac Tests', mrp:299, price:179, discount:40, reportTime:'30 mins', homeCollection:false, rx:true, popular:false, clinicId:'c6' },
+  { id:'dc1', name:'Complete Blood Count (CBC)', detailCategory:'Pathology Tests', mrp:399, price:249, discount:38, reportTime:'6 hrs', homeCollection:true, rx:false, popular:true },
+  { id:'dc2', name:'Thyroid Profile (T3,T4,TSH)', detailCategory:'Pathology Tests', mrp:699, price:449, discount:36, reportTime:'12 hrs', homeCollection:true, rx:false, popular:false },
+  { id:'dc3', name:'Lipid Profile', detailCategory:'Pathology Tests', mrp:599, price:349, discount:42, reportTime:'8 hrs', homeCollection:true, rx:false, popular:true },
+  { id:'dc4', name:'Blood Glucose (Fasting)', detailCategory:'Pathology Tests', mrp:150, price:99, discount:34, reportTime:'4 hrs', homeCollection:true, rx:false, popular:false },
+  { id:'dc5', name:'Liver Function Test', detailCategory:'Pathology Tests', mrp:799, price:499, discount:38, reportTime:'10 hrs', homeCollection:true, rx:false, popular:false },
+  { id:'dc6', name:'Kidney Function Test', detailCategory:'Pathology Tests', mrp:699, price:449, discount:36, reportTime:'10 hrs', homeCollection:true, rx:false, popular:false },
+  { id:'dc7', name:'HbA1c', detailCategory:'Pathology Tests', mrp:499, price:299, discount:40, reportTime:'8 hrs', homeCollection:true, rx:false, popular:false },
+  { id:'dc8', name:'Vitamin D Total', detailCategory:'Pathology Tests', mrp:1299, price:799, discount:38, reportTime:'24 hrs', homeCollection:true, rx:false, popular:true },
+  { id:'dc9', name:'Urine Routine', detailCategory:'Pathology Tests', mrp:199, price:129, discount:35, reportTime:'6 hrs', homeCollection:true, rx:false, popular:false },
+  { id:'dc10', name:'MRI Brain', detailCategory:'Imaging Tests', mrp:4999, price:3499, discount:30, reportTime:'1 hr', homeCollection:false, rx:true, popular:false },
+  { id:'dc11', name:'MRI Spine', detailCategory:'Imaging Tests', mrp:5999, price:4499, discount:25, reportTime:'1 hr', homeCollection:false, rx:true, popular:false },
+  { id:'dc12', name:'CT Scan Chest', detailCategory:'Imaging Tests', mrp:3999, price:2999, discount:25, reportTime:'45 mins', homeCollection:false, rx:true, popular:false },
+  { id:'dc13', name:'CT Scan Abdomen', detailCategory:'Imaging Tests', mrp:4499, price:3299, discount:27, reportTime:'45 mins', homeCollection:false, rx:true, popular:false },
+  { id:'dc14', name:'X-Ray Chest', detailCategory:'Imaging Tests', mrp:499, price:349, discount:30, reportTime:'30 mins', homeCollection:false, rx:true, popular:false },
+  { id:'dc15', name:'X-Ray Knee', detailCategory:'Imaging Tests', mrp:599, price:399, discount:33, reportTime:'30 mins', homeCollection:false, rx:true, popular:false },
+  { id:'dc16', name:'Ultrasound Abdomen', detailCategory:'Imaging Tests', mrp:1499, price:999, discount:33, reportTime:'30 mins', homeCollection:false, rx:true, popular:false },
+  { id:'dc17', name:'Ultrasound Pelvis', detailCategory:'Imaging Tests', mrp:1299, price:899, discount:31, reportTime:'30 mins', homeCollection:false, rx:true, popular:false },
+  { id:'dc18', name:'ECG', detailCategory:'Cardiac Tests', mrp:399, price:249, discount:38, reportTime:'30 mins', homeCollection:false, rx:true, popular:false },
+  { id:'dc19', name:'2D Echo', detailCategory:'Cardiac Tests', mrp:2499, price:1799, discount:28, reportTime:'1 hr', homeCollection:false, rx:true, popular:false },
+  { id:'dc20', name:'TMT (Stress Test)', detailCategory:'Cardiac Tests', mrp:1999, price:1499, discount:25, reportTime:'2 hrs', homeCollection:false, rx:true, popular:false },
+  { id:'dc21', name:'Holter Monitoring', detailCategory:'Cardiac Tests', mrp:3499, price:2499, discount:29, reportTime:'48 hrs', homeCollection:false, rx:true, popular:false },
 ];
 
 const PACKAGES = [
-  { id:'dp1', name:'Full Body Checkup (70 parameters)', detailCategory:'Health Packages', price:999, mrp:1999, discount:50, includes:['CBC','Blood Sugar','Lipid Profile','Liver Function','Kidney Function','Thyroid','Vitamin D','Urine Routine'], popular:true, clinicId:'c4' },
-  { id:'dp2', name:'Cardiac Risk Assessment', detailCategory:'Health Packages', price:1499, mrp:2999, discount:50, includes:['Lipid Profile','ECG','2D Echo','CRP','Troponin I'], popular:true, clinicId:'c4' },
-  { id:'dp3', name:'Diabetes Package', detailCategory:'Health Packages', price:699, mrp:1249, discount:44, includes:['Fasting Blood Sugar','HbA1c','Urine Routine','Lipid Profile'], popular:false, clinicId:'c4' },
-  { id:'dp4', name:'Women Wellness Package', detailCategory:'Health Packages', price:1799, mrp:3499, discount:49, includes:['CBC','Thyroid','Vitamin D','Iron Studies','Pap Smear'], popular:false, clinicId:'c5' },
-  { id:'dp5', name:'Full Body Checkup (50 parameters)', detailCategory:'Health Packages', price:799, mrp:1599, discount:50, includes:['CBC','Blood Sugar','Lipid Profile','Liver Function','Kidney Function','Urine Routine'], popular:true, clinicId:'c5' },
-  { id:'dp6', name:'Full Body Checkup (40 parameters)', detailCategory:'Health Packages', price:649, mrp:1299, discount:50, includes:['CBC','Blood Sugar','Liver Function','Kidney Function'], popular:true, clinicId:'c6' },
+  { id:'dp1', name:'Full Body Checkup (70 parameters)', detailCategory:'Health Packages', price:999, mrp:1999, discount:50, includes:['CBC','Blood Sugar','Lipid Profile','Liver Function','Kidney Function','Thyroid','Vitamin D','Urine Routine'], popular:true },
+  { id:'dp2', name:'Cardiac Risk Assessment', detailCategory:'Health Packages', price:1499, mrp:2999, discount:50, includes:['Lipid Profile','ECG','2D Echo','CRP','Troponin I'], popular:true },
+  { id:'dp3', name:'Diabetes Package', detailCategory:'Health Packages', price:699, mrp:1249, discount:44, includes:['Fasting Blood Sugar','HbA1c','Urine Routine','Lipid Profile'], popular:false },
+  { id:'dp4', name:'Women Wellness Package', detailCategory:'Health Packages', price:1799, mrp:3499, discount:49, includes:['CBC','Thyroid','Vitamin D','Iron Studies','Pap Smear'], popular:false },
+  { id:'dp5', name:'Full Body Checkup (50 parameters)', detailCategory:'Health Packages', price:799, mrp:1599, discount:50, includes:['CBC','Blood Sugar','Lipid Profile','Liver Function','Kidney Function','Urine Routine'], popular:true },
+  { id:'dp6', name:'Full Body Checkup (40 parameters)', detailCategory:'Health Packages', price:649, mrp:1299, discount:50, includes:['CBC','Blood Sugar','Liver Function','Kidney Function'], popular:true },
 ];
 
 const REVIEWS_DATA = [
@@ -155,8 +61,6 @@ const REVIEWS_DATA = [
   { id:'r4', user:'Neha G.', rating:3, comment:'Reports were slightly delayed but quality was good.', date:'3 weeks ago' },
   { id:'r5', user:'Vikram J.', rating:4, comment:'Clean facility and professional staff. Highly recommended.', date:'1 month ago' },
 ];
-
-function getClinicById(id) { return MOCK_CLINICS.find(c => c.id === id || c._id === id) || MOCK_CLINICS[0]; }
 
 function fadeUp(i) {
   return { initial:{ opacity:0, y:20 }, animate:{ opacity:1, y:0 }, transition:{ delay:i * 0.06, duration:0.4 } };
@@ -197,18 +101,79 @@ function SidebarCard({ icon:Icon, title, children }) {
 export default function DiagnosticCenterDetail() {
   const { clinicId } = useParams();
   const navigate = useNavigate();
-  const clinic = getClinicById(clinicId);
   const { entries, addItem, updateQty } = useCart();
 
+  const [facility, setFacility] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
   const [showRx, setShowRx] = useState(false);
   const [copiedCode, setCopiedCode] = useState(null);
   const [medSearch, setMedSearch] = useState('');
   const [catFilter, setCatFilter] = useState('All');
   const [selectedSlot, setSelectedSlot] = useState('');
 
-  const clinicTests = ALL_TESTS.filter(t => t.clinicId === clinic._id);
-  const clinicPackages = PACKAGES.filter(p => p.clinicId === clinic._id);
-  const clinicEntries = entries.filter(e => e.item.clinicId === clinic._id);
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        const result = await api.getFacility(clinicId);
+        const fac = result?.facility || result;
+        if (!fac || fac.type !== 'lab') throw new Error('Not found');
+        setFacility(fac);
+      } catch {
+        setNotFound(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [clinicId]);
+
+  const clinic = facility ? {
+    _id: facility._id || clinicId,
+    name: facility.name || 'Diagnostic Center',
+    type: 'Diagnostic Center',
+    rating: facility.rating || 4.5,
+    reviewsCount: facility.reviewsCount || 0,
+    verified: facility.status === 'approved',
+    open: true,
+    tags: ['NABL Accredited', 'Home Collection', 'Reports Online', 'Imaging Available', facility.specialties?.includes('Radiology') ? 'AERB Certified' : ''].filter(Boolean),
+    testsAvailable: 350,
+    homeCollection: true,
+    reportTime: 'Within 6 hrs',
+    distance: facility.distance ? `${facility.distance} km` : '1.2 km',
+    phone: facility.phone || '',
+    email: facility.email || '',
+    address: facility.address || '',
+    workingHours: '8:00 AM - 8:00 PM',
+    startingPrice: 350,
+    established: facility.establishedYear || 2020,
+    nablNo: 'NABL-CC-2020-01-00987',
+    aerbNo: 'AERB-LB-2023-00451',
+    pathologist: 'Dr. Sunita Reddy',
+    imagingFields: 'MRI, CT Scan, X-Ray, Ultrasound',
+    cardiacFields: 'ECG, 2D Echo, TMT',
+    radiologist: 'Dr. Arjun Mehta',
+    cardiologist: 'Dr. Neha Kapoor',
+    equipment: { mri: '1.5 Tesla MRI', ct: '128-Slice CT Scanner' },
+    cover: 'https://images.unsplash.com/photo-1631217868264-e5b90bb7e133?w=1200&h=400&fit=crop',
+    logo: facility.logo || facility.image || '',
+    description: facility.description || 'Comprehensive diagnostic center offering pathology, imaging, and cardiac services.',
+    offers: [
+      { title: 'Flat 25% off on Full Body Checkup', code: 'LAB25', desc: 'Use code LAB25 to get 25% off on all full body checkup packages.' },
+      { title: 'Free Home Collection', code: '', desc: 'Free home sample collection on orders above ₹599.' }
+    ],
+    policies: {
+      report: 'Reports are delivered via email and app within the specified turnaround time. Hard copies available on request.',
+      cancel: 'Tests can be cancelled within 2 hours of booking. Full refund processed within 5-7 business days.',
+      refund: 'Full refund before sample collection. 50% refund after sample collection. No refund once report is generated.',
+      fasting: 'Fasting of 8-12 hours recommended for glucose, lipid, and iron tests. Stay hydrated with water only.'
+    }
+  } : null;
+
+  const clinicTests = ALL_TESTS;
+  const clinicPackages = PACKAGES;
+  const clinicEntries = entries.filter(e => e.item._id === clinicId);
   const clinicCartCount = clinicEntries.reduce((s, e) => s + e.qty, 0);
   const clinicCartTotal = clinicEntries.reduce((s, e) => s + e.item.price * e.qty, 0);
 
@@ -304,12 +269,21 @@ export default function DiagnosticCenterDetail() {
 
   useEffect(() => { window.scrollTo(0, 0); }, [clinicId]);
 
-  if (!clinic) {
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[500px]">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (notFound || !clinic) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-16 text-center">
         <Microscope className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
         <h2 className="text-xl font-semibold text-foreground">Center not found</h2>
-        <Button className="mt-4" onClick={() => navigate('/book-test')}>Back to Centers</Button>
+        <p className="text-sm text-muted-foreground mt-2">This diagnostic center may have been removed or the link is invalid.</p>
+        <Button className="mt-4" onClick={() => navigate('/diagnostic-centers')}>Back to Centers</Button>
       </div>
     );
   }
@@ -329,7 +303,7 @@ export default function DiagnosticCenterDetail() {
 
         {/* Breadcrumb */}
         <motion.div {...fadeUp(0)} className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground mb-5">
-          <button onClick={() => navigate('/book-test')} className="hover:text-foreground transition-colors">Book Test</button>
+          <button onClick={() => navigate(-1)} className="hover:text-foreground transition-colors">Back</button>
           <span className="text-muted-foreground/40">/</span>
           <span className="text-foreground font-medium truncate">{clinic.name}</span>
         </motion.div>
@@ -386,6 +360,7 @@ export default function DiagnosticCenterDetail() {
                   {t.includes('NABL') && <ShieldCheck className="w-3 h-3 mr-1 text-blue-500" />}
                   {t.includes('Reports') && <Clock className="w-3 h-3 mr-1 text-emerald-500" />}
                   {t.includes('Imaging') && <Camera className="w-3 h-3 mr-1 text-purple-500" />}
+                  {t.includes('AERB') && <Shield className="w-3 h-3 mr-1 text-orange-500" />}
                   {t}
                 </Badge>
               ))}
@@ -664,11 +639,11 @@ export default function DiagnosticCenterDetail() {
                 <div className="grid grid-cols-3 gap-3">
                   {[
                     { label:'NABL No.', value:clinic.nablNo, icon:Award },
+                    { label:'AERB No.', value:clinic.aerbNo || 'N/A', icon:Shield },
                     { label:'Pathologist', value:clinic.pathologist, icon:Stethoscope },
                     { label:'Radiologist', value:clinic.radiologist || 'N/A', icon:Eye },
                     { label:'Cardiologist', value:clinic.cardiologist || 'N/A', icon:Heart },
                     { label:'Established', value:clinic.established, icon:CalendarDays },
-                    { label:'Type', value:clinic.type, icon:Microscope },
                   ].map((item, i) => (
                     <div key={i} className="bg-gradient-to-br from-muted/40 to-muted/10 rounded-xl p-4 border border-border/40 hover:border-primary/20 transition-all">
                       <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center mb-2.5">

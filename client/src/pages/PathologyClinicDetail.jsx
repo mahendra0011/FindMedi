@@ -266,7 +266,7 @@ export default function PathologyClinicDetail() {
       <div className="max-w-7xl mx-auto px-4 py-16 text-center">
         <Microscope className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
         <h2 className="text-xl font-semibold text-foreground">Lab not found</h2>
-        <Button className="mt-4" onClick={() => navigate('/book-test')}>Back to Labs</Button>
+        <Button className="mt-4" onClick={() => navigate('/diagnostic-centers')}>Back to Labs</Button>
       </div>
     );
   }
@@ -283,7 +283,7 @@ export default function PathologyClinicDetail() {
 
         {/* Breadcrumb */}
         <motion.div {...fadeUp(0)} className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground mb-5">
-          <button onClick={() => navigate('/book-test')} className="hover:text-foreground transition-colors">Book Test</button>
+          <button onClick={() => navigate(-1)} className="hover:text-foreground transition-colors">Back</button>
           <span className="text-muted-foreground/40">/</span>
           <span className="text-foreground font-medium truncate">{clinic.name}</span>
         </motion.div>

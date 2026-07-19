@@ -36,7 +36,8 @@ const FASTING_TESTS = ['Blood Glucose (Fasting)', 'Lipid Profile'];
 const STEP_LABELS = ['Prescription', 'Collection', 'Slot', 'Summary', 'Payment', 'Done'];
 
 export default function HospitalTestBooking() {
-  const { hospitalId } = useParams();
+  const { entityId, hospitalId } = useParams();
+  const activeId = entityId || hospitalId;
   const navigate = useNavigate();
   const [testSearch, setTestSearch] = useState('');
   const [deptFilter, setDeptFilter] = useState('all');
@@ -58,38 +59,49 @@ export default function HospitalTestBooking() {
     const load = async () => {
       setLoading(true);
       try {
-        const [hospitalRes, testsRes] = await Promise.allSettled([
-          api.getHospital(hospitalId),
-          api.getTests({ hospitalId }),
+        let entityData = null;
+        let entityType = 'hospital';
+        const [hospitalRes, facilityRes] = await Promise.allSettled([
+          api.getHospital(activeId),
+          api.getFacility(activeId),
         ]);
         if (hospitalRes.status === 'fulfilled') {
-          const h = hospitalRes.value?.hospital || hospitalRes.value;
-          setHospital(h || null);
+          entityData = hospitalRes.value?.hospital || hospitalRes.value;
+          entityType = 'hospital';
+        } else if (facilityRes.status === 'fulfilled') {
+          const f = facilityRes.value?.facility || facilityRes.value;
+          if (f) {
+            entityData = f;
+            entityType = f.type || 'facility';
+          }
         }
-        if (testsRes.status === 'fulfilled') {
-          const list = Array.isArray(testsRes.value) ? testsRes.value : testsRes.value?.tests || [];
-          const mapped = list.map(t => ({
-            id: t._id,
-            _id: t._id,
-            name: t.name,
-            dept: t.category || t.department || 'Pathology',
-            category: t.category,
-            department: t.department,
-            price: t.price,
-            mrp: t.mrp || t.price,
-            reportTime: t.reportTime || '24 hrs',
-            homeCollection: t.homeCollection || false,
-            rx: t.prescriptionReq || false,
-            prescriptionReq: t.prescriptionReq || false,
-            popular: t.popular || false,
-          }));
-          setTests(mapped);
-        }
+        setHospital(entityData);
+
+        const entityTestId = entityData?._id || activeId;
+        const params = entityType === 'hospital' ? { hospitalId: entityTestId } : {};
+        const testsRes = await api.getTests(params).catch(() => []);
+        const list = Array.isArray(testsRes) ? testsRes : testsRes?.tests || [];
+        const mapped = list.map(t => ({
+          id: t._id,
+          _id: t._id,
+          name: t.name,
+          dept: t.category || t.department || 'Pathology',
+          category: t.category,
+          department: t.department,
+          price: t.price,
+          mrp: t.mrp || t.price,
+          reportTime: t.reportTime || '24 hrs',
+          homeCollection: t.homeCollection || false,
+          rx: t.prescriptionReq || false,
+          prescriptionReq: t.prescriptionReq || false,
+          popular: t.popular || false,
+        }));
+        setTests(mapped);
       } catch (e) { console.error(e); }
       setLoading(false);
     };
     load();
-  }, [hospitalId]);
+  }, [activeId]);
 
   const addToCart = (testId) => setTestCart(p => ({ ...p, [testId]: (p[testId] || 0) + 1 }));
   const removeFromCart = (testId) => setTestCart(p => {
@@ -141,7 +153,7 @@ export default function HospitalTestBooking() {
     );
   }
 
-  const displayHospital = hospital || { _id: hospitalId, name: 'Hospital', rating: 0, address: '', verified: false };
+  const displayHospital = hospital || { _id: activeId, name: hospital?.name || 'Healthcare Provider', rating: 0, address: '', verified: false };
 
   const StepContent = ({ step }) => {
     switch (step) {
@@ -454,8 +466,8 @@ export default function HospitalTestBooking() {
 
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground mb-5">
-          <button onClick={() => navigate('/hospitals')} className="hover:text-foreground transition-colors flex items-center gap-1">
-            <ArrowLeft className="w-3.5 h-3.5" /> Find Hospital
+          <button onClick={() => navigate(-1)} className="hover:text-foreground transition-colors flex items-center gap-1">
+            <ArrowLeft className="w-3.5 h-3.5" /> Back
           </button>
         </div>
 
@@ -475,7 +487,7 @@ export default function HospitalTestBooking() {
               <span className="flex items-center gap-1"><Star className="w-3 h-3 text-amber-400 fill-amber-400" />{displayHospital.rating || '—'}</span>
             </div>
           </div>
-          <Link to={`/hospitals/${hospitalId}`}>
+            <Link to={`/book-test/${activeId}`}>
             <Button variant="outline" size="sm" className="rounded-xl text-xs gap-1">
               <Building2 className="w-3.5 h-3.5" /> View Profile
             </Button>

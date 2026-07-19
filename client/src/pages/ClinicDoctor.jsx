@@ -821,7 +821,7 @@ export default function ClinicDoctor() {
                   {reviews.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
                       <Star className="w-10 h-10 mx-auto mb-2 text-muted-foreground/30" />
-                      <p>No reviews yet. Be the first to share your experience!</p>
+                      <p>{reviewCount > 0 ? 'Reviews summary available, individual reviews loading soon.' : 'No reviews yet. Be the first to share your experience!'}</p>
                     </div>
                   ) : (
                     <div className="space-y-4">

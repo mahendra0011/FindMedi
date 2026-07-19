@@ -21,7 +21,7 @@ import AppMotion from './components/AppMotion';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import ClinicDoctors from './pages/ClinicDoctors';
-import BookTest from './pages/BookTest';
+import DiagnosticCenters from './pages/DiagnosticCenters';
 import AllTests from './pages/AllTests';
 import DiagnosticCenterDetail from './pages/DiagnosticCenterDetail';
 import ImagingCenterDetail from './pages/ImagingCenterDetail';
@@ -350,8 +350,8 @@ const App = () => (
                       <Route path="/hospital-doctors/:id" element={<PublicLayout><HospitalDoctor /></PublicLayout>} />
                      <Route path="/clinic-doctors/:id" element={<PublicLayout><ClinicDoctor /></PublicLayout>} />
                      <Route path="/clinic/:clinicId" element={<PublicLayout><ClinicDetail /></PublicLayout>} />
-                    <Route path="/hospital-tests/:hospitalId" element={<PublicLayout><HospitalTestBooking /></PublicLayout>} />
-                     <Route path="/book-test" element={<PublicLayout><BookTest /></PublicLayout>} />
+                     <Route path="/book-test/:entityId" element={<PublicLayout><HospitalTestBooking /></PublicLayout>} />
+                     <Route path="/diagnostic-centers" element={<PublicLayout><DiagnosticCenters /></PublicLayout>} />
                      <Route path="/all-tests" element={<PublicLayout><AllTests /></PublicLayout>} />
                      <Route path="/lab/:clinicId" element={<PublicLayout><PathologyClinicDetail /></PublicLayout>} />
                      <Route path="/lab/:clinicId/details" element={<PublicLayout><PathologyClinicDetail /></PublicLayout>} />

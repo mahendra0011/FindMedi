@@ -17,6 +17,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { api } from '@/lib/api';
@@ -32,10 +33,6 @@ const SectionTitle = ({ icon:Icon, label }) => (
     </span>
     {label}
   </h2>
-);
-
-const SideCard = ({ children, className }) => (
-  <div className={cn('bg-card rounded-2xl border border-border/50 shadow-sm p-5', className)}>{children}</div>
 );
 
 const ServiceItem = ({ name, price, index }) => {
@@ -79,17 +76,7 @@ const DayRow = ({ day, time }) => {
   );
 };
 
-const StatCard = ({ icon:Icon, value, label, color }) => (
-  <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 border border-border/40">
-    <div className={cn('w-10 h-10 rounded-xl bg-gradient-to-br flex items-center justify-center shrink-0', color.replace('text-','from-').replace('-500','-500/20') + ' to-transparent')}>
-      <Icon className={cn('w-5 h-5', color)} />
-    </div>
-    <div>
-      <p className="font-heading text-xl font-bold text-foreground leading-none mb-0.5">{value}</p>
-      <p className="text-[10px] text-muted-foreground">{label}</p>
-    </div>
-  </div>
-);
+
 
 const DEFAULT_CLINIC_PHOTO = 'https://placehold.co/800x400/2563eb/ffffff?text=Clinic+Photo';
 
@@ -111,6 +98,15 @@ export default function ClinicDetail() {
   const [activePhoto, setActivePhoto] = useState(0);
   const [showFullDesc, setShowFullDesc] = useState(false);
   const [expandedFaq, setExpandedFaq] = useState(null);
+  const [doctorSectionTab, setDoctorSectionTab] = useState('doctors');
+  const [tests, setTests] = useState([]);
+  const [testDeptFilter, setTestDeptFilter] = useState('All');
+  const [testSearch, setTestSearch] = useState('');
+  const [priceRange, setPriceRange] = useState('all');
+  const [testRxFilter, setTestRxFilter] = useState('all');
+  const [testHomeFilter, setTestHomeFilter] = useState('all');
+  const [testSort, setTestSort] = useState('popularity');
+  const [testCart, setTestCart] = useState({});
 
   const cp = doctor?.clinicProfile || {};
   const details = facility?.details || {};
@@ -126,6 +122,7 @@ export default function ClinicDetail() {
     verified: facility.status === 'approved',
     address: facility.address || '',
     city: facility.city || '',
+    state: facility.state || '',
     phone: facility.phone || '',
     email: facility.email || '',
     open: true,
@@ -146,6 +143,7 @@ export default function ClinicDetail() {
     faqs: normalizeFaqs(details.faqs || []),
     photos: details.photos?.length ? details.photos : [facility.image || facility.logo || DEFAULT_CLINIC_PHOTO],
     social: details.social || {},
+    distance: facility.distance || null,
   } : doctor ? {
     _id: doctor._id,
     name: cp.clinic_name || (doctor.name?.replace('Dr. ','') + ' Clinic'),
@@ -156,6 +154,7 @@ export default function ClinicDetail() {
     verified: doctor.approved || false,
     address: cp.clinic_address || doctor.location || '',
     city: (cp.clinic_address || doctor.location || '')?.split(',').pop()?.trim() || '',
+    state: '',
     phone: doctor.phone || '',
     email: doctor.email || '',
     open: doctor.available,
@@ -176,6 +175,7 @@ export default function ClinicDetail() {
     faqs: normalizeFaqs(cp.clinic_faqs || []),
     photos: cp.clinic_photos?.length ? cp.clinic_photos : [doctor.profile_photo || DEFAULT_CLINIC_PHOTO],
     social: cp.social || {},
+    distance: null,
   } : null;
 
   useEffect(() => {
@@ -187,9 +187,37 @@ export default function ClinicDetail() {
         if (!loadedFacility || loadedFacility.type !== 'clinic') throw new Error('Clinic facility not found');
         const loadedDoctors = Array.isArray(facilityResult?.doctors) ? facilityResult.doctors : [];
         setFacility(loadedFacility);
-        setClinicDoctors(loadedDoctors);
+          setClinicDoctors(loadedDoctors);
         setDoctor(loadedDoctors[0] || null);
-        setReviews([]);
+        try {
+          const t = await api.getTests({});
+          const mapped = (Array.isArray(t) ? t : t?.tests || []).map(t => ({
+            id: t._id,
+            _id: t._id,
+            name: t.name,
+            dept: t.category || t.department || 'Pathology',
+            category: t.category,
+            department: t.department,
+            price: t.price,
+            mrp: t.mrp || t.price,
+            reportTime: t.reportTime || '24 hrs',
+            homeCollection: t.homeCollection || false,
+            rx: t.prescriptionReq || false,
+            prescriptionReq: t.prescriptionReq || false,
+            popular: t.popular || false,
+          }));
+          setTests(mapped);
+        } catch { setTests([]); }
+        if (loadedDoctors.length > 0) {
+          try {
+            const r = await api.getReviews({ doctorId: loadedDoctors[0]._id });
+            setReviews(Array.isArray(r) ? r : r?.reviews || []);
+          } catch {
+            setReviews([]);
+          }
+        } else {
+          setReviews([]);
+        }
       } catch (facilityError) {
         try {
           const doc = await api.getDoctor(clinicId);
@@ -218,6 +246,23 @@ export default function ClinicDetail() {
       return () => clearInterval(timer);
     }
   }, [clinic?.photos?.length]);
+
+  const testDepts = [...new Set(tests.map(t => t.dept))];
+  const filteredTests = tests.filter(t => {
+    if (testDeptFilter !== 'All' && t.dept !== testDeptFilter) return false;
+    if (testSearch && !t.name.toLowerCase().includes(testSearch.toLowerCase())) return false;
+    if (testRxFilter === 'rx' && !t.rx) return false;
+    if (testRxFilter === 'direct' && t.rx) return false;
+    if (testHomeFilter === 'yes' && !t.homeCollection) return false;
+    if (testHomeFilter === 'no' && t.homeCollection) return false;
+    return true;
+  });
+  const sortedTests = [...filteredTests].sort((a, b) => {
+    if (testSort === 'price-low') return a.price - b.price;
+    if (testSort === 'price-high') return b.price - a.price;
+    if (testSort === 'name') return a.name.localeCompare(b.name);
+    return (b.popular ? 1 : 0) - (a.popular ? 1 : 0);
+  });
 
   if (loading) {
     return (
@@ -291,7 +336,7 @@ export default function ClinicDetail() {
             </div>
 
             {/* Info Card */}
-            <div className="lg:col-span-2 bg-card rounded-2xl border border-border/50 p-6 flex flex-col shadow-sm">
+            <div className="lg:col-span-2 bg-card rounded-2xl border border-border/50 p-6 flex flex-col shadow-sm w-full">
               <div className="flex items-start gap-3 mb-3">
                 <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shrink-0 border-2 border-primary/10">
                   <Building2 className="w-7 h-7 text-primary" />
@@ -410,56 +455,164 @@ export default function ClinicDetail() {
               </Card>
             </motion.div>
 
-            {/* Doctors */}
+            {/* Doctors / Tests */}
             <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>
               <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden">
                 <div className="bg-gradient-to-r from-primary/5 via-primary/10 to-transparent px-6 pt-6 pb-0">
                   <div className="flex items-center justify-between mb-4">
-                    <SectionTitle icon={Stethoscope} label={`Doctors at this Clinic (${doctors.length})`} />
-                    <Button variant="ghost" size="sm" className="text-xs text-primary gap-1 rounded-lg">
-                      View All <ChevronRight className="w-3 h-3" />
+                    <div className="flex items-center gap-3">
+                      <div className="bg-muted/50 p-0.5 rounded-lg border border-border/40 flex">
+                        <button onClick={() => setDoctorSectionTab('doctors')}
+                          className={cn('px-3 py-1.5 rounded-md text-xs font-semibold transition-all', doctorSectionTab === 'doctors' ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground')}>
+                          Doctors
+                        </button>
+                        <button onClick={() => setDoctorSectionTab('tests')}
+                          className={cn('px-3 py-1.5 rounded-md text-xs font-semibold transition-all', doctorSectionTab === 'tests' ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground')}>
+                          Tests
+                        </button>
+                      </div>
+                      <h2 className="font-heading text-xl font-bold text-foreground flex items-center gap-2.5">
+                        <span className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center"><Stethoscope className="w-4 h-4 text-primary" /></span>
+                        {doctorSectionTab === 'doctors' ? <>Doctors <span className="text-base font-normal text-muted-foreground">({doctors.length})</span></> : 'Tests'}
+                      </h2>
+                    </div>
+                    <Button variant="ghost" size="sm" className="gap-1 text-primary font-semibold shrink-0" onClick={() => toast.success('View more coming soon')}>
+                      {doctorSectionTab === 'doctors' ? 'View More' : 'View All Tests'} <ChevronRight className="w-4 h-4" />
                     </Button>
                   </div>
                 </div>
                 <CardContent className="p-6 pt-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {doctors.map((doc, idx) => {
-                      const initials = doc.name.split(' ').map(n=>n[0]).join('').slice(0,2);
-                      const gradColors = ['from-primary/20','from-blue-500/20','from-purple-500/20','from-emerald-500/20'];
-                      return (
-                        <div key={doc._id} className="group bg-card rounded-xl border border-border/40 p-4 hover:shadow-md hover:border-primary/30 transition-all duration-300">
-                          <div className="flex items-start gap-3 mb-3">
-                            <div className={cn('w-12 h-12 rounded-xl bg-gradient-to-br flex items-center justify-center text-sm font-bold text-primary shrink-0 shadow-sm', gradColors[idx % gradColors.length], 'to-primary/5')}>
-                              {initials}
+                  <div className={doctorSectionTab !== 'doctors' ? 'hidden' : ''}>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {doctors.map((doc, idx) => {
+                        const initials = doc.name.split(' ').map(n=>n[0]).join('').slice(0,2);
+                        const gradColors = ['from-primary/20','from-blue-500/20','from-purple-500/20','from-emerald-500/20'];
+                        return (
+                          <div key={doc._id} className="group bg-card rounded-xl border border-border/40 p-4 hover:shadow-md hover:border-primary/30 transition-all duration-300">
+                            <div className="flex items-start gap-3 mb-3">
+                              <div className={cn('w-12 h-12 rounded-xl bg-gradient-to-br flex items-center justify-center text-sm font-bold text-primary shrink-0 shadow-sm', gradColors[idx % gradColors.length], 'to-primary/5')}>
+                                {initials}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2">
+                                  <h4 className="font-heading font-semibold text-sm text-foreground group-hover:text-primary transition-colors">{doc.name}</h4>
+                                  <span className={cn('w-2 h-2 rounded-full', doc.available ? 'bg-emerald-500' : 'bg-red-400')} title={doc.available ? 'Available' : 'Unavailable'} />
+                                </div>
+                                <p className="text-xs text-primary font-medium">{doc.specialization}</p>
+                                <div className="flex items-center gap-3 mt-1.5 text-[11px] text-muted-foreground">
+                                  <span className="flex items-center gap-1"><Star className="w-3 h-3 text-amber-400 fill-amber-400" />{doc.rating}</span>
+                                  <span className="flex items-center gap-1"><Award className="w-3 h-3 text-primary" />{doc.experience}</span>
+                                </div>
+                              </div>
                             </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-2">
-                                <h4 className="font-heading font-semibold text-sm text-foreground group-hover:text-primary transition-colors">{doc.name}</h4>
-                                <span className={cn('w-2 h-2 rounded-full', doc.available ? 'bg-emerald-500' : 'bg-red-400')} title={doc.available ? 'Available' : 'Unavailable'} />
+                            {doc.qualifications && (
+                              <div className="flex flex-wrap gap-1 mb-3">
+                                {doc.qualifications.split(',').map(q => q.trim()).map(q => (
+                                  <span key={q} className="text-[9px] text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full border border-border/30">{q}</span>
+                                ))}
                               </div>
-                              <p className="text-xs text-primary font-medium">{doc.specialization}</p>
-                              <div className="flex items-center gap-3 mt-1.5 text-[11px] text-muted-foreground">
-                                <span className="flex items-center gap-1"><Star className="w-3 h-3 text-amber-400 fill-amber-400" />{doc.rating}</span>
-                                <span className="flex items-center gap-1"><Award className="w-3 h-3 text-primary" />{doc.experience}</span>
-                              </div>
+                            )}
+                            <div className="flex items-center justify-between text-xs pt-2 border-t border-border/20">
+                              <span className="text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3 text-primary" />{doc.timing}</span>
+                              <Badge className={cn('text-[9px] h-5 px-2 rounded-full', doc.available ? 'bg-emerald-500/10 text-emerald-600 border-emerald-200' : 'bg-red-500/10 text-red-600 border-red-200')}>
+                                {doc.available ? `Available Today${doc.next_available_slot ? `, ${doc.next_available_slot}` : ''}` : `Next: ${doc.next_available_slot || 'Unavailable'}`}
+                              </Badge>
                             </div>
                           </div>
-                          {doc.qualifications && (
-                            <div className="flex flex-wrap gap-1 mb-3">
-                              {doc.qualifications.split(',').map(q => q.trim()).map(q => (
-                                <span key={q} className="text-[9px] text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full border border-border/30">{q}</span>
-                              ))}
+                        );
+                      })}
+                    </div>
+                  </div>
+                    <div className={doctorSectionTab !== 'tests' ? 'hidden' : ''}>
+                    {/* Search */}
+                    <div className="relative mb-4">
+                      <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input value={testSearch} onChange={e => setTestSearch(e.target.value)}
+                        placeholder="Search tests..." className="pl-10 h-10 text-sm rounded-xl bg-background border-border/50" />
+                    </div>
+                    {/* Dept & Filter Chips */}
+                    <div className="flex flex-wrap items-center gap-2 mb-4">
+                      <button onClick={() => setTestDeptFilter('All')}
+                        className={cn('px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-all', testDeptFilter === 'All' ? 'border-primary bg-primary/5 text-primary' : 'border-border/60 bg-card text-muted-foreground hover:text-foreground')}>
+                        All ({tests.length})
+                      </button>
+                      {testDepts.slice(0, 6).map(d => (
+                        <button key={d} onClick={() => setTestDeptFilter(d)}
+                          className={cn('px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-all', testDeptFilter === d ? 'border-primary bg-primary/5 text-primary' : 'border-border/60 bg-card text-muted-foreground hover:text-foreground')}>
+                          {d}
+                        </button>
+                      ))}
+                      <select value={testSort} onChange={e => setTestSort(e.target.value)}
+                        className="h-8 px-2.5 rounded-lg text-[11px] bg-background border border-border/50 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
+                        <option value="popularity">Popular</option>
+                        <option value="price-low">Price: Low</option>
+                        <option value="price-high">Price: High</option>
+                        <option value="name">Name</option>
+                      </select>
+                      <button onClick={() => setTestRxFilter(testRxFilter === 'rx' ? 'all' : 'rx')}
+                        className={cn('px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-all flex items-center gap-1', testRxFilter === 'rx' ? 'border-amber-400 bg-amber-50 text-amber-700' : 'border-border/60 bg-card text-muted-foreground hover:text-foreground')}>
+                        <Lock className="w-3 h-3" /> Rx
+                      </button>
+                      <button onClick={() => setTestHomeFilter(testHomeFilter === 'yes' ? 'all' : 'yes')}
+                        className={cn('px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-all flex items-center gap-1', testHomeFilter === 'yes' ? 'border-primary bg-primary/5 text-primary' : 'border-border/60 bg-card text-muted-foreground hover:text-foreground')}>
+                        <Home className="w-3 h-3" /> Home Collection
+                      </button>
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-4">{sortedTests.length} test{sortedTests.length !== 1 ? 's' : ''} found</p>
+                    {sortedTests.length === 0 ? (
+                      <div className="text-center py-12 bg-card rounded-2xl border border-border/50">
+                        <Search className="w-10 h-10 text-muted-foreground/20 mx-auto mb-2" />
+                        <p className="text-sm text-muted-foreground">No tests match your filters</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {sortedTests.map(test => (
+                          <div key={test.id} className="group bg-card rounded-xl border border-border/40 p-4 hover:shadow-md hover:border-primary/30 transition-all duration-300 flex flex-col">
+                            <div className="flex items-start gap-3 mb-3">
+                              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shrink-0 shadow-sm">
+                                <FlaskConical className="w-5 h-5 text-primary" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <h4 className="font-heading text-sm font-semibold text-foreground group-hover:text-primary transition-colors leading-tight">{test.name}</h4>
+                                <div className="flex items-center gap-1.5 mt-1">
+                                  {test.popular && <span className="text-[9px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded">Popular</span>}
+                                  {test.rx ? (
+                                    <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-amber-600 bg-amber-500/10 px-1.5 py-0.5 rounded"><Lock className="w-2.5 h-2.5" /> Rx</span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-emerald-600 bg-emerald-500/10 px-1.5 py-0.5 rounded">Direct</span>
+                                  )}
+                                </div>
+                              </div>
                             </div>
-                          )}
-                          <div className="flex items-center justify-between text-xs pt-2 border-t border-border/20">
-                            <span className="text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3 text-primary" />{doc.timing}</span>
-                            <Badge className={cn('text-[9px] h-5 px-2 rounded-full', doc.available ? 'bg-emerald-500/10 text-emerald-600 border-emerald-200' : 'bg-red-500/10 text-red-600 border-red-200')}>
-                              {doc.available ? 'Available Today' : 'Unavailable'}
-                            </Badge>
+                            <div className="flex items-center gap-3 mb-3 text-[11px] text-muted-foreground">
+                              <span className="inline-flex items-center gap-1"><Clock className="w-3 h-3" /> {test.reportTime}</span>
+                              {test.homeCollection && <span className="inline-flex items-center gap-1"><Home className="w-3 h-3 text-primary" /> Home</span>}
+                            </div>
+                            <div className="mt-auto flex items-center justify-between pt-3 border-t border-border/20">
+                              <div>
+                                <span className="text-lg font-bold text-foreground">₹{test.price}</span>
+                                {test.mrp > test.price && <span className="text-xs text-muted-foreground line-through ml-1.5">₹{test.mrp}</span>}
+                              </div>
+                              {testCart[test.id] ? (
+                                <div className="flex items-center gap-1">
+                                  <Button variant="outline" size="icon" className="h-7 w-7 rounded-lg" onClick={() => setTestCart(p => { const n = { ...p }; if (n[test.id] <= 1) delete n[test.id]; else n[test.id]--; return n; })}>
+                                    <Minus className="w-3 h-3" />
+                                  </Button>
+                                  <span className="w-5 text-center text-xs font-bold">{testCart[test.id]}</span>
+                                  <Button variant="outline" size="icon" className="h-7 w-7 rounded-lg" onClick={() => setTestCart(p => ({ ...p, [test.id]: (p[test.id] || 0) + 1 }))}>
+                                    <Plus className="w-3 h-3" />
+                                  </Button>
+                                </div>
+                              ) : (
+                                <Button size="sm" className="rounded-lg h-8 text-xs gap-1" onClick={() => { setTestCart(p => ({ ...p, [test.id]: 1 })); toast.success(`${test.name} added`); }}>
+                                  <ShoppingCart className="w-3 h-3" /> Book
+                                </Button>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -545,7 +698,8 @@ export default function ClinicDetail() {
                         </div>
                         <div>
                           <p className="text-sm font-medium text-foreground">Address</p>
-                          <p className="text-xs text-muted-foreground mt-0.5">{clinic.address}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{clinic.address}{clinic.city ? `, ${clinic.city}` : ''}{clinic.state ? `, ${clinic.state}` : ''}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1"><Navigation className="w-3 h-3" />{clinic.distance || ((clinic._id?.charCodeAt(clinic._id?.length - 1) || 5) % 5 + 1).toFixed(1)} km away</p>
                         </div>
                       </div>
                       <div className="flex items-start gap-3 p-3 rounded-xl bg-muted/20 border border-border/40">
@@ -688,96 +842,114 @@ export default function ClinicDetail() {
 
           </div>
 
-          {/* Right Column — Sticky Sidebar (follows until Other Branches) */}
-          <motion.div variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true }} className="space-y-4 sticky top-24 self-start">
+          {/* ──── RIGHT SIDEBAR ──── */}
+          <div className="space-y-6 lg:sticky lg:top-24 self-start">
+            {/* Trust & Info */}
+            <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} className="w-full">
+              <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden w-full">
+                <CardContent className="p-6">
+                  <h3 className="font-heading font-semibold text-foreground mb-5 flex items-center gap-2.5">
+                    <span className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center"><ClipboardList className="w-3.5 h-3.5 text-primary" /></span>
+                    Trust & Info
+                  </h3>
+                  <div className="space-y-4">
+                    <div className="space-y-3">
+                      {[
+                        ['Established', clinic.established || '—'],
+                        ['Qualified Doctors', clinic.totalDoctors || '—'],
+                        ['Specialties', clinic.totalSpecialties || '—'],
+                        ['Patients Treated', clinic.totalPatients ? `${(clinic.totalPatients/1000).toFixed(0)}K+` : '—'],
+                        ['Working Hours', clinic.workingHours || '—'],
+                        ['Distance', `${clinic.distance || ((clinic._id?.charCodeAt(clinic._id?.length - 1) || 5) % 5 + 1).toFixed(1)} km`],
+                      ].map(([label, val]) => (
+                        <div key={label} className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">{label}</span>
+                          <span className="font-semibold text-foreground">{val}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <Separator />
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <BadgeCheck className="w-4 h-4 text-emerald-500" />
+                        <span className="text-xs font-semibold text-foreground">Verified Clinic</span>
+                      </div>
+                      {clinic.license && (
+                        <div className="flex items-center gap-2">
+                          <Award className="w-4 h-4 text-blue-500" />
+                          <span className="text-xs font-semibold text-foreground">License: {clinic.license}</span>
+                        </div>
+                      )}
+                    </div>
+                    {clinic.insurance?.length > 0 && (
+                      <div className="pt-3 border-t border-border/40">
+                        <p className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1.5">
+                          <Shield className="w-3.5 h-3.5 text-primary" /> Insurance Accepted
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {clinic.insurance.map(i => (
+                            <span key={i} className="text-[10px] font-medium text-primary bg-primary/5 px-2 py-0.5 rounded-full border border-primary/20">{i}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
 
-            {/* Quick Info */}
-            <SideCard>
-              <h3 className="font-heading font-semibold text-sm text-foreground mb-3 flex items-center gap-2">
-                <ClipboardList className="w-4 h-4 text-primary" /> Quick Info
-              </h3>
-              <div className="space-y-2">
-                <StatCard icon={CalendarDays} value={clinic.established} label="Established" color="text-primary" />
-                <StatCard icon={Stethoscope} value={clinic.totalDoctors} label="Qualified Doctors" color="text-blue-500" />
-                <StatCard icon={Sparkles} value={clinic.totalSpecialties} label="Specialties" color="text-purple-500" />
-                <StatCard icon={Users} value={`${(clinic.totalPatients/1000).toFixed(0)}K+`} label="Patients Treated" color="text-emerald-500" />
-                <StatCard icon={Clock} value="10 AM - 8 PM" label="Working Hours" color="text-amber-500" />
-              </div>
-            </SideCard>
-
-            {/* Quick Trust */}
-            <SideCard>
-              <h3 className="font-heading font-semibold text-sm text-foreground mb-3 flex items-center gap-2">
-                <Shield className="w-4 h-4 text-primary" /> Quick Trust
-              </h3>
-              <div className="space-y-2">
-                <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-500/5 border border-emerald-200 dark:border-emerald-500/20">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center shrink-0">
-                    <BadgeCheck className="w-4 h-4 text-emerald-600" />
+            {/* Trust Badges */}
+            <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} className="w-full">
+              <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden w-full">
+                <CardContent className="p-6">
+                  <h3 className="font-heading font-semibold text-foreground mb-4 flex items-center gap-2.5">
+                    <span className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center"><Heart className="w-3.5 h-3.5 text-primary" /></span>
+                    Community Trust
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 dark:bg-emerald-500/10">
+                      <BadgeCheck className="w-3.5 h-3.5" /> Verified
+                    </span>
+                    {clinic.totalPatients > 0 && (
+                      <span className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full bg-purple-50 text-purple-600 border border-purple-200 dark:bg-purple-500/10">
+                        <Users className="w-3.5 h-3.5" /> {(clinic.totalPatients/100).toFixed(0)}K+ Patients
+                      </span>
+                    )}
                   </div>
-                  <div>
-                    <p className="text-xs font-semibold text-foreground">Verified Clinic</p>
-                    <p className="text-[10px] text-muted-foreground">Identity & credentials verified</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-blue-50 dark:bg-blue-500/5 border border-blue-200 dark:border-blue-500/20">
-                  <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center shrink-0">
-                    <Award className="w-4 h-4 text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-foreground">License: {clinic.license}</p>
-                    <p className="text-[10px] text-muted-foreground">Registered medical facility</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-purple-50 dark:bg-purple-500/5 border border-purple-200 dark:border-purple-500/20">
-                  <div className="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-500/20 flex items-center justify-center shrink-0">
-                    <Heart className="w-4 h-4 text-purple-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-foreground">{clinic.totalPatients / 100}K+ Happy Patients</p>
-                    <p className="text-[10px] text-muted-foreground">Trusted by the community</p>
-                  </div>
-                </div>
-              </div>
-              {clinic.insurance?.length > 0 && (
-                <div className="mt-3 pt-3 border-t border-border/30">
-                  <p className="text-[10px] text-muted-foreground mb-2">Insurance Accepted</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {clinic.insurance.map(i => (
-                      <span key={i} className="text-[9px] font-medium text-primary bg-primary/5 px-2 py-0.5 rounded-full border border-primary/20">{i}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </SideCard>
+                </CardContent>
+              </Card>
+            </motion.div>
 
             {/* Quick Actions */}
-            <SideCard>
-              <h3 className="font-heading font-semibold text-sm text-foreground mb-3 flex items-center gap-2">
-                <Zap className="w-4 h-4 text-primary" /> Quick Actions
-              </h3>
-              <div className="space-y-2">
-                <Button className="w-full justify-start gap-3 rounded-xl h-11 shadow-sm" onClick={() => toast.success('Booking coming soon')}>
-                  <CalendarDays className="w-4 h-4" /> Book Appointment
-                </Button>
-                <a href={`tel:${clinic.phone}`}>
-                  <Button variant="outline" className="w-full justify-start gap-3 rounded-xl h-11">
-                    <Phone className="w-4 h-4" /> Call Now
-                  </Button>
-                </a>
-                <Button variant="outline" className="w-full justify-start gap-3 rounded-xl h-11" onClick={() => toast.success('Opening directions...')}>
-                  <Navigation className="w-4 h-4" /> Get Directions
-                </Button>
-                <Button variant="outline" className="w-full justify-start gap-3 rounded-xl h-11" onClick={() => { navigator.clipboard?.writeText(window.location.href); toast.success('Link copied!'); }}>
-                  <Share2 className="w-4 h-4" /> Share Profile
-                </Button>
-                <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl h-11 text-muted-foreground" onClick={() => toast.success('Review form coming soon')}>
-                  <Star className="w-4 h-4" /> Write a Review
-                </Button>
-              </div>
-            </SideCard>
+            <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} className="w-full">
+              <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden bg-gradient-to-br from-primary/5 via-primary/[0.02] to-transparent w-full">
+                <CardContent className="p-6">
+                  <h3 className="font-heading font-semibold text-foreground mb-5 flex items-center gap-2.5">
+                    <span className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center"><Zap className="w-3.5 h-3.5 text-primary" /></span>
+                    Quick Actions
+                  </h3>
+                  <div className="space-y-3">
+                    <Button className="w-full gap-2.5 rounded-xl h-11 font-semibold shadow-md" onClick={() => toast.success('Booking coming soon')}>
+                      <CalendarDays className="w-4 h-4" /> Book Appointment
+                    </Button>
+                    <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" asChild>
+                      <a href={`tel:${clinic.phone}`}><Phone className="w-4 h-4" /> Call Now</a>
+                    </Button>
+                    <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => toast.success('Opening directions...')}>
+                      <Navigation className="w-4 h-4" /> Get Directions
+                    </Button>
+                    <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => { navigator.clipboard?.writeText(window.location.href); toast.success('Link copied!'); }}>
+                      <Share2 className="w-4 h-4" /> Share Profile
+                    </Button>
+                    <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => toast.success('Review form coming soon')}>
+                      <Star className="w-4 h-4" /> Write a Review
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
 
-          </motion.div>
+          </div>
         </div>
 
         {/* ════════ 4. OTHER BRANCHES (full width after grid) ════════ */}
