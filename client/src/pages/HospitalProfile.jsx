@@ -8,7 +8,7 @@ import {
   Navigation, AlertCircle, HeartPulse, CheckCircle2,
   ChevronDown, ChevronUp, FlaskRound, Quote, Mail,
   Circle, Heart, Eye, Sparkles, TrendingUp, Brain, Bone, Baby, Activity,
-  FlaskConical,   ShoppingCart, Lock, Plus, Minus, Zap, X, UserRound
+  FlaskConical, ShoppingCart, Lock, Plus, Minus, Zap, X, UserRound, HelpCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -81,7 +81,13 @@ export default function HospitalProfile() {
   const [searchParams] = useSearchParams();
   const [hospital, setHospital] = useState(null);
   const [doctors, setDoctors] = useState([]);
-  const [reviews, setReviews] = useState([]);
+  const [reviews, setReviews] = useState([
+    { _id: 'demo-1', patientName: 'Rahul Sharma', rating: 5, comment: 'Excellent hospital with great doctors. The staff was very cooperative and the facilities are world-class.', date: '2026-06-15' },
+    { _id: 'demo-2', patientName: 'Priya Patel', rating: 4, comment: 'Good experience overall. Clean rooms and well-maintained equipment. OPD wait time could be better.', date: '2026-06-10' },
+    { _id: 'demo-3', patientName: 'Amit Verma', rating: 5, comment: 'Best cardiology department in the city. Dr. Sharma is a lifesaver!', date: '2026-06-05' },
+    { _id: 'demo-4', patientName: 'Sunita Gupta', rating: 4, comment: 'Had a surgery here. The nursing staff was attentive and the facilities are modern. Would recommend.', date: '2026-05-28' },
+    { _id: 'demo-5', patientName: 'Vikram Singh', rating: 3, comment: 'Decent hospital but the billing process was slow. Needed to visit multiple counters.', date: '2026-05-20' },
+  ]);
   const [docSearch, setDocSearch] = useState('');
   const [docSpecFilter, setDocSpecFilter] = useState('All');
   const [doctorSectionTab, setDoctorSectionTab] = useState('doctors');
@@ -96,6 +102,7 @@ export default function HospitalProfile() {
   const [showFullDesc, setShowFullDesc] = useState(false);
   const [activePhoto, setActivePhoto] = useState(0);
   const [suggestedHospitals, setSuggestedHospitals] = useState([]);
+  const [isFavorited, setIsFavorited] = useState(false);
   const [testSearch, setTestSearch] = useState('');
   const [testDeptFilter, setTestDeptFilter] = useState('All');
   const [testRxFilter, setTestRxFilter] = useState('all');
@@ -119,7 +126,10 @@ export default function HospitalProfile() {
     setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 10);
   };
 
+  const fetched = useRef(false);
   useEffect(() => {
+    if (fetched.current) return;
+    fetched.current = true;
     (async () => {
       setLoading(true);
       try {
@@ -132,7 +142,7 @@ export default function HospitalProfile() {
         if (!hosp) { setNotFound(true); return; }
         setHospital(hosp);
       setDoctors(docs || []);
-      setReviews(revs || []);
+      if (revs && revs.length > 0) setReviews(revs);
       // Fetch suggested hospitals
       try {
         const allHospitals = await api.getHospitals({});
@@ -169,8 +179,14 @@ export default function HospitalProfile() {
   const totalDepts = hospital?.specialties?.length || 0;
 
   const getOpenStatus = () => {
-    if (hospital?.emergency24x7) return { isOpen: true, label: 'Open 24/7', dot: 'bg-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 border-emerald-200 dark:border-emerald-800' };
     const h = new Date().getHours();
+    const day = new Date().getDay();
+    const wh = hospital?.workingHours || {};
+    if (day === 0 && (wh.sunday || '').toLowerCase().includes('closed')) {
+      if (hospital?.emergency24x7) return { isOpen: true, label: 'Emergency 24/7 • OPD Closed', dot: 'bg-amber-500', bg: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 border-amber-200 dark:border-amber-800' };
+      return { isOpen: false, label: 'Closed', dot: 'bg-red-500', bg: 'bg-red-50 dark:bg-red-500/10 text-red-600 border-red-200 dark:border-red-800' };
+    }
+    if (hospital?.emergency24x7) return { isOpen: true, label: 'Emergency 24/7', dot: 'bg-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 border-emerald-200 dark:border-emerald-800' };
     if (h >= 7 && h < 22) return { isOpen: true, label: `Open • Closes 10 PM`, dot: 'bg-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 border-emerald-200 dark:border-emerald-800' };
     return { isOpen: false, label: 'Closed', dot: 'bg-red-500', bg: 'bg-red-50 dark:bg-red-500/10 text-red-600 border-red-200 dark:border-red-800' };
   };
@@ -263,7 +279,16 @@ export default function HospitalProfile() {
       if (testRxFilter === 'direct' && t.rx) return false;
       if (testHomeFilter === 'home' && !t.homeCollection) return false;
       if (testHomeFilter === 'lab' && t.homeCollection) return false;
-      if (t.price < priceRange[0] || t.price > priceRange[1]) return false;
+      if (Array.isArray(priceRange) && (t.price < priceRange[0] || t.price > priceRange[1])) return false;
+      if (typeof priceRange === 'string' && priceRange !== 'all') {
+        if (priceRange.endsWith('+')) {
+          const min = Number(priceRange.slice(0, -1));
+          if (t.price < min) return false;
+        } else {
+          const [min, max] = priceRange.split('-').map(Number);
+          if (t.price < min || t.price > max) return false;
+        }
+      }
       return true;
     });
     const sorted = [...filtered].sort((a, b) => {
@@ -336,20 +361,32 @@ export default function HospitalProfile() {
 
             {/* Gallery */}
             <div className="lg:col-span-2 relative rounded-2xl overflow-hidden bg-card border border-border/50 h-[300px] sm:h-[420px] group">
-              {hospitalPhotos?.map((p, i) => (
-                <div key={i} className={cn('absolute inset-0 transition-all duration-700', i === activePhoto ? 'opacity-100 scale-100' : 'opacity-0 scale-105')}>
-                  <img src={p} alt={`${hospital.name} photo ${i + 1}`} className="w-full h-full object-cover" />
+              {hospitalPhotos?.length > 0 ? (
+                hospitalPhotos.map((p, i) => (
+                  <div key={i} className={cn('absolute inset-0 transition-all duration-700', i === activePhoto ? 'opacity-100 scale-100' : 'opacity-0 scale-105')}>
+                    <img src={p} alt={`${hospital.name} photo ${i + 1}`} className="w-full h-full object-cover" />
+                  </div>
+                ))
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-primary/20 via-primary/5 to-muted flex items-center justify-center">
+                  <div className="text-center">
+                    <Building2 className="w-20 h-20 text-primary/30 mx-auto mb-4" />
+                    <p className="text-muted-foreground/50 font-medium">{hospital.name}</p>
+                  </div>
                 </div>
-              ))}
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
-                {hospitalPhotos?.map((_, i) => (
-                  <button key={i} onClick={() => setActivePhoto(i)}
-                    className={cn('h-1.5 rounded-full transition-all duration-300', i === activePhoto ? 'bg-white w-8' : 'bg-white/40 w-1.5 hover:bg-white/70')} />
-                ))}
-              </div>
-              <div className="absolute top-4 right-4 flex gap-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button className="w-9 h-9 rounded-xl bg-black/30 backdrop-blur-sm text-white flex items-center justify-center hover:bg-black/50 transition-all hover:scale-105" onClick={() => toast.success('Bookmarked')}>
-                  <Bookmark className="w-4 h-4" />
+              )}
+              {hospitalPhotos?.length > 1 && (
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+                  {hospitalPhotos.map((_, i) => (
+                    <button key={i} onClick={() => setActivePhoto(i)}
+                      className={cn('h-1.5 rounded-full transition-all duration-300', i === activePhoto ? 'bg-white w-8' : 'bg-white/40 w-1.5 hover:bg-white/70')} />
+                  ))}
+                </div>
+              )}
+              <div className="absolute top-4 right-4 flex gap-2 z-10">
+                <button onClick={() => { setIsFavorited(!isFavorited); toast.success(isFavorited ? 'Removed from Saved' : 'Saved'); }}
+                  className={cn('w-9 h-9 rounded-xl backdrop-blur-sm flex items-center justify-center transition-all hover:scale-105', isFavorited ? 'bg-red-500 text-white' : 'bg-black/30 text-white hover:bg-black/50')}>
+                  <Heart className={cn('w-4 h-4', isFavorited && 'fill-current')} />
                 </button>
                 <button className="w-9 h-9 rounded-xl bg-black/30 backdrop-blur-sm text-white flex items-center justify-center hover:bg-black/50 transition-all hover:scale-105" onClick={handleShare}>
                   <Share2 className="w-4 h-4" />
@@ -425,18 +462,19 @@ export default function HospitalProfile() {
                 {openStatus.label}
               </div>
 
-              <div className="flex gap-2 mt-auto pt-3">
+              <div className="flex items-center gap-2 mt-auto pt-3">
                 <Button className="flex-1 gap-2 rounded-xl shadow-lg shadow-primary/20 h-11 hover:shadow-xl hover:shadow-primary/30 transition-all" onClick={handleBookDoctor}>
                   <CalendarDays className="w-4 h-4" /> Book Appointment
                 </Button>
-                <Button variant="outline" className="rounded-xl h-11 px-3 hover:bg-primary/5 hover:border-primary/30 transition-all" onClick={() => navigate(`/hospitals/${id}/doctors`)}>
-                  <Navigation className="w-4 h-4" />
-                </Button>
-                <a href={`tel:${hospital.phone}`}>
-                  <Button variant="outline" className="rounded-xl h-11 px-3 hover:bg-primary/5 hover:border-primary/30 transition-all">
-                    <Phone className="w-4 h-4" />
+                <a href={`tel:${hospital.phone}`} className="flex-1">
+                  <Button variant="outline" className="w-full gap-2 rounded-xl h-11 hover:bg-primary/5 hover:border-primary/30 transition-all">
+                    <Phone className="w-4 h-4" /> Call Now
                   </Button>
                 </a>
+                <button onClick={() => { setIsFavorited(!isFavorited); toast.success(isFavorited ? 'Removed from Saved' : 'Saved'); }}
+                  className={cn('w-11 h-11 rounded-xl border transition-all flex items-center justify-center shrink-0', isFavorited ? 'bg-red-500/10 text-red-500 border-red-200' : 'border-border/60 text-muted-foreground hover:text-red-500 hover:border-red-200 hover:bg-red-500/5')}>
+                  <Heart className={cn('w-5 h-5', isFavorited && 'fill-current')} />
+                </button>
               </div>
             </div>
           </div>
@@ -585,12 +623,13 @@ export default function HospitalProfile() {
                 </select>
               </div>
 
-              {filteredDoctors.length === 0 ? (
+                {filteredDoctors.length === 0 ? (
                 <div className="text-center py-10">
                   <Search className="w-8 h-8 text-muted-foreground/20 mx-auto mb-2" />
                   <p className="text-sm text-muted-foreground">No doctors found</p>
                 </div>
               ) : (
+              <>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 {filteredDoctors.slice(0, 2).map((doc) => (
                   <motion.div key={doc._id} variants={fadeUp}
@@ -598,10 +637,10 @@ export default function HospitalProfile() {
                   >
                     <div className="p-5 h-full flex flex-col">
                       <div className="flex items-start gap-4 mb-3">
-                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center overflow-hidden shrink-0 border-2 border-primary/10">
+                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center overflow-hidden shrink-0 border-2 border-primary/20 shadow-md shadow-primary/20">
                           {doc.profile_photo
                             ? <img src={doc.profile_photo} alt="" className="w-full h-full object-cover" />
-                            : <UserRound className="w-7 h-7 text-primary" />
+                            : <span className="text-primary-foreground font-heading font-bold text-lg">{doc.initials || doc.name?.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase()}</span>
                           }
                         </div>
                         <div className="min-w-0 flex-1">
@@ -646,27 +685,36 @@ export default function HospitalProfile() {
                         </div>
                       )}
 
-                      <div className="bg-muted/30 rounded-xl border border-border/40 p-3 mb-3 space-y-2">
+                      <div className="flex items-center gap-2 mb-3">
                         {doc.phone && (
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="text-muted-foreground flex items-center gap-1.5"><Phone className="w-3 h-3 text-primary" />Phone</span>
-                            <span className="font-medium text-foreground">{doc.phone}</span>
-                          </div>
+                          <a href={`tel:${doc.phone}`} className="flex-1">
+                            <Button variant="outline" size="sm" className="w-full gap-1.5 rounded-lg h-8 text-xs">
+                              <Phone className="w-3 h-3" /> Call
+                            </Button>
+                          </a>
                         )}
                         {doc.email && (
-                          <>
-                            <div className="h-px bg-border/20" />
-                            <div className="flex items-center justify-between text-xs">
-                              <span className="text-muted-foreground flex items-center gap-1.5"><Mail className="w-3 h-3 text-primary" />Email</span>
-                              <span className="font-medium text-foreground truncate ml-2">{doc.email}</span>
-                            </div>
-                          </>
+                          <a href={`mailto:${doc.email}`} className="flex-1">
+                            <Button variant="outline" size="sm" className="w-full gap-1.5 rounded-lg h-8 text-xs">
+                              <Mail className="w-3 h-3" /> Email
+                            </Button>
+                          </a>
                         )}
                       </div>
 
-                      <div className={cn('px-3 py-2 rounded-xl border text-sm mb-4 text-center font-medium', doc.available ? 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10' : 'bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10')}>
-                        {doc.available ? `Available Today${doc.next_available_slot ? `, ${doc.next_available_slot}` : ''}` : `Next Available: ${doc.next_available_slot || 'Tomorrow 9 AM'}`}
-                      </div>
+                      {(() => {
+                        let slot = doc.next_available_slot;
+                        if (!slot && Array.isArray(doc.time_slots) && doc.time_slots.length > 0) {
+                          const mid = Math.floor(doc.time_slots.length / 2);
+                          slot = doc.time_slots[mid] || doc.time_slots[0];
+                        }
+                        if (!slot) slot = '5:00 PM';
+                        return (
+                          <div className={cn('px-3 py-2 rounded-xl border text-sm mb-4 text-center font-medium', doc.available ? 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10' : 'bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10')}>
+                            {doc.available ? `Available Today at ${slot}` : `Next Available: ${doc.next_available_slot || 'Tomorrow 9 AM'}`}
+                          </div>
+                        );
+                      })()}
 
                       <div className="flex items-center justify-between p-3 rounded-xl bg-primary/5 border border-primary/10 mb-4">
                         <span className="text-sm text-muted-foreground">Consultation Fee</span>
@@ -687,7 +735,16 @@ export default function HospitalProfile() {
                   </motion.div>
                 ))}
               </div>
-                )}
+              {filteredDoctors.length > 2 && (
+                <div className="mt-4 text-center">
+                  <Button variant="outline" className="gap-2 rounded-xl px-6" size="sm"
+                    onClick={() => navigate(`/hospitals/${id}/doctors`)}>
+                    View All {filteredDoctors.length} Doctors <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
+                </>
+              )}
               </div>
               <div className={doctorSectionTab !== 'tests' ? 'hidden' : ''}>
                 <div className="flex flex-wrap gap-2 mb-4">
@@ -896,6 +953,43 @@ export default function HospitalProfile() {
         </Card>
       </motion.div>
 
+      {/* ─── Photo Gallery ─── */}
+      <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>
+        <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden">
+          <CardContent className="p-6 sm:p-8">
+            <h2 className="font-heading text-xl font-bold text-foreground mb-5 flex items-center gap-2.5">
+              <span className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center"><Eye className="w-4 h-4 text-primary" /></span>
+              Photo Gallery
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {[
+                { label: 'Hospital Building', icon: Building2, color: 'from-blue-500/20' },
+                { label: 'Patient Rooms', icon: BedDouble, color: 'from-emerald-500/20' },
+                { label: 'Operation Theatre', icon: Activity, color: 'from-purple-500/20' },
+                { label: 'Waiting Area', icon: Users, color: 'from-amber-500/20' },
+                { label: 'Pharmacy', icon: ShoppingCart, color: 'from-cyan-500/20' },
+                { label: 'ICU', icon: HeartPulse, color: 'from-rose-500/20' },
+                { label: 'Laboratory', icon: FlaskConical, color: 'from-violet-500/20' },
+                { label: 'Emergency', icon: Ambulance, color: 'from-red-500/20' },
+              ].map((photo, i) => {
+                const Icon = photo.icon;
+                return (
+                  <div key={i} className="relative rounded-xl overflow-hidden bg-gradient-to-br from-card to-muted border border-border/50 aspect-[4/3] group cursor-pointer hover:shadow-md transition-all">
+                    <div className={cn('w-full h-full bg-gradient-to-br flex items-center justify-center', photo.color.replace('from-', 'from-') + ' to-transparent')}>
+                      <Icon className="w-10 h-10 text-muted-foreground/30 group-hover:scale-110 transition-transform" />
+                    </div>
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/50 to-transparent p-3">
+                      <p className="text-white text-xs font-semibold">{photo.label}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="text-xs text-muted-foreground mt-4 text-center">Click on a photo to view full-size gallery</p>
+          </CardContent>
+        </Card>
+      </motion.div>
+
       {/* ─── Patient Reviews ─── */}
       <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>
         <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden">
@@ -903,7 +997,7 @@ export default function HospitalProfile() {
             <div className="flex items-center justify-between mb-6">
               <h2 className="font-heading text-xl font-bold text-foreground flex items-center gap-2.5">
                 <span className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center"><Star className="w-4 h-4 text-primary fill-primary" /></span>
-                Patient Reviews <span className="text-base font-normal text-muted-foreground ml-1">({hospital.reviewsCount || reviews.length})</span>
+                Patient Reviews <span className="text-base font-normal text-muted-foreground ml-1">({reviews.length})</span>
               </h2>
               <Button variant="outline" size="sm" className="rounded-lg text-xs gap-1.5" onClick={() => toast.success('Review submitted successfully!')}>
                 <Star className="w-3.5 h-3.5" /> Write a Review
@@ -918,7 +1012,7 @@ export default function HospitalProfile() {
                     <div className="flex items-center gap-0.5 mt-1 justify-center">
                       {[1,2,3,4,5].map(i => <Star key={i} className={cn('w-4 h-4', i <= Math.round(hospital.rating || 0) ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground/20')} />)}
                     </div>
-                    <p className="text-[10px] text-muted-foreground mt-1">{hospital.reviewsCount || reviews.length} total reviews</p>
+                    <p className="text-[10px] text-muted-foreground mt-1">{reviews.length} reviews</p>
                   </div>
                   <div className="flex-1 w-full space-y-1.5">
                     {[5,4,3,2,1].map(r => {
@@ -974,6 +1068,37 @@ export default function HospitalProfile() {
                 <p className="text-sm text-muted-foreground">Reviews are loading or unavailable. {hospital.reviewsCount} reviews recorded.</p>
               </div>
             )}
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* ─── FAQs ─── */}
+      <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>
+        <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden">
+          <CardContent className="p-6 sm:p-8">
+            <h2 className="font-heading text-xl font-bold text-foreground mb-5 flex items-center gap-2.5">
+              <span className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center"><HelpCircle className="w-4 h-4 text-primary" /></span>
+              Frequently Asked Questions
+            </h2>
+            <Accordion type="multiple" className="space-y-2">
+              {[
+                { q: 'How do I book an appointment?', a: 'You can book an appointment online by clicking the "Book Appointment" button on this page. Select your preferred doctor, choose a convenient time slot, and confirm your booking.' },
+                { q: 'What documents do I need to carry?', a: 'Please carry a valid government ID (Aadhaar, PAN, or Driver\'s License), your previous medical records if any, and the prescription/referral note from your doctor.' },
+                { q: 'Is home sample collection available?', a: 'Yes, we offer home sample collection for pathology tests. You can book this service when selecting your tests. Additional charges may apply based on your location.' },
+                { q: 'What are the visiting hours?', a: `Our visiting hours are ${hospital?.workingHours?.weekdays || '9:00 AM - 6:00 PM'} on weekdays and ${hospital?.workingHours?.saturday || '9:00 AM - 2:00 PM'} on Saturdays. Emergency services are available ${hospital?.emergency24x7 ? '24/7' : 'during regular hours'}.` },
+                { q: 'Do you accept insurance?', a: hospital?.insuranceAccepted?.length > 0 ? `Yes, we accept insurance from the following providers: ${hospital.insuranceAccepted.map(i => i.provider || i).join(', ')}. Please check with our billing desk for claim assistance.` : 'Please contact our billing desk for information about insurance acceptance.' },
+                { q: 'Can I get a second opinion?', a: 'Yes, we encourage second opinions. You can book a consultation with a different specialist within the same department or across specialties.' },
+              ].map((faq, i) => (
+                <AccordionItem key={i} value={`faq-${i}`} className="bg-card rounded-xl border border-border/40 overflow-hidden border-b-0 data-[state=open]:shadow-sm transition-shadow">
+                  <AccordionTrigger className="px-4 py-3.5 hover:no-underline hover:bg-muted/20 transition-colors">
+                    <span className="text-sm font-semibold text-foreground text-left">{faq.q}</span>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-4 pb-4">
+                    <p className="text-sm text-muted-foreground leading-relaxed">{faq.a}</p>
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
           </CardContent>
         </Card>
       </motion.div>
@@ -1200,6 +1325,16 @@ export default function HospitalProfile() {
                       </div>
                     </div>
                   )}
+                  <div className="pt-3 border-t border-border/40">
+                    <p className="text-xs text-muted-foreground mb-2 font-semibold">Payment Modes</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {['Cash', 'UPI', 'Card', 'Net Banking', 'Cashless'].map(mode => (
+                        <span key={mode} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/10">
+                          <CheckCircle2 className="w-2.5 h-2.5" /> {mode}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>

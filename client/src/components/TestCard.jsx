@@ -67,6 +67,7 @@ const InfoRow = ({ icon: Icon, label, value, highlight }) => (
 export default function TestCard({ test, index = 0 }) {
   const {
     providerType = 'lab_technician',
+    name,
     testName,
     prescriptionReq = false,
     category,
@@ -91,12 +92,14 @@ export default function TestCard({ test, index = 0 }) {
     quickTest = false,
     walkinAvailable = false,
     price = 0,
+    mrp,
     originalPrice,
     discount,
     sampleType,
     equipmentType,
     scanType,
     certifiedPhlebotomist = false,
+    certifiedSonographer = false,
     onBook,
     onUploadRx,
     onViewProvider,
@@ -153,7 +156,7 @@ export default function TestCard({ test, index = 0 }) {
               {getProviderIcon()}
             </div>
             <div className="min-w-0">
-              <h3 className="font-heading font-bold text-sm text-foreground leading-tight truncate">{testName}</h3>
+              <h3 className="font-heading font-bold text-sm text-foreground leading-tight truncate">{name || testName}</h3>
             </div>
           </div>
           <PrescriptionBadge required={prescriptionReq} />
@@ -245,6 +248,9 @@ export default function TestCard({ test, index = 0 }) {
           {isSonographer && (
             <TagPill icon={MapPin} variant="amber">Visit Required</TagPill>
           )}
+          {isSonographer && certifiedSonographer && (
+            <TagPill icon={BadgeCheck} variant="blue">Certified Sonographer</TagPill>
+          )}
         </div>
 
         {/* ─── Middle Info Rows ─── */}
@@ -301,8 +307,8 @@ export default function TestCard({ test, index = 0 }) {
             <span className="text-xs font-medium text-muted-foreground">Price</span>
           </div>
           <div className="flex items-baseline gap-2">
-            {originalPrice && (
-              <span className="text-sm text-muted-foreground line-through">₹{originalPrice}</span>
+            {(originalPrice || mrp) && (
+              <span className="text-sm text-muted-foreground line-through">₹{originalPrice || mrp}</span>
             )}
             <span className="font-bold text-xl text-primary">₹{price}</span>
           </div>

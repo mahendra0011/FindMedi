@@ -115,7 +115,7 @@ export default function AllTests() {
       if (isNaN(km) || km > max) return false;
     }
     if (ratingFilter > 0 && (test.rating || 0) < ratingFilter) return false;
-    if (searchQuery && !test.testName.toLowerCase().includes(searchQuery.toLowerCase()) && !test.providerName.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    if (searchQuery && !(test.name || test.testName || '').toLowerCase().includes(searchQuery.toLowerCase()) && !(test.providerName || '').toLowerCase().includes(searchQuery.toLowerCase())) return false;
     return true;
   });
 

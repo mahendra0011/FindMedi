@@ -26,6 +26,7 @@ import Department from './models/Department.js';
 import Staff from './models/Staff.js';
 import Inventory from './models/Inventory.js';
 import ClinicProfile from './models/ClinicProfile.js';
+import Review from './models/Review.js';
 
 const readJSON = (file) => JSON.parse(fs.readFileSync(path.join(__dirname, 'mock-data', file), 'utf-8'));
 
@@ -39,7 +40,7 @@ async function seed() {
 
     // ===== CLEAR EXISTING DATA =====
     console.log('Clearing existing data...');
-    const collections = ['hospitals', 'facilities', 'users', 'doctors', 'clinicprofiles', 'patients', 'appointments', 'tests', 'medicines', 'beds', 'departments', 'staffs', 'inventories'];
+    const collections = ['hospitals', 'facilities', 'users', 'doctors', 'clinicprofiles', 'patients', 'appointments', 'reviews', 'tests', 'medicines', 'beds', 'departments', 'staffs', 'inventories'];
     for (const col of collections) {
       try { await db.collection(col).deleteMany({}); } catch {}
     }
@@ -150,6 +151,20 @@ async function seed() {
     }
     console.log(`  ${appointmentsData.length} appointments created.`);
 
+    // ===== SEED REVIEWS =====
+    console.log('Seeding reviews...');
+    const reviewsData = readJSON('reviews.json');
+    const doctorsList2 = await Doctor.find({}).lean();
+    for (const r of reviewsData) {
+      const { doctorId, hospitalId, ...rest } = r;
+      const reviewObj = { ...rest };
+      const matchedDoc = doctorsList2.find(d => d.name === r.doctorName);
+      if (matchedDoc) reviewObj.doctorId = matchedDoc._id;
+      if (hospitalId && hospitalsMap[hospitalId]) reviewObj.hospitalId = hospitalsMap[hospitalId];
+      await Review.create(reviewObj);
+    }
+    console.log(`  ${reviewsData.length} reviews created.`);
+
     // ===== SEED TESTS =====
     console.log('Seeding tests...');
     const testsData = readJSON('tests.json');
@@ -224,8 +239,8 @@ async function seed() {
     }
     console.log(`  ${inventoryData.length} inventory items created.`);
 
-    console.log('\n✅ Seed complete! 13 sections seeded.');
-    console.log('   hospitals, facilities, users, doctors, clinicprofiles, patients, appointments, tests, medicines, beds, departments, staff, inventory');
+    console.log('\n✅ Seed complete! 14 sections seeded.');
+    console.log('   hospitals, facilities, users, doctors, clinicprofiles, patients, appointments, reviews, tests, medicines, beds, departments, staff, inventory');
     console.log('\nDemo Accounts:');
     console.log('  superadmin → mahendrapra0077@gmail.com / admin@123');
     console.log('  admin      → admin@medicore.com / password');

@@ -479,7 +479,7 @@ export default function ClinicDoctors() {
                     : 'bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10 dark:border-red-500/20')}>
                     <span className="flex items-center gap-1.5">
                       <CalendarDays className="w-3 h-3" />
-                      {doc.available ? (doc.next_available_slot || 'Today') : 'Unavailable'}
+                      {doc.available ? (doc.next_available_slot || (Array.isArray(doc.time_slots) && doc.time_slots.length > 0 ? doc.time_slots[Math.floor(doc.time_slots.length / 2)] || doc.time_slots[0] : '5:00 PM')) : 'Unavailable'}
                     </span>
                   </div>
                   <div className="p-5">
@@ -544,16 +544,22 @@ export default function ClinicDoctors() {
                         <span className="font-semibold text-foreground truncate ml-2">{area || '—'}</span>
                       </div>
                       <Separator className="bg-border/30 my-2.5" />
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground flex items-center gap-1.5"><Phone className="w-3.5 h-3.5 text-primary" />Phone</span>
-                        <span className="font-semibold text-foreground">{doc.phone || 'N/A'}</span>
+                      <div className="flex gap-2">
+                        {doc.phone && (
+                          <a href={`tel:${doc.phone}`} className="flex-1">
+                            <Button variant="outline" size="sm" className="w-full gap-1.5 rounded-lg h-8 text-xs">
+                              <Phone className="w-3 h-3" /> Call
+                            </Button>
+                          </a>
+                        )}
+                        {doc.email && (
+                          <a href={`mailto:${doc.email}`} className="flex-1">
+                            <Button variant="outline" size="sm" className="w-full gap-1.5 rounded-lg h-8 text-xs">
+                              <Mail className="w-3 h-3" /> Email
+                            </Button>
+                          </a>
+                        )}
                       </div>
-                      <Separator className="bg-border/30 my-2.5" />
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground flex items-center gap-1.5"><Mail className="w-3.5 h-3.5 text-primary" />Email</span>
-                        <span className="font-semibold text-foreground truncate">{doc.email || 'N/A'}</span>
-                      </div>
-                      <Separator className="bg-border/30 my-2.5" />
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground flex items-center gap-1.5"><Globe className="w-3.5 h-3.5 text-primary" />Languages</span>
                         <span className="font-semibold text-foreground truncate">{doc.languages?.join(', ') || doc.language || '—'}</span>

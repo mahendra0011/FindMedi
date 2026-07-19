@@ -22,7 +22,8 @@
     "emergency24x7": true,
     "bedAvailability": 200,
     "ambulanceService": true,
-    "image": "",
+    "image": "https://images.unsplash.com/photo-1587351021759-3e566b6af7cc?w=800&h=400&fit=crop",
+    "logo": "https://images.unsplash.com/photo-1551076805-e1869033e561?w=200&h=200&fit=crop",
     "insuranceAccepted": [
       { "provider": "ICICI Lombard", "planType": "cashless" },
       { "provider": "HDFC Ergo", "planType": "cashless" },
@@ -58,7 +59,8 @@
     "emergency24x7": true,
     "bedAvailability": 100,
     "ambulanceService": true,
-    "image": "",
+    "image": "https://images.unsplash.com/photo-1631217868264-e5b90bb7e133?w=800&h=400&fit=crop",
+    "logo": "https://images.unsplash.com/photo-1585435557343-3b092031a831?w=200&h=200&fit=crop",
     "insuranceAccepted": [
       { "provider": "ICICI Lombard", "planType": "cashless" },
       { "provider": "HDFC Ergo", "planType": "cashless" },

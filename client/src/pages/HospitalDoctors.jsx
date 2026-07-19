@@ -422,10 +422,10 @@ export default function HospitalDoctors() {
               >
                 <div className="p-5">
                   <div className="flex items-start gap-4 mb-3">
-                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center overflow-hidden shrink-0 border-2 border-primary/10">
+                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center overflow-hidden shrink-0 border-2 border-primary/20 shadow-md shadow-primary/20">
                       {doc.profile_photo
                         ? <img src={doc.profile_photo} alt="" className="w-full h-full object-cover" />
-                        : <UserRound className="w-7 h-7 text-primary" />
+                        : <span className="text-primary-foreground font-heading font-bold text-lg">{doc.initials || doc.name?.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase()}</span>
                       }
                     </div>
                     <div className="min-w-0 flex-1">
@@ -470,27 +470,36 @@ export default function HospitalDoctors() {
                     </div>
                   )}
 
-                  <div className="bg-muted/30 rounded-xl border border-border/40 p-3 mb-3 space-y-2">
+                  <div className="flex items-center gap-2 mb-3">
                     {doc.phone && (
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground flex items-center gap-1.5"><Phone className="w-3 h-3 text-primary" />Phone</span>
-                        <span className="font-medium text-foreground">{doc.phone}</span>
-                      </div>
+                      <a href={`tel:${doc.phone}`} className="flex-1">
+                        <Button variant="outline" size="sm" className="w-full gap-1.5 rounded-lg h-8 text-xs">
+                          <Phone className="w-3 h-3" /> Call
+                        </Button>
+                      </a>
                     )}
                     {doc.email && (
-                      <>
-                        <div className="h-px bg-border/20" />
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground flex items-center gap-1.5"><Mail className="w-3 h-3 text-primary" />Email</span>
-                          <span className="font-medium text-foreground truncate ml-2">{doc.email}</span>
-                        </div>
-                      </>
+                      <a href={`mailto:${doc.email}`} className="flex-1">
+                        <Button variant="outline" size="sm" className="w-full gap-1.5 rounded-lg h-8 text-xs">
+                          <Mail className="w-3 h-3" /> Email
+                        </Button>
+                      </a>
                     )}
                   </div>
 
-                  <div className={cn('px-3 py-2 rounded-xl border text-sm mb-4 text-center font-medium', doc.available ? 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10' : 'bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10')}>
-                    {doc.available ? `Available Today${doc.next_available_slot ? `, ${doc.next_available_slot}` : ''}` : `Next Available: ${doc.next_available_slot || 'Tomorrow 9 AM'}`}
-                  </div>
+                  {(() => {
+                    let slot = doc.next_available_slot;
+                    if (!slot && Array.isArray(doc.time_slots) && doc.time_slots.length > 0) {
+                      const mid = Math.floor(doc.time_slots.length / 2);
+                      slot = doc.time_slots[mid] || doc.time_slots[0];
+                    }
+                    if (!slot) slot = '5:00 PM';
+                    return (
+                      <div className={cn('px-3 py-2 rounded-xl border text-sm mb-4 text-center font-medium', doc.available ? 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10' : 'bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10')}>
+                        {doc.available ? `Available Today at ${slot}` : `Next Available: ${doc.next_available_slot || 'Tomorrow 9 AM'}`}
+                      </div>
+                    );
+                  })()}
 
                   <div className="flex items-center justify-between p-3 rounded-xl bg-primary/5 border border-primary/10 mb-4">
                     <span className="text-sm text-muted-foreground">Consultation Fee</span>
