@@ -669,6 +669,43 @@ export default function ClinicDetail() {
               </Card>
             </motion.div>
 
+            {/* Photo Gallery */}
+            <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>
+              <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden">
+                <CardContent className="p-6 sm:p-8">
+                  <h2 className="font-heading text-xl font-bold text-foreground mb-5 flex items-center gap-2.5">
+                    <span className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center"><Eye className="w-4 h-4 text-primary" /></span>
+                    Photo Gallery
+                  </h2>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {[
+                      { label: 'Clinic Reception', icon: Building2, color: 'from-blue-500/20' },
+                      { label: 'Consultation Room', icon: Stethoscope, color: 'from-emerald-500/20' },
+                      { label: 'Waiting Area', icon: Users, color: 'from-purple-500/20' },
+                      { label: 'Pharmacy', icon: Pill, color: 'from-cyan-500/20' },
+                      { label: 'Lab Facility', icon: Microscope, color: 'from-violet-500/20' },
+                      { label: 'Treatment Room', icon: Activity, color: 'from-rose-500/20' },
+                      { label: 'Reception Desk', icon: ClipboardList, color: 'from-amber-500/20' },
+                      { label: 'Parking Area', icon: Car, color: 'from-green-500/20' },
+                    ].map((photo, i) => {
+                      const Icon = photo.icon;
+                      return (
+                        <div key={i} className="relative rounded-xl overflow-hidden bg-gradient-to-br from-card to-muted border border-border/50 aspect-[4/3] group cursor-pointer hover:shadow-md transition-all">
+                          <div className={cn('w-full h-full bg-gradient-to-br flex items-center justify-center', photo.color + ' to-transparent')}>
+                            <Icon className="w-10 h-10 text-muted-foreground/30 group-hover:scale-110 transition-transform" />
+                          </div>
+                          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/50 to-transparent p-3">
+                            <p className="text-white text-xs font-semibold">{photo.label}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-4 text-center">Click on a photo to view full-size gallery</p>
+                </CardContent>
+              </Card>
+            </motion.div>
+
             {/* Timing */}
             <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>
               <Card className="rounded-2xl border-border/50 shadow-sm">
@@ -754,7 +791,7 @@ export default function ClinicDetail() {
               <Card className="rounded-2xl border-border/50 shadow-sm">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between mb-6">
-                    <SectionTitle icon={Star} label={`Patient Reviews (${reviews.length})`} />
+                    <SectionTitle icon={Star} label={`Patient Reviews (${clinic.reviewsCount || reviews.length})`} />
                     <Button variant="outline" size="sm" className="rounded-lg text-xs gap-1.5" onClick={() => toast.success('Review form coming soon')}>
                       <Star className="w-3.5 h-3.5" /> Write a Review
                     </Button>
@@ -766,7 +803,7 @@ export default function ClinicDetail() {
                       <div className="flex items-center gap-0.5 mt-1 justify-center">
                         {[1,2,3,4,5].map(i => <Star key={i} className={cn('w-4 h-4', i <= Math.round(clinic.rating) ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground/20')} />)}
                       </div>
-                      <p className="text-[10px] text-muted-foreground mt-1">{reviews.length} total reviews</p>
+                      <p className="text-[10px] text-muted-foreground mt-1">{clinic.reviewsCount || reviews.length} total reviews</p>
                     </div>
                     <div className="flex-1 w-full space-y-1.5">
                       {[5,4,3,2,1].map(r => (
@@ -804,7 +841,7 @@ export default function ClinicDetail() {
                     {reviews.length > 3 && !showAllReviews && (
                       <div className="text-center pt-2">
                         <Button variant="outline" size="sm" className="gap-1.5 rounded-lg text-xs" onClick={() => setShowAllReviews(true)}>
-                          Show All {reviews.length} Reviews <ChevronDown className="w-3 h-3" />
+                          Show All {clinic.reviewsCount || reviews.length} Reviews <ChevronDown className="w-3 h-3" />
                         </Button>
                       </div>
                     )}

@@ -32,7 +32,7 @@ export default function PharmacySettings() {
           <label className="text-sm font-medium text-foreground mb-1.5 block flex items-center gap-1">
             <User className="w-4 h-4 text-muted-foreground" /> Name
           </label>
-          <Input value={name} onChange={e => setName(e.target.value)} />
+          <Input placeholder="Your name" value={name} onChange={e => setName(e.target.value)} />
         </div>
         <div>
           <label className="text-sm font-medium text-foreground mb-1.5 block flex items-center gap-1">
@@ -44,13 +44,13 @@ export default function PharmacySettings() {
           <label className="text-sm font-medium text-foreground mb-1.5 block flex items-center gap-1">
             <Phone className="w-4 h-4 text-muted-foreground" /> Phone
           </label>
-          <Input value={phone} onChange={e => setPhone(e.target.value)} />
+          <Input placeholder="Phone number" value={phone} onChange={e => setPhone(e.target.value)} />
         </div>
         <div>
           <label className="text-sm font-medium text-foreground mb-1.5 block flex items-center gap-1">
             <MapPin className="w-4 h-4 text-muted-foreground" /> Address
           </label>
-          <Input value={address} onChange={e => setAddress(e.target.value)} />
+          <Input placeholder="Your address" value={address} onChange={e => setAddress(e.target.value)} />
         </div>
         <div className="flex justify-end pt-2">
           <Button onClick={handleSave} disabled={saving}><Save className="w-4 h-4 mr-1" />{saving ? 'Saving...' : 'Save Changes'}</Button>

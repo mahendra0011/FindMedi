@@ -71,7 +71,7 @@ router.get('/:id', async (req, res) => {
 
 router.post('/register', async (req, res) => {
   try {
-    const { type, name, email, phone, address, city, state, licenseNumber, adminName, adminEmail, adminPhone, details } = req.body;
+    const { type, name, email, phone, address, city, state, licenseNumber, description, establishedYear, logo, image, nablNumber, workingHours, pathologistName, pathologistQualification, timing, amenities, socialLinks, adminName, adminEmail, adminPhone, details } = req.body;
     if (!type || !name || !email || !phone || !address || !licenseNumber || !adminName || !adminEmail || !adminPhone) {
       return res.status(400).json({ message: 'All required fields must be provided' });
     }
@@ -81,7 +81,14 @@ router.post('/register', async (req, res) => {
     if (existingUser) return res.status(400).json({ message: 'A user with this admin email already exists' });
 
     const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + Date.now();
-    const facility = await Facility.create({ type, name, email: email.toLowerCase(), phone, address, city, state, licenseNumber, slug, status: 'pending', details: details || {} });
+    const facility = await Facility.create({
+      type, name, email: email.toLowerCase(), phone, address, city, state, licenseNumber, slug,
+      description: description || '', establishedYear, logo: logo || '', image: image || '',
+      nablNumber: nablNumber || '', workingHours: workingHours || '',
+      pathologistName: pathologistName || '', pathologistQualification: pathologistQualification || '',
+      timing: timing || {}, amenities: amenities || {}, socialLinks: socialLinks || {},
+      status: 'pending', details: details || {},
+    });
 
     const tempPassword = Math.random().toString(36).slice(-10);
     const roleMap = { hospital: 'admin', clinic: 'clinic_doctor', lab: 'lab_receptionist', pharmacy: 'pharmacist' };

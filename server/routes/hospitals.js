@@ -71,7 +71,7 @@ router.get('/:id', async (req, res) => {
 
 router.post('/register', validate(registerHospitalSchema), async (req, res) => {
   try {
-    const { name, email, phone, address, city, state, licenseNumber, adminName, adminEmail, adminPhone } = req.body;
+    const { name, email, phone, address, city, state, licenseNumber, description, specialties, establishedYear, hospitalType, bedAvailability, emergency24x7, ambulanceService, accreditations, workingHours, insuranceAccepted, logo, image, paymentModes, adminName, adminEmail, adminPhone } = req.body;
 
     if (!name || !email || !phone || !address || !licenseNumber || !adminName || !adminEmail || !adminPhone) {
       return res.status(400).json({ message: 'All required fields must be provided' });
@@ -87,6 +87,10 @@ router.post('/register', validate(registerHospitalSchema), async (req, res) => {
 
     const hospital = await Hospital.create({
       name, email: email.toLowerCase(), phone, address, city, state, licenseNumber, slug,
+      description: description || '', specialties: specialties || [],
+      establishedYear, hospitalType, bedAvailability, emergency24x7, ambulanceService,
+      accreditations: accreditations || [], workingHours, insuranceAccepted: insuranceAccepted || [],
+      paymentModes: paymentModes || [], logo: logo || '', image: image || '',
       status: 'pending',
     });
 
@@ -169,7 +173,7 @@ router.put('/:id', protect, hospitalAdminOnly, async (req, res) => {
     if (hospital._id.toString() !== req.user.hospitalId.toString() && req.user.role !== 'superadmin') {
       return res.status(403).json({ message: 'Not your hospital' });
     }
-    const allowedFields = ['name', 'address', 'city', 'state', 'phone', 'logo', 'description', 'specialties', 'establishedYear', 'hospitalType', 'accreditations', 'emergency24x7', 'bedAvailability', 'ambulanceService', 'image', 'workingHours', 'insuranceAccepted'];
+    const allowedFields = ['name', 'address', 'city', 'state', 'phone', 'logo', 'description', 'specialties', 'establishedYear', 'hospitalType', 'accreditations', 'emergency24x7', 'bedAvailability', 'ambulanceService', 'image', 'workingHours', 'insuranceAccepted', 'paymentModes'];
     const update = {};
     allowedFields.forEach(f => { if (req.body[f] !== undefined) update[f] = req.body[f]; });
     const updated = await Hospital.findByIdAndUpdate(req.params.id, update, { new: true });

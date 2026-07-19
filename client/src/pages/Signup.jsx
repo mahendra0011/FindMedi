@@ -9,6 +9,7 @@ import { api } from '@/lib/api';
 
 const roles = [
   { key: 'patient', label: 'Patient', desc: 'Book appointments & view records', icon: UserRound, color: 'text-success', bg: 'bg-success/10' },
+  { key: 'doctor', label: 'Doctor', desc: 'Manage consultations & patients', icon: Stethoscope, color: 'text-info', bg: 'bg-info/10' },
 ];
 
 export default function Signup() {
@@ -24,6 +25,11 @@ export default function Signup() {
   const [phone, setPhone] = useState('');
   const [gender, setGender] = useState('Male');
   const [dateOfBirth, setDateOfBirth] = useState('');
+  const [specialization, setSpecialization] = useState('');
+  const [experience, setExperience] = useState('');
+  const [qualification, setQualification] = useState('');
+  const [licenseNumber, setLicenseNumber] = useState('');
+  const [consultationFee, setConsultationFee] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -63,13 +69,8 @@ export default function Signup() {
     try {
       // Register using API directly (do not set auth state yet)
       const data = await api.register({
-        name,
-        email,
-        password,
-        role,
-        phone,
-        gender,
-        dateOfBirth,
+        name, email, password, role, phone, gender, dateOfBirth,
+        ...(role === 'doctor' ? { specialization, experience, qualification, licenseNumber, consultationFee: consultationFee ? Number(consultationFee) : undefined } : {}),
       });
       // Store credentials for auto-login after OTP
       localStorage.setItem('temp_password', password);
@@ -165,6 +166,34 @@ export default function Signup() {
                 <Input type="date" value={dateOfBirth} onChange={e => setDateOfBirth(e.target.value)} required />
               </div>
             </div>
+            {role === 'doctor' && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 bg-muted/20 rounded-xl border border-border/40">
+                <p className="text-xs font-semibold text-foreground sm:col-span-2 flex items-center gap-1.5"><Stethoscope className="w-3.5 h-3.5 text-primary" /> Professional Details</p>
+                <div>
+                  <label className="text-xs font-medium text-foreground mb-1 block">Specialization</label>
+                  <select value={specialization} onChange={e => setSpecialization(e.target.value)} className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm">
+                    <option value="">Select</option>
+                    {['Cardiology','Neurology','Orthopedics','Pediatrics','Dermatology','Oncology','General Medicine','ENT','Psychiatry','Gynecology','Urology','Ophthalmology'].map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-foreground mb-1 block">Experience</label>
+                  <Input value={experience} onChange={e => setExperience(e.target.value)} placeholder="e.g. 5 years" className="h-9 text-sm" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-foreground mb-1 block">Qualification</label>
+                  <Input value={qualification} onChange={e => setQualification(e.target.value)} placeholder="e.g. MBBS, MD" className="h-9 text-sm" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-foreground mb-1 block">License Number</label>
+                  <Input value={licenseNumber} onChange={e => setLicenseNumber(e.target.value)} placeholder="Medical license" className="h-9 text-sm" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-foreground mb-1 block">Consultation Fee</label>
+                  <Input type="number" value={consultationFee} onChange={e => setConsultationFee(e.target.value)} placeholder="e.g. 500" className="h-9 text-sm" />
+                </div>
+              </div>
+            )}
             <div>
               <label className="text-sm font-medium text-foreground mb-1.5 block">Password</label>
               <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Create a password" required />

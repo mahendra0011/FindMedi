@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Building2, User, Mail, Phone, MapPin, FileText, CheckCircle, Loader2, ArrowLeft, Stethoscope, FlaskConical, Pill, ChevronDown } from 'lucide-react';
+import { Building2, User, Mail, Phone, MapPin, FileText, CheckCircle, Loader2, ArrowLeft, Stethoscope, FlaskConical, Pill, Clock, Image } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -21,13 +21,13 @@ export default function FacilityRegister() {
   const [type, setType] = useState('');
   const [form, setForm] = useState({
     name: '', email: '', phone: '', address: '', city: '', state: '',
-    licenseNumber: '',
+    licenseNumber: '', description: '', establishedYear: '', logo: '', image: '',
     adminName: '', adminEmail: '', adminPhone: '',
     clinicOwnerDoctor: '',
-    nablCertified: false,
-    equipmentList: '',
-    pharmacistLicenseNo: '',
-    deliveryZones: '',
+    nablCertified: false, nablNumber: '', equipmentList: '',
+    pathologistName: '', pathologistQualification: '',
+    workingHours: '7:00 AM - 9:00 PM',
+    pharmacistLicenseNo: '', deliveryZones: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -62,6 +62,16 @@ export default function FacilityRegister() {
         city: form.city,
         state: form.state,
         licenseNumber: form.licenseNumber,
+        description: form.description,
+        establishedYear: form.establishedYear ? Number(form.establishedYear) : undefined,
+        logo: form.logo,
+        image: form.image,
+        ...(type === 'lab' ? {
+          nablNumber: form.nablNumber,
+          workingHours: form.workingHours,
+          pathologistName: form.pathologistName,
+          pathologistQualification: form.pathologistQualification,
+        } : {}),
         adminName: form.adminName,
         adminEmail: form.adminEmail,
         adminPhone: form.adminPhone,
@@ -247,6 +257,22 @@ export default function FacilityRegister() {
                         required
                       />
                     </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">Established Year</label>
+                      <Input type="number" value={form.establishedYear} onChange={update('establishedYear')} placeholder="e.g. 2015" />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">Description</label>
+                      <Textarea value={form.description} onChange={update('description')} placeholder="Brief description about your facility" rows={3} />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block"><Image className="w-3.5 h-3.5 inline mr-1 -mt-0.5 text-muted-foreground" /> Logo URL</label>
+                      <Input value={form.logo} onChange={update('logo')} placeholder="https://..." />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block"><Image className="w-3.5 h-3.5 inline mr-1 -mt-0.5 text-muted-foreground" /> Cover Image URL</label>
+                      <Input value={form.image} onChange={update('image')} placeholder="https://..." />
+                    </div>
                   </div>
                 </div>
 
@@ -289,10 +315,24 @@ export default function FacilityRegister() {
                           NABL Certified
                         </label>
                       </div>
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">NABL Number</label>
+                        <Input value={form.nablNumber} onChange={update('nablNumber')} placeholder="NABL-ML-2024-XXXXX" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block"><Clock className="w-3.5 h-3.5 inline mr-1 -mt-0.5 text-muted-foreground" /> Working Hours</label>
+                        <Input value={form.workingHours} onChange={update('workingHours')} placeholder="7:00 AM - 9:00 PM" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Pathologist Name</label>
+                        <Input value={form.pathologistName} onChange={update('pathologistName')} placeholder="Dr. Full Name" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Pathologist Qualification</label>
+                        <Input value={form.pathologistQualification} onChange={update('pathologistQualification')} placeholder="e.g. MD Pathology" />
+                      </div>
                       <div className="sm:col-span-2">
-                        <label className="text-sm font-medium text-foreground mb-1.5 block">
-                          Equipment List
-                        </label>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Equipment List</label>
                         <Textarea
                           value={form.equipmentList}
                           onChange={update('equipmentList')}

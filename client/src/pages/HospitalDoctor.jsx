@@ -813,7 +813,7 @@ export default function HospitalDoctor() {
                       {reviews.length > 3 && !showAllReviews && (
                         <div className="text-center pt-2">
                           <Button variant="outline" size="sm" className="gap-1.5 rounded-lg text-xs" onClick={() => setShowAllReviews(true)}>
-                            Show All {reviews.length} Reviews <ChevronDown className="w-3 h-3" />
+                            Show All {reviewCount} Reviews <ChevronDown className="w-3 h-3" />
                           </Button>
                         </div>
                       )}

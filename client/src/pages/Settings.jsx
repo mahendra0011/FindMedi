@@ -353,6 +353,35 @@ export default function Settings() {
                   </Button>
                 </div>
               </div>
+
+              {(user?.role === 'doctor' || user?.role === 'clinic_doctor') && (
+                <div className="bg-card rounded-xl border shadow-sm p-6 mt-5">
+                  <h3 className="font-heading font-semibold text-lg text-card-foreground mb-5 flex items-center gap-2"><Stethoscope className="w-5 h-5 text-primary" /> {tr('settings.professionalInfo')}</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Field label={tr('settings.specialization')}>
+                      <Input value={profile.specialization} onChange={(event) => updateProfile('specialization', event.target.value)} placeholder="e.g. Cardiology" />
+                    </Field>
+                    <Field label={tr('settings.experience')}>
+                      <Input value={profile.experience} onChange={(event) => updateProfile('experience', event.target.value)} placeholder="e.g. 10 years" />
+                    </Field>
+                    <Field label={tr('settings.qualification')}>
+                      <Input value={profile.qualification} onChange={(event) => updateProfile('qualification', event.target.value)} placeholder="e.g. MBBS, MD" />
+                    </Field>
+                    <Field label={tr('settings.licenseNumber')}>
+                      <Input value={profile.licenseNumber} onChange={(event) => updateProfile('licenseNumber', event.target.value)} placeholder="Medical license number" />
+                    </Field>
+                    <Field label={tr('settings.consultationFee')}>
+                      <Input type="number" value={profile.consultationFee} onChange={(event) => updateProfile('consultationFee', event.target.value)} placeholder="e.g. 500" />
+                    </Field>
+                  </div>
+                  <div className="flex justify-end mt-5">
+                    <Button onClick={saveAccount} disabled={saveMut.isPending} className="gap-2">
+                      <Save className="w-4 h-4" />
+                      {saveMut.isPending ? tr('common.saving') : tr('settings.saveProfile')}
+                    </Button>
+                  </div>
+                </div>
+              )}
             </>
           )}
 

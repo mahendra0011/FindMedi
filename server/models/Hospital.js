@@ -32,6 +32,7 @@ const hospitalSchema = new mongoose.Schema({
   ambulanceService: { type: Boolean, default: false },        // Ambulance Service available
   image: { type: String, default: '' },                     // Cover image for hospital profile
   insuranceAccepted: [{ provider: String, planType: String }],  // Insurance providers accepted
+  paymentModes: [{ type: String }],                             // Accepted payment modes
   workingHours: {
     weekdays: { type: String, default: '9:00 AM - 6:00 PM' },
     saturday: { type: String, default: '9:00 AM - 2:00 PM' },
