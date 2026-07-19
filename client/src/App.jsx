@@ -24,6 +24,7 @@ import ClinicDoctors from './pages/ClinicDoctors';
 import DiagnosticCenters from './pages/DiagnosticCenters';
 import AllTests from './pages/AllTests';
 import DiagnosticCenterDetail from './pages/DiagnosticCenterDetail';
+import TechnicianDetail from './pages/TechnicianDetail';
 import ImagingCenterDetail from './pages/ImagingCenterDetail';
 
 import BuyMedicine from './pages/BuyMedicine';
@@ -353,7 +354,8 @@ const App = () => (
                      <Route path="/diagnostic-centers" element={<PublicLayout><DiagnosticCenters /></PublicLayout>} />
                      <Route path="/all-tests" element={<PublicLayout><AllTests /></PublicLayout>} />
                       <Route path="/lab/:clinicId" element={<PublicLayout><DiagnosticCenterDetail /></PublicLayout>} />
-                      <Route path="/lab/:clinicId/details" element={<PublicLayout><DiagnosticCenterDetail /></PublicLayout>} />
+                       <Route path="/lab/:clinicId/details" element={<PublicLayout><DiagnosticCenterDetail /></PublicLayout>} />
+                       <Route path="/technician/:id" element={<PublicLayout><TechnicianDetail /></PublicLayout>} />
                      <Route path="/test-booking" element={<PublicLayout><HospitalTestBooking /></PublicLayout>} />
                      <Route path="/test-booking/:hospitalId" element={<PublicLayout><HospitalTestBooking /></PublicLayout>} />
 

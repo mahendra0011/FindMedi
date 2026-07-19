@@ -130,7 +130,14 @@ router.put('/:id', protect, async (req, res) => {
     if (facility._id.toString() !== userFacilityId && req.user.role !== 'superadmin') {
       return res.status(403).json({ message: 'Not authorized' });
     }
-    const allowedFields = ['name', 'address', 'city', 'state', 'phone', 'logo', 'description', 'specialties', 'details', 'image'];
+    const allowedFields = ['name', 'address', 'city', 'state', 'phone', 'logo', 'description', 'specialties', 'details', 'image',
+      'nablNumber', 'aerbNumber', 'workingHours',
+      'pathologistName', 'pathologistQualification',
+      'radiologistName', 'radiologistQualification',
+      'cardiologistName', 'cardiologistQualification',
+      'technicianName', 'technicianRole', 'technicianQualification', 'technicianExperience',
+      'timing', 'amenities', 'socialLinks'
+    ];
     const update = {};
     allowedFields.forEach(f => { if (req.body[f] !== undefined) update[f] = req.body[f]; });
     const updated = await Facility.findByIdAndUpdate(req.params.id, update, { new: true });

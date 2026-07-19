@@ -3,20 +3,19 @@ import { api } from '@/lib/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, FlaskConical, Shield, Star, MapPin, Home, Clock,
-  SlidersHorizontal, BadgeCheck, Zap, Tag, DollarSign, X
+  SlidersHorizontal, BadgeCheck, Zap, Tag, DollarSign, X, Scan
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import PathologyClinicCard from '@/components/PathologyClinicCard';
 import DiagnosticCenterCard from '@/components/DiagnosticCenterCard';
-import ImagingCenterCard from '@/components/ImagingCenterCard';
 
 const CATEGORIES = [
-  { key: 'All', label: 'All', icon: null },
-  { key: 'Pathology Lab', label: 'Pathology Lab', icon: FlaskConical },
-  { key: 'Diagnostic Center', label: 'Diagnostic Center', icon: Shield },
-  { key: 'Imaging Center', label: 'Imaging Center', icon: Zap },
+  { key: 'All', label: 'All', icon: null, filterCat: null },
+  { key: 'Lab Technician', label: 'Lab Technician', icon: FlaskConical, filterCat: 'Pathology Lab' },
+  { key: 'Phlebotomist', label: 'Phlebotomist', icon: Shield, filterCat: 'Diagnostic Center' },
+  { key: 'Radiographer', label: 'Radiographer', icon: Zap, filterCat: 'Imaging Center' },
+  { key: 'Sonographer', label: 'Sonographer', icon: Scan, filterCat: 'Imaging Center' },
 ];
 
 const parseKm = (d) => {
@@ -30,11 +29,11 @@ const parseHrs = (t) => {
 };
 
 const FALLBACK_CLINICS = [
-  { _id:'dignolab-center', name:'DiagnoLab Center', slug:'dignolab-center', providerCategory:'Diagnostic Center', type:'lab', rating:4.4, reviewsCount:567, verified:true, open:true, tags:['NABL Accredited','Home Collection','Reports Online','Imaging Available'], testsAvailable:250, homeCollection:true, reportTime:'Within 6 hrs', distance:'1.2 km', phone:'0761-2345678', email:'info@dignolab.com', address:'Marhatal, Jabalpur, MP 482002', startingPrice:350, logo:'' },
-  { _id:'metropolis-labs', name:'Metropolis Labs', slug:'metropolis-labs', providerCategory:'Pathology Lab', type:'lab', rating:4.6, reviewsCount:823, verified:true, open:true, tags:['NABL Accredited','Home Collection','Reports Online'], testsAvailable:350, homeCollection:true, reportTime:'Within 12 hrs', distance:'2.5 km', phone:'0761-3456789', email:'contact@metropolisjabalpur.com', address:'Napier Town, Jabalpur, MP 482001', startingPrice:299, logo:'' },
-  { _id:'apollo-diagnostics', name:'Apollo Diagnostics', slug:'apollo-diagnostics', providerCategory:'Diagnostic Center', type:'lab', rating:4.5, reviewsCount:712, verified:true, open:true, tags:['NABL Accredited','Home Collection','Reports Online','Imaging Available','AERB Certified'], testsAvailable:190, homeCollection:true, reportTime:'Within 8 hrs', distance:'0.8 km', phone:'0761-4567890', email:'jabalpur@apollodiag.com', address:'Civil Lines, Jabalpur, MP 482001', startingPrice:499, logo:'' },
-  { _id:'lal-pathlabs', name:'Dr. Lal PathLabs', slug:'lal-pathlabs', providerCategory:'Pathology Lab', type:'lab', rating:4.3, reviewsCount:1245, verified:true, open:false, tags:['NABL Accredited','Home Collection','Reports Online'], testsAvailable:410, homeCollection:true, reportTime:'Within 24 hrs', distance:'3.1 km', phone:'0761-5678901', email:'jabalpur@lalpathlabs.com', address:'Vijay Nagar, Jabalpur, MP 482003', startingPrice:249, logo:'' },
-  { _id:'srl-diagnostics', name:'SRL Diagnostics', slug:'srl-diagnostics', providerCategory:'Imaging Center', type:'lab', rating:4.2, reviewsCount:678, verified:true, open:true, tags:['NABL Accredited','Home Collection','Reports Online','Imaging Available','AERB Certified'], testsAvailable:280, homeCollection:true, reportTime:'Within 10 hrs', distance:'1.8 km', phone:'0761-6789012', email:'jabalpur@srl.in', address:'Sadar Cantt, Jabalpur, MP 482001', startingPrice:399, logo:'' },
+  { _id:'dignolab-center', name:'DiagnoLab Center', slug:'dignolab-center', providerCategory:'Diagnostic Center', type:'lab', rating:4.4, reviewsCount:567, verified:true, open:true, tags:['NABL Accredited','Home Collection','Reports Online','Imaging Available'], testsAvailable:250, homeCollection:true, reportTime:'Within 6 hrs', distance:'1.2 km', phone:'0761-2345678', email:'info@dignolab.com', address:'Marhatal, Jabalpur, MP 482002', startingPrice:350, logo:'', workingHours:'8:00 AM - 8:00 PM' },
+  { _id:'metropolis-labs', name:'Metropolis Labs', slug:'metropolis-labs', providerCategory:'Pathology Lab', type:'lab', rating:4.6, reviewsCount:823, verified:true, open:true, tags:['NABL Accredited','Home Collection','Reports Online'], testsAvailable:350, homeCollection:true, reportTime:'Within 12 hrs', distance:'2.5 km', phone:'0761-3456789', email:'contact@metropolisjabalpur.com', address:'Napier Town, Jabalpur, MP 482001', startingPrice:299, logo:'', workingHours:'7:00 AM - 9:00 PM' },
+  { _id:'apollo-diagnostics', name:'Apollo Diagnostics', slug:'apollo-diagnostics', providerCategory:'Diagnostic Center', type:'lab', rating:4.5, reviewsCount:712, verified:true, open:true, tags:['NABL Accredited','Home Collection','Reports Online','Imaging Available','AERB Certified'], testsAvailable:190, homeCollection:true, reportTime:'Within 8 hrs', distance:'0.8 km', phone:'0761-4567890', email:'jabalpur@apollodiag.com', address:'Civil Lines, Jabalpur, MP 482001', startingPrice:499, logo:'', workingHours:'6:00 AM - 10:00 PM' },
+  { _id:'lal-pathlabs', name:'Dr. Lal PathLabs', slug:'lal-pathlabs', providerCategory:'Pathology Lab', type:'lab', rating:4.3, reviewsCount:1245, verified:true, open:false, tags:['NABL Accredited','Home Collection','Reports Online'], testsAvailable:410, homeCollection:true, reportTime:'Within 24 hrs', distance:'3.1 km', phone:'0761-5678901', email:'jabalpur@lalpathlabs.com', address:'Vijay Nagar, Jabalpur, MP 482003', startingPrice:249, logo:'', workingHours:'8:00 AM - 8:00 PM' },
+  { _id:'srl-diagnostics', name:'SRL Diagnostics', slug:'srl-diagnostics', providerCategory:'Imaging Center', type:'lab', rating:4.2, reviewsCount:678, verified:true, open:true, tags:['NABL Accredited','Home Collection','Reports Online','Imaging Available','AERB Certified'], testsAvailable:280, homeCollection:true, reportTime:'Within 10 hrs', distance:'1.8 km', phone:'0761-6789012', email:'jabalpur@srl.in', address:'Sadar Cantt, Jabalpur, MP 482001', startingPrice:399, logo:'', workingHours:'7:00 AM - 9:00 PM' },
 ];
 
 export default function DiagnosticCenters() {
@@ -74,6 +73,16 @@ export default function DiagnosticCenters() {
       startingPrice: f.startingPrice || 0,
       hasOffer: f.hasOffer ?? false,
       providerCategory: cat,
+      workingHours: f.workingHours || '8:00 AM - 8:00 PM',
+      pathologistName: f.pathologistName || '',
+      radiologistName: f.radiologistName || '',
+      cardiologistName: f.cardiologistName || '',
+      technicianName: f.technicianName || '',
+      technicianRole: f.technicianRole || '',
+      technicianQualification: f.technicianQualification || '',
+      technicianExperience: f.technicianExperience || '',
+      nablNumber: f.nablNumber || '',
+      aerbNumber: f.aerbNumber || '',
     };
   };
 
@@ -108,7 +117,8 @@ export default function DiagnosticCenters() {
   const [reportsOnline, setReportsOnline] = useState(false);
   const [discountOnly, setDiscountOnly] = useState(false);
 
-  const categoryData = activeCategory === 'All' ? clinics : clinics.filter(c => c.providerCategory === activeCategory);
+  const activeCat = CATEGORIES.find(c => c.key === activeCategory);
+  const categoryData = activeCategory === 'All' ? clinics : clinics.filter(c => c.providerCategory === activeCat?.filterCat);
 
   const filtered = categoryData.filter((c) => {
     if (searchQuery && !c.name.toLowerCase().includes(searchQuery.toLowerCase()) && !c.type.toLowerCase().includes(searchQuery.toLowerCase())) return false;
@@ -221,7 +231,7 @@ export default function DiagnosticCenters() {
             <option value="distance">Sort: Nearest</option>
             <option value="price">Sort: Price (Low)</option>
           </select>
-          {activeCategory !== 'Imaging Center' && (
+          {activeCategory !== 'Imaging Center' && activeCategory !== 'Radiographer' && activeCategory !== 'Sonographer' && (
             <>
               <ToggleChip label="Home Collection" icon={Home} active={homeCollectionOnly} onClick={() => setHomeCollectionOnly(!homeCollectionOnly)} />
               <ToggleChip label="NABL Accredited" icon={BadgeCheck} active={nablOnly} onClick={() => setNablOnly(!nablOnly)} />
@@ -308,24 +318,22 @@ export default function DiagnosticCenters() {
 
       {/* Results */}
       <div className="flex items-center justify-between mb-4">
-        <p className="text-xs text-muted-foreground">{sorted.length} {activeCategory === 'Imaging Center' ? 'centre' : 'provider'}{sorted.length !== 1 ? 's' : ''} found</p>
+        <p className="text-xs text-muted-foreground">{sorted.length} {activeCat?.filterCat === 'Imaging Center' ? 'centre' : 'provider'}{sorted.length !== 1 ? 's' : ''} found</p>
       </div>
 
       {sorted.length === 0 ? (
         <div className="text-center py-16 bg-card rounded-2xl border border-border/50">
           <Search className="w-12 h-12 text-muted-foreground/20 mx-auto mb-3" />
-          <p className="text-sm text-muted-foreground">No {activeCategory === 'Imaging Center' ? 'centres' : 'providers'} match your filters</p>
+          <p className="text-sm text-muted-foreground">No {activeCat?.filterCat === 'Imaging Center' ? 'centres' : 'providers'} match your filters</p>
           <Button variant="ghost" size="sm" className="mt-2" onClick={clearFilters}>
             Clear all filters
           </Button>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {sorted.map((clinic, i) => {
-            if (clinic.providerCategory === 'Imaging Center') return <ImagingCenterCard key={clinic._id} clinic={clinic} index={i} />;
-            if (clinic.providerCategory === 'Diagnostic Center') return <DiagnosticCenterCard key={clinic._id} clinic={clinic} index={i} />;
-            return <PathologyClinicCard key={clinic._id} clinic={clinic} index={i} />;
-          })}
+          {sorted.map((clinic, i) => (
+            <DiagnosticCenterCard key={clinic._id} clinic={clinic} index={i} />
+          ))}
         </div>
       )}
     </div>

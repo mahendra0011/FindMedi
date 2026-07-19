@@ -36,7 +36,42 @@
     "rating": 4.4,
     "reviewsCount": 567,
     "subscriptionPlan": "basic",
-    "establishedYear": 2020
+    "establishedYear": 2020,
+    "nablNumber": "NABL-DC-2024-00112",
+    "aerbNumber": "AERB-MP-2024-0045",
+    "workingHours": "8:00 AM - 8:00 PM",
+    "pathologistName": "Dr. Vikram Deshmukh",
+    "pathologistQualification": "MD Pathology, DNB",
+    "radiologistName": "Dr. Sneha Kapoor",
+    "radiologistQualification": "MD Radiology, FVIR",
+    "cardiologistName": "Dr. Rajesh Tiwari",
+    "cardiologistQualification": "DM Cardiology",
+    "technicianName": "Ankit Verma",
+    "technicianRole": "Lab Technician",
+    "technicianQualification": "DMLT, BMLT",
+    "technicianExperience": "6 years",
+    "timing": {
+      "monday": "8:00 AM - 8:00 PM",
+      "tuesday": "8:00 AM - 8:00 PM",
+      "wednesday": "8:00 AM - 8:00 PM",
+      "thursday": "8:00 AM - 8:00 PM",
+      "friday": "8:00 AM - 8:00 PM",
+      "saturday": "8:00 AM - 6:00 PM",
+      "sunday": "Closed"
+    },
+    "amenities": {
+      "parking": true,
+      "acWaitingArea": true,
+      "wheelchairAccess": true,
+      "cardPayment": true,
+      "inHousePharmacy": false,
+      "drinkingWater": true
+    },
+    "socialLinks": {
+      "facebook": "https://facebook.com/dignolab",
+      "instagram": "https://instagram.com/dignolab",
+      "youtube": ""
+    }
   },
   {
     "_id": "medistore-pharmacy",
@@ -74,7 +109,42 @@
     "rating": 4.6,
     "reviewsCount": 823,
     "subscriptionPlan": "premium",
-    "establishedYear": 2019
+    "establishedYear": 2019,
+    "nablNumber": "NABL-ML-2024-00234",
+    "aerbNumber": "",
+    "workingHours": "7:00 AM - 9:00 PM",
+    "pathologistName": "Dr. Priya Sharma",
+    "pathologistQualification": "MD Pathology, Fellowship in Cytopathology",
+    "radiologistName": "",
+    "radiologistQualification": "",
+    "cardiologistName": "",
+    "cardiologistQualification": "",
+    "technicianName": "Ramesh Kumar",
+    "technicianRole": "Lab Technician",
+    "technicianQualification": "DMLT, BMLT",
+    "technicianExperience": "5 years",
+    "timing": {
+      "monday": "7:00 AM - 9:00 PM",
+      "tuesday": "7:00 AM - 9:00 PM",
+      "wednesday": "7:00 AM - 9:00 PM",
+      "thursday": "7:00 AM - 9:00 PM",
+      "friday": "7:00 AM - 9:00 PM",
+      "saturday": "7:00 AM - 7:00 PM",
+      "sunday": "8:00 AM - 2:00 PM"
+    },
+    "amenities": {
+      "parking": true,
+      "acWaitingArea": true,
+      "wheelchairAccess": true,
+      "cardPayment": true,
+      "inHousePharmacy": false,
+      "drinkingWater": true
+    },
+    "socialLinks": {
+      "facebook": "https://facebook.com/metropolisjabalpur",
+      "instagram": "",
+      "youtube": ""
+    }
   },
   {
     "_id": "apollo-diagnostics",
@@ -93,7 +163,42 @@
     "rating": 4.5,
     "reviewsCount": 712,
     "subscriptionPlan": "premium",
-    "establishedYear": 2017
+    "establishedYear": 2017,
+    "nablNumber": "NABL-AD-2023-00567",
+    "aerbNumber": "AERB-MP-2023-0089",
+    "workingHours": "6:00 AM - 10:00 PM",
+    "pathologistName": "Dr. Sunita Reddy",
+    "pathologistQualification": "MD Pathology, DNB",
+    "radiologistName": "Dr. Arjun Mehta",
+    "radiologistQualification": "MD Radiology, FVIR",
+    "cardiologistName": "Dr. Neha Kapoor",
+    "cardiologistQualification": "DM Cardiology, FACC",
+    "technicianName": "Amit Sharma",
+    "technicianRole": "Phlebotomist",
+    "technicianQualification": "B.Sc MLT, Phlebotomy Certified",
+    "technicianExperience": "4 years",
+    "timing": {
+      "monday": "6:00 AM - 10:00 PM",
+      "tuesday": "6:00 AM - 10:00 PM",
+      "wednesday": "6:00 AM - 10:00 PM",
+      "thursday": "6:00 AM - 10:00 PM",
+      "friday": "6:00 AM - 10:00 PM",
+      "saturday": "6:00 AM - 8:00 PM",
+      "sunday": "7:00 AM - 4:00 PM"
+    },
+    "amenities": {
+      "parking": true,
+      "acWaitingArea": true,
+      "wheelchairAccess": true,
+      "cardPayment": true,
+      "inHousePharmacy": true,
+      "drinkingWater": true
+    },
+    "socialLinks": {
+      "facebook": "https://facebook.com/apollodiagnosticsjabalpur",
+      "instagram": "https://instagram.com/apollodiagnostics",
+      "youtube": "https://youtube.com/apollodiagnostics"
+    }
   },
   {
     "_id": "lal-pathlabs",
@@ -112,7 +217,42 @@
     "rating": 4.3,
     "reviewsCount": 1245,
     "subscriptionPlan": "basic",
-    "establishedYear": 2015
+    "establishedYear": 2015,
+    "nablNumber": "NABL-LP-2023-00420",
+    "aerbNumber": "",
+    "workingHours": "8:00 AM - 8:00 PM",
+    "pathologistName": "Dr. Sanjay Gupta",
+    "pathologistQualification": "MD Pathology, DNB, MNAMS",
+    "radiologistName": "",
+    "radiologistQualification": "",
+    "cardiologistName": "",
+    "cardiologistQualification": "",
+    "technicianName": "Mohit Singh",
+    "technicianRole": "Lab Technician",
+    "technicianQualification": "DMLT, B.Sc MLT",
+    "technicianExperience": "7 years",
+    "timing": {
+      "monday": "8:00 AM - 8:00 PM",
+      "tuesday": "8:00 AM - 8:00 PM",
+      "wednesday": "8:00 AM - 8:00 PM",
+      "thursday": "8:00 AM - 8:00 PM",
+      "friday": "8:00 AM - 8:00 PM",
+      "saturday": "8:00 AM - 6:00 PM",
+      "sunday": "Closed"
+    },
+    "amenities": {
+      "parking": true,
+      "acWaitingArea": true,
+      "wheelchairAccess": false,
+      "cardPayment": true,
+      "inHousePharmacy": false,
+      "drinkingWater": true
+    },
+    "socialLinks": {
+      "facebook": "https://facebook.com/lalpathlabsjabalpur",
+      "instagram": "",
+      "youtube": ""
+    }
   },
   {
     "_id": "srl-diagnostics",
@@ -131,6 +271,41 @@
     "rating": 4.2,
     "reviewsCount": 678,
     "subscriptionPlan": "basic",
-    "establishedYear": 2018
+    "establishedYear": 2018,
+    "nablNumber": "NABL-SRL-2024-00198",
+    "aerbNumber": "AERB-MP-2024-0067",
+    "workingHours": "7:00 AM - 9:00 PM",
+    "pathologistName": "Dr. Kavita Joshi",
+    "pathologistQualification": "MD Pathology",
+    "radiologistName": "Dr. Prakash Nair",
+    "radiologistQualification": "MD Radiology, FRCR",
+    "cardiologistName": "Dr. Meera Iyer",
+    "cardiologistQualification": "DM Cardiology",
+    "technicianName": "Suresh Patel",
+    "technicianRole": "Radiographer",
+    "technicianQualification": "B.Sc Radiography, RDMS",
+    "technicianExperience": "6 years",
+    "timing": {
+      "monday": "7:00 AM - 9:00 PM",
+      "tuesday": "7:00 AM - 9:00 PM",
+      "wednesday": "7:00 AM - 9:00 PM",
+      "thursday": "7:00 AM - 9:00 PM",
+      "friday": "7:00 AM - 9:00 PM",
+      "saturday": "7:00 AM - 7:00 PM",
+      "sunday": "Closed"
+    },
+    "amenities": {
+      "parking": true,
+      "acWaitingArea": true,
+      "wheelchairAccess": true,
+      "cardPayment": true,
+      "inHousePharmacy": true,
+      "drinkingWater": true
+    },
+    "socialLinks": {
+      "facebook": "",
+      "instagram": "https://instagram.com/srldiagnostics",
+      "youtube": ""
+    }
   }
 ]

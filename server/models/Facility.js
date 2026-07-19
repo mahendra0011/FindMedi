@@ -29,6 +29,48 @@ const facilitySchema = new mongoose.Schema({
   ambulanceService: { type: Boolean, default: false },
   image: { type: String, default: '' },
 
+  // Lab-specific fields
+  nablNumber: { type: String, default: '' },
+  aerbNumber: { type: String, default: '' },
+  workingHours: { type: String, default: '8:00 AM - 8:00 PM' },
+
+  pathologistName: { type: String, default: '' },
+  pathologistQualification: { type: String, default: '' },
+  radiologistName: { type: String, default: '' },
+  radiologistQualification: { type: String, default: '' },
+  cardiologistName: { type: String, default: '' },
+  cardiologistQualification: { type: String, default: '' },
+
+  technicianName: { type: String, default: '' },
+  technicianRole: { type: String, default: '' },
+  technicianQualification: { type: String, default: '' },
+  technicianExperience: { type: String, default: '' },
+
+  timing: {
+    monday: { type: String, default: '8:00 AM - 8:00 PM' },
+    tuesday: { type: String, default: '8:00 AM - 8:00 PM' },
+    wednesday: { type: String, default: '8:00 AM - 8:00 PM' },
+    thursday: { type: String, default: '8:00 AM - 8:00 PM' },
+    friday: { type: String, default: '8:00 AM - 8:00 PM' },
+    saturday: { type: String, default: '9:00 AM - 6:00 PM' },
+    sunday: { type: String, default: 'Closed' },
+  },
+
+  amenities: {
+    parking: { type: Boolean, default: false },
+    acWaitingArea: { type: Boolean, default: false },
+    wheelchairAccess: { type: Boolean, default: false },
+    cardPayment: { type: Boolean, default: false },
+    inHousePharmacy: { type: Boolean, default: false },
+    drinkingWater: { type: Boolean, default: false },
+  },
+
+  socialLinks: {
+    facebook: { type: String, default: '' },
+    instagram: { type: String, default: '' },
+    youtube: { type: String, default: '' },
+  },
+
   details: {
     type: Object,
     default: {},
