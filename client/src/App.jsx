@@ -28,7 +28,6 @@ import ImagingCenterDetail from './pages/ImagingCenterDetail';
 
 import BuyMedicine from './pages/BuyMedicine';
 import MedicineStoreDetail from './pages/MedicineStoreDetail';
-import PathologyClinicDetail from './pages/PathologyClinicDetail';
 import ClinicDetail from './pages/ClinicDetail';
 import HospitalTestBooking from './pages/HospitalTestBooking';
 import StoreMedicines from './pages/StoreMedicines';
@@ -353,12 +352,12 @@ const App = () => (
                      <Route path="/book-test/:entityId" element={<PublicLayout><HospitalTestBooking /></PublicLayout>} />
                      <Route path="/diagnostic-centers" element={<PublicLayout><DiagnosticCenters /></PublicLayout>} />
                      <Route path="/all-tests" element={<PublicLayout><AllTests /></PublicLayout>} />
-                     <Route path="/lab/:clinicId" element={<PublicLayout><PathologyClinicDetail /></PublicLayout>} />
-                     <Route path="/lab/:clinicId/details" element={<PublicLayout><PathologyClinicDetail /></PublicLayout>} />
+                      <Route path="/lab/:clinicId" element={<PublicLayout><DiagnosticCenterDetail /></PublicLayout>} />
+                      <Route path="/lab/:clinicId/details" element={<PublicLayout><DiagnosticCenterDetail /></PublicLayout>} />
                      <Route path="/test-booking" element={<PublicLayout><HospitalTestBooking /></PublicLayout>} />
                      <Route path="/test-booking/:hospitalId" element={<PublicLayout><HospitalTestBooking /></PublicLayout>} />
-                     <Route path="/diagnostic-center/:clinicId" element={<PublicLayout><DiagnosticCenterDetail /></PublicLayout>} />
-                     <Route path="/diagnostic-center/:clinicId/details" element={<PublicLayout><DiagnosticCenterDetail /></PublicLayout>} />
+
+
                      <Route path="/imaging/:clinicId" element={<PublicLayout><ImagingCenterDetail /></PublicLayout>} />
                      <Route path="/imaging/:clinicId/details" element={<PublicLayout><ImagingCenterDetail /></PublicLayout>} />
                     <Route path="/buy-medicine" element={<PublicLayout><BuyMedicine /></PublicLayout>} />
