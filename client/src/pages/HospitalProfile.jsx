@@ -997,7 +997,7 @@ export default function HospitalProfile() {
             <div className="flex items-center justify-between mb-6">
               <h2 className="font-heading text-xl font-bold text-foreground flex items-center gap-2.5">
                 <span className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center"><Star className="w-4 h-4 text-primary fill-primary" /></span>
-                Patient Reviews <span className="text-base font-normal text-muted-foreground ml-1">({reviews.length})</span>
+                Patient Reviews <span className="text-base font-normal text-muted-foreground ml-1">({hospital.reviewsCount || reviews.length})</span>
               </h2>
               <Button variant="outline" size="sm" className="rounded-lg text-xs gap-1.5" onClick={() => toast.success('Review submitted successfully!')}>
                 <Star className="w-3.5 h-3.5" /> Write a Review
@@ -1012,7 +1012,7 @@ export default function HospitalProfile() {
                     <div className="flex items-center gap-0.5 mt-1 justify-center">
                       {[1,2,3,4,5].map(i => <Star key={i} className={cn('w-4 h-4', i <= Math.round(hospital.rating || 0) ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground/20')} />)}
                     </div>
-                    <p className="text-[10px] text-muted-foreground mt-1">{reviews.length} reviews</p>
+                    <p className="text-[10px] text-muted-foreground mt-1">{hospital.reviewsCount || reviews.length} reviews</p>
                   </div>
                   <div className="flex-1 w-full space-y-1.5">
                     {[5,4,3,2,1].map(r => {

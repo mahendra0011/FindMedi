@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Search, ArrowLeft, Store, Star, ShoppingCart, Lock, Plus, Minus, Pill, BadgeCheck, Percent, ChevronRight, FileText } from 'lucide-react';
+import { Search, ArrowLeft, Store, Star, ShoppingCart, Lock, Plus, Minus, Pill, BadgeCheck, Percent, ChevronRight, FileText, SlidersHorizontal, X, ArrowUpDown, IndianRupee, Tags, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -39,6 +39,20 @@ const MOCK_MEDICINES = [
 
 const CATEGORIES = ['All', 'Prescription', 'OTC', 'Generic', 'Baby Care', 'Ayurvedic', 'Devices', 'Vitamins'];
 
+const PRICE_RANGES = [
+  { label: 'Under ₹50', min: 0, max: 50 },
+  { label: '₹50 - ₹200', min: 50, max: 200 },
+  { label: '₹200 - ₹500', min: 200, max: 500 },
+  { label: '₹500+', min: 500, max: Infinity },
+];
+
+const DISCOUNT_RANGES = [
+  { label: '10%+', min: 10 },
+  { label: '20%+', min: 20 },
+  { label: '30%+', min: 30 },
+  { label: '40%+', min: 40 },
+];
+
 export default function StoreMedicines() {
   const { storeId } = useParams();
   const navigate = useNavigate();
@@ -47,13 +61,50 @@ export default function StoreMedicines() {
   const { cart, addItem, updateQty, entries } = useCart();
   const [search, setSearch] = useState('');
   const [catFilter, setCatFilter] = useState('All');
+  const [brandFilter, setBrandFilter] = useState('All');
+  const [priceRange, setPriceRange] = useState(null);
+  const [discountFilter, setDiscountFilter] = useState(null);
+  const [rxFilter, setRxFilter] = useState('all');
+  const [inStockOnly, setInStockOnly] = useState(false);
+  const [sortBy, setSortBy] = useState('popularity');
+  const [showFilters, setShowFilters] = useState(false);
 
   const storeEntries = entries.filter(e => e.storeId === storeId);
-  const filteredMeds = allMeds.filter(m => {
+
+  const brands = [...new Set(allMeds.map(m => m.brand))].sort();
+
+  let filteredMeds = allMeds.filter(m => {
     if (catFilter !== 'All' && m.category !== catFilter) return false;
+    if (brandFilter !== 'All' && m.brand !== brandFilter) return false;
     if (search && !m.name.toLowerCase().includes(search.toLowerCase()) && !m.brand.toLowerCase().includes(search.toLowerCase())) return false;
+    if (rxFilter === 'rx' && !m.rx) return false;
+    if (rxFilter === 'otc' && m.rx) return false;
+    if (inStockOnly && !m.inStock) return false;
+    if (priceRange && (m.price < priceRange.min || m.price >= priceRange.max)) return false;
+    if (discountFilter && m.discount < discountFilter.min) return false;
     return true;
   });
+
+  filteredMeds = [...filteredMeds].sort((a, b) => {
+    switch (sortBy) {
+      case 'price-low': return a.price - b.price;
+      case 'price-high': return b.price - a.price;
+      case 'discount': return b.discount - a.discount;
+      case 'name': return a.name.localeCompare(b.name);
+      default: return (b.discount || 0) - (a.discount || 0);
+    }
+  });
+
+  const activeFilters = [catFilter !== 'All', brandFilter !== 'All', priceRange !== null, discountFilter !== null, rxFilter !== 'all', inStockOnly].filter(Boolean).length;
+
+  const clearFilters = () => {
+    setBrandFilter('All');
+    setPriceRange(null);
+    setDiscountFilter(null);
+    setRxFilter('all');
+    setInStockOnly(false);
+    setSortBy('popularity');
+  };
 
   const sections = [
     { key: 'general', label: 'General Medicines', filter: (m) => !m.rx && (m.category === 'OTC' || m.category === 'Generic' || m.category === 'Ayurvedic') },
@@ -99,20 +150,119 @@ export default function StoreMedicines() {
           </div>
         </button>
 
-        {/* Search + Categories */}
+        {/* Search + Categories + Filters */}
         <div className="mb-6">
           <div className="relative mb-4">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input value={search} onChange={e => setSearch(e.target.value)} placeholder={`Search in ${store.name}...`} className="pl-10 h-11 text-sm rounded-xl bg-card border-border/50" />
           </div>
-          <div className="flex gap-2 overflow-x-auto pb-2">
-            {CATEGORIES.map(c => (
-              <button key={c} onClick={() => setCatFilter(c)}
-                className={cn('px-4 py-2 rounded-xl text-xs font-medium whitespace-nowrap transition-all shrink-0 border', catFilter === c ? 'bg-primary text-primary-foreground border-primary shadow-md shadow-primary/20' : 'bg-card text-muted-foreground hover:text-foreground border-border/50')}>
-                {c}
-              </button>
-            ))}
+          <div className="flex items-center gap-2 mb-3">
+            <div className="flex gap-2 overflow-x-auto pb-2 flex-1">
+              {CATEGORIES.map(c => (
+                <button key={c} onClick={() => setCatFilter(c)}
+                  className={cn('px-4 py-2 rounded-xl text-xs font-medium whitespace-nowrap transition-all shrink-0 border', catFilter === c ? 'bg-primary text-primary-foreground border-primary shadow-md shadow-primary/20' : 'bg-card text-muted-foreground hover:text-foreground border-border/50')}>
+                  {c}
+                </button>
+              ))}
+            </div>
+            <button onClick={() => setShowFilters(!showFilters)}
+              className={cn('flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium border transition-all shrink-0', showFilters || activeFilters > 0 ? 'bg-primary/10 text-primary border-primary/30' : 'bg-card text-muted-foreground hover:text-foreground border-border/50')}>
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              Filters
+              {activeFilters > 0 && <span className="w-4 h-4 rounded-full bg-primary text-[9px] font-bold text-primary-foreground flex items-center justify-center">{activeFilters}</span>}
+            </button>
           </div>
+
+          {/* Advanced Filters Panel */}
+          {showFilters && (
+            <div className="bg-card rounded-2xl border border-border/50 p-4 mb-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-semibold text-foreground flex items-center gap-1.5"><Filter className="w-3.5 h-3.5 text-primary" /> Filters</h4>
+                {activeFilters > 0 && (
+                  <button onClick={clearFilters} className="text-xs text-primary hover:text-primary/80 flex items-center gap-1">
+                    <X className="w-3 h-3" /> Clear all
+                  </button>
+                )}
+              </div>
+
+              {/* Brand */}
+              <div>
+                <p className="text-[11px] text-muted-foreground font-medium mb-1.5 flex items-center gap-1"><Tags className="w-3 h-3" /> Brand</p>
+                <div className="flex flex-wrap gap-1.5">
+                  <button onClick={() => setBrandFilter('All')}
+                    className={cn('px-2.5 py-1 rounded-lg text-[10px] font-medium border transition-all', brandFilter === 'All' ? 'bg-primary/10 text-primary border-primary/30' : 'bg-background text-muted-foreground hover:text-foreground border-border/40')}>
+                    All
+                  </button>
+                  {brands.map(b => (
+                    <button key={b} onClick={() => setBrandFilter(b)}
+                      className={cn('px-2.5 py-1 rounded-lg text-[10px] font-medium border transition-all', brandFilter === b ? 'bg-primary/10 text-primary border-primary/30' : 'bg-background text-muted-foreground hover:text-foreground border-border/40')}>
+                      {b}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                {/* Price Range */}
+                <div>
+                  <p className="text-[11px] text-muted-foreground font-medium mb-1.5 flex items-center gap-1"><IndianRupee className="w-3 h-3" /> Price</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {PRICE_RANGES.map((r, i) => (
+                      <button key={i} onClick={() => setPriceRange(priceRange === r ? null : r)}
+                        className={cn('px-2.5 py-1 rounded-lg text-[10px] font-medium border transition-all', priceRange === r ? 'bg-primary/10 text-primary border-primary/30' : 'bg-background text-muted-foreground hover:text-foreground border-border/40')}>
+                        {r.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Discount */}
+                <div>
+                  <p className="text-[11px] text-muted-foreground font-medium mb-1.5 flex items-center gap-1"><Percent className="w-3 h-3" /> Discount</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {DISCOUNT_RANGES.map((r, i) => (
+                      <button key={i} onClick={() => setDiscountFilter(discountFilter === r ? null : r)}
+                        className={cn('px-2.5 py-1 rounded-lg text-[10px] font-medium border transition-all', discountFilter === r ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30' : 'bg-background text-muted-foreground hover:text-foreground border-border/40')}>
+                        {r.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Rx/OTC + In Stock */}
+                <div>
+                  <p className="text-[11px] text-muted-foreground font-medium mb-1.5">Type</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    <button onClick={() => setRxFilter(rxFilter === 'all' ? 'rx' : 'all')}
+                      className={cn('px-2.5 py-1 rounded-lg text-[10px] font-medium border transition-all', rxFilter === 'rx' ? 'bg-amber-500/10 text-amber-600 border-amber-500/30' : 'bg-background text-muted-foreground hover:text-foreground border-border/40')}>
+                      <Lock className="w-2.5 h-2.5 inline mr-0.5" /> Rx Only
+                    </button>
+                    <button onClick={() => setRxFilter(rxFilter === 'all' ? 'otc' : 'all')}
+                      className={cn('px-2.5 py-1 rounded-lg text-[10px] font-medium border transition-all', rxFilter === 'otc' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30' : 'bg-background text-muted-foreground hover:text-foreground border-border/40')}>
+                      OTC Only
+                    </button>
+                    <button onClick={() => setInStockOnly(!inStockOnly)}
+                      className={cn('px-2.5 py-1 rounded-lg text-[10px] font-medium border transition-all', inStockOnly ? 'bg-primary/10 text-primary border-primary/30' : 'bg-background text-muted-foreground hover:text-foreground border-border/40')}>
+                      In Stock
+                    </button>
+                  </div>
+                </div>
+
+                {/* Sort */}
+                <div>
+                  <p className="text-[11px] text-muted-foreground font-medium mb-1.5 flex items-center gap-1"><ArrowUpDown className="w-3 h-3" /> Sort by</p>
+                  <select value={sortBy} onChange={e => setSortBy(e.target.value)}
+                    className="w-full h-8 px-2 rounded-lg text-[10px] font-medium bg-background border border-border/50 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
+                    <option value="popularity">Popularity</option>
+                    <option value="price-low">Price: Low</option>
+                    <option value="price-high">Price: High</option>
+                    <option value="discount">Discount</option>
+                    <option value="name">Name</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {filteredMeds.length === 0 ? (

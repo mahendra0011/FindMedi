@@ -160,6 +160,24 @@ export const registerHospitalSchema = z.object({
   licenseNumber: z.string().min(1, 'License number is required'),
   description: z.string().optional(),
   specialties: z.array(z.string()).optional(),
+  establishedYear: z.number().optional(),
+  hospitalType: z.string().optional(),
+  bedAvailability: z.number().optional(),
+  emergency24x7: z.boolean().optional(),
+  ambulanceService: z.boolean().optional(),
+  accreditations: z.array(z.string()).optional(),
+  workingHours: z.object({
+    weekdays: z.string().optional(),
+    saturday: z.string().optional(),
+    sunday: z.string().optional(),
+  }).optional(),
+  insuranceAccepted: z.array(z.object({
+    provider: z.string(),
+    planType: z.string().optional(),
+  }).or(z.string())).optional(),
+  logo: z.string().optional(),
+  image: z.string().optional(),
+  paymentModes: z.array(z.string()).optional(),
 });
 
 // ─── Test Schemas ──────────────────────────────────────────────────────────

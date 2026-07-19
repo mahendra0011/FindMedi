@@ -41,6 +41,12 @@ router.post('/register', async (req, res) => {
         licenseNumber: facility.license || '',
         description: facility.description || '',
         specialties: facility.specialties || [],
+        establishedYear: facility.established || undefined,
+        logo: facility.logo || '',
+        image: facility.image || '',
+        accreditations: facility.accreditations || [],
+        workingHours: facility.weekSchedule || {},
+        insuranceAccepted: (facility.insurance || []).map(i => ({ provider: i })),
         slug,
         status: 'pending',
       });
@@ -68,6 +74,13 @@ router.post('/register', async (req, res) => {
         licenseNumber: facility.license || '',
         description: facility.description || '',
         specialties: facility.specialties || [],
+        establishedYear: facility.established || undefined,
+        logo: facility.logo || '',
+        image: facility.image || '',
+        accreditations: facility.accreditations || [],
+        amenities: facility.amenities || {},
+        socialLinks: facility.socialLinks || {},
+        timing: facility.weekSchedule || {},
         slug,
         status: 'pending',
         details: {
@@ -75,6 +88,9 @@ router.post('/register', async (req, res) => {
           established: facility.established || '',
           website: facility.website || '',
           services: services || [],
+          insurance: facility.insurance || [],
+          amenities: facility.amenities || {},
+          socialLinks: facility.socialLinks || {},
         },
       });
 

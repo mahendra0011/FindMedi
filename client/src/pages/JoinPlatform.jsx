@@ -45,7 +45,14 @@ export default function JoinPlatform() {
   const [account, setAccount] = useState({ name: '', email: '', phone: '', password: '' });
   const [facility, setFacility] = useState({
     name: '', address: '', city: '', state: '', pincode: '', license: '', description: '',
-    specialties: [], timing: '', established: '', phone: '', email: '', website: '', logo: null,
+    specialties: [], timing: '', established: '', phone: '', email: '', website: '',
+    logo: '', image: '',
+    amenities: { parking: false, acWaitingArea: false, wheelchairAccess: false, cardPayment: false, inHousePharmacy: false, drinkingWater: false, wifi: false, homeVisit: false },
+    insurance: [], accreditations: [], socialLinks: { facebook: '', instagram: '', youtube: '' },
+    weekSchedule: {
+      monday: '9:00 AM - 6:00 PM', tuesday: '9:00 AM - 6:00 PM', wednesday: '9:00 AM - 6:00 PM',
+      thursday: '9:00 AM - 6:00 PM', friday: '9:00 AM - 6:00 PM', saturday: '9:00 AM - 2:00 PM', sunday: 'Closed',
+    },
   });
   const [doctors, setDoctors] = useState([emptyDoctor()]);
   const [services, setServices] = useState([]);
@@ -59,6 +66,9 @@ export default function JoinPlatform() {
   const updateDoctor = (i, f) => (e) => setDoctors(p => { const d = [...p]; d[i] = { ...d[i], [f]: e.target.value }; return d; });
   const addDoctor = () => setDoctors(p => [...p, emptyDoctor()]);
   const removeDoctor = (i) => setDoctors(p => p.filter((_, idx) => idx !== i));
+  const updateAmenity = (key) => (checked) => setFacility(p => ({ ...p, amenities: { ...p.amenities, [key]: checked } }));
+  const addInsurance = () => { const v = prompt('Enter insurance provider name:'); if (v) setFacility(p => ({ ...p, insurance: [...p.insurance, v.trim()] })); };
+  const addAccreditation = () => { const v = prompt('Enter accreditation (e.g. NABH, NABL, ISO):'); if (v) setFacility(p => ({ ...p, accreditations: [...p.accreditations, v.trim().toUpperCase()] })); };
 
   const canProceed = () => {
     if (step === 1) return !!type;
@@ -76,7 +86,14 @@ export default function JoinPlatform() {
     setLoading(true);
     setError('');
     try {
-      let payload = { type, account, facility, services };
+      const payload = {
+        type, account,
+        facility: {
+          ...facility,
+          established: facility.established ? Number(facility.established) : facility.established,
+        },
+        services,
+      };
       if (type === 'hospital' || type === 'clinic') payload.doctors = doctors.filter(d => d.name && d.specialization);
       const res = await api.registerPlatform(payload);
       setSuccess(res);
@@ -359,6 +376,88 @@ export default function JoinPlatform() {
                   <label className="text-sm font-medium text-foreground mb-1.5 block">Description</label>
                   <Textarea value={facility.description} onChange={updateFacility('description')} placeholder="Brief description about your facility and services" rows={2} />
                 </div>
+
+                <details className="group">
+                  <summary className="flex items-center gap-2 text-sm font-semibold text-primary cursor-pointer py-2 select-none">
+                    <ChevronRight className="w-4 h-4 transition-transform group-open:rotate-90" /> Additional Details
+                  </summary>
+                  <div className="mt-4 space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block"><Image className="w-3.5 h-3.5 inline mr-1" /> Logo URL</label>
+                        <Input value={facility.logo} onChange={updateFacility('logo')} placeholder="https://..." />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block"><Image className="w-3.5 h-3.5 inline mr-1" /> Cover Image URL</label>
+                        <Input value={facility.image} onChange={updateFacility('image')} placeholder="https://..." />
+                      </div>
+                    </div>
+
+                    <p className="text-xs font-semibold text-muted-foreground">Weekly Schedule</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {Object.entries(facility.weekSchedule).map(([day, time]) => (
+                        <div key={day}>
+                          <label className="text-[10px] font-medium text-muted-foreground capitalize block mb-0.5">{day}</label>
+                          <Input value={time} onChange={e => setFacility(p => ({ ...p, weekSchedule: { ...p.weekSchedule, [day]: e.target.value } }))} placeholder="9AM-6PM" className="h-8 text-xs" />
+                        </div>
+                      ))}
+                    </div>
+
+                    <p className="text-xs font-semibold text-muted-foreground">Amenities</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {[
+                        { key: 'parking', label: 'Parking' },
+                        { key: 'acWaitingArea', label: 'AC Waiting Area' },
+                        { key: 'wheelchairAccess', label: 'Wheelchair Access' },
+                        { key: 'cardPayment', label: 'Card/UPI Payment' },
+                        { key: 'inHousePharmacy', label: 'In-House Pharmacy' },
+                        { key: 'drinkingWater', label: 'Drinking Water' },
+                        { key: 'wifi', label: 'Free Wi-Fi' },
+                        { key: 'homeVisit', label: 'Home Visit' },
+                      ].map(({ key, label }) => (
+                        <label key={key} className="flex items-center gap-2 text-xs cursor-pointer">
+                          <input type="checkbox" checked={facility.amenities[key]} onChange={e => updateAmenity(key)(e.target.checked)} className="w-3.5 h-3.5 rounded border-border accent-primary" />
+                          {label}
+                        </label>
+                      ))}
+                    </div>
+
+                    <div>
+                      <p className="text-xs font-semibold text-muted-foreground mb-2">Insurance Accepted</p>
+                      <div className="flex flex-wrap gap-1.5 mb-2">
+                        {facility.insurance.map((ins, i) => (
+                          <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                            <Shield className="w-2.5 h-2.5" /> {ins}
+                            <button onClick={() => setFacility(p => ({ ...p, insurance: p.insurance.filter((_, j) => j !== i) }))}><X className="w-2.5 h-2.5 ml-0.5 hover:text-destructive" /></button>
+                          </span>
+                        ))}
+                      </div>
+                      <Button variant="outline" size="sm" onClick={addInsurance} className="text-xs h-7"><Plus className="w-3 h-3 mr-1" /> Add Insurance</Button>
+                    </div>
+
+                    <div>
+                      <p className="text-xs font-semibold text-muted-foreground mb-2">Accreditations</p>
+                      <div className="flex flex-wrap gap-1.5 mb-2">
+                        {facility.accreditations.map((a, i) => (
+                          <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <Award className="w-2.5 h-2.5" /> {a}
+                            <button onClick={() => setFacility(p => ({ ...p, accreditations: p.accreditations.filter((_, j) => j !== i) }))}><X className="w-2.5 h-2.5 ml-0.5 hover:text-destructive" /></button>
+                          </span>
+                        ))}
+                      </div>
+                      <Button variant="outline" size="sm" onClick={addAccreditation} className="text-xs h-7"><Plus className="w-3 h-3 mr-1" /> Add Accreditation</Button>
+                    </div>
+
+                    <div>
+                      <p className="text-xs font-semibold text-muted-foreground mb-2">Social Links</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <Input value={facility.socialLinks.facebook} onChange={e => setFacility(p => ({ ...p, socialLinks: { ...p.socialLinks, facebook: e.target.value } }))} placeholder="Facebook URL" className="h-8 text-xs" />
+                        <Input value={facility.socialLinks.instagram} onChange={e => setFacility(p => ({ ...p, socialLinks: { ...p.socialLinks, instagram: e.target.value } }))} placeholder="Instagram URL" className="h-8 text-xs" />
+                        <Input value={facility.socialLinks.youtube} onChange={e => setFacility(p => ({ ...p, socialLinks: { ...p.socialLinks, youtube: e.target.value } }))} placeholder="YouTube URL" className="h-8 text-xs" />
+                      </div>
+                    </div>
+                  </div>
+                </details>
               </div>
               {navButtons()}
               <div className="flex justify-end mt-4">

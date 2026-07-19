@@ -1,26 +1,37 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Building2, User, Mail, Phone, MapPin, FileText, CheckCircle, Loader2, ArrowLeft } from 'lucide-react';
+import { Building2, User, Mail, Phone, MapPin, FileText, CheckCircle, Loader2, ArrowLeft, Clock, Shield, Ambulance, BedDouble, Image, Plus, X, CreditCard, Award } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+import { Separator } from '@/components/ui/separator';
 import { api } from '@/lib/api';
 
 const SPECIALTIES = ['Cardiology', 'Neurology', 'Orthopedics', 'Pediatrics', 'Dermatology', 'Oncology', 'General Medicine', 'ENT', 'Psychiatry', 'Gynecology', 'Urology', 'Ophthalmology'];
+const PAYMENT_MODES = ['Cash', 'UPI', 'Card', 'Net Banking', 'Cashless', 'Cheque'];
 
 export default function HospitalRegister() {
   const [form, setForm] = useState({
     name: '', email: '', phone: '', address: '', city: '', state: '',
     licenseNumber: '', description: '', specialties: [],
+    establishedYear: '', hospitalType: 'Private', bedAvailability: '',
+    emergency24x7: false, ambulanceService: false,
+    accreditations: [], workingHours: { weekdays: '9:00 AM - 6:00 PM', saturday: '9:00 AM - 2:00 PM', sunday: 'Closed' },
+    insuranceAccepted: [], paymentModes: ['Cash', 'UPI', 'Card'],
+    logo: '', image: '',
     adminName: '', adminEmail: '', adminPhone: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(null);
 
-  const update = (key) => (e) => setForm(prev => ({ ...prev, [key]: e.target.value }));
+  const update = (key) => (e) => {
+    const val = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+    setForm(prev => ({ ...prev, [key]: val }));
+  };
 
   const toggleSpecialty = (spec) => {
     setForm(prev => ({
@@ -31,12 +42,40 @@ export default function HospitalRegister() {
     }));
   };
 
+  const togglePaymentMode = (mode) => {
+    setForm(prev => ({
+      ...prev,
+      paymentModes: prev.paymentModes.includes(mode)
+        ? prev.paymentModes.filter(m => m !== mode)
+        : [...prev.paymentModes, mode],
+    }));
+  };
+
+  const addAccreditation = () => {
+    const v = prompt('Enter accreditation (e.g. NABH, NABL, ISO):');
+    if (v) setForm(prev => ({ ...prev, accreditations: [...prev.accreditations, v.trim().toUpperCase()] }));
+  };
+
+  const addInsurance = () => {
+    const v = prompt('Enter insurance provider name:');
+    if (v) setForm(prev => ({ ...prev, insuranceAccepted: [...prev.insuranceAccepted, v.trim()] }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
-      const data = await api.registerHospital(form);
+      const payload = {
+        ...form,
+        establishedYear: form.establishedYear ? Number(form.establishedYear) : undefined,
+        bedAvailability: form.bedAvailability ? Number(form.bedAvailability) : undefined,
+        accreditations: form.accreditations,
+        workingHours: form.workingHours,
+        insuranceAccepted: form.insuranceAccepted.map(i => typeof i === 'string' ? { provider: i } : i),
+        paymentModes: form.paymentModes,
+      };
+      const data = await api.registerHospital(payload);
       setSuccess(data);
     } catch (err) {
       setError(err.message || 'Registration failed');
@@ -218,6 +257,120 @@ export default function HospitalRegister() {
                     onClick={() => toggleSpecialty(spec)}
                   >
                     {spec}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-primary" />
+                Hospital Details
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-1.5 block">Established Year</label>
+                  <Input type="number" value={form.establishedYear} onChange={update('establishedYear')} placeholder="e.g. 1995" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-1.5 block">Hospital Type</label>
+                  <select value={form.hospitalType} onChange={update('hospitalType')} className="flex h-10 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm">
+                    <option>Private</option>
+                    <option>Government</option>
+                    <option>Trust</option>
+                    <option>Corporate</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-1.5 block flex items-center gap-1"><BedDouble className="w-3.5 h-3.5 text-muted-foreground" /> Bed Availability</label>
+                  <Input type="number" value={form.bedAvailability} onChange={update('bedAvailability')} placeholder="Total beds" />
+                </div>
+                <div className="flex items-center gap-6 pt-6">
+                  <label className="flex items-center gap-2 text-sm font-medium"><Switch checked={form.emergency24x7} onCheckedChange={v => setForm(p => ({ ...p, emergency24x7: v }))} /> 24/7 Emergency</label>
+                  <label className="flex items-center gap-2 text-sm font-medium"><Switch checked={form.ambulanceService} onCheckedChange={v => setForm(p => ({ ...p, ambulanceService: v }))} /> Ambulance</label>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                <Clock className="w-4 h-4 text-primary" />
+                Working Hours
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-1.5 block">Weekdays</label>
+                  <Input value={form.workingHours.weekdays} onChange={e => setForm(p => ({ ...p, workingHours: { ...p.workingHours, weekdays: e.target.value } }))} placeholder="9:00 AM - 6:00 PM" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-1.5 block">Saturday</label>
+                  <Input value={form.workingHours.saturday} onChange={e => setForm(p => ({ ...p, workingHours: { ...p.workingHours, saturday: e.target.value } }))} placeholder="9:00 AM - 2:00 PM" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-1.5 block">Sunday</label>
+                  <Input value={form.workingHours.sunday} onChange={e => setForm(p => ({ ...p, workingHours: { ...p.workingHours, sunday: e.target.value } }))} placeholder="Closed" />
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                <Image className="w-4 h-4 text-primary" />
+                Images & Logo
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-1.5 block">Logo URL</label>
+                  <Input value={form.logo} onChange={update('logo')} placeholder="https://..." />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-1.5 block">Cover Image URL</label>
+                  <Input value={form.image} onChange={update('image')} placeholder="https://..." />
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                <Award className="w-4 h-4 text-primary" />
+                Accreditations
+              </h2>
+              <div className="flex flex-wrap gap-2 mb-3">
+                {form.accreditations.map((a, i) => (
+                  <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    <CheckCircle className="w-3 h-3" /> {a}
+                    <button onClick={() => setForm(p => ({ ...p, accreditations: p.accreditations.filter((_, j) => j !== i) }))}><X className="w-3 h-3 ml-1 hover:text-destructive" /></button>
+                  </span>
+                ))}
+              </div>
+              <Button variant="outline" size="sm" onClick={addAccreditation}><Plus className="w-3 h-3 mr-1" /> Add Accreditation</Button>
+            </div>
+
+            <div>
+              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                <Shield className="w-4 h-4 text-primary" />
+                Insurance Accepted
+              </h2>
+              <div className="flex flex-wrap gap-2 mb-3">
+                {form.insuranceAccepted.map((ins, i) => (
+                  <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                    <Shield className="w-3 h-3" /> {typeof ins === 'string' ? ins : ins.provider}
+                    <button onClick={() => setForm(p => ({ ...p, insuranceAccepted: p.insuranceAccepted.filter((_, j) => j !== i) }))}><X className="w-3 h-3 ml-1 hover:text-destructive" /></button>
+                  </span>
+                ))}
+              </div>
+              <Button variant="outline" size="sm" onClick={addInsurance}><Plus className="w-3 h-3 mr-1" /> Add Insurance</Button>
+            </div>
+
+            <div>
+              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                <CreditCard className="w-4 h-4 text-primary" />
+                Payment Modes
+              </h2>
+              <div className="flex flex-wrap gap-2">
+                {PAYMENT_MODES.map(mode => (
+                  <Badge key={mode} variant={form.paymentModes.includes(mode) ? 'default' : 'outline'} className="cursor-pointer select-none" onClick={() => togglePaymentMode(mode)}>
+                    {mode}
                   </Badge>
                 ))}
               </div>
