@@ -296,6 +296,11 @@ export default function HospitalDirectory() {
                 {type}
               </Button>
             ))}
+            {['Multi-Specialty', 'Single-Specialty', 'Super-Specialty'].map(cat => (
+              <Button key={cat} variant={filterCategory.includes(cat) ? 'default' : 'outline'} size="sm" onClick={() => setFilterCategory(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat])}>
+                {cat === 'Multi-Specialty' ? 'Multi' : cat === 'Single-Specialty' ? 'Single' : 'Super'}
+              </Button>
+            ))}
             <Button variant={filterEmergency ? 'default' : 'outline'} size="sm" onClick={() => setFilterEmergency(!filterEmergency)}>
               <HeartPulse className="w-3.5 h-3.5 mr-1.5" /> 24/7 Emergency
             </Button>
@@ -405,16 +410,14 @@ export default function HospitalDirectory() {
                       <Button variant={filterInsurance ? 'default' : 'outline'} size="sm" onClick={() => setFilterInsurance(!filterInsurance)} className="w-full text-[11px] h-7 justify-start">
                         <Shield className="w-3 h-3 mr-1" /> Cashless Accepted
                       </Button>
-                      {filterInsurance && (
-                        <select value={filterInsuranceProvider} onChange={e => setFilterInsuranceProvider(e.target.value)} className="w-full h-8 text-xs rounded-lg border border-border bg-background">
-                          <option value="">Any Provider</option>
-                          <option value="Star Health">Star Health</option>
-                          <option value="ICICI Lombard">ICICI Lombard</option>
-                          <option value="HDFC Ergo">HDFC Ergo</option>
-                          <option value="Bajaj Allianz">Bajaj Allianz</option>
-                          <option value="Cigna">Cigna</option>
-                        </select>
-                      )}
+                      <select value={filterInsuranceProvider} onChange={e => setFilterInsuranceProvider(e.target.value)} className="w-full h-8 text-xs rounded-lg border border-border bg-background">
+                        <option value="">Any Insurance Provider</option>
+                        <option value="Star Health">Star Health</option>
+                        <option value="ICICI Lombard">ICICI Lombard</option>
+                        <option value="HDFC Ergo">HDFC Ergo</option>
+                        <option value="Bajaj Allianz">Bajaj Allianz</option>
+                        <option value="Cigna">Cigna</option>
+                      </select>
                     </div>
                   </div>
 

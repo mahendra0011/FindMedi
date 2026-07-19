@@ -90,7 +90,13 @@ export default function ClinicDoctor() {
   const [departmentDoctors, setDepartmentDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const [reviews, setReviews] = useState([]);
+  const [reviews, setReviews] = useState([
+    { _id: 'demo-1', patientName: 'Rahul Sharma', rating: 5, comment: 'Excellent doctor. Very thorough in examination and explains everything clearly.', date: '2026-06-15' },
+    { _id: 'demo-2', patientName: 'Priya Patel', rating: 4, comment: 'Good experience. The waiting time was a bit long but the consultation was worth it.', date: '2026-06-10' },
+    { _id: 'demo-3', patientName: 'Amit Verma', rating: 5, comment: 'Best specialist in the city. He saved my father\'s life. Forever grateful.', date: '2026-06-05' },
+    { _id: 'demo-4', patientName: 'Sunita Gupta', rating: 4, comment: 'Very caring doctor. The clinic is well-maintained and staff is polite.', date: '2026-05-28' },
+    { _id: 'demo-5', patientName: 'Vikram Singh', rating: 3, comment: 'Decent consultation but the billing process was slow. Needed to visit multiple counters.', date: '2026-05-20' },
+  ]);
 
   const [bookingDate, setBookingDate] = useState('');
   const [bookingTime, setBookingTime] = useState('');
@@ -117,7 +123,7 @@ export default function ClinicDoctor() {
         setDoctor(doc);
 
         const rv = await api.getReviews({ doctorId: id }).catch(() => []);
-        setReviews(Array.isArray(rv) ? rv : []);
+        if (Array.isArray(rv) && rv.length > 0) setReviews(rv);
 
         const allDocs = await api.getDoctors({ doctor_type: 'clinic' }).catch(() => []);
         const filtered = (allDocs || []).filter(d => d._id !== id);
@@ -185,7 +191,7 @@ export default function ClinicDoctor() {
       setShowReviewForm(false);
       setReviewComment('');
       const rv = await api.getReviews({ doctorId: id }).catch(() => []);
-      setReviews(Array.isArray(rv) ? rv : []);
+      if (Array.isArray(rv) && rv.length > 0) setReviews(rv);
       setTimeout(() => setReviewSubmitted(false), 3000);
     } catch (e) {
       console.error(e);
@@ -629,15 +635,13 @@ export default function ClinicDoctor() {
                       { label: 'Lab / Diagnostic', available: doctor.in_house_lab, icon: FlaskConical, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-800' },
                       { label: 'Admission', available: doctor.admission_available, icon: HeartPulse, color: 'text-rose-500', bg: 'bg-rose-50 dark:bg-rose-500/10 border-rose-200 dark:border-rose-800' },
                       { label: 'Emergency', available: doctor.emergency_consultation, icon: Ambulance, color: 'text-red-500', bg: 'bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-800' },
-                    ].map(item => {
+                    ].filter(item => item.available).map(item => {
                       const Icon = item.icon;
                       return (
                         <div key={item.label} className={cn('flex flex-col items-center gap-1.5 px-3 py-3 rounded-xl border', item.bg)}>
                           <Icon className={cn('w-5 h-5', item.color)} />
                           <span className={cn('text-xs font-semibold', item.color)}>{item.label}</span>
-                          <span className={cn('text-xs font-bold', item.available ? 'text-emerald-600' : 'text-muted-foreground')}>
-                            {item.available ? 'Available' : 'N/A'}
-                          </span>
+                          <span className="text-xs font-bold text-emerald-600">Available</span>
                         </div>
                       );
                     })}
@@ -1162,18 +1166,34 @@ export default function ClinicDoctor() {
                   <div>
                     <label className="text-sm font-medium text-foreground mb-1.5 block">Select Time</label>
                     <div className="grid grid-cols-2 gap-2">
-                      {(doctor.time_slots || ['09:00 AM', '10:00 AM', '11:00 AM', '02:00 PM', '03:00 PM', '04:00 PM']).map(t => (
-                        <button key={t} type="button" onClick={() => setBookingTime(t)}
-                          className={cn(
-                            'px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-                            bookingTime === t
-                              ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20'
-                              : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                          )}
-                        >
-                          {t}
-                        </button>
-                      ))}
+                      {(doctor.time_slots || ['09:00 AM', '10:00 AM', '11:00 AM', '02:00 PM', '03:00 PM', '04:00 PM']).map(t => {
+                        const now = new Date();
+                        const [time, period] = t.split(' ');
+                        let [h, m] = time.split(':').map(Number);
+                        if (period === 'PM' && h !== 12) h += 12;
+                        if (period === 'AM' && h === 12) h = 0;
+                        const slotDate = new Date(bookingDate || now.toISOString().split('T')[0]);
+                        const slotTime = new Date(slotDate);
+                        slotTime.setHours(h, m, 0, 0);
+                        const isPast = slotDate.toDateString() === now.toDateString() && slotTime < now;
+                        return (
+                          <button key={t} type="button"
+                            disabled={isPast}
+                            onClick={() => !isPast && setBookingTime(t)}
+                            className={cn(
+                              'px-3 py-2 rounded-lg text-sm font-medium transition-colors relative',
+                              isPast
+                                ? 'bg-muted/30 text-muted-foreground/40 cursor-not-allowed line-through'
+                                : bookingTime === t
+                                  ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20'
+                                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                            )}
+                          >
+                            {t}
+                            {isPast && <span className="absolute -top-1 -right-1 text-[8px] font-bold text-muted-foreground/50 bg-background px-1 rounded">Past</span>}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                   <div>

@@ -35,6 +35,7 @@ const testSchema = new mongoose.Schema({
   admissionReq: { type: Boolean, default: false },
   mode: { type: String, default: '' },
   certifiedPhlebotomist: { type: Boolean, default: false },
+  certifiedSonographer: { type: Boolean, default: false },
   sampleType: { type: String, default: '' },
   equipmentType: { type: String, default: '' },
   scanType: { type: String, default: '' },
