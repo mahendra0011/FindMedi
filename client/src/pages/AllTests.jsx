@@ -137,6 +137,7 @@ export default function AllTests() {
     onViewProvider: () => {
       if (test.providerType === 'hospital') navigate(`/hospitals/${test.providerId}`);
       else if (test.providerType === 'clinic') navigate(`/clinic-doctors/${test.providerId}`);
+      else if (test.providerType === 'lab_technician' || test.providerType === 'phlebotomist' || test.providerType === 'radiographer' || test.providerType === 'sonographer') navigate(`/technician/${test.providerId}`);
       else navigate(`/lab/${test.providerId}`);
     },
   }));
@@ -179,9 +180,10 @@ export default function AllTests() {
           <ProviderChip value="all" label="All" />
           <ProviderChip value="hospital" icon={Building2} label="Hospital" />
           <ProviderChip value="clinic" icon={Stethoscope} label="Clinic" />
-          <ProviderChip value="pathology" icon={Microscope} label="Pathology" />
-          <ProviderChip value="diagnostic" icon={Scan} label="Diagnostic Center" />
-          <ProviderChip value="imaging" icon={Radio} label="Imaging Center" />
+          <ProviderChip value="lab_technician" icon={Microscope} label="Lab Technician" />
+          <ProviderChip value="phlebotomist" icon={Syringe} label="Phlebotomist" />
+          <ProviderChip value="radiographer" icon={Radio} label="Radiographer" />
+          <ProviderChip value="sonographer" icon={Scan} label="Sonographer" />
         </div>
 
         <div className="space-y-14">

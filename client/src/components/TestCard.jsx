@@ -2,7 +2,8 @@ import { motion } from 'framer-motion';
 import {
   Star, Clock, MapPin, Home, ShieldCheck,
   Lock, Stethoscope, Building2, Microscope, BadgeCheck,
-  Tag, Percent, ArrowRight, ClipboardList, Zap, Eye
+  Tag, Percent, ArrowRight, ClipboardList, Zap, Eye,
+  Syringe, Scan, Wifi, Radio, Droplets
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -10,15 +11,7 @@ import { cn } from '@/lib/utils';
 const renderStars = (rating) => (
   <div className="flex items-center gap-0.5">
     {[1, 2, 3, 4, 5].map((s) => (
-      <Star
-        key={s}
-        className={cn(
-          'w-3 h-3 transition-colors',
-          s <= Math.round(rating)
-            ? 'text-amber-400 fill-amber-400'
-            : 'text-muted-foreground/20 fill-muted-foreground/10'
-        )}
-      />
+      <Star key={s} className={cn('w-3 h-3 transition-colors', s <= Math.round(rating) ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground/20 fill-muted-foreground/10')} />
     ))}
   </div>
 );
@@ -27,7 +20,10 @@ const ProviderIcon = ({ type }) => {
   const icons = {
     hospital: Building2,
     clinic: Stethoscope,
-    pathology: Microscope,
+    lab_technician: Microscope,
+    phlebotomist: Syringe,
+    radiographer: Radio,
+    sonographer: Scan,
   };
   const Icon = icons[type] || Microscope;
   return <Icon className="w-4 h-4" />;
@@ -63,16 +59,14 @@ const InfoRow = ({ icon: Icon, label, value, highlight }) => (
     </div>
     <div className="min-w-0 flex-1 flex items-center justify-between gap-1">
       <span className="text-xs text-muted-foreground truncate">{label}</span>
-      <span className={cn('text-xs font-semibold truncate', highlight ? 'text-success' : 'text-foreground')}>
-        {value}
-      </span>
+      <span className={cn('text-xs font-semibold truncate', highlight ? 'text-success' : 'text-foreground')}>{value}</span>
     </div>
   </div>
 );
 
 export default function TestCard({ test, index = 0 }) {
   const {
-    providerType = 'pathology',
+    providerType = 'lab_technician',
     testName,
     prescriptionReq = false,
     category,
@@ -81,6 +75,7 @@ export default function TestCard({ test, index = 0 }) {
     providerLogo,
     providerName,
     nablAccredited = false,
+    aerbCertified = false,
     distance,
     rating = 4.5,
     reviewsCount = 0,
@@ -98,6 +93,10 @@ export default function TestCard({ test, index = 0 }) {
     price = 0,
     originalPrice,
     discount,
+    sampleType,
+    equipmentType,
+    scanType,
+    certifiedPhlebotomist = false,
     onBook,
     onUploadRx,
     onViewProvider,
@@ -105,7 +104,38 @@ export default function TestCard({ test, index = 0 }) {
 
   const isHospital = providerType === 'hospital';
   const isClinic = providerType === 'clinic';
-  const isPathology = providerType === 'pathology';
+  const isLabTechnician = providerType === 'lab_technician';
+  const isPhlebotomist = providerType === 'phlebotomist';
+  const isRadiographer = providerType === 'radiographer';
+  const isSonographer = providerType === 'sonographer';
+  const isTechnician = isLabTechnician || isPhlebotomist;
+
+  const getProviderIcon = () => {
+    if (isHospital) return <Building2 className="w-4 h-4 text-primary" />;
+    if (isClinic) return <Stethoscope className="w-4 h-4 text-primary" />;
+    if (isLabTechnician) return <Microscope className="w-4 h-4 text-primary" />;
+    if (isPhlebotomist) return <Syringe className="w-4 h-4 text-primary" />;
+    if (isRadiographer) return <Radio className="w-4 h-4 text-primary" />;
+    if (isSonographer) return <Scan className="w-4 h-4 text-primary" />;
+    return <Microscope className="w-4 h-4 text-primary" />;
+  };
+
+  const getViewButtonLabel = () => {
+    if (isHospital) return 'View Hospital';
+    if (isClinic) return 'View Clinic';
+    if (isLabTechnician) return 'View Lab';
+    if (isPhlebotomist) return 'View Provider';
+    if (isRadiographer) return 'View Center';
+    if (isSonographer) return 'View Center';
+    return 'View Provider';
+  };
+
+  const getBookButtonLabel = () => {
+    if (prescriptionReq) return 'Upload Rx to Book';
+    if (isPhlebotomist && homeCollection) return 'Book Home Collection';
+    if (isLabTechnician && homeCollection) return 'Book with Home Collection';
+    return 'Book Now';
+  };
 
   return (
     <motion.div
@@ -120,7 +150,7 @@ export default function TestCard({ test, index = 0 }) {
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shrink-0">
-              {isHospital ? <Building2 className="w-4 h-4 text-primary" /> : isClinic ? <Stethoscope className="w-4 h-4 text-primary" /> : <Microscope className="w-4 h-4 text-primary" />}
+              {getProviderIcon()}
             </div>
             <div className="min-w-0">
               <h3 className="font-heading font-bold text-sm text-foreground leading-tight truncate">{testName}</h3>
@@ -129,21 +159,25 @@ export default function TestCard({ test, index = 0 }) {
           <PrescriptionBadge required={prescriptionReq} />
         </div>
 
-        {/* ─── Second Row: Category + Department/NABL ─── */}
+        {/* ─── Second Row: Category + Type-Specific Tags ─── */}
         <div className="flex items-center flex-wrap gap-1.5">
           {category && (
-            <span className="text-[11px] font-medium text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-lg border border-border/40">
-              {category}
-            </span>
+            <span className="text-[11px] font-medium text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-lg border border-border/40">{category}</span>
           )}
           {isHospital && department && (
             <TagPill icon={Building2} variant="blue">{department}</TagPill>
           )}
-          {isPathology && nablAccredited && (
-            <TagPill icon={ShieldCheck} variant="success">NABL Accredited</TagPill>
-          )}
           {isClinic && clinicType && (
             <TagPill icon={Stethoscope} variant="purple">{clinicType}</TagPill>
+          )}
+          {isLabTechnician && nablAccredited && (
+            <TagPill icon={ShieldCheck} variant="success">NABL Accredited</TagPill>
+          )}
+          {isPhlebotomist && nablAccredited && (
+            <TagPill icon={ShieldCheck} variant="success">NABL Accredited</TagPill>
+          )}
+          {isRadiographer && aerbCertified && (
+            <TagPill icon={ShieldCheck} variant="amber">AERB Certified</TagPill>
           )}
         </div>
 
@@ -187,14 +221,29 @@ export default function TestCard({ test, index = 0 }) {
           {isClinic && walkinAvailable && (
             <TagPill icon={Building2} variant="success">Walk-in Available</TagPill>
           )}
-          {isPathology && homeCollection && (
-            <TagPill icon={Home} variant="primary">Home Collection{homeCollectionFee ? ` (+₹${homeCollectionFee})` : ''}</TagPill>
+          {isClinic && doctor && (
+            <TagPill icon={Stethoscope} variant="blue">{doctor}</TagPill>
           )}
-          {isPathology && reportsOnline && (
-            <TagPill icon={BadgeCheck} variant="success">Reports Online</TagPill>
+          {isLabTechnician && homeCollection && (
+            <TagPill icon={Home} variant="default">Home Collection{homeCollectionFee ? ` (+₹${homeCollectionFee})` : ''}</TagPill>
           )}
-          {isPathology && nablAccredited && (
+          {isLabTechnician && reportsOnline && (
+            <TagPill icon={Wifi} variant="success">Reports Online</TagPill>
+          )}
+          {isLabTechnician && nablAccredited && (
             <TagPill icon={ShieldCheck} variant="blue">NABL</TagPill>
+          )}
+          {isPhlebotomist && homeCollection && (
+            <TagPill icon={Home} variant="success">Home Collection{homeCollectionFee ? ` (+₹${homeCollectionFee})` : ''}</TagPill>
+          )}
+          {isPhlebotomist && certifiedPhlebotomist && (
+            <TagPill icon={BadgeCheck} variant="blue">Certified Phlebotomist</TagPill>
+          )}
+          {isRadiographer && (
+            <TagPill icon={MapPin} variant="amber">Visit Required</TagPill>
+          )}
+          {isSonographer && (
+            <TagPill icon={MapPin} variant="amber">Visit Required</TagPill>
           )}
         </div>
 
@@ -210,18 +259,39 @@ export default function TestCard({ test, index = 0 }) {
           {isClinic && doctor && (
             <InfoRow icon={Stethoscope} label="Doctor" value={doctor} />
           )}
-          {isPathology && homeCollection && (
+          {isLabTechnician && homeCollection && (
             <InfoRow icon={Home} label="Home Collection" value={homeCollectionFee ? `Available (+₹${homeCollectionFee})` : 'Available'} highlight />
           )}
-          {isPathology && packageLink && (
+          {isLabTechnician && packageLink && (
             <InfoRow icon={Tag} label="Package" value={packageLink} />
+          )}
+          {isPhlebotomist && sampleType && (
+            <InfoRow icon={Droplets} label="Sample Type" value={sampleType} />
+          )}
+          {isRadiographer && equipmentType && (
+            <InfoRow icon={Radio} label="Equipment" value={equipmentType} />
+          )}
+          {isSonographer && scanType && (
+            <InfoRow icon={Scan} label="Scan Type" value={scanType} />
           )}
         </div>
 
         {/* ─── Price Box ─── */}
         <div className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-primary/15">
           <div className="flex items-center gap-2">
-            {isPathology && discount ? (
+            {isTechnician && discount ? (
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-md">
+                <Percent className="w-3 h-3" />{discount}% off
+              </span>
+            ) : isRadiographer && discount ? (
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-md">
+                <Percent className="w-3 h-3" />{discount}% off
+              </span>
+            ) : isSonographer && discount ? (
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-md">
+                <Percent className="w-3 h-3" />{discount}% off
+              </span>
+            ) : discount ? (
               <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-md">
                 <Percent className="w-3 h-3" />{discount}% off
               </span>
@@ -241,34 +311,19 @@ export default function TestCard({ test, index = 0 }) {
         {/* ─── Bottom Buttons ─── */}
         <div className="flex gap-2 pt-1 mt-auto">
           {prescriptionReq ? (
-            <Button
-              className="flex-1 gap-1.5 rounded-xl h-9 text-[11px] font-semibold shadow-lg shadow-primary/20"
-              onClick={onUploadRx}
-            >
+            <Button className="flex-1 gap-1.5 rounded-xl h-9 text-[11px] font-semibold shadow-lg shadow-primary/20" onClick={onUploadRx}>
               <Lock className="w-3.5 h-3.5" />
               Upload Rx to Book
             </Button>
           ) : (
-            <Button
-              className="flex-1 gap-1.5 rounded-xl h-9 text-[11px] font-semibold shadow-lg shadow-primary/20 group/btn"
-              onClick={onBook}
-            >
-              {isPathology && homeCollection ? (
-                <>Book with Home Collection</>
-              ) : (
-                <>Book Now</>
-              )}
+            <Button className="flex-1 gap-1.5 rounded-xl h-9 text-[11px] font-semibold shadow-lg shadow-primary/20 group/btn" onClick={onBook}>
+              {getBookButtonLabel()}
               <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover/btn:translate-x-0.5" />
             </Button>
           )}
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex-1 gap-1.5 rounded-xl h-9 text-[11px] font-semibold"
-            onClick={onViewProvider}
-          >
+          <Button variant="outline" size="sm" className="flex-1 gap-1.5 rounded-xl h-9 text-[11px] font-semibold" onClick={onViewProvider}>
             <Eye className="w-3.5 h-3.5" />
-            {isHospital ? 'View Hospital' : isClinic ? 'View Clinic' : 'View Lab'}
+            {getViewButtonLabel()}
           </Button>
         </div>
 
