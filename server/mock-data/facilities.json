@@ -61,11 +61,11 @@
     },
     "amenities": {
       "parking": true,
-      "acWaitingArea": true,
-      "wheelchairAccess": true,
-      "cardPayment": true,
-      "inHousePharmacy": false,
-      "drinkingWater": true
+      "wheelchair": true,
+      "airConditioning": true,
+      "wifi": true,
+      "teaCoffee": true,
+      "childFriendly": false
     },
     "socialLinks": {
       "facebook": "https://facebook.com/dignolab",
@@ -134,11 +134,11 @@
     },
     "amenities": {
       "parking": true,
-      "acWaitingArea": true,
-      "wheelchairAccess": true,
-      "cardPayment": true,
-      "inHousePharmacy": false,
-      "drinkingWater": true
+      "wheelchair": true,
+      "airConditioning": true,
+      "wifi": true,
+      "teaCoffee": false,
+      "childFriendly": true
     },
     "socialLinks": {
       "facebook": "https://facebook.com/metropolisjabalpur",
@@ -188,11 +188,11 @@
     },
     "amenities": {
       "parking": true,
-      "acWaitingArea": true,
-      "wheelchairAccess": true,
-      "cardPayment": true,
-      "inHousePharmacy": true,
-      "drinkingWater": true
+      "wheelchair": true,
+      "airConditioning": true,
+      "wifi": true,
+      "teaCoffee": true,
+      "childFriendly": true
     },
     "socialLinks": {
       "facebook": "https://facebook.com/apollodiagnosticsjabalpur",
@@ -242,11 +242,11 @@
     },
     "amenities": {
       "parking": true,
-      "acWaitingArea": true,
-      "wheelchairAccess": false,
-      "cardPayment": true,
-      "inHousePharmacy": false,
-      "drinkingWater": true
+      "wheelchair": false,
+      "airConditioning": true,
+      "wifi": true,
+      "teaCoffee": false,
+      "childFriendly": false
     },
     "socialLinks": {
       "facebook": "https://facebook.com/lalpathlabsjabalpur",
@@ -296,11 +296,11 @@
     },
     "amenities": {
       "parking": true,
-      "acWaitingArea": true,
-      "wheelchairAccess": true,
-      "cardPayment": true,
-      "inHousePharmacy": true,
-      "drinkingWater": true
+      "wheelchair": true,
+      "airConditioning": true,
+      "wifi": true,
+      "teaCoffee": true,
+      "childFriendly": true
     },
     "socialLinks": {
       "facebook": "",
