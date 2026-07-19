@@ -8,7 +8,9 @@ import {
   Copy, CheckCircle2, CalendarDays, Award, Search, Plus, Minus, Lock,
   ChevronRight, Sparkles, Microscope, Clock4, Utensils, Heart,
   Droplets, Activity, Bone, Eye, Stethoscope, Pill, Calendar, Users, Image,
-  Shield, Loader2, Building2, Bookmark, Handshake, ClipboardList
+  Shield, Loader2, Building2, Bookmark, Handshake, ClipboardList,
+  Globe, Car, Accessibility, Wind, Wifi, Coffee, Baby,
+  GraduationCap, Briefcase, ExternalLink, Link, Quote
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -61,6 +63,18 @@ const REVIEWS_DATA = [
   { id:'r3', user:'Amit K.', rating:5, comment:'Excellent service. The radiologist explained everything clearly.', date:'2 weeks ago' },
   { id:'r4', user:'Neha G.', rating:3, comment:'Reports were slightly delayed but quality was good.', date:'3 weeks ago' },
   { id:'r5', user:'Vikram J.', rating:4, comment:'Clean facility and professional staff. Highly recommended.', date:'1 month ago' },
+];
+
+const DAY_ORDER = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+const DAY_LABELS = { sunday: 'Sunday', monday: 'Monday', tuesday: 'Tuesday', wednesday: 'Wednesday', thursday: 'Thursday', friday: 'Friday', saturday: 'Saturday' };
+
+const AMENITIES_LIST = [
+  { key:'parking', label:'Parking', icon:Car },
+  { key:'wheelchair', label:'Wheelchair Access', icon:Accessibility },
+  { key:'airConditioning', label:'Air Conditioning', icon:Wind },
+  { key:'wifi', label:'Free Wi-Fi', icon:Wifi },
+  { key:'teaCoffee', label:'Tea & Coffee', icon:Coffee },
+  { key:'childFriendly', label:'Child Friendly', icon:Baby },
 ];
 
 const stagger = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.06 } } };
@@ -493,10 +507,14 @@ export default function DiagnosticCenterDetail() {
                           className={cn('px-3 py-1.5 rounded-md text-xs font-semibold transition-all', labSectionTab === 'packages' ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground')}>
                           Packages
                         </button>
+                        <button onClick={() => setLabSectionTab('specialists')}
+                          className={cn('px-3 py-1.5 rounded-md text-xs font-semibold transition-all', labSectionTab === 'specialists' ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground')}>
+                          Specialists
+                        </button>
                       </div>
                       <h2 className="font-heading text-xl font-bold text-foreground flex items-center gap-2.5">
                         <span className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center"><FlaskConical className="w-4 h-4 text-primary" /></span>
-                        {labSectionTab === 'tests' ? <>Tests <span className="text-base font-normal text-muted-foreground">({clinicTests.length})</span></> : `Packages (${clinicPackages.length})`}
+                        {labSectionTab === 'tests' ? <>Tests <span className="text-base font-normal text-muted-foreground">({clinicTests.length})</span></> : labSectionTab === 'packages' ? `Packages (${clinicPackages.length})` : 'Specialists'}
                       </h2>
                     </div>
                   </div>
@@ -644,6 +662,72 @@ export default function DiagnosticCenterDetail() {
                       </div>
                     )}
                   </div>
+
+                  {/* Specialists Tab */}
+                  <div className={labSectionTab !== 'specialists' ? 'hidden' : ''}>
+                    <p className="text-xs text-muted-foreground mb-4">Qualified specialists at this lab</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {[
+                        clinic.pathologist && {
+                          name: clinic.pathologist,
+                          qualification: clinic.pathologistQualification,
+                          role: 'Pathologist', icon:Microscope, color:'text-blue-500', bg:'bg-blue-500/10'
+                        },
+                        clinic.radiologist && {
+                          name: clinic.radiologist,
+                          qualification: clinic.radiologistQualification,
+                          role: 'Radiologist', icon:Eye, color:'text-violet-500', bg:'bg-violet-500/10'
+                        },
+                        clinic.cardiologist && {
+                          name: clinic.cardiologist,
+                          qualification: clinic.cardiologistQualification,
+                          role: 'Cardiologist', icon:Heart, color:'text-rose-500', bg:'bg-rose-500/10'
+                        },
+                      ].filter(Boolean).map((doc, i) => (
+                        <div key={i} className="bg-card rounded-2xl border border-border/50 p-5 hover:shadow-md hover:border-primary/20 transition-all flex items-start gap-4">
+                          <div className={cn('w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 border-2 border-border/30', doc.bg)}>
+                            <doc.icon className={cn('w-7 h-7', doc.color)} />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="font-semibold text-foreground text-sm">{doc.name}</p>
+                            <p className="text-xs text-primary font-medium">{doc.role}</p>
+                            {doc.qualification && (
+                              <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
+                                <GraduationCap className="w-3 h-3 shrink-0" />
+                                {doc.qualification}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                      {clinic.technicianName && (
+                        <div className="bg-card rounded-2xl border border-border/50 p-5 hover:shadow-md hover:border-primary/20 transition-all flex items-start gap-4 cursor-pointer group" onClick={() => navigate(`/technician/${clinic._id}`)}>
+                          <div className="w-14 h-14 rounded-2xl bg-amber-500/10 flex items-center justify-center shrink-0 border-2 border-border/30">
+                            <Briefcase className="w-7 h-7 text-amber-500" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5">
+                              <p className="font-semibold text-foreground text-sm group-hover:text-primary transition-colors">{clinic.technicianName}</p>
+                              <ExternalLink className="w-3 h-3 text-muted-foreground group-hover:text-primary" />
+                            </div>
+                            <p className="text-xs text-primary font-medium">{clinic.technicianRole || 'Lab Technician'}</p>
+                            {clinic.technicianQualification && (
+                              <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
+                                <GraduationCap className="w-3 h-3 shrink-0" />
+                                {clinic.technicianQualification}
+                              </p>
+                            )}
+                            {clinic.technicianExperience && (
+                              <p className="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-1">
+                                <Briefcase className="w-3 h-3 shrink-0" />
+                                {clinic.technicianExperience}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             </motion.div>
@@ -657,8 +741,8 @@ export default function DiagnosticCenterDetail() {
                     {[
                       { icon:Activity, label:'MRI Scanner', value:clinic.equipment?.mri || 'Not Available' },
                       { icon:Activity, label:'CT Scanner', value:clinic.equipment?.ct || 'Not Available' },
-                      { icon:Eye, label:'Radiologist', value:clinic.radiologist || 'N/A' },
-                      { icon:Heart, label:'Cardiologist', value:clinic.cardiologist || 'N/A' },
+                      { icon:Microscope, label:'Pathology Lab', value:'Fully Equipped' },
+                      { icon:Heart, label:'Cardiac Lab', value:'ECG, 2D Echo, TMT' },
                     ].map((item, i) => (
                       <div key={i} className="bg-gradient-to-br from-muted/40 to-muted/10 rounded-xl p-4 border border-border/40">
                         <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
@@ -766,6 +850,168 @@ export default function DiagnosticCenterDetail() {
               </Card>
             </motion.div>
 
+            {/* Weekly Schedule */}
+            <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>
+              <Card className="rounded-2xl border-border/50 shadow-sm">
+                <CardContent className="p-6">
+                  <SectionTitle icon={CalendarDays} label="Weekly Schedule" />
+                  {clinic.timing ? (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-border/60">
+                            <th className="text-left py-3 px-4 font-semibold text-foreground">Day</th>
+                            <th className="text-left py-3 px-4 font-semibold text-foreground">Status</th>
+                            <th className="text-left py-3 px-4 font-semibold text-foreground">Timings</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {DAY_ORDER.map(day => {
+                            const slot = clinic.timing?.[day];
+                            const active = slot && slot !== 'Closed';
+                            const label = DAY_LABELS[day];
+                            const isToday = new Date().toLocaleDateString('en', { weekday: 'long' }).toLowerCase() === day;
+                            return (
+                              <tr key={day} className={cn(
+                                'border-b border-border/40 last:border-0 hover:bg-muted/20 transition-colors',
+                                isToday && 'bg-primary/5'
+                              )}>
+                                <td className="py-3 px-4">
+                                  <div className="flex items-center gap-2">
+                                    <div className={cn('w-2 h-2 rounded-full', active ? 'bg-emerald-500' : 'bg-muted-foreground/30')} />
+                                    <span className={cn('font-medium', isToday ? 'text-primary' : 'text-foreground')}>
+                                      {label}
+                                      {isToday && <span className="ml-2 text-xs text-primary font-semibold">(Today)</span>}
+                                    </span>
+                                  </div>
+                                </td>
+                                <td className="py-3 px-4">
+                                  <span className={cn(
+                                    'text-xs font-semibold px-2.5 py-1 rounded-full',
+                                    active
+                                      ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400'
+                                      : 'bg-muted text-muted-foreground'
+                                  )}>
+                                    {active ? 'Open' : 'Closed'}
+                                  </span>
+                                </td>
+                                <td className="py-3 px-4 text-muted-foreground">
+                                  {active ? slot : '—'}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-muted/30 border border-border/60 text-sm text-muted-foreground">
+                      <Clock className="w-4 h-4 text-primary shrink-0" />
+                      <span>Working Hours: <span className="font-medium text-foreground">{clinic.workingHours}</span></span>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* Facilities & Amenities */}
+            {clinic.amenities && (
+              <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>
+                <Card className="rounded-2xl border-border/50 shadow-sm">
+                  <CardContent className="p-6">
+                    <SectionTitle icon={Building2} label="Facilities & Amenities" />
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+                      {AMENITIES_LIST.map(({ key, label, icon:Icon }) => {
+                        const available = clinic.amenities?.[key] === true;
+                        return (
+                          <div key={key} className={cn(
+                            'flex flex-col items-center gap-2 p-4 rounded-xl border transition-all',
+                            available
+                              ? 'bg-emerald-50/50 dark:bg-emerald-500/5 border-emerald-200 dark:border-emerald-800'
+                              : 'bg-muted/20 border-border/30 opacity-50'
+                          )}>
+                            <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center', available ? 'bg-emerald-500/10' : 'bg-muted/30')}>
+                              <Icon className={cn('w-4.5 h-4.5', available ? 'text-emerald-500' : 'text-muted-foreground')} />
+                            </div>
+                            <span className={cn('text-[10px] font-semibold text-center leading-tight', available ? 'text-emerald-700 dark:text-emerald-400' : 'text-muted-foreground')}>
+                              {label}
+                            </span>
+                            <span className={cn('text-[8px] font-bold', available ? 'text-emerald-600' : 'text-muted-foreground')}>
+                              {available ? 'Available' : 'N/A'}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
+            {/* Location & Contact */}
+            <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>
+              <Card className="rounded-2xl border-border/50 shadow-sm">
+                <CardContent className="p-6">
+                  <SectionTitle icon={MapPin} label="Location & Contact" />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="bg-gradient-to-br from-muted/40 to-muted/10 rounded-xl p-5 border border-border/40">
+                      <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center mb-3">
+                        <MapPin className="w-4.5 h-4.5 text-primary" />
+                      </div>
+                      <p className="text-xs font-semibold text-foreground mb-1">Address</p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">{clinic.address}</p>
+                      <Button variant="outline" size="sm" className="mt-3 gap-1.5 rounded-lg text-xs h-8"
+                        onClick={() => window.open(`https://maps.google.com/?q=${encodeURIComponent(clinic.address)}`)}>
+                        <Navigation className="w-3 h-3" /> Get Directions
+                      </Button>
+                    </div>
+                    <div className="bg-gradient-to-br from-muted/40 to-muted/10 rounded-xl p-5 border border-border/40">
+                      <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center mb-3">
+                        <Phone className="w-4.5 h-4.5 text-primary" />
+                      </div>
+                      <p className="text-xs font-semibold text-foreground mb-1">Contact</p>
+                      <a href={`tel:${clinic.phone}`} className="text-xs text-primary font-medium hover:underline block mb-1">
+                        {clinic.phone || 'N/A'}
+                      </a>
+                      {clinic.email && (
+                        <p className="text-xs text-muted-foreground">{clinic.email}</p>
+                      )}
+                      {clinic.socialLinks && (
+                        <div className="flex items-center gap-2 mt-3">
+                          {clinic.socialLinks.facebook && (
+                            <a href={clinic.socialLinks.facebook} target="_blank" rel="noopener noreferrer"
+                              className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center hover:bg-blue-500/20 transition-colors">
+                              <Globe className="w-4 h-4 text-blue-600" />
+                            </a>
+                          )}
+                          {clinic.socialLinks.instagram && (
+                            <a href={clinic.socialLinks.instagram} target="_blank" rel="noopener noreferrer"
+                              className="w-8 h-8 rounded-lg bg-pink-500/10 flex items-center justify-center hover:bg-pink-500/20 transition-colors">
+                              <Globe className="w-4 h-4 text-pink-600" />
+                            </a>
+                          )}
+                          {clinic.socialLinks.youtube && (
+                            <a href={clinic.socialLinks.youtube} target="_blank" rel="noopener noreferrer"
+                              className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center hover:bg-red-500/20 transition-colors">
+                              <Globe className="w-4 h-4 text-red-600" />
+                            </a>
+                          )}
+                        </div>
+                      )}
+                      <div className="flex gap-2 mt-3">
+                        <Button variant="outline" size="sm" className="gap-1.5 rounded-lg text-xs h-8" asChild>
+                          <a href={`tel:${clinic.phone}`}><Phone className="w-3 h-3" /> Call</a>
+                        </Button>
+                        <Button variant="outline" size="sm" className="gap-1.5 rounded-lg text-xs h-8" onClick={() => { navigator.clipboard?.writeText(window.location.href); toast.success('Link copied!'); }}>
+                          <Link className="w-3 h-3" /> Share
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+
             {/* Offers */}
             {clinic.offers.length > 0 && (
               <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>
@@ -816,13 +1062,21 @@ export default function DiagnosticCenterDetail() {
                       { label:'Radiologist', value:clinic.radiologist || 'N/A', icon:Eye },
                       { label:'Cardiologist', value:clinic.cardiologist || 'N/A', icon:Heart },
                       { label:'Established', value:clinic.established, icon:CalendarDays },
-                    ].map((item, i) => (
-                      <div key={i} className="bg-gradient-to-br from-muted/40 to-muted/10 rounded-xl p-4 border border-border/40 hover:border-primary/20 transition-all">
+                      clinic.technicianName ? { label:'Lab Technician', value:clinic.technicianName, icon:Users, link:true } : null,
+                    ].filter(Boolean).map((item, i) => (
+                      <div key={i} onClick={() => item.link ? navigate(`/technician/${clinic._id}`) : null}
+                        className={cn(
+                          'bg-gradient-to-br from-muted/40 to-muted/10 rounded-xl p-4 border border-border/40 hover:border-primary/20 transition-all',
+                          item.link && 'cursor-pointer hover:bg-primary/[0.02]'
+                        )}>
                         <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center mb-2.5">
                           <item.icon className="w-4 h-4 text-primary" />
                         </div>
                         <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-0.5">{item.label}</p>
-                        <p className="text-sm font-bold text-foreground">{item.value}</p>
+                        <div className="flex items-center gap-1">
+                          <p className="text-sm font-bold text-foreground">{item.value}</p>
+                          {item.link && <ExternalLink className="w-3 h-3 text-muted-foreground shrink-0" />}
+                        </div>
                       </div>
                     ))}
                   </div>
