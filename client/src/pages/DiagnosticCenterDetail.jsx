@@ -139,16 +139,29 @@ export default function DiagnosticCenterDetail() {
     phone: facility.phone || '',
     email: facility.email || '',
     address: facility.address || '',
-    workingHours: '8:00 AM - 8:00 PM',
+    workingHours: facility.workingHours || '8:00 AM - 8:00 PM',
     startingPrice: 350,
     established: facility.establishedYear || 2020,
-    nablNo: 'NABL-CC-2020-01-00987',
-    aerbNo: 'AERB-LB-2023-00451',
-    pathologist: 'Dr. Sunita Reddy',
+    qualifiedStaff: 1,
+    treatmentAreas: 1,
+    happyPatients: '2K+',
+    nablNo: facility.nablNumber || 'NABL-CC-2020-01-00987',
+    aerbNo: facility.aerbNumber || '',
+    pathologist: facility.pathologistName || 'Dr. Sunita Reddy',
+    pathologistQualification: facility.pathologistQualification || 'MD Pathology, DNB',
+    radiologist: facility.radiologistName || '',
+    radiologistQualification: facility.radiologistQualification || '',
+    cardiologist: facility.cardiologistName || '',
+    cardiologistQualification: facility.cardiologistQualification || '',
+    technicianName: facility.technicianName || '',
+    technicianRole: facility.technicianRole || '',
+    technicianQualification: facility.technicianQualification || '',
+    technicianExperience: facility.technicianExperience || '',
+    timing: facility.timing || null,
+    amenities: facility.amenities || null,
+    socialLinks: facility.socialLinks || null,
     imagingFields: 'MRI, CT Scan, X-Ray, Ultrasound',
     cardiacFields: 'ECG, 2D Echo, TMT',
-    radiologist: 'Dr. Arjun Mehta',
-    cardiologist: 'Dr. Neha Kapoor',
     equipment: { mri: '1.5 Tesla MRI', ct: '128-Slice CT Scanner' },
     cover: 'https://images.unsplash.com/photo-1631217868264-e5b90bb7e133?w=1200&h=400&fit=crop',
     logo: facility.logo || facility.image || '',
@@ -436,6 +449,26 @@ export default function DiagnosticCenterDetail() {
                 </a>
               </div>
             </div>
+          </div>
+        </motion.div>
+
+        {/* ════════ STATUS CARDS ════════ */}
+        <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} className="mb-8">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {[
+              { icon:CalendarDays, value:clinic.established, label:'Since', color:'text-blue-500', bg:'bg-blue-500/10' },
+              { icon:Users, value:clinic.qualifiedStaff, label:'Qualified professionals', color:'text-emerald-500', bg:'bg-emerald-500/10' },
+              { icon:FlaskConical, value:clinic.treatmentAreas, label:'Treatment areas', color:'text-violet-500', bg:'bg-violet-500/10' },
+              { icon:Heart, value:clinic.happyPatients, label:'Happy patients', color:'text-rose-500', bg:'bg-rose-500/10' },
+            ].map((item, i) => (
+              <div key={i} className="bg-card rounded-2xl border border-border/50 p-5 shadow-sm hover:shadow-md hover:border-primary/20 transition-all">
+                <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center mb-3', item.bg)}>
+                  <item.icon className={cn('w-5 h-5', item.color)} />
+                </div>
+                <p className="text-2xl font-bold text-foreground font-heading">{item.value}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{item.label}</p>
+              </div>
+            ))}
           </div>
         </motion.div>
 
