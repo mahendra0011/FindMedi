@@ -117,7 +117,11 @@
     "clinic_facilities": ["X-Ray", "Physiotherapy Room", "Plaster Room", "Rehabilitation Center"],
     "clinic_treatments": ["Fracture Management", "Joint Pain Treatment", "Sports Injury", "Back Pain Management", "Physiotherapy"],
     "clinic_insurance": ["ICICI Lombard", "HDFC Ergo", "New India Assurance"],
-    "clinic_faqs": [],
+    "clinic_faqs": [
+      { "question": "What are your OPD hours?", "answer": "We are open Mon-Fri 8 AM to 6 PM, Sat 8 AM to 2 PM." },
+      { "question": "Do you offer home visits?", "answer": "Yes, home visits are available for patients who cannot travel. Additional charges apply." },
+      { "question": "Do you accept insurance?", "answer": "Yes, we accept ICICI Lombard, HDFC Ergo, and New India Assurance." }
+    ],
     "clinic_license": "CL-MP-2024-005",
     "established_year": 2017,
     "social": {}

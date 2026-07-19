@@ -1383,6 +1383,9 @@ export default function HospitalProfile() {
                   <Button className="w-full gap-2.5 rounded-xl h-11 font-semibold shadow-md" onClick={handleBookDoctor}>
                     <CalendarDays className="w-4 h-4" /> Book Appointment
                   </Button>
+                  <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => { setIsFavorited(!isFavorited); toast.success(isFavorited ? 'Removed from Saved' : 'Saved'); }}>
+                    <Heart className={cn('w-4 h-4', isFavorited && 'fill-current text-red-500')} /> {isFavorited ? 'Saved' : 'Save'}
+                  </Button>
                   <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" asChild>
                     <a href={`tel:${hospital.phone}`}><Phone className="w-4 h-4" /> Call Now</a>
                   </Button>

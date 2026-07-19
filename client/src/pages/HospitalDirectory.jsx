@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Building2, Search, Heart, Brain, Bone, Baby, Eye, Stethoscope, Activity, Users, ChevronDown, ChevronUp, SlidersHorizontal, X, Star, Ambulance, BedDouble, Shield, Calendar, Car, CreditCard, Building, CheckCircle2, Navigation, HeartPulse } from 'lucide-react';
@@ -98,6 +98,12 @@ export default function HospitalDirectory() {
 
   useEffect(() => { loadHospitals(); }, [search, cityFilter, specFilter]);
 
+  const insuranceProviders = useMemo(() => {
+    const providers = new Set();
+    allHospitals.forEach(h => (h.insuranceAccepted || []).forEach(i => providers.add(i.provider || i)));
+    return [...providers].sort();
+  }, [allHospitals]);
+
   // Unified filter + sort effect
   useEffect(() => {
     let filtered = [...allHospitals];
@@ -124,7 +130,7 @@ export default function HospitalDirectory() {
 
     // Insurance/Cashless
     if (filterInsurance) {
-      filtered = filtered.filter(h => h.insuranceAccepted === true);
+      filtered = filtered.filter(h => h.insuranceAccepted?.length > 0);
     }
 
     // Bed Availability
@@ -180,7 +186,7 @@ export default function HospitalDirectory() {
 
     // Insurance Provider
     if (filterInsuranceProvider) {
-      filtered = filtered.filter(h => h.insurance_providers?.includes(filterInsuranceProvider));
+      filtered = filtered.filter(h => h.insuranceAccepted?.some(i => (i.provider || i).toLowerCase().includes(filterInsuranceProvider.toLowerCase())));
     }
 
     // Sort
@@ -412,11 +418,9 @@ export default function HospitalDirectory() {
                       </Button>
                       <select value={filterInsuranceProvider} onChange={e => setFilterInsuranceProvider(e.target.value)} className="w-full h-8 text-xs rounded-lg border border-border bg-background">
                         <option value="">Any Insurance Provider</option>
-                        <option value="Star Health">Star Health</option>
-                        <option value="ICICI Lombard">ICICI Lombard</option>
-                        <option value="HDFC Ergo">HDFC Ergo</option>
-                        <option value="Bajaj Allianz">Bajaj Allianz</option>
-                        <option value="Cigna">Cigna</option>
+                        {insuranceProviders.map(p => (
+                          <option key={p} value={p}>{p}</option>
+                        ))}
                       </select>
                     </div>
                   </div>

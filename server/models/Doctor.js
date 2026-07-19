@@ -51,6 +51,7 @@ const doctorSchema = new mongoose.Schema({
   admission_available: { type: Boolean, default: false },
   emergency_consultation: { type: Boolean, default: false },
   surgery_available: { type: Boolean, default: false },
+  home_visit: { type: Boolean, default: false },
   payment_modes: { type: [String], default: ['Cash', 'UPI', 'Card'] },
   opd_timings: { type: String, default: '9:00 AM – 5:00 PM' },
   createdAt: { type: Date, default: Date.now },
