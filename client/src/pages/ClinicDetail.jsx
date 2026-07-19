@@ -91,10 +91,21 @@ const StatCard = ({ icon:Icon, value, label, color }) => (
   </div>
 );
 
+const DEFAULT_CLINIC_PHOTO = 'https://placehold.co/800x400/2563eb/ffffff?text=Clinic+Photo';
+
+function normalizeFaqs(faqs = []) {
+  return faqs.map(faq => ({
+    q: faq.q || faq.question || '',
+    a: faq.a || faq.answer || '',
+  })).filter(faq => faq.q || faq.a);
+}
+
 export default function ClinicDetail() {
   const { clinicId } = useParams();
   const navigate = useNavigate();
   const [doctor, setDoctor] = useState(null);
+  const [facility, setFacility] = useState(null);
+  const [clinicDoctors, setClinicDoctors] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activePhoto, setActivePhoto] = useState(0);
@@ -102,10 +113,43 @@ export default function ClinicDetail() {
   const [expandedFaq, setExpandedFaq] = useState(null);
 
   const cp = doctor?.clinicProfile || {};
-  const clinic = doctor ? {
+  const details = facility?.details || {};
+  const doctors = clinicDoctors.length ? clinicDoctors : (doctor ? [doctor] : []);
+  const totalPatients = doctors.reduce((sum, doc) => sum + (Number(doc.patients) || 0), 0);
+  const clinic = facility ? {
+    _id: facility._id,
+    name: facility.name,
+    category: facility.specialties?.[0] ? `${facility.specialties[0]} Clinic` : 'Clinic',
+    type: 'Clinic',
+    rating: facility.rating || 4.5,
+    reviewsCount: facility.reviewsCount || 0,
+    verified: facility.status === 'approved',
+    address: facility.address || '',
+    city: facility.city || '',
+    phone: facility.phone || '',
+    email: facility.email || '',
+    open: true,
+    closingTime: details.closingTime || '8:00 PM',
+    established: facility.establishedYear || null,
+    totalDoctors: facility.totalDoctors || doctors.length,
+    totalSpecialties: facility.specialties?.length || 0,
+    totalPatients,
+    description: facility.description || '',
+    specialties: facility.specialties || [],
+    treatments: details.treatments || details.services || [],
+    facilities: details.facilities || details.amenities || [],
+    timing: details.timing || details.clinic_timing || {},
+    branches: details.branches || [],
+    license: facility.licenseNumber || '',
+    insurance: details.insurance || [],
+    paymentModes: details.paymentModes || ['Cash', 'UPI', 'Card'],
+    faqs: normalizeFaqs(details.faqs || []),
+    photos: details.photos?.length ? details.photos : [facility.image || facility.logo || DEFAULT_CLINIC_PHOTO],
+    social: details.social || {},
+  } : doctor ? {
     _id: doctor._id,
     name: cp.clinic_name || (doctor.name?.replace('Dr. ','') + ' Clinic'),
-    category: doctor.specialization + ' Clinic',
+    category: `${doctor.specialization} Clinic`,
     type: 'Clinic',
     rating: doctor.rating || 4.5,
     reviewsCount: doctor.reviews_count || 0,
@@ -129,8 +173,8 @@ export default function ClinicDetail() {
     license: cp.clinic_license || '',
     insurance: cp.clinic_insurance || [],
     paymentModes: ['Cash', 'UPI', 'Card'],
-    faqs: cp.clinic_faqs || [],
-    photos: cp.clinic_photos?.length ? cp.clinic_photos : [doctor.profile_photo || 'https://placehold.co/800x400/2563eb/ffffff?text=Clinic+Photo'],
+    faqs: normalizeFaqs(cp.clinic_faqs || []),
+    photos: cp.clinic_photos?.length ? cp.clinic_photos : [doctor.profile_photo || DEFAULT_CLINIC_PHOTO],
     social: cp.social || {},
   } : null;
 
@@ -138,17 +182,34 @@ export default function ClinicDetail() {
     const load = async () => {
       setLoading(true);
       try {
-        const doc = await api.getDoctor(clinicId);
-        setDoctor(doc);
-        const r = await api.getReviews({ doctorId: clinicId });
-        setReviews(Array.isArray(r) ? r : r?.reviews || []);
-      } catch (e) { console.error(e); }
+        const facilityResult = await api.getFacility(clinicId);
+        const loadedFacility = facilityResult?.facility || facilityResult;
+        if (!loadedFacility || loadedFacility.type !== 'clinic') throw new Error('Clinic facility not found');
+        const loadedDoctors = Array.isArray(facilityResult?.doctors) ? facilityResult.doctors : [];
+        setFacility(loadedFacility);
+        setClinicDoctors(loadedDoctors);
+        setDoctor(loadedDoctors[0] || null);
+        setReviews([]);
+      } catch (facilityError) {
+        try {
+          const doc = await api.getDoctor(clinicId);
+          setDoctor(doc);
+          setFacility(null);
+          setClinicDoctors(doc ? [doc] : []);
+          const r = await api.getReviews({ doctorId: clinicId });
+          setReviews(Array.isArray(r) ? r : r?.reviews || []);
+        } catch (doctorError) {
+          console.error(facilityError);
+          console.error(doctorError);
+          setDoctor(null);
+          setFacility(null);
+          setClinicDoctors([]);
+        }
+      }
       setLoading(false);
     };
     load();
   }, [clinicId]);
-
-  const doctors = doctor ? [doctor] : [];
 
   useEffect(() => { window.scrollTo(0, 0); }, [clinicId]);
   useEffect(() => {
@@ -175,7 +236,7 @@ export default function ClinicDetail() {
         <div className="text-center">
           <Building2 className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-foreground mb-1">Clinic not found</h3>
-          <Button variant="outline" onClick={() => navigate('/doctors')}>Go back</Button>
+          <Button variant="outline" onClick={() => navigate('/clinic')}>Go back</Button>
         </div>
       </div>
     );
@@ -187,7 +248,7 @@ export default function ClinicDetail() {
 
         {/* Breadcrumb */}
         <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground mb-5">
-          <button onClick={() => navigate('/doctors')} className="hover:text-foreground transition-colors flex items-center gap-1.5 group">
+          <button onClick={() => navigate('/clinic')} className="hover:text-foreground transition-colors flex items-center gap-1.5 group">
             <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" /> Find Clinic
           </button>
           <span className="text-muted-foreground/30">/</span>

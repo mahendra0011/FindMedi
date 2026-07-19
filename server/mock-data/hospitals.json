@@ -22,7 +22,18 @@
     "emergency24x7": true,
     "bedAvailability": 200,
     "ambulanceService": true,
-    "image": ""
+    "image": "",
+    "insuranceAccepted": [
+      { "provider": "ICICI Lombard", "planType": "cashless" },
+      { "provider": "HDFC Ergo", "planType": "cashless" },
+      { "provider": "Bajaj Allianz", "planType": "cashless" },
+      { "provider": "New India Assurance", "planType": "reimbursement" }
+    ],
+    "workingHours": {
+      "weekdays": "Open 24/7",
+      "saturday": "Open 24/7",
+      "sunday": "Open 24/7"
+    }
   },
   {
     "_id": "city-hospital",
@@ -47,6 +58,16 @@
     "emergency24x7": true,
     "bedAvailability": 100,
     "ambulanceService": true,
-    "image": ""
+    "image": "",
+    "insuranceAccepted": [
+      { "provider": "ICICI Lombard", "planType": "cashless" },
+      { "provider": "HDFC Ergo", "planType": "cashless" },
+      { "provider": "Star Health", "planType": "reimbursement" }
+    ],
+    "workingHours": {
+      "weekdays": "9:00 AM - 6:00 PM",
+      "saturday": "9:00 AM - 2:00 PM",
+      "sunday": "Closed"
+    }
   }
 ]

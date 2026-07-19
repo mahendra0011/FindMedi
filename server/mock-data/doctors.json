@@ -22,7 +22,31 @@
     "bio": "Senior cardiologist with over 12 years of experience in interventional cardiology. Trained at AIIMS Delhi and Johns Hopkins. Specializes in complex angioplasties and heart failure management.",
     "time_slots": ["09:00 AM", "10:00 AM", "11:00 AM", "02:00 PM", "03:00 PM", "04:00 PM"],
     "reviews_count": 427,
-    "profile_photo": ""
+    "languages": ["English", "Hindi"],
+    "areas_of_expertise": ["Interventional Cardiology", "Heart Failure Management", "Complex Angioplasty", "Cardiac Rehabilitation"],
+    "services_offered": ["Cardiac Consultation", "Echocardiography", "Stress Test", "Angioplasty", "Pacemaker Implantation"],
+    "surgeries_procedures": ["Coronary Angioplasty", "Stent Placement", "Pacemaker Insertion", "Cardiac Catheterization"],
+    "education": [
+      { "degree": "MBBS", "college": "AIIMS Delhi", "year": 2007 },
+      { "degree": "MD Internal Medicine", "college": "AIIMS Delhi", "year": 2011 },
+      { "degree": "DM Cardiology", "college": "AIIMS Delhi", "year": 2014 }
+    ],
+    "work_experience": [
+      { "hospital": "MediCore Hospital, Jabalpur", "role": "Senior Cardiologist & HOD", "period": "2016 – Present" },
+      { "hospital": "Johns Hopkins Hospital, USA", "role": "Clinical Fellow", "period": "2014 – 2016" },
+      { "hospital": "AIIMS Delhi", "role": "Senior Resident", "period": "2011 – 2014" }
+    ],
+    "memberships": ["Cardiological Society of India (CSI)", "American College of Cardiology (ACC)"],
+    "awards": ["CSI Young Cardiologist Award 2017", "Best Research Paper – AIIMS Convocation 2014"],
+    "registrations": { "council": "Madhya Pradesh Medical Council", "number": "MPMC-2011-01567" },
+    "walk_in_accepted": false,
+    "in_house_pharmacy": true,
+    "in_house_lab": true,
+    "admission_available": true,
+    "emergency_consultation": true,
+    "surgery_available": true,
+    "payment_modes": ["Cash", "UPI", "Card", "Net Banking", "Insurance"],
+    "opd_timings": "9:00 AM – 4:00 PM"
   },
   {
     "_id": "doctor-vikram",
@@ -46,7 +70,31 @@
     "approved": true,
     "bio": "Renowned neurologist specializing in stroke management, epilepsy, and movement disorders. Published 30+ research papers in international journals.",
     "time_slots": ["10:00 AM", "11:00 AM", "12:00 PM", "03:00 PM", "04:00 PM"],
-    "reviews_count": 312
+    "reviews_count": 312,
+    "languages": ["English", "Hindi"],
+    "areas_of_expertise": ["Stroke Management", "Epilepsy Treatment", "Movement Disorders", "Multiple Sclerosis", "Headache Management"],
+    "services_offered": ["Neurology Consultation", "EEG", "Nerve Conduction Study", "Botulinum Toxin Injection"],
+    "surgeries_procedures": ["Cerebral Angiography", "Lumbar Puncture", "Botulinum Toxin Injection"],
+    "education": [
+      { "degree": "MBBS", "college": "PGI Chandigarh", "year": 2005 },
+      { "degree": "MD Internal Medicine", "college": "PGI Chandigarh", "year": 2009 },
+      { "degree": "DM Neurology", "college": "PGI Chandigarh", "year": 2012 }
+    ],
+    "work_experience": [
+      { "hospital": "MediCore Hospital, Jabalpur", "role": "Senior Neurologist", "period": "2014 – Present" },
+      { "hospital": "NIMHANS Bangalore", "role": "Associate Consultant", "period": "2012 – 2014" }
+    ],
+    "memberships": ["Neurological Society of India (NSI)", "Indian Stroke Association (ISA)"],
+    "awards": ["NSI Young Neurologist Award 2018", "30+ Research Publications"],
+    "registrations": { "council": "Madhya Pradesh Medical Council", "number": "MPMC-2009-01234" },
+    "walk_in_accepted": false,
+    "in_house_pharmacy": true,
+    "in_house_lab": true,
+    "admission_available": true,
+    "emergency_consultation": true,
+    "surgery_available": false,
+    "payment_modes": ["Cash", "UPI", "Card", "Insurance"],
+    "opd_timings": "10:00 AM – 4:00 PM"
   },
   {
     "_id": "doctor-priya",
@@ -70,7 +118,32 @@
     "approved": true,
     "bio": "Child specialist with expertise in neonatal care and pediatric emergencies. Committed to providing compassionate care for children of all ages.",
     "time_slots": ["09:00 AM", "10:00 AM", "11:00 AM", "02:00 PM", "03:00 PM"],
-    "reviews_count": 523
+    "reviews_count": 523,
+    "languages": ["English", "Hindi"],
+    "areas_of_expertise": ["Neonatal Care", "Pediatric Emergencies", "Childhood Nutrition", "Adolescent Medicine", "Respiratory Infections"],
+    "services_offered": ["Pediatric Consultation", "Vaccination", "Growth Assessment", "Newborn Screening"],
+    "surgeries_procedures": ["Minor Pediatric Procedures", "Nebulization", "Incision & Drainage"],
+    "education": [
+      { "degree": "MBBS", "college": "Grant Medical College, Mumbai", "year": 2010 },
+      { "degree": "MD Pediatrics", "college": "Grant Medical College, Mumbai", "year": 2014 },
+      { "degree": "Fellowship in Neonatology", "college": "KK Women's & Children's Hospital, Singapore", "year": 2016 }
+    ],
+    "work_experience": [
+      { "hospital": "MediCore Hospital, Jabalpur", "role": "Consultant Pediatrician", "period": "2017 – Present" },
+      { "hospital": "KK Women's & Children's Hospital, Singapore", "role": "Clinical Fellow", "period": "2016 – 2017" },
+      { "hospital": "Wadia Hospital, Mumbai", "role": "Senior Resident", "period": "2014 – 2016" }
+    ],
+    "memberships": ["Indian Academy of Pediatrics (IAP)", "National Neonatology Forum (NNF)"],
+    "awards": ["IAP Best Clinical Paper 2019"],
+    "registrations": { "council": "Madhya Pradesh Medical Council", "number": "MPMC-2014-01893" },
+    "walk_in_accepted": true,
+    "in_house_pharmacy": true,
+    "in_house_lab": true,
+    "admission_available": true,
+    "emergency_consultation": true,
+    "surgery_available": false,
+    "payment_modes": ["Cash", "UPI", "Card"],
+    "opd_timings": "9:00 AM – 3:00 PM"
   },
   {
     "_id": "doctor-rajesh",
@@ -95,7 +168,27 @@
     "approved": true,
     "bio": "Experienced general physician with expertise in managing chronic diseases like diabetes, hypertension, and thyroid disorders. Also provides travel vaccinations and health check-ups.",
     "time_slots": ["09:00 AM", "10:00 AM", "11:00 AM", "04:00 PM", "05:00 PM", "06:00 PM"],
-    "reviews_count": 234
+    "reviews_count": 234,
+    "languages": ["Hindi", "English"],
+    "practice_type": "private",
+    "areas_of_expertise": ["Diabetes Management", "Hypertension Control", "Thyroid Disorders", "Travel Vaccinations", "Health Check-ups"],
+    "services_offered": ["General Consultation", "Prescription Refill", "Health Screening", "Vaccination Services"],
+    "surgeries_procedures": ["Minor Surgical Procedures", "Wound Care & Suturing", "Nebulization"],
+    "education": [
+      { "degree": "MBBS", "college": "Netaji Subhash Chandra Bose Medical College, Jabalpur", "year": 2012 },
+      { "degree": "MD General Medicine", "college": "Seth GS Medical College, Mumbai", "year": 2016 }
+    ],
+    "work_experience": [
+      { "hospital": "Green Clinic & Diagnostics", "role": "Senior Consultant & Owner", "period": "2018 – Present" },
+      { "hospital": "Jabalpur Hospital & Research Centre", "role": "Junior Consultant", "period": "2016 – 2018" }
+    ],
+    "memberships": ["Indian Medical Association (IMA)", "Association of Physicians of India (API)"],
+    "awards": ["Best Young Physician Award 2020", "IMA Excellence in Healthcare 2022"],
+    "registrations": { "council": "Madhya Pradesh Medical Council", "number": "MPMC-2016-04521" },
+    "clinic_reception_phone": "0761-4567890",
+    "walk_in_accepted": true,
+    "payment_modes": ["Cash", "UPI", "Card", "Net Banking"],
+    "opd_timings": "9:00 AM – 5:00 PM"
   },
   {
     "_id": "doctor-anita",
@@ -119,7 +212,32 @@
     "approved": true,
     "bio": "Orthopedic surgeon specializing in joint replacement surgeries, sports injuries, and fracture management. Trained in minimally invasive techniques.",
     "time_slots": ["09:00 AM", "10:00 AM", "11:00 AM", "02:00 PM", "03:00 PM"],
-    "reviews_count": 189
+    "reviews_count": 189,
+    "languages": ["Hindi", "English"],
+    "areas_of_expertise": ["Joint Replacement Surgery", "Sports Injuries", "Fracture Management", "Arthroscopy", "Minimally Invasive Surgery"],
+    "services_offered": ["Orthopedic Consultation", "X-Ray & Imaging", "Physiotherapy", "Rehabilitation"],
+    "surgeries_procedures": ["Total Knee Replacement", "Hip Replacement", "ACL Reconstruction", "Arthroscopic Surgery", "Fracture Fixation"],
+    "education": [
+      { "degree": "MBBS", "college": "Seth GS Medical College, Mumbai", "year": 2009 },
+      { "degree": "MS Orthopedics", "college": "Seth GS Medical College, Mumbai", "year": 2013 },
+      { "degree": "Fellowship in Joint Replacement", "college": "Medanta Medicity, Gurgaon", "year": 2015 }
+    ],
+    "work_experience": [
+      { "hospital": "City Care Hospital, Jabalpur", "role": "Senior Orthopedic Surgeon", "period": "2016 – Present" },
+      { "hospital": "Medanta Medicity, Gurgaon", "role": "Clinical Fellow", "period": "2015 – 2016" },
+      { "hospital": "Sir JJ Hospital, Mumbai", "role": "Junior Resident", "period": "2013 – 2015" }
+    ],
+    "memberships": ["Indian Orthopaedic Association (IOA)", "Indian Society of Hip & Knee Surgeons (ISHKS)"],
+    "awards": ["IOA Best Clinical Paper 2018"],
+    "registrations": { "council": "Madhya Pradesh Medical Council", "number": "MPMC-2013-02345" },
+    "walk_in_accepted": true,
+    "in_house_pharmacy": true,
+    "in_house_lab": true,
+    "admission_available": true,
+    "emergency_consultation": false,
+    "surgery_available": true,
+    "payment_modes": ["Cash", "UPI", "Card", "Net Banking"],
+    "opd_timings": "9:00 AM – 5:00 PM"
   },
   {
     "_id": "doctor-meera",
@@ -143,7 +261,26 @@
     "bio": "Skin and hair specialist with expertise in medical and cosmetic dermatology. Passionate about making quality skincare accessible.",
     "time_slots": ["10:00 AM", "11:00 AM", "12:00 PM", "03:00 PM", "04:00 PM", "05:00 PM"],
     "reviews_count": 189,
-    "profile_photo": ""
+    "languages": ["Hindi", "English"],
+    "practice_type": "private",
+    "areas_of_expertise": ["Medical Dermatology", "Cosmetic Dermatology", "Acne Treatment", "Hair Fall Treatment", "Psoriasis Management"],
+    "services_offered": ["Skin Consultation", "Hair Treatment", "Chemical Peel", "Laser Hair Removal", "Anti-Aging Treatments"],
+    "surgeries_procedures": ["Chemical Peel", "Microdermabrasion", "Laser Therapy", "Wart Removal"],
+    "education": [
+      { "degree": "MBBS", "college": "BHU Institute of Medical Sciences, Varanasi", "year": 2013 },
+      { "degree": "MD Dermatology", "college": "BHU Institute of Medical Sciences, Varanasi", "year": 2017 }
+    ],
+    "work_experience": [
+      { "hospital": "Meera Skin & Hair Clinic", "role": "Consultant Dermatologist & Owner", "period": "2019 – Present" },
+      { "hospital": "AIIMS Delhi", "role": "Senior Resident", "period": "2017 – 2019" }
+    ],
+    "memberships": ["Indian Association of Dermatologists (IADVL)"],
+    "awards": ["Best Poster Presentation – IADVL National Conference 2018"],
+    "registrations": { "council": "Madhya Pradesh Medical Council", "number": "MPMC-2017-03892" },
+    "clinic_reception_phone": "0761-4033221",
+    "walk_in_accepted": true,
+    "payment_modes": ["Cash", "UPI", "Card"],
+    "opd_timings": "10:00 AM – 6:00 PM"
   },
   {
     "_id": "doctor-sunil",
@@ -167,7 +304,27 @@
     "bio": "Dedicated pediatrician with over 11 years of experience. Special interest in neonatal care and adolescent medicine.",
     "time_slots": ["09:00 AM", "10:00 AM", "11:00 AM", "02:00 PM", "03:00 PM", "04:00 PM"],
     "reviews_count": 412,
-    "profile_photo": ""
+    "languages": ["Hindi", "English"],
+    "practice_type": "private",
+    "areas_of_expertise": ["Newborn Care", "Childhood Vaccinations", "Adolescent Medicine", "Asthma Management", "Nutrition Counseling"],
+    "services_offered": ["Pediatric Consultation", "Vaccination Drive", "Growth Monitoring", "Newborn Screening"],
+    "surgeries_procedures": ["Minor Pediatric Surgeries", "Circumcision", "Laceration Repair"],
+    "education": [
+      { "degree": "MBBS", "college": "Gandhi Medical College, Bhopal", "year": 2009 },
+      { "degree": "MD Pediatrics", "college": "Seth GS Medical College, Mumbai", "year": 2013 },
+      { "degree": "Fellowship in Neonatology", "college": "AIIMS Delhi", "year": 2015 }
+    ],
+    "work_experience": [
+      { "hospital": "Sunil Child Care Centre", "role": "Senior Pediatrician & Owner", "period": "2016 – Present" },
+      { "hospital": "Bombay Hospital, Mumbai", "role": "Consultant Pediatrician", "period": "2015 – 2016" }
+    ],
+    "memberships": ["Indian Academy of Pediatrics (IAP)", "National Neonatology Forum (NNF)"],
+    "awards": ["IAP Best Paper Award 2021", "Excellence in Child Healthcare 2019"],
+    "registrations": { "council": "Madhya Pradesh Medical Council", "number": "MPMC-2013-02984" },
+    "clinic_reception_phone": "0761-4071234",
+    "walk_in_accepted": true,
+    "payment_modes": ["Cash", "UPI", "Card", "Net Banking"],
+    "opd_timings": "9:00 AM – 6:00 PM"
   },
   {
     "_id": "doctor-neha",
@@ -191,7 +348,27 @@
     "bio": "Women's health specialist with expertise in high-risk pregnancy management, PCOD treatment, and minimally invasive gynecological surgeries.",
     "time_slots": ["10:00 AM", "11:00 AM", "02:00 PM", "03:00 PM", "04:00 PM"],
     "reviews_count": 345,
-    "profile_photo": ""
+    "languages": ["Hindi", "English", "Marathi"],
+    "practice_type": "private",
+    "areas_of_expertise": ["High-Risk Pregnancy", "PCOD Management", "Menopause Treatment", "Fertility Counseling", "Minimally Invasive Surgery"],
+    "services_offered": ["Gynecology Consultation", "Antenatal Care", "Postnatal Care", "Family Planning", "Wellness Checkup"],
+    "surgeries_procedures": ["Laparoscopic Surgery", "C-Section", "Hysterectomy", "Sonography"],
+    "education": [
+      { "degree": "MBBS", "college": "Seth GS Medical College, Mumbai", "year": 2010 },
+      { "degree": "MS Obstetrics & Gynaecology", "college": "Seth GS Medical College, Mumbai", "year": 2014 },
+      { "degree": "Fellowship in Reproductive Medicine", "college": "Nova IVI Fertility, Bangalore", "year": 2016 }
+    ],
+    "work_experience": [
+      { "hospital": "Neha Women's Health Clinic", "role": "Consultant Gynecologist & Owner", "period": "2019 – Present" },
+      { "hospital": "Lilavati Hospital, Mumbai", "role": "Associate Consultant", "period": "2016 – 2019" }
+    ],
+    "memberships": ["Federation of Obstetric & Gynaecological Societies of India (FOGSI)"],
+    "awards": ["FOGSI Young Gynecologist Award 2020"],
+    "registrations": { "council": "Madhya Pradesh Medical Council", "number": "MPMC-2014-03215" },
+    "clinic_reception_phone": "0761-4037890",
+    "walk_in_accepted": true,
+    "payment_modes": ["Cash", "UPI", "Card"],
+    "opd_timings": "10:00 AM – 5:00 PM"
   },
   {
     "_id": "doctor-arjun",
@@ -215,7 +392,27 @@
     "bio": "Orthopedic surgeon specializing in joint preservation, sports injuries, and trauma care. Integrated physiotherapy for holistic recovery.",
     "time_slots": ["08:00 AM", "09:00 AM", "10:00 AM", "02:00 PM", "03:00 PM", "04:00 PM"],
     "reviews_count": 267,
-    "profile_photo": ""
+    "languages": ["Hindi", "English"],
+    "practice_type": "private",
+    "areas_of_expertise": ["Joint Preservation", "Sports Injuries", "Fracture Management", "Arthritis Treatment", "Physiotherapy"],
+    "services_offered": ["Orthopedic Consultation", "X-Ray & Imaging", "Physiotherapy Sessions", "Rehabilitation"],
+    "surgeries_procedures": ["Knee Replacement", "ACL Reconstruction", "Fracture Fixation", "Arthroscopy"],
+    "education": [
+      { "degree": "MBBS", "college": "Safdarjung Medical College, Delhi", "year": 2009 },
+      { "degree": "MS Orthopedics", "college": "Safdarjung Medical College, Delhi", "year": 2013 },
+      { "degree": "DNB Orthopedics", "college": "National Board of Examinations", "year": 2015 }
+    ],
+    "work_experience": [
+      { "hospital": "Arjun Ortho & Physio Clinic", "role": "Consultant Orthopedic Surgeon & Owner", "period": "2017 – Present" },
+      { "hospital": "Apollo Hospitals, Delhi", "role": "Junior Consultant", "period": "2015 – 2017" }
+    ],
+    "memberships": ["Indian Orthopaedic Association (IOA)", "Indian Society of Sports Orthopedics (ISSO)"],
+    "awards": ["IOA Best Clinical Paper 2019"],
+    "registrations": { "council": "Madhya Pradesh Medical Council", "number": "MPMC-2013-02876" },
+    "clinic_reception_phone": "0761-4065432",
+    "walk_in_accepted": true,
+    "payment_modes": ["Cash", "UPI", "Card", "Net Banking"],
+    "opd_timings": "8:00 AM – 4:00 PM"
   },
   {
     "_id": "doctor-rohit",
@@ -239,6 +436,30 @@
     "approved": true,
     "bio": "Dermatologist with expertise in medical and cosmetic dermatology. Specializes in acne, psoriasis, eczema, and laser treatments.",
     "time_slots": ["10:00 AM", "11:00 AM", "12:00 PM", "03:00 PM", "04:00 PM", "05:00 PM"],
-    "reviews_count": 156
+    "reviews_count": 156,
+    "languages": ["Hindi", "English"],
+    "areas_of_expertise": ["Medical Dermatology", "Cosmetic Dermatology", "Acne & Rosacea", "Psoriasis & Eczema", "Laser Dermatology"],
+    "services_offered": ["Dermatology Consultation", "Skin Check-up", "Laser Treatment", "Chemical Peel", "Allergy Testing"],
+    "surgeries_procedures": ["Laser Resurfacing", "Chemical Peel", "Cryotherapy", "Skin Biopsy", "Wart Removal"],
+    "education": [
+      { "degree": "MBBS", "college": "Maulana Azad Medical College, Delhi", "year": 2012 },
+      { "degree": "MD Dermatology", "college": "Maulana Azad Medical College, Delhi", "year": 2016 },
+      { "degree": "Fellowship in Cosmetic Dermatology", "college": "American Academy of Aesthetic Medicine", "year": 2018 }
+    ],
+    "work_experience": [
+      { "hospital": "City Care Hospital, Jabalpur", "role": "Consultant Dermatologist", "period": "2018 – Present" },
+      { "hospital": "Max Healthcare, Delhi", "role": "Senior Resident", "period": "2016 – 2018" }
+    ],
+    "memberships": ["Indian Association of Dermatologists (IADVL)"],
+    "awards": ["IADVL Best Poster 2019"],
+    "registrations": { "council": "Madhya Pradesh Medical Council", "number": "MPMC-2016-01987" },
+    "walk_in_accepted": true,
+    "in_house_pharmacy": true,
+    "in_house_lab": true,
+    "admission_available": true,
+    "emergency_consultation": true,
+    "surgery_available": false,
+    "payment_modes": ["Cash", "UPI", "Card"],
+    "opd_timings": "10:00 AM – 5:00 PM"
   }
 ]

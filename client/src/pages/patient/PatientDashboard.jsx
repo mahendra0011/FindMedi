@@ -305,7 +305,7 @@ export default function PatientDashboard() {
                   </div>
                 </div>
               ))}
-              {appointments.length === 0 && <div className="text-center py-20 text-muted-foreground"><CalendarDays className="w-12 h-12 mx-auto mb-3 opacity-30" /><p>No appointments</p><Link to="/doctors"><Button size="sm" className="mt-3">Book Appointment</Button></Link></div>}
+              {appointments.length === 0 && <div className="text-center py-20 text-muted-foreground"><CalendarDays className="w-12 h-12 mx-auto mb-3 opacity-30" /><p>No appointments</p><Link to="/clinic-doctors"><Button size="sm" className="mt-3">Book Appointment</Button></Link></div>}
             </div>
           )}
 
