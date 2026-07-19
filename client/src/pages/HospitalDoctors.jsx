@@ -489,7 +489,7 @@ export default function HospitalDoctors() {
                   </div>
 
                   <div className={cn('px-3 py-2 rounded-xl border text-sm mb-4 text-center font-medium', doc.available ? 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10' : 'bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10')}>
-                    {doc.available ? 'Available Today' : 'Next Available: Tomorrow 9 AM'}
+                    {doc.available ? `Available Today${doc.next_available_slot ? `, ${doc.next_available_slot}` : ''}` : `Next Available: ${doc.next_available_slot || 'Tomorrow 9 AM'}`}
                   </div>
 
                   <div className="flex items-center justify-between p-3 rounded-xl bg-primary/5 border border-primary/10 mb-4">

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Star, MapPin, Stethoscope, UserRound, CalendarDays, IndianRupee, Award, Users, SlidersHorizontal, X, Building2, Clock, Shield, Syringe, BedDouble, Languages, GraduationCap, CircleDot, ChevronDown, ChevronUp, Ambulance, Eye, Heart, Bone, Baby, Activity, Brain, BadgeCheck, Phone, Mail, ArrowRight, Navigation, Globe } from 'lucide-react';
+import { Search, Star, MapPin, Stethoscope, UserRound, CalendarDays, IndianRupee, Award, Users, SlidersHorizontal, X, Building2, Clock, Shield, Syringe, BedDouble, Languages, GraduationCap, CircleDot, ChevronDown, ChevronUp, Ambulance, Eye, Heart, Bone, Baby, Activity, Brain, BadgeCheck, Phone, Mail, ArrowRight, Navigation, Globe, FlaskConical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -565,15 +565,22 @@ export default function ClinicDoctors() {
                       <span className="font-bold text-lg text-primary">Rs {doc.consultation_fees || doc.fees || 0}</span>
                     </div>
 
-                    <div className="flex gap-2">
-                      <Button size="sm" className="flex-1 gap-1.5 rounded-xl text-[11px] h-9 shadow-lg shadow-primary/20" disabled={!doc.available}
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button size="sm" className="w-full gap-1.5 rounded-xl text-[11px] h-9 shadow-lg shadow-primary/20" disabled={!doc.available}
                         onClick={(e) => { e.stopPropagation(); navigate(`/clinic-doctors/${doc._id}`); }}>
                         <CalendarDays className="w-3.5 h-3.5" /> {doc.available ? 'Book Appointment' : 'Unavailable'}
                       </Button>
-                      <Button variant="outline" size="sm" className="flex-1 gap-1.5 rounded-xl text-[11px] h-9 group/btn"
+                      <Button variant="outline" size="sm" className="w-full gap-1.5 rounded-xl text-[11px] h-9"
+                        onClick={(e) => { e.stopPropagation(); navigate(`/clinic/${doc.facilityId?._id || doc._id}`); }}>
+                        <Building2 className="w-3.5 h-3.5" /> View Clinic
+                      </Button>
+                      <Button variant="outline" size="sm" className="w-full gap-1.5 rounded-xl text-[11px] h-9"
                         onClick={(e) => { e.stopPropagation(); navigate(`/clinic-doctors/${doc._id}`); }}>
-                        View Doctor Details
-                        <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover/btn:translate-x-0.5" />
+                        View Doctor
+                      </Button>
+                      <Button variant="outline" size="sm" className="w-full gap-1.5 rounded-xl text-[11px] h-9"
+                        onClick={(e) => { e.stopPropagation(); navigate(`/book-test/${doc._id}`); }}>
+                        <FlaskConical className="w-3.5 h-3.5" /> Test Available
                       </Button>
                     </div>
                   </div>

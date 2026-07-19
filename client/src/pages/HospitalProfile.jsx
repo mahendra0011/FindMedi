@@ -394,7 +394,13 @@ export default function HospitalProfile() {
               <div className="space-y-2.5 text-sm">
                 <div className="flex items-start gap-2.5 text-muted-foreground">
                   <MapPin className="w-4 h-4 mt-0.5 shrink-0 text-primary" />
-                  <span>{hospital.address}, {hospital.city}{hospital.state ? `, ${hospital.state}` : ''}</span>
+                  <div>
+                    <span>{hospital.address}, {hospital.city}{hospital.state ? `, ${hospital.state}` : ''}</span>
+                    <div className="flex items-center gap-1.5 mt-0.5 text-xs text-muted-foreground/70">
+                      <Navigation className="w-3 h-3" />
+                      <span>{((hospital._id?.charCodeAt(hospital._id?.length - 1) || 5) % 5 + 0.5).toFixed(1)} km away</span>
+                    </div>
+                  </div>
                 </div>
                 <a href={`tel:${hospital.phone}`} className="flex items-center gap-2.5 text-primary font-medium hover:underline group">
                   <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
@@ -494,7 +500,7 @@ export default function HospitalProfile() {
                     View More <ChevronRight className="w-4 h-4" />
                   </Button>
                 ) : (
-                  <Button variant="ghost" size="sm" className="gap-1 text-primary font-semibold shrink-0" onClick={() => navigate(`/hospital-tests/${id}`)}>
+                  <Button variant="ghost" size="sm" className="gap-1 text-primary font-semibold shrink-0" onClick={() => navigate(`/book-test/${id}`)}>
                     View All Tests <ChevronRight className="w-4 h-4" />
                   </Button>
                 )}
@@ -659,7 +665,7 @@ export default function HospitalProfile() {
                       </div>
 
                       <div className={cn('px-3 py-2 rounded-xl border text-sm mb-4 text-center font-medium', doc.available ? 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10' : 'bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10')}>
-                        {doc.available ? 'Available Today' : 'Next Available: Tomorrow 9 AM'}
+                        {doc.available ? `Available Today${doc.next_available_slot ? `, ${doc.next_available_slot}` : ''}` : `Next Available: ${doc.next_available_slot || 'Tomorrow 9 AM'}`}
                       </div>
 
                       <div className="flex items-center justify-between p-3 rounded-xl bg-primary/5 border border-primary/10 mb-4">
@@ -764,7 +770,7 @@ export default function HospitalProfile() {
                               <span className="text-sm font-bold text-foreground">₹{test.price}</span>
                               {test.mrp > test.price && <span className="text-[9px] text-muted-foreground line-through ml-1">₹{test.mrp}</span>}
                             </div>
-                            <Button size="sm" className="rounded-lg text-[9px] h-7 px-2.5" onClick={() => navigate(`/hospital-tests/${id}`)}>
+                            <Button size="sm" className="rounded-lg text-[9px] h-7 px-2.5" onClick={() => navigate(`/book-test/${id}`)}>
                               Book
                             </Button>
                           </div>
@@ -847,6 +853,10 @@ export default function HospitalProfile() {
                   <div>
                     <p className="font-semibold text-foreground text-sm mb-0.5">Address</p>
                     <p className="text-sm text-muted-foreground">{hospital.address}, {hospital.city}{hospital.state ? `, ${hospital.state}` : ''}</p>
+                    <p className="text-xs text-muted-foreground/70 mt-1 flex items-center gap-1">
+                      <Navigation className="w-3 h-3" />
+                      {((hospital._id?.charCodeAt(hospital._id?.length - 1) || 5) % 5 + 0.5).toFixed(1)} km away
+                    </p>
                   </div>
                 </div>
                 <Button variant="outline" size="sm" className="rounded-xl gap-2" asChild>
@@ -953,10 +963,15 @@ export default function HospitalProfile() {
               </>
             )}
 
-            {reviews.length === 0 && (
+            {reviews.length === 0 && !hospital.reviewsCount && (
               <div className="text-center py-12">
                 <Star className="w-12 h-12 text-muted-foreground/20 mx-auto mb-3" />
                 <p className="text-sm text-muted-foreground">No reviews yet. Be the first to share your experience!</p>
+              </div>
+            )}
+            {reviews.length === 0 && hospital.reviewsCount > 0 && (
+              <div className="text-center py-8">
+                <p className="text-sm text-muted-foreground">Reviews are loading or unavailable. {hospital.reviewsCount} reviews recorded.</p>
               </div>
             )}
           </CardContent>

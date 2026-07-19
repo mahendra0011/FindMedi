@@ -193,7 +193,7 @@ export default function DiagnosticCenterCard({ clinic, index = 0 }) {
           <Button
             variant="outline"
             className="flex-1 gap-1.5 rounded-xl h-10 text-xs font-semibold"
-            onClick={() => navigate(`/diagnostic-center/${_id}`)}
+            onClick={() => navigate(`/book-test/${_id}`)}
           >
             <Calendar className="w-3.5 h-3.5" />
             Book Tests

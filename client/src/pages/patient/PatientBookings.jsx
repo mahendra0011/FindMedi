@@ -166,7 +166,7 @@ export default function PatientBookings() {
           <CalendarDays className="w-12 h-12 text-muted-foreground/20 mx-auto mb-3" />
           <h3 className="text-sm font-semibold text-foreground mb-1">No bookings found</h3>
           <p className="text-xs text-muted-foreground">Try a different filter or search term</p>
-          <Button variant="outline" size="sm" className="mt-4 rounded-xl" onClick={() => navigate('/book-test')}>
+          <Button variant="outline" size="sm" className="mt-4 rounded-xl" onClick={() => navigate('/diagnostic-centers')}>
             <FlaskConical className="w-3.5 h-3.5 mr-1.5" /> Book a Test
           </Button>
         </div>

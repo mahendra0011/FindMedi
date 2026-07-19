@@ -14,7 +14,7 @@ const NAV_ITEMS = [
   { label: 'Home', path: '/' },
   { label: 'Find Hospital', path: '/hospitals' },
   { label: 'Find Clinic', path: '/clinic-doctors' },
-  { label: 'Find Diagnostic Centers', path: '/book-test' },
+  { label: 'Find Diagnostic Centers', path: '/diagnostic-centers' },
   { label: 'Book Test', path: '/all-tests' },
   { label: 'Buy Medicine', path: '/buy-medicine' },
 ];

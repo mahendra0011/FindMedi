@@ -413,7 +413,7 @@ export default function AllTests() {
                 Clear
               </Button>
               <Button size="sm" className="gap-2 rounded-xl h-10 px-6 text-sm font-bold shadow-lg shadow-primary/30"
-                onClick={() => navigate('/hospital-tests/general')}>
+                onClick={() => navigate('/book-test/general')}>
                 Book Now
                 <ArrowRight className="w-4 h-4" />
               </Button>
