@@ -211,11 +211,14 @@ router.post('/register', validate(registerSchema), async (req, res) => {
       consultationFee = 0,
     } = req.body;
 
-    const normalizedRole = ['admin', 'doctor', 'patient'].includes(role) ? role : 'patient';
+    const normalizedRole = ['admin', 'doctor', 'patient', 'technician'].includes(role) ? role : 'patient';
     const lowerEmail = email.toLowerCase();
 
     if (normalizedRole === 'doctor' && (!specialization || !licenseNumber || !(qualification || qualifications))) {
       return res.status(400).json({ message: 'Specialization, qualification and license number are required for doctor registration' });
+    }
+    if (normalizedRole === 'technician' && !specialization) {
+      return res.status(400).json({ message: 'Technician role is required' });
     }
 
     if (await User.findOne({ email: lowerEmail })) {
@@ -237,7 +240,7 @@ router.post('/register', validate(registerSchema), async (req, res) => {
       consultationFee: Number(consultationFee) || 0,
       isVerified: false,
       status: 'active',
-      approvalStatus: normalizedRole === 'doctor' ? 'pending' : 'not_required',
+      approvalStatus: normalizedRole === 'doctor' || normalizedRole === 'technician' ? 'pending' : 'not_required',
     });
 
     if (normalizedRole === 'doctor') {
@@ -264,6 +267,13 @@ router.post('/register', validate(registerSchema), async (req, res) => {
       await sendHostNotificationEmail({
         subject: 'New MediCore Doctor Registration',
         text: `${name} (${lowerEmail}) registered as a doctor with license ${licenseNumber}.`,
+      });
+    }
+
+    if (normalizedRole === 'technician') {
+      await notifyAdmins({
+        title: 'Technician Approval Required',
+        message: `${name} registered as a ${specialization} technician and needs admin approval after email verification.`,
       });
     }
 

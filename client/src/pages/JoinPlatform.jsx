@@ -26,13 +26,21 @@ const SPECIALTIES = ['Cardiology','Neurology','Orthopedics','Pediatrics','Dermat
 
 const emptyDoctor = () => ({ name: '', specialization: '', qualifications: '', experience: '', email: '', phone: '' });
 
-const STEPS = [
+const BASE_STEPS = [
   { num: 1, label: 'Facility Type', icon: Building2 },
   { num: 2, label: 'Admin Account', icon: User },
   { num: 3, label: 'Facility Info', icon: MapPin },
-  { num: 4, label: 'Doctors & Services', icon: Users },
-  { num: 5, label: 'Review & Submit', icon: FileText },
 ];
+const DOCTORS_STEP = { num: 4, label: 'Doctors & Services', icon: Users };
+const REVIEW_STEP = { num: 99, label: 'Review & Submit', icon: FileText };
+
+const getSteps = (type) => {
+  const hasDoctors = type === 'hospital' || type === 'clinic';
+  const steps = [...BASE_STEPS];
+  if (hasDoctors) steps.push(DOCTORS_STEP);
+  steps.push({ ...REVIEW_STEP, num: steps.length + 1 });
+  return steps.map((s, i) => ({ ...s, num: i + 1 }));
+};
 
 export default function JoinPlatform() {
   const navigate = useNavigate();
@@ -126,9 +134,12 @@ export default function JoinPlatform() {
     );
   }
 
+  const steps = getSteps(type);
+  const maxStep = steps.length;
+
   const renderStepIndicator = () => (
     <div className="flex items-center justify-center gap-0 mb-8">
-      {STEPS.map((s, i) => (
+      {steps.map((s, i) => (
         <div key={s.num} className="flex items-center">
           <div className={cn(
             'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all border',
@@ -144,7 +155,7 @@ export default function JoinPlatform() {
             </div>
             <span className="hidden sm:inline">{s.label}</span>
           </div>
-          {i < STEPS.length - 1 && (
+          {i < steps.length - 1 && (
             <div className={cn('w-6 sm:w-10 h-0.5 mx-0.5 rounded-full', step > s.num ? 'bg-primary' : 'bg-border')} />
           )}
         </div>
@@ -169,7 +180,7 @@ export default function JoinPlatform() {
         )}
       </div>
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        <span>Step {step} of {STEPS.length}</span>
+        <span>Step {step} of {maxStep}</span>
       </div>
     </div>
   );
@@ -461,15 +472,15 @@ export default function JoinPlatform() {
               </div>
               {navButtons()}
               <div className="flex justify-end mt-4">
-                <Button onClick={() => setStep(4)} disabled={!canProceed()} className="gap-2 rounded-xl shadow-lg shadow-primary/20">
+                <Button onClick={() => setStep(type === 'hospital' || type === 'clinic' ? 4 : maxStep)} disabled={!canProceed()} className="gap-2 rounded-xl shadow-lg shadow-primary/20">
                   Continue <ArrowRight className="w-4 h-4" />
                 </Button>
               </div>
             </motion.div>
           )}
 
-          {/* Step 4: Doctors & Services */}
-          {step === 4 && (
+          {/* Step 4: Doctors & Services — only for hospital/clinic */}
+          {step === 4 && (type === 'hospital' || type === 'clinic') && (
             <motion.div key="s4" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
               {stepHeader('Doctors & Specialties', 'Add your doctors and the specialties your ' + (selectedType?.label || '') + ' offers')}
 

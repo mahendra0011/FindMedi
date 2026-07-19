@@ -119,6 +119,8 @@ export default function DiagnosticCenterDetail() {
   const [pkgCatFilter, setPkgCatFilter] = useState('All');
   const [pkgSort, setPkgSort] = useState('popularity');
   const [selectedSlot, setSelectedSlot] = useState('');
+  const [testsData, setTestsData] = useState([]);
+  const [packagesData, setPackagesData] = useState([]);
 
   useEffect(() => {
     const load = async () => {
@@ -128,6 +130,14 @@ export default function DiagnosticCenterDetail() {
         const fac = result?.facility || result;
         if (!fac || fac.type !== 'lab') throw new Error('Not found');
         setFacility(fac);
+        try {
+          const [tests, pkgs] = await Promise.all([
+            api.getTests({ hospitalId: clinicId }),
+            api.getLabPackages({ hospitalId: clinicId }).catch(() => [])
+          ]);
+          setTestsData(tests || []);
+          setPackagesData(pkgs || []);
+        } catch {}
       } catch {
         setNotFound(true);
       } finally {
@@ -192,8 +202,29 @@ export default function DiagnosticCenterDetail() {
     }
   } : null;
 
-  const clinicTests = ALL_TESTS;
-  const clinicPackages = PACKAGES;
+  const clinicTests = testsData.length > 0 ? testsData.map(t => ({
+    id: t._id,
+    name: t.name,
+    detailCategory: t.category,
+    mrp: t.mrp,
+    price: t.price,
+    discount: t.discount || Math.round((1 - t.price / t.mrp) * 100),
+    reportTime: t.reportTime || '24 hrs',
+    homeCollection: t.homeCollection || false,
+    rx: t.prescriptionReq || false,
+    popular: t.popular || false,
+  })) : ALL_TESTS;
+
+  const clinicPackages = packagesData.length > 0 ? packagesData.map(p => ({
+    id: p._id,
+    name: p.name,
+    detailCategory: 'Health Packages',
+    price: p.price,
+    mrp: p.mrp,
+    discount: p.discount || Math.round((1 - p.price / p.mrp) * 100),
+    includes: p.includes || [],
+    popular: p.popular || false,
+  })) : PACKAGES;
   const clinicEntries = entries.filter(e => e.item._id === clinicId);
   const clinicCartCount = clinicEntries.reduce((s, e) => s + e.qty, 0);
   const clinicCartTotal = clinicEntries.reduce((s, e) => s + e.item.price * e.qty, 0);

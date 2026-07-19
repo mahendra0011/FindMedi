@@ -137,7 +137,8 @@ router.put('/:id', protect, async (req, res) => {
     if (facility._id.toString() !== userFacilityId && req.user.role !== 'superadmin') {
       return res.status(403).json({ message: 'Not authorized' });
     }
-    const allowedFields = ['name', 'address', 'city', 'state', 'phone', 'logo', 'description', 'specialties', 'details', 'image',
+    const allowedFields = ['name', 'email', 'address', 'city', 'state', 'phone', 'logo', 'image', 'description', 'specialties', 'details',
+      'establishedYear', 'accreditations',
       'nablNumber', 'aerbNumber', 'workingHours',
       'pathologistName', 'pathologistQualification',
       'radiologistName', 'radiologistQualification',
