@@ -53,6 +53,31 @@ function getExpYears(exp) {
   return match ? parseInt(match[1]) : 0;
 }
 
+function getClinicPath(doctor) {
+  const facilityId = getFacilityId(doctor);
+  return `/clinic/${facilityId || doctor?._id}`;
+}
+
+function getFacilityId(doctor) {
+  return doctor?.facilityId?._id || doctor?.facilityId || '';
+}
+
+function getClinicName(doctor) {
+  return doctor?.clinicProfile?.clinic_name || doctor?.facilityId?.name || '';
+}
+
+function getClinicAddress(doctor) {
+  return doctor?.clinicProfile?.clinic_address || doctor?.facilityId?.address || doctor?.location || '';
+}
+
+function getFaqQuestion(faq) {
+  return faq?.q || faq?.question || '';
+}
+
+function getFaqAnswer(faq) {
+  return faq?.a || faq?.answer || '';
+}
+
 const DAY_ORDER = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
 const DAY_LABELS = { sunday: 'Sunday', monday: 'Monday', tuesday: 'Tuesday', wednesday: 'Wednesday', thursday: 'Thursday', friday: 'Friday', saturday: 'Saturday' };
 
@@ -94,10 +119,14 @@ export default function ClinicDoctor() {
         const rv = await api.getReviews({ doctorId: id }).catch(() => []);
         setReviews(Array.isArray(rv) ? rv : []);
 
-        const allDocs = await api.getDoctors({}).catch(() => []);
+        const allDocs = await api.getDoctors({ doctor_type: 'clinic' }).catch(() => []);
         const filtered = (allDocs || []).filter(d => d._id !== id);
-        if (doc.clinicProfile?.clinic_name) {
-          setRelatedDoctors(filtered.filter(d => d.clinicProfile?.clinic_name === doc.clinicProfile?.clinic_name).slice(0, 4));
+        if (getFacilityId(doc) || doc.clinicProfile?.clinic_name) {
+          setRelatedDoctors(filtered.filter(d => {
+            const sameFacility = getFacilityId(doc) && getFacilityId(d) && String(getFacilityId(d)) === String(getFacilityId(doc));
+            const sameClinicName = d.clinicProfile?.clinic_name === doc.clinicProfile?.clinic_name;
+            return sameFacility || sameClinicName;
+          }).slice(0, 4));
         }
         if (doc.specialization) {
           setDepartmentDoctors(filtered.filter(d => d.specialization === doc.specialization).slice(0, 4));
@@ -191,7 +220,7 @@ export default function ClinicDoctor() {
   }
 
   if (notFound || !doctor) {
-    return <Navigate to="/doctors" replace />;
+    return <Navigate to="/clinic-doctors" replace />;
   }
 
   const expYears = getExpYears(doctor.experience);
@@ -208,7 +237,7 @@ export default function ClinicDoctor() {
             <Home className="w-3.5 h-3.5" /><span className="hidden sm:inline">Home</span>
           </Link>
           <ChevronRight className="w-3.5 h-3.5" />
-          <Link to="/doctors" className="hover:text-primary transition-colors">Doctors</Link>
+          <Link to="/clinic-doctors" className="hover:text-primary transition-colors">Doctors</Link>
           <ChevronRight className="w-3.5 h-3.5" />
           <span className="text-foreground font-medium truncate max-w-[200px]">{doctor.name}</span>
         </nav>
@@ -537,9 +566,9 @@ export default function ClinicDoctor() {
                   </h2>
 
                   {/* Linked Clinic Card */}
-                  {(doctor.clinicProfile?.clinic_name || '') && (
+                  {getClinicName(doctor) && (
                     <div className="mb-6 p-4 rounded-xl bg-gradient-to-br from-primary/5 to-primary/0 border border-primary/20 hover:border-primary/40 transition-colors cursor-pointer"
-                      onClick={() => navigate(`/clinic/${doctor._id}`)}
+                      onClick={() => navigate(getClinicPath(doctor))}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
@@ -547,12 +576,12 @@ export default function ClinicDoctor() {
                             <Building2 className="w-5 h-5 text-primary" />
                           </div>
                           <div>
-                            <p className="font-semibold text-foreground">{doctor.clinicProfile?.clinic_name}</p>
-                            <p className="text-xs text-muted-foreground">{doctor.clinicProfile?.clinic_address || doctor.location || ''}</p>
+                            <p className="font-semibold text-foreground">{getClinicName(doctor)}</p>
+                            <p className="text-xs text-muted-foreground">{getClinicAddress(doctor)}</p>
                           </div>
                         </div>
                         <Button variant="outline" size="sm" className="rounded-xl gap-1.5 shrink-0"
-                          onClick={(e) => { e.stopPropagation(); navigate(`/clinic/${doctor._id}`); }}>
+                          onClick={(e) => { e.stopPropagation(); navigate(getClinicPath(doctor)); }}>
                           View Clinic
                           <ArrowRight className="w-3.5 h-3.5" />
                         </Button>
@@ -561,62 +590,16 @@ export default function ClinicDoctor() {
                   )}
 
                   {/* Clinic Photos / Gallery */}
-                  {doctor.clinic_photos?.length > 0 && (
+                  {doctor.clinicProfile?.clinic_photos?.length > 0 && (
                     <div className="mb-6">
                       <p className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
                         <Image className="w-4 h-4 text-primary" />
                         Clinic Gallery
                       </p>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                        {doctor.clinic_photos.map((photo, i) => (
+                        {doctor.clinicProfile.clinic_photos.map((photo, i) => (
                           <div key={i} className="aspect-[3/2] rounded-xl overflow-hidden border border-border/40 bg-muted">
                             <img src={photo} alt={`Clinic photo ${i + 1}`} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Multiple Clinic Locations */}
-                  {doctor.clinic_locations?.length > 0 && (
-                    <div className="mb-6">
-                      <p className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-                        <MapPin className="w-4 h-4 text-primary" />
-                        Clinic Locations ({doctor.clinic_locations.length})
-                      </p>
-                      <div className="space-y-3">
-                        {doctor.clinic_locations.map((loc, i) => (
-                          <div key={i} className={cn(
-                            'p-4 rounded-xl border transition-colors',
-                            loc.is_primary
-                              ? 'bg-primary/5 border-primary/30'
-                              : 'bg-muted/30 border-border/60'
-                          )}>
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <p className="font-semibold text-foreground text-sm">{loc.name}</p>
-                                  {loc.is_primary && (
-                                    <Badge variant="outline" className="text-[10px] h-5 bg-primary/10 text-primary border-primary/30 px-2">Primary</Badge>
-                                  )}
-                                </div>
-                                <p className="text-xs text-muted-foreground flex items-center gap-1 mb-1">
-                                  <MapPin className="w-3 h-3 shrink-0" />
-                                  {loc.address}
-                                </p>
-                                <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                  <Clock className="w-3 h-3 shrink-0" />
-                                  {loc.timing}
-                                </p>
-                              </div>
-                              {loc.phone && (
-                                <a href={`tel:${loc.phone}`}
-                                  className="shrink-0 p-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-                                >
-                                  <Phone className="w-4 h-4" />
-                                </a>
-                              )}
-                            </div>
                           </div>
                         ))}
                       </div>
@@ -661,11 +644,11 @@ export default function ClinicDoctor() {
                   </div>
 
                   {/* Clinic Facilities */}
-                  {doctor.facilities?.length > 0 && (
+                  {doctor.clinicProfile?.clinic_facilities?.length > 0 && (
                     <div className="mb-6">
                       <p className="text-sm font-semibold text-foreground mb-3">Facilities</p>
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                        {doctor.facilities.map((fac, i) => (
+                        {doctor.clinicProfile.clinic_facilities.map((fac, i) => (
                           <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/30 border border-border/60 text-sm text-muted-foreground">
                             {fac.toLowerCase().includes('parking') && <Car className="w-3.5 h-3.5 text-primary shrink-0" />}
                             {fac.toLowerCase().includes('wheelchair') && <Accessibility className="w-3.5 h-3.5 text-primary shrink-0" />}
@@ -679,14 +662,14 @@ export default function ClinicDoctor() {
                   )}
 
                   {/* Insurance Accepted (common for both views) */}
-                  {doctor.insurance_accepted?.length > 0 && (
+                  {doctor.clinicProfile?.clinic_insurance?.length > 0 && (
                     <div>
                       <p className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
                         <Shield className="w-4 h-4 text-primary" />
                         Insurance / Cashless Accepted
                       </p>
                       <div className="flex flex-wrap gap-2">
-                        {doctor.insurance_accepted.map(ins => (
+                        {doctor.clinicProfile.clinic_insurance.map(ins => (
                           <Badge key={ins} variant="outline" className="text-xs bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-800 px-3 py-1">
                             <CheckCircle className="w-3 h-3 mr-1" />{ins}
                           </Badge>
@@ -752,7 +735,7 @@ export default function ClinicDoctor() {
                                 {active ? (doctor.opd_timings?.split('|')[0]?.trim() || '9:00 AM – 5:00 PM') : '—'}
                               </td>
                               <td className="py-3 px-4 text-muted-foreground">
-                                {active ? (doctor.clinicProfile?.clinic_name || '—') : '—'}
+                                {active ? (getClinicName(doctor) || '—') : '—'}
                               </td>
                             </tr>
                           );
@@ -897,11 +880,11 @@ export default function ClinicDoctor() {
                       <span className="text-sm text-muted-foreground">Consultation Fee</span>
                       <span className="text-sm font-semibold text-success">Rs {doctor.consultation_fees || doctor.fees || 0}</span>
                     </div>
-                    {doctor.insurance_accepted?.length > 0 && (
+                  {doctor.clinicProfile?.clinic_insurance?.length > 0 && (
                       <div className="px-4 py-3 rounded-xl bg-muted/30 border border-border/60">
                         <span className="text-sm text-muted-foreground block mb-2">Insurance Accepted</span>
                         <div className="flex flex-wrap gap-1.5">
-                          {doctor.insurance_accepted.map(ins => (
+                        {doctor.clinicProfile.clinic_insurance.map(ins => (
                             <Badge key={ins} variant="secondary" className="text-xs">{ins}</Badge>
                           ))}
                         </div>
@@ -936,7 +919,7 @@ export default function ClinicDoctor() {
                               onClick={() => setExpandedFaq(expandedFaq === i ? null : i)}
                               className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-muted/20 transition-colors"
                             >
-                              <span className="text-sm font-medium text-foreground">{faq.q}</span>
+                              <span className="text-sm font-medium text-foreground">{getFaqQuestion(faq)}</span>
                               {expandedFaq === i
                                 ? <Minus className="w-4 h-4 text-muted-foreground shrink-0 ml-2" />
                                 : <Plus className="w-4 h-4 text-muted-foreground shrink-0 ml-2" />
@@ -944,7 +927,7 @@ export default function ClinicDoctor() {
                             </button>
                             {expandedFaq === i && (
                               <div className="px-4 pb-3">
-                                <p className="text-sm text-muted-foreground leading-relaxed">{faq.a}</p>
+                                <p className="text-sm text-muted-foreground leading-relaxed">{getFaqAnswer(faq)}</p>
                               </div>
                             )}
                           </div>

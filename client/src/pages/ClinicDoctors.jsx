@@ -51,7 +51,25 @@ function getExpYears(exp) {
   return m ? parseInt(m[1]) : 0;
 }
 
-export default function FindDoctor() {
+function getClinicName(doc) {
+  return doc.clinicProfile?.clinic_name || doc.facilityId?.name || doc.location?.split(',')?.[0] || 'Clinic';
+}
+
+function getClinicAddress(doc) {
+  return doc.clinicProfile?.clinic_address || doc.facilityId?.address || doc.location || doc.area || doc.address || doc.city || '';
+}
+
+function matchesSpecialty(doc, specialty) {
+  if (specialty === 'All') return true;
+  const normalized = specialty.toLowerCase();
+  const docSpec = (doc.specialization || '').toLowerCase();
+  if (normalized === 'general physician/ internal medicine') return ['general medicine', 'internal medicine'].includes(docSpec);
+  if (normalized === 'orthopaedics') return docSpec === 'orthopedics' || docSpec === 'orthopaedics';
+  if (normalized === 'paediatrics') return docSpec === 'pediatrics' || docSpec === 'paediatrics';
+  return docSpec === normalized;
+}
+
+export default function ClinicDoctors() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [doctors, setDoctors] = useState([]);
@@ -61,7 +79,7 @@ export default function FindDoctor() {
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const [specFilter, setSpecFilter] = useState(searchParams.get('specialization') || 'All');
-  const [hospitalFilter, setHospitalFilter] = useState(searchParams.get('hospital') || '');
+  const [clinicFilter, setClinicFilter] = useState(searchParams.get('clinic') || searchParams.get('hospital') || '');
   const [locationFilter, setLocationFilter] = useState('');
   const [availabilityFilter, setAvailabilityFilter] = useState('');
   const [genderFilter, setGenderFilter] = useState('');
@@ -82,9 +100,8 @@ export default function FindDoctor() {
   const loadDoctors = async () => {
     setLoading(true);
     try {
-      const params = { doctor_type: 'hospital' };
+      const params = { doctor_type: 'clinic' };
       if (search) params.search = search;
-      if (specFilter !== 'All') params.specialization = specFilter;
       const data = await api.getDoctors(params);
       setAllDoctors(data || []);
     } catch (e) { console.error(e); }
@@ -96,9 +113,9 @@ export default function FindDoctor() {
   useEffect(() => {
     let filtered = [...allDoctors];
 
-    if (specFilter !== 'All') filtered = filtered.filter(d => d.specialization === specFilter);
-    if (hospitalFilter) filtered = filtered.filter(d => (d.hospitalId?.name || '') === hospitalFilter);
-    if (locationFilter && locationFilter !== 'All') filtered = filtered.filter(d => (d.location || '').toLowerCase().includes(locationFilter.toLowerCase()));
+    if (specFilter !== 'All') filtered = filtered.filter(d => matchesSpecialty(d, specFilter));
+    if (clinicFilter) filtered = filtered.filter(d => getClinicName(d) === clinicFilter);
+    if (locationFilter && locationFilter !== 'All') filtered = filtered.filter(d => getClinicAddress(d).toLowerCase().includes(locationFilter.toLowerCase()));
     if (availabilityFilter === 'today') filtered = filtered.filter(d => d.available === true && d.next_available_slot?.toLowerCase().includes('today'));
     else if (availabilityFilter === 'tomorrow') filtered = filtered.filter(d => d.available === true && d.next_available_slot?.toLowerCase().includes('tomorrow'));
     else if (availabilityFilter === 'available') filtered = filtered.filter(d => d.available === true);
@@ -136,7 +153,7 @@ export default function FindDoctor() {
     else if (sortBy === 'fee') filtered.sort((a, b) => (a.consultation_fees || a.fees || 0) - (b.consultation_fees || b.fees || 0));
 
     setDoctors(filtered);
-  }, [allDoctors, specFilter, hospitalFilter, locationFilter, availabilityFilter, genderFilter, expFilter, feeRange, ratingFilter, consultantType, qualificationFilter, languageFilter, surgeryFilter, admissionFilter, insuranceFilter, emergencyFilter, sortBy]);
+  }, [allDoctors, specFilter, clinicFilter, locationFilter, availabilityFilter, genderFilter, expFilter, feeRange, ratingFilter, consultantType, qualificationFilter, languageFilter, surgeryFilter, admissionFilter, insuranceFilter, emergencyFilter, sortBy]);
 
   const renderStars = (rating) => (
     <div className="flex items-center gap-0.5">
@@ -147,7 +164,7 @@ export default function FindDoctor() {
   );
 
   const activeFilterCount = [
-    specFilter !== 'All', !!hospitalFilter, !!locationFilter, !!availabilityFilter,
+    specFilter !== 'All', !!clinicFilter, !!locationFilter, !!availabilityFilter,
     !!genderFilter, !!expFilter, feeRange[0] > 0 || feeRange[1] < 2000, ratingFilter > 0,
   ].filter(Boolean).length;
 
@@ -156,15 +173,15 @@ export default function FindDoctor() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="font-heading text-3xl font-bold text-foreground">Find a Doctor</h1>
-          <p className="text-muted-foreground mt-1">Search by name, specialization, or use filters below</p>
+          <h1 className="font-heading text-3xl font-bold text-foreground">Find a Clinic Doctor</h1>
+          <p className="text-muted-foreground mt-1">Search clinic doctors by name, specialization, or clinic</p>
         </div>
 
         {/* Search */}
         <div className="relative mb-6">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
           <Input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Search by doctor name or specialization..."
+            placeholder="Search by clinic doctor name or specialization..."
             className="pl-12 h-12 text-base rounded-2xl" />
         </div>
 
@@ -207,7 +224,7 @@ export default function FindDoctor() {
                     {spec.name === 'All' ? 'All Departments' : spec.name}
                   </span>
                   <span className="text-[10px] text-muted-foreground">
-                    {doctors.filter(d => spec.name === 'All' || d.specialization === spec.name).length}
+                    {allDoctors.filter(d => matchesSpecialty(d, spec.name)).length}
                   </span>
                 </button>
               );
@@ -219,10 +236,10 @@ export default function FindDoctor() {
         <div className="mb-6 space-y-3">
           <div className="flex flex-wrap items-center gap-2">
             {/* Main Filters */}
-            <select value={hospitalFilter} onChange={e => setHospitalFilter(e.target.value)}
+            <select value={clinicFilter} onChange={e => setClinicFilter(e.target.value)}
               className="h-9 px-3 rounded-xl border border-border bg-background text-sm max-w-[180px]">
-              <option value="">All Hospitals</option>
-              {[...new Set(allDoctors.map(d => d.hospitalId?.name || '').filter(Boolean))].map(n => (
+              <option value="">All Clinics</option>
+              {[...new Set(allDoctors.map(getClinicName).filter(Boolean))].map(n => (
                 <option key={n} value={n}>{n}</option>
               ))}
             </select>
@@ -230,13 +247,9 @@ export default function FindDoctor() {
             <select value={locationFilter} onChange={e => setLocationFilter(e.target.value)}
               className="h-9 px-3 rounded-xl border border-border bg-background text-sm">
               <option value="">All Locations</option>
-              <option value="New York">New York</option>
-              <option value="Los Angeles">Los Angeles</option>
-              <option value="Chicago">Chicago</option>
-              <option value="Houston">Houston</option>
-              <option value="Phoenix">Phoenix</option>
-              <option value="Philadelphia">Philadelphia</option>
-              <option value="Mumbai">Mumbai</option>
+              {[...new Set(allDoctors.map(d => getClinicAddress(d).split(',').map(p => p.trim()).find(p => p === 'Jabalpur') || '').filter(Boolean))].map(n => (
+                <option key={n} value={n}>{n}</option>
+              ))}
             </select>
 
             <select value={availabilityFilter} onChange={e => setAvailabilityFilter(e.target.value)}
@@ -306,7 +319,7 @@ export default function FindDoctor() {
             {/* Clear All */}
             {activeFilterCount > 0 && (
               <Button variant="ghost" size="sm" onClick={() => {
-                setSpecFilter('All'); setHospitalFilter(''); setLocationFilter('');
+                setSpecFilter('All'); setClinicFilter(''); setLocationFilter('');
                 setAvailabilityFilter(''); setGenderFilter(''); setExpFilter('');
                 setFeeRange([0, 2000]); setRatingFilter(0); setSortBy('relevance');
                 setConsultantType(''); setQualificationFilter([]);
@@ -436,7 +449,7 @@ export default function FindDoctor() {
         <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-heading text-xl font-bold text-foreground">
-              {specFilter !== 'All' ? `${specFilter} Specialists` : 'Available Doctors'}
+              {specFilter !== 'All' ? `${specFilter} Clinic Specialists` : 'Available Clinic Doctors'}
               <span className="text-base font-normal text-muted-foreground ml-2">({doctors.length})</span>
             </h2>
           </div>
@@ -446,21 +459,20 @@ export default function FindDoctor() {
           ) : doctors.length === 0 ? (
             <div className="text-center py-16">
               <UserRound className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-foreground mb-1">No doctors found</h3>
+              <h3 className="text-lg font-semibold text-foreground mb-1">No clinic doctors found</h3>
               <p className="text-muted-foreground">Try adjusting your filters or search term</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {doctors.map((doc, i) => {
-                const SpecIcon = ALL_SPECIALTIES.find(s => s.name === doc.specialization)?.icon || Stethoscope;
                 const initials = doc.name?.split(' ').map(n=>n?.[0]).join('').slice(0,2) || 'DR';
-                const hospitalName = doc.hospitalId?.name || '';
-                const area = doc.hospitalId?.address || doc.location || doc.area || doc.address || doc.city || '';
+                const clinicName = getClinicName(doc);
+                const area = getClinicAddress(doc);
                 const dist = doc.distance || ((doc._id?.charCodeAt(doc._id.length - 1) || 5) % 5 + 0.5).toFixed(1);
                 return (
                 <motion.div key={doc._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
                   className="group bg-card rounded-2xl border border-border/60 overflow-hidden hover:shadow-xl hover:shadow-primary/5 hover:border-primary/30 transition-all cursor-pointer relative"
-                  onClick={() => navigate(`/hospital-doctors/${doc._id}`)}>
+                  onClick={() => navigate(`/clinic-doctors/${doc._id}`)}>
                   {/* Corner Badge — Next Available Slot */}
                   <div className={cn('absolute top-0 right-0 z-10 px-3 py-1.5 rounded-bl-2xl text-[11px] font-semibold border-l border-b shadow-sm', doc.available
                     ? 'bg-primary/5 text-primary border-primary/20 dark:bg-primary/10'
@@ -482,7 +494,7 @@ export default function FindDoctor() {
                       </div>
                       <div className="min-w-0 flex-1 pt-1">
                         <div className="flex items-center gap-2">
-                          <h3 className="font-heading font-semibold text-foreground truncate group-hover:text-primary transition-colors">{hospitalName}</h3>
+                          <h3 className="font-heading font-semibold text-foreground truncate group-hover:text-primary transition-colors">{clinicName}</h3>
                           {doc.approved && <BadgeCheck className="w-4 h-4 text-primary shrink-0" />}
                         </div>
                         <p className="text-sm font-medium text-foreground truncate">{doc.name}</p>
@@ -555,12 +567,12 @@ export default function FindDoctor() {
 
                     <div className="flex gap-2">
                       <Button size="sm" className="flex-1 gap-1.5 rounded-xl text-[11px] h-9 shadow-lg shadow-primary/20" disabled={!doc.available}
-                        onClick={(e) => { e.stopPropagation(); navigate(`/hospital-doctors/${doc._id}`); }}>
+                        onClick={(e) => { e.stopPropagation(); navigate(`/clinic-doctors/${doc._id}`); }}>
                         <CalendarDays className="w-3.5 h-3.5" /> {doc.available ? 'Book Appointment' : 'Unavailable'}
                       </Button>
                       <Button variant="outline" size="sm" className="flex-1 gap-1.5 rounded-xl text-[11px] h-9 group/btn"
-                        onClick={(e) => { e.stopPropagation(); navigate(`/hospitals/${doc.hospitalId?._id || ''}`); }}>
-                        View Hospital
+                        onClick={(e) => { e.stopPropagation(); navigate(`/clinic-doctors/${doc._id}`); }}>
+                        View Doctor Details
                         <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover/btn:translate-x-0.5" />
                       </Button>
                     </div>

@@ -16,7 +16,7 @@ export default function ClinicFees() {
   const [consultationFee, setConsultationFee] = useState('');
   const [homeVisitFee, setHomeVisitFee] = useState('');
   const [followUpFee, setFollowUpFee] = useState('');
-  const [videoConsultFee, setVideoConsultFee] = useState('');
+
   const [emergencyFee, setEmergencyFee] = useState('');
   const [customServices, setCustomServices] = useState([]);
   const [newService, setNewService] = useState({ name: '', fee: '' });
@@ -32,7 +32,7 @@ export default function ClinicFees() {
           setConsultationFee(myDoc.consultation_fees || myDoc.fees || '');
           setHomeVisitFee(myDoc.home_visit_fee || '');
           setFollowUpFee(myDoc.follow_up_fee || '');
-          setVideoConsultFee(myDoc.video_consult_fee || '');
+
           setEmergencyFee(myDoc.emergency_fee || '');
           setCustomServices(myDoc.custom_services || []);
         }
@@ -50,7 +50,7 @@ export default function ClinicFees() {
         consultation_fees: consultationFee,
         home_visit_fee: homeVisitFee,
         follow_up_fee: followUpFee,
-        video_consult_fee: videoConsultFee,
+
         emergency_fee: emergencyFee,
         custom_services: customServices,
       });
@@ -119,15 +119,7 @@ export default function ClinicFees() {
               <Input type="number" value={followUpFee} onChange={e => setFollowUpFee(e.target.value)} className="pl-10" placeholder="300" min={0} />
             </div>
           </div>
-          <div>
-            <label className="text-sm font-medium text-foreground mb-1.5 block flex items-center gap-2">
-              <Stethoscope className="w-4 h-4 text-muted-foreground" /> Video Consultation
-            </label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">Rs</span>
-              <Input type="number" value={videoConsultFee} onChange={e => setVideoConsultFee(e.target.value)} className="pl-10" placeholder="400" min={0} />
-            </div>
-          </div>
+
           <div>
             <label className="text-sm font-medium text-foreground mb-1.5 block flex items-center gap-2">
               <Stethoscope className="w-4 h-4 text-muted-foreground" /> Emergency Visit

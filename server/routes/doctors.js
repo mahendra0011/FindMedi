@@ -41,6 +41,10 @@ const findDoctorUser = (doctor, update) => {
   return User.findOneAndUpdate({ $or: or }, update, { new: true });
 };
 
+const populatePractice = (query) => query
+  .populate('hospitalId', 'name address city phone email rating reviewsCount establishedYear totalDoctors accreditations hospitalType emergency24x7 bedAvailability ambulanceService insuranceAccepted workingHours logo')
+  .populate('facilityId', 'name address city phone email type status rating reviewsCount specialties establishedYear');
+
 router.get('/', async (req, res) => {
   try {
     const { search, available, specialization, location, includeAll, hospitalId, doctor_type } = req.query;
@@ -58,13 +62,13 @@ router.get('/', async (req, res) => {
     if (hospitalId) {
       try {
         filter.hospitalId = hospitalId;
-        const doctors = await Doctor.find(filter).populate('hospitalId', 'name address city').sort({ createdAt: -1 });
+        const doctors = await populatePractice(Doctor.find(filter)).sort({ createdAt: -1 });
         return res.json(doctors);
       } catch (castErr) {
         return res.json([]);
       }
     }
-    let doctors = await Doctor.find(filter).populate('hospitalId', 'name address city').sort({ createdAt: -1 }).lean();
+    let doctors = await populatePractice(Doctor.find(filter)).sort({ createdAt: -1 }).lean();
     const clinicDoctorIds = doctors.filter(d => d.doctor_type === 'clinic').map(d => d._id);
     if (clinicDoctorIds.length) {
       const profiles = await ClinicProfile.find({ doctorId: { $in: clinicDoctorIds } }).lean();
@@ -91,7 +95,7 @@ router.get('/user/:userId', protect, async (req, res) => {
 
 router.get('/:id', async (req, res) => {
   try {
-    const doctor = await Doctor.findById(req.params.id).lean();
+    const doctor = await populatePractice(Doctor.findById(req.params.id)).lean();
     if (!doctor) return res.status(404).json({ message: 'Doctor not found' });
     if (req.user && req.user.role !== 'superadmin' && req.user.hospitalId && doctor.hospitalId && doctor.hospitalId.toString() !== req.user.hospitalId.toString()) {
       return res.status(403).json({ message: 'Access denied' });

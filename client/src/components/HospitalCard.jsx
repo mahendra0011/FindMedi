@@ -4,7 +4,7 @@ import {
   Building2, MapPin, Phone, Star, CalendarDays, Users,
   ShieldCheck, Truck, BedDouble, Stethoscope, Heart, Brain,
   Bone, Baby, Eye, Activity, Droplets, ArrowRight, Ambulance,
-  FlaskConical, BadgeCheck
+  FlaskConical, BadgeCheck, Clock, Mail
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -168,6 +168,12 @@ export default function HospitalCard({ hospital, index = 0, distance }) {
             <Phone className="w-4 h-4 shrink-0 text-primary/60" />
             <span>{hospital.phone}</span>
           </div>
+          {hospital.email && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Mail className="w-4 h-4 shrink-0 text-primary/60" />
+              <span className="truncate">{hospital.email}</span>
+            </div>
+          )}
         </div>
 
         {/* Specialties / Departments as chips */}
@@ -216,6 +222,19 @@ export default function HospitalCard({ hospital, index = 0, distance }) {
 
         {/* Availability Info Row */}
         <div className="flex flex-wrap items-center gap-2 pt-0.5">
+          {/* Open Now / Timing */}
+          {hospital.emergency24x7 ? (
+            <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600 bg-green-500/10 px-2 py-0.5 rounded-md">
+              <Clock className="w-3 h-3" />
+              Open 24/7
+            </span>
+          ) : hospital.workingHours?.weekdays ? (
+            <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-md">
+              <Clock className="w-3 h-3 text-primary/60" />
+              {hospital.workingHours.weekdays.includes('24/7') ? 'Open 24/7' : hospital.workingHours.weekdays}
+            </span>
+          ) : null}
+
           {/* Bed Availability */}
           {hospital.bedAvailability > 0 && (
             <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-md">
@@ -240,6 +259,20 @@ export default function HospitalCard({ hospital, index = 0, distance }) {
             </span>
           )}
         </div>
+
+        {/* Insurance Accepted */}
+        {hospital.insuranceAccepted?.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {hospital.insuranceAccepted.slice(0, 3).map((ins, i) => (
+              <span key={i} className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-500/10 text-blue-600 border border-blue-500/20">
+                {typeof ins === 'string' ? ins : ins.provider || ins}
+              </span>
+            ))}
+            {hospital.insuranceAccepted.length > 3 && (
+              <span className="text-[10px] text-muted-foreground">+{hospital.insuranceAccepted.length - 3}</span>
+            )}
+          </div>
+        )}
 
         {/* Rating + Reviews */}
         <div className="flex items-center justify-between pt-1 border-t border-border/40 mt-auto">

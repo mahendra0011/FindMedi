@@ -20,7 +20,7 @@ import PublicLayout from './components/PublicLayout';
 import AppMotion from './components/AppMotion';
 import Home from './pages/Home';
 import Login from './pages/Login';
-import FindDoctor from './pages/FindDoctor';
+import ClinicDoctors from './pages/ClinicDoctors';
 import BookTest from './pages/BookTest';
 import AllTests from './pages/AllTests';
 import DiagnosticCenterDetail from './pages/DiagnosticCenterDetail';
@@ -100,7 +100,6 @@ import ClinicReviews from './pages/clinic/ClinicReviews';
 import ClinicSettings from './pages/clinic/ClinicSettings';
 import ClinicStaff from './pages/clinic/ClinicStaff';
 import ClinicNotifications from './pages/clinic/ClinicNotifications';
-import ClinicDirectory from './pages/ClinicDirectory';
 
 // Admin pages
 import AdminUsers from './pages/admin/AdminUsers';
@@ -347,10 +346,9 @@ const App = () => (
                    <Route path="/hospitals/:hospitalId/doctors" element={<PublicLayout><HospitalDoctors /></PublicLayout>} />
                    <Route path="/register-hospital" element={<HospitalRegister />} />
                    <Route path="/register-facility" element={<FacilityRegister />} />
-                    <Route path="/doctors" element={<PublicLayout><FindDoctor /></PublicLayout>} />
+                     <Route path="/clinic-doctors" element={<PublicLayout><ClinicDoctors /></PublicLayout>} />
                       <Route path="/hospital-doctors/:id" element={<PublicLayout><HospitalDoctor /></PublicLayout>} />
                      <Route path="/clinic-doctors/:id" element={<PublicLayout><ClinicDoctor /></PublicLayout>} />
-                     <Route path="/clinic" element={<PublicLayout><ClinicDirectory /></PublicLayout>} />
                      <Route path="/clinic/:clinicId" element={<PublicLayout><ClinicDetail /></PublicLayout>} />
                     <Route path="/hospital-tests/:hospitalId" element={<PublicLayout><HospitalTestBooking /></PublicLayout>} />
                      <Route path="/book-test" element={<PublicLayout><BookTest /></PublicLayout>} />

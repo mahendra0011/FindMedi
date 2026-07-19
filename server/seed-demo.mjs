@@ -94,13 +94,15 @@ async function seed() {
     // ===== SEED DOCTORS =====
     console.log('Seeding doctors...');
     const doctorsData = readJSON('doctors.json');
+    const doctorsMap = {};
     for (const d of doctorsData) {
       const { _id, user_id, hospitalId, facilityId, ...rest } = d;
       const doctorObj = { ...rest };
       if (user_id && usersMap[user_id]) doctorObj.user_id = usersMap[user_id].toString();
       if (hospitalId && hospitalsMap[hospitalId]) doctorObj.hospitalId = hospitalsMap[hospitalId];
       if (facilityId && facilitiesMap[facilityId]) doctorObj.facilityId = facilitiesMap[facilityId];
-      await Doctor.create(doctorObj);
+      const inserted = await Doctor.create(doctorObj);
+      doctorsMap[_id] = inserted._id;
     }
     console.log(`  ${doctorsData.length} doctors created.`);
 
@@ -109,9 +111,9 @@ async function seed() {
     const clinicsData = readJSON('clinics.json');
     for (const c of clinicsData) {
       const { doctorId, ...rest } = c;
-      const doctor = await Doctor.findOne({ _id: doctorId }).lean();
-      if (doctor) {
-        await ClinicProfile.create({ ...rest, doctorId: doctor._id });
+      const mappedDoctorId = doctorsMap[doctorId];
+      if (mappedDoctorId) {
+        await ClinicProfile.create({ ...rest, doctorId: mappedDoctorId });
       }
     }
     console.log(`  ${clinicsData.length} clinic profiles created.`);

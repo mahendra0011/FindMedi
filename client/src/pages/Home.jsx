@@ -85,7 +85,6 @@ const featureSections = [
       { icon: Users, title: "Patient Registration", desc: "New patient onboarding, UHID generation, demographic capture, and insurance verification in seconds" },
       { icon: CalendarCheck, title: "OPD Registration", desc: "Outpatient registration with automated token generation, appointment scheduling, and live queue management" },
       { icon: HeartPulse, title: "Doctor Consultation", desc: "Comprehensive OPD & IPD consultations with certified specialists, e-prescriptions, and follow-up tracking" },
-      { icon: Video, title: "Teleconsultation", desc: "HD video calls, chat messaging, e-prescriptions with digital signatures, and remote patient monitoring" },
       { icon: FileText, title: "Medical Records", desc: "Unified digital health record with prescription history, lab results, discharge summaries, and document uploads" },
       { icon: BedDouble, title: "IPD Management", desc: "Bed allocation, ward management, nursing charts, diet orders, and discharge planning with auto-housekeeping" },
     ]
