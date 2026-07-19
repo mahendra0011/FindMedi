@@ -104,6 +104,7 @@ export default function ClinicDetail() {
   const [activePhoto, setActivePhoto] = useState(0);
   const [showFullDesc, setShowFullDesc] = useState(false);
   const [expandedFaq, setExpandedFaq] = useState(null);
+  const [showAllReviews, setShowAllReviews] = useState(false);
   const [doctorSectionTab, setDoctorSectionTab] = useState('doctors');
   const [tests, setTests] = useState([]);
   const [testDeptFilter, setTestDeptFilter] = useState('All');
@@ -753,7 +754,7 @@ export default function ClinicDetail() {
               <Card className="rounded-2xl border-border/50 shadow-sm">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between mb-6">
-                    <SectionTitle icon={Star} label={`Patient Reviews (${clinic.reviewsCount})`} />
+                    <SectionTitle icon={Star} label={`Patient Reviews (${reviews.length})`} />
                     <Button variant="outline" size="sm" className="rounded-lg text-xs gap-1.5" onClick={() => toast.success('Review form coming soon')}>
                       <Star className="w-3.5 h-3.5" /> Write a Review
                     </Button>
@@ -765,7 +766,7 @@ export default function ClinicDetail() {
                       <div className="flex items-center gap-0.5 mt-1 justify-center">
                         {[1,2,3,4,5].map(i => <Star key={i} className={cn('w-4 h-4', i <= Math.round(clinic.rating) ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground/20')} />)}
                       </div>
-                      <p className="text-[10px] text-muted-foreground mt-1">{clinic.reviewsCount} total reviews</p>
+                      <p className="text-[10px] text-muted-foreground mt-1">{reviews.length} total reviews</p>
                     </div>
                     <div className="flex-1 w-full space-y-1.5">
                       {[5,4,3,2,1].map(r => (
@@ -781,8 +782,8 @@ export default function ClinicDetail() {
                   </div>
 
                   <div className="space-y-4">
-                    {(reviews.length > 0 ? reviews : []).map((rev, i) => (
-                      <div key={i} className="group p-4 rounded-xl border border-border/30 hover:border-border/60 hover:shadow-sm transition-all">
+                    {(reviews.length > 0 ? reviews : []).slice(0, showAllReviews ? reviews.length : 3).map((rev, i) => (
+                      <div key={rev._id || i} className="group p-4 rounded-xl border border-border/30 hover:border-border/60 hover:shadow-sm transition-all">
                         <div className="flex items-start gap-3">
                           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-sm font-bold text-primary shrink-0 border-2 border-primary/10">
                             {(rev.patientName || '?')[0]}
@@ -800,6 +801,13 @@ export default function ClinicDetail() {
                         </div>
                       </div>
                     ))}
+                    {reviews.length > 3 && !showAllReviews && (
+                      <div className="text-center pt-2">
+                        <Button variant="outline" size="sm" className="gap-1.5 rounded-lg text-xs" onClick={() => setShowAllReviews(true)}>
+                          Show All {reviews.length} Reviews <ChevronDown className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
