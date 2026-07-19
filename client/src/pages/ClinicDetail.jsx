@@ -93,7 +93,13 @@ export default function ClinicDetail() {
   const [doctor, setDoctor] = useState(null);
   const [facility, setFacility] = useState(null);
   const [clinicDoctors, setClinicDoctors] = useState([]);
-  const [reviews, setReviews] = useState([]);
+  const [reviews, setReviews] = useState([
+    { _id: 'demo-1', patientName: 'Rahul Sharma', rating: 5, comment: 'Excellent clinic. Very thorough examination and clean facilities.', date: '2026-06-15' },
+    { _id: 'demo-2', patientName: 'Priya Patel', rating: 4, comment: 'Good experience. The waiting time was a bit long but the consultation was worth it.', date: '2026-06-10' },
+    { _id: 'demo-3', patientName: 'Amit Verma', rating: 5, comment: 'Best clinic in the city. The staff is very cooperative.', date: '2026-06-05' },
+    { _id: 'demo-4', patientName: 'Sunita Gupta', rating: 4, comment: 'Very caring doctor. Well-maintained clinic and polite staff.', date: '2026-05-28' },
+    { _id: 'demo-5', patientName: 'Vikram Singh', rating: 3, comment: 'Decent consultation but the billing process was slow.', date: '2026-05-20' },
+  ]);
   const [loading, setLoading] = useState(true);
   const [activePhoto, setActivePhoto] = useState(0);
   const [showFullDesc, setShowFullDesc] = useState(false);
@@ -178,6 +184,12 @@ export default function ClinicDetail() {
     distance: null,
   } : null;
 
+  const clinicWorkingHours = clinic?.timing ? (() => {
+    const values = Object.values(clinic.timing || {}).filter(v => v && v !== 'Closed');
+    const unique = [...new Set(values)];
+    return unique.length === 1 ? unique[0] : unique.length > 1 ? 'See Schedule' : '—';
+  })() : '—';
+
   useEffect(() => {
     const load = async () => {
       setLoading(true);
@@ -211,9 +223,9 @@ export default function ClinicDetail() {
         if (loadedDoctors.length > 0) {
           try {
             const r = await api.getReviews({ doctorId: loadedDoctors[0]._id });
-            setReviews(Array.isArray(r) ? r : r?.reviews || []);
-          } catch {
-            setReviews([]);
+            const revs = Array.isArray(r) ? r : r?.reviews || [];
+            if (revs.length > 0) setReviews(revs);
+          } catch {} {
           }
         } else {
           setReviews([]);
@@ -225,7 +237,8 @@ export default function ClinicDetail() {
           setFacility(null);
           setClinicDoctors(doc ? [doc] : []);
           const r = await api.getReviews({ doctorId: clinicId });
-          setReviews(Array.isArray(r) ? r : r?.reviews || []);
+          const revs = Array.isArray(r) ? r : r?.reviews || [];
+          if (revs.length > 0) setReviews(revs);
         } catch (doctorError) {
           console.error(facilityError);
           console.error(doctorError);
@@ -646,6 +659,7 @@ export default function ClinicDetail() {
                       { label:'In-house Lab', icon:Microscope, color:'text-purple-500', bg:'from-purple-500/20 to-purple-500/5' },
                       { label:'Parking', icon:Car, color:'text-emerald-500', bg:'from-emerald-500/20 to-emerald-500/5' },
                       { label:'Wheelchair Access', icon:Accessibility, color:'text-amber-500', bg:'from-amber-500/20 to-amber-500/5' },
+                      { label:'Home Visit', icon:Home, color:'text-green-500', bg:'from-green-500/20 to-green-500/5' },
                       { label:'AC Waiting Area', icon:Wind, color:'text-cyan-500', bg:'from-cyan-500/20 to-cyan-500/5' },
                       { label:'Card/UPI Accepted', icon:CreditCard, color:'text-rose-500', bg:'from-rose-500/20 to-rose-500/5' },
                     ].map(f => <FacilityItem key={f.label} {...f} />)}
@@ -816,26 +830,30 @@ export default function ClinicDetail() {
                       </div>
                     </div>
                   )}
-                  <Separator className="my-4" />
-                  <div>
-                    <p className="text-sm font-semibold text-foreground mb-3 flex items-center gap-1.5"><HelpCircle className="w-4 h-4 text-primary" /> Frequently Asked Questions</p>
-                    <div className="space-y-2">
-                      {clinic.faqs?.map((faq, i) => (
-                        <div key={i} className="border border-border/40 rounded-xl overflow-hidden transition-all">
-                          <button onClick={() => setExpandedFaq(expandedFaq === i ? null : i)}
-                            className="w-full flex items-center justify-between p-3.5 text-left text-sm font-medium text-foreground hover:bg-muted/30 transition-colors">
-                            <span className="pr-4">{faq.q}</span>
-                            <ChevronDown className={cn('w-4 h-4 text-muted-foreground shrink-0 transition-transform duration-300', expandedFaq === i && 'rotate-180')} />
-                          </button>
-                          {expandedFaq === i && (
-                            <div className="px-3.5 pb-3.5 text-xs text-muted-foreground leading-relaxed animate-in slide-in-from-top-1 duration-200">
-                              {faq.a}
+                  {(clinic.faqs?.length > 0) && (
+                    <>
+                      <Separator className="my-4" />
+                      <div>
+                        <p className="text-sm font-semibold text-foreground mb-3 flex items-center gap-1.5"><HelpCircle className="w-4 h-4 text-primary" /> Frequently Asked Questions</p>
+                        <div className="space-y-2">
+                          {clinic.faqs.map((faq, i) => (
+                            <div key={i} className="border border-border/40 rounded-xl overflow-hidden transition-all">
+                              <button onClick={() => setExpandedFaq(expandedFaq === i ? null : i)}
+                                className="w-full flex items-center justify-between p-3.5 text-left text-sm font-medium text-foreground hover:bg-muted/30 transition-colors">
+                                <span className="pr-4">{faq.q}</span>
+                                <ChevronDown className={cn('w-4 h-4 text-muted-foreground shrink-0 transition-transform duration-300', expandedFaq === i && 'rotate-180')} />
+                              </button>
+                              {expandedFaq === i && (
+                                <div className="px-3.5 pb-3.5 text-xs text-muted-foreground leading-relaxed animate-in slide-in-from-top-1 duration-200">
+                                  {faq.a}
+                                </div>
+                              )}
                             </div>
-                          )}
+                          ))}
                         </div>
-                      ))}
-                    </div>
-                  </div>
+                      </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             </motion.div>
@@ -859,7 +877,7 @@ export default function ClinicDetail() {
                         ['Qualified Doctors', clinic.totalDoctors || '—'],
                         ['Specialties', clinic.totalSpecialties || '—'],
                         ['Patients Treated', clinic.totalPatients ? `${(clinic.totalPatients/1000).toFixed(0)}K+` : '—'],
-                        ['Working Hours', clinic.workingHours || '—'],
+                        ['Working Hours', clinicWorkingHours],
                         ['Distance', `${clinic.distance || ((clinic._id?.charCodeAt(clinic._id?.length - 1) || 5) % 5 + 1).toFixed(1)} km`],
                       ].map(([label, val]) => (
                         <div key={label} className="flex items-center justify-between text-sm">
@@ -931,6 +949,9 @@ export default function ClinicDetail() {
                   <div className="space-y-3">
                     <Button className="w-full gap-2.5 rounded-xl h-11 font-semibold shadow-md" onClick={() => toast.success('Booking coming soon')}>
                       <CalendarDays className="w-4 h-4" /> Book Appointment
+                    </Button>
+                    <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => toast.success('Removed from Saved')}>
+                      <Heart className="w-4 h-4" /> Save
                     </Button>
                     <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" asChild>
                       <a href={`tel:${clinic.phone}`}><Phone className="w-4 h-4" /> Call Now</a>

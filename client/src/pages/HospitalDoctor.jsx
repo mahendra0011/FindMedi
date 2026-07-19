@@ -82,6 +82,7 @@ export default function HospitalDoctor() {
   const [bookingDetails, setBookingDetails] = useState(null);
 
   const [showReviewForm, setShowReviewForm] = useState(false);
+  const [showAllReviews, setShowAllReviews] = useState(false);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
   const [reviewSubmitted, setReviewSubmitted] = useState(false);
@@ -786,7 +787,7 @@ export default function HospitalDoctor() {
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {reviews.map((rv, i) => (
+                      {reviews.slice(0, showAllReviews ? reviews.length : 3).map((rv, i) => (
                         <div key={rv._id || i} className="p-4 rounded-xl border border-border/40 hover:bg-muted/20 transition-colors">
                           <div className="flex items-start gap-3">
                             <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm shrink-0">
@@ -809,6 +810,13 @@ export default function HospitalDoctor() {
                           </div>
                         </div>
                       ))}
+                      {reviews.length > 3 && !showAllReviews && (
+                        <div className="text-center pt-2">
+                          <Button variant="outline" size="sm" className="gap-1.5 rounded-lg text-xs" onClick={() => setShowAllReviews(true)}>
+                            Show All {reviews.length} Reviews <ChevronDown className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   )}
                 </CardContent>

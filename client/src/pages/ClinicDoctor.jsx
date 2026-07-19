@@ -7,7 +7,7 @@ import {
   BookMarked, ChevronRight, GraduationCap, Briefcase, Shield, Trophy,
   HeartPulse, Syringe, Ambulance, Plus, Minus, ChevronDown, ChevronUp,
   Quote, Home, ExternalLink, Sparkles, Languages, CircleDot, FileText, BedDouble,
-  CreditCard, Image, Pill, Car, Accessibility, Wind, FlaskConical, DoorOpen, Store, ArrowRight
+  CreditCard, Image, Pill, Car, Accessibility, Wind, FlaskConical, DoorOpen, Store, ArrowRight, Heart, Share2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -19,6 +19,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 const stagger = {
   hidden: { opacity: 0 },
@@ -106,6 +107,7 @@ export default function ClinicDoctor() {
   const [bookingDetails, setBookingDetails] = useState(null);
 
   const [showReviewForm, setShowReviewForm] = useState(false);
+  const [showAllReviews, setShowAllReviews] = useState(false);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
   const [reviewSubmitted, setReviewSubmitted] = useState(false);
@@ -176,6 +178,16 @@ export default function ClinicDoctor() {
     }
   };
 
+  const handleShare = async () => {
+    const url = window.location.href;
+    if (navigator.share) {
+      try { await navigator.share({ title: doctor?.name || 'Doctor Profile', url }); } catch {}
+    } else {
+      await navigator.clipboard.writeText(url);
+      alert('Link copied to clipboard!');
+    }
+  };
+
   const handleReview = async () => {
     if (!reviewComment.trim() || !doctor) return;
     try {
@@ -231,7 +243,7 @@ export default function ClinicDoctor() {
 
   const expYears = getExpYears(doctor.experience);
   const reviewCount = doctor.reviews_count || reviews.length;
-  const avgRating = reviews.length > 0 ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length) : (doctor.rating || 0);
+  const avgRating = doctor.rating || 0;
 
   return (
     <motion.div initial="hidden" animate="show" className="bg-background min-h-screen">
@@ -335,6 +347,11 @@ export default function ClinicDoctor() {
                         <Languages className="w-3 h-3 mr-1" />{lang}
                       </Badge>
                     ))}
+                    {doctor.home_visit && (
+                      <Badge variant="outline" className="text-xs bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-800">
+                        <Home className="w-3 h-3 mr-1" />Home Visit Available
+                      </Badge>
+                    )}
                   </div>
 
                   {/* Stats */}
@@ -375,6 +392,16 @@ export default function ClinicDoctor() {
                   <span className="text-success font-semibold">Rs {doctor.consultation_fees || doctor.fees || 0}</span>
                   <span className="text-xs">/ visit</span>
                 </span>
+                <div className="flex items-center gap-2 ml-auto">
+                  <button onClick={() => { setSaved(!saved); toast.success(saved ? 'Removed from Saved' : 'Saved'); }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-muted transition-colors text-sm">
+                    <Heart className={cn('w-4 h-4', saved && 'fill-current text-red-500')} />
+                    {saved ? 'Saved' : 'Save'}
+                  </button>
+                  <button onClick={handleShare} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-muted transition-colors text-sm">
+                    <Share2 className="w-4 h-4 text-primary" />
+                    Share
+                  </button>
+                </div>
               </div>
             </motion.div>
 
@@ -829,7 +856,7 @@ export default function ClinicDoctor() {
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {reviews.map((rv, i) => (
+                      {reviews.slice(0, showAllReviews ? reviews.length : 3).map((rv, i) => (
                         <div key={rv._id || i} className="p-4 rounded-xl border border-border/40 hover:bg-muted/20 transition-colors">
                           <div className="flex items-start gap-3">
                             <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm shrink-0">
@@ -852,6 +879,13 @@ export default function ClinicDoctor() {
                           </div>
                         </div>
                       ))}
+                      {reviews.length > 3 && !showAllReviews && (
+                        <div className="text-center pt-2">
+                          <Button variant="outline" size="sm" className="gap-1.5 rounded-lg text-xs" onClick={() => setShowAllReviews(true)}>
+                            Show All {reviews.length} Reviews <ChevronDown className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   )}
                 </CardContent>
@@ -1083,7 +1117,7 @@ export default function ClinicDoctor() {
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Consultant Type</span>
                   <span className="font-semibold text-foreground">
-                    {doctor.consultantType === 'fulltime' ? 'Full-Time' : 'Visiting'}
+                    {doctor.consultantType === 'fulltime' ? 'Full-Time' : doctor.consultantType === 'visiting' ? 'Visiting' : doctor.practice_type === 'private' ? 'Owner / Full-Time' : 'Visiting'}
                   </span>
                 </div>
               </div>
@@ -1165,36 +1199,52 @@ export default function ClinicDoctor() {
                   </div>
                   <div>
                     <label className="text-sm font-medium text-foreground mb-1.5 block">Select Time</label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {(doctor.time_slots || ['09:00 AM', '10:00 AM', '11:00 AM', '02:00 PM', '03:00 PM', '04:00 PM']).map(t => {
-                        const now = new Date();
-                        const [time, period] = t.split(' ');
-                        let [h, m] = time.split(':').map(Number);
-                        if (period === 'PM' && h !== 12) h += 12;
-                        if (period === 'AM' && h === 12) h = 0;
-                        const slotDate = new Date(bookingDate || now.toISOString().split('T')[0]);
-                        const slotTime = new Date(slotDate);
-                        slotTime.setHours(h, m, 0, 0);
-                        const isPast = slotDate.toDateString() === now.toDateString() && slotTime < now;
+                    {(() => {
+                      const selectedDate = new Date(bookingDate || new Date().toISOString().split('T')[0]);
+                      const dayName = selectedDate.toLocaleDateString('en', { weekday: 'long' }).toLowerCase();
+                      const dayClosed = doctor.weekly_schedule ? !doctor.weekly_schedule[dayName] : dayName === 'sunday';
+                      if (dayClosed) {
                         return (
-                          <button key={t} type="button"
-                            disabled={isPast}
-                            onClick={() => !isPast && setBookingTime(t)}
-                            className={cn(
-                              'px-3 py-2 rounded-lg text-sm font-medium transition-colors relative',
-                              isPast
-                                ? 'bg-muted/30 text-muted-foreground/40 cursor-not-allowed line-through'
-                                : bookingTime === t
-                                  ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20'
-                                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                            )}
-                          >
-                            {t}
-                            {isPast && <span className="absolute -top-1 -right-1 text-[8px] font-bold text-muted-foreground/50 bg-background px-1 rounded">Past</span>}
-                          </button>
+                          <div className="px-4 py-3 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-800 text-sm text-red-600 dark:text-red-400 flex items-center gap-2">
+                            <CalendarDays className="w-4 h-4 shrink-0" />
+                            Clinic Closed — {dayName.charAt(0).toUpperCase() + dayName.slice(1)} is a holiday
+                          </div>
                         );
-                      })}
-                    </div>
+                      }
+                      const timeSlots = doctor.time_slots || ['09:00 AM', '10:00 AM', '11:00 AM', '02:00 PM', '03:00 PM', '04:00 PM'];
+                      const now = new Date();
+                      return (
+                        <div className="grid grid-cols-2 gap-2">
+                          {timeSlots.map(t => {
+                            const [time, period] = t.split(' ');
+                            let [h, m] = time.split(':').map(Number);
+                            if (period === 'PM' && h !== 12) h += 12;
+                            if (period === 'AM' && h === 12) h = 0;
+                            const slotDate = new Date(bookingDate || now.toISOString().split('T')[0]);
+                            const slotTime = new Date(slotDate);
+                            slotTime.setHours(h, m, 0, 0);
+                            const isPast = slotDate.toDateString() === now.toDateString() && slotTime < now;
+                            return (
+                              <button key={t} type="button"
+                                disabled={isPast}
+                                onClick={() => !isPast && setBookingTime(t)}
+                                className={cn(
+                                  'px-3 py-2 rounded-lg text-sm font-medium transition-colors relative',
+                                  isPast
+                                    ? 'bg-muted/30 text-muted-foreground/40 cursor-not-allowed line-through'
+                                    : bookingTime === t
+                                      ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20'
+                                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                                )}
+                              >
+                                {t}
+                                {isPast && <span className="absolute -top-1 -right-1 text-[8px] font-bold text-muted-foreground/50 bg-background px-1 rounded">Past</span>}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
                   </div>
                   <div>
                     <label className="text-sm font-medium text-foreground mb-1.5 block">Appointment Type</label>

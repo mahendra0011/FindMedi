@@ -1,9 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { Star, Truck, Phone, Mail, Clock, MapPin, ArrowLeft, BadgeCheck, Store, ShoppingCart, Pill, Camera, Upload, Shield, ChevronRight, Share2, Navigation, Percent, Tag, AlertCircle, X, Image, FileText, Zap, Info, Copy, CheckCircle2, Stethoscope, CalendarDays, Award, Search, Plus, Minus, Lock } from 'lucide-react';
+import {
+  Star, Truck, Phone, Mail, Clock, MapPin, ArrowLeft, BadgeCheck, Store,
+  ShoppingCart, Pill, Camera, Upload, Shield, ChevronRight, Share2,
+  Navigation, Percent, Tag, AlertCircle, X, Image, FileText, Zap, Info,
+  Copy, CheckCircle2, Stethoscope, CalendarDays, Award, Search, Plus, Minus,
+  Lock, Home, Users, Sparkles, Building2, ClipboardList, Heart, Bookmark
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
@@ -11,9 +18,9 @@ import { useCart } from '@/context/CartContext';
 import { toast } from 'sonner';
 
 const MOCK_STORES = [
-  { id:'s1', name:'MedPlus Pharmacy', photo:'https://images.unsplash.com/photo-1585435557343-3b092031a831?w=400&h=300&fit=crop', cover:'https://images.unsplash.com/photo-1587351021759-3e566b6af7cc?w=1200&h=400&fit=crop', verified:true, open:true, timing:'24/7', type:'Pharmacy', rating:4.5, reviews:120, tags:['24x7','Home Delivery','Generic Available'], deliveryTime:'25 mins', phone:'9876543210', email:'store@medplus.com', address:'123, Health Avenue, Block C, Downtown, New York, NY 10001', distance:'0.8 km', workingHours:'Open 24/7', deliveryCharges:20, freeDeliveryAbove:200, minOrder:0, pickup:true, deliveryArea:'Within 5 km', established:2015, licenseNo:'DL-21-54321', pharmacist:'Mr. Rajesh Kumar', description:'MedPlus Pharmacy is a trusted pharmacy chain offering genuine medicines at affordable prices with fast home delivery.', deliveryAvailable:true, offers:[{ title:'Flat 20% off on first order', code:'FIRST20', desc:'Use code FIRST20 to get 20% off on your first order.' }, { title:'Combo Deal: Buy 2 Get 10% off', code:'COMBO10', desc:'On all vitamin supplements.' }], policies:{ return:'Medicines can be returned within 7 days if unopened and in original packaging. Prescription medicines cannot be returned once dispensed.', cancel:'Orders can be cancelled within 30 minutes of placing. Full refund will be processed within 3-5 business days.', rxValidity:'Prescriptions issued within the last 6 months are accepted.' }, city:'New York' },
-  { id:'s2', name:'HealthFirst Medicals', photo:'https://images.unsplash.com/photo-1631217868264-e5b90bb7e133?w=400&h=300&fit=crop', cover:'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=1200&h=400&fit=crop', verified:true, open:true, timing:'9 AM - 11 PM', type:'Medical Store', rating:4.2, reviews:89, tags:['Home Delivery','Generic Available'], deliveryTime:'30 mins', phone:'9876543211', email:'info@healthfirst.com', address:'456, Wellness Road, Sector 7, Los Angeles, CA 90012', distance:'1.2 km', workingHours:'9:00 AM - 11:00 PM', deliveryCharges:15, freeDeliveryAbove:150, minOrder:50, pickup:false, deliveryArea:'Within 3 km', established:2018, licenseNo:'DL-22-98765', pharmacist:'Mrs. Sunita Patel', description:'Your neighborhood medical store for all healthcare needs.', deliveryAvailable:true, offers:[{ title:'Free delivery on orders above \u20B9150', code:'', desc:'Auto-applied at checkout' }], policies:{ return:'Unopened products can be returned within 3 days. No returns on cold storage items.', cancel:'Free cancellation within 15 minutes of ordering.', rxValidity:'Prescriptions within 3 months are accepted.' }, city:'New York' },
-  { id:'s3', name:'City Drug House', photo:'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?w=400&h=300&fit=crop', cover:'https://images.unsplash.com/photo-1587351021759-3e566b6af7cc?w=1200&h=400&fit=crop', verified:false, open:false, timing:'10 AM - 10 PM', type:'Chain Pharmacy', rating:4.0, reviews:45, tags:['24x7'], deliveryTime:'40 mins', phone:'9876543212', email:'citydrug@email.com', address:'789, Market Street, Chicago, IL 60607', distance:'2.5 km', workingHours:'10:00 AM - 10:00 PM', deliveryCharges:25, freeDeliveryAbove:300, minOrder:100, pickup:true, deliveryArea:'Within 4 km', established:2010, licenseNo:'DL-23-45678', pharmacist:'Mr. Amit Singh', description:'City Drug House - Serving since 2010.', deliveryAvailable:true, offers:[], policies:{ return:'7-day return on unopened items. Prescription items non-returnable.', cancel:'Cancellation accepted within 1 hour.', rxValidity:'Prescriptions within 6 months accepted.' }, city:'New York' },
+  { id:'s1', name:'MediStore Pharmacy', photo:'https://images.unsplash.com/photo-1585435557343-3b092031a831?w=400&h=300&fit=crop', cover:'https://images.unsplash.com/photo-1587351021759-3e566b6af7cc?w=1200&h=400&fit=crop', verified:true, open:true, timing:'8 AM - 10 PM', type:'Pharmacy', rating:4.2, reviews:234, tags:['Home Delivery','Generic Available'], deliveryTime:'25 mins', phone:'0761-3456789', email:'orders@medistore.com', address:'Vijay Nagar, Jabalpur, Madhya Pradesh 482003', distance:'0.8 km', workingHours:'8:00 AM - 10:00 PM', deliveryCharges:0, freeDeliveryAbove:0, minOrder:0, pickup:true, deliveryArea:'Within 3 km', established:2021, licenseNo:'MP-PH-2023-00781', pharmacist:'Mr. Rajesh Kumar', description:'Full-service pharmacy with a wide range of medicines, surgical supplies, and wellness products. Free delivery within 3 km.', deliveryAvailable:true, offers:[{ title:'Flat 20% off on first order', code:'FIRST20', desc:'Use code FIRST20 to get 20% off on your first order.' }, { title:'Combo Deal: Buy 2 Get 10% off', code:'COMBO10', desc:'On all vitamin supplements.' }], policies:{ return:'Medicines can be returned within 7 days if unopened and in original packaging. Prescription medicines cannot be returned once dispensed.', cancel:'Orders can be cancelled within 30 minutes of placing. Full refund will be processed within 3-5 business days.', rxValidity:'Prescriptions issued within the last 6 months are accepted.' }, city:'Jabalpur' },
+  { id:'s2', name:'Apollo Pharmacy', photo:'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=400&h=300&fit=crop', cover:'https://images.unsplash.com/photo-1587351021759-3e566b6af7cc?w=1200&h=400&fit=crop', verified:true, open:true, timing:'6 AM - 10 PM', type:'Pharmacy', rating:4.8, reviews:210, tags:['24x7','Home Delivery','Generic Available'], deliveryTime:'20 mins', phone:'9876543213', email:'care@apollopharm.com', address:'Civil Lines, Jabalpur, Madhya Pradesh 482001', distance:'1.2 km', workingHours:'6:00 AM - 10:00 PM', deliveryCharges:0, freeDeliveryAbove:0, minOrder:0, pickup:true, deliveryArea:'Within 5 km', established:2017, licenseNo:'MP-PH-2022-00512', pharmacist:'Mrs. Sunita Patel', description:'Apollo Pharmacy is a trusted pharmacy chain offering genuine medicines at affordable prices with fast home delivery.', deliveryAvailable:true, offers:[{ title:'Free delivery on all orders', code:'', desc:'Auto-applied at checkout' }], policies:{ return:'Unopened products can be returned within 3 days. No returns on cold storage items.', cancel:'Free cancellation within 15 minutes of ordering.', rxValidity:'Prescriptions within 3 months are accepted.' }, city:'Jabalpur' },
+  { id:'s3', name:'City Drug House', photo:'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?w=400&h=300&fit=crop', cover:'https://images.unsplash.com/photo-1587351021759-3e566b6af7cc?w=1200&h=400&fit=crop', verified:false, open:true, timing:'9 AM - 9 PM', type:'Chain Pharmacy', rating:4.0, reviews:45, tags:['24x7'], deliveryTime:'40 mins', phone:'9876543212', email:'citydrug@email.com', address:'Napier Town, Jabalpur, Madhya Pradesh 482001', distance:'2.5 km', workingHours:'9:00 AM - 9:00 PM', deliveryCharges:25, freeDeliveryAbove:300, minOrder:100, pickup:true, deliveryArea:'Within 4 km', established:2010, licenseNo:'MP-PH-2020-00345', pharmacist:'Mr. Amit Singh', description:'City Drug House - Serving Jabalpur since 2010.', deliveryAvailable:true, offers:[], policies:{ return:'7-day return on unopened items. Prescription items non-returnable.', cancel:'Cancellation accepted within 1 hour.', rxValidity:'Prescriptions within 6 months accepted.' }, city:'Jabalpur' },
 ];
 
 const REVIEWS_DATA = [
@@ -49,43 +56,19 @@ const MOCK_MEDICINES = [
 
 const CATEGORIES = ['All', 'Prescription', 'OTC', 'Generic', 'Baby Care', 'Ayurvedic', 'Devices', 'Vitamins'];
 
+const stagger = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.06 } } };
+const fadeUp = { hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 200, damping: 22 } } };
+
+const SectionTitle = ({ icon:Icon, label }) => (
+  <h2 className="font-heading text-lg font-bold text-foreground mb-5 flex items-center gap-2">
+    <span className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
+      <Icon className="w-3.5 h-3.5 text-primary" />
+    </span>
+    {label}
+  </h2>
+);
+
 function getStoreById(id) { return MOCK_STORES.find(s => s.id === id) || MOCK_STORES[0]; }
-
-function fadeUp(i) {
-  return { initial:{ opacity:0, y:20 }, animate:{ opacity:1, y:0 }, transition:{ delay:i * 0.06, duration:0.4 } };
-}
-
-function SectionCard({ icon:Icon, title, children, className }) {
-  return (
-    <motion.div {...fadeUp(0)} className={cn('bg-card rounded-2xl border border-border/50 overflow-hidden shadow-sm', className)}>
-      <div className="px-6 py-4 border-b border-border/30 bg-gradient-to-r from-primary/[0.04] to-transparent">
-        <h3 className="font-heading font-bold text-foreground flex items-center gap-2.5 text-base">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shadow-sm">
-            <Icon className="w-4.5 h-4.5 text-primary" />
-          </div>
-          {title}
-        </h3>
-      </div>
-      <div className="px-6 py-5">{children}</div>
-    </motion.div>
-  );
-}
-
-function SidebarCard({ icon:Icon, title, children }) {
-  return (
-    <motion.div {...fadeUp(0)} className="bg-card rounded-2xl border border-border/50 overflow-hidden shadow-sm">
-      <div className="px-5 py-3.5 border-b border-border/30 bg-gradient-to-r from-primary/[0.04] to-transparent">
-        <h4 className="font-heading font-semibold text-foreground flex items-center gap-2 text-sm">
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-            <Icon className="w-4 h-4 text-primary" />
-          </div>
-          {title}
-        </h4>
-      </div>
-      <div className="p-5">{children}</div>
-    </motion.div>
-  );
-}
 
 export default function MedicineStoreDetail() {
   const { storeId } = useParams();
@@ -165,10 +148,10 @@ export default function MedicineStoreDetail() {
     }
   }, [storeId]);
 
-  const renderStars = (r) => (
+  const renderStars = (r, size = 'w-3.5 h-3.5') => (
     <div className="flex items-center gap-0.5">
       {[1,2,3,4,5].map(s => (
-        <Star key={s} className={cn('w-3.5 h-3.5', s <= Math.round(r) ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground/20')} />
+        <Star key={s} className={cn(size, s <= Math.round(r) ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground/20')} />
       ))}
     </div>
   );
@@ -181,10 +164,12 @@ export default function MedicineStoreDetail() {
 
   if (!store) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-16 text-center">
-        <Store className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
-        <h2 className="text-xl font-semibold">Store not found</h2>
-        <Button className="mt-4" onClick={() => navigate('/buy-medicine')}>Back to Stores</Button>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Store className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-foreground mb-1">Store not found</h3>
+          <Button variant="outline" onClick={() => navigate('/buy-medicine')}>Go back</Button>
+        </div>
       </div>
     );
   }
@@ -192,104 +177,194 @@ export default function MedicineStoreDetail() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-muted/20 to-background pb-32">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
         {/* Breadcrumb */}
-        <motion.div {...fadeUp(0)} className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground mb-5">
-          <button onClick={() => navigate('/buy-medicine')} className="hover:text-foreground transition-colors">Buy Medicine</button>
-          <span className="text-muted-foreground/40">/</span>
+        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground mb-5">
+          <button onClick={() => navigate('/buy-medicine')} className="hover:text-foreground transition-colors flex items-center gap-1.5 group">
+            <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" /> Find Medicine
+          </button>
+          <span className="text-muted-foreground/30">/</span>
           <span className="text-foreground font-medium truncate">{store.name}</span>
         </motion.div>
 
-        {/* ═══ HERO HEADER ═══ */}
-        <motion.div {...fadeUp(1)} className="relative bg-card rounded-2xl border border-border/50 overflow-hidden mb-8 shadow-sm group">
-          <div className="relative h-56 sm:h-64 overflow-hidden">
-            <img src={store.cover} alt="" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-            <div className="absolute top-4 right-4 flex items-center gap-2">
-              {store.deliveryAvailable && (
-                <span className="px-3 py-1 rounded-full text-[10px] font-semibold bg-white/20 backdrop-blur-sm text-white border border-white/30 shadow-lg">
-                  <Truck className="w-3 h-3 inline mr-1" />Delivery Available
-                </span>
-              )}
-              <span className={cn('px-3 py-1.5 rounded-full text-xs font-bold border-2 shadow-lg', store.open ? 'bg-emerald-500 text-white border-emerald-400' : 'bg-red-500 text-white border-red-400')}>
-                {store.open ? '● Open' : '● Closed'} &bull; {store.timing}
-              </span>
-            </div>
-          </div>
-          <div className="px-6 sm:px-8 pb-5 -mt-16 relative z-10">
-            <div className="flex items-end gap-5 mb-3">
-              <div className="w-28 h-28 rounded-2xl border-[5px] border-card overflow-hidden shadow-2xl shrink-0 bg-card">
-                <img src={store.photo} alt="" className="w-full h-full object-cover" />
+        {/* ════════ 1. HERO SECTION ════════ */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
+
+            {/* Gallery */}
+            <div className="lg:col-span-3 relative rounded-2xl overflow-hidden bg-card border border-border/50 h-[300px] sm:h-[420px] group">
+              <img src={store.cover} alt="" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+              <div className="absolute top-4 left-4 z-10">
+                <Badge className="bg-primary/90 text-white border-0 text-xs px-3 py-1.5 rounded-full shadow-lg">{store.type}</Badge>
               </div>
-              <div className="min-w-0 flex-1 pt-16">
-                <div className="flex items-center gap-3 flex-wrap">
-                  <h1 className="font-heading text-2xl sm:text-3xl font-bold text-foreground truncate">{store.name}</h1>
-                  {store.verified && (
-                    <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 text-[11px] font-semibold shrink-0">
-                      <BadgeCheck className="w-3.5 h-3.5" /> Verified
-                    </span>
-                  )}
+              <div className="absolute top-4 right-4 flex gap-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button className="w-9 h-9 rounded-xl bg-black/30 backdrop-blur-sm text-white flex items-center justify-center hover:bg-black/50 transition-all hover:scale-105" onClick={() => toast.success('Bookmarked')}>
+                  <Bookmark className="w-4 h-4" />
+                </button>
+                <button className="w-9 h-9 rounded-xl bg-black/30 backdrop-blur-sm text-white flex items-center justify-center hover:bg-black/50 transition-all hover:scale-105" onClick={() => { navigator.clipboard?.writeText(window.location.href); toast.success('Link copied!'); }}>
+                  <Share2 className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="absolute bottom-4 left-4 z-10 hidden sm:flex items-center gap-2">
+                <Badge variant="secondary" className="bg-black/40 text-white border-0 text-xs px-3 py-1.5 rounded-full backdrop-blur-sm">
+                  {store.deliveryAvailable && <Truck className="w-3 h-3 inline mr-1" />} Delivery Available
+                </Badge>
+              </div>
+            </div>
+
+            {/* Info Card */}
+            <div className="lg:col-span-2 bg-card rounded-2xl border border-border/50 p-6 flex flex-col shadow-sm w-full">
+              <div className="flex items-start gap-3 mb-3">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shrink-0 border-2 border-primary/10">
+                  <Store className="w-7 h-7 text-primary" />
                 </div>
-                <div className="flex items-center gap-3 mt-2 flex-wrap">
-                  <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-muted/50 border border-border/40">
-                    <Store className="w-3.5 h-3.5 text-primary" />
-                    <span className="text-xs font-medium text-foreground">{store.type}</span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h1 className="font-heading font-bold text-xl text-foreground leading-tight">{store.name}</h1>
+                    {store.verified && <BadgeCheck className="w-5 h-5 text-primary shrink-0" />}
                   </div>
-                  <div className="flex items-center gap-1">
+                  <p className="text-sm font-medium text-primary/80">{store.type}</p>
+                  <div className="flex items-center gap-1.5 mt-1.5">
                     {renderStars(store.rating)}
                     <span className="text-sm font-bold text-foreground">{store.rating}</span>
                     <span className="text-xs text-muted-foreground">({store.reviews} reviews)</span>
                   </div>
                 </div>
               </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {store.tags.map(t => (
-                <Badge key={t} className="text-[11px] px-3 py-1 bg-muted/50 border-border/40 hover:bg-muted/80 transition-colors">
-                  {t.includes('24x7') && <Zap className="w-3 h-3 mr-1 text-amber-500" />}
-                  {t.includes('Delivery') && <Truck className="w-3 h-3 mr-1 text-primary" />}
-                  {t.includes('Generic') && <Pill className="w-3 h-3 mr-1 text-emerald-500" />}
-                  {t}
-                </Badge>
-              ))}
+
+              <Separator className="my-3" />
+
+              <div className="space-y-2.5 text-sm">
+                <div className="flex items-start gap-2.5 text-muted-foreground">
+                  <MapPin className="w-4 h-4 mt-0.5 shrink-0 text-primary" />
+                  <div>
+                    <span>{store.address}</span>
+                    <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1"><Navigation className="w-3 h-3" />{store.distance} away</p>
+                  </div>
+                </div>
+                <a href={`tel:${store.phone}`} className="flex items-center gap-2.5 text-primary font-medium hover:underline group">
+                  <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                    <Phone className="w-3.5 h-3.5 text-primary" />
+                  </div>
+                  {store.phone}
+                </a>
+                {store.email && (
+                  <div className="flex items-center gap-2.5 text-muted-foreground">
+                    <div className="w-7 h-7 rounded-lg bg-muted/50 flex items-center justify-center shrink-0">
+                      <Mail className="w-3.5 h-3.5" />
+                    </div>
+                    {store.email}
+                  </div>
+                )}
+              </div>
+
+              <Separator className="my-3" />
+
+              <div className={cn('px-4 py-2.5 rounded-xl border text-sm text-center font-semibold flex items-center justify-center gap-2', store.open ? 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10' : 'bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10')}>
+                <span className={cn('w-2 h-2 rounded-full animate-pulse', store.open ? 'bg-emerald-500' : 'bg-red-500')} />
+                {store.open ? `Open Now — ${store.timing}` : 'Closed'}
+              </div>
+
+              <div className="flex gap-2 mt-auto pt-3">
+                <Button className="flex-1 gap-2 rounded-xl shadow-lg shadow-primary/20 h-11 hover:shadow-xl hover:shadow-primary/30 transition-all" onClick={() => navigate('/buy-medicine/' + storeId + '/medicines')}>
+                  <Pill className="w-4 h-4" /> Browse Medicines
+                </Button>
+                <Button variant="outline" className="rounded-xl h-11 px-3 hover:bg-primary/5 hover:border-primary/30 transition-all" onClick={() => window.open(`https://maps.google.com/?q=${encodeURIComponent(store.address)}`)}>
+                  <Navigation className="w-4 h-4" />
+                </Button>
+                <a href={`tel:${store.phone}`}>
+                  <Button variant="outline" className="rounded-xl h-11 px-3 hover:bg-primary/5 hover:border-primary/30 transition-all">
+                    <Phone className="w-4 h-4" />
+                  </Button>
+                </a>
+              </div>
             </div>
           </div>
         </motion.div>
 
-        {/* ═══ MAIN GRID: LEFT + RIGHT ═══ */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* ════════ 2. QUICK STATS STRIP ════════ */}
+        <motion.div variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true }}
+          className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+          {[
+            { icon:CalendarDays, label:'Established', value:store.established, color:'text-primary', desc:`Since ${store.established}` },
+            { icon:Pill, label:'Medicines Available', value:allMeds.filter(m => m.inStock).length, color:'text-blue-500', desc:'In stock items' },
+            { icon:Truck, label:'Delivery Time', value:store.deliveryTime, color:'text-purple-500', desc:store.deliveryCharges === 0 ? 'Free delivery' : `₹${store.deliveryCharges} per order` },
+            { icon:Star, label:'Rating', value:store.rating, color:'text-emerald-500', desc:`${store.reviews} reviews` },
+          ].map(stat => (
+            <motion.div key={stat.label} variants={fadeUp}
+              className="bg-card rounded-2xl border border-border/50 shadow-sm p-5 flex items-center gap-4 hover:shadow-md transition-shadow">
+              <div className={cn('w-12 h-12 rounded-xl bg-gradient-to-br flex items-center justify-center shrink-0 shadow-sm', stat.color.replace('text-','from-').replace('-500','-500/20') + ' to-transparent')}>
+                <stat.icon className={cn('w-6 h-6', stat.color)} />
+              </div>
+              <div>
+                <p className="font-heading text-2xl font-bold text-foreground leading-none mb-0.5">{stat.value}</p>
+                <p className="text-xs text-muted-foreground">{stat.desc}</p>
+              </div>
+            </motion.div>
+          ))}
+        </motion.div>
 
-          {/* ─── LEFT COLUMN (lg:col-span-2) ─── */}
+        {/* ════════ 3. MAIN CONTENT + SIDEBAR ════════ */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+
+          {/* Left Column */}
           <div className="lg:col-span-2 space-y-6">
 
             {/* Upload Prescription CTA */}
-            <motion.div {...fadeUp(2)}>
-              <button onClick={() => { const inStock = allMeds.filter(m => m.inStock); inStock.forEach(m => addItem(m, storeId)); toast.success(`${inStock.length} items added to cart`); navigate('/cart'); }} className="w-full text-left bg-gradient-to-r from-primary/10 via-primary/5 to-card rounded-2xl border border-primary/20 p-6 hover:shadow-lg hover:border-primary/40 transition-all group">
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-2xl bg-primary/15 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                    <FileText className="w-7 h-7 text-primary" />
+            <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>
+              <Card className="rounded-2xl border-border/50 shadow-sm">
+                <CardContent className="p-6">
+                  <SectionTitle icon={FileText} label="Upload Prescription" />
+                  <div className="flex flex-col sm:flex-row gap-4 items-start">
+                    <div className="flex-1 w-full">
+                      <div className="border-2 border-dashed border-border/60 rounded-xl p-6 text-center hover:border-primary/40 hover:bg-primary/[0.02] transition-all cursor-pointer relative group"
+                        onClick={() => fileInputRef.current?.click()}>
+                        <div className="w-12 h-12 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-3 group-hover:bg-primary/10 transition-colors">
+                          <Upload className="w-6 h-6 text-muted-foreground/50 group-hover:text-primary transition-colors" />
+                        </div>
+                        <p className="text-sm font-semibold text-foreground mb-1">Upload your prescription</p>
+                        <p className="text-xs text-muted-foreground">JPG, PNG, PDF (max 5MB)</p>
+                        <input ref={fileInputRef} type="file" accept="image/*,.pdf" className="hidden"
+                          onChange={(e) => { if (e.target.files?.[0]) toast.success('Prescription uploaded'); }} />
+                      </div>
+                      <div className="flex gap-3 mt-3">
+                        <Button variant="outline" size="sm" className="flex-1 gap-1.5 rounded-lg text-xs"
+                          onClick={() => fileInputRef.current?.click()}>
+                          <Camera className="w-3.5 h-3.5" /> Camera
+                        </Button>
+                        <Button variant="outline" size="sm" className="flex-1 gap-1.5 rounded-lg text-xs"
+                          onClick={() => fileInputRef.current?.click()}>
+                          <Image className="w-3.5 h-3.5" /> Gallery
+                        </Button>
+                      </div>
+                      <div className="bg-amber-50/80 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl p-3 mt-3">
+                        <div className="flex items-start gap-2">
+                          <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                          <p className="text-xs text-amber-700 dark:text-amber-400">Pharmacist will verify your prescription before dispatch. You will be notified once approved.</p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <h3 className="font-heading font-bold text-lg text-foreground">Upload Prescription</h3>
-                    <p className="text-sm text-muted-foreground">Buy all medicines in single click &rarr;</p>
-                  </div>
-                  <ChevronRight className="w-6 h-6 text-primary/40 group-hover:text-primary group-hover:translate-x-1 transition-all" />
-                </div>
-              </button>
+                </CardContent>
+              </Card>
             </motion.div>
 
             {/* Browse Medicines */}
-            <motion.div {...fadeUp(3)} ref={medicinesRef}>
-              <div className="bg-card rounded-2xl border border-border/50 overflow-hidden shadow-sm">
-                <div className="px-5 py-4 border-b border-border/30 bg-gradient-to-r from-primary/[0.04] to-transparent">
-                  <h3 className="font-heading font-bold text-foreground flex items-center gap-2.5 text-base">
-                    <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shadow-sm">
-                      <Pill className="w-4.5 h-4.5 text-primary" />
-                    </div>
-                    Medicines
-                    <span className="text-sm font-normal text-muted-foreground">({allMeds.length} items)</span>
-                  </h3>
+            <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} ref={medicinesRef}>
+              <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden">
+                <div className="bg-gradient-to-r from-primary/5 via-primary/10 to-transparent px-6 pt-6 pb-0">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="font-heading text-xl font-bold text-foreground flex items-center gap-2.5">
+                      <span className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center"><Pill className="w-4 h-4 text-primary" /></span>
+                      Medicines <span className="text-base font-normal text-muted-foreground">({allMeds.length} items)</span>
+                    </h2>
+                    <Button variant="ghost" size="sm" className="gap-1 text-primary font-semibold shrink-0" onClick={() => navigate(`/buy-medicine/${storeId}/medicines`)}>
+                      View All <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
-                <div className="p-5">
+                <CardContent className="p-6 pt-4">
                   <div className="relative mb-4">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input value={medSearch} onChange={e => setMedSearch(e.target.value)} placeholder={`Search in ${store.name}...`} className="pl-10 h-11 text-sm rounded-xl bg-background border-border/50" />
@@ -310,9 +385,9 @@ export default function MedicineStoreDetail() {
                     });
                     if (filtered.length === 0) {
                       return (
-                        <div className="text-center py-12 bg-background rounded-xl border border-border/50">
-                          <Search className="w-12 h-12 text-muted-foreground/20 mx-auto mb-3" />
-                          <p className="text-muted-foreground text-sm">No medicines found</p>
+                        <div className="text-center py-12 bg-card rounded-2xl border border-border/50">
+                          <Search className="w-10 h-10 text-muted-foreground/20 mx-auto mb-2" />
+                          <p className="text-sm text-muted-foreground">No medicines found</p>
                         </div>
                       );
                     }
@@ -321,206 +396,304 @@ export default function MedicineStoreDetail() {
                         <div className="grid grid-cols-4 gap-3">
                           {filtered.slice(0, 4).map(med => renderMedCard(med))}
                         </div>
-                        <div className="mt-4 text-center">
-                          <Button variant="outline" className="gap-2 rounded-xl px-6" onClick={() => navigate(`/buy-medicine/${storeId}/medicines`)}>
-                            <Pill className="w-4 h-4" /> View More Medicines <ChevronRight className="w-4 h-4" />
-                          </Button>
-                        </div>
+                        {filtered.length > 4 && (
+                          <div className="mt-4 text-center">
+                            <Button variant="outline" className="gap-2 rounded-xl px-6" onClick={() => navigate(`/buy-medicine/${storeId}/medicines`)}>
+                              <Pill className="w-4 h-4" /> View More Medicines <ChevronRight className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        )}
                       </>
                     );
                   })()}
-                </div>
-              </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* About */}
+            <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>
+              <Card className="rounded-2xl border-border/50 shadow-sm">
+                <CardContent className="p-6">
+                  <SectionTitle icon={Info} label="About" />
+                  <p className="text-sm text-muted-foreground leading-relaxed mb-5">{store.description}</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {[
+                      { label:'License No.', value:store.licenseNo, icon:FileText },
+                      { label:'Pharmacist', value:store.pharmacist, icon:Shield },
+                      { label:'Established', value:store.established, icon:CalendarDays },
+                      { label:'Type', value:store.type, icon:Store },
+                    ].map((item, i) => (
+                      <div key={i} className="bg-gradient-to-br from-muted/40 to-muted/10 rounded-xl p-4 border border-border/40 hover:border-primary/20 transition-all">
+                        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center mb-2.5">
+                          <item.icon className="w-4 h-4 text-primary" />
+                        </div>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-0.5">{item.label}</p>
+                        <p className="text-sm font-bold text-foreground">{item.value}</p>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
             </motion.div>
 
             {/* Offers */}
             {store.offers.length > 0 && (
-              <SectionCard icon={Tag} title={`Offers & Deals (${store.offers.length})`}>
-                <div className="space-y-3">
-                  {store.offers.map((offer, i) => (
-                    <motion.div key={i} {...fadeUp(i)}
-                      className="flex items-start gap-4 p-4 rounded-xl bg-gradient-to-r from-primary/5 via-primary/[0.02] to-transparent border border-primary/10 hover:border-primary/20 hover:shadow-sm transition-all">
-                      <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shrink-0 shadow-sm">
-                        <Percent className="w-5 h-5 text-primary" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-bold text-foreground">{offer.title}</p>
-                        {offer.code && (
-                          <div className="flex items-center gap-2 mt-2">
-                            <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-primary/10 border border-primary/20">
-                              <Tag className="w-3 h-3 text-primary" />
-                              <span className="text-sm font-mono font-bold text-primary tracking-wider">{offer.code}</span>
-                            </div>
-                            <button onClick={() => handleCopyCode(offer.code)}
-                              className="flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 transition-colors px-2.5 py-1 rounded-lg hover:bg-primary/5">
-                              {copiedCode === offer.code ? <><CheckCircle2 className="w-3.5 h-3.5" /> Copied</> : <><Copy className="w-3.5 h-3.5" /> Copy</>}
-                            </button>
+              <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>
+                <Card className="rounded-2xl border-border/50 shadow-sm">
+                  <CardContent className="p-6">
+                    <SectionTitle icon={Tag} label={`Offers & Deals (${store.offers.length})`} />
+                    <div className="space-y-3">
+                      {store.offers.map((offer, i) => (
+                        <div key={i} className="flex items-start gap-4 p-4 rounded-xl bg-gradient-to-r from-primary/5 via-primary/[0.02] to-transparent border border-primary/10 hover:border-primary/20 hover:shadow-sm transition-all">
+                          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shrink-0 shadow-sm">
+                            <Percent className="w-5 h-5 text-primary" />
                           </div>
-                        )}
-                        {offer.desc && <p className="text-xs text-muted-foreground mt-1.5">{offer.desc}</p>}
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              </SectionCard>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-bold text-foreground">{offer.title}</p>
+                            {offer.code && (
+                              <div className="flex items-center gap-2 mt-2">
+                                <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-primary/10 border border-primary/20">
+                                  <Tag className="w-3 h-3 text-primary" />
+                                  <span className="text-sm font-mono font-bold text-primary tracking-wider">{offer.code}</span>
+                                </div>
+                                <button onClick={() => handleCopyCode(offer.code)}
+                                  className="flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 transition-colors px-2.5 py-1 rounded-lg hover:bg-primary/5">
+                                  {copiedCode === offer.code ? <><CheckCircle2 className="w-3.5 h-3.5" /> Copied</> : <><Copy className="w-3.5 h-3.5" /> Copy</>}
+                                </button>
+                              </div>
+                            )}
+                            {offer.desc && <p className="text-xs text-muted-foreground mt-1.5">{offer.desc}</p>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
             )}
 
-            {/* About */}
-            <SectionCard icon={Info} title="About">
-              <div className="space-y-5">
-                <p className="text-sm text-muted-foreground leading-relaxed">{store.description}</p>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {[
-                    { label:'License No.', value:store.licenseNo, icon:FileText },
-                    { label:'Pharmacist', value:store.pharmacist, icon:Shield },
-                    { label:'Established', value:store.established, icon:CalendarDays },
-                    { label:'Type', value:store.type, icon:Store },
-                  ].map((item, i) => (
-                    <div key={i} className="bg-gradient-to-br from-muted/40 to-muted/10 rounded-xl p-4 border border-border/40 hover:border-primary/20 transition-all">
-                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center mb-2.5">
-                        <item.icon className="w-4 h-4 text-primary" />
-                      </div>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-0.5">{item.label}</p>
-                      <p className="text-sm font-bold text-foreground">{item.value}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </SectionCard>
-
             {/* Reviews */}
-            <SectionCard icon={Star} title={`Reviews (${store.reviews})`}>
-              <div className="space-y-5">
-                <div className="flex items-start gap-6 sm:gap-10">
-                  <div className="text-center shrink-0">
-                    <div className="text-4xl font-black text-foreground">{store.rating}</div>
-                    <div className="flex mt-1.5 justify-center">{renderStars(store.rating)}</div>
-                    <p className="text-xs text-muted-foreground mt-1.5 font-medium">{store.reviews} reviews</p>
+            <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>
+              <Card className="rounded-2xl border-border/50 shadow-sm">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <SectionTitle icon={Star} label={`Reviews (${store.reviews})`} />
+                    <Button variant="outline" size="sm" className="rounded-lg text-xs gap-1.5" onClick={() => toast.success('Review form coming soon')}>
+                      <Star className="w-3.5 h-3.5" /> Write a Review
+                    </Button>
                   </div>
-                  <div className="flex-1 space-y-1.5 pt-1">
-                    {[5,4,3,2,1].map(s => {
-                      const count = REVIEWS_DATA.filter(r => Math.round(r.rating) === s).length;
-                      const pct = REVIEWS_DATA.length > 0 ? (count / REVIEWS_DATA.length) * 100 : 0;
-                      return (
-                        <div key={s} className="flex items-center gap-2 text-xs">
-                          <span className="w-3 text-muted-foreground font-medium">{s}</span>
-                          <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
-                          <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-                            <div className="h-full bg-gradient-to-r from-amber-400 to-amber-500 rounded-full transition-all" style={{ width:`${pct}%` }} />
+                  <div className="flex flex-col sm:flex-row items-start gap-6 mb-6 p-5 bg-gradient-to-br from-muted/30 to-muted/10 rounded-xl border border-border/40">
+                    <div className="text-center min-w-[100px]">
+                      <div className="text-4xl font-bold text-foreground">{store.rating}</div>
+                      <div className="flex items-center gap-0.5 mt-1 justify-center">{renderStars(store.rating, 'w-4 h-4')}</div>
+                      <p className="text-[10px] text-muted-foreground mt-1">{store.reviews} total</p>
+                    </div>
+                    <div className="flex-1 w-full space-y-1.5">
+                      {[5,4,3,2,1].map(s => {
+                        const count = REVIEWS_DATA.filter(r => Math.round(r.rating) === s).length;
+                        const pct = REVIEWS_DATA.length > 0 ? (count / REVIEWS_DATA.length) * 100 : 0;
+                        return (
+                          <div key={s} className="flex items-center gap-2 text-xs">
+                            <span className="w-3 text-muted-foreground font-medium">{s}</span>
+                            <Star className="w-3 h-3 text-amber-400 fill-amber-400 shrink-0" />
+                            <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+                              <div className="h-full rounded-full bg-gradient-to-r from-amber-400 to-amber-500" style={{ width: `${pct}%` }} />
+                            </div>
                           </div>
-                          <span className="w-5 text-muted-foreground text-right">{count}</span>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-                <Separator />
-                <div className="space-y-4">
-                  {REVIEWS_DATA.map((r, i) => (
-                    <motion.div key={r.id} {...fadeUp(i)} className="pb-4 border-b border-border/20 last:border-0 last:pb-0">
-                      <div className="flex items-center gap-3 mb-1.5">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center text-xs font-bold text-primary shadow-sm">{r.user[0]}</div>
-                        <span className="text-sm font-semibold text-foreground">{r.user}</span>
-                        <span className="text-[10px] text-muted-foreground ml-auto bg-muted/50 px-2 py-0.5 rounded-full">{r.date}</span>
+                  <div className="space-y-4">
+                    {REVIEWS_DATA.map((r, i) => (
+                      <div key={r.id} className="group p-4 rounded-xl border border-border/30 hover:border-border/60 hover:shadow-sm transition-all">
+                        <div className="flex items-start gap-3">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-sm font-bold text-primary shrink-0 border-2 border-primary/10">
+                            {r.user[0]}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-sm font-semibold text-foreground">{r.user}</span>
+                              <div className="flex items-center gap-0.5">
+                                {[1,2,3,4,5].map(s => <Star key={s} className={cn('w-3 h-3', s <= r.rating ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground/20')} />)}
+                              </div>
+                              <span className="text-[10px] text-muted-foreground ml-auto bg-muted/50 px-2 py-0.5 rounded-full">{r.date}</span>
+                            </div>
+                            <p className="text-xs text-foreground mt-2 leading-relaxed">{r.comment}</p>
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex mb-1.5 ml-11">{renderStars(r.rating)}</div>
-                      <p className="text-sm text-muted-foreground ml-11 leading-relaxed">{r.comment}</p>
-                    </motion.div>
-                  ))}
-                </div>
-              </div>
-            </SectionCard>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
 
             {/* Policies */}
-            <SectionCard icon={Shield} title="Store Policies">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {[
-                  { icon:ArrowLeft, title:'Return / Refund', desc:store.policies.return, color:'text-blue-500', bg:'bg-blue-500/10' },
-                  { icon:X, title:'Cancellation', desc:store.policies.cancel, color:'text-red-500', bg:'bg-red-500/10' },
-                  { icon:FileText, title:'Prescription Validity', desc:store.policies.rxValidity, color:'text-amber-500', bg:'bg-amber-500/10' },
-                ].map((item, i) => (
-                  <motion.div key={i} {...fadeUp(i)}
-                    className="bg-gradient-to-br from-muted/40 to-muted/10 rounded-xl p-5 border border-border/40 hover:border-primary/20 hover:shadow-sm transition-all">
-                    <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center mb-3', item.bg)}>
-                      <item.icon className={cn('w-5 h-5', item.color)} />
-                    </div>
-                    <h4 className="text-sm font-bold text-foreground mb-1.5">{item.title}</h4>
-                    <p className="text-xs text-muted-foreground leading-relaxed">{item.desc}</p>
-                  </motion.div>
-                ))}
-              </div>
-            </SectionCard>
+            <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>
+              <Card className="rounded-2xl border-border/50 shadow-sm">
+                <CardContent className="p-6">
+                  <SectionTitle icon={Shield} label="Store Policies" />
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {[
+                      { icon:ArrowLeft, title:'Return / Refund', desc:store.policies.return, color:'text-blue-500', bg:'bg-blue-500/10' },
+                      { icon:X, title:'Cancellation', desc:store.policies.cancel, color:'text-red-500', bg:'bg-red-500/10' },
+                      { icon:FileText, title:'Prescription Validity', desc:store.policies.rxValidity, color:'text-amber-500', bg:'bg-amber-500/10' },
+                    ].map((item, i) => (
+                      <div key={i} className="bg-gradient-to-br from-muted/40 to-muted/10 rounded-xl p-5 border border-border/40 hover:border-primary/20 hover:shadow-sm transition-all">
+                        <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center mb-3', item.bg)}>
+                          <item.icon className={cn('w-5 h-5', item.color)} />
+                        </div>
+                        <h4 className="text-sm font-bold text-foreground mb-1.5">{item.title}</h4>
+                        <p className="text-xs text-muted-foreground leading-relaxed">{item.desc}</p>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
 
           </div>
 
-          {/* ─── RIGHT SIDEBAR ─── */}
-          <div className="space-y-6">
-
-            {/* Quick Info */}
-            <SidebarCard icon={Info} title="Quick Info">
-              <div className="space-y-3">
-                {[
-                  { icon:Truck, label:'Delivery Time', value:store.deliveryTime },
-                  { icon:MapPin, label:'Distance', value:store.distance || '0.8 km' },
-                  { icon:Phone, label:'Phone', value:store.phone },
-                  { icon:Mail, label:'Email', value:store.email },
-                  { icon:Clock, label:'Working Hours', value:store.workingHours },
-                  { icon:Truck, label:'Delivery', value:store.deliveryCharges === 0 ? 'Free' : `\u20B9${store.deliveryCharges}` },
-                ].map((item, i) => (
-                  <div key={i} className="flex items-center gap-3 py-2 border-b border-border/20 last:border-0">
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center shrink-0">
-                      <item.icon className="w-4 h-4 text-primary" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{item.label}</p>
-                      <p className="text-sm font-semibold text-foreground truncate">{item.value}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </SidebarCard>
+          {/* ──── RIGHT SIDEBAR ──── */}
+          <div className="space-y-6 lg:sticky lg:top-24 self-start">
 
             {/* Trust & Info */}
-            <SidebarCard icon={Award} title="Trust & Info">
-              <div className="space-y-3">
-                {[
-                  { label:'License', value:store.licenseNo, icon:FileText },
-                  { label:'Pharmacist', value:store.pharmacist, icon:Stethoscope },
-                  { label:'Established', value:store.established, icon:CalendarDays },
-                  { label:'Delivery Area', value:store.deliveryArea, icon:MapPin },
-                ].map((item, i) => (
-                  <div key={i} className="flex items-center gap-3 py-2 border-b border-border/20 last:border-0">
-                    <div className="w-8 h-8 rounded-lg bg-muted/50 flex items-center justify-center shrink-0">
-                      <item.icon className="w-4 h-4 text-muted-foreground" />
+            <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} className="w-full">
+              <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden w-full">
+                <CardContent className="p-6">
+                  <h3 className="font-heading font-semibold text-foreground mb-5 flex items-center gap-2.5">
+                    <span className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center"><ClipboardList className="w-3.5 h-3.5 text-primary" /></span>
+                    Quick Info
+                  </h3>
+                  <div className="space-y-4">
+                    <div className="space-y-3">
+                      {[
+                        ['Delivery Time', store.deliveryTime],
+                        ['Distance', store.distance || '0.8 km'],
+                        ['Working Hours', store.workingHours],
+                        ['Delivery', store.deliveryCharges === 0 ? 'Free' : `₹${store.deliveryCharges}`],
+                        ['Delivery Area', store.deliveryArea],
+                        ['Min. Order', store.minOrder > 0 ? `₹${store.minOrder}` : 'No minimum'],
+                      ].map(([label, val]) => (
+                        <div key={label} className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">{label}</span>
+                          <span className="font-semibold text-foreground">{val}</span>
+                        </div>
+                      ))}
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{item.label}</p>
-                      <p className="text-sm font-semibold text-foreground truncate">{item.value}</p>
+                    <Separator />
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <BadgeCheck className="w-4 h-4 text-emerald-500" />
+                        <span className="text-xs font-semibold text-foreground">Licensed Pharmacy</span>
+                      </div>
+                      {store.pickup && (
+                        <div className="flex items-center gap-2">
+                          <Store className="w-4 h-4 text-primary" />
+                          <span className="text-xs font-semibold text-foreground">In-store Pickup Available</span>
+                        </div>
+                      )}
                     </div>
                   </div>
-                ))}
-              </div>
-            </SidebarCard>
+                </CardContent>
+              </Card>
+            </motion.div>
 
-            {/* Quick Actions (sticky) */}
-            <div className="lg:sticky lg:top-24 space-y-4">
-              <SidebarCard icon={MapPin} title="Address">
-                <p className="text-sm text-muted-foreground leading-relaxed mb-4">{store.address}</p>
-                <div className="flex flex-col gap-2">
-                  <Button variant="default" className="gap-2 rounded-xl w-full shadow-md shadow-primary/20" onClick={() => window.open(`tel:${store.phone}`)}>
-                    <Phone className="w-4 h-4" /> Call Store
-                  </Button>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button variant="outline" className="gap-2 rounded-xl" onClick={() => window.open(`https://maps.google.com/?q=${encodeURIComponent(store.address)}`)}>
-                      <Navigation className="w-4 h-4" /> Directions
+            {/* Trust & Info */}
+            <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} className="w-full">
+              <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden w-full">
+                <CardContent className="p-6">
+                  <h3 className="font-heading font-semibold text-foreground mb-5 flex items-center gap-2.5">
+                    <span className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center"><Award className="w-3.5 h-3.5 text-primary" /></span>
+                    Trust & Info
+                  </h3>
+                  <div className="space-y-3">
+                    {[
+                      { label:'License', value:store.licenseNo, icon:FileText },
+                      { label:'Pharmacist', value:store.pharmacist, icon:Stethoscope },
+                      { label:'Established', value:store.established, icon:CalendarDays },
+                      { label:'Delivery Area', value:store.deliveryArea, icon:MapPin },
+                    ].map((item, i) => (
+                      <div key={i} className="flex items-center gap-3 py-2 border-b border-border/20 last:border-0">
+                        <div className="w-8 h-8 rounded-lg bg-muted/50 flex items-center justify-center shrink-0">
+                          <item.icon className="w-4 h-4 text-muted-foreground" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{item.label}</p>
+                          <p className="text-sm font-semibold text-foreground truncate">{item.value}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* Community Trust */}
+            <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} className="w-full">
+              <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden w-full">
+                <CardContent className="p-6">
+                  <h3 className="font-heading font-semibold text-foreground mb-4 flex items-center gap-2.5">
+                    <span className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center"><Heart className="w-3.5 h-3.5 text-primary" /></span>
+                    Community Trust
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 dark:bg-emerald-500/10">
+                      <BadgeCheck className="w-3.5 h-3.5" /> {store.verified ? 'Verified' : 'Registered'}
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200 dark:bg-blue-500/10">
+                      <Truck className="w-3.5 h-3.5" /> Fast Delivery
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full bg-purple-50 text-purple-600 border border-purple-200 dark:bg-purple-500/10">
+                      <Users className="w-3.5 h-3.5" /> {store.reviews}+ Reviews
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* Quick Actions */}
+            <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} className="w-full">
+              <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden bg-gradient-to-br from-primary/5 via-primary/[0.02] to-transparent w-full">
+                <CardContent className="p-6">
+                  <h3 className="font-heading font-semibold text-foreground mb-5 flex items-center gap-2.5">
+                    <span className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center"><Zap className="w-3.5 h-3.5 text-primary" /></span>
+                    Quick Actions
+                  </h3>
+                  <div className="space-y-3">
+                    <Button className="w-full gap-2.5 rounded-xl h-11 font-semibold shadow-md" onClick={() => navigate(`/buy-medicine/${storeId}/medicines`)}>
+                      <Pill className="w-4 h-4" /> Browse Medicines
                     </Button>
-                    <Button variant="outline" className="gap-2 rounded-xl" onClick={() => { if (navigator.share) navigator.share({ title:store.name, text:`${store.name}\n${store.address}` }); }}>
-                      <Share2 className="w-4 h-4" /> Share
+                    <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" asChild>
+                      <a href={`tel:${store.phone}`}><Phone className="w-4 h-4" /> Call Now</a>
+                    </Button>
+                    <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => window.open(`https://maps.google.com/?q=${encodeURIComponent(store.address)}`)}>
+                      <Navigation className="w-4 h-4" /> Get Directions
+                    </Button>
+                    <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => { navigator.clipboard?.writeText(window.location.href); toast.success('Link copied!'); }}>
+                      <Share2 className="w-4 h-4" /> Share Profile
                     </Button>
                   </div>
-                </div>
-              </SidebarCard>
-            </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* Address Card */}
+            <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} className="w-full">
+              <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden w-full">
+                <CardContent className="p-6">
+                  <h3 className="font-heading font-semibold text-foreground mb-4 flex items-center gap-2.5">
+                    <span className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center"><MapPin className="w-3.5 h-3.5 text-primary" /></span>
+                    Address
+                  </h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed mb-4">{store.address}</p>
+                  <Button variant="outline" size="sm" className="w-full gap-2 rounded-xl h-10" onClick={() => window.open(`https://maps.google.com/?q=${encodeURIComponent(store.address)}`)}>
+                    <Navigation className="w-4 h-4" /> Get Directions
+                  </Button>
+                </CardContent>
+              </Card>
+            </motion.div>
 
           </div>
         </div>
@@ -539,7 +712,7 @@ export default function MedicineStoreDetail() {
                 <X className="w-4 h-4 text-muted-foreground" />
               </button>
             </div>
-            <div className="border-2 border-dashed border-border/60 rounded-xl p-8 sm:p-10 text-center mb-3 hover:border-primary/40 hover:bg-primary/[0.02] transition-all cursor-pointer group relative" onClick={() => fileInputRef.current?.click()}>
+            <div className="border-2 border-dashed border-border/60 rounded-xl p-8 sm:p-10 text-center mb-3 hover:border-primary/40 hover:bg-primary/[0.02] transition-all cursor-pointer relative group" onClick={() => fileInputRef.current?.click()}>
               <div className="w-14 h-14 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-4 group-hover:bg-primary/10 transition-colors">
                 <Upload className="w-7 h-7 text-muted-foreground/50 group-hover:text-primary transition-colors" />
               </div>
@@ -584,7 +757,7 @@ export default function MedicineStoreDetail() {
               </div>
               <div>
                 <span className="text-xs text-muted-foreground">{storeCartCount} item{storeCartCount > 1 ? 's' : ''}</span>
-                <span className="text-lg font-bold text-foreground block leading-tight">\u20B9{storeCartTotal}</span>
+                <span className="text-lg font-bold text-foreground block leading-tight">₹{storeCartTotal}</span>
               </div>
             </div>
             <Button className="gap-2 rounded-xl shadow-lg shadow-primary/30 px-6 h-11" onClick={() => navigate('/cart')}>

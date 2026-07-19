@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Star, MapPin, Stethoscope, UserRound, CalendarDays, IndianRupee, Award, Users, SlidersHorizontal, X, Building2, Clock, Shield, Syringe, BedDouble, Languages, GraduationCap, CircleDot, ChevronDown, ChevronUp, Ambulance, Eye, Heart, Bone, Baby, Activity, Brain, BadgeCheck, Phone, Mail, ArrowRight, Navigation, Globe, FlaskConical } from 'lucide-react';
@@ -9,6 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 const SPECIALIZATIONS = ['All', 'Cardiology', 'Neurology', 'Orthopedics', 'Pediatrics', 'Dermatology', 'Oncology', 'General Medicine', 'ENT'];
 const ALL_SPECIALTIES = [
@@ -110,6 +111,17 @@ export default function ClinicDoctors() {
 
   useEffect(() => { loadDoctors(); }, [search, specFilter]);
 
+  const insuranceProviders = useMemo(() => {
+    const providers = new Set();
+    allDoctors.forEach(d => {
+      (d.clinicProfile?.clinic_insurance || d.insurance_accepted || []).forEach(i => {
+        if (typeof i === 'string') providers.add(i);
+        else if (i?.provider) providers.add(i.provider);
+      });
+    });
+    return [...providers].sort();
+  }, [allDoctors]);
+
   useEffect(() => {
     let filtered = [...allDoctors];
 
@@ -144,7 +156,10 @@ export default function ClinicDoctors() {
     else if (surgeryFilter === 'no') filtered = filtered.filter(d => d.surgery_available !== true);
     if (admissionFilter === 'yes') filtered = filtered.filter(d => d.admission_available === true);
     else if (admissionFilter === 'no') filtered = filtered.filter(d => d.admission_available !== true);
-    if (insuranceFilter) filtered = filtered.filter(d => d.insurance_accepted?.includes(insuranceFilter));
+    if (insuranceFilter) filtered = filtered.filter(d => {
+      const ins = d.clinicProfile?.clinic_insurance || d.insurance_accepted || [];
+      return ins.some(i => (typeof i === 'string' ? i : i.provider || i) === insuranceFilter);
+    });
     if (emergencyFilter === 'yes') filtered = filtered.filter(d => d.emergency_consultation === true);
     else if (emergencyFilter === 'no') filtered = filtered.filter(d => d.emergency_consultation !== true);
 
@@ -413,15 +428,9 @@ export default function ClinicDoctors() {
                       <select value={insuranceFilter} onChange={e => setInsuranceFilter(e.target.value)}
                         className="w-full h-8 text-xs rounded-lg border border-border bg-background">
                         <option value="">Any Provider</option>
-                        <option value="Star Health">Star Health</option>
-                        <option value="ICICI Lombard">ICICI Lombard</option>
-                        <option value="HDFC Ergo">HDFC Ergo</option>
-                        <option value="Bajaj Allianz">Bajaj Allianz</option>
-                        <option value="Cigna">Cigna</option>
-                        <option value="Kaiser Permanente">Kaiser Permanente</option>
-                        <option value="Aetna">Aetna</option>
-                        <option value="Blue Cross">Blue Cross</option>
-                        <option value="Medicare">Medicare</option>
+                        {insuranceProviders.map(p => (
+                          <option key={p} value={p}>{p}</option>
+                        ))}
                       </select>
                     </div>
 
@@ -473,6 +482,11 @@ export default function ClinicDoctors() {
                 <motion.div key={doc._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
                   className="group bg-card rounded-2xl border border-border/60 overflow-hidden hover:shadow-xl hover:shadow-primary/5 hover:border-primary/30 transition-all cursor-pointer relative"
                   onClick={() => navigate(`/clinic-doctors/${doc._id}`)}>
+                  {/* Save Button — top-left */}
+                  <button onClick={(e) => { e.stopPropagation(); toast.success('Saved'); }}
+                    className="absolute top-3 left-3 z-10 w-8 h-8 rounded-xl bg-white/70 dark:bg-black/30 backdrop-blur-sm flex items-center justify-center hover:bg-white dark:hover:bg-black/50 transition-all shadow-sm opacity-0 group-hover:opacity-100">
+                    <Heart className="w-4 h-4 text-muted-foreground hover:text-red-500 transition-colors" />
+                  </button>
                   {/* Corner Badge — Next Available Slot */}
                   <div className={cn('absolute top-0 right-0 z-10 px-3 py-1.5 rounded-bl-2xl text-[11px] font-semibold border-l border-b shadow-sm', doc.available
                     ? 'bg-primary/5 text-primary border-primary/20 dark:bg-primary/10'
