@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Navigate, Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Activity, ArrowRight, Shield, Stethoscope, UserRound } from 'lucide-react';
+import { Activity, ArrowRight, Shield, Stethoscope, UserRound, Microscope } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
@@ -10,6 +10,7 @@ import { api } from '@/lib/api';
 const roles = [
   { key: 'patient', label: 'Patient', desc: 'Book appointments & view records', icon: UserRound, color: 'text-success', bg: 'bg-success/10' },
   { key: 'doctor', label: 'Doctor', desc: 'Manage consultations & patients', icon: Stethoscope, color: 'text-info', bg: 'bg-info/10' },
+  { key: 'technician', label: 'Technician', desc: 'Lab & diagnostic services', icon: Microscope, color: 'text-warning', bg: 'bg-warning/10' },
 ];
 
 export default function Signup() {
@@ -30,6 +31,9 @@ export default function Signup() {
   const [qualification, setQualification] = useState('');
   const [licenseNumber, setLicenseNumber] = useState('');
   const [consultationFee, setConsultationFee] = useState('');
+  const [technicianRole, setTechnicianRole] = useState('');
+  const [technicianExperience, setTechnicianExperience] = useState('');
+  const [technicianQualification, setTechnicianQualification] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -71,6 +75,7 @@ export default function Signup() {
       const data = await api.register({
         name, email, password, role, phone, gender, dateOfBirth,
         ...(role === 'doctor' ? { specialization, experience, qualification, licenseNumber, consultationFee: consultationFee ? Number(consultationFee) : undefined } : {}),
+        ...(role === 'technician' ? { specialization: technicianRole, experience: technicianExperience, qualification: technicianQualification } : {}),
       });
       // Store credentials for auto-login after OTP
       localStorage.setItem('temp_password', password);
@@ -191,6 +196,26 @@ export default function Signup() {
                 <div>
                   <label className="text-xs font-medium text-foreground mb-1 block">Consultation Fee</label>
                   <Input type="number" value={consultationFee} onChange={e => setConsultationFee(e.target.value)} placeholder="e.g. 500" className="h-9 text-sm" />
+                </div>
+              </div>
+            )}
+            {role === 'technician' && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 bg-muted/20 rounded-xl border border-border/40">
+                <p className="text-xs font-semibold text-foreground sm:col-span-2 flex items-center gap-1.5"><Microscope className="w-3.5 h-3.5 text-primary" /> Technician Details</p>
+                <div>
+                  <label className="text-xs font-medium text-foreground mb-1 block">Role</label>
+                  <select value={technicianRole} onChange={e => setTechnicianRole(e.target.value)} className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm">
+                    <option value="">Select</option>
+                    {['Lab Technician','Phlebotomist','Radiographer','Sonographer'].map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-foreground mb-1 block">Experience</label>
+                  <Input value={technicianExperience} onChange={e => setTechnicianExperience(e.target.value)} placeholder="e.g. 3 years" className="h-9 text-sm" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-foreground mb-1 block">Qualification</label>
+                  <Input value={technicianQualification} onChange={e => setTechnicianQualification(e.target.value)} placeholder="e.g. B.Sc, MLT" className="h-9 text-sm" />
                 </div>
               </div>
             )}

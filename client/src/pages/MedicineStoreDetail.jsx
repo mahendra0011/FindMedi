@@ -7,7 +7,7 @@ import {
   Navigation, Percent, Tag, AlertCircle, X, Image, FileText, Zap, Info,
   Copy, CheckCircle2, Stethoscope, CalendarDays, Award, Search, Plus, Minus,
   Lock, Home, Users, Sparkles, Building2, ClipboardList, Heart, Bookmark,
-  HelpCircle, CreditCard, ChevronLeft, ChevronDown, Globe
+  HelpCircle, CreditCard, ChevronLeft, ChevronDown, Globe, Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { useCart } from '@/context/CartContext';
+import { api } from '@/lib/api';
 import { toast } from 'sonner';
 
 const MOCK_STORES = [
@@ -69,14 +70,36 @@ const SectionTitle = ({ icon:Icon, label }) => (
   </h2>
 );
 
-function getStoreById(id) { return MOCK_STORES.find(s => s.id === id) || MOCK_STORES[0]; }
+function mapFacilityToStore(f) {
+  return {
+    id: f._id, name: f.name, photo: f.logo || '', cover: f.image || '',
+    verified: f.status === 'approved', open: true, timing: f.workingHours || '8 AM - 10 PM',
+    type: 'Pharmacy', rating: f.rating || 4.0, reviews: f.reviewsCount || 0,
+    tags: ['Home Delivery', 'Generic Available'],
+    deliveryTime: '30 mins', phone: f.phone || '', email: f.email || '',
+    address: f.address || '', distance: f.distance ? `${f.distance} km` : '0.8 km',
+    workingHours: f.workingHours || '8:00 AM - 10:00 PM',
+    deliveryCharges: 0, freeDeliveryAbove: 0, minOrder: 0,
+    pickup: true, deliveryArea: 'Within 3 km',
+    established: f.establishedYear || 2021,
+    licenseNo: f.licenseNumber || '',
+    pharmacist: '',
+    description: f.description || '',
+    deliveryAvailable: true,
+    offers: f.offers || [],
+    policies: f.policies || { return: '', cancel: '', rxValidity: '' },
+    city: f.city || '',
+  };
+}
 
 export default function MedicineStoreDetail() {
   const { storeId } = useParams();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const store = getStoreById(storeId);
   const { entries, addItem, updateQty } = useCart();
+  const [store, setStore] = useState(null);
+  const [allMeds, setAllMeds] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showRx, setShowRx] = useState(false);
   const [copiedCode, setCopiedCode] = useState(null);
   const medicinesRef = useRef(null);
@@ -85,7 +108,34 @@ export default function MedicineStoreDetail() {
   const [catFilter, setCatFilter] = useState('All');
   const [expandedFaq, setExpandedFaq] = useState(null);
 
-  const allMeds = MOCK_MEDICINES.filter(m => m.storeId === storeId);
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        const result = await api.getFacility(storeId);
+        const f = result?.facility || result;
+        if (!f) throw new Error('Not found');
+        setStore(mapFacilityToStore(f));
+        try {
+          const meds = await api.getPharmacyMedicines({ facilityId: storeId });
+          setAllMeds(Array.isArray(meds) ? meds.map(m => ({
+            id: m._id, name: m.name, image: m.image || '',
+            brand: m.manufacturer || '', mrp: m.sellingPrice || m.mrp || 0,
+            price: m.sellingPrice || 0,
+            discount: m.discount || Math.round((1 - (m.sellingPrice || 0) / (m.mrp || m.sellingPrice || 1)) * 100) || 0,
+            inStock: m.currentStock > 0, rx: m.prescriptionReq || false,
+            pack: m.form || '', category: m.category || 'Other', storeId,
+          })) : []);
+        } catch {}
+      } catch {
+        const fallback = MOCK_STORES.find(s => s.id === storeId) || MOCK_STORES[0];
+        setStore(fallback);
+        if (fallback) setAllMeds(MOCK_MEDICINES.filter(m => m.storeId === storeId));
+      }
+      setLoading(false);
+    };
+    load();
+  }, [storeId]);
   const storeEntries = entries.filter(e => e.storeId === storeId);
 
   const storeCartCount = storeEntries.reduce((s, e) => s + e.qty, 0);
@@ -163,6 +213,8 @@ export default function MedicineStoreDetail() {
     setCopiedCode(code);
     setTimeout(() => setCopiedCode(null), 2000);
   };
+
+  if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
 
   if (!store) {
     return (

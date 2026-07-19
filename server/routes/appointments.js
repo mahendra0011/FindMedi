@@ -57,7 +57,7 @@ router.get('/', protect, async (req, res) => {
     
     if (req.user.role === 'patient') {
       filter.patientId = req.user._id;
-    } else if (req.user.role === 'doctor') {
+    } else if (req.user.role === 'doctor' || req.user.role === 'clinic_doctor') {
       filter.doctor = new RegExp(req.user.name, 'i');
       if (req.user.hospitalId) filter.hospitalId = req.user.hospitalId;
     } else if (req.user.role === 'admin') {
@@ -66,7 +66,7 @@ router.get('/', protect, async (req, res) => {
     
     if (hospitalId) filter.hospitalId = hospitalId;
     
-    if (search && req.user.role === 'doctor') {
+    if (search && (req.user.role === 'doctor' || req.user.role === 'clinic_doctor')) {
       filter.$or = [{ patient: new RegExp(search, 'i') }];
     }
     
@@ -85,7 +85,7 @@ router.get('/my-appointments', protect, async (req, res) => {
     
     if (req.user.role === 'patient') {
       filter.patientId = req.user._id;
-    } else if (req.user.role === 'doctor') {
+    } else if (req.user.role === 'doctor' || req.user.role === 'clinic_doctor') {
       filter.doctor = new RegExp(req.user.name, 'i');
       if (req.user.hospitalId) filter.hospitalId = req.user.hospitalId;
     } else if (req.user.role === 'admin') {
