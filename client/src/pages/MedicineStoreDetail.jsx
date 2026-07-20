@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils';
 import { useCart } from '@/context/CartContext';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
+import ServiceLocationMap from '@/components/maps/ServiceLocationMap';
 
 const MOCK_STORES = [
   { id:'s1', name:'MediStore Pharmacy', photo:'https://images.unsplash.com/photo-1585435557343-3b092031a831?w=400&h=300&fit=crop', cover:'https://images.unsplash.com/photo-1587351021759-3e566b6af7cc?w=1200&h=400&fit=crop', verified:true, open:true, timing:'8 AM - 10 PM', type:'Pharmacy', rating:4.2, reviews:234, tags:['Home Delivery','Generic Available'], deliveryTime:'25 mins', phone:'0761-3456789', email:'orders@medistore.com', address:'Vijay Nagar, Jabalpur, Madhya Pradesh 482003', distance:'0.8 km', workingHours:'8:00 AM - 10:00 PM', deliveryCharges:0, freeDeliveryAbove:0, minOrder:0, pickup:true, deliveryArea:'Within 3 km', established:2021, licenseNo:'MP-PH-2023-00781', pharmacist:'Mr. Rajesh Kumar', description:'Full-service pharmacy with a wide range of medicines, surgical supplies, and wellness products. Free delivery within 3 km.', deliveryAvailable:true, offers:[{ title:'Flat 20% off on first order', code:'FIRST20', desc:'Use code FIRST20 to get 20% off on your first order.' }, { title:'Combo Deal: Buy 2 Get 10% off', code:'COMBO10', desc:'On all vitamin supplements.' }], policies:{ return:'Medicines can be returned within 7 days if unopened and in original packaging. Prescription medicines cannot be returned once dispensed.', cancel:'Orders can be cancelled within 30 minutes of placing. Full refund will be processed within 3-5 business days.', rxValidity:'Prescriptions issued within the last 6 months are accepted.' }, city:'Jabalpur' },
@@ -364,6 +365,10 @@ export default function MedicineStoreDetail() {
 
           {/* Left Column */}
           <div className="lg:col-span-2 space-y-6">
+
+            <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>
+              <ServiceLocationMap entityType="pharmacy" entity={store} />
+            </motion.div>
 
             {/* About */}
             <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>

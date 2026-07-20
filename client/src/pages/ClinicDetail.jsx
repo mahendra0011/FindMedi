@@ -22,6 +22,7 @@ import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
+import ServiceLocationMap from '@/components/maps/ServiceLocationMap';
 
 const stagger = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.06 } } };
 const fadeUp = { hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 200, damping: 22 } } };
@@ -445,6 +446,10 @@ export default function ClinicDetail() {
 
           {/* Left Column — About → Additional Info */}
           <div className="lg:col-span-2 space-y-6">
+
+            <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>
+              <ServiceLocationMap entityType="clinic" entity={clinic} />
+            </motion.div>
 
             {/* About */}
             <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>

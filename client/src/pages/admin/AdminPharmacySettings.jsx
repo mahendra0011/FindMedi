@@ -32,7 +32,9 @@ export default function AdminPharmacySettings() {
           logo: f.logo || '',
           image: f.image || '',
           establishedYear: f.establishedYear || '',
-          licenseNumber: f.licenseNumber || '',
+pincode: f.pincode || '',
+           licenseNumber: f.licenseNumber || '',
+           website: f.details?.website || f.website || '',
           workingHours: f.workingHours || '8:00 AM - 10:00 PM',
           accreditations: f.accreditations || [],
           amenities: f.amenities || { parking: false, acWaitingArea: false, wheelchairAccess: false, cardPayment: false, homeDelivery: false, prescriptionUpload: false },
@@ -89,6 +91,11 @@ export default function AdminPharmacySettings() {
             <div className="space-y-2"><Label>City</Label><Input value={form.city} onChange={e => update('city', e.target.value)} placeholder="Enter city" /></div>
             <div className="space-y-2"><Label>State</Label><Input value={form.state} onChange={e => update('state', e.target.value)} placeholder="Enter state" /></div>
           </div>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="space-y-2"><Label>Pincode</Label><Input value={form.pincode} onChange={e => update('pincode', e.target.value)} placeholder="e.g. 400001" /></div>
+            <div className="space-y-2"><Label>License Number</Label><Input value={form.licenseNumber} onChange={e => update('licenseNumber', e.target.value)} placeholder="e.g. MP-PH-2023-00781" /></div>
+            <div className="space-y-2"><Label><Globe className="w-3 h-3 inline mr-1" /> Website</Label><Input value={form.website} onChange={e => update('website', e.target.value)} placeholder="https://pharmacy.com" /></div>
+          </div>
           <div className="space-y-2"><Label>Description</Label><Textarea rows={3} value={form.description} onChange={e => update('description', e.target.value)} placeholder="Brief description about your pharmacy" /></div>
         </CardContent>
       </Card>
@@ -102,9 +109,8 @@ export default function AdminPharmacySettings() {
       </Card>
 
       <Card>
-        <CardHeader><CardTitle className="flex items-center gap-2"><Pill className="w-5 h-5" /> License Info</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="flex items-center gap-2"><Pill className="w-5 h-5" /> Accreditations</CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          <div className="space-y-2"><Label>License Number</Label><Input value={form.licenseNumber} onChange={e => update('licenseNumber', e.target.value)} placeholder="e.g. MP-PH-2023-00781" /></div>
           <div className="space-y-2">
             <div className="flex items-center justify-between"><Label>Accreditations</Label><Button variant="outline" size="sm" onClick={addAccreditation}><Plus className="w-3 h-3 mr-1" /> Add</Button></div>
             <div className="flex flex-wrap gap-2">

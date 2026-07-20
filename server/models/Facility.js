@@ -66,6 +66,8 @@ const facilitySchema = new mongoose.Schema({
     drinkingWater: { type: Boolean, default: false },
     wifi: { type: Boolean, default: false },
     homeVisit: { type: Boolean, default: false },
+    homeDelivery: { type: Boolean, default: false },
+    prescriptionUpload: { type: Boolean, default: false },
   },
 
   socialLinks: {

@@ -28,6 +28,9 @@ export default function AdminLabSettings() {
           address: f.address || '',
           city: f.city || '',
           state: f.state || '',
+          pincode: f.pincode || '',
+          licenseNumber: f.licenseNumber || '',
+          website: f.details?.website || f.website || '',
           description: f.description || '',
           logo: f.logo || '',
           image: f.image || '',
@@ -100,7 +103,12 @@ export default function AdminLabSettings() {
             <div className="space-y-2"><Label>City</Label><Input value={form.city} onChange={e => update('city', e.target.value)} placeholder="Enter city" /></div>
             <div className="space-y-2"><Label>State</Label><Input value={form.state} onChange={e => update('state', e.target.value)} placeholder="Enter state" /></div>
           </div>
-          <div className="space-y-2"><Label>Description</Label><Textarea rows={3} value={form.description} onChange={e => update('description', e.target.value)} placeholder="Brief description about your lab" /></div>
+          <div className="grid grid-cols-3 gap-4">
+             <div className="space-y-2"><Label>Pincode</Label><Input value={form.pincode} onChange={e => update('pincode', e.target.value)} placeholder="e.g. 400001" /></div>
+             <div className="space-y-2"><Label>License Number</Label><Input value={form.licenseNumber} onChange={e => update('licenseNumber', e.target.value)} placeholder="e.g. MP-LAB-2023-00781" /></div>
+             <div className="space-y-2"><Label><Globe className="w-3 h-3 inline mr-1" /> Website</Label><Input value={form.website} onChange={e => update('website', e.target.value)} placeholder="https://lab.com" /></div>
+           </div>
+           <div className="space-y-2"><Label>Description</Label><Textarea rows={3} value={form.description} onChange={e => update('description', e.target.value)} placeholder="Brief description about your lab" /></div>
         </CardContent>
       </Card>
 

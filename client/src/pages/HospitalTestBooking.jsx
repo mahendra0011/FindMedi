@@ -2,13 +2,13 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  FlaskConical, Search, Clock, Home, Lock, ShoppingCart,
-  ChevronRight, Heart, Sparkles, Plus, Minus, Activity,
-  ArrowLeft, MapPin, Phone, Star, BadgeCheck,
-  Building2, X, CreditCard, Wallet, CheckCircle,
-  Calendar, Sun, Moon, MapPinHouse, ChevronLeft,
-  Banknote, Shield, ShieldCheck
-} from 'lucide-react';
+   FlaskConical, Search, Clock, Home, Lock, ShoppingCart,
+   ChevronRight, Heart, Sparkles, Plus, Minus, Activity,
+   ArrowLeft, MapPin, Phone, Star, BadgeCheck,
+   Building2, X, CreditCard, Wallet, CheckCircle,
+   Calendar, Sun, Moon, MapPinHouse, ChevronLeft,
+   Banknote, Shield, ShieldCheck, Camera
+ } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -606,59 +606,59 @@ export default function HospitalTestBooking() {
                       </div>
                       {testCart[test.id] ? (
                         <div className="flex items-center gap-1">
-                          <Button variant="outline" size="icon" className="h-7 w-7 rounded-lg" onClick={() => removeFromCart(test.id)} disabled={testCart[test.id] <= 1}>
-                            <Minus className="w-3 h-3" />
-                          </Button>
-                          <span className="w-5 text-center text-[11px] font-bold">{testCart[test.id]}</span>
-                          <Button variant="outline" size="icon" className="h-7 w-7 rounded-lg" onClick={() => addToCart(test.id)}>
-                            <Plus className="w-3 h-3" />
-                          </Button>
-                        </div>
-                      ) : (
-                        <Button size="sm" className="rounded-lg text-[10px] h-8" onClick={() => addToCart(test.id)}>Add</Button>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="p-4 pb-3 flex-1 flex flex-col">
-                    <div className="flex items-start justify-between gap-2 mb-1">
-                      <h4 className="font-heading font-semibold text-sm text-foreground leading-tight">{test.name}</h4>
-                      {test.rx ? (
-                        <span className="inline-flex items-center gap-0.5 text-[8px] font-bold text-amber-600 bg-amber-500/10 px-1.5 py-0.5 rounded shrink-0"><Lock className="w-2 h-2" /> Rx</span>
-                      ) : (
-                        <span className="inline-flex items-center gap-0.5 text-[8px] font-bold text-emerald-600 bg-emerald-500/10 px-1.5 py-0.5 rounded shrink-0">Direct</span>
-                      )}
-                    </div>
-                    <p className="text-[10px] text-muted-foreground mb-1">{test.dept}</p>
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground">
-                        <Clock className="w-2.5 h-2.5" /> {test.reportTime}
-                      </span>
-                      {test.homeCollection && (
-                        <span className="inline-flex items-center gap-0.5 text-[9px] font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded">
-                          <Home className="w-2 h-2" /> Home
-                        </span>
-                      )}
-                    </div>
-                    <div className="mt-auto flex items-center justify-between pt-2 border-t border-border/30">
-                      <div>
-                        <span className="text-base font-bold text-foreground">₹{test.price}</span>
-                        {test.mrp > test.price && <span className="text-[10px] text-muted-foreground line-through ml-1">₹{test.mrp}</span>}
-                      </div>
-                      {test.rx ? (
-                        <Button size="sm" className="rounded-lg text-[10px] h-8 bg-amber-500 hover:bg-amber-600 text-white" onClick={() => { addToCart(test.id); toast.success(`${test.name} added`); }}>
-                          <Lock className="w-3 h-3" /> Add
-                        </Button>
-                      ) : testCart[test.id] ? (
-                        <div className="flex items-center gap-1">
-                          <Button variant="outline" size="icon" className="h-7 w-7 rounded-lg" onClick={() => removeFromCart(test.id)} disabled={testCart[test.id] <= 1}>
-                            <Minus className="w-3 h-3" />
-                          </Button>
-                          <span className="w-5 text-center text-[11px] font-bold">{testCart[test.id]}</span>
-                          <Button variant="outline" size="icon" className="h-7 w-7 rounded-lg" onClick={() => addToCart(test.id)}>
-                            <Plus className="w-3 h-3" />
-                          </Button>
-                        </div>
+                          <Button variant="outline" size="icon" className="h-7 w-7 rounded-lg" onClick={() => removeFromCart(test.id)}>
+                             <Minus className="w-3 h-3" />
+                           </Button>
+                           <span className="w-5 text-center text-[11px] font-bold">{testCart[test.id]}</span>
+                           <Button variant="outline" size="icon" className="h-7 w-7 rounded-lg" onClick={() => addToCart(test.id)}>
+                             <Plus className="w-3 h-3" />
+                           </Button>
+                         </div>
+                       ) : (
+                         <Button size="sm" className="rounded-lg text-[10px] h-8" onClick={() => addToCart(test.id)}>Add</Button>
+                       )}
+                     </div>
+                   </div>
+                 ) : (
+                   <div className="p-4 pb-3 flex-1 flex flex-col">
+                     <div className="flex items-start justify-between gap-2 mb-1">
+                       <h4 className="font-heading font-semibold text-sm text-foreground leading-tight">{test.name}</h4>
+                       {test.rx ? (
+                         <span className="inline-flex items-center gap-0.5 text-[8px] font-bold text-amber-600 bg-amber-500/10 px-1.5 py-0.5 rounded shrink-0"><Lock className="w-2 h-2" /> Rx</span>
+                       ) : (
+                         <span className="inline-flex items-center gap-0.5 text-[8px] font-bold text-emerald-600 bg-emerald-500/10 px-1.5 py-0.5 rounded shrink-0">Direct</span>
+                       )}
+                     </div>
+                     <p className="text-[10px] text-muted-foreground mb-1">{test.dept}</p>
+                     <div className="flex items-center gap-2 mb-2">
+                       <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground">
+                         <Clock className="w-2.5 h-2.5" /> {test.reportTime}
+                       </span>
+                       {test.homeCollection && (
+                         <span className="inline-flex items-center gap-0.5 text-[9px] font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+                           <Home className="w-2 h-2" /> Home
+                         </span>
+                       )}
+                     </div>
+                     <div className="mt-auto flex items-center justify-between pt-2 border-t border-border/30">
+                       <div>
+                         <span className="text-base font-bold text-foreground">₹{test.price}</span>
+                         {test.mrp > test.price && <span className="text-[10px] text-muted-foreground line-through ml-1">₹{test.mrp}</span>}
+                       </div>
+                       {test.rx ? (
+                         <Button size="sm" className="rounded-lg text-[10px] h-8 bg-amber-500 hover:bg-amber-600 text-white" onClick={() => { addToCart(test.id); toast.success(`${test.name} added`); }}>
+                           <Lock className="w-3 h-3" /> Add
+                         </Button>
+                       ) : testCart[test.id] ? (
+                         <div className="flex items-center gap-1">
+                           <Button variant="outline" size="icon" className="h-7 w-7 rounded-lg" onClick={() => removeFromCart(test.id)}>
+                             <Minus className="w-3 h-3" />
+                           </Button>
+                           <span className="w-5 text-center text-[11px] font-bold">{testCart[test.id]}</span>
+                           <Button variant="outline" size="icon" className="h-7 w-7 rounded-lg" onClick={() => addToCart(test.id)}>
+                             <Plus className="w-3 h-3" />
+                           </Button>
+                         </div>
                       ) : (
                         <Button size="sm" className="rounded-lg text-[10px] h-8" onClick={() => addToCart(test.id)}>Add</Button>
                       )}
@@ -685,9 +685,14 @@ export default function HospitalTestBooking() {
                 <span className="text-lg font-bold text-foreground block leading-tight">₹{cartTotal}</span>
               </div>
             </div>
-            <Button className="gap-2 rounded-xl shadow-lg shadow-primary/30 px-6 h-11" onClick={openBooking}>
-              Proceed <ChevronRight className="w-5 h-5" />
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="sm" className="rounded-xl text-xs gap-1 text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => { setTestCart({}); toast.success('Cart cleared'); }}>
+                <X className="w-3.5 h-3.5" /> Clear
+              </Button>
+              <Button className="gap-2 rounded-xl shadow-lg shadow-primary/30 px-6 h-11" onClick={openBooking}>
+                Proceed <ChevronRight className="w-5 h-5" />
+              </Button>
+            </div>
           </div>
         </motion.div>
       )}

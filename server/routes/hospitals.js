@@ -173,7 +173,7 @@ router.put('/:id', protect, hospitalAdminOnly, async (req, res) => {
     if (hospital._id.toString() !== req.user.hospitalId.toString() && req.user.role !== 'superadmin') {
       return res.status(403).json({ message: 'Not your hospital' });
     }
-    const allowedFields = ['name', 'address', 'city', 'state', 'phone', 'logo', 'description', 'specialties', 'establishedYear', 'hospitalType', 'accreditations', 'emergency24x7', 'bedAvailability', 'ambulanceService', 'image', 'workingHours', 'insuranceAccepted', 'paymentModes'];
+    const allowedFields = ['name', 'address', 'city', 'state', 'pincode', 'phone', 'email', 'logo', 'description', 'specialties', 'licenseNumber', 'website', 'establishedYear', 'hospitalType', 'accreditations', 'emergency24x7', 'bedAvailability', 'ambulanceService', 'image', 'workingHours', 'insuranceAccepted', 'paymentModes', 'amenities', 'socialLinks'];
     const update = {};
     allowedFields.forEach(f => { if (req.body[f] !== undefined) update[f] = req.body[f]; });
     const updated = await Hospital.findByIdAndUpdate(req.params.id, update, { new: true });
