@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, UserRound, Stethoscope, CalendarDays, FileText,
-  CreditCard, Settings, ChevronLeft, ChevronRight, Activity, LogOut,
-  Home, Search, Star, Users, BarChart3, Bell, Building2, Clock, Calendar, DollarSign, FileUp, Download, TestTube, AlertTriangle, Menu, X, Bed, Pill, FlaskConical, Hospital, Heart, Brain, Syringe, ClipboardList, ShieldCheck, Baby, Ambulance, IndianRupee, History, Flag, ShoppingCart, Megaphone, Settings2
+  CreditCard, Percent, Settings, ChevronLeft, ChevronRight, Activity, LogOut,
+  Home, Search, Star, Users, BarChart3, Bell, Building2, Clock, Calendar, DollarSign, FileUp, Download, TestTube, AlertTriangle, Menu, X, Bed, Pill, FlaskConical, Hospital, Heart, Brain, Syringe, ClipboardList, ShieldCheck, Baby, Ambulance, IndianRupee, History, Flag, ShoppingCart, Megaphone, Settings2, Truck
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { t } from '@/lib/settings';
@@ -102,6 +102,31 @@ const navConfig = {
     { icon: UserRound,       labelKey: 'nav.myProfile',       path: '/doctor/profile'      },
     { icon: Settings,        labelKey: 'nav.settings',        path: '/settings'            },
   ],
+  lab_owner: [
+    { icon: LayoutDashboard, labelKey: 'nav.dashboard',       path: '/dashboard'           },
+    { icon: TestTube,        labelKey: 'nav.labBookings',     path: '/lab-business/bookings' },
+    { icon: FlaskConical,    labelKey: 'nav.labTests',        path: '/lab-business/tests'  },
+    { icon: ShoppingCart,    labelKey: 'nav.labOrders',       path: '/lab-business/orders' },
+    { icon: Users,           labelKey: 'nav.staffManagement', path: '/lab-business/staff'  },
+    { icon: FileText,        labelKey: 'nav.inventory',       path: '/lab-business/inventory' },
+    { icon: Download,        labelKey: 'nav.reports',         path: '/reports'             },
+    { icon: Settings2,       labelKey: 'nav.labSettings',     path: '/lab-business/settings' },
+    { icon: Bell,            labelKey: 'nav.notifications',   path: '/notifications'       },
+    { icon: Settings,        labelKey: 'nav.settings',        path: '/settings'            },
+  ],
+  pharmacy_owner: [
+    { icon: LayoutDashboard, labelKey: 'nav.dashboard',       path: '/dashboard'           },
+    { icon: Pill,            labelKey: 'nav.medicines',       path: '/pharmacy-business/medicines' },
+    { icon: ShoppingCart,    labelKey: 'nav.pharmacyOrders',  path: '/pharmacy-business/orders' },
+    { icon: Users,           labelKey: 'nav.staffManagement', path: '/pharmacy-business/staff' },
+    { icon: Percent,         labelKey: 'nav.offers',          path: '/pharmacy-business/offers' },
+    { icon: ClipboardList,   labelKey: 'nav.returns',         path: '/pharmacy-business/returns' },
+    { icon: Truck,           labelKey: 'nav.deliveries',      path: '/pharmacy-business/deliveries' },
+    { icon: Download,        labelKey: 'nav.reports',         path: '/reports'             },
+    { icon: Settings2,       labelKey: 'nav.pharmacySettings', path: '/pharmacy-business/settings' },
+    { icon: Bell,            labelKey: 'nav.notifications',   path: '/notifications'       },
+    { icon: Settings,        labelKey: 'nav.settings',        path: '/settings'            },
+  ],
   patient: [
     { icon: LayoutDashboard, labelKey: 'nav.dashboard',       path: '/dashboard'            },
     { icon: Building2,       labelKey: 'nav.findHospital',    path: '/hospitals'            },
@@ -122,7 +147,7 @@ const navConfig = {
   ],
 };
 
-const roleBadgeColor = { admin: 'bg-primary/20 text-primary', doctor: 'bg-info/20 text-info', patient: 'bg-success/20 text-success', clinic_doctor: 'bg-warning/20 text-warning' };
+const roleBadgeColor = { admin: 'bg-primary/20 text-primary', doctor: 'bg-info/20 text-info', patient: 'bg-success/20 text-success', clinic_doctor: 'bg-warning/20 text-warning', lab_owner: 'bg-purple-500/20 text-purple-600', pharmacy_owner: 'bg-rose-500/20 text-rose-600' };
 
 function SidebarContent({ collapsed, onToggleCollapse, onNavClick }) {
   const location = useLocation();
