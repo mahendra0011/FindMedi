@@ -35,6 +35,7 @@ export default function AdminPharmacySettings() {
           licenseNumber: f.licenseNumber || '',
           workingHours: f.workingHours || '8:00 AM - 10:00 PM',
           accreditations: f.accreditations || [],
+          amenities: f.amenities || { parking: false, acWaitingArea: false, wheelchairAccess: false, cardPayment: false, homeDelivery: false, prescriptionUpload: false },
           socialLinks: f.socialLinks || { facebook: '', instagram: '', youtube: '' },
         });
       } catch (e) { console.error(e); toast.error('Failed to load pharmacy data'); }
@@ -76,19 +77,19 @@ export default function AdminPharmacySettings() {
         <CardHeader><CardTitle className="flex items-center gap-2"><Building2 className="w-5 h-5" /> Basic Information</CardTitle></CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2"><Label>Pharmacy Name</Label><Input value={form.name} onChange={e => update('name', e.target.value)} /></div>
-            <div className="space-y-2"><Label>Established Year</Label><Input type="number" value={form.establishedYear} onChange={e => update('establishedYear', e.target.value)} /></div>
+            <div className="space-y-2"><Label>Pharmacy Name</Label><Input value={form.name} onChange={e => update('name', e.target.value)} placeholder="Enter pharmacy name" /></div>
+            <div className="space-y-2"><Label>Established Year</Label><Input type="number" value={form.establishedYear} onChange={e => update('establishedYear', e.target.value)} placeholder="e.g. 2015" /></div>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2"><Label><Phone className="w-3 h-3 inline mr-1" /> Phone</Label><Input value={form.phone} onChange={e => update('phone', e.target.value)} /></div>
-            <div className="space-y-2"><Label><Mail className="w-3 h-3 inline mr-1" /> Email</Label><Input value={form.email} onChange={e => update('email', e.target.value)} /></div>
+            <div className="space-y-2"><Label><Phone className="w-3 h-3 inline mr-1" /> Phone</Label><Input value={form.phone} onChange={e => update('phone', e.target.value)} placeholder="+1 234 567 8900" /></div>
+            <div className="space-y-2"><Label><Mail className="w-3 h-3 inline mr-1" /> Email</Label><Input value={form.email} onChange={e => update('email', e.target.value)} placeholder="pharmacy@email.com" /></div>
           </div>
-          <div className="space-y-2"><Label><MapPin className="w-3 h-3 inline mr-1" /> Address</Label><Input value={form.address} onChange={e => update('address', e.target.value)} /></div>
+          <div className="space-y-2"><Label><MapPin className="w-3 h-3 inline mr-1" /> Address</Label><Input value={form.address} onChange={e => update('address', e.target.value)} placeholder="Full address" /></div>
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2"><Label>City</Label><Input value={form.city} onChange={e => update('city', e.target.value)} /></div>
-            <div className="space-y-2"><Label>State</Label><Input value={form.state} onChange={e => update('state', e.target.value)} /></div>
+            <div className="space-y-2"><Label>City</Label><Input value={form.city} onChange={e => update('city', e.target.value)} placeholder="Enter city" /></div>
+            <div className="space-y-2"><Label>State</Label><Input value={form.state} onChange={e => update('state', e.target.value)} placeholder="Enter state" /></div>
           </div>
-          <div className="space-y-2"><Label>Description</Label><Textarea rows={3} value={form.description} onChange={e => update('description', e.target.value)} /></div>
+          <div className="space-y-2"><Label>Description</Label><Textarea rows={3} value={form.description} onChange={e => update('description', e.target.value)} placeholder="Brief description about your pharmacy" /></div>
         </CardContent>
       </Card>
 
@@ -123,6 +124,18 @@ export default function AdminPharmacySettings() {
         <CardContent className="space-y-2">
           <Label>Hours</Label>
           <Input value={form.workingHours} onChange={e => update('workingHours', e.target.value)} placeholder="e.g. 8:00 AM - 10:00 PM" />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle className="flex items-center gap-2"><Truck className="w-5 h-5" /> Amenities & Delivery</CardTitle></CardHeader>
+        <CardContent className="grid grid-cols-2 gap-4">
+          {Object.entries({ parking: 'Parking', acWaitingArea: 'AC Waiting Area', wheelchairAccess: 'Wheelchair Access', cardPayment: 'Card/UPI Payment', homeDelivery: 'Home Delivery', prescriptionUpload: 'Prescription Upload' }).map(([k, lbl]) => (
+            <label key={k} className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={form.amenities?.[k] || false} onChange={e => update('amenities', { ...form.amenities, [k]: e.target.checked })} className="rounded border-border" />
+              {lbl}
+            </label>
+          ))}
         </CardContent>
       </Card>
 

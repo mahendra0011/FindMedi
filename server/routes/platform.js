@@ -72,6 +72,7 @@ router.post('/register', async (req, res) => {
         city: facility.city || '',
         state: facility.state || '',
         licenseNumber: facility.license || '',
+        pincode: facility.pincode || '',
         description: facility.description || '',
         specialties: facility.specialties || [],
         establishedYear: facility.established || undefined,
@@ -81,6 +82,7 @@ router.post('/register', async (req, res) => {
         amenities: facility.amenities || {},
         socialLinks: facility.socialLinks || {},
         timing: facility.weekSchedule || {},
+        workingHours: facility.timing || '',
         slug,
         status: 'pending',
         details: {

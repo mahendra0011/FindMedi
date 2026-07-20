@@ -88,19 +88,19 @@ export default function AdminLabSettings() {
         <CardHeader><CardTitle className="flex items-center gap-2"><Building2 className="w-5 h-5" /> Basic Information</CardTitle></CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2"><Label>Lab Name</Label><Input value={form.name} onChange={e => update('name', e.target.value)} /></div>
-            <div className="space-y-2"><Label>Established Year</Label><Input type="number" value={form.establishedYear} onChange={e => update('establishedYear', e.target.value)} /></div>
+            <div className="space-y-2"><Label>Lab Name</Label><Input value={form.name} onChange={e => update('name', e.target.value)} placeholder="Enter lab name" /></div>
+            <div className="space-y-2"><Label>Established Year</Label><Input type="number" value={form.establishedYear} onChange={e => update('establishedYear', e.target.value)} placeholder="e.g. 2015" /></div>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2"><Label><Phone className="w-3 h-3 inline mr-1" /> Phone</Label><Input value={form.phone} onChange={e => update('phone', e.target.value)} /></div>
-            <div className="space-y-2"><Label><Mail className="w-3 h-3 inline mr-1" /> Email</Label><Input value={form.email} onChange={e => update('email', e.target.value)} /></div>
+            <div className="space-y-2"><Label><Phone className="w-3 h-3 inline mr-1" /> Phone</Label><Input value={form.phone} onChange={e => update('phone', e.target.value)} placeholder="+1 234 567 8900" /></div>
+            <div className="space-y-2"><Label><Mail className="w-3 h-3 inline mr-1" /> Email</Label><Input value={form.email} onChange={e => update('email', e.target.value)} placeholder="lab@email.com" /></div>
           </div>
-          <div className="space-y-2"><Label><MapPin className="w-3 h-3 inline mr-1" /> Address</Label><Input value={form.address} onChange={e => update('address', e.target.value)} /></div>
+          <div className="space-y-2"><Label><MapPin className="w-3 h-3 inline mr-1" /> Address</Label><Input value={form.address} onChange={e => update('address', e.target.value)} placeholder="Full address" /></div>
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2"><Label>City</Label><Input value={form.city} onChange={e => update('city', e.target.value)} /></div>
-            <div className="space-y-2"><Label>State</Label><Input value={form.state} onChange={e => update('state', e.target.value)} /></div>
+            <div className="space-y-2"><Label>City</Label><Input value={form.city} onChange={e => update('city', e.target.value)} placeholder="Enter city" /></div>
+            <div className="space-y-2"><Label>State</Label><Input value={form.state} onChange={e => update('state', e.target.value)} placeholder="Enter state" /></div>
           </div>
-          <div className="space-y-2"><Label>Description</Label><Textarea rows={3} value={form.description} onChange={e => update('description', e.target.value)} /></div>
+          <div className="space-y-2"><Label>Description</Label><Textarea rows={3} value={form.description} onChange={e => update('description', e.target.value)} placeholder="Brief description about your lab" /></div>
         </CardContent>
       </Card>
 
@@ -116,8 +116,8 @@ export default function AdminLabSettings() {
         <CardHeader><CardTitle className="flex items-center gap-2"><Shield className="w-5 h-5" /> Accreditations & Licenses</CardTitle></CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2"><Label><FlaskConical className="w-3 h-3 inline mr-1" /> NABL Number</Label><Input value={form.nablNumber} onChange={e => update('nablNumber', e.target.value)} /></div>
-            <div className="space-y-2"><Label><Microscope className="w-3 h-3 inline mr-1" /> AERB Number</Label><Input value={form.aerbNumber} onChange={e => update('aerbNumber', e.target.value)} /></div>
+            <div className="space-y-2"><Label><FlaskConical className="w-3 h-3 inline mr-1" /> NABL Number</Label><Input value={form.nablNumber} onChange={e => update('nablNumber', e.target.value)} placeholder="NABL-CC-2020-01-00987" /></div>
+            <div className="space-y-2"><Label><Microscope className="w-3 h-3 inline mr-1" /> AERB Number</Label><Input value={form.aerbNumber} onChange={e => update('aerbNumber', e.target.value)} placeholder="AERB registration number" /></div>
           </div>
           <Separator />
           <div className="space-y-2">
@@ -139,28 +139,28 @@ export default function AdminLabSettings() {
         <CardContent className="space-y-4">
           <p className="text-xs text-muted-foreground mb-2">Pathologist</p>
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1"><Label className="text-xs">Name</Label><Input value={form.pathologistName} onChange={e => update('pathologistName', e.target.value)} /></div>
-            <div className="space-y-1"><Label className="text-xs">Qualification</Label><Input value={form.pathologistQualification} onChange={e => update('pathologistQualification', e.target.value)} /></div>
+            <div className="space-y-1"><Label className="text-xs">Name</Label><Input value={form.pathologistName} onChange={e => update('pathologistName', e.target.value)} placeholder="Dr. name" /></div>
+            <div className="space-y-1"><Label className="text-xs">Qualification</Label><Input value={form.pathologistQualification} onChange={e => update('pathologistQualification', e.target.value)} placeholder="MD Pathology, DNB" /></div>
           </div>
           <Separator />
           <p className="text-xs text-muted-foreground mb-2">Radiologist</p>
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1"><Label className="text-xs">Name</Label><Input value={form.radiologistName} onChange={e => update('radiologistName', e.target.value)} /></div>
-            <div className="space-y-1"><Label className="text-xs">Qualification</Label><Input value={form.radiologistQualification} onChange={e => update('radiologistQualification', e.target.value)} /></div>
+            <div className="space-y-1"><Label className="text-xs">Name</Label><Input value={form.radiologistName} onChange={e => update('radiologistName', e.target.value)} placeholder="Dr. name" /></div>
+            <div className="space-y-1"><Label className="text-xs">Qualification</Label><Input value={form.radiologistQualification} onChange={e => update('radiologistQualification', e.target.value)} placeholder="MD Radiology" /></div>
           </div>
           <Separator />
           <p className="text-xs text-muted-foreground mb-2">Cardiologist</p>
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1"><Label className="text-xs">Name</Label><Input value={form.cardiologistName} onChange={e => update('cardiologistName', e.target.value)} /></div>
-            <div className="space-y-1"><Label className="text-xs">Qualification</Label><Input value={form.cardiologistQualification} onChange={e => update('cardiologistQualification', e.target.value)} /></div>
+            <div className="space-y-1"><Label className="text-xs">Name</Label><Input value={form.cardiologistName} onChange={e => update('cardiologistName', e.target.value)} placeholder="Dr. name" /></div>
+            <div className="space-y-1"><Label className="text-xs">Qualification</Label><Input value={form.cardiologistQualification} onChange={e => update('cardiologistQualification', e.target.value)} placeholder="MD Cardiology" /></div>
           </div>
           <Separator />
           <p className="text-xs text-muted-foreground mb-2">Technician</p>
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1"><Label className="text-xs">Name</Label><Input value={form.technicianName} onChange={e => update('technicianName', e.target.value)} /></div>
-            <div className="space-y-1"><Label className="text-xs">Role</Label><Input value={form.technicianRole} onChange={e => update('technicianRole', e.target.value)} /></div>
-            <div className="space-y-1"><Label className="text-xs">Qualification</Label><Input value={form.technicianQualification} onChange={e => update('technicianQualification', e.target.value)} /></div>
-            <div className="space-y-1"><Label className="text-xs">Experience</Label><Input value={form.technicianExperience} onChange={e => update('technicianExperience', e.target.value)} /></div>
+            <div className="space-y-1"><Label className="text-xs">Name</Label><Input value={form.technicianName} onChange={e => update('technicianName', e.target.value)} placeholder="Technician name" /></div>
+            <div className="space-y-1"><Label className="text-xs">Role</Label><Input value={form.technicianRole} onChange={e => update('technicianRole', e.target.value)} placeholder="Lab Technician / Phlebotomist" /></div>
+            <div className="space-y-1"><Label className="text-xs">Qualification</Label><Input value={form.technicianQualification} onChange={e => update('technicianQualification', e.target.value)} placeholder="B.Sc, MLT" /></div>
+            <div className="space-y-1"><Label className="text-xs">Experience</Label><Input value={form.technicianExperience} onChange={e => update('technicianExperience', e.target.value)} placeholder="e.g. 3 years" /></div>
           </div>
         </CardContent>
       </Card>

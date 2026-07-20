@@ -13,7 +13,7 @@ export default function AdminDoctors() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState(null);
-  const [form, setForm] = useState({ name: '', specialization: 'Cardiology', experience: '', phone: '', email: '', available: true });
+  const [form, setForm] = useState({ name: '', specialization: 'Cardiology', experience: '', phone: '', email: '', qualifications: '', available: true });
 
   const loadDoctors = async () => {
     setLoading(true);
@@ -26,7 +26,7 @@ export default function AdminDoctors() {
 
   useEffect(() => { loadDoctors(); }, [search]);
 
-  const resetForm = () => { setForm({ name: '', specialization: 'Cardiology', experience: '', phone: '', email: '', available: true }); setEditId(null); setShowForm(false); };
+  const resetForm = () => { setForm({ name: '', specialization: 'Cardiology', experience: '', phone: '', email: '', qualifications: '', available: true }); setEditId(null); setShowForm(false); };
 
   const handleSave = async () => {
     try {
@@ -147,6 +147,9 @@ export default function AdminDoctors() {
               </div>
               <div><label className="text-sm font-medium text-foreground mb-1.5 block">Email</label>
                 <Input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="doctor@email.com" />
+              </div>
+              <div><label className="text-sm font-medium text-foreground mb-1.5 block">Qualifications</label>
+                <Input value={form.qualifications} onChange={e => setForm({ ...form, qualifications: e.target.value })} placeholder="MBBS, MD" />
               </div>
               <div className="flex items-center gap-2">
                 <input type="checkbox" id="avail" checked={form.available} onChange={e => setForm({ ...form, available: e.target.checked })} className="rounded" />

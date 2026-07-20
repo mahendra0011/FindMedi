@@ -9,6 +9,7 @@ const facilitySchema = new mongoose.Schema({
   address: { type: String, required: true },
   city: { type: String, index: true },
   state: { type: String, default: '' },
+  pincode: { type: String, default: '' },
   licenseNumber: { type: String, required: true },
   logo: { type: String, default: '' },
   description: { type: String, default: '' },
@@ -63,6 +64,8 @@ const facilitySchema = new mongoose.Schema({
     cardPayment: { type: Boolean, default: false },
     inHousePharmacy: { type: Boolean, default: false },
     drinkingWater: { type: Boolean, default: false },
+    wifi: { type: Boolean, default: false },
+    homeVisit: { type: Boolean, default: false },
   },
 
   socialLinks: {

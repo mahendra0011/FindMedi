@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Save, Loader2, Building2, Phone, Mail, MapPin, Clock, Image, Plus, X, CheckCircle2, Globe } from 'lucide-react';
+import { Save, Loader2, Building2, Phone, Mail, MapPin, Clock, Image, Plus, X, CheckCircle2, Globe, Shield, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -10,6 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
+
+const DAY_LABELS = { monday:'Monday', tuesday:'Tuesday', wednesday:'Wednesday', thursday:'Thursday', friday:'Friday', saturday:'Saturday', sunday:'Sunday' };
 
 export default function AdminClinicSettings() {
   const { user } = useAuth();
@@ -28,14 +29,18 @@ export default function AdminClinicSettings() {
           address: f.address || '',
           city: f.city || '',
           state: f.state || '',
+          pincode: f.pincode || '',
+          licenseNumber: f.licenseNumber || '',
           description: f.description || '',
+          website: f.details?.website || '',
           logo: f.logo || '',
           image: f.image || '',
           establishedYear: f.establishedYear || '',
-          workingHours: f.workingHours || '8:00 AM - 8:00 PM',
           specialties: f.specialties || [],
           accreditations: f.accreditations || [],
+          timing: f.timing || { monday:'9:00 AM - 6:00 PM', tuesday:'9:00 AM - 6:00 PM', wednesday:'9:00 AM - 6:00 PM', thursday:'9:00 AM - 6:00 PM', friday:'9:00 AM - 6:00 PM', saturday:'9:00 AM - 2:00 PM', sunday:'Closed' },
           amenities: f.amenities || { parking: false, acWaitingArea: false, wheelchairAccess: false, cardPayment: false, inHousePharmacy: false, drinkingWater: false, wifi: false, homeVisit: false },
+          insurance: f.details?.insurance || [],
           socialLinks: f.socialLinks || { facebook: '', instagram: '', youtube: '' },
         });
       } catch (e) { console.error(e); toast.error('Failed to load clinic data'); }
@@ -56,6 +61,11 @@ export default function AdminClinicSettings() {
     if (v) update('accreditations', [...form.accreditations, v.trim().toUpperCase()]);
   };
 
+  const addInsurance = () => {
+    const v = prompt('Enter insurance provider name:');
+    if (v) update('insurance', [...form.insurance, v.trim()]);
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -63,6 +73,7 @@ export default function AdminClinicSettings() {
       await api.updateFacility(f._id, {
         ...form,
         establishedYear: form.establishedYear ? Number(form.establishedYear) : undefined,
+        details: { ...(f.details || {}), website: form.website, insurance: form.insurance },
       });
       toast.success('Clinic settings updated successfully');
     } catch (e) { toast.error(e.message || 'Failed to update'); }
@@ -82,19 +93,24 @@ export default function AdminClinicSettings() {
         <CardHeader><CardTitle className="flex items-center gap-2"><Building2 className="w-5 h-5" /> Basic Information</CardTitle><CardDescription>Clinic name, contact details, and description</CardDescription></CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2"><Label>Clinic Name</Label><Input value={form.name} onChange={e => update('name', e.target.value)} /></div>
-            <div className="space-y-2"><Label>Established Year</Label><Input type="number" value={form.establishedYear} onChange={e => update('establishedYear', e.target.value)} /></div>
+            <div className="space-y-2"><Label>Clinic Name</Label><Input value={form.name} onChange={e => update('name', e.target.value)} placeholder="Enter clinic name" /></div>
+            <div className="space-y-2"><Label>Established Year</Label><Input type="number" value={form.establishedYear} onChange={e => update('establishedYear', e.target.value)} placeholder="e.g. 2010" /></div>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2"><Label><Phone className="w-3 h-3 inline mr-1" /> Phone</Label><Input value={form.phone} onChange={e => update('phone', e.target.value)} /></div>
-            <div className="space-y-2"><Label><Mail className="w-3 h-3 inline mr-1" /> Email</Label><Input value={form.email} onChange={e => update('email', e.target.value)} /></div>
+            <div className="space-y-2"><Label><Phone className="w-3 h-3 inline mr-1" /> Phone</Label><Input value={form.phone} onChange={e => update('phone', e.target.value)} placeholder="+1 234 567 8900" /></div>
+            <div className="space-y-2"><Label><Mail className="w-3 h-3 inline mr-1" /> Email</Label><Input value={form.email} onChange={e => update('email', e.target.value)} placeholder="clinic@email.com" /></div>
           </div>
-          <div className="space-y-2"><Label><MapPin className="w-3 h-3 inline mr-1" /> Address</Label><Input value={form.address} onChange={e => update('address', e.target.value)} /></div>
+          <div className="space-y-2"><Label><MapPin className="w-3 h-3 inline mr-1" /> Address</Label><Input value={form.address} onChange={e => update('address', e.target.value)} placeholder="Full address" /></div>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="space-y-2"><Label>City</Label><Input value={form.city} onChange={e => update('city', e.target.value)} placeholder="Enter city" /></div>
+            <div className="space-y-2"><Label>State</Label><Input value={form.state} onChange={e => update('state', e.target.value)} placeholder="Enter state" /></div>
+            <div className="space-y-2"><Label>Pincode</Label><Input value={form.pincode} onChange={e => update('pincode', e.target.value)} placeholder="Pincode" /></div>
+          </div>
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2"><Label>City</Label><Input value={form.city} onChange={e => update('city', e.target.value)} /></div>
-            <div className="space-y-2"><Label>State</Label><Input value={form.state} onChange={e => update('state', e.target.value)} /></div>
+            <div className="space-y-2"><Label><FileText className="w-3 h-3 inline mr-1" /> License Number</Label><Input value={form.licenseNumber} onChange={e => update('licenseNumber', e.target.value)} placeholder="License / registration number" /></div>
+            <div className="space-y-2"><Label><Globe className="w-3 h-3 inline mr-1" /> Website</Label><Input value={form.website} onChange={e => update('website', e.target.value)} placeholder="https://" /></div>
           </div>
-          <div className="space-y-2"><Label>Description</Label><Textarea rows={3} value={form.description} onChange={e => update('description', e.target.value)} /></div>
+          <div className="space-y-2"><Label>Description</Label><Textarea rows={3} value={form.description} onChange={e => update('description', e.target.value)} placeholder="Brief description about your clinic" /></div>
         </CardContent>
       </Card>
 
@@ -107,10 +123,14 @@ export default function AdminClinicSettings() {
       </Card>
 
       <Card>
-        <CardHeader><CardTitle className="flex items-center gap-2"><Clock className="w-5 h-5" /> Working Hours</CardTitle></CardHeader>
-        <CardContent className="space-y-2">
-          <Label>Default Hours</Label>
-          <Input value={form.workingHours} onChange={e => update('workingHours', e.target.value)} placeholder="e.g. 9:00 AM - 6:00 PM" />
+        <CardHeader><CardTitle className="flex items-center gap-2"><Clock className="w-5 h-5" /> Working Hours</CardTitle><CardDescription>Set per-day opening hours</CardDescription></CardHeader>
+        <CardContent className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {Object.keys(DAY_LABELS).map(day => (
+            <div key={day} className="space-y-1">
+              <Label className="text-xs capitalize">{DAY_LABELS[day]}</Label>
+              <Input value={form.timing?.[day] || ''} onChange={e => update('timing', { ...form.timing, [day]: e.target.value })} placeholder="9AM-6PM" className="h-8 text-xs" />
+            </div>
+          ))}
         </CardContent>
       </Card>
 
@@ -136,6 +156,18 @@ export default function AdminClinicSettings() {
                 <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
                   <CheckCircle2 className="w-3 h-3" /> {a}
                   <button onClick={() => update('accreditations', form.accreditations.filter((_, j) => j !== i))}><X className="w-3 h-3 ml-1 hover:text-destructive" /></button>
+                </span>
+              ))}
+            </div>
+          </div>
+          <Separator />
+          <div className="space-y-2">
+            <div className="flex items-center justify-between"><Label><Shield className="w-3 h-3 inline mr-1" /> Insurance Accepted</Label><Button variant="outline" size="sm" onClick={addInsurance}><Plus className="w-3 h-3 mr-1" /> Add</Button></div>
+            <div className="flex flex-wrap gap-2">
+              {form.insurance?.map((ins, i) => (
+                <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                  <Shield className="w-3 h-3" /> {ins}
+                  <button onClick={() => update('insurance', form.insurance.filter((_, j) => j !== i))}><X className="w-3 h-3 ml-1 hover:text-destructive" /></button>
                 </span>
               ))}
             </div>

@@ -59,7 +59,7 @@ export default function PublicFooter() {
           <div>
             <h3 className="font-semibold text-foreground mb-4">For Hospitals</h3>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><Link to="/register-hospital" className="hover:text-primary transition-colors">Register Hospital</Link></li>
+              <li><Link to="/join-platform" className="hover:text-primary transition-colors">Register Your Facility</Link></li>
               <li><Link to="/login" className="hover:text-primary transition-colors">Hospital Login</Link></li>
               <li><Link to="/doctor-setup" className="hover:text-primary transition-colors">Join as Doctor</Link></li>
               <li><Link to="/signup" className="hover:text-primary transition-colors">Create Account</Link></li>

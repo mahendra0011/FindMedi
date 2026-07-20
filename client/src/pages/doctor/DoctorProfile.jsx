@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { User, Mail, Phone, MapPin, Stethoscope, Award, Clock, Hash, Save, Upload, AlertCircle, CheckCircle, Camera, Pen, Building2, Sun, Image, Pill, Shield, HelpCircle, CalendarDays } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Stethoscope, Award, Clock, Hash, Save, Upload, AlertCircle, CheckCircle, Camera, Pen, Building2, Sun, Image, Pill, Shield, HelpCircle, CalendarDays, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -38,6 +38,9 @@ export default function DoctorProfile() {
   const [clinicFacilities, setClinicFacilities] = useState('');
   const [clinicTreatments, setClinicTreatments] = useState('');
   const [clinicInsurance, setClinicInsurance] = useState('');
+  const [hospitalDept, setHospitalDept] = useState('');
+  const [hospitalOpdTiming, setHospitalOpdTiming] = useState('');
+  const [hospitalPaymentModes, setHospitalPaymentModes] = useState('');
 
   useEffect(() => {
     const load = async () => {
@@ -243,7 +246,6 @@ export default function DoctorProfile() {
         {doctor?.doctor_type === 'clinic' && (
           <>
             <hr className="border-border/60" />
-
             <div>
               <h3 className="font-heading text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
                 <Building2 className="w-5 h-5 text-primary" /> Clinic Details
@@ -270,21 +272,12 @@ export default function DoctorProfile() {
                   <Input type="number" value={establishedYear} onChange={e => setEstablishedYear(e.target.value)} placeholder="e.g. 2015" />
                 </div>
               </div>
-
               <div className="mt-4">
                 <label className="text-sm font-medium text-foreground mb-1.5 block flex items-center gap-1">
                   <Clock className="w-3.5 h-3.5 text-muted-foreground" /> Clinic Timing
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {[
-                    ['Mon', clinicTimingMon, setClinicTimingMon],
-                    ['Tue', clinicTimingTue, setClinicTimingTue],
-                    ['Wed', clinicTimingWed, setClinicTimingWed],
-                    ['Thu', clinicTimingThu, setClinicTimingThu],
-                    ['Fri', clinicTimingFri, setClinicTimingFri],
-                    ['Sat', clinicTimingSat, setClinicTimingSat],
-                    ['Sun', clinicTimingSun, setClinicTimingSun],
-                  ].map(([day, val, set]) => (
+                  {[['Mon', clinicTimingMon, setClinicTimingMon],['Tue', clinicTimingTue, setClinicTimingTue],['Wed', clinicTimingWed, setClinicTimingWed],['Thu', clinicTimingThu, setClinicTimingThu],['Fri', clinicTimingFri, setClinicTimingFri],['Sat', clinicTimingSat, setClinicTimingSat],['Sun', clinicTimingSun, setClinicTimingSun]].map(([day, val, set]) => (
                     <div key={day}>
                       <label className="text-xs text-muted-foreground">{day}</label>
                       <Input value={val} onChange={e => set(e.target.value)} placeholder="e.g. 10AM-8PM" className="text-xs" />
@@ -292,26 +285,52 @@ export default function DoctorProfile() {
                   ))}
                 </div>
               </div>
-
               <div className="mt-4">
                 <label className="text-sm font-medium text-foreground mb-1.5 block flex items-center gap-1">
                   <Pill className="w-3.5 h-3.5 text-muted-foreground" /> Facilities <span className="text-xs text-muted-foreground font-normal">(comma separated)</span>
                 </label>
                 <Input value={clinicFacilities} onChange={e => setClinicFacilities(e.target.value)} placeholder="Parking, Wheelchair Access, AC Waiting Area, In-house Pharmacy" />
               </div>
-
               <div className="mt-4">
                 <label className="text-sm font-medium text-foreground mb-1.5 block flex items-center gap-1">
                   <Shield className="w-3.5 h-3.5 text-muted-foreground" /> Treatments <span className="text-xs text-muted-foreground font-normal">(comma separated)</span>
                 </label>
                 <Input value={clinicTreatments} onChange={e => setClinicTreatments(e.target.value)} placeholder="Acne Treatment, Hair Restoration, PRP Therapy, Laser Hair Removal" />
               </div>
-
               <div className="mt-4">
                 <label className="text-sm font-medium text-foreground mb-1.5 block flex items-center gap-1">
                   <HelpCircle className="w-3.5 h-3.5 text-muted-foreground" /> Insurance Accepted <span className="text-xs text-muted-foreground font-normal">(comma separated)</span>
                 </label>
                 <Input value={clinicInsurance} onChange={e => setClinicInsurance(e.target.value)} placeholder="ICICI Lombard, Star Health, Aditya Birla" />
+              </div>
+            </div>
+          </>
+        )}
+
+        {doctor?.doctor_type !== 'clinic' && doctor?.type !== 'clinic' && (
+          <>
+            <hr className="border-border/60" />
+            <div>
+              <h3 className="font-heading text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                <Building2 className="w-5 h-5 text-primary" /> Hospital Details
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-1.5 block">Department</label>
+                  <Input value={hospitalDept} onChange={e => setHospitalDept(e.target.value)} placeholder="e.g. Cardiology" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-1.5 block flex items-center gap-1">
+                    <CalendarDays className="w-3.5 h-3.5 text-muted-foreground" /> OPD Timing
+                  </label>
+                  <Input value={hospitalOpdTiming} onChange={e => setHospitalOpdTiming(e.target.value)} placeholder="e.g. 10 AM - 4 PM" />
+                </div>
+              </div>
+              <div className="mt-4">
+                <label className="text-sm font-medium text-foreground mb-1.5 block flex items-center gap-1">
+                  <CreditCard className="w-3.5 h-3.5 text-muted-foreground" /> Payment Modes <span className="text-xs text-muted-foreground font-normal">(comma separated)</span>
+                </label>
+                <Input value={hospitalPaymentModes} onChange={e => setHospitalPaymentModes(e.target.value)} placeholder="Cash, Card, UPI, Insurance" />
               </div>
             </div>
           </>
