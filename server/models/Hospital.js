@@ -8,7 +8,9 @@ const hospitalSchema = new mongoose.Schema({
   address: { type: String, required: true },
   city: { type: String, index: true },
   state: { type: String, default: '' },
+  pincode: { type: String, default: '' },
   licenseNumber: { type: String, required: true },
+  website: { type: String, default: '' },
   logo: { type: String, default: '' },
   description: { type: String, default: '' },
   specialties: [{ type: String }],
@@ -31,6 +33,12 @@ const hospitalSchema = new mongoose.Schema({
   bedAvailability: { type: Number, default: 0 },              // Bed availability status
   ambulanceService: { type: Boolean, default: false },        // Ambulance Service available
   image: { type: String, default: '' },                     // Cover image for hospital profile
+  amenities: [{ type: String }],                             // Parking, AC Waiting, Wheelchair, Card Payment, etc.
+  socialLinks: {
+    facebook: { type: String, default: '' },
+    instagram: { type: String, default: '' },
+    youtube: { type: String, default: '' },
+  },
   insuranceAccepted: [{ provider: String, planType: String }],  // Insurance providers accepted
   paymentModes: [{ type: String }],                             // Accepted payment modes
   workingHours: {

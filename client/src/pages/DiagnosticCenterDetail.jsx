@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils';
 import { api } from '@/lib/api';
 import { useCart } from '@/context/CartContext';
 import { toast } from 'sonner';
+import ServiceLocationMap from '@/components/maps/ServiceLocationMap';
 
 const CATEGORIES = ['All', 'Pathology Tests', 'Imaging Tests', 'Cardiac Tests', 'Health Packages'];
 
@@ -522,6 +523,10 @@ export default function DiagnosticCenterDetail() {
 
           {/* Left Column */}
           <div className="lg:col-span-2 space-y-6">
+
+            <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>
+              <ServiceLocationMap entityType="lab" entity={clinic} />
+            </motion.div>
 
             {/* Tests & Packages */}
             <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>

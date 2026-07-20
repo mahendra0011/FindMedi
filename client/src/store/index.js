@@ -5,6 +5,7 @@ import settingsReducer from './slices/settingsSlice';
 import uiReducer from './slices/uiSlice';
 import notificationsReducer from './slices/notificationsSlice';
 import cartReducer from './slices/cartSlice';
+import mapReducer from './slices/mapSlice';
 
 const rootReducer = combineReducers({
   auth: authReducer,
@@ -12,6 +13,7 @@ const rootReducer = combineReducers({
   ui: uiReducer,
   notifications: notificationsReducer,
   cart: cartReducer,
+  map: mapReducer,
 });
 
 export const store = configureStore({

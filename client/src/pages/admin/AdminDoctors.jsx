@@ -40,7 +40,7 @@ export default function AdminDoctors() {
   };
 
   const handleEdit = (doc) => {
-    setForm({ name: doc.name, specialization: doc.specialization, experience: doc.experience, phone: doc.phone, email: doc.email, available: doc.available });
+    setForm({ name: doc.name, specialization: doc.specialization, experience: doc.experience, phone: doc.phone, email: doc.email, qualifications: doc.qualifications, available: doc.available });
     setEditId(doc._id); setShowForm(true);
   };
 

@@ -8,15 +8,18 @@ import {
   Navigation, AlertCircle, HeartPulse, CheckCircle2,
   ChevronDown, ChevronUp, FlaskRound, Quote, Mail,
   Circle, Heart, Eye, Sparkles, TrendingUp, Brain, Bone, Baby, Activity,
-  FlaskConical, ShoppingCart, Lock, Plus, Minus, Zap, X, UserRound, HelpCircle
+  FlaskConical, ShoppingCart, Lock, Plus, Minus, Zap, X, UserRound, HelpCircle,
+  Wallet, CreditCard, Banknote
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 import HospitalCard from '@/components/HospitalCard';
+import ServiceLocationMap from '@/components/maps/ServiceLocationMap';
 
 // Carousel icons
 import { ChevronLeft } from 'lucide-react';
@@ -108,7 +111,7 @@ export default function HospitalProfile() {
   const [testRxFilter, setTestRxFilter] = useState('all');
   const [testHomeFilter, setTestHomeFilter] = useState('all');
   const [testSort, setTestSort] = useState('popularity');
-  const [priceRange, setPriceRange] = useState([0, 10000]);
+  const [priceRange, setPriceRange] = useState('all');
 
   const carouselRef = useRef(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -205,9 +208,28 @@ export default function HospitalProfile() {
     if (navigator.share) { try { await navigator.share({ title: hospital?.name, url }); } catch {} }
     else { await navigator.clipboard.writeText(url); toast.success('Link copied!'); }
   };
-  const handleBookDoctor = () => navigate(`/hospitals/${id}/doctors`);
+
+  const handleBookDoctor = () => {
+    setSelectedDoctorForBooking(null);
+    setShowBookingModal(true);
+  };
 
   const [testCart, setTestCart] = useState({});
+  const [showBookingModal, setShowBookingModal] = useState(false);
+  const [selectedDoctorForBooking, setSelectedDoctorForBooking] = useState(null);
+  const [bookingDate, setBookingDate] = useState('');
+  const [bookingTime, setBookingTime] = useState('');
+  const [bookingConfirmed, setBookingConfirmed] = useState(false);
+
+  const [showTestBooking, setShowTestBooking] = useState(false);
+  const [testBookingStep, setTestBookingStep] = useState(1);
+  const [testCollectionMode, setTestCollectionMode] = useState('lab');
+  const [testSelectedDate, setTestSelectedDate] = useState('');
+  const [testSelectedSlot, setTestSelectedSlot] = useState('');
+  const [testPaymentMethod, setTestPaymentMethod] = useState('upi');
+  const [testBookingConfirmed, setTestBookingConfirmed] = useState(false);
+  const [testBookingId, setTestBookingId] = useState('');
+
   const addTestToCart = (testId) => setTestCart(p => ({ ...p, [testId]: (p[testId] || 0) + 1 }));
   const removeTestFromCart = (testId) => setTestCart(p => {
     const next = { ...p };
@@ -271,6 +293,12 @@ export default function HospitalProfile() {
 
   const allTests = DEPARTMENTS.flatMap(d => d.tests);
   const totalTestCount = allTests.length;
+  const cartItems = Object.entries(testCart).map(([tid, qty]) => {
+    const test = allTests.find(t => t.id === tid);
+    return { ...test, qty };
+  }).filter(Boolean);
+  const cartTotal = cartItems.reduce((s, t) => s + t.price * t.qty, 0);
+  const cartCount = cartItems.reduce((s, t) => s + t.qty, 0);
 
   const filteredDepartments = DEPARTMENTS.filter(dept => testDeptFilter === 'All' || dept.id === testDeptFilter).map(dept => {
     const filtered = dept.tests.filter(t => {
@@ -360,7 +388,7 @@ export default function HospitalProfile() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
             {/* Gallery */}
-            <div className="lg:col-span-2 relative rounded-2xl overflow-hidden bg-card border border-border/50 h-[300px] sm:h-[420px] group">
+            <div className="lg:col-span-2 relative rounded-2xl overflow-hidden bg-card border border-border/50 h-[350px] sm:h-[500px] group">
               {hospitalPhotos?.length > 0 ? (
                 hospitalPhotos.map((p, i) => (
                   <div key={i} className={cn('absolute inset-0 transition-all duration-700', i === activePhoto ? 'opacity-100 scale-100' : 'opacity-0 scale-105')}>
@@ -476,6 +504,9 @@ export default function HospitalProfile() {
                   <Heart className={cn('w-5 h-5', isFavorited && 'fill-current')} />
                 </button>
               </div>
+              <Button variant="outline" className="w-full gap-2 rounded-xl h-10 mt-2 text-sm font-medium" onClick={() => navigate(`/hospitals/${id}/doctors`)}>
+                <Stethoscope className="w-4 h-4" /> View Available Doctors ({hospital.totalDoctors || doctors.length || 0})
+              </Button>
             </div>
           </div>
         </div>
@@ -509,6 +540,10 @@ export default function HospitalProfile() {
 
           {/* ──── LEFT COLUMN ──── */}
           <div className="lg:col-span-2 space-y-8">
+
+      <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>
+        <ServiceLocationMap entityType="hospital" entity={hospital} />
+      </motion.div>
 
       {/* ═══════════ DOCTOR / TESTS SECTION ═══════════ */}
       <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}
@@ -721,16 +756,16 @@ export default function HospitalProfile() {
                         <span className="font-bold text-lg text-primary">₹{doc.consultation_fees || doc.fees || 0}</span>
                       </div>
 
-                      <div className="flex gap-2">
-                          <Button className="flex-1 gap-2 rounded-xl shadow-lg shadow-primary/20" size="sm" disabled={!doc.available}
-                            onClick={(e) => { e.stopPropagation(); navigate(`/hospital-doctors/${doc._id}`); }}>
-                            <CalendarDays className="w-3.5 h-3.5" /> Book Appointment
-                          </Button>
-                          <Button variant="outline" className="gap-2 rounded-xl" size="sm"
-                            onClick={(e) => { e.stopPropagation(); navigate(`/hospital-doctors/${doc._id}`); }}>
-                          View Profile
-                        </Button>
-                      </div>
+<div className="flex gap-2">
+                           <Button className="flex-1 gap-2 rounded-xl shadow-lg shadow-primary/20" size="sm" disabled={!doc.available}
+                             onClick={(e) => { e.stopPropagation(); setSelectedDoctorForBooking(doc); setShowBookingModal(true); }}>
+                             <CalendarDays className="w-3.5 h-3.5" /> Book Appointment
+                           </Button>
+                           <Button variant="outline" className="gap-2 rounded-xl" size="sm"
+                             onClick={(e) => { e.stopPropagation(); navigate(`/hospital-doctors/${doc._id}`); }}>
+                           View Profile
+                         </Button>
+                       </div>
                     </div>
                   </motion.div>
                 ))}
@@ -822,14 +857,26 @@ export default function HospitalProfile() {
                               </span>
                             )}
                           </div>
-                          <div className="mt-auto flex items-center justify-between pt-2 border-t border-border/30">
-                            <div>
-                              <span className="text-sm font-bold text-foreground">₹{test.price}</span>
-                              {test.mrp > test.price && <span className="text-[9px] text-muted-foreground line-through ml-1">₹{test.mrp}</span>}
-                            </div>
-                            <Button size="sm" className="rounded-lg text-[9px] h-7 px-2.5" onClick={() => navigate(`/book-test/${id}`)}>
-                              Book
-                            </Button>
+<div className="mt-auto flex items-center justify-between pt-2 border-t border-border/30">
+                             <div>
+                               <span className="text-sm font-bold text-foreground">₹{test.price}</span>
+                               {test.mrp > test.price && <span className="text-[9px] text-muted-foreground line-through ml-1">₹{test.mrp}</span>}
+                             </div>
+                             {testCart[test.id] ? (
+                               <div className="flex items-center gap-1">
+                                 <Button variant="outline" size="icon" className="h-6 w-6 rounded-lg" onClick={() => removeTestFromCart(test.id)}>
+                                   <Minus className="w-2.5 h-2.5" />
+                                 </Button>
+                                 <span className="w-4 text-center text-[10px] font-bold">{testCart[test.id]}</span>
+                                 <Button variant="outline" size="icon" className="h-6 w-6 rounded-lg" onClick={() => addTestToCart(test.id)}>
+                                   <Plus className="w-2.5 h-2.5" />
+                                 </Button>
+                               </div>
+                             ) : (
+                               <Button size="sm" className="rounded-lg text-[9px] h-7 px-2.5" onClick={() => addTestToCart(test.id)}>
+                                 Book
+                               </Button>
+                             )}
                           </div>
                         </div>
                       </motion.div>
@@ -1183,11 +1230,22 @@ export default function HospitalProfile() {
                                         <p className="text-[10px] text-muted-foreground">Report in {test.reportTime}</p>
                                       </div>
                                       <div className="flex gap-1.5">
-                                        <Button variant="outline" size="sm" className="rounded-lg text-xs h-8">View Details</Button>
-                                        <Button size="sm" className="rounded-lg text-xs h-8 gap-1"
-                                          onClick={() => { addTestToCart(test.id); toast.success(`${test.name} added`); }}>
-                                          <ShoppingCart className="w-3 h-3" /> Book
-                                        </Button>
+                                        {testCart[test.id] ? (
+                                          <div className="flex items-center gap-1">
+                                            <Button variant="outline" size="icon" className="h-7 w-7 rounded-lg" onClick={() => removeTestFromCart(test.id)}>
+                                              <Minus className="w-3 h-3" />
+                                            </Button>
+                                            <span className="w-5 text-center text-xs font-bold">{testCart[test.id]}</span>
+                                            <Button variant="outline" size="icon" className="h-7 w-7 rounded-lg" onClick={() => addTestToCart(test.id)}>
+                                              <Plus className="w-3 h-3" />
+                                            </Button>
+                                          </div>
+                                        ) : (
+                                          <Button size="sm" className="rounded-lg text-xs h-8 gap-1"
+                                            onClick={() => { addTestToCart(test.id); toast.success(`${test.name} added`); }}>
+                                            <ShoppingCart className="w-3 h-3" /> Book
+                                          </Button>
+                                        )}
                                       </div>
                                     </div>
                                   </div>
@@ -1235,7 +1293,7 @@ export default function HospitalProfile() {
                                         </Button>
                                       ) : testCart[test.id] ? (
                                         <div className="flex items-center gap-1">
-                                          <Button variant="outline" size="icon" className="h-7 w-7 rounded-lg" onClick={() => removeTestFromCart(test.id)} disabled={testCart[test.id] <= 1}>
+                                          <Button variant="outline" size="icon" className="h-7 w-7 rounded-lg" onClick={() => removeTestFromCart(test.id)}>
                                             <Minus className="w-3 h-3" />
                                           </Button>
                                           <span className="w-6 text-center text-xs font-bold">{testCart[test.id]}</span>
@@ -1269,7 +1327,7 @@ export default function HospitalProfile() {
         </div>
 
         {/* ──── RIGHT SIDEBAR ──── */}
-        <div className="space-y-6 lg:sticky lg:top-24 self-start">
+        <div className="space-y-6">
           {/* Trust & Accreditation */}
           <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>
             <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden">
@@ -1371,7 +1429,7 @@ export default function HospitalProfile() {
             </motion.div>
           )}
 
-          {/* Quick Actions Sticky Card */}
+          {/* Quick Actions Card */}
           <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} className="lg:sticky lg:top-24">
             <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden bg-gradient-to-br from-primary/5 via-primary/[0.02] to-transparent">
               <CardContent className="p-6">
@@ -1383,8 +1441,8 @@ export default function HospitalProfile() {
                   <Button className="w-full gap-2.5 rounded-xl h-11 font-semibold shadow-md" onClick={handleBookDoctor}>
                     <CalendarDays className="w-4 h-4" /> Book Appointment
                   </Button>
-                  <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => { setIsFavorited(!isFavorited); toast.success(isFavorited ? 'Removed from Saved' : 'Saved'); }}>
-                    <Heart className={cn('w-4 h-4', isFavorited && 'fill-current text-red-500')} /> {isFavorited ? 'Saved' : 'Save'}
+                  <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => navigate(`/hospitals/${id}/doctors`)}>
+                    <Stethoscope className="w-4 h-4" /> View Available Doctors
                   </Button>
                   <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" asChild>
                     <a href={`tel:${hospital.phone}`}><Phone className="w-4 h-4" /> Call Now</a>
@@ -1394,6 +1452,9 @@ export default function HospitalProfile() {
                       <Navigation className="w-4 h-4" /> Get Directions
                     </a>
                   </Button>
+                  <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => { setIsFavorited(!isFavorited); toast.success(isFavorited ? 'Removed from Saved' : 'Saved'); }}>
+                    <Heart className={cn('w-4 h-4', isFavorited && 'fill-current text-red-500')} /> {isFavorited ? 'Saved' : 'Save'}
+                  </Button>
                   <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={handleShare}>
                     <Share2 className="w-4 h-4" /> Share Hospital
                   </Button>
@@ -1402,9 +1463,33 @@ export default function HospitalProfile() {
             </Card>
           </motion.div>
         </div>
-
       </div>
-    </div>
+      </div>
+
+      {cartCount > 0 && (
+        <motion.div initial={{ y: 100 }} animate={{ y: 0 }}
+          className="fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-xl border-t border-border/50 shadow-2xl">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                <ShoppingCart className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <span className="text-xs text-muted-foreground">{cartCount} test{cartCount > 1 ? 's' : ''} selected</span>
+                <span className="text-lg font-bold text-foreground block leading-tight">₹{cartTotal}</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="sm" className="rounded-xl text-xs gap-1 text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => { setTestCart({}); }}>
+                <X className="w-3.5 h-3.5" /> Clear
+              </Button>
+              <Button className="gap-2 rounded-xl shadow-lg shadow-primary/30 px-6 h-11" onClick={() => { setTestBookingStep(1); setShowTestBooking(true); }}>
+                Book Now <ChevronRight className="w-5 h-5" />
+              </Button>
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       {/* ═══════════ SUGGESTED HOSPITALS CAROUSEL ═══════════ */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-14 mb-20">
@@ -1453,6 +1538,375 @@ export default function HospitalProfile() {
           </div>
         </motion.div>
       </div>
+
+      {/* Quick Booking Modal */}
+      <Dialog open={showBookingModal} onOpenChange={setShowBookingModal}>
+        <DialogContent className="max-w-xl max-h-[80vh]">
+          {!selectedDoctorForBooking ? (
+            <>
+              <DialogHeader>
+                <DialogTitle>Available Doctors at {hospital?.name}</DialogTitle>
+                <DialogDescription>
+                  Select a doctor to book your appointment
+                </DialogDescription>
+              </DialogHeader>
+              <div className="max-h-96 overflow-y-auto py-4">
+                {doctors.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {doctors.map((doc) => (
+<motion.div
+                           key={doc._id}
+                           whileHover={{ scale: 1.02 }}
+                           className="p-3 rounded-xl border border-border/50 hover:border-primary/30 hover:shadow-md transition-all cursor-pointer bg-card min-w-0"
+                           onClick={() => { setSelectedDoctorForBooking(doc); }}
+                         >
+                           <div className="flex items-center gap-2">
+                             <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shrink-0">
+                               <span className="text-primary-foreground font-bold text-xs">{doc.initials || doc.name?.split(' ').map(n=>n[0]).join('').slice(0,2) || 'DR'}</span>
+                             </div>
+                             <div className="min-w-0 flex-1">
+                               <p className="font-heading font-semibold text-xs text-foreground truncate">{doc.name}</p>
+                               <p className="text-[10px] text-primary">{doc.specialization}</p>
+                               <div className="flex items-center gap-1.5 mt-0.5">
+                                 <span className="text-[9px] text-muted-foreground">{doc.experience || '0-5 years'}</span>
+                                 <span className="text-[9px] font-medium text-primary">Rs {doc.consultation_fees || doc.fees || 0}</span>
+                               </div>
+                             </div>
+                           </div>
+                         </motion.div>
+                    ))}
+                  </div>
+                ) : (
+<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+<motion.div
+                        whileHover={{ scale: 1.02 }}
+                       className="p-3 rounded-xl border border-border/50 hover:border-primary/30 hover:shadow-md transition-all cursor-pointer bg-card min-w-0"
+                       onClick={() => { setSelectedDoctorForBooking({ _id: 'temp-1', name: 'Dr. Rohit Verma', specialization: 'Dermatology', experience: '7 years', consultation_fees: 900, initials: 'RV' }); }}
+                     >
+                       <div className="flex items-center gap-2">
+                         <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shrink-0">
+                           <span className="text-primary-foreground font-bold text-xs">RV</span>
+                         </div>
+                         <div className="min-w-0 flex-1">
+                           <p className="font-heading font-semibold text-xs text-foreground truncate">Dr. Rohit Verma</p>
+                           <p className="text-[10px] text-primary">Dermatology</p>
+                           <div className="flex items-center gap-1.5 mt-0.5">
+                             <span className="text-[9px] text-muted-foreground">7 years</span>
+                             <span className="text-[9px] font-medium text-primary">Rs 900</span>
+                           </div>
+                         </div>
+                       </div>
+                     </motion.div>
+                     <motion.div
+                       whileHover={{ scale: 1.02 }}
+                       className="p-3 rounded-xl border border-border/50 hover:border-primary/30 hover:shadow-md transition-all cursor-pointer bg-card min-w-0"
+                       onClick={() => { setSelectedDoctorForBooking({ _id: 'temp-2', name: 'Dr. Anita Sharma', specialization: 'Orthopedics', experience: '10 years', consultation_fees: 1200, initials: 'AS' }); }}
+                     >
+                       <div className="flex items-center gap-2">
+                         <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shrink-0">
+                           <span className="text-primary-foreground font-bold text-xs">AS</span>
+                         </div>
+                         <div className="min-w-0 flex-1">
+                           <p className="font-heading font-semibold text-xs text-foreground truncate">Dr. Anita Sharma</p>
+                           <p className="text-[10px] text-primary">Orthopedics</p>
+                           <div className="flex items-center gap-1.5 mt-0.5">
+                             <span className="text-[9px] text-muted-foreground">10 years</span>
+                             <span className="text-[9px] font-medium text-primary">Rs 1200</span>
+                           </div>
+                         </div>
+                       </div>
+                     </motion.div>
+                  </div>
+                )}
+              </div>
+              <DialogFooter>
+                <Button variant="outline" size="sm" onClick={() => setShowBookingModal(false)}>Close</Button>
+              </DialogFooter>
+            </>
+) : !bookingConfirmed ? (
+             <>
+               <DialogHeader>
+                 <DialogTitle>Book Appointment</DialogTitle>
+                 <DialogDescription>
+                   Quick booking for {selectedDoctorForBooking?.name}
+                 </DialogDescription>
+               </DialogHeader>
+               <div className="space-y-4 py-4">
+                 <div className="flex items-center gap-3">
+                   <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
+                     <span className="text-primary-foreground font-bold text-sm">{selectedDoctorForBooking?.name?.split(' ').map(n=>n[0]).join('').slice(0,2)}</span>
+                   </div>
+                   <div>
+                     <h3 className="font-heading font-semibold text-foreground">{selectedDoctorForBooking?.name}</h3>
+                     <p className="text-sm text-primary">{selectedDoctorForBooking?.specialization}</p>
+                   </div>
+                 </div>
+                 <div className="grid grid-cols-2 gap-3">
+                   <div className="p-3 rounded-xl bg-primary/5 border border-primary/10 text-center">
+                     <p className="text-xs text-muted-foreground mb-1">Consultation Fee</p>
+                     <p className="font-bold text-lg text-primary">Rs {selectedDoctorForBooking?.consultation_fees || selectedDoctorForBooking?.fees || 0}</p>
+                   </div>
+                   <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 dark:bg-emerald-500/10 text-center">
+                     <p className="text-xs text-muted-foreground mb-1">Available Slot</p>
+                     <p className="font-semibold text-sm text-emerald-600">{selectedDoctorForBooking?.next_available_slot || 'Today'}</p>
+                   </div>
+                 </div>
+                 <div className="space-y-2">
+                   <label className="text-xs font-medium text-foreground">Select Date</label>
+                   <Input type="date" className="w-full" value={bookingDate} onChange={e => setBookingDate(e.target.value)} min={new Date().toISOString().split('T')[0]} />
+                 </div>
+                 <div className="space-y-2">
+                   <label className="text-xs font-medium text-foreground">Select Time Slot</label>
+                   <select className="w-full h-9 px-3 rounded-xl border border-border bg-background text-sm" value={bookingTime} onChange={e => setBookingTime(e.target.value)}>
+                     <option value="">Choose time</option>
+                     <option>09:00 AM - 10:00 AM</option>
+                     <option>10:00 AM - 11:00 AM</option>
+                     <option>11:00 AM - 12:00 PM</option>
+                     <option>02:00 PM - 03:00 PM</option>
+                     <option>03:00 PM - 04:00 PM</option>
+                   </select>
+                 </div>
+               </div>
+               <DialogFooter>
+                 <Button variant="outline" size="sm" onClick={() => { setShowBookingModal(false); setSelectedDoctorForBooking(null); setBookingDate(''); setBookingTime(''); }}>Cancel</Button>
+                 <Button size="sm" disabled={!bookingDate || !bookingTime} onClick={() => setBookingConfirmed(true)}>Confirm Booking</Button>
+               </DialogFooter>
+             </>
+           ) : (
+            <div className="py-8 text-center">
+              <motion.div
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: 'spring', stiffness: 300 }}
+                className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shadow-lg shadow-primary/30"
+              >
+                <CheckCircle2 className="w-10 h-10 text-primary-foreground" />
+              </motion.div>
+              <h3 className="text-lg font-bold text-primary mb-2">Booking Confirmed!</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Appointment booked for {selectedDoctorForBooking?.name}
+              </p>
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 border border-primary/20">
+                <CalendarDays className="w-4 h-4 text-primary" />
+                <p className="text-xs font-medium text-primary">
+                  {bookingDate && new Date(bookingDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} • {bookingTime}
+                </p>
+              </div>
+              <DialogFooter className="mt-6">
+                <Button size="sm" onClick={() => { setShowBookingModal(false); setBookingConfirmed(false); setBookingDate(''); setBookingTime(''); setSelectedDoctorForBooking(null); }}>Done</Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ═══════════ TEST BOOKING MODAL ═══════════ */}
+      <AnimatePresence>
+        {showTestBooking && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4"
+            onClick={(e) => { if (e.target === e.currentTarget) { setShowTestBooking(false); setTestBookingConfirmed(false); setTestBookingStep(1); setTestSelectedDate(''); setTestSelectedSlot(''); } }}>
+            <motion.div
+              initial={{ y: '100%', opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: '100%', opacity: 0 }}
+              transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+              className="w-full sm:max-w-lg bg-card rounded-t-3xl sm:rounded-3xl border border-border/50 shadow-2xl overflow-hidden max-h-[92vh] flex flex-col">
+              <div className="px-5 pt-5 pb-3 flex items-center justify-between border-b border-border/30 shrink-0">
+                <div className="min-w-[60px]">
+                  {testBookingStep > 1 && testBookingStep < 6 && (
+                    <button onClick={() => setTestBookingStep(p => Math.max(p - 1, 1))} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition-colors">
+                      <ChevronLeft className="w-3.5 h-3.5" /> Back
+                    </button>
+                  )}
+                </div>
+                <div className="text-center">
+                  <h4 className="text-sm font-bold text-foreground">{['Prescription','Collection','Slot','Summary','Payment','Done'][testBookingStep - 1]}</h4>
+                </div>
+                <div className="min-w-[60px] flex justify-end">
+                  <button onClick={() => { setShowTestBooking(false); setTestBookingConfirmed(false); setTestBookingStep(1); setTestSelectedDate(''); setTestSelectedSlot(''); }} className="w-8 h-8 rounded-xl bg-muted/50 hover:bg-muted flex items-center justify-center transition-colors">
+                    <X className="w-4 h-4 text-muted-foreground" />
+                  </button>
+                </div>
+              </div>
+              <div className="px-5 pt-4 pb-2 shrink-0">
+                <div className="flex items-center justify-center gap-1">
+                  {['Prescription','Collection','Slot','Summary','Payment','Done'].map((label, i) => {
+                    const idx = i + 1;
+                    const isDone = testBookingStep > idx;
+                    const isCurrent = testBookingStep === idx;
+                    return (
+                      <div key={idx} className="flex items-center gap-1">
+                        {i > 0 && <div className={cn('w-5 sm:w-8 h-0.5 rounded-full transition-colors', isDone ? 'bg-primary' : 'bg-border')} />}
+                        <div className={cn('w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold transition-all shrink-0', isDone ? 'bg-primary text-white' : isCurrent ? 'bg-primary/10 text-primary border-2 border-primary' : 'bg-muted text-muted-foreground border-2 border-transparent')}>
+                          {isDone ? <CheckCircle2 className="w-3 h-3" /> : idx}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className="flex-1 overflow-y-auto px-5 py-4">
+                {testBookingStep === 1 && (
+                  <div className="space-y-5">
+                    <div className="text-center pb-1">
+                      <h3 className="font-heading font-bold text-lg text-foreground">Prescription Check</h3>
+                      <p className="text-xs text-muted-foreground mt-0.5">Verify if prescription is needed</p>
+                    </div>
+                    {cartItems.some(t => t.rx) ? (
+                      <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 rounded-xl p-4">
+                        <div className="flex items-start gap-3">
+                          <Lock className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                          <p className="text-sm text-amber-800 dark:text-amber-300">Prescription required for some tests</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 rounded-xl p-6 text-center">
+                        <Shield className="w-10 h-10 text-emerald-500 mx-auto mb-2" />
+                        <p className="text-sm font-bold text-emerald-800 dark:text-emerald-300">No Prescription Required</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {testBookingStep === 2 && (
+                  <div className="space-y-5">
+                    <div className="text-center pb-1">
+                      <h3 className="font-heading font-bold text-lg text-foreground">Collection Mode</h3>
+                      <p className="text-xs text-muted-foreground mt-0.5">Choose collection method</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      {[{ id:'lab', icon:MapPin, label:'Visit Lab', desc:'No extra charge' },{ id:'home', icon:Home, label:'Home Collection', desc:'+\u20B950 fee' }].map(opt => {
+                        const Icon = opt.icon;
+                        return (
+                          <button key={opt.id} onClick={() => setTestCollectionMode(opt.id)}
+                            className={cn('relative flex flex-col items-center gap-3 p-6 rounded-xl border-2 transition-all text-center', testCollectionMode === opt.id ? 'border-primary bg-primary/5' : 'border-border/60 bg-card hover:border-primary/30')}>
+                            {testCollectionMode === opt.id && <div className="absolute -top-2.5 -right-2.5 w-6 h-6 rounded-full bg-primary flex items-center justify-center"><CheckCircle2 className="w-3.5 h-3.5 text-white" /></div>}
+                            <div className={cn('w-14 h-14 rounded-2xl flex items-center justify-center', testCollectionMode === opt.id ? 'bg-primary/10' : 'bg-muted/50')}>
+                              <Icon className={cn('w-7 h-7', testCollectionMode === opt.id ? 'text-primary' : 'text-muted-foreground')} />
+                            </div>
+                            <div>
+                              <p className={cn('text-sm font-bold', testCollectionMode === opt.id ? 'text-primary' : 'text-foreground')}>{opt.label}</p>
+                              <p className={cn('text-[11px] mt-0.5', testCollectionMode === opt.id ? 'text-primary/70' : 'text-muted-foreground')}>{opt.desc}</p>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+                {testBookingStep === 3 && (
+                  <div className="space-y-5">
+                    <div className="text-center pb-1">
+                      <h3 className="font-heading font-bold text-lg text-foreground">Select Date & Time</h3>
+                      <p className="text-xs text-muted-foreground mt-0.5">Pick your preferred slot</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-foreground mb-2">Select Date</p>
+                      <div className="flex gap-2 overflow-x-auto pb-1">
+                        {['Mon 21','Tue 22','Wed 23','Thu 24','Fri 25','Sat 26'].map(d => (
+                          <button key={d} onClick={() => setTestSelectedDate(d)}
+                            className={cn('flex flex-col items-center gap-1 px-5 py-3 rounded-xl border-2 transition-all shrink-0', testSelectedDate === d ? 'border-primary bg-primary/5' : 'border-border/60 bg-card hover:border-primary/30')}>
+                            <span className={cn('text-[11px] font-bold', testSelectedDate === d ? 'text-primary' : 'text-foreground')}>{d.split(' ')[0]}</span>
+                            <span className={cn('text-lg font-bold', testSelectedDate === d ? 'text-primary' : 'text-foreground')}>{d.split(' ')[1]}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-foreground mb-2">Select Time Slot</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {['09:00-10:00','10:00-11:00','11:00-12:00','12:00-13:00','14:00-15:00','15:00-16:00','16:00-17:00','17:00-18:00'].map(s => (
+                          <button key={s} onClick={() => setTestSelectedSlot(s)}
+                            className={cn('flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all', testSelectedSlot === s ? 'border-primary bg-primary/5' : 'border-border/60 bg-card hover:border-primary/30')}>
+                            <span className={cn('text-xs font-semibold flex-1', testSelectedSlot === s ? 'text-primary' : 'text-foreground')}>{s}</span>
+                            {testSelectedSlot === s && <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {testBookingStep === 4 && (
+                  <div className="space-y-5">
+                    <div className="text-center pb-1">
+                      <h3 className="font-heading font-bold text-lg text-foreground">Bill Summary</h3>
+                      <p className="text-xs text-muted-foreground mt-0.5">Review your order</p>
+                    </div>
+                    <div className="bg-gradient-to-b from-muted/30 to-muted/10 rounded-2xl border border-border/40 p-5 space-y-3">
+                      {cartItems.map(t => (
+                        <div key={t.id} className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0"><FlaskConical className="w-3.5 h-3.5 text-primary" /></div>
+                            <div className="min-w-0">
+                              <p className="text-xs font-semibold text-foreground truncate">{t.name}</p>
+                              <p className="text-[9px] text-muted-foreground">Qty: {t.qty}</p>
+                            </div>
+                          </div>
+                          <span className="text-xs font-bold text-foreground shrink-0">{t.price * t.qty}</span>
+                        </div>
+                      ))}
+                      <div className="border-t border-border/40 pt-3 flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">Home Collection Fee</span>
+                        <span className={cn('text-xs font-semibold', testCollectionMode === 'home' ? 'text-foreground' : 'text-muted-foreground')}>{testCollectionMode === 'home' ? '+₹50' : '—'}</span>
+                      </div>
+                      <div className="border-t-2 border-border/60 pt-3 flex items-center justify-between">
+                        <span className="text-sm font-bold text-foreground">Total</span>
+                        <span className="text-lg font-bold text-primary">₹{cartTotal + (testCollectionMode === 'home' ? 50 : 0)}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {testBookingStep === 5 && (
+                  <div className="space-y-5">
+                    <div className="text-center pb-1">
+                      <h3 className="font-heading font-bold text-lg text-foreground">Payment Method</h3>
+                      <p className="text-xs text-muted-foreground mt-0.5">Choose payment method</p>
+                    </div>
+                    <div className="space-y-2.5">
+                      {[{ id:'upi', label:'UPI / GPay / PhonePe', icon:Wallet },{ id:'card', label:'Debit / Credit Card', icon:CreditCard },{ id:'cod', label:'Cash on Delivery', icon:Banknote }].map(pm => {
+                        const Icon = pm.icon;
+                        return (
+                          <button key={pm.id} onClick={() => setTestPaymentMethod(pm.id)}
+                            className={cn('flex items-center gap-4 w-full p-4 rounded-xl border-2 transition-all', testPaymentMethod === pm.id ? 'border-primary bg-primary/5' : 'border-border/60 bg-card hover:border-primary/30')}>
+                            <div className={cn('w-11 h-11 rounded-xl flex items-center justify-center', testPaymentMethod === pm.id ? 'bg-primary/10' : 'bg-muted/50')}>
+                              <Icon className={cn('w-5 h-5', testPaymentMethod === pm.id ? 'text-primary' : 'text-muted-foreground')} />
+                            </div>
+                            <span className={cn('text-sm font-semibold flex-1 text-left', testPaymentMethod === pm.id ? 'text-primary' : 'text-foreground')}>{pm.label}</span>
+                            {testPaymentMethod === pm.id && <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+                {testBookingStep === 6 && (
+                  <div className="space-y-5">
+                    <div className="text-center pt-2">
+                      <div className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-400/20 to-emerald-400/5 flex items-center justify-center mx-auto mb-4 ring-4 ring-emerald-500/10">
+                        <CheckCircle2 className="w-10 h-10 text-emerald-500" />
+                      </div>
+                      <h3 className="font-heading font-bold text-xl text-foreground">Booking Confirmed!</h3>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="px-5 py-4 border-t border-border/30 shrink-0 bg-muted/10">
+                {testBookingStep === 1 && (
+                  <div className="flex gap-3">
+                    <Button variant="outline" className="flex-1 rounded-xl h-11 text-sm" onClick={() => { setShowTestBooking(false); setTestBookingStep(1); setTestSelectedDate(''); setTestSelectedSlot(''); }}>Cancel</Button>
+                    <Button className="flex-1 rounded-xl h-11 text-sm gap-1.5" onClick={() => setTestBookingStep(2)}>Continue <ChevronRight className="w-4 h-4" /></Button>
+                  </div>
+                )}
+                {testBookingStep === 2 && <Button className="w-full rounded-xl h-11 text-sm gap-1.5" onClick={() => setTestBookingStep(3)}>Continue <ChevronRight className="w-4 h-4" /></Button>}
+                {testBookingStep === 3 && <Button className="w-full rounded-xl h-11 text-sm gap-1.5" onClick={() => setTestBookingStep(4)} disabled={!testSelectedDate || !testSelectedSlot}>Continue <ChevronRight className="w-4 h-4" /></Button>}
+                {testBookingStep === 4 && <Button className="w-full rounded-xl h-11 text-sm gap-1.5" onClick={() => setTestBookingStep(5)}>Proceed to Pay <ChevronRight className="w-4 h-4" /></Button>}
+                {testBookingStep === 5 && <Button className="w-full rounded-xl h-11 text-sm gap-1.5" onClick={() => { setTestBookingId('MED' + Date.now().toString(36).toUpperCase()); setTestBookingStep(6); }}>Pay ₹{cartTotal + (testCollectionMode === 'home' ? 50 : 0)}</Button>}
+                {testBookingStep === 6 && <Button className="w-full rounded-xl h-11 text-sm gap-1.5 bg-gradient-to-r from-emerald-500 to-emerald-600" onClick={() => { setShowTestBooking(false); setTestCart({}); setTestBookingStep(1); setTestSelectedDate(''); setTestSelectedSlot(''); }}>Done <CheckCircle2 className="w-4 h-4" /></Button>}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

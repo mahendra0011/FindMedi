@@ -1,14 +1,18 @@
+import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  Building2, MapPin, Phone, Star, CalendarDays, Users,
-  ShieldCheck, Truck, BedDouble, Stethoscope, Heart, Brain,
-  Bone, Baby, Eye, Activity, Droplets, ArrowRight, Ambulance,
-  FlaskConical, BadgeCheck, Clock, Mail, Navigation
-} from 'lucide-react';
+   Building2, MapPin, Phone, Star, CalendarDays, Users,
+   ShieldCheck, Truck, BedDouble, Stethoscope, Heart, Brain,
+   Bone, Baby, Eye, Activity, Droplets, ArrowRight, Ambulance,
+   FlaskConical, BadgeCheck, Clock, Mail, Navigation, CheckCircle2
+ } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 const ACCREDITATION_COLORS = {
   NABH: 'bg-emerald-50 text-emerald-700 border-emerald-200',
@@ -22,8 +26,14 @@ const HOSPITAL_TYPE_STYLES = {
 };
 
 export default function HospitalCard({ hospital, index = 0, distance }) {
-  const navigate = useNavigate();
-  const yearsSinceEst = hospital.establishedYear
+   const navigate = useNavigate();
+const [showDoctors, setShowDoctors] = useState(false);
+    const [showBooking, setShowBooking] = useState(false);
+    const [selectedDoctor, setSelectedDoctor] = useState(null);
+    const [bookingDate, setBookingDate] = useState('');
+    const [bookingTime, setBookingTime] = useState('');
+    const [bookingConfirmed, setBookingConfirmed] = useState(false);
+   const yearsSinceEst = hospital.establishedYear
     ? new Date().getFullYear() - hospital.establishedYear
     : null;
   const fallbackDist = distance || ((hospital._id?.charCodeAt(hospital._id?.length - 1) || 5) % 5 + 0.5).toFixed(1);
@@ -282,32 +292,94 @@ export default function HospitalCard({ hospital, index = 0, distance }) {
           </div>
         )}
 
-        {/* Rating + Reviews */}
+{/* Rating + Reviews */}
         <div className="flex items-center justify-between pt-1 border-t border-border/40 mt-auto">
           <div className="flex items-center gap-2">
             <div className="flex">{renderStars(hospital.rating)}</div>
             <span className="text-sm font-bold text-foreground">
               {hospital.rating > 0 ? hospital.rating.toFixed(1) : '—'}
             </span>
+            <span className="text-xs text-muted-foreground">
+              {hospital.reviewsCount > 0
+                ? `${hospital.reviewsCount} review${hospital.reviewsCount !== 1 ? 's' : ''}`
+                : 'No reviews'}
+            </span>
           </div>
-          <span className="text-xs text-muted-foreground">
-            {hospital.reviewsCount > 0
-              ? `${hospital.reviewsCount} review${hospital.reviewsCount !== 1 ? 's' : ''}`
-              : 'No reviews'}
-          </span>
         </div>
 
-        {/* Action Buttons */}
+        {/* Action Buttons - Row 1 */}
         <div className="flex gap-2 pt-1 mt-auto">
+          <Dialog open={showDoctors} onOpenChange={setShowDoctors}>
+            <DialogTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 gap-1 rounded-xl text-[11px] h-9"
+              >
+                <CalendarDays className="w-3.5 h-3.5" />
+                Book Appointment
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl max-h-[80vh]">
+              <DialogHeader>
+                <DialogTitle>Available Doctors at {hospital.name}</DialogTitle>
+                <DialogDescription>
+                  Select a doctor to book your appointment
+                </DialogDescription>
+              </DialogHeader>
+              <div className="max-h-96 overflow-y-auto py-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {(hospital.doctors && hospital.doctors.length > 0 
+                    ? hospital.doctors 
+                    : [{ _id: 'temp-1', name: 'Dr. Rohit Verma', specialization: 'Dermatology', experience: '7 years', fees: 900 }, { _id: 'temp-2', name: 'Dr. Anita Sharma', specialization: 'Orthopedics', experience: '10 years', fees: 1200 }]
+                  ).map((doc, idx) => (
+                    <motion.div 
+                      key={doc._id || idx} 
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: idx * 0.05 }}
+                      className="p-3 rounded-xl border border-border/50 hover:border-primary/30 hover:shadow-md transition-all cursor-pointer bg-card"
+                      onClick={() => { setSelectedDoctor(doc); setShowDoctors(false); setShowBooking(true); }}
+                      whileHover={{ scale: 1.02, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
+                          <span className="text-primary-foreground font-bold text-sm">{doc.name?.split(' ').map(n=>n[0]).join('').slice(0,2) || 'DR'}</span>
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-heading font-semibold text-sm text-foreground truncate">{doc.name}</p>
+                          <p className="text-xs text-primary">{doc.specialization}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-xs text-muted-foreground">{doc.experience || `${doc.experienceYears || 0} yrs`}</span>
+                            <span className="text-xs text-muted-foreground">•</span>
+                            <span className="text-xs font-medium text-primary">Rs {doc.fees || doc.consultation_fees || 0}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" size="sm" onClick={() => setShowDoctors(false)}>Close</Button>
+                <Button size="sm" onClick={() => { setShowDoctors(false); navigate(`/hospitals/${hospital._id}/doctors`); }}>View All Doctors</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
           <Button
             variant="outline"
             size="sm"
             className="flex-1 gap-1 rounded-xl text-[11px] h-9"
             onClick={() => navigate(`/hospitals/${hospital._id}/doctors`)}
           >
-            <CalendarDays className="w-3.5 h-3.5" />
-            Book Appointment
+            <Users className="w-3.5 h-3.5" />
+            View Available Doctors
           </Button>
+        </div>
+
+        {/* Action Buttons - Row 2 */}
+        <div className="flex gap-2 pt-2 mt-auto">
           <Button
             variant="outline"
             size="sm"
@@ -323,11 +395,73 @@ export default function HospitalCard({ hospital, index = 0, distance }) {
             className="flex-1 gap-1 rounded-xl text-[11px] h-9 shadow-lg shadow-primary/20 group/btn"
             onClick={() => navigate(`/hospitals/${hospital._id}`)}
           >
-            View Hospital
-            <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover/btn:translate-x-0.5" />
+            View Hospital Details
           </Button>
         </div>
       </div>
+
+      {/* Booking Modal */}
+      <Dialog open={showBooking} onOpenChange={(open) => { if (!open) { setBookingConfirmed(false); setBookingDate(''); setBookingTime(''); setSelectedDoctor(null); } }}>
+        <DialogContent className="max-w-md">
+          {!bookingConfirmed ? (
+            <>
+              <DialogHeader>
+                <DialogTitle>Quick Booking for {selectedDoctor?.name}</DialogTitle>
+                <DialogDescription>
+                  {selectedDoctor?.specialization} • Rs {selectedDoctor?.fees || selectedDoctor?.consultation_fees || 0}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div>
+                  <p className="text-sm font-medium mb-1">Select Date</p>
+                  <Input type="date" value={bookingDate} onChange={e => setBookingDate(e.target.value)} min={new Date().toISOString().split('T')[0]} />
+                </div>
+                <div>
+                  <p className="text-sm font-medium mb-1">Select Time Slot</p>
+                  <select value={bookingTime} onChange={e => setBookingTime(e.target.value)} className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm">
+                    <option value="">Choose time</option>
+                    <option>09:00 AM - 10:00 AM</option>
+                    <option>10:00 AM - 11:00 AM</option>
+                    <option>11:00 AM - 12:00 PM</option>
+                    <option>02:00 PM - 03:00 PM</option>
+                    <option>03:00 PM - 04:00 PM</option>
+                  </select>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" size="sm" onClick={() => setShowBooking(false)}>Cancel</Button>
+                <Button size="sm" disabled={!bookingDate || !bookingTime} onClick={() => {
+                  setBookingConfirmed(true);
+                }}>Confirm Booking</Button>
+              </DialogFooter>
+            </>
+          ) : (
+            <div className="py-8 text-center">
+              <motion.div
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: 'spring', stiffness: 300 }}
+                className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shadow-lg shadow-primary/30"
+              >
+                <CheckCircle2 className="w-10 h-10 text-primary-foreground" />
+              </motion.div>
+              <h3 className="text-lg font-bold text-primary mb-2">Booking Confirmed!</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Appointment booked for {selectedDoctor?.name}
+              </p>
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 border border-primary/20">
+                <CalendarDays className="w-4 h-4 text-primary" />
+                <p className="text-xs font-medium text-primary">
+                  {bookingDate && new Date(bookingDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} • {bookingTime}
+                </p>
+              </div>
+              <DialogFooter className="mt-6">
+                <Button size="sm" onClick={() => setShowBooking(false)}>Done</Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+</Dialog>
     </motion.div>
   );
 }

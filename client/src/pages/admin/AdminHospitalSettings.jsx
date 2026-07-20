@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Save, Loader2, Building2, Phone, Mail, MapPin, Clock, Shield, Ambulance, BedDouble, CheckCircle2, Image, Plus, X } from 'lucide-react';
+import { Save, Loader2, Building2, Phone, Mail, MapPin, Clock, Shield, Ambulance, BedDouble, CheckCircle2, Image, Plus, X, Globe, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -29,6 +29,9 @@ export default function AdminHospitalSettings() {
           address: h.address || '',
           city: h.city || '',
           state: h.state || '',
+          pincode: h.pincode || '',
+          licenseNumber: h.licenseNumber || '',
+          website: h.website || '',
           description: h.description || '',
           logo: h.logo || '',
           image: h.image || '',
@@ -38,8 +41,11 @@ export default function AdminHospitalSettings() {
           emergency24x7: h.emergency24x7 || false,
           ambulanceService: h.ambulanceService || false,
           accreditations: h.accreditations || [],
-          workingHours: h.workingHours || { weekdays: '9:00 AM - 6:00 PM', saturday: '9:00 AM - 2:00 PM', sunday: 'Closed' },
+          workingHours: h.workingHours || { weekdays: '9:00 AM - 6:00 PM', saturday: '9:00 AM - 6:00 PM', sunday: 'Closed' },
           insuranceAccepted: h.insuranceAccepted || [],
+          specialties: h.specialties || [],
+          amenities: h.amenities || { parking: false, acWaitingArea: false, wheelchairAccess: false, cardPayment: false, inHousePharmacy: false, drinkingWater: false, wifi: false, homeVisit: false },
+          socialLinks: h.socialLinks || { facebook: '', instagram: '', youtube: '' },
         });
       } catch (e) { console.error(e); toast.error('Failed to load hospital data'); }
       setLoading(false);
@@ -52,6 +58,12 @@ export default function AdminHospitalSettings() {
   const addAccreditation = () => {
     const v = prompt('Enter accreditation (e.g. NABH, NABL, ISO):');
     if (v) update('accreditations', [...form.accreditations, v.trim().toUpperCase()]);
+  };
+  const SPECIALTIES = ['Cardiology', 'Neurology', 'Orthopedics', 'Pediatrics', 'Dermatology', 'Oncology', 'General Medicine', 'ENT', 'Psychiatry', 'Gynecology', 'Urology', 'Ophthalmology', 'Dentistry', 'Ayurveda', 'Homeopathy', 'Physiotherapy'];
+
+  const addSpecialty = () => {
+    const v = prompt('Enter specialty (e.g. General Medicine, Pediatrics):');
+    if (v) update('specialties', [...form.specialties, v.trim()]);
   };
 
   const addInsurance = () => {
@@ -96,6 +108,11 @@ export default function AdminHospitalSettings() {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2"><Label>City</Label><Input placeholder="Enter city" value={form.city} onChange={e => update('city', e.target.value)} /></div>
             <div className="space-y-2"><Label>State</Label><Input placeholder="Enter state" value={form.state} onChange={e => update('state', e.target.value)} /></div>
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="space-y-2"><Label>Pincode</Label><Input placeholder="e.g. 400001" value={form.pincode} onChange={e => update('pincode', e.target.value)} /></div>
+            <div className="space-y-2"><Label>License Number</Label><Input placeholder="e.g. MP-H-2023-00781" value={form.licenseNumber} onChange={e => update('licenseNumber', e.target.value)} /></div>
+            <div className="space-y-2"><Label><Globe className="w-3 h-3 inline mr-1" /> Website</Label><Input placeholder="https://hospital.com" value={form.website} onChange={e => update('website', e.target.value)} /></div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2"><Label>Hospital Type</Label><select value={form.hospitalType} onChange={e => update('hospitalType', e.target.value)} className="flex h-10 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"><option>Private</option><option>Government</option></select></div>
@@ -154,6 +171,45 @@ export default function AdminHospitalSettings() {
               ))}
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle className="flex items-center gap-2"><Star className="w-5 h-5" /> Specialties</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-center justify-between"><Label>Specialties</Label><Button variant="outline" size="sm" onClick={addSpecialty}><Plus className="w-3 h-3 mr-1" /> Add</Button></div>
+          <div className="flex flex-wrap gap-2">
+            {form.specialties?.map((s, i) => (
+              <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-primary/10 text-primary border border-primary/20">
+                <Star className="w-3 h-3" /> {s}
+                <button onClick={() => update('specialties', form.specialties.filter((_, j) => j !== i))}><X className="w-3 h-3 ml-1 hover:text-destructive" /></button>
+              </span>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle className="flex items-center gap-2"><MapPin className="w-5 h-5" /> Amenities</CardTitle></CardHeader>
+        <CardContent className="grid grid-cols-2 gap-4">
+          {Object.entries({ parking: 'Parking', acWaitingArea: 'AC Waiting Area', wheelchairAccess: 'Wheelchair Access', cardPayment: 'Card Payment', inHousePharmacy: 'In-house Pharmacy', drinkingWater: 'Drinking Water', wifi: 'Free Wi-Fi', homeVisit: 'Home Visit' }).map(([k, lbl]) => (
+            <label key={k} className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={form.amenities?.[k] || false} onChange={e => update('amenities', { ...form.amenities, [k]: e.target.checked })} className="rounded border-border" />
+              {lbl}
+            </label>
+          ))}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle className="flex items-center gap-2"><Globe className="w-5 h-5" /> Social Links</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          {['facebook', 'instagram', 'youtube'].map(s => (
+            <div key={s} className="space-y-1">
+              <Label className="capitalize">{s}</Label>
+              <Input value={form.socialLinks?.[s] || ''} onChange={e => update('socialLinks', { ...form.socialLinks, [s]: e.target.value })} placeholder={`https://${s}.com/...`} />
+            </div>
+          ))}
         </CardContent>
       </Card>
 

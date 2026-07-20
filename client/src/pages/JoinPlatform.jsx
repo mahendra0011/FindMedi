@@ -2,11 +2,11 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Building2, Stethoscope, Microscope, Pill, ArrowLeft, ArrowRight,
-  Check, ChevronRight, User, Mail, Phone, MapPin, Clock, FileText,
-  Plus, X, Users, Star, Award, CalendarDays, BadgeCheck, Loader2,
-  Shield, Heart, Eye, Activity, Lock, Globe, Image
-} from 'lucide-react';
+   Building2, Stethoscope, Microscope, Pill, ArrowLeft, ArrowRight,
+   Check, ChevronRight, User, Mail, Phone, MapPin, Clock, FileText,
+   Plus, X, Users, Star, Award, CalendarDays, BadgeCheck, Loader2,
+   Shield, Heart, Eye, Activity, Lock, Globe, Image, UserRound
+ } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -35,11 +35,13 @@ const DOCTORS_STEP = { num: 4, label: 'Doctors & Services', icon: Users };
 const REVIEW_STEP = { num: 99, label: 'Review & Submit', icon: FileText };
 
 const getSteps = (type) => {
-  const hasDoctors = type === 'hospital' || type === 'clinic';
-  const steps = [...BASE_STEPS];
-  if (hasDoctors) steps.push(DOCTORS_STEP);
-  steps.push({ ...REVIEW_STEP, num: steps.length + 1 });
-  return steps.map((s, i) => ({ ...s, num: i + 1 }));
+const hasDoctors = type === 'hospital' || type === 'clinic';
+   const hasSpecialist = type === 'diagnostic';
+   const steps = [...BASE_STEPS];
+   if (hasDoctors) steps.push(DOCTORS_STEP);
+   if (hasSpecialist) steps.push({ num: 4.5, label: 'Specialist Details', icon: UserRound });
+   steps.push({ ...REVIEW_STEP, num: steps.length + 1 });
+   return steps.map((s, i) => ({ ...s, num: i + 1 }));
 };
 
 export default function JoinPlatform() {
@@ -55,7 +57,7 @@ export default function JoinPlatform() {
     name: '', address: '', city: '', state: '', pincode: '', license: '', description: '',
     specialties: [], timing: '', established: '', phone: '', email: '', website: '',
     logo: '', image: '',
-    amenities: { parking: false, acWaitingArea: false, wheelchairAccess: false, cardPayment: false, inHousePharmacy: false, drinkingWater: false, wifi: false, homeVisit: false },
+    amenities: { parking: false, acWaitingArea: false, wheelchairAccess: false, cardPayment: false, inHousePharmacy: false, drinkingWater: false, wifi: false, homeVisit: false, homeDelivery: false, prescriptionUpload: false },
     insurance: [], accreditations: [], socialLinks: { facebook: '', instagram: '', youtube: '' },
     weekSchedule: {
       monday: '9:00 AM - 6:00 PM', tuesday: '9:00 AM - 6:00 PM', wednesday: '9:00 AM - 6:00 PM',
@@ -64,6 +66,12 @@ export default function JoinPlatform() {
   });
   const [doctors, setDoctors] = useState([emptyDoctor()]);
   const [services, setServices] = useState([]);
+  const [specialist, setSpecialist] = useState({
+    pathologistName: '', pathologistQualification: '',
+    radiologistName: '', radiologistQualification: '',
+    cardiologistName: '', cardiologistQualification: '',
+    technicianName: '', technicianRole: '', technicianQualification: '', technicianExperience: '',
+  });
   const [agreed, setAgreed] = useState(false);
 
   const updateAccount = (f) => (e) => setAccount(p => ({ ...p, [f]: e.target.value }));
@@ -82,10 +90,7 @@ export default function JoinPlatform() {
     if (step === 1) return !!type;
     if (step === 2) return account.name?.length >= 2 && account.email?.includes('@') && account.phone?.length >= 10 && account.password?.length >= 6;
     if (step === 3) return facility.name && facility.address && facility.city;
-    if (step === 4) {
-      if (type === 'hospital' || type === 'clinic') return doctors.some(d => d.name && d.specialization);
-      return true;
-    }
+    if (step === 4 || step === 4.5) return true;
     if (step === 5) return agreed;
     return true;
   };
@@ -101,6 +106,7 @@ export default function JoinPlatform() {
           established: facility.established ? Number(facility.established) : facility.established,
         },
         services,
+        specialist: type === 'diagnostic' ? specialist : undefined,
       };
       if (type === 'hospital' || type === 'clinic') payload.doctors = doctors.filter(d => d.name && d.specialization);
       const res = await api.registerPlatform(payload);
@@ -414,23 +420,33 @@ export default function JoinPlatform() {
                       ))}
                     </div>
 
-                    <p className="text-xs font-semibold text-muted-foreground">Amenities</p>
+<p className="text-xs font-semibold text-muted-foreground">Amenities</p>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                      {[
-                        { key: 'parking', label: 'Parking' },
-                        { key: 'acWaitingArea', label: 'AC Waiting Area' },
-                        { key: 'wheelchairAccess', label: 'Wheelchair Access' },
-                        { key: 'cardPayment', label: 'Card/UPI Payment' },
-                        { key: 'inHousePharmacy', label: 'In-House Pharmacy' },
-                        { key: 'drinkingWater', label: 'Drinking Water' },
-                        { key: 'wifi', label: 'Free Wi-Fi' },
-                        { key: 'homeVisit', label: 'Home Visit' },
-                      ].map(({ key, label }) => (
-                        <label key={key} className="flex items-center gap-2 text-xs cursor-pointer">
-                          <input type="checkbox" checked={facility.amenities[key]} onChange={e => updateAmenity(key)(e.target.checked)} className="w-3.5 h-3.5 rounded border-border accent-primary" />
-                          {label}
-                        </label>
-                      ))}
+                      {(type === 'pharmacy'
+                         ? [
+                             { key: 'parking', label: 'Parking' },
+                             { key: 'acWaitingArea', label: 'AC Waiting Area' },
+                             { key: 'wheelchairAccess', label: 'Wheelchair Access' },
+                             { key: 'cardPayment', label: 'Card/UPI Payment' },
+                             { key: 'homeDelivery', label: 'Home Delivery' },
+                             { key: 'prescriptionUpload', label: 'Prescription Upload' },
+                           ]
+                         : [
+                             { key: 'parking', label: 'Parking' },
+                             { key: 'acWaitingArea', label: 'AC Waiting Area' },
+                             { key: 'wheelchairAccess', label: 'Wheelchair Access' },
+                             { key: 'cardPayment', label: 'Card Payment' },
+                             { key: 'inHousePharmacy', label: 'In-House Pharmacy' },
+                             { key: 'drinkingWater', label: 'Drinking Water' },
+                             { key: 'wifi', label: 'Free Wi-Fi' },
+                             { key: 'homeVisit', label: 'Home Visit' },
+                           ]
+                       ).map(({ key, label }) => (
+                         <label key={key} className="flex items-center gap-2 text-xs cursor-pointer">
+                           <input type="checkbox" checked={facility.amenities[key]} onChange={e => updateAmenity(key)(e.target.checked)} className="w-3.5 h-3.5 rounded border-border accent-primary" />
+                           {label}
+                         </label>
+                       ))}
                     </div>
 
                     <div>
@@ -558,14 +574,54 @@ export default function JoinPlatform() {
 
               {navButtons()}
               <div className="flex justify-end mt-4">
-                <Button onClick={() => setStep(5)} disabled={!canProceed()} className="gap-2 rounded-xl shadow-lg shadow-primary/20">
-                  Review & Submit <ArrowRight className="w-4 h-4" />
-                </Button>
-              </div>
-            </motion.div>
-          )}
+<Button onClick={() => setStep(type === 'diagnostic' ? 4.5 : 5)} disabled={!canProceed()} className="gap-2 rounded-xl shadow-lg shadow-primary/20">
+                   Continue <ArrowRight className="w-4 h-4" />
+                 </Button>
+               </div>
+             </motion.div>
+           )}
 
-          {/* Step 5: Review & Submit */}
+           {/* Step 4.5: Specialist Details — only for diagnostic */}
+           {step === 4.5 && type === 'diagnostic' && (
+             <motion.div key="s4.5" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+               {stepHeader('Specialist Details', 'Add key personnel for your diagnostic center')}
+               <div className="bg-card rounded-2xl border border-border/50 p-5 space-y-4">
+                 <p className="text-xs font-semibold text-muted-foreground mb-2">Pathologist</p>
+                 <div className="grid grid-cols-2 gap-3">
+                   <div className="space-y-1"><Label className="text-xs">Name</Label><Input value={specialist.pathologistName} onChange={e => setSpecialist(p => ({ ...p, pathologistName: e.target.value }))} placeholder="Dr. name" /></div>
+                   <div className="space-y-1"><Label className="text-xs">Qualification</Label><Input value={specialist.pathologistQualification} onChange={e => setSpecialist(p => ({ ...p, pathologistQualification: e.target.value }))} placeholder="MD Pathology, DNB" /></div>
+                 </div>
+                 <Separator />
+                 <p className="text-xs font-semibold text-muted-foreground mb-2">Radiologist</p>
+                 <div className="grid grid-cols-2 gap-3">
+                   <div className="space-y-1"><Label className="text-xs">Name</Label><Input value={specialist.radiologistName} onChange={e => setSpecialist(p => ({ ...p, radiologistName: e.target.value }))} placeholder="Dr. name" /></div>
+                   <div className="space-y-1"><Label className="text-xs">Qualification</Label><Input value={specialist.radiologistQualification} onChange={e => setSpecialist(p => ({ ...p, radiologistQualification: e.target.value }))} placeholder="MD Radiology" /></div>
+                 </div>
+                 <Separator />
+                 <p className="text-xs font-semibold text-muted-foreground mb-2">Cardiologist</p>
+                 <div className="grid grid-cols-2 gap-3">
+                   <div className="space-y-1"><Label className="text-xs">Name</Label><Input value={specialist.cardiologistName} onChange={e => setSpecialist(p => ({ ...p, cardiologistName: e.target.value }))} placeholder="Dr. name" /></div>
+                   <div className="space-y-1"><Label className="text-xs">Qualification</Label><Input value={specialist.cardiologistQualification} onChange={e => setSpecialist(p => ({ ...p, cardiologistQualification: e.target.value }))} placeholder="MD Cardiology" /></div>
+                 </div>
+                 <Separator />
+                 <p className="text-xs font-semibold text-muted-foreground mb-2">Technician</p>
+                 <div className="grid grid-cols-2 gap-3">
+                   <div className="space-y-1"><Label className="text-xs">Name</Label><Input value={specialist.technicianName} onChange={e => setSpecialist(p => ({ ...p, technicianName: e.target.value }))} placeholder="Technician name" /></div>
+                   <div className="space-y-1"><Label className="text-xs">Role</Label><Input value={specialist.technicianRole} onChange={e => setSpecialist(p => ({ ...p, technicianRole: e.target.value }))} placeholder="Lab Technician / Phlebotomist" /></div>
+                   <div className="space-y-1"><Label className="text-xs">Qualification</Label><Input value={specialist.technicianQualification} onChange={e => setSpecialist(p => ({ ...p, technicianQualification: e.target.value }))} placeholder="B.Sc, MLT" /></div>
+                   <div className="space-y-1"><Label className="text-xs">Experience</Label><Input value={specialist.technicianExperience} onChange={e => setSpecialist(p => ({ ...p, technicianExperience: e.target.value }))} placeholder="e.g. 3 years" /></div>
+                 </div>
+               </div>
+               {navButtons()}
+               <div className="flex justify-end mt-4">
+                 <Button onClick={() => setStep(5)} disabled={!canProceed()} className="gap-2 rounded-xl shadow-lg shadow-primary/20">
+                   Review & Submit <ArrowRight className="w-4 h-4" />
+                 </Button>
+               </div>
+             </motion.div>
+           )}
+
+           {/* Step 5: Review & Submit */}
           {step === 5 && (
             <motion.div key="s5" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
               {stepHeader('Review & Submit', 'Please verify all details before submitting')}

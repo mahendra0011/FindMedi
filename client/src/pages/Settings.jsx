@@ -390,14 +390,14 @@ export default function Settings() {
               <h3 className="font-heading font-semibold text-lg text-card-foreground mb-5">{tr('settings.security')}</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl">
                 <Field label={tr('settings.currentPassword')}>
-                  <Input type="password" value={password.currentPassword} onChange={(event) => setPassword((current) => ({ ...current, currentPassword: event.target.value }))} />
+                  <Input type="password" value={password.currentPassword} onChange={(event) => setPassword((current) => ({ ...current, currentPassword: event.target.value }))} placeholder="Enter current password" />
                 </Field>
                 <div />
                 <Field label={tr('settings.newPassword')}>
-                  <Input type="password" value={password.newPassword} onChange={(event) => setPassword((current) => ({ ...current, newPassword: event.target.value }))} />
+                  <Input type="password" value={password.newPassword} onChange={(event) => setPassword((current) => ({ ...current, newPassword: event.target.value }))} placeholder="Enter new password" />
                 </Field>
                 <Field label={tr('settings.confirmPassword')}>
-                  <Input type="password" value={password.confirmPassword} onChange={(event) => setPassword((current) => ({ ...current, confirmPassword: event.target.value }))} />
+                  <Input type="password" value={password.confirmPassword} onChange={(event) => setPassword((current) => ({ ...current, confirmPassword: event.target.value }))} placeholder="Confirm new password" />
                 </Field>
               </div>
               <div className="mt-5 space-y-1 max-w-2xl">

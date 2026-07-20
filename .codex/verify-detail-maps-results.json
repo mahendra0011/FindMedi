@@ -1,0 +1,58 @@
+[
+  {
+    "route": "hospital",
+    "url": "http://127.0.0.1:8080/#/hospitals/6a5d135f3e7f2ef3183cc40e",
+    "ok": true,
+    "hasLocationSection": true,
+    "hasMap": true,
+    "markerCount": 10,
+    "popupCount": 1,
+    "controlButtonCount": 4,
+    "routeSummaryVisible": true,
+    "pageErrors": [],
+    "consoleMessages": []
+  },
+  {
+    "route": "clinic",
+    "url": "http://127.0.0.1:8080/#/clinic/6a5d135f3e7f2ef3183cc413",
+    "ok": true,
+    "hasLocationSection": true,
+    "hasMap": true,
+    "markerCount": 10,
+    "popupCount": 1,
+    "controlButtonCount": 4,
+    "routeSummaryVisible": true,
+    "pageErrors": [],
+    "consoleMessages": []
+  },
+  {
+    "route": "lab",
+    "url": "http://127.0.0.1:8080/#/lab/6a5d13603e7f2ef3183cc41f",
+    "ok": true,
+    "hasLocationSection": true,
+    "hasMap": true,
+    "markerCount": 10,
+    "popupCount": 1,
+    "controlButtonCount": 4,
+    "routeSummaryVisible": true,
+    "pageErrors": [],
+    "consoleMessages": [
+      "error: Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    ]
+  },
+  {
+    "route": "pharmacy",
+    "url": "http://127.0.0.1:8080/#/buy-medicine/6a5d13603e7f2ef3183cc417",
+    "ok": true,
+    "hasLocationSection": true,
+    "hasMap": true,
+    "markerCount": 10,
+    "popupCount": 1,
+    "controlButtonCount": 4,
+    "routeSummaryVisible": true,
+    "pageErrors": [],
+    "consoleMessages": [
+      "error: Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    ]
+  }
+]
