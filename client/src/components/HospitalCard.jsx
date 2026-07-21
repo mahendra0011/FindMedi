@@ -404,7 +404,7 @@ const [showDoctors, setShowDoctors] = useState(false);
 
       {/* Booking Modal */}
       <Dialog open={showBooking} onOpenChange={(open) => { if (!open) { setBookingConfirmed(false); setBookingDate(''); setBookingTime(''); setBookingType('Consultation'); setBookingNotes(''); setSelectedDoctor(null); } }}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto w-[calc(100%-2rem)] sm:w-full rounded-2xl">
           {!bookingConfirmed ? (
             <>
               <DialogHeader>
@@ -413,7 +413,7 @@ const [showDoctors, setShowDoctors] = useState(false);
                   {selectedDoctor?.specialization} • Rs {selectedDoctor?.fees || selectedDoctor?.consultation_fees || 0}
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-4 py-4">
+              <div className="space-y-3 py-2">
                 <div>
                   <p className="text-sm font-medium mb-1">Select Date</p>
                   <Input type="date" value={bookingDate} onChange={e => setBookingDate(e.target.value)} min={new Date().toISOString().split('T')[0]} />
@@ -439,7 +439,7 @@ const [showDoctors, setShowDoctors] = useState(false);
                 </div>
                 <div>
                   <p className="text-sm font-medium mb-1">Notes (optional)</p>
-                  <textarea value={bookingNotes} onChange={e => setBookingNotes(e.target.value)} placeholder="Any specific concerns…" className="w-full h-20 px-3 py-2 rounded-md border border-input bg-background text-sm resize-none" />
+                  <textarea value={bookingNotes} onChange={e => setBookingNotes(e.target.value)} placeholder="Any specific concerns…" className="w-full h-14 px-3 py-2 rounded-md border border-input bg-background text-sm resize-none" />
                 </div>
               </div>
               <DialogFooter>
