@@ -219,6 +219,8 @@ export default function HospitalProfile() {
   const [selectedDoctorForBooking, setSelectedDoctorForBooking] = useState(null);
   const [bookingDate, setBookingDate] = useState('');
   const [bookingTime, setBookingTime] = useState('');
+  const [bookingType, setBookingType] = useState('Consultation');
+  const [bookingNotes, setBookingNotes] = useState('');
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
 
   const [showTestBooking, setShowTestBooking] = useState(false);
@@ -1666,9 +1668,25 @@ export default function HospitalProfile() {
                      <option>03:00 PM - 04:00 PM</option>
                    </select>
                  </div>
+                 <div className="space-y-2">
+                   <label className="text-xs font-medium text-foreground">Appointment Type</label>
+                   <div className="grid grid-cols-3 gap-2">
+                     {['Consultation', 'Follow-up', 'Check-up'].map(t => (
+                       <button key={t} type="button" onClick={() => setBookingType(t)}
+                         className={`px-2 py-2 rounded-lg text-xs font-medium transition-colors text-center ${bookingType === t ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
+                       >
+                         {t}
+                       </button>
+                     ))}
+                   </div>
+                 </div>
+                 <div className="space-y-2">
+                   <label className="text-xs font-medium text-foreground">Notes (optional)</label>
+                   <Input placeholder="Any specific concerns…" value={bookingNotes} onChange={e => setBookingNotes(e.target.value)} />
+                 </div>
                </div>
                <DialogFooter>
-                 <Button variant="outline" size="sm" onClick={() => { setShowBookingModal(false); setSelectedDoctorForBooking(null); setBookingDate(''); setBookingTime(''); }}>Cancel</Button>
+                 <Button variant="outline" size="sm" onClick={() => { setShowBookingModal(false); setSelectedDoctorForBooking(null); setBookingDate(''); setBookingTime(''); setBookingType('Consultation'); setBookingNotes(''); }}>Cancel</Button>
                  <Button size="sm" disabled={!bookingDate || !bookingTime} onClick={() => setBookingConfirmed(true)}>Confirm Booking</Button>
                </DialogFooter>
              </>
@@ -1693,7 +1711,7 @@ export default function HospitalProfile() {
                 </p>
               </div>
               <DialogFooter className="mt-6">
-                <Button size="sm" onClick={() => { setShowBookingModal(false); setBookingConfirmed(false); setBookingDate(''); setBookingTime(''); setSelectedDoctorForBooking(null); }}>Done</Button>
+                <Button size="sm" onClick={() => { setShowBookingModal(false); setBookingConfirmed(false); setBookingDate(''); setBookingTime(''); setBookingType('Consultation'); setBookingNotes(''); setSelectedDoctorForBooking(null); }}>Done</Button>
               </DialogFooter>
             </div>
           )}
