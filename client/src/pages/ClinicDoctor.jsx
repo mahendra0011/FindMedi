@@ -1124,34 +1124,34 @@ export default function ClinicDoctor() {
             </div>
 
             {/* Booking Card */}
-            <div className="bg-card rounded-2xl border border-border/60 p-6 sticky top-24 shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="font-heading text-lg font-bold text-foreground flex items-center gap-2">
-                  <CalendarDays className="w-5 h-5 text-primary" />
+            <div className="bg-card rounded-2xl border border-border/60 p-5 sticky top-24 shadow-sm">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="font-heading text-base font-bold text-foreground flex items-center gap-2">
+                  <CalendarDays className="w-4 h-4 text-primary" />
                   Book Appointment
                 </h2>
-                <button onClick={() => setSaved(!saved)} className="p-2 rounded-lg hover:bg-muted transition-colors">
+                <button onClick={() => setSaved(!saved)} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
                   {saved
-                    ? <BookMarked className="w-5 h-5 text-primary" />
-                    : <Bookmark className="w-5 h-5 text-muted-foreground" />
+                    ? <BookMarked className="w-4 h-4 text-primary" />
+                    : <Bookmark className="w-4 h-4 text-muted-foreground" />
                   }
                 </button>
               </div>
 
               {/* Fee Display */}
-              <div className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/60 mb-3">
-                <span className="text-sm text-muted-foreground">Consultation Fee</span>
-                <span className="font-bold text-lg text-foreground">Rs {doctor.consultation_fees || doctor.fees || 0}</span>
+              <div className="flex items-center justify-between p-2.5 rounded-xl bg-muted/30 border border-border/60 mb-2">
+                <span className="text-xs text-muted-foreground">Consultation Fee</span>
+                <span className="font-bold text-base text-foreground">Rs {doctor.consultation_fees || doctor.fees || 0}</span>
               </div>
 
               {/* Walk-in Accepted */}
               {doctor.walk_in_accepted !== undefined && (
-                <div className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/60 mb-3">
-                  <span className="text-sm text-muted-foreground flex items-center gap-1.5">
-                    <DoorOpen className="w-4 h-4 text-primary shrink-0" />
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-muted/30 border border-border/60 mb-2">
+                  <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                    <DoorOpen className="w-3.5 h-3.5 text-primary shrink-0" />
                     Walk-in Accepted
                   </span>
-                  <span className={cn('text-sm font-semibold', doctor.walk_in_accepted ? 'text-success' : 'text-muted-foreground')}>
+                  <span className={cn('text-xs font-semibold', doctor.walk_in_accepted ? 'text-success' : 'text-muted-foreground')}>
                     {doctor.walk_in_accepted ? 'Yes' : 'No'}
                   </span>
                 </div>
@@ -1159,16 +1159,16 @@ export default function ClinicDoctor() {
 
               {/* Next Available Slot */}
               {doctor.next_available_slot && (
-                <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-primary/5 border border-primary/20 mb-4 text-sm">
-                  <Clock className="w-4 h-4 text-primary shrink-0" />
+                <div className="flex items-center gap-2 px-2.5 py-2 rounded-xl bg-primary/5 border border-primary/20 mb-2 text-xs">
+                  <Clock className="w-3.5 h-3.5 text-primary shrink-0" />
                   <span className="text-muted-foreground">Next available: <span className="font-semibold text-foreground">{doctor.next_available_slot}</span></span>
                 </div>
               )}
 
               {/* OPD Timing */}
               {doctor.opd_timings && (
-                <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-muted/30 border border-border/60 mb-4 text-sm text-muted-foreground">
-                  <Clock className="w-4 h-4 shrink-0" />
+                <div className="flex items-center gap-2 px-2.5 py-2 rounded-xl bg-muted/30 border border-border/60 mb-3 text-xs text-muted-foreground">
+                  <Clock className="w-3.5 h-3.5 shrink-0" />
                   <span>OPD: <span className="font-medium text-foreground">{doctor.opd_timings}</span></span>
                 </div>
               )}
@@ -1191,22 +1191,22 @@ export default function ClinicDoctor() {
                   </Button>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <div>
-                    <label className="text-sm font-medium text-foreground mb-1.5 block">Select Date</label>
+                    <label className="text-xs font-medium text-foreground mb-1 block">Select Date</label>
                     <Input type="date" value={bookingDate} onChange={e => setBookingDate(e.target.value)}
-                      min={new Date().toISOString().split('T')[0]} className="rounded-xl" />
+                      min={new Date().toISOString().split('T')[0]} className="rounded-xl h-9" />
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-foreground mb-1.5 block">Select Time</label>
+                    <label className="text-xs font-medium text-foreground mb-1 block">Select Time</label>
                     {(() => {
                       const selectedDate = new Date(bookingDate || new Date().toISOString().split('T')[0]);
                       const dayName = selectedDate.toLocaleDateString('en', { weekday: 'long' }).toLowerCase();
                       const dayClosed = doctor.weekly_schedule ? !doctor.weekly_schedule[dayName] : dayName === 'sunday';
                       if (dayClosed) {
                         return (
-                          <div className="px-4 py-3 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-800 text-sm text-red-600 dark:text-red-400 flex items-center gap-2">
-                            <CalendarDays className="w-4 h-4 shrink-0" />
+                          <div className="px-3 py-2 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-800 text-xs text-red-600 dark:text-red-400 flex items-center gap-2">
+                            <CalendarDays className="w-3.5 h-3.5 shrink-0" />
                             Clinic Closed — {dayName.charAt(0).toUpperCase() + dayName.slice(1)} is a holiday
                           </div>
                         );
@@ -1214,7 +1214,7 @@ export default function ClinicDoctor() {
                       const timeSlots = doctor.time_slots || ['09:00 AM', '10:00 AM', '11:00 AM', '02:00 PM', '03:00 PM', '04:00 PM'];
                       const now = new Date();
                       return (
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-2 gap-1.5">
                           {timeSlots.map(t => {
                             const [time, period] = t.split(' ');
                             let [h, m] = time.split(':').map(Number);
@@ -1229,7 +1229,7 @@ export default function ClinicDoctor() {
                                 disabled={isPast}
                                 onClick={() => !isPast && setBookingTime(t)}
                                 className={cn(
-                                  'px-3 py-2 rounded-lg text-sm font-medium transition-colors relative',
+                                  'px-2 py-1.5 rounded-lg text-xs font-medium transition-colors relative',
                                   isPast
                                     ? 'bg-muted/30 text-muted-foreground/40 cursor-not-allowed line-through'
                                     : bookingTime === t
@@ -1247,12 +1247,12 @@ export default function ClinicDoctor() {
                     })()}
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-foreground mb-1.5 block">Appointment Type</label>
-                    <div className="grid grid-cols-3 gap-2">
+                    <label className="text-xs font-medium text-foreground mb-1 block">Appointment Type</label>
+                    <div className="grid grid-cols-3 gap-1.5">
                       {['Consultation', 'Follow-up', 'Check-up'].map(t => (
                         <button key={t} type="button" onClick={() => setBookingType(t)}
                           className={cn(
-                            'px-3 py-2 rounded-lg text-sm font-medium transition-colors text-center',
+                            'px-2 py-1.5 rounded-lg text-xs font-medium transition-colors text-center',
                             bookingType === t
                               ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20'
                               : 'bg-muted text-muted-foreground hover:bg-muted/80'
@@ -1264,21 +1264,16 @@ export default function ClinicDoctor() {
                     </div>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-foreground mb-1.5 block">Notes (optional)</label>
-                    <Input placeholder="Any specific concerns…" value={bookingNotes} onChange={e => setBookingNotes(e.target.value)} className="rounded-xl" />
+                    <label className="text-xs font-medium text-foreground mb-1 block">Notes (optional)</label>
+                    <Input placeholder="Any specific concerns…" value={bookingNotes} onChange={e => setBookingNotes(e.target.value)} className="rounded-xl h-9" />
                   </div>
-                  <Separator />
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Consultation Fee</span>
-                    <span className="font-bold text-lg text-foreground">Rs {doctor.consultation_fees || doctor.fees || 0}</span>
-                  </div>
-                  <Button className="w-full rounded-xl h-11 font-semibold shadow-lg shadow-primary/25" onClick={handleBook} disabled={!bookingDate || !bookingTime}>
+                  <Button className="w-full rounded-xl h-10 font-semibold shadow-lg shadow-primary/25" onClick={handleBook} disabled={!bookingDate || !bookingTime}>
                     <CalendarDays className="w-4 h-4 mr-2" /> Confirm Booking
                   </Button>
 
                   {/* Call Clinic / Hospital Reception */}
                   {doctor.clinic_reception_phone && (
-                    <Button variant="outline" className="w-full rounded-xl h-11 gap-2" asChild>
+                    <Button variant="outline" className="w-full rounded-xl h-10 gap-2" asChild>
                       <a href={`tel:${doctor.clinic_reception_phone}`}>
                         <Phone className="w-4 h-4" />
                         Call Clinic
