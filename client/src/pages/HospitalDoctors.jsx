@@ -569,38 +569,38 @@ export default function HospitalDoctors() {
                           <ChevronRight className="w-3 h-3 transition-transform duration-300 group-hover/btn:translate-x-0.5" />
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className="max-w-md">
+                      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto w-[calc(100%-2rem)] sm:w-full rounded-2xl">
                         <DialogHeader>
                           <DialogTitle>Book Appointment</DialogTitle>
                           <DialogDescription>
                             Quick booking for {selectedDoctor?.name}
                           </DialogDescription>
                         </DialogHeader>
-                        <div className="space-y-4 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
-                              <span className="text-primary-foreground font-bold text-sm">{selectedDoctor?.name?.split(' ').map(n=>n[0]).join('').slice(0,2)}</span>
+                        <div className="space-y-3 py-2">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shrink-0">
+                              <span className="text-primary-foreground font-bold text-xs">{selectedDoctor?.name?.split(' ').map(n=>n[0]).join('').slice(0,2)}</span>
                             </div>
-                            <div>
-                              <h3 className="font-heading font-semibold text-foreground">{selectedDoctor?.name}</h3>
-                              <p className="text-sm text-primary">{selectedDoctor?.specialization}</p>
-                            </div>
-                          </div>
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="p-3 rounded-xl bg-primary/5 border border-primary/10 text-center">
-                              <p className="text-xs text-muted-foreground mb-1">Consultation Fee</p>
-                              <p className="font-bold text-lg text-primary">Rs {selectedDoctor?.consultation_fees || 0}</p>
-                            </div>
-                            <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 dark:bg-emerald-500/10 text-center">
-                              <p className="text-xs text-muted-foreground mb-1">Available Slot</p>
-                              <p className="font-semibold text-sm text-emerald-600">{selectedDoctor?.next_available_slot || 'Today'}</p>
+                            <div className="min-w-0">
+                              <h3 className="font-heading font-semibold text-foreground text-sm truncate">{selectedDoctor?.name}</h3>
+                              <p className="text-xs text-primary">{selectedDoctor?.specialization}</p>
                             </div>
                           </div>
-                          <div className="space-y-2">
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="p-2 rounded-xl bg-primary/5 border border-primary/10 text-center">
+                              <p className="text-[11px] text-muted-foreground mb-0.5">Consultation Fee</p>
+                              <p className="font-bold text-sm text-primary">Rs {selectedDoctor?.consultation_fees || 0}</p>
+                            </div>
+                            <div className="p-2 rounded-xl bg-emerald-50 border border-emerald-200 dark:bg-emerald-500/10 text-center">
+                              <p className="text-[11px] text-muted-foreground mb-0.5">Available Slot</p>
+                              <p className="font-semibold text-xs text-emerald-600">{selectedDoctor?.next_available_slot || 'Today'}</p>
+                            </div>
+                          </div>
+                          <div className="space-y-1.5">
                             <label className="text-xs font-medium text-foreground">Select Date</label>
                             <Input type="date" className="w-full" defaultValue={new Date().toISOString().split('T')[0]} />
                           </div>
-                          <div className="space-y-2">
+                          <div className="space-y-1.5">
                             <label className="text-xs font-medium text-foreground">Select Time Slot</label>
                             <select className="w-full h-9 px-3 rounded-xl border border-border bg-background text-sm">
                               <option>09:00 AM - 10:00 AM</option>
@@ -610,7 +610,7 @@ export default function HospitalDoctors() {
                               <option>03:00 PM - 04:00 PM</option>
                             </select>
                           </div>
-                          <div className="space-y-2">
+                          <div className="space-y-1.5">
                             <label className="text-xs font-medium text-foreground">Appointment Type</label>
                             <select value={bookingType} onChange={e => setBookingType(e.target.value)} className="w-full h-9 px-3 rounded-xl border border-border bg-background text-sm">
                               <option value="Consultation">Consultation</option>
@@ -618,9 +618,9 @@ export default function HospitalDoctors() {
                               <option value="Check-up">Check-up</option>
                             </select>
                           </div>
-                          <div className="space-y-2">
+                          <div className="space-y-1.5">
                             <label className="text-xs font-medium text-foreground">Notes (optional)</label>
-                            <textarea value={bookingNotes} onChange={e => setBookingNotes(e.target.value)} placeholder="Any specific concerns…" className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm resize-none" rows={3} />
+                            <textarea value={bookingNotes} onChange={e => setBookingNotes(e.target.value)} placeholder="Any specific concerns…" className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm resize-none" rows={2} />
                           </div>
                         </div>
                         <DialogFooter>
