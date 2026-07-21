@@ -408,19 +408,38 @@ const [showDoctors, setShowDoctors] = useState(false);
           {!bookingConfirmed ? (
             <>
               <DialogHeader>
-                <DialogTitle>Quick Booking for {selectedDoctor?.name}</DialogTitle>
+                <DialogTitle>Book Appointment</DialogTitle>
                 <DialogDescription>
-                  {selectedDoctor?.specialization} • Rs {selectedDoctor?.fees || selectedDoctor?.consultation_fees || 0}
+                  Quick booking for {hospital?.name} - {selectedDoctor?.name}
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-3 py-2">
-                <div>
-                  <p className="text-sm font-medium mb-1">Select Date</p>
-                  <Input type="date" value={bookingDate} onChange={e => setBookingDate(e.target.value)} min={new Date().toISOString().split('T')[0]} />
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shrink-0">
+                    <span className="text-primary-foreground font-bold text-xs">{selectedDoctor?.name?.split(' ')?.map(n=>n?.[0])?.join('')?.slice(0,2)}</span>
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="font-heading font-semibold text-foreground text-sm truncate">{selectedDoctor?.name}</h3>
+                    <p className="text-xs text-primary">{selectedDoctor?.specialization}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-medium mb-1">Select Time Slot</p>
-                  <select value={bookingTime} onChange={e => setBookingTime(e.target.value)} className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="p-2 rounded-xl bg-primary/5 border border-primary/10 text-center">
+                    <p className="text-[11px] text-muted-foreground mb-0.5">Consultation Fee</p>
+                    <p className="font-bold text-sm text-primary">Rs {selectedDoctor?.fees || selectedDoctor?.consultation_fees || 0}</p>
+                  </div>
+                  <div className="p-2 rounded-xl bg-emerald-50 border border-emerald-200 dark:bg-emerald-500/10 text-center">
+                    <p className="text-[11px] text-muted-foreground mb-0.5">Available Slot</p>
+                    <p className="font-semibold text-xs text-emerald-600">{selectedDoctor?.next_available_slot || 'Today'}</p>
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-foreground">Select Date</label>
+                  <Input type="date" className="w-full" value={bookingDate} onChange={e => setBookingDate(e.target.value)} min={new Date().toISOString().split('T')[0]} />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-foreground">Select Time Slot</label>
+                  <select value={bookingTime} onChange={e => setBookingTime(e.target.value)} className="w-full h-9 px-3 rounded-xl border border-border bg-background text-sm">
                     <option value="">Choose time</option>
                     <option>09:00 AM - 10:00 AM</option>
                     <option>10:00 AM - 11:00 AM</option>
@@ -429,17 +448,17 @@ const [showDoctors, setShowDoctors] = useState(false);
                     <option>03:00 PM - 04:00 PM</option>
                   </select>
                 </div>
-                <div>
-                  <p className="text-sm font-medium mb-1">Appointment Type</p>
-                  <select value={bookingType} onChange={e => setBookingType(e.target.value)} className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-foreground">Appointment Type</label>
+                  <select value={bookingType} onChange={e => setBookingType(e.target.value)} className="w-full h-9 px-3 rounded-xl border border-border bg-background text-sm">
                     <option value="Consultation">Consultation</option>
                     <option value="Follow-up">Follow-up</option>
                     <option value="Check-up">Check-up</option>
                   </select>
                 </div>
-                <div>
-                  <p className="text-sm font-medium mb-1">Notes (optional)</p>
-                  <textarea value={bookingNotes} onChange={e => setBookingNotes(e.target.value)} placeholder="Any specific concerns…" className="w-full h-14 px-3 py-2 rounded-md border border-input bg-background text-sm resize-none" />
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-foreground">Notes (optional)</label>
+                  <textarea value={bookingNotes} onChange={e => setBookingNotes(e.target.value)} placeholder="Any specific concerns…" className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm resize-none" rows={2} />
                 </div>
               </div>
               <DialogFooter>
