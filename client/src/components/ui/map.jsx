@@ -238,6 +238,7 @@ export function MapControls({
   showFullscreen = false,
   className,
   onLocate,
+  children,
 }) {
   const { map, isLoaded, containerRef } = useMap();
   const [isFullscreen, setIsFullscreen] = React.useState(false);
@@ -306,6 +307,7 @@ export function MapControls({
           {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
         </ControlButton>
       )}
+      {children}
     </div>
   );
 }
