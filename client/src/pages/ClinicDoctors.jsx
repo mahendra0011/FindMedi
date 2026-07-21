@@ -142,6 +142,8 @@ export default function ClinicDoctors() {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showBooking, setShowBooking] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState(null);
+  const [bookingType, setBookingType] = useState('Consultation');
+  const [bookingNotes, setBookingNotes] = useState('');
 
   const [specFilter, setSpecFilter] = useState(searchParams.get('specialization') || 'All');
   const [clinicFilter, setClinicFilter] = useState(searchParams.get('clinic') || searchParams.get('hospital') || '');
@@ -545,7 +547,10 @@ const loadDoctors = async () => {
                 return (
                 <motion.div key={doc._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
                   className="group bg-card rounded-2xl border border-border/60 overflow-hidden hover:shadow-xl hover:shadow-primary/10 hover:border-primary/30 transition-all duration-300 cursor-pointer relative"
-                  onClick={() => navigate(`/clinic-doctors/${doc._id}`)}>
+                  onClick={() => {
+                    if (showBooking && selectedDoctor?._id === doc._id) return;
+                    navigate(`/clinic-doctors/${doc._id}`);
+                  }}>
                   {/* Save Button — top-left */}
                   <button onClick={(e) => { e.stopPropagation(); toast.success('Saved'); }}
                     className="absolute top-3 left-3 z-10 w-8 h-8 rounded-xl bg-white/70 dark:bg-black/30 backdrop-blur-sm flex items-center justify-center hover:bg-white dark:hover:bg-black/50 transition-all shadow-sm opacity-0 group-hover:opacity-100">
@@ -699,10 +704,22 @@ const loadDoctors = async () => {
                                 <option>03:00 PM - 04:00 PM</option>
                               </select>
                             </div>
+                            <div className="space-y-2">
+                              <label className="text-xs font-medium text-foreground">Appointment Type</label>
+                              <select value={bookingType} onChange={e => setBookingType(e.target.value)} className="w-full h-9 px-3 rounded-xl border border-border bg-background text-sm">
+                                <option value="Consultation">Consultation</option>
+                                <option value="Follow-up">Follow-up</option>
+                                <option value="Check-up">Check-up</option>
+                              </select>
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-xs font-medium text-foreground">Notes (optional)</label>
+                              <textarea value={bookingNotes} onChange={e => setBookingNotes(e.target.value)} placeholder="Any specific concerns…" className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm resize-none" rows={3} />
+                            </div>
                           </div>
                           <DialogFooter>
-                            <Button variant="outline" size="sm" onClick={() => setShowBooking(false)}>Cancel</Button>
-                            <Button size="sm" onClick={() => { setShowBooking(false); toast.success('Appointment booked!'); }}>Confirm Booking</Button>
+                            <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); setShowBooking(false); }}>Cancel</Button>
+                            <Button size="sm" onClick={(e) => { e.stopPropagation(); setShowBooking(false); toast.success('Appointment booked!'); }}>Confirm Booking</Button>
                           </DialogFooter>
                         </DialogContent>
                       </Dialog>

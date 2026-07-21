@@ -33,6 +33,8 @@ const [showDoctors, setShowDoctors] = useState(false);
     const [bookingDate, setBookingDate] = useState('');
     const [bookingTime, setBookingTime] = useState('');
     const [bookingConfirmed, setBookingConfirmed] = useState(false);
+    const [bookingType, setBookingType] = useState('Consultation');
+    const [bookingNotes, setBookingNotes] = useState('');
    const yearsSinceEst = hospital.establishedYear
     ? new Date().getFullYear() - hospital.establishedYear
     : null;
@@ -401,7 +403,7 @@ const [showDoctors, setShowDoctors] = useState(false);
       </div>
 
       {/* Booking Modal */}
-      <Dialog open={showBooking} onOpenChange={(open) => { if (!open) { setBookingConfirmed(false); setBookingDate(''); setBookingTime(''); setSelectedDoctor(null); } }}>
+      <Dialog open={showBooking} onOpenChange={(open) => { if (!open) { setBookingConfirmed(false); setBookingDate(''); setBookingTime(''); setBookingType('Consultation'); setBookingNotes(''); setSelectedDoctor(null); } }}>
         <DialogContent className="max-w-md">
           {!bookingConfirmed ? (
             <>
@@ -426,6 +428,18 @@ const [showDoctors, setShowDoctors] = useState(false);
                     <option>02:00 PM - 03:00 PM</option>
                     <option>03:00 PM - 04:00 PM</option>
                   </select>
+                </div>
+                <div>
+                  <p className="text-sm font-medium mb-1">Appointment Type</p>
+                  <select value={bookingType} onChange={e => setBookingType(e.target.value)} className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm">
+                    <option value="Consultation">Consultation</option>
+                    <option value="Follow-up">Follow-up</option>
+                    <option value="Check-up">Check-up</option>
+                  </select>
+                </div>
+                <div>
+                  <p className="text-sm font-medium mb-1">Notes (optional)</p>
+                  <textarea value={bookingNotes} onChange={e => setBookingNotes(e.target.value)} placeholder="Any specific concerns…" className="w-full h-20 px-3 py-2 rounded-md border border-input bg-background text-sm resize-none" />
                 </div>
               </div>
               <DialogFooter>

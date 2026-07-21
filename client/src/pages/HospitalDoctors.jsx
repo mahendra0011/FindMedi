@@ -100,6 +100,8 @@ export default function HospitalDoctors() {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showBooking, setShowBooking] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState(null);
+  const [bookingType, setBookingType] = useState('Consultation');
+  const [bookingNotes, setBookingNotes] = useState('');
 
   const [availabilityFilter, setAvailabilityFilter] = useState('');
   const [genderFilter, setGenderFilter] = useState('');
@@ -607,6 +609,18 @@ export default function HospitalDoctors() {
                               <option>02:00 PM - 03:00 PM</option>
                               <option>03:00 PM - 04:00 PM</option>
                             </select>
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-xs font-medium text-foreground">Appointment Type</label>
+                            <select value={bookingType} onChange={e => setBookingType(e.target.value)} className="w-full h-9 px-3 rounded-xl border border-border bg-background text-sm">
+                              <option value="Consultation">Consultation</option>
+                              <option value="Follow-up">Follow-up</option>
+                              <option value="Check-up">Check-up</option>
+                            </select>
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-xs font-medium text-foreground">Notes (optional)</label>
+                            <textarea value={bookingNotes} onChange={e => setBookingNotes(e.target.value)} placeholder="Any specific concerns…" className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm resize-none" rows={3} />
                           </div>
                         </div>
                         <DialogFooter>

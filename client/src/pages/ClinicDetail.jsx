@@ -23,6 +23,8 @@ import { cn } from '@/lib/utils';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import ServiceLocationMap from '@/components/maps/ServiceLocationMap';
+import ClinicCard from '@/components/ClinicCard';
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 
 const stagger = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.06 } } };
 const fadeUp = { hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 200, damping: 22 } } };
@@ -115,6 +117,13 @@ export default function ClinicDetail() {
   const [testHomeFilter, setTestHomeFilter] = useState('all');
   const [testSort, setTestSort] = useState('popularity');
   const [testCart, setTestCart] = useState({});
+  const [suggestedClinics, setSuggestedClinics] = useState([]);
+  const [showBooking, setShowBooking] = useState(false);
+  const [bookingConfirmed, setBookingConfirmed] = useState(false);
+  const [bookingDate, setBookingDate] = useState('');
+  const [bookingTime, setBookingTime] = useState('');
+  const [bookingType, setBookingType] = useState('Consultation');
+  const [bookingNotes, setBookingNotes] = useState('');
 
   const cp = doctor?.clinicProfile || {};
   const details = facility?.details || {};
@@ -403,9 +412,95 @@ export default function ClinicDetail() {
               </div>
 
               <div className="flex gap-2 mt-auto pt-3">
-                <Button className="flex-1 gap-2 rounded-xl shadow-lg shadow-primary/20 h-11 hover:shadow-xl hover:shadow-primary/30 transition-all" onClick={() => toast.success('Booking coming soon')}>
-                  <CalendarDays className="w-4 h-4" /> Book Appointment
-                </Button>
+                <Dialog open={showBooking} onOpenChange={setShowBooking}>
+                  <DialogTrigger asChild>
+                    <Button className="flex-1 gap-2 rounded-xl shadow-lg shadow-primary/20 h-11 hover:shadow-xl hover:shadow-primary/30 transition-all">
+                      <CalendarDays className="w-4 h-4" /> Book Appointment
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-md">
+                    {!bookingConfirmed ? (
+                      <>
+                        <DialogHeader>
+                          <DialogTitle>Book Appointment</DialogTitle>
+                          <DialogDescription>
+                            Quick booking for {clinic.name} - {doctors[0]?.name}
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
+                              <span className="text-primary-foreground font-bold text-sm">{clinic.name?.split(' ')?.map(n=>n?.[0])?.join('')?.slice(0,2) || 'AO'}</span>
+                            </div>
+                            <div>
+                              <h3 className="font-heading font-semibold text-foreground truncate">{doctors[0]?.name}</h3>
+                              <p className="text-sm text-primary">{doctors[0]?.specialization}</p>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="p-3 rounded-xl bg-primary/5 border border-primary/10 text-center">
+                              <p className="text-xs text-muted-foreground mb-1">Consultation Fee</p>
+                              <p className="font-bold text-lg text-primary">Rs {doctors[0]?.consultation_fees || doctors[0]?.fees || 800}</p>
+                            </div>
+                            <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 dark:bg-emerald-500/10 text-center">
+                              <p className="text-xs text-muted-foreground mb-1">Available Slot</p>
+                              <p className="font-semibold text-sm text-emerald-600">{doctors[0]?.next_available_slot || 'Today'}</p>
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-xs font-medium text-foreground">Select Date</label>
+                            <Input type="date" value={bookingDate} onChange={e => setBookingDate(e.target.value)} min={new Date().toISOString().split('T')[0]} className="w-full" />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-xs font-medium text-foreground">Select Time Slot</label>
+                            <select value={bookingTime} onChange={e => setBookingTime(e.target.value)} className="w-full h-9 px-3 rounded-xl border border-border bg-background text-sm">
+                              <option>09:00 AM - 10:00 AM</option>
+                              <option>10:00 AM - 11:00 AM</option>
+                              <option>11:00 AM - 12:00 PM</option>
+                              <option>02:00 PM - 03:00 PM</option>
+                              <option>03:00 PM - 04:00 PM</option>
+                            </select>
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-xs font-medium text-foreground">Appointment Type</label>
+                            <select value={bookingType} onChange={e => setBookingType(e.target.value)} className="w-full h-9 px-3 rounded-xl border border-border bg-background text-sm">
+                              <option>Consultation</option>
+                              <option>Follow-up</option>
+                              <option>Check-up</option>
+                            </select>
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-xs font-medium text-foreground">Notes (optional)</label>
+                            <textarea value={bookingNotes} onChange={e => setBookingNotes(e.target.value)} placeholder="Any specific concerns…" className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm resize-none" rows={3} />
+                          </div>
+                        </div>
+                        <DialogFooter>
+                          <Button variant="outline" size="sm" onClick={() => setShowBooking(false)}>Cancel</Button>
+                          <Button size="sm" disabled={!bookingDate || !bookingTime} onClick={() => { setBookingConfirmed(true); }}>Confirm Booking</Button>
+                        </DialogFooter>
+                      </>
+                    ) : (
+                      <div className="py-8 text-center">
+                        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shadow-lg shadow-primary/30">
+                          <CheckCircle2 className="w-10 h-10 text-primary-foreground" />
+                        </div>
+                        <h3 className="text-lg font-bold text-primary mb-2">Booking Confirmed!</h3>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          Appointment booked for {doctors[0]?.name}
+                        </p>
+                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 border border-primary/20">
+                          <CalendarDays className="w-4 h-4 text-primary" />
+                          <p className="text-xs font-medium text-primary">
+                            {bookingDate && new Date(bookingDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} • {bookingTime}
+                          </p>
+                        </div>
+                        <DialogFooter className="mt-6">
+                          <Button size="sm" onClick={() => { setShowBooking(false); setBookingConfirmed(false); setBookingDate(''); setBookingTime(''); setBookingType('Consultation'); setBookingNotes(''); }}>Done</Button>
+                        </DialogFooter>
+                      </div>
+                    )}
+                  </DialogContent>
+                </Dialog>
                 <Button variant="outline" className="rounded-xl h-11 px-3 hover:bg-primary/5 hover:border-primary/30 transition-all" onClick={() => toast.success('Opening directions...')}>
                   <Navigation className="w-4 h-4" />
                 </Button>
@@ -911,7 +1006,7 @@ export default function ClinicDetail() {
           </div>
 
           {/* ──── RIGHT SIDEBAR ──── */}
-          <div className="space-y-6 lg:sticky lg:top-24 self-start">
+          <div className="space-y-6">
             {/* Trust & Info */}
             <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} className="w-full">
               <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden w-full">
@@ -926,7 +1021,7 @@ export default function ClinicDetail() {
                         ['Established', clinic.established || '—'],
                         ['Qualified Doctors', clinic.totalDoctors || '—'],
                         ['Specialties', clinic.totalSpecialties || '—'],
-                        ['Patients Treated', clinic.totalPatients ? `${(clinic.totalPatients/1000).toFixed(0)}K+` : '—'],
+                        ['Patients Treated', clinic.totalPatients ? `${(clinic.totalPatients/100).toFixed(0)}K+ Patients` : '—'],
                         ['Working Hours', clinicWorkingHours],
                         ['Distance', `${clinic.distance || ((clinic._id?.charCodeAt(clinic._id?.length - 1) || 5) % 5 + 1).toFixed(1)} km`],
                       ].map(([label, val]) => (
@@ -989,17 +1084,18 @@ export default function ClinicDetail() {
             </motion.div>
 
             {/* Quick Actions */}
-            <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} className="w-full">
+            <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} className="w-full lg:sticky lg:top-24">
               <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden bg-gradient-to-br from-primary/5 via-primary/[0.02] to-transparent w-full">
                 <CardContent className="p-6">
                   <h3 className="font-heading font-semibold text-foreground mb-5 flex items-center gap-2.5">
                     <span className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center"><Zap className="w-3.5 h-3.5 text-primary" /></span>
                     Quick Actions
                   </h3>
-                  <div className="space-y-3">
-                    <Button className="w-full gap-2.5 rounded-xl h-11 font-semibold shadow-md" onClick={() => toast.success('Booking coming soon')}>
-                      <CalendarDays className="w-4 h-4" /> Book Appointment
-                    </Button>
+<div className="space-y-3">
+                     <Button className="w-full gap-2.5 rounded-xl h-11 font-semibold shadow-md" onClick={() => setShowBooking(true)}>
+                       <CalendarDays className="w-4 h-4" /> Book Appointment
+                     </Button>
+
                     <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => toast.success('Removed from Saved')}>
                       <Heart className="w-4 h-4" /> Save
                     </Button>
@@ -1057,6 +1153,24 @@ export default function ClinicDetail() {
               </CardContent>
             </Card>
           </motion.div>
+        )}
+
+        {/* ═══════════ SUGGESTED CLINICS SECTION ═══════════ */}
+        {suggestedClinics.length > 0 && (
+          <div className="max-w-7xl mx-auto mt-14 mb-20">
+            <motion.div variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true }}>
+              <div className="flex items-center gap-3 mb-5">
+                <span className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center"><MapPin className="w-4 h-4 text-primary" /></span>
+                <h2 className="font-heading text-xl font-bold text-foreground">Suggested Clinics</h2>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {suggestedClinics.slice(0, 6).map((c) => (
+                  <ClinicCard key={c._id} clinic={c} />
+                ))}
+              </div>
+            </motion.div>
+          </div>
         )}
 
       </div>
