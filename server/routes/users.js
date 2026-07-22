@@ -2,6 +2,7 @@ import express from 'express';
 import User from '../models/User.js';
 import { protect, adminOnly } from '../middleware/auth.js';
 import { sendAccountBlockedEmail } from '../services/notificationService.js';
+import { auditLog } from '../middleware/audit.js';
 
 const router = express.Router();
 
@@ -51,6 +52,7 @@ router.put('/:id/block', protect, adminOnly, async (req, res) => {
     if (user.status === 'blocked') {
       await sendAccountBlockedEmail(user);
     }
+    await auditLog(user.status === 'blocked' ? 'block_user' : 'unblock_user', req.user._id, { targetUserId: user._id, ip: req.ip, userAgent: req.get('user-agent') });
 
     res.json({ message: user.status === 'blocked' ? 'User blocked' : 'User unblocked', status: user.status });
   } catch (err) { res.status(500).json({ message: err.message }); }
@@ -68,6 +70,7 @@ router.delete('/:id', protect, adminOnly, async (req, res) => {
       return res.status(403).json({ message: 'Access denied' });
     }
     await User.findByIdAndDelete(req.params.id);
+    await auditLog('delete_user', req.user._id, { targetUserId: req.params.id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json({ message: 'Deleted' });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });

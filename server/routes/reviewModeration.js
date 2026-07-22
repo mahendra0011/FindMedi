@@ -1,6 +1,7 @@
 import express from 'express';
 import Review from '../models/Review.js';
 import { protect, superadminOnly } from '../middleware/auth.js';
+import { auditLog } from '../middleware/audit.js';
 
 const router = express.Router();
 
@@ -32,6 +33,7 @@ router.put('/:id/flag', protect, async (req, res) => {
       { new: true }
     );
     if (!review) return res.status(404).json({ message: 'Review not found' });
+    await auditLog('flag_review', req.user._id, { targetReviewId: req.params.id, reason, ip: req.ip, userAgent: req.get('user-agent') });
     res.json(review);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
@@ -44,6 +46,7 @@ router.put('/:id/unflag', protect, async (req, res) => {
       { new: true }
     );
     if (!review) return res.status(404).json({ message: 'Review not found' });
+    await auditLog('unflag_review', req.user._id, { targetReviewId: req.params.id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json(review);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
@@ -53,6 +56,7 @@ router.delete('/:id', protect, async (req, res) => {
     const review = await Review.findById(req.params.id);
     if (!review) return res.status(404).json({ message: 'Review not found' });
     await Review.findByIdAndDelete(req.params.id);
+    await auditLog('delete_review', req.user._id, { targetReviewId: req.params.id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json({ message: 'Review deleted' });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });

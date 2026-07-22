@@ -1,6 +1,7 @@
 import express from 'express';
 import SystemSetting from '../models/SystemSetting.js';
 import { protect, superadminOnly } from '../middleware/auth.js';
+import { auditLog } from '../middleware/audit.js';
 
 const router = express.Router();
 
@@ -51,6 +52,7 @@ router.put('/:key', protect, superadminOnly, async (req, res) => {
       { value, updatedBy: req.user.name || req.user.id, updatedAt: new Date() },
       { new: true, upsert: true }
     );
+    await auditLog('update_system_setting', req.user._id, { settingKey: req.params.key, newValue: value, ip: req.ip, userAgent: req.get('user-agent') });
     res.json({ key: setting.key, value: setting.value });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });

@@ -3,7 +3,8 @@ import Hospital from '../models/Hospital.js';
 import User from '../models/User.js';
 import Doctor from '../models/Doctor.js';
 import { protect, superadminOnly, hospitalAdminOnly } from '../middleware/auth.js';
-import { validate, registerHospitalSchema } from '../utils/validate.js';
+import { validate, registerHospitalSchema, updateHospitalSchema } from '../utils/validate.js';
+import { auditLog } from '../middleware/audit.js';
 
 const router = express.Router();
 
@@ -130,6 +131,7 @@ router.put('/:id/approve', protect, superadminOnly, async (req, res) => {
   try {
     const hospital = await Hospital.findByIdAndUpdate(req.params.id, { status: 'approved' }, { new: true });
     if (!hospital) return res.status(404).json({ message: 'Hospital not found' });
+    await auditLog('approve_hospital', req.user._id, { targetHospitalId: req.params.id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json({ message: 'Hospital approved', hospital });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
@@ -139,6 +141,7 @@ router.put('/:id/reject', protect, superadminOnly, async (req, res) => {
     const { reason } = req.body;
     const hospital = await Hospital.findByIdAndUpdate(req.params.id, { status: 'rejected', rejectionReason: reason || '' }, { new: true });
     if (!hospital) return res.status(404).json({ message: 'Hospital not found' });
+    await auditLog('reject_hospital', req.user._id, { targetHospitalId: req.params.id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json({ message: 'Hospital rejected', hospital });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
@@ -147,6 +150,7 @@ router.put('/:id/suspend', protect, superadminOnly, async (req, res) => {
   try {
     const hospital = await Hospital.findByIdAndUpdate(req.params.id, { status: 'suspended' }, { new: true });
     if (!hospital) return res.status(404).json({ message: 'Hospital not found' });
+    await auditLog('suspend_hospital', req.user._id, { targetHospitalId: req.params.id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json({ message: 'Hospital suspended', hospital });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
@@ -160,9 +164,9 @@ router.delete('/:id', protect, superadminOnly, async (req, res) => {
 
     await Doctor.deleteMany({ hospitalId });
     await User.deleteMany({ hospitalId, role: 'admin' });
-    await Hospital.findByIdAndDelete(hospitalId);
-
-    res.json({ message: 'Hospital permanently deleted' });
+    await Hospital.findByIdAndDelete(req.params.id);
+    await auditLog('delete_hospital', req.user._id, { targetHospitalId: req.params.id, ip: req.ip, userAgent: req.get('user-agent') });
+    res.json({ message: 'Hospital and related records deleted' });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 

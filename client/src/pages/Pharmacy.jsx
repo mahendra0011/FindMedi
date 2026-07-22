@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Pill, Search, Plus, Clock, CheckCircle, AlertTriangle, X, Package, AlertCircle,
@@ -638,7 +638,8 @@ export default function Pharmacy() {
                     <p className="text-sm text-foreground/80">{r.comment}</p>
                   </div>
                 ))}
-                {reviews.length === 0 && reviewCount === 0 && <div className="text-center py-20"><Star className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" /><p className="text-muted-foreground">No reviews yet</p></div>${/reviews.length === 0 \&\& reviewCount > 0 && <div className=text-center py-20><Star className=w-12 h-12 text-muted-foreground/30 mx-auto mb-3 /><p className=text-muted-foreground>Reviews summary available, individual reviews loading soon.</p></div>}}
+                {reviews.length === 0 && reviewCount === 0 && <div className="text-center py-20"><Star className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" /><p className="text-muted-foreground">No reviews yet</p></div>}
+                {reviews.length === 0 && reviewCount > 0 && <div className="text-center py-20"><Star className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" /><p className="text-muted-foreground">Reviews summary available, individual reviews loading soon.</p></div>}
               </div>
             </>
           )}

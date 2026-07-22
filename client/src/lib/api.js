@@ -292,4 +292,8 @@ export const api = {
 
   getAnnouncements:       (p={})    => request('/announcements?' + new URLSearchParams(p)),
   createAnnouncement:     (body)    => request('/announcements', { method:'POST', body: JSON.stringify(body) }),
+  getStaff:               (p={})    => request('/staff?' + new URLSearchParams(p)),
+  createStaff:            (body)    => request('/staff', { method:'POST', body: JSON.stringify(body) }),
+  updateStaff:            (id,b)    => request(`/staff/${id}`, { method:'PUT', body: JSON.stringify(b) }),
+  deleteStaff:            (id)      => request(`/staff/${id}`, { method:'DELETE' }),
 };

@@ -1,6 +1,7 @@
 import express from 'express';
 import License from '../models/License.js';
 import { protect, superadminOnly } from '../middleware/auth.js';
+import { auditLog } from '../middleware/audit.js';
 
 const router = express.Router();
 
@@ -23,6 +24,7 @@ router.put('/:id', protect, superadminOnly, async (req, res) => {
   try {
     const license = await License.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!license) return res.status(404).json({ message: 'License not found' });
+    await auditLog('update_license', req.user._id, { targetLicenseId: req.params.id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json(license);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });

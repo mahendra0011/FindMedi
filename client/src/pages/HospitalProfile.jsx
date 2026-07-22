@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate, useSearchParams, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -27,6 +27,7 @@ const ChevronRightIcon = ChevronRight;
 import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import ReviewDialog from '@/components/ReviewDialog';
 
 // â”€â”€â”€ Animation Variants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const stagger = {
@@ -79,6 +80,7 @@ const SPEC_CARD_THEME = {
 };
 
 export default function HospitalProfile() {
+  const [showReviewDialog, setShowReviewDialog] = useState(false);
   const { id } = useParams();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -166,7 +168,7 @@ export default function HospitalProfile() {
           .slice(0, 10)
           .map(item => item.h);
         setSuggestedHospitals(scored);
-      } catch (e) { console.log('Could not load suggested hospitals', e); }
+      } catch (e) { /* Could not load suggested hospitals */ }
       // Fetch hospital's test catalog
       try {
         const testsData = await api.getTests({ hospitalId: id });
@@ -174,7 +176,7 @@ export default function HospitalProfile() {
           : testsData?.tests ? testsData.tests
           : [];
         if (tests.length > 0) setTestCatalog(tests);
-      } catch (e) { console.log('Could not load tests', e); }
+      } catch (e) { /* Could not load tests */ }
     
     } catch { setNotFound(true); }
     setLoading(false);
@@ -1485,7 +1487,7 @@ export default function HospitalProfile() {
                   <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={handleShare}>
                     <Share2 className="w-4 h-4" /> Share Hospital
                   </Button>
-                  <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => toast.info\('Write a review feature coming soon'\)}>
+                  <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => setShowReviewDialog(true)}>
                     <Star className="w-4 h-4" /> Write a Review
                   </Button>
                 </div>
@@ -1961,7 +1963,18 @@ export default function HospitalProfile() {
                 {testBookingStep === 4 && <Button className="w-full rounded-xl h-11 text-sm gap-1.5" onClick={() => setTestBookingStep(5)}>Proceed to Pay <ChevronRight className="w-4 h-4" /></Button>}
                 {testBookingStep === 5 && <Button className="w-full rounded-xl h-11 text-sm gap-1.5" onClick={() => { setTestBookingId('MED' + Date.now().toString(36).toUpperCase()); setTestBookingStep(6); }}>Pay â‚¹{cartTotal + (testCollectionMode === 'home' ? 50 : 0)}</Button>}
                 {testBookingStep === 6 && <Button className="w-full rounded-xl h-11 text-sm gap-1.5 bg-gradient-to-r from-emerald-500 to-emerald-600" onClick={() => { setShowTestBooking(false); setTestCart({}); setTestBookingStep(1); setTestSelectedDate(''); setTestSelectedSlot(''); }}>Done <CheckCircle2 className="w-4 h-4" /></Button>}
-              </div>
+              
+      <ReviewDialog 
+        open={showReviewDialog} 
+        onOpenChange={setShowReviewDialog}
+        entityType="hospital"
+        entityId={id}
+        entityName={hospital?.name}
+        onReviewSubmitted={(review) => {
+          setReviews(prev => [review, ...(Array.isArray(prev) ? prev : [])]);
+        }}
+      />
+    </div>
             </motion.div>
           </motion.div>
         )}
