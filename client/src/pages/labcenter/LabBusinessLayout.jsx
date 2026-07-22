@@ -4,21 +4,28 @@ import { motion } from 'framer-motion';
 import {
   LayoutDashboard, CalendarDays, FileText, Beaker, Microscope,
   Package, Users, Settings, ChevronLeft, ChevronRight,
-  LogOut, Home, Menu
+  LogOut, Home, Menu, CreditCard, FlaskConical, Star,
+  BarChart3, Syringe
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 
 const navItems = [
-  { icon: LayoutDashboard, label: 'Overview',     path: '/lab-business/dashboard' },
-  { icon: CalendarDays,    label: 'Appointments',  path: '/lab-business/appointments' },
-  { icon: FileText,        label: 'Reports',       path: '/lab-business/reports' },
-  { icon: Beaker,          label: 'Tests Catalog', path: '/lab-business/tests' },
-  { icon: Microscope,      label: 'Equipment',     path: '/lab-business/equipment' },
-  { icon: Package,         label: 'Packages',      path: '/lab-business/packages' },
-  { icon: Users,           label: 'Staff',         path: '/lab-business/staff' },
-  { icon: Settings,        label: 'Settings',      path: '/lab-business/settings' },
+  { icon: LayoutDashboard, label: 'Overview',        path: '/lab-business/dashboard'     },
+  { icon: CalendarDays,    label: 'Appointments',    path: '/lab-business/appointments'   },
+  { icon: FlaskConical,    label: 'Bookings',        path: '/lab-business/bookings'       },
+  { icon: FileText,        label: 'Prescriptions',   path: '/lab-business/prescriptions'  },
+  { icon: Syringe,         label: 'Sample Collect',  path: '/lab-business/samples'        },
+  { icon: FileText,        label: 'Reports',         path: '/lab-business/reports'        },
+  { icon: Beaker,          label: 'Test Catalog',    path: '/lab-business/tests'          },
+  { icon: Microscope,      label: 'Equipment',       path: '/lab-business/equipment'      },
+  { icon: Package,         label: 'Packages',        path: '/lab-business/packages'       },
+  { icon: CreditCard,      label: 'Billing',         path: '/lab-business/billing'        },
+  { icon: BarChart3,       label: 'Analytics',       path: '/lab-business/analytics'      },
+  { icon: Star,            label: 'Reviews',         path: '/lab-business/reviews'        },
+  { icon: Users,           label: 'Staff',           path: '/lab-business/staff'          },
+  { icon: Settings,        label: 'Settings',        path: '/lab-business/settings'       },
 ];
 
 function SidebarContent({ collapsed, onToggleCollapse, onNavClick }) {

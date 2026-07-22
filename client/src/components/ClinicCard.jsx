@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
 export default function ClinicCard({ clinic }) {
-  const fallbackDist = ((clinic._id?.charCodeAt(clinic._id?.length - 1) || 5) % 5 + 0.5).toFixed(1);
+  const fallbackDist = '0.8';
 
   return (
     <Link

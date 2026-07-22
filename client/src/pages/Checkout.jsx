@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, MapPin, Plus, Truck, Store, BadgeCheck, CreditCard, Wallet, Banknote, Percent, Tag, CheckCircle2, AlertCircle, Clock, Shield, Home, Building, Camera, Upload, Image, FileText, X, Lock, ShoppingCart, RotateCcw, RefreshCw, ChevronRight, ChevronLeft, Package } from 'lucide-react';
+import { ArrowLeft, MapPin, Plus, Truck, Store, BadgeCheck, CreditCard, Wallet, Banknote, Percent, Tag, CheckCircle2, AlertCircle, Clock, Shield, Home, Building, Camera, Upload, Image, FileText, X, XCircle, Lock, ShoppingCart, RotateCcw, RefreshCw, ChevronRight, ChevronLeft, Package, Stethoscope } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -10,6 +10,8 @@ import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { useCart } from '@/context/CartContext';
 import AutoRetryPanel from '@/components/AutoRetryPanel';
+import { useAutoRetry, AUTO_RETRY_STATUS } from '@/hooks/useAutoRetry';
+import { usePreferredPharmacies } from '@/context/PreferredPharmacyContext';
 import { toast } from 'sonner';
 
 const MOCK_STORES = [
@@ -63,6 +65,8 @@ export default function Checkout() {
   const navigate = useNavigate();
   const { entries, stores, totalItems, addItem, removeItem } = useCart();
   const fileInputRef = useRef(null);
+  const autoRetry = useAutoRetry();
+  const { autoRetryEnabled, setAutoRetry: setPreferredAutoRetry } = usePreferredPharmacies();
   const [step, setStep] = useState(0);
   const [address, setAddress] = useState(SAVED_ADDRESSES[0].id);
   const [deliveryMode, setDeliveryMode] = useState('delivery');
@@ -78,6 +82,7 @@ export default function Checkout() {
   const [payOnDelivery, setPayOnDelivery] = useState(true);
   const [saveCard, setSaveCard] = useState(false);
   const [showRxModal, setShowRxModal] = useState(false);
+  // rxStatus: per-entry map — 'pending' | 'verified' | 'rejected'
   const [rxStatus, setRxStatus] = useState({});
   const [rxRejection, setRxRejection] = useState({});
   const [uploadedFiles, setUploadedFiles] = useState({});
@@ -85,6 +90,9 @@ export default function Checkout() {
   const [savedPrescriptions, setSavedPrescriptions] = useState(() => {
     try { return JSON.parse(localStorage.getItem(SAVED_PRESCRIPTIONS_KEY)) || []; } catch { return []; }
   });
+  // Unified Rx outcome after verification + auto-retry
+  const [rxVerifiedGlobally, setRxVerifiedGlobally] = useState(false);
+  const [showRxReuploadPrompt, setShowRxReuploadPrompt] = useState(false);
 
   const getStore = (storeId) => MOCK_STORES.find(s => s.id === storeId);
   const hasRxItems = entries.some(e => e.item.rx);
@@ -123,9 +131,23 @@ export default function Checkout() {
 
   const handleNext = () => {
     const currentKey = activeSteps[step]?.key;
-    if (currentKey === 'address' && !selectedAddress) { alert('Please select a delivery address'); return; }
-    if (currentKey === 'delivery' && deliveryMode === 'delivery' && !deliverySlot) { alert('Please select a delivery slot'); return; }
-    if (currentKey === 'prescription' && hasRxItems && Object.keys(rxStatus).length === 0) { alert('Please upload prescription for Rx items'); return; }
+    if (currentKey === 'address' && !selectedAddress) { toast.error('Please select a delivery address'); return; }
+    if (currentKey === 'delivery' && deliveryMode === 'delivery' && !deliverySlot) { toast.error('Please select a delivery slot'); return; }
+    if (currentKey === 'prescription' && hasRxItems) {
+      // Must have a verified Rx OR auto-retry accepted by a provider
+      const allVerified = Object.values(rxStatus).length > 0 && Object.values(rxStatus).every(v => v === 'verified');
+      const autoRetryAccepted = autoRetry.status === AUTO_RETRY_STATUS.ACCEPTED;
+      if (!allVerified && !autoRetryAccepted) {
+        if (Object.keys(rxStatus).length === 0) {
+          toast.error('Please upload prescription for Rx items');
+        } else if (Object.values(rxStatus).some(v => v === 'pending')) {
+          toast.info('Please wait — prescription is being verified...');
+        } else if (Object.values(rxStatus).some(v => v === 'rejected') && autoRetry.status !== AUTO_RETRY_STATUS.ACCEPTED) {
+          toast.error('Prescription was rejected. Please re-upload or wait for auto-retry to find a provider.');
+        }
+        return;
+      }
+    }
     setStep(s => Math.min(s + 1, activeSteps.length - 1));
   };
 
@@ -294,57 +316,106 @@ export default function Checkout() {
 
         {/* ═══ STEP 3: PRESCRIPTION ═══ */}
         {step === 2 && hasRxItems && (
-          <div className="bg-card rounded-2xl border border-border/60 p-5 mb-6">
-            <h3 className="font-heading font-semibold text-foreground mb-4 flex items-center gap-2 text-[15px]">
+          <div className="bg-card rounded-2xl border border-border/60 p-5 mb-6 space-y-4">
+            <h3 className="font-heading font-semibold text-foreground flex items-center gap-2 text-[15px]">
               <FileText className="w-4 h-4 text-amber-500" /> Prescription Verification
             </h3>
-            <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl p-3 mb-4">
+
+            {/* Info banner */}
+            <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl p-3">
               <div className="flex items-start gap-2">
                 <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                <p className="text-xs text-amber-700 dark:text-amber-400">Some items in your cart require a valid prescription. Please upload before proceeding.</p>
+                <p className="text-xs text-amber-700 dark:text-amber-400">
+                  Some items require a valid prescription. Upload below — the pharmacist will verify it.
+                  If rejected, auto-retry (if enabled) will forward to your next preferred pharmacy.
+                </p>
               </div>
             </div>
-            {entries.filter(e => e.item.rx).map(entry => (
-              <div key={entry.key} className="flex items-center justify-between p-3 rounded-xl border border-border/60 mb-2">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-muted/50 overflow-hidden border border-border/40">
-                    <img src={entry.item.image} alt="" className="w-full h-full object-cover" />
+
+            {/* Rx items list */}
+            <div className="space-y-2">
+              {entries.filter(e => e.item.rx).map(entry => (
+                <div key={entry.key} className="flex items-center justify-between p-3 rounded-xl border border-border/60">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-muted/50 overflow-hidden border border-border/40">
+                      <img src={entry.item.image} alt="" className="w-full h-full object-cover" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{entry.item.name}</p>
+                      <p className="text-xs text-muted-foreground">{entry.item.brand} · Qty: {entry.qty}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-foreground">{entry.item.name}</p>
-                    <p className="text-xs text-muted-foreground">{entry.item.brand} - Qty: {entry.qty}</p>
+                  <div className="flex flex-col items-end gap-1">
+                    {rxStatus[entry.key] === 'verified' ? (
+                      <Badge className="text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-200">
+                        <CheckCircle2 className="w-3 h-3 mr-0.5" />Verified
+                      </Badge>
+                    ) : rxStatus[entry.key] === 'rejected' ? (
+                      <>
+                        <Badge className="text-[10px] bg-red-500/10 text-red-600 border-red-200">
+                          <X className="w-3 h-3 mr-0.5" />Rejected
+                        </Badge>
+                        {rxRejection[entry.key] && (
+                          <p className="text-[10px] text-red-500 text-right max-w-[160px] mt-0.5">{rxRejection[entry.key]}</p>
+                        )}
+                        <Button size="sm" variant="outline" className="text-[10px] gap-1 rounded-lg h-7 mt-1"
+                          onClick={() => { autoRetry.resetRetry(); setRxStatus({}); setRxRejection({}); setShowRxModal(true); }}>
+                          <RotateCcw className="w-2.5 h-2.5" /> Re-upload
+                        </Button>
+                      </>
+                    ) : rxStatus[entry.key] === 'pending' ? (
+                      <div className="flex items-center gap-1.5">
+                        <RefreshCw className="w-3 h-3 text-amber-500 animate-spin" />
+                        <Badge className="text-[10px] bg-amber-500/10 text-amber-600 border-amber-200">Verifying...</Badge>
+                      </div>
+                    ) : (
+                      <Button size="sm" variant="outline" className="text-xs gap-1.5 rounded-lg h-8"
+                        onClick={() => setShowRxModal(true)}>
+                        <Upload className="w-3 h-3" /> Upload Rx
+                      </Button>
+                    )}
                   </div>
                 </div>
-                <div className="flex flex-col items-end gap-1">
-                  {rxStatus[entry.key] === 'verified' ? (
-                    <Badge className="text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-200"><CheckCircle2 className="w-3 h-3 mr-0.5" />Verified</Badge>
-                  ) : rxStatus[entry.key] === 'rejected' ? (
-                    <>
-                      <Badge className="text-[10px] bg-red-500/10 text-red-600 border-red-200"><X className="w-3 h-3 mr-0.5" />Rejected</Badge>
-                      {rxRejection[entry.key] && (
-                        <p className="text-[10px] text-red-500 text-right max-w-[160px]">{rxRejection[entry.key]}</p>
-                      )}
-                      <Button size="sm" variant="outline" className="text-[10px] gap-1 rounded-lg h-7 mt-1" onClick={() => setShowRxModal(true)}>
-                        <RotateCcw className="w-2.5 h-2.5" /> Re-upload
-                      </Button>
-                    </>
-                  ) : rxStatus[entry.key] === 'pending' ? (
-                    <div className="flex items-center gap-1.5">
-                      <RefreshCw className="w-3 h-3 text-amber-500 animate-spin" />
-                      <Badge className="text-[10px] bg-amber-500/10 text-amber-600 border-amber-200">Pending</Badge>
-                    </div>
-                  ) : (
-                    <Button size="sm" variant="outline" className="text-xs gap-1.5 rounded-lg h-8" onClick={() => setShowRxModal(true)}>
-                      <Upload className="w-3 h-3" /> Upload Rx
-                    </Button>
-                  )}
+              ))}
+            </div>
+
+            {/* Preferred Pharmacy Settings Surface */}
+            <div className="flex items-center justify-between p-4 bg-muted/30 rounded-xl border border-border/40">
+              <div className="flex items-start gap-3">
+                <Store className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="text-sm font-semibold text-foreground">Auto-Fallback (Preferred Pharmacies)</h4>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Automatically route your order to your next preferred pharmacy if rejected.
+                  </p>
                 </div>
               </div>
-            ))}
+              <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                <input type="checkbox" className="sr-only peer" checked={autoRetryEnabled} onChange={(e) => setPreferredAutoRetry(e.target.checked)} />
+                <div className="w-9 h-5 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+              </label>
+            </div>
+
+            {/* Auto-retry status — accepted banner */}
+            {autoRetry.status === AUTO_RETRY_STATUS.ACCEPTED && (
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20">
+                <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
+                <div>
+                  <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">Prescription Accepted</p>
+                  <p className="text-xs text-emerald-600 dark:text-emerald-300">
+                    Accepted by {autoRetry.currentStore?.name}. You can proceed to the next step.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* AutoRetryPanel — wired with real handlers */}
             <AutoRetryPanel
               orderContext={{ originalTotal: itemTotal, entries, stores }}
-              onPriceConfirm={(accepted) => {}}
-              onStoreSelect={() => {}}
+              onPriceConfirm={(accepted) => {
+                if (!accepted) autoRetry.stopRetry();
+              }}
+              onStoreSelect={() => setStep(0)}
             />
           </div>
         )}
@@ -693,40 +764,61 @@ export default function Checkout() {
               </div>
             )}
             <div className="flex gap-2 mb-4">
-              <Button variant="outline" className="flex-1 gap-2 rounded-xl" onClick={() => { fileInputRef.current?.click(); }}>
+              <Button variant="outline" className="flex-1 gap-2 rounded-xl" onClick={() => fileInputRef.current?.click()}>
                 <Camera className="w-4 h-4" /> Camera
               </Button>
-              <Button variant="outline" className="flex-1 gap-2 rounded-xl" onClick={() => { fileInputRef.current?.click(); }}>
+              <Button variant="outline" className="flex-1 gap-2 rounded-xl" onClick={() => fileInputRef.current?.click()}>
                 <Image className="w-4 h-4" /> Gallery
               </Button>
             </div>
             <div className="flex gap-2">
               <Button className="flex-1 rounded-xl" onClick={() => {
+                if (!uploadedFiles.all) { toast.error('Please select a prescription file first'); return; }
                 const rxEntries = entries.filter(e => e.item.rx);
-                const updated = { ...rxStatus };
+
+                // Save prescription to history
+                const saved = [...savedPrescriptions, { name: uploadedFiles.all, date: new Date().toISOString() }];
+                setSavedPrescriptions(saved);
+                localStorage.setItem(SAVED_PRESCRIPTIONS_KEY, JSON.stringify(saved));
+
+                // Mark all Rx entries as pending
+                const updated = {};
                 rxEntries.forEach(e => { updated[e.key] = 'pending'; });
                 setRxStatus(updated);
                 setRxRejection({});
                 setUploadedFiles({});
                 setShowRxModal(false);
-                if (uploadedFiles.all) {
-                  const saved = [...savedPrescriptions, { name: uploadedFiles.all, date: new Date().toISOString() }];
-                  setSavedPrescriptions(saved);
-                  localStorage.setItem(SAVED_PRESCRIPTIONS_KEY, JSON.stringify(saved));
-                }
-                toast.success('Prescription uploaded — awaiting verification');
+                toast.success('Prescription uploaded — awaiting pharmacist verification...');
+
+                // Simulate async pharmacist verification (40% approve, 60% reject)
                 setTimeout(() => {
-                  if (Math.random() < 0.3) {
-                    setRxStatus(p => {
-                      const verified = { ...p };
+                  if (Math.random() < 0.4) {
+                    // ✅ Verified
+                    setRxStatus(prev => {
+                      const verified = { ...prev };
                       rxEntries.forEach(e => { verified[e.key] = 'verified'; });
                       return verified;
                     });
-                    toast.success('Prescription verified by pharmacist!');
+                    toast.success('✅ Prescription verified by pharmacist!');
                   } else {
-                    rxEntries.forEach(e => removeItem(e.key));
+                    // ❌ Rejected — trigger AutoRetry instead of removing items
                     const reason = REJECTION_REASONS[Math.floor(Math.random() * REJECTION_REASONS.length)];
-                    toast.error(`Prescription rejected: ${reason.label}. Rx items removed from cart.`);
+                    setRxStatus(prev => {
+                      const rejected = { ...prev };
+                      rxEntries.forEach(e => { rejected[e.key] = 'rejected'; });
+                      return rejected;
+                    });
+                    setRxRejection(prev => {
+                      const r = { ...prev };
+                      rxEntries.forEach(e => { r[e.key] = reason.label; });
+                      return r;
+                    });
+                    toast.error(`❌ Prescription rejected: ${reason.label}`);
+                    // Attempt auto-retry with next preferred provider
+                    const started = autoRetry.startRetry(reason, { originalTotal: itemTotal, entries, stores });
+                    if (!started) {
+                      toast.info('Enable auto-retry in settings to automatically try your next preferred pharmacy.');
+                    }
                   }
                 }, 4000);
               }}>

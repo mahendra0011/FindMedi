@@ -105,6 +105,7 @@ export default function AllTests() {
 
   const filteredTests = tests.filter((test) => {
     if (providerFilter !== 'all' && test.providerType !== providerFilter) return false;
+    if (selectedCategory && test.category !== selectedCategory) return false;
     if (rxFilter === 'direct' && test.prescriptionReq) return false;
     if (rxFilter === 'rx' && !test.prescriptionReq) return false;
     if (homeCollectionOnly && !test.homeCollection) return false;
@@ -133,12 +134,26 @@ export default function AllTests() {
   const testsWithHandlers = sortedTests.map((test) => ({
     ...test,
     onBook: () => { addItem(test, STORE_ID); },
-    onUploadRx: () => { addItem(test, STORE_ID); },
+    onUploadRx: () => {
+      // Trigger prescription upload file picker
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*,.pdf';
+      input.onchange = (e) => {
+        if (e.target.files?.[0]) {
+          addItem(test, STORE_ID);
+          toast?.success?.('Prescription uploaded, test added to booking');
+        }
+      };
+      input.click();
+    },
     onViewProvider: () => {
       if (test.providerType === 'hospital') navigate(`/hospitals/${test.providerId}`);
-      else if (test.providerType === 'clinic') navigate(`/clinic-doctors/${test.providerId}`);
-      else if (test.providerType === 'lab_technician' || test.providerType === 'phlebotomist' || test.providerType === 'radiographer' || test.providerType === 'sonographer') navigate(`/technician/${test.providerId}`);
-      else navigate(`/lab/${test.providerId}`);
+      else if (test.providerType === 'clinic') navigate(`/clinic/${test.providerId}`);
+      else if (test.providerType === 'radiographer' || test.providerType === 'sonographer' || test.providerType === 'imaging_center') navigate(`/imaging/${test.providerId}/details`);
+      else if (test.providerType === 'lab_technician' || test.providerType === 'phlebotomist' || test.providerType === 'pathology') navigate(`/lab/${test.providerId}/details`);
+      else if (test.providerType === 'diagnostic_center') navigate(`/lab/${test.providerId}/details`);
+      else navigate(`/lab/${test.providerId}/details`);
     },
   }));
 
@@ -180,10 +195,9 @@ export default function AllTests() {
           <ProviderChip value="all" label="All" />
           <ProviderChip value="hospital" icon={Building2} label="Hospital" />
           <ProviderChip value="clinic" icon={Stethoscope} label="Clinic" />
-          <ProviderChip value="lab_technician" icon={Microscope} label="Lab Technician" />
-          <ProviderChip value="phlebotomist" icon={Syringe} label="Phlebotomist" />
-          <ProviderChip value="radiographer" icon={Radio} label="Radiographer" />
-          <ProviderChip value="sonographer" icon={Scan} label="Sonographer" />
+          <ProviderChip value="pathology" icon={Microscope} label="Pathology" />
+          <ProviderChip value="diagnostic_center" icon={Syringe} label="Diagnostic Center" />
+          <ProviderChip value="imaging_center" icon={Radio} label="Imaging Center" />
         </div>
 
         <div className="space-y-14">
@@ -415,7 +429,7 @@ export default function AllTests() {
                 Clear
               </Button>
               <Button size="sm" className="gap-2 rounded-xl h-10 px-6 text-sm font-bold shadow-lg shadow-primary/30"
-                onClick={() => navigate('/book-test/general')}>
+                onClick={() => navigate('/book-test/all-tests')}>
                 Book Now
                 <ArrowRight className="w-4 h-4" />
               </Button>

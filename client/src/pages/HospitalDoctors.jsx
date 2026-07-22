@@ -140,6 +140,12 @@ export default function HospitalDoctors() {
   useEffect(() => {
     let filtered = [...allDoctors];
 
+    // Search filter
+    if (search) {
+      const q = search.toLowerCase();
+      filtered = filtered.filter(d => (d.name || '').toLowerCase().includes(q) || (d.specialization || '').toLowerCase().includes(q));
+    }
+
     if (specFilter !== 'All') filtered = filtered.filter(d => d.specialization === specFilter);
     if (availabilityFilter === 'today') filtered = filtered.filter(d => d.available === true && d.next_available_slot?.toLowerCase().includes('today'));
     else if (availabilityFilter === 'tomorrow') filtered = filtered.filter(d => d.available === true && d.next_available_slot?.toLowerCase().includes('tomorrow'));
@@ -178,7 +184,7 @@ export default function HospitalDoctors() {
     else if (sortBy === 'fee') filtered.sort((a, b) => (a.consultation_fees || a.fees || 0) - (b.consultation_fees || b.fees || 0));
 
     setDoctors(filtered);
-  }, [allDoctors, specFilter, availabilityFilter, genderFilter, expFilter, feeRange, ratingFilter, consultantType, qualificationFilter, languageFilter, surgeryFilter, admissionFilter, insuranceFilter, emergencyFilter, sortBy]);
+  }, [allDoctors, search, specFilter, availabilityFilter, genderFilter, expFilter, feeRange, ratingFilter, consultantType, qualificationFilter, languageFilter, surgeryFilter, admissionFilter, insuranceFilter, emergencyFilter, sortBy]);
 
   const specializations = hospital?.specialties?.length
     ? ['All', ...hospital.specialties]

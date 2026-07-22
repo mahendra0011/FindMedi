@@ -120,7 +120,7 @@ export default function HospitalDirectory() {
 
     // Emergency 24x7
     if (filterEmergency) {
-      filtered = filtered.filter(h => h.emergency24x7 === true);
+      filtered = filtered.filter(h => h.emergency24x7);
     }
 
     // Rating
@@ -148,7 +148,7 @@ export default function HospitalDirectory() {
       filtered = filtered.filter(h => h.accreditations?.some(a => filterAccreditation.includes(a)));
     }
 
-    // Bed Size
+    // Bed Size (uses bedAvailability / available beds as proxy for total beds)
     if (filterBedSize) {
       if (filterBedSize === 'small') filtered = filtered.filter(h => (h.bedAvailability || 0) < 50);
       else if (filterBedSize === 'medium') filtered = filtered.filter(h => (h.bedAvailability || 0) >= 50 && (h.bedAvailability || 0) <= 200);
@@ -194,6 +194,8 @@ export default function HospitalDirectory() {
       filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
     } else if (sortBy === 'established') {
       filtered.sort((a, b) => (b.establishedYear || 0) - (a.establishedYear || 0));
+    } else if (sortBy === 'distance') {
+      filtered.sort((a, b) => (a.distance || Infinity) - (b.distance || Infinity));
     }
 
     setHospitals(filtered);

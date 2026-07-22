@@ -56,7 +56,7 @@ function getExpYears(exp) {
 
 function getClinicPath(doctor) {
   const facilityId = getFacilityId(doctor);
-  return `/clinic/${facilityId || doctor?._id}`;
+  return facilityId ? `/clinic/${facilityId}` : `/clinic-doctors/${doctor?._id}`;
 }
 
 function getFacilityId(doctor) {

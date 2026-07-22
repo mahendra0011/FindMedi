@@ -14,6 +14,7 @@ const healthPackageSchema = new mongoose.Schema({
   reportTime: { type: String, default: '24-48 hrs' },
   isActive: { type: Boolean, default: true },
   hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
+  facilityId: { type: mongoose.Schema.Types.ObjectId, ref: 'Facility', index: true },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });

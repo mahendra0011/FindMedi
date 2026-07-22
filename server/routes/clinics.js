@@ -58,5 +58,37 @@ router.delete('/staff/:id', protect, async (req, res) => {
     res.json({ message: 'Deleted' });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
+import ClinicProfile from '../models/ClinicProfile.js';
+
+// ─── Public Clinic Discovery (no auth) ─────────────────────────────────────
+router.get('/public', async (req, res) => {
+  try {
+    const { search, specialty, city } = req.query;
+    const filter = { doctor_type: 'clinic', approved: true };
+    if (search) filter.$or = [
+      { name: new RegExp(search, 'i') },
+      { specialization: new RegExp(search, 'i') },
+    ];
+    if (specialty && specialty !== 'All') filter.specialization = new RegExp(specialty, 'i');
+    if (city && city !== 'All') filter.location = new RegExp(city, 'i');
+    let doctors = await Doctor.find(filter).populate('facilityId').sort({ rating: -1 }).lean();
+    const doctorIds = doctors.map(d => d._id);
+    if (doctorIds.length) {
+      const profiles = await ClinicProfile.find({ doctorId: { $in: doctorIds } }).lean();
+      const profileMap = Object.fromEntries(profiles.map(p => [p.doctorId.toString(), p]));
+      doctors = doctors.map(d => ({ ...d, clinicProfile: profileMap[d._id.toString()] || null }));
+    }
+    res.json({ doctors });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+router.get('/public/:id', async (req, res) => {
+  try {
+    const doctor = await Doctor.findById(req.params.id).populate('facilityId').lean();
+    if (!doctor) return res.status(404).json({ message: 'Doctor not found' });
+    const clinicProfile = await ClinicProfile.findOne({ doctorId: doctor._id }).lean();
+    res.json({ doctor, clinicProfile });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
 
 export default router;

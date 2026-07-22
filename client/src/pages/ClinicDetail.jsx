@@ -857,7 +857,7 @@ export default function ClinicDetail() {
                         <div>
                           <p className="text-sm font-medium text-foreground">Address</p>
                           <p className="text-xs text-muted-foreground mt-0.5">{clinic.address}{clinic.city ? `, ${clinic.city}` : ''}{clinic.state ? `, ${clinic.state}` : ''}</p>
-                          <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1"><Navigation className="w-3 h-3" />{clinic.distance || ((clinic._id?.charCodeAt(clinic._id?.length - 1) || 5) % 5 + 1).toFixed(1)} km away</p>
+                          <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1"><Navigation className="w-3 h-3" />{clinic.distance || '0.8'} km away</p>
                         </div>
                       </div>
                       <div className="flex items-start gap-3 p-3 rounded-xl bg-muted/20 border border-border/40">
@@ -1029,7 +1029,7 @@ export default function ClinicDetail() {
                         ['Specialties', clinic.totalSpecialties || '—'],
                         ['Patients Treated', clinic.totalPatients ? `${(clinic.totalPatients/100).toFixed(0)}K+ Patients` : '—'],
                         ['Working Hours', clinicWorkingHours],
-                        ['Distance', `${clinic.distance || ((clinic._id?.charCodeAt(clinic._id?.length - 1) || 5) % 5 + 1).toFixed(1)} km`],
+                        ['Distance', `${clinic.distance || '0.8'} km`],
                       ].map(([label, val]) => (
                         <div key={label} className="flex items-center justify-between text-sm">
                           <span className="text-muted-foreground">{label}</span>
