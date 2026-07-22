@@ -149,7 +149,10 @@ if (process.env.NODE_ENV === 'production') {
   if (process.env.CLIENT_URL) {
     allowedOrigins.push(process.env.CLIENT_URL);
   }
-  // Add the production frontend URL
+  // Add production frontend URL from env or fallback
+  if (process.env.CORS_ORIGIN) {
+    allowedOrigins.push(process.env.CORS_ORIGIN);
+  }
   allowedOrigins.push('https://medicore-main-1.onrender.com');
   corsOptions.origin = allowedOrigins.filter(Boolean);
 } else {
