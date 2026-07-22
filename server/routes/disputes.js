@@ -2,6 +2,7 @@ import express from 'express';
 import Dispute from '../models/Dispute.js';
 import { protect, superadminOnly } from '../middleware/auth.js';
 import { auditLog } from '../middleware/audit.js';
+import logger from '../config/logger.js';
 const router = express.Router();
 
 const generateDisputeId = async () => {
@@ -38,7 +39,7 @@ router.put('/:id/status', protect, superadminOnly, async (req, res) => {
     try {
       await auditLog('update_dispute_status', req.user._id, { disputeId: dispute._id, status, ip: req.ip, userAgent: req.get('user-agent') });
     } catch (err) {
-      console.error('Audit error:', err);
+      logger.error('Audit error:', err);
     }
     
     res.json(dispute);
@@ -53,7 +54,7 @@ router.put('/:id/assign', protect, superadminOnly, async (req, res) => {
     try {
       await auditLog('assign_dispute', req.user._id, { disputeId: dispute._id, assignedTo: req.body.assignedTo, ip: req.ip, userAgent: req.get('user-agent') });
     } catch (err) {
-      console.error('Audit error:', err);
+      logger.error('Audit error:', err);
     }
 
     res.json(dispute);

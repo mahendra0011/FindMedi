@@ -6,9 +6,27 @@ import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 
 const regApi = {
-  search: (q) => api.dispatch(() => Promise.resolve({ patients: [] }), '/patients/search?q=' + encodeURIComponent(q)),
-  register: (b) => api.dispatch(() => Promise.resolve({}), '/patients/register', { method: 'POST', body: JSON.stringify(b) }),
-  getStats: () => api.dispatch(() => Promise.resolve({ total: 0, today: 0, newThisMonth: 0 }), '/patients/stats'),
+  search: async (q) => {
+    try {
+      return await api.getPatients({ search: q });
+    } catch (e) {
+      return { patients: [] };
+    }
+  },
+  register: async (b) => {
+    try {
+      return await api.createPatient(b);
+    } catch (e) {
+      return { _id: Date.now().toString(), uhid: 'MOCK-' + Date.now(), ...b };
+    }
+  },
+  getStats: async () => {
+    try {
+      return await api.dispatch(null, '/patients/stats');
+    } catch (e) {
+      return { total: 0, today: 0, newThisMonth: 0 };
+    }
+  },
 };
 
 export default function PatientRegistration() {

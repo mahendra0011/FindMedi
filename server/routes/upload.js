@@ -34,7 +34,7 @@ const upload = multer({
 });
 
 // Proxy download route — redirect to stored file URL (Cloudinary or legacy Drive)
-router.get('/download/:fileId', protect, async (req, res) => {
+router.get('/download/:fileId', protect, async (req, res, next) => {
   try {
     const { fileId } = req.params;
     const record = await Record.findOne({
@@ -53,12 +53,11 @@ router.get('/download/:fileId', protect, async (req, res) => {
       res.status(404).json({ error: 'File URL not found' });
     }
   } catch (error) {
-    console.error('Download error:', error);
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 });
 
-router.post('/', protect, upload.single('file'), async (req, res) => {
+router.post('/', protect, upload.single('file'), async (req, res, next) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
@@ -120,12 +119,7 @@ router.post('/', protect, upload.single('file'), async (req, res) => {
       storedIn: 'cloudinary',
     });
   } catch (error) {
-    console.error('Upload error:', error);
-    console.error('Error stack:', error.stack);
-    res.status(500).json({
-      error: error.message,
-      details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-    });
+    next(error);
   }
 });
 

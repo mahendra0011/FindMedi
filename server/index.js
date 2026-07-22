@@ -15,7 +15,9 @@ import rateLimit from 'express-rate-limit';
 import mongoSanitize from 'express-mongo-sanitize';
 import morgan from 'morgan';
 import xss from 'xss';
+import logger from './config/logger.js';
 import { configureMongoDns } from './config/mongoDns.js';
+import { validateEnv, printEnvStatus } from './config/envValidator.js';
 import { errorHandler, notFound } from './middleware/errorHandler.js';
 
 const app = express();
@@ -51,9 +53,9 @@ app.use((req, res, next) => {
 
 // HTTP request logging
 if (process.env.NODE_ENV === 'production') {
-  app.use(morgan('combined'));
+  app.use(morgan('combined', { stream: { write: message => logger.info(message.trim()) } }));
 } else {
-  app.use(morgan('dev'));
+  app.use(morgan('dev', { stream: { write: message => logger.info(message.trim()) } }));
 }
 
 // Rate limiting
@@ -88,21 +90,8 @@ app.use('/api/auth/resend-otp', otpLimiter);
 app.use('/api/auth/forgot-password', forgotPasswordLimiter);
 
 // Environment validation
-(() => {
-  const required = ['MONGO_URI'];
-  if (process.env.NODE_ENV === 'production') {
-    required.push('JWT_SECRET');
-  }
-  const missing = required.filter(k => !process.env[k]);
-  if (missing.length) {
-    console.error(`❌ Missing required environment variables: ${missing.join(', ')}`);
-    process.exit(1);
-  }
-
-  if (process.env.JWT_SECRET === 'secret' || !process.env.JWT_SECRET) {
-    console.warn('⚠️  WARNING: Using default JWT_SECRET. Set a strong secret in production.');
-  }
-})();
+validateEnv();
+printEnvStatus();
 
 const redactMongoUri = (uri) => uri.replace(/\/\/([^:]+):([^@]+)@/, '//***:***@');
 
@@ -280,7 +269,7 @@ const mongooseOptions = {
 };
 
 console.log('🔄 Attempting MongoDB connection...');
-console.log('   URI:', redactMongoUri(MONGO_URI));
+logger.info('   URI: ' + redactMongoUri(MONGO_URI));
 
 mongoose.connect(MONGO_URI, mongooseOptions)
   .then(() => {

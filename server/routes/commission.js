@@ -5,6 +5,7 @@ import TransactionLedger from '../models/TransactionLedger.js';
 import Hospital from '../models/Hospital.js';
 import { protect, superadminOnly } from '../middleware/auth.js';
 import { auditLog } from '../middleware/audit.js';
+import logger from '../config/logger.js';
 
 const router = express.Router();
 
@@ -53,7 +54,7 @@ router.put('/config/:id', protect, superadminOnly, async (req, res) => {
     try {
       await auditLog('update_commission_config', req.user._id, { configId: config._id, facilityId: config.facilityId, ip: req.ip, userAgent: req.get('user-agent') });
     } catch (err) {
-      console.error('Audit error:', err);
+      logger.error('Audit error:', err);
     }
     
     res.json(config);
@@ -157,7 +158,7 @@ router.post('/payouts', protect, superadminOnly, async (req, res) => {
     try {
       await auditLog('create_payout', req.user._id, { payoutId: payout._id, facilityId, netPayout, ip: req.ip, userAgent: req.get('user-agent') });
     } catch (err) {
-      console.error('Audit error:', err);
+      logger.error('Audit error:', err);
     }
 
     res.status(201).json(payout);
@@ -184,7 +185,7 @@ router.put('/payouts/:id/pay', protect, superadminOnly, async (req, res) => {
     try {
       await auditLog('process_payout', req.user._id, { payoutId: payout._id, facilityId: payout.facilityId, netPayout: payout.netPayout, ip: req.ip, userAgent: req.get('user-agent') });
     } catch (err) {
-      console.error('Audit error:', err);
+      logger.error('Audit error:', err);
     }
 
     res.json(payout);

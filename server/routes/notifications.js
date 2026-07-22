@@ -18,7 +18,7 @@ const getNotificationUserId = async (req) => {
   return rawId;
 };
 
-router.get('/', protect, async (req, res) => {
+router.get('/', protect, async (req, res, next) => {
   try {
     let filter = {};
     const effectiveUserId = await getNotificationUserId(req);
@@ -26,8 +26,7 @@ router.get('/', protect, async (req, res) => {
     const notifications = await Notification.find(filter).sort({ createdAt: -1 });
     res.json(notifications);
   } catch (err) { 
-    console.error('[notifications GET] error:', err);
-    res.status(500).json({ message: err.message }); 
+    next(err);
   }
 });
 

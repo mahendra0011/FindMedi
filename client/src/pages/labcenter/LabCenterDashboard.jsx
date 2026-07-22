@@ -4,6 +4,7 @@ import { CalendarDays, Clock, User, CheckCircle, AlertCircle, TrendingUp, Dollar
 import { useAuth } from '@/context/AuthContext';
 import { Link } from 'react-router-dom';
 import { api } from '@/lib/api';
+import LicenseExpiryReminder from '@/components/LicenseExpiryReminder';
 
 const statusColors = {
   Pending: { bg: 'bg-warning/10', text: 'text-warning' },
@@ -44,6 +45,7 @@ export default function LabCenterDashboard() {
 
   return (
     <div className="space-y-6">
+      <LicenseExpiryReminder />
       <div className="bg-gradient-to-r from-primary to-primary/80 rounded-3xl p-6 text-white">
         <h1 className="font-heading text-2xl font-bold">Lab Center Dashboard</h1>
         <p className="opacity-90">Welcome, {user?.name || 'Lab Admin'}</p>

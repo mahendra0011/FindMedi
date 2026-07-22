@@ -7,13 +7,55 @@ import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 
 const consultationApi = {
-  getTokens: (p) => api.dispatch(() => Promise.resolve({ tokens: [] }), '/tokens?' + new URLSearchParams(p)),
-  getPatients: (p) => api.dispatch(() => Promise.resolve([]), '/patients?' + new URLSearchParams(p)),
-  getRecords: (p) => api.dispatch(() => Promise.resolve({ records: [] }), '/records?' + new URLSearchParams(p)),
-  createRecord: (b) => api.dispatch(() => Promise.resolve({}), '/records', { method: 'POST', body: JSON.stringify(b) }),
-  updateToken: (id, b) => api.dispatch(() => Promise.resolve({}), `/tokens/${id}/start-consultation`, { method: 'PUT', body: JSON.stringify(b) }),
-  completeToken: (id) => api.dispatch(() => Promise.resolve({}), `/tokens/${id}/complete`, { method: 'PUT' }),
-  getStats: () => api.dispatch(() => Promise.resolve({ waiting: 0, inConsultation: 0, completed: 0, total: 0 }), '/tokens/stats'),
+  getTokens: async (p) => {
+    try {
+      return await api.getTokens(p);
+    } catch {
+      return { tokens: [] };
+    }
+  },
+  getPatients: async (p) => {
+    try {
+      return await api.getPatients(p);
+    } catch {
+      return [];
+    }
+  },
+  getRecords: async (p) => {
+    try {
+      return await api.getRecords(p);
+    } catch {
+      return { records: [] };
+    }
+  },
+  createRecord: async (b) => {
+    try {
+      return await api.createRecord(b);
+    } catch {
+      return {};
+    }
+  },
+  updateToken: async (id, b) => {
+    try {
+      return await api.startTokenConsultation(id);
+    } catch {
+      return {};
+    }
+  },
+  completeToken: async (id) => {
+    try {
+      return await api.completeToken(id);
+    } catch {
+      return {};
+    }
+  },
+  getStats: async () => {
+    try {
+      return await api.getTokenStats();
+    } catch {
+      return { waiting: 0, inConsultation: 0, completed: 0, total: 0 };
+    }
+  },
 };
 
 const statusColors = {

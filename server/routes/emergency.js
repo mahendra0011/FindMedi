@@ -6,6 +6,7 @@ import Notification from '../models/Notification.js';
 import User from '../models/User.js';
 import Doctor from '../models/Doctor.js';
 import { protect } from '../middleware/auth.js';
+import logger from '../config/logger.js';
 
 const router = express.Router();
 
@@ -22,7 +23,7 @@ const createNotification = async (userId, title, message, type = 'system') => {
     });
 
   } catch (err) {
-    console.error('Error creating notification:', err);
+    logger.error('Error creating notification:', err);
   }
 };
 

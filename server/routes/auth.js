@@ -30,6 +30,7 @@ import {
   passwordSchema,
 } from '../utils/validate.js';
 import { auditLog } from '../middleware/audit.js';
+import logger from '../config/logger.js';
 
 const router = express.Router();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -112,7 +113,7 @@ const sign = (user) => {
     userId: user._id,
     token: refreshToken,
     expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-  }).catch(err => console.error('Failed to save refresh token:', err.message));
+  }).catch(err => logger.error('Failed to save refresh token:', err.message));
   return accessToken;
 };
 
@@ -507,7 +508,7 @@ router.post('/login', validate(loginSchema), async (req, res) => {
     try {
       await auditLog('user_login', user._id, { ip: req.ip, userAgent: req.get('user-agent'), email: user.email });
     } catch (err) {
-      console.error('Audit error:', err);
+      logger.error('Audit error:', err);
     }
 
     return res.json({
@@ -582,7 +583,7 @@ router.post('/reset-password', validate(resetPasswordSchema), async (req, res) =
     try {
       await auditLog('password_reset', user._id, { ip: req.ip, userAgent: req.get('user-agent'), email: user.email });
     } catch (err) {
-      console.error('Audit error:', err);
+      logger.error('Audit error:', err);
     }
 
     res.json({ message: 'Password updated successfully. You can now login.' });
@@ -711,7 +712,7 @@ router.put('/change-password', protect, validate(changePasswordSchema), async (r
     try {
       await auditLog('password_change', user._id, { ip: req.ip, userAgent: req.get('user-agent'), email: user.email });
     } catch (err) {
-      console.error('Audit error:', err);
+      logger.error('Audit error:', err);
     }
 
     res.json({ message: 'Password updated successfully' });

@@ -799,7 +799,7 @@ export default function ClinicDoctor() {
                       Patient Reviews <span className="text-base font-normal text-muted-foreground ml-1">({reviewCount})</span>
                     </h2>
                     {user && !reviewSubmitted && (
-                      <Button size="sm" variant="outline" className="rounded-xl gap-2" onClick={() => setShowReviewForm(!showReviewForm)}>
+                      <Button size="sm" variant="outline" className="rounded-xl gap-2" onClick={() => setShowReviewDialog(true)}>
                         <Star className="w-3.5 h-3.5" /> Write a Review
                       </Button>
                     )}
@@ -835,7 +835,7 @@ export default function ClinicDoctor() {
                         ))}
                       </div>
                       <Textarea
-                        placeholder="Tell others about your experience with Dr. {doctor.name}..."
+                        placeholder={`Tell others about your experience with Dr. ${doctor?.name || 'the doctor'}...`}
                         value={reviewComment}
                         onChange={e => setReviewComment(e.target.value)}
                         rows={3}
@@ -851,10 +851,15 @@ export default function ClinicDoctor() {
                     </div>
                   )}
 
-                  {reviews.length === 0 ? (
+                  {reviews.length === 0 && reviewCount === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
                       <Star className="w-10 h-10 mx-auto mb-2 text-muted-foreground/30" />
-                      <p>{reviewCount > 0 ? 'Reviews summary available, individual reviews loading soon.' : 'No reviews yet. Be the first to share your experience!'}</p>
+                      <p>No reviews yet. Be the first to share your experience!</p>
+                    </div>
+                  ) : reviews.length === 0 && reviewCount > 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Star className="w-10 h-10 mx-auto mb-2 text-muted-foreground/30" />
+                      <p>Reviews summary available, individual reviews loading soon.</p>
                     </div>
                   ) : (
                     <div className="space-y-4">

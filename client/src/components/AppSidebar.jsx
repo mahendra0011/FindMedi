@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, UserRound, Stethoscope, CalendarDays, FileText,
   CreditCard, Percent, Settings, ChevronLeft, ChevronRight, Activity, LogOut,
-  Home, Search, Star, Users, BarChart3, Bell, Building2, Clock, Calendar, DollarSign, FileUp, Download, TestTube, AlertTriangle, Menu, X, Bed, Pill, FlaskConical, Hospital, Heart, Brain, Syringe, ClipboardList, ShieldCheck, Baby, Ambulance, IndianRupee, History, Flag, ShoppingCart, Megaphone, Settings2, Truck, Microscope
+  Home, Search, Star, Users, BarChart3, Bell, Building2, Clock, Calendar, DollarSign, FileUp, Download, TestTube, AlertTriangle, Menu, X, Bed, Pill, FlaskConical, Hospital, Heart, Brain, Syringe, ClipboardList, ShieldCheck, Baby, Ambulance, IndianRupee, History, Flag, ShoppingCart, Megaphone, Settings2, Truck, Microscope, HelpCircle
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { t } from '@/lib/settings';
@@ -143,6 +143,7 @@ const navConfig = {
     { icon: ShoppingCart,    labelKey: 'nav.myMedicineOrders', path: '/patient/medicine-orders' },
     { icon: DollarSign,      labelKey: 'nav.payments',        path: '/patient/payment'      },
     { icon: Star,            labelKey: 'nav.myReviews',       path: '/patient/reviews'      },
+    { icon: HelpCircle,      labelKey: 'nav.support',         path: '/patient/support'      },
     { icon: Bell,            labelKey: 'nav.notifications',   path: '/notifications'        },
     { icon: Settings,        labelKey: 'nav.settings',        path: '/settings'             },
   ],

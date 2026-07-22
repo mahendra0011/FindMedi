@@ -41,6 +41,10 @@ export default function HospitalTestBooking() {
   const navigate = useNavigate();
   const [testSearch, setTestSearch] = useState('');
   const [deptFilter, setDeptFilter] = useState('all');
+  const [priceFilter, setPriceFilter] = useState('all');
+  const [rxFilter, setRxFilter] = useState('all');
+  const [collectionFilter, setCollectionFilter] = useState('all');
+  const [sortFilter, setSortFilter] = useState('popularity');
   const [testCart, setTestCart] = useState({});
   const [showBooking, setShowBooking] = useState(false);
   const [bookingStep, setBookingStep] = useState(1);
@@ -111,11 +115,32 @@ export default function HospitalTestBooking() {
     return next;
   });
 
-  const filtered = tests.filter(t => {
+  let filtered = tests.filter(t => {
     if (deptFilter !== 'all' && t.dept !== deptFilter) return false;
     if (testSearch && !t.name.toLowerCase().includes(testSearch.toLowerCase())) return false;
+    if (priceFilter !== 'all') {
+      if (priceFilter === '0-500' && t.price >= 500) return false;
+      if (priceFilter === '500-2000' && (t.price < 500 || t.price > 2000)) return false;
+      if (priceFilter === '2000+' && t.price <= 2000) return false;
+    }
+    if (rxFilter !== 'all') {
+      if (rxFilter === 'direct' && t.rx) return false;
+      if (rxFilter === 'rx' && !t.rx) return false;
+    }
+    if (collectionFilter !== 'all') {
+      if (collectionFilter === 'home' && !t.homeCollection) return false;
+      if (collectionFilter === 'lab' && t.homeCollection) return false; 
+    }
     return true;
   });
+
+  if (sortFilter === 'price-low') {
+    filtered.sort((a, b) => a.price - b.price);
+  } else if (sortFilter === 'price-high') {
+    filtered.sort((a, b) => b.price - a.price);
+  } else if (sortFilter === 'popularity') {
+    filtered.sort((a, b) => (b.popular ? 1 : 0) - (a.popular ? 1 : 0));
+  }
 
   const cartItems = Object.entries(testCart).map(([tid, qty]) => {
     const test = tests.find(t => t.id === tid);
@@ -537,23 +562,23 @@ export default function HospitalTestBooking() {
 
         {/* Extra Filters Row */}
         <div className="flex flex-wrap gap-2 mb-6">
-          <select onChange={e => setTestSearch('')} className="h-8 px-3 rounded-lg text-xs bg-background border border-border/50 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
+          <select value={priceFilter} onChange={e => setPriceFilter(e.target.value)} className="h-8 px-3 rounded-lg text-xs bg-background border border-border/50 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
             <option value="all">Price: All</option>
             <option value="0-500">Under ₹500</option>
             <option value="500-2000">₹500 - ₹2000</option>
             <option value="2000+">₹2000+</option>
           </select>
-          <select className="h-8 px-3 rounded-lg text-xs bg-background border border-border/50 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
+          <select value={rxFilter} onChange={e => setRxFilter(e.target.value)} className="h-8 px-3 rounded-lg text-xs bg-background border border-border/50 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
             <option value="all">All Tests</option>
             <option value="direct">Direct Only</option>
             <option value="rx">Prescription Required</option>
           </select>
-          <select className="h-8 px-3 rounded-lg text-xs bg-background border border-border/50 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
+          <select value={collectionFilter} onChange={e => setCollectionFilter(e.target.value)} className="h-8 px-3 rounded-lg text-xs bg-background border border-border/50 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
             <option value="all">Any Collection</option>
             <option value="home">Home Collection</option>
             <option value="lab">Lab Visit Only</option>
           </select>
-          <select className="h-8 px-3 rounded-lg text-xs bg-background border border-border/50 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
+          <select value={sortFilter} onChange={e => setSortFilter(e.target.value)} className="h-8 px-3 rounded-lg text-xs bg-background border border-border/50 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
             <option value="popularity">Sort: Popularity</option>
             <option value="price-low">Sort: Price (Low)</option>
             <option value="price-high">Sort: Price (High)</option>

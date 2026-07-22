@@ -6,6 +6,7 @@ import Doctor from '../models/Doctor.js';
 import { protect, superadminOnly } from '../middleware/auth.js';
 import { auditLog } from '../middleware/audit.js';
 import License from '../models/License.js';
+import logger from '../config/logger.js';
 
 const router = express.Router();
 
@@ -115,7 +116,7 @@ router.post('/register', async (req, res) => {
         status: 'active',
       });
     } catch (licenseErr) {
-      console.error('License creation failed:', licenseErr.message);
+      logger.error('License creation failed:', licenseErr.message);
     }
     await auditLog('register_facility', null, { facilityId: facility._id, type, name });
     res.status(201).json({ message: `${type} registered successfully. Awaiting approval.`, facilityId: facility._id });
