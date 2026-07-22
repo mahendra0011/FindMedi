@@ -112,6 +112,7 @@ export default function HospitalProfile() {
   const [testHomeFilter, setTestHomeFilter] = useState('all');
   const [testSort, setTestSort] = useState('popularity');
   const [priceRange, setPriceRange] = useState('all');
+  const [testCatalog, setTestCatalog] = useState([]);
 
   const carouselRef = useRef(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -166,6 +167,14 @@ export default function HospitalProfile() {
           .map(item => item.h);
         setSuggestedHospitals(scored);
       } catch (e) { console.log('Could not load suggested hospitals', e); }
+      // Fetch hospital's test catalog
+      try {
+        const testsData = await api.getTests({ hospitalId: id });
+        const tests = Array.isArray(testsData) ? testsData
+          : testsData?.tests ? testsData.tests
+          : [];
+        if (tests.length > 0) setTestCatalog(tests);
+      } catch (e) { console.log('Could not load tests', e); }
     
     } catch { setNotFound(true); }
     setLoading(false);
@@ -293,7 +302,24 @@ export default function HospitalProfile() {
     },
   ];
 
-  const allTests = DEPARTMENTS.flatMap(d => d.tests);
+  const apiTestDept = testCatalog.length > 0 ? [{
+    id:'lab-tests', name:'Lab Tests', icon:FlaskConical, count:testCatalog.length,
+    doctor:null,
+    tests: testCatalog.map((t, i) => ({
+      id: t._id || `api-test-${i}`,
+      name: t.name,
+      price: t.price || 0,
+      mrp: t.mrp || t.price || 0,
+      reportTime: t.reportTime || '24 hrs',
+      homeCollection: t.homeCollection || false,
+      rx: t.prescriptionReq || false,
+      popular: t.popular || false,
+      package: false,
+      category: t.category || 'General',
+    }))
+  }] : [];
+  const useDepartments = testCatalog.length > 0 ? apiTestDept : DEPARTMENTS;
+  const allTests = useDepartments.flatMap(d => d.tests);
   const totalTestCount = allTests.length;
   const cartItems = Object.entries(testCart).map(([tid, qty]) => {
     const test = allTests.find(t => t.id === tid);
@@ -302,7 +328,7 @@ export default function HospitalProfile() {
   const cartTotal = cartItems.reduce((s, t) => s + t.price * t.qty, 0);
   const cartCount = cartItems.reduce((s, t) => s + t.qty, 0);
 
-  const filteredDepartments = DEPARTMENTS.filter(dept => testDeptFilter === 'All' || dept.id === testDeptFilter).map(dept => {
+  const filteredDepartments = useDepartments.filter(dept => testDeptFilter === 'All' || dept.id === testDeptFilter).map(dept => {
     const filtered = dept.tests.filter(t => {
       if (testSearch && !t.name.toLowerCase().includes(testSearch.toLowerCase())) return false;
       if (testRxFilter === 'rx' && !t.rx) return false;
@@ -789,7 +815,7 @@ export default function HospitalProfile() {
                     className={cn('px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-all', testDeptFilter === 'All' ? 'border-primary bg-primary/5 text-primary' : 'border-border/60 bg-card text-muted-foreground hover:text-foreground')}>
                     All ({allTests.length})
                   </button>
-                  {DEPARTMENTS.map(d => (
+                  {useDepartments.map(d => (
                     <button key={d.id} onClick={() => setTestDeptFilter(d.id)}
                       className={cn('px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-all', testDeptFilter === d.id ? 'border-primary bg-primary/5 text-primary' : 'border-border/60 bg-card text-muted-foreground hover:text-foreground')}>
                       {d.name} ({d.tests.length})
@@ -832,7 +858,7 @@ export default function HospitalProfile() {
                   style={{ scrollbarWidth: 'thin', scrollbarColor: 'hsl(var(--border)) transparent' }}>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {filteredDepartments.flatMap(dept => dept.tests).map((test, i) => {
-                    const dept = DEPARTMENTS.find(d => d.tests.includes(test));
+                    const dept = useDepartments.find(d => d.tests.includes(test));
                     if (!dept) return null;
                     return (
                       <motion.div key={test.id}
