@@ -597,7 +597,7 @@ export default function ClinicDetail() {
                         {doctorSectionTab === 'doctors' ? <>Doctors <span className="text-base font-normal text-muted-foreground">({doctors.length})</span></> : 'Tests'}
                       </h2>
                     </div>
-                    <Button variant="ghost" size="sm" className="gap-1 text-primary font-semibold shrink-0" onClick={() => toast.success('View more coming soon')}>
+                    <Button variant="ghost" size="sm" className="gap-1 text-primary font-semibold shrink-0" onClick={() => toast.info('All items are shown below')}>
                       {doctorSectionTab === 'doctors' ? 'View More' : 'View All Tests'} <ChevronRight className="w-4 h-4" />
                     </Button>
                   </div>

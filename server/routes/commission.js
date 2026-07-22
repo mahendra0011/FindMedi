@@ -4,6 +4,7 @@ import Payout from '../models/Payout.js';
 import TransactionLedger from '../models/TransactionLedger.js';
 import Hospital from '../models/Hospital.js';
 import { protect, superadminOnly } from '../middleware/auth.js';
+import { auditLog } from '../middleware/audit.js';
 
 const router = express.Router();
 
@@ -48,6 +49,13 @@ router.put('/config/:id', protect, superadminOnly, async (req, res) => {
 
     const config = await CommissionConfig.findByIdAndUpdate(req.params.id, update, { new: true });
     if (!config) return res.status(404).json({ message: 'Config not found' });
+    
+    try {
+      await auditLog('update_commission_config', req.user._id, { configId: config._id, facilityId: config.facilityId, ip: req.ip, userAgent: req.get('user-agent') });
+    } catch (err) {
+      console.error('Audit error:', err);
+    }
+    
     res.json(config);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
@@ -146,6 +154,12 @@ router.post('/payouts', protect, superadminOnly, async (req, res) => {
     config.pendingPayout = (config.pendingPayout || 0) + netPayout;
     await config.save();
 
+    try {
+      await auditLog('create_payout', req.user._id, { payoutId: payout._id, facilityId, netPayout, ip: req.ip, userAgent: req.get('user-agent') });
+    } catch (err) {
+      console.error('Audit error:', err);
+    }
+
     res.status(201).json(payout);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
@@ -165,6 +179,12 @@ router.put('/payouts/:id/pay', protect, superadminOnly, async (req, res) => {
       config.pendingPayout = Math.max(0, (config.pendingPayout || 0) - payout.netPayout);
       config.lastPayoutDate = new Date();
       await config.save();
+    }
+
+    try {
+      await auditLog('process_payout', req.user._id, { payoutId: payout._id, facilityId: payout.facilityId, netPayout: payout.netPayout, ip: req.ip, userAgent: req.get('user-agent') });
+    } catch (err) {
+      console.error('Audit error:', err);
     }
 
     res.json(payout);

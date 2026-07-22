@@ -886,7 +886,7 @@ export default function MedicineStoreDetail() {
                     <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => { navigator.clipboard?.writeText(window.location.href); toast.success('Link copied!'); }}>
                       <Share2 className="w-4 h-4" /> Share Profile
                     </Button>
-                    <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => toast.success('Review functionality coming soon!')}>
+                    <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => setShowReviewDialog(true)}>
                       <Star className="w-4 h-4" /> Write a Review
                     </Button>
                   </div>

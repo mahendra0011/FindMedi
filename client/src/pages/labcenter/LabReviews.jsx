@@ -5,15 +5,6 @@ import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
-const STORAGE_KEY = 'medicore_labcenter_reviews';
-// TODO: Replace localStorage with api calls once reviews endpoint is added to lab routes
-
-const generateMockReviews = () => [
-  { _id: 'rv_1', patientName: 'Rahul Mehta', rating: 5, comment: 'Excellent service! The staff was very professional and the reports were delivered on time.', date: '2026-07-10' },
-  { _id: 'rv_2', patientName: 'Sneha Patel', rating: 4, comment: 'Good experience overall. Fast turnaround for blood test results.', date: '2026-07-08' },
-  { _id: 'rv_3', patientName: 'Vikram Singh', rating: 3, comment: 'Decent lab but waiting time could be improved.', date: '2026-07-05' },
-  { _id: 'rv_4', patientName: 'Anita Desai', rating: 5, comment: 'Highly recommend! Accurate reports and very hygienic facility.', date: '2026-07-01' },
-];
 
 export default function LabReviews() {
   const { user } = useAuth();
@@ -26,10 +17,10 @@ export default function LabReviews() {
         setLoading(true);
         const hospitalId = user?.facilityId || user?.hospitalId || user?._id;
         const data = await api.getReviews({ hospitalId });
-        setReviews(data?.length > 0 ? data : generateMockReviews());
+        setReviews(data?.length > 0 ? data : []);
       } catch (error) {
         console.error(error);
-        setReviews(generateMockReviews());
+        setReviews([]);
         toast.error('Failed to load reviews');
       } finally {
         setLoading(false);

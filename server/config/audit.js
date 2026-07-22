@@ -1,1 +1,1 @@
-console.log('Audit config initialized');
+// Audit configuration placeholder

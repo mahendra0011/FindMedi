@@ -6,6 +6,7 @@ import Doctor from '../models/Doctor.js';
 import { protect } from '../middleware/auth.js';
 import { generateInvoicePDF } from '../services/pdfService.js';
 import { validate, createBillSchema } from '../utils/validate.js';
+import { auditLog } from '../middleware/audit.js';
 
 const router = express.Router();
 
@@ -192,6 +193,12 @@ router.post('/', protect, validate(createBillSchema), async (req, res) => {
       await createNotification(finalPatientId.toString(), 'New Invoice', `Invoice ${invoiceId} of Rs ${finalAmount} for ${finalService}`, 'payment');
     }
     
+    try {
+      await auditLog('create_bill', req.user._id, { billId: bill._id, invoiceId, amount: finalAmount, ip: req.ip, userAgent: req.get('user-agent') });
+    } catch (err) {
+      console.error('Audit error:', err);
+    }
+    
     res.status(201).json(bill);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -259,6 +266,12 @@ router.post('/:id/pay', protect, async (req, res) => {
       await createNotification(bill.doctorId.toString(), 'Payment Received', `Payment of Rs ${bill.amount} received from ${bill.patient} for ${bill.service}`, 'payment');
     }
     
+    try {
+      await auditLog('process_payment', req.user._id, { billId: bill._id, transactionId, amount: bill.amount, ip: req.ip, userAgent: req.get('user-agent') });
+    } catch (err) {
+      console.error('Audit error:', err);
+    }
+    
     res.json(bill);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -297,6 +310,13 @@ router.delete('/:id', protect, async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to delete this invoice' });
     }
     await Billing.findByIdAndDelete(req.params.id);
+    
+    try {
+      await auditLog('delete_bill', req.user._id, { billId: req.params.id, ip: req.ip, userAgent: req.get('user-agent') });
+    } catch (err) {
+      console.error('Audit error:', err);
+    }
+    
     res.json({ message: 'Invoice removed' });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
