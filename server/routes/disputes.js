@@ -1,7 +1,7 @@
 import express from 'express';
 import Dispute from '../models/Dispute.js';
 import { protect, superadminOnly } from '../middleware/auth.js';
-
+import { auditLog } from '../middleware/audit.js';
 const router = express.Router();
 
 const generateDisputeId = async () => {
@@ -34,6 +34,13 @@ router.put('/:id/status', protect, superadminOnly, async (req, res) => {
     if (status === 'Resolved' || status === 'Dismissed') { update.resolvedAt = new Date(); update.resolvedBy = req.user._id; }
     const dispute = await Dispute.findByIdAndUpdate(req.params.id, update, { new: true });
     if (!dispute) return res.status(404).json({ message: 'Dispute not found' });
+    
+    try {
+      await auditLog('update_dispute_status', req.user._id, { disputeId: dispute._id, status, ip: req.ip, userAgent: req.get('user-agent') });
+    } catch (err) {
+      console.error('Audit error:', err);
+    }
+    
     res.json(dispute);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -42,6 +49,13 @@ router.put('/:id/assign', protect, superadminOnly, async (req, res) => {
   try {
     const dispute = await Dispute.findByIdAndUpdate(req.params.id, { assignedTo: req.body.assignedTo, status: 'In Review' }, { new: true });
     if (!dispute) return res.status(404).json({ message: 'Dispute not found' });
+    
+    try {
+      await auditLog('assign_dispute', req.user._id, { disputeId: dispute._id, assignedTo: req.body.assignedTo, ip: req.ip, userAgent: req.get('user-agent') });
+    } catch (err) {
+      console.error('Audit error:', err);
+    }
+
     res.json(dispute);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });

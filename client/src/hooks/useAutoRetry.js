@@ -59,7 +59,7 @@ export function useAutoRetry() {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     timeoutRef.current = setTimeout(() => {
       handleTimeout(firstIndex, firstStore, orderContext);
-    }, DEMO_SLA_MS);
+    }, DEFAULT_SLA_MS);
 
     return true;
   }, [pharmacies, autoRetryEnabled]);
@@ -123,7 +123,7 @@ export function useAutoRetry() {
 
     timeoutRef.current = setTimeout(() => {
       handleTimeout(nextIndex, nextStore, orderContext);
-    }, DEMO_SLA_MS);
+    }, DEFAULT_SLA_MS);
   }, [pharmacies]);
 
   const handleTimeout = useCallback((storeIndex, store, orderContext) => {

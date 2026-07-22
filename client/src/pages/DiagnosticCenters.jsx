@@ -27,14 +27,6 @@ const parseHrs = (t) => {
   return m ? parseInt(m[1]) : 999;
 };
 
-const FALLBACK_CLINICS = [
-  { _id:'dignolab-center', name:'DiagnoLab Center', slug:'dignolab-center', providerCategory:'Diagnostic Center', type:'lab', rating:4.4, reviewsCount:567, verified:true, open:true, tags:['NABL Accredited','Home Collection','Reports Online','Imaging Available'], testsAvailable:250, homeCollection:true, reportTime:'Within 6 hrs', distance:'1.2 km', phone:'0761-2345678', email:'info@dignolab.com', address:'Marhatal, Jabalpur, MP 482002', startingPrice:350, logo:'', workingHours:'8:00 AM - 8:00 PM' },
-  { _id:'metropolis-labs', name:'Metropolis Labs', slug:'metropolis-labs', providerCategory:'Pathology Lab', type:'lab', rating:4.6, reviewsCount:823, verified:true, open:true, tags:['NABL Accredited','Home Collection','Reports Online'], testsAvailable:350, homeCollection:true, reportTime:'Within 12 hrs', distance:'2.5 km', phone:'0761-3456789', email:'contact@metropolisjabalpur.com', address:'Napier Town, Jabalpur, MP 482001', startingPrice:299, logo:'', workingHours:'7:00 AM - 9:00 PM' },
-  { _id:'apollo-diagnostics', name:'Apollo Diagnostics', slug:'apollo-diagnostics', providerCategory:'Diagnostic Center', type:'lab', rating:4.5, reviewsCount:712, verified:true, open:true, tags:['NABL Accredited','Home Collection','Reports Online','Imaging Available','AERB Certified'], testsAvailable:190, homeCollection:true, reportTime:'Within 8 hrs', distance:'0.8 km', phone:'0761-4567890', email:'jabalpur@apollodiag.com', address:'Civil Lines, Jabalpur, MP 482001', startingPrice:499, logo:'', workingHours:'6:00 AM - 10:00 PM' },
-  { _id:'lal-pathlabs', name:'Dr. Lal PathLabs', slug:'lal-pathlabs', providerCategory:'Pathology Lab', type:'lab', rating:4.3, reviewsCount:1245, verified:true, open:false, tags:['NABL Accredited','Home Collection','Reports Online'], testsAvailable:410, homeCollection:true, reportTime:'Within 24 hrs', distance:'3.1 km', phone:'0761-5678901', email:'jabalpur@lalpathlabs.com', address:'Vijay Nagar, Jabalpur, MP 482003', startingPrice:249, logo:'', workingHours:'8:00 AM - 8:00 PM' },
-  { _id:'srl-diagnostics', name:'SRL Diagnostics', slug:'srl-diagnostics', providerCategory:'Imaging Center', type:'lab', rating:4.2, reviewsCount:678, verified:true, open:true, tags:['NABL Accredited','Home Collection','Reports Online','Imaging Available','AERB Certified'], testsAvailable:280, homeCollection:true, reportTime:'Within 10 hrs', distance:'1.8 km', phone:'0761-6789012', email:'jabalpur@srl.in', address:'Sadar Cantt, Jabalpur, MP 482001', startingPrice:399, logo:'', workingHours:'7:00 AM - 9:00 PM' },
-];
-
 export default function DiagnosticCenters() {
   const [clinics, setClinics] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -91,9 +83,9 @@ export default function DiagnosticCenters() {
       try {
         const res = await api.getFacilities({ type: 'lab' });
         const data = Array.isArray(res) ? res : res?.facilities || [];
-        setClinics(data.length > 1 ? data.map(enrichFacility) : FALLBACK_CLINICS);
+        setClinics(data.map(enrichFacility));
       } catch {
-        setClinics(FALLBACK_CLINICS);
+        setClinics([]);
       }
       setLoading(false);
     };

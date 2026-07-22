@@ -17,7 +17,6 @@ function ensureCloudinaryConfigured() {
         secure: true,
       });
       configured = true;
-      console.log('Cloudinary configured via CLOUDINARY_URL');
       return;
     }
   }
@@ -34,7 +33,6 @@ function ensureCloudinaryConfigured() {
       secure: true,
     });
     configured = true;
-    console.log('Cloudinary configured via individual env vars');
     return;
   }
 

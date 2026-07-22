@@ -9,13 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
-const DEFAULT_STAFF = [
-  { id: 1, name: 'Priya Sharma', role: 'Lab Technician', email: 'priya@medicore.com', phone: '9876543210', status: 'Active', department: 'Pathology', joinDate: '2024-01-15', qualification: 'B.Sc MLT' },
-  { id: 2, name: 'Rahul Verma', role: 'Phlebotomist', email: 'rahul@medicore.com', phone: '9876543211', status: 'Active', department: 'Sample Collection', joinDate: '2024-03-01', qualification: 'DMLT' },
-  { id: 3, name: 'Anita Patel', role: 'Radiographer', email: 'anita@medicore.com', phone: '9876543212', status: 'Active', department: 'Radiology', joinDate: '2023-11-20', qualification: 'B.Sc Radiography' },
-  { id: 4, name: 'Suresh Kumar', role: 'Lab Assistant', email: 'suresh@medicore.com', phone: '9876543213', status: 'On Leave', department: 'Pathology', joinDate: '2024-06-01', qualification: 'DMLT' },
-  { id: 5, name: 'Neha Singh', role: 'Quality Analyst', email: 'neha@medicore.com', phone: '9876543214', status: 'Active', department: 'Quality Control', joinDate: '2024-02-10', qualification: 'M.Sc Biochemistry' },
-];
+
 
 export default function LabStaff() {
   const [staffList, setStaffList] = useState([]);
@@ -32,10 +26,10 @@ export default function LabStaff() {
     try {
       setLoading(true);
       const data = await api.getStaff();
-      setStaffList(data?.length > 0 ? data : DEFAULT_STAFF);
+      setStaffList(data || []);
     } catch (error) {
       console.error(error);
-      setStaffList(DEFAULT_STAFF);
+      setStaffList([]);
       toast.error('Failed to load staff list');
     } finally {
       setLoading(false);
@@ -116,6 +110,13 @@ export default function LabStaff() {
         </Card>
       )}
 
+      {!loading && staffList.length === 0 ? (
+        <div className="text-center py-16 text-muted-foreground">
+          <Users className="w-12 h-12 mx-auto mb-3 opacity-40" />
+          <p className="font-medium">No staff members yet</p>
+          <p className="text-sm mt-1">Click "Add Staff" to add your first team member</p>
+        </div>
+      ) : (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {staffList.map(staff => (
           <motion.div key={staff.id} layout initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-card rounded-2xl border border-border/50 overflow-hidden hover:shadow-lg transition-all">
@@ -144,6 +145,7 @@ export default function LabStaff() {
           </motion.div>
         ))}
       </div>
+      )}
     </div>
   );
 }
