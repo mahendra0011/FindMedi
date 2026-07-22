@@ -1,6 +1,7 @@
 import express from 'express';
 import Payment from '../models/Payment.js';
 import { protect, adminOnly } from '../middleware/auth.js';
+import { auditLog } from '../middleware/audit.js';
 
 const router = express.Router();
 
@@ -21,6 +22,7 @@ router.post('/', protect, async (req, res) => {
   try {
     const transaction_id = `TXN-${Date.now()}`;
     const payment = await Payment.create({ ...req.body, transaction_id, hospitalId: req.user.hospitalId || undefined });
+    await auditLog('create_payment', req.user._id, { paymentId: payment._id, amount: payment.amount, transaction_id });
     res.status(201).json(payment);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -34,6 +36,7 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
     }
     Object.assign(payment, req.body);
     await payment.save();
+    await auditLog('update_payment', req.user._id, { paymentId: payment._id, changes: req.body });
     res.json(payment);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -43,12 +46,16 @@ router.put('/:id/refund', protect, adminOnly, async (req, res) => {
     const refund_amount = req.body.refund_amount || 0;
     const payment = await Payment.findById(req.params.id);
     if (!payment) return res.status(404).json({ message: 'Payment not found' });
+    if (refund_amount > payment.amount) {
+      return res.status(400).json({ message: `Refund amount (${refund_amount}) cannot exceed original payment amount (${payment.amount})` });
+    }
     if (req.user.hospitalId && req.user.role !== 'superadmin' && payment.hospitalId?.toString() !== req.user.hospitalId.toString()) {
       return res.status(403).json({ message: 'Access denied' });
     }
     payment.status = 'refunded';
     payment.refund_amount = refund_amount;
     await payment.save();
+    await auditLog('refund_payment', req.user._id, { paymentId: payment._id, refund_amount, original_amount: payment.amount });
     res.json({ message: `Refund of ${refund_amount} processed`, payment });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
