@@ -319,13 +319,15 @@ function TypeDetails({ place, route }) {
     return (
       <>
         <div className="flex flex-wrap gap-1.5">
+          {routeText ? <InfoBadge tone="blue">{routeText}</InfoBadge> : null}
           {isTruthy(raw.emergency24x7) ? <InfoBadge tone="red">24/7 Emergency</InfoBadge> : null}
           {isTruthy(raw.ambulanceService) ? <InfoBadge tone="blue">Ambulance</InfoBadge> : null}
           {raw.bedAvailability ? <InfoBadge tone="green">{raw.bedAvailability} Beds</InfoBadge> : null}
-          {raw.status === 'approved' || raw.verified ? <InfoBadge tone="green">Verified</InfoBadge> : null}
         </div>
         <div className="flex flex-wrap gap-1.5">
+          {raw.status === 'approved' || raw.verified ? <InfoBadge tone="green">Verified</InfoBadge> : null}
           {raw.hospitalType ? <InfoBadge>{displayValue(raw.hospitalType)}</InfoBadge> : null}
+          {raw.nabhNumber || accreditations.some((item) => /nabh/i.test(item)) ? <InfoBadge tone="green">NABH Accredited</InfoBadge> : null}
           {specialties.map((item) => <InfoBadge key={item}>{item}</InfoBadge>)}
         </div>
       </>
@@ -338,7 +340,11 @@ function TypeDetails({ place, route }) {
     return (
       <>
         <div className="flex flex-wrap gap-1.5">
+          {routeText ? <InfoBadge tone="blue">{routeText}</InfoBadge> : null}
           {doctors ? <InfoBadge tone="blue">{doctors} Doctors available</InfoBadge> : null}
+          {raw.status === 'approved' || raw.verified ? <InfoBadge tone="green">Verified</InfoBadge> : null}
+        </div>
+        <div className="flex flex-wrap gap-1.5">
           {accreditations[0] ? <InfoBadge tone="green">{accreditations[0]}</InfoBadge> : null}
           {specialties.map((item) => <InfoBadge key={item}>{item}</InfoBadge>)}
         </div>
@@ -356,6 +362,7 @@ function TypeDetails({ place, route }) {
       <>
         <div className="flex flex-wrap gap-1.5">
           {routeText ? <InfoBadge tone="blue">{routeText}</InfoBadge> : null}
+          {raw.status === 'approved' || raw.verified ? <InfoBadge tone="green">Verified</InfoBadge> : null}
           {raw.nablNumber || accreditations.some((item) => /nabl/i.test(item)) ? <InfoBadge tone="green">NABL Accredited</InfoBadge> : null}
           {raw.aerbNumber || accreditations.some((item) => /aerb/i.test(item)) ? <InfoBadge tone="green">AERB Certified</InfoBadge> : null}
           {isTruthy(amenities.homeCollection || raw.homeSampleCollection || raw.homeCollection) ? <InfoBadge tone="blue">Home Collection</InfoBadge> : null}
