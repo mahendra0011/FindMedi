@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
@@ -161,11 +161,11 @@ export default function MedicineStoreDetail() {
           <h4 className="font-heading font-semibold text-xs sm:text-sm text-foreground leading-tight line-clamp-1">{med.name}</h4>
           <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 line-clamp-1">{med.brand} | {med.pack}</p>
           <div className="flex items-center gap-1.5 mt-1.5">
-            <span className="text-sm sm:text-base font-bold text-foreground">₹{med.price}</span>
-            {med.mrp > med.price && <span className="text-[10px] sm:text-xs text-muted-foreground line-through">₹{med.mrp}</span>}
+            <span className="text-sm sm:text-base font-bold text-foreground">â‚¹{med.price}</span>
+            {med.mrp > med.price && <span className="text-[10px] sm:text-xs text-muted-foreground line-through">â‚¹{med.mrp}</span>}
           </div>
           <span className={cn('text-[10px] font-medium mt-1', med.inStock ? 'text-emerald-600' : 'text-red-500')}>
-            {med.inStock ? '✓ In Stock' : '✕ Out of Stock'}
+            {med.inStock ? 'âœ“ In Stock' : 'âœ• Out of Stock'}
           </span>
           <div className="mt-auto pt-2">
             {med.rx ? (
@@ -242,7 +242,7 @@ export default function MedicineStoreDetail() {
           <span className="text-foreground font-medium truncate">{store.name}</span>
         </motion.div>
 
-        {/* ════════ 1. HERO SECTION ════════ */}
+        {/* â•â•â•â•â•â•â•â• 1. HERO SECTION â•â•â•â•â•â•â•â• */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
 
@@ -318,7 +318,7 @@ export default function MedicineStoreDetail() {
 
               <div className={cn('px-4 py-2.5 rounded-xl border text-sm text-center font-semibold flex items-center justify-center gap-2', store.open ? 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10' : 'bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10')}>
                 <span className={cn('w-2 h-2 rounded-full animate-pulse', store.open ? 'bg-emerald-500' : 'bg-red-500')} />
-                {store.open ? `Open Now — ${store.timing}` : 'Closed'}
+                {store.open ? `Open Now â€” ${store.timing}` : 'Closed'}
               </div>
 
               <div className="flex gap-2 mt-auto pt-3">
@@ -338,13 +338,13 @@ export default function MedicineStoreDetail() {
           </div>
         </motion.div>
 
-        {/* ════════ 2. QUICK STATS STRIP ════════ */}
+        {/* â•â•â•â•â•â•â•â• 2. QUICK STATS STRIP â•â•â•â•â•â•â•â• */}
         <motion.div variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true }}
           className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
           {[
             { icon:CalendarDays, label:'Established', value:store.established, color:'text-primary', desc:`Since ${store.established}` },
             { icon:Pill, label:'Medicines Available', value:allMeds.filter(m => m.inStock).length, color:'text-blue-500', desc:'In stock items' },
-            { icon:Truck, label:'Delivery Time', value:store.deliveryTime, color:'text-purple-500', desc:store.deliveryCharges === 0 ? 'Free delivery' : `₹${store.deliveryCharges} per order` },
+            { icon:Truck, label:'Delivery Time', value:store.deliveryTime, color:'text-purple-500', desc:store.deliveryCharges === 0 ? 'Free delivery' : `â‚¹${store.deliveryCharges} per order` },
             { icon:Star, label:'Rating', value:store.rating, color:'text-emerald-500', desc:`${store.reviews} reviews` },
           ].map(stat => (
             <motion.div key={stat.label} variants={fadeUp}
@@ -360,7 +360,7 @@ export default function MedicineStoreDetail() {
           ))}
         </motion.div>
 
-        {/* ════════ 3. MAIN CONTENT + SIDEBAR ════════ */}
+        {/* â•â•â•â•â•â•â•â• 3. MAIN CONTENT + SIDEBAR â•â•â•â•â•â•â•â• */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
 
           {/* Left Column */}
@@ -682,7 +682,7 @@ export default function MedicineStoreDetail() {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between mb-6">
                     <SectionTitle icon={Star} label={`Reviews (${store.reviews})`} />
-                    <Button variant="outline" size="sm" className="rounded-lg text-xs gap-1.5" onClick={() => toast.success('Review form coming soon')}>
+                    <Button variant="outline" size="sm" className="rounded-lg text-xs gap-1.5" onClick={() => toast.info\('Write a review feature coming soon'\)}>
                       <Star className="w-3.5 h-3.5" /> Write a Review
                     </Button>
                   </div>
@@ -759,7 +759,7 @@ export default function MedicineStoreDetail() {
 
           </div>
 
-          {/* ──── RIGHT SIDEBAR ──── */}
+          {/* â”€â”€â”€â”€ RIGHT SIDEBAR â”€â”€â”€â”€ */}
           <div className="space-y-6">
 
             {/* Trust & Info */}
@@ -776,9 +776,9 @@ export default function MedicineStoreDetail() {
                         ['Delivery Time', store.deliveryTime],
                         ['Distance', store.distance || '0.8 km'],
                         ['Working Hours', store.workingHours],
-                        ['Delivery', store.deliveryCharges === 0 ? 'Free' : `₹${store.deliveryCharges}`],
+                        ['Delivery', store.deliveryCharges === 0 ? 'Free' : `â‚¹${store.deliveryCharges}`],
                         ['Delivery Area', store.deliveryArea],
-                        ['Min. Order', store.minOrder > 0 ? `₹${store.minOrder}` : 'No minimum'],
+                        ['Min. Order', store.minOrder > 0 ? `â‚¹${store.minOrder}` : 'No minimum'],
                       ].map(([label, val]) => (
                         <div key={label} className="flex items-center justify-between text-sm">
                           <span className="text-muted-foreground">{label}</span>
@@ -913,7 +913,7 @@ export default function MedicineStoreDetail() {
         </div>
       </div>
 
-      {/* ═══════════ SUGGESTED STORES ═══════════ */}
+      {/* â•â•â•â•â•â•â•â•â•â•â• SUGGESTED STORES â•â•â•â•â•â•â•â•â•â•â• */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-10 mb-20">
         <motion.div variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true }}>
           <div className="flex items-center gap-3 mb-5">
@@ -959,7 +959,7 @@ export default function MedicineStoreDetail() {
         </motion.div>
       </div>
 
-      {/* ═══ PRESCRIPTION MODAL ═══ */}
+      {/* â•â•â• PRESCRIPTION MODAL â•â•â• */}
       {showRx && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setShowRx(false)}>
           <motion.div initial={{ opacity:0, scale:0.95 }} animate={{ opacity:1, scale:1 }}
@@ -1006,7 +1006,7 @@ export default function MedicineStoreDetail() {
         </div>
       )}
 
-      {/* ═══ BOTTOM STICKY BAR ═══ */}
+      {/* â•â•â• BOTTOM STICKY BAR â•â•â• */}
       {storeCartCount > 0 && (
         <motion.div initial={{ y:100 }} animate={{ y:0 }}
           className="fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-xl border-t border-border/50 shadow-2xl">
@@ -1017,7 +1017,7 @@ export default function MedicineStoreDetail() {
               </div>
               <div>
                 <span className="text-xs text-muted-foreground">{storeCartCount} item{storeCartCount > 1 ? 's' : ''}</span>
-                <span className="text-lg font-bold text-foreground block leading-tight">₹{storeCartTotal}</span>
+                <span className="text-lg font-bold text-foreground block leading-tight">â‚¹{storeCartTotal}</span>
               </div>
             </div>
             <Button className="gap-2 rounded-xl shadow-lg shadow-primary/30 px-6 h-11" onClick={() => navigate('/cart')}>
