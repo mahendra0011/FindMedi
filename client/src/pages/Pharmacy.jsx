@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+﻿import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Pill, Search, Plus, Clock, CheckCircle, AlertTriangle, X, Package, AlertCircle,
@@ -41,7 +41,7 @@ let mockDeliveries = [
 let mockOffers = [
   { _id: 'o1', title: 'Summer Health Sale', code: 'SUMMER25', discount: 25, type: 'percentage', minPurchase: 500, maxDiscount: 2000, validTill: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0], usageLimit: 100, used: 23, isActive: true },
   { _id: 'o2', title: 'New User Welcome', code: 'WELCOME10', discount: 10, type: 'percentage', minPurchase: 0, maxDiscount: 500, validTill: new Date(Date.now() + 60 * 86400000).toISOString().split('T')[0], usageLimit: 500, used: 87, isActive: true },
-  { _id: 'o3', title: 'Flat ₹200 Off', code: 'FLAT200', discount: 200, type: 'flat', minPurchase: 1000, maxDiscount: 200, validTill: new Date(Date.now() - 5 * 86400000).toISOString().split('T')[0], usageLimit: 200, used: 200, isActive: false },
+  { _id: 'o3', title: 'Flat â‚¹200 Off', code: 'FLAT200', discount: 200, type: 'flat', minPurchase: 1000, maxDiscount: 200, validTill: new Date(Date.now() - 5 * 86400000).toISOString().split('T')[0], usageLimit: 200, used: 200, isActive: false },
 ];
 
 let mockPharmacyStaff = [
@@ -225,7 +225,7 @@ export default function Pharmacy() {
           <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center"><Pill className="w-6 h-6 text-primary" /></div>
           <div>
             <h1 className="page-title">{storeSettings.name}</h1>
-            <p className="page-subtitle">Medical Store Dashboard · {new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+            <p className="page-subtitle">Medical Store Dashboard Â· {new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
           </div>
         </div>
       </div>
@@ -242,7 +242,7 @@ export default function Pharmacy() {
 
       <AnimatePresence mode="wait">
         <motion.div key={tab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
-          {/* ═══════════════════ OVERVIEW ═══════════════════ */}
+          {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• OVERVIEW â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
           {tab === 'overview' && (
             <div className="space-y-6">
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
@@ -252,7 +252,7 @@ export default function Pharmacy() {
                   { label: 'Expiring', value: derivedStats.expiringSoon, icon: Clock, color: 'text-destructive', bg: 'bg-destructive/10' },
                   { label: 'Orders', value: derivedStats.totalOrders, icon: ShoppingCart, color: 'text-info', bg: 'bg-info/10' },
                   { label: 'Pending Rx', value: derivedStats.pendingDispense, icon: ClipboardList, color: 'text-warning', bg: 'bg-warning/10' },
-                  { label: 'Revenue', value: `₹${(derivedStats.revenue / 1000).toFixed(1)}k`, icon: IndianRupee, color: 'text-success', bg: 'bg-success/10' },
+                  { label: 'Revenue', value: `â‚¹${(derivedStats.revenue / 1000).toFixed(1)}k`, icon: IndianRupee, color: 'text-success', bg: 'bg-success/10' },
                 ].map(s => (
                   <div key={s.label} className="bg-card rounded-xl border p-4">
                     <div className={`w-10 h-10 rounded-xl ${s.bg} flex items-center justify-center mb-3`}><s.icon className={`w-5 h-5 ${s.color}`} /></div>
@@ -304,7 +304,7 @@ export default function Pharmacy() {
             </div>
           )}
 
-          {/* ═══════════════════ INVENTORY ═══════════════════ */}
+          {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• INVENTORY â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
           {tab === 'inventory' && (
             <>
               <div className="flex flex-wrap gap-3 mb-6">
@@ -325,7 +325,7 @@ export default function Pharmacy() {
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center"><Pill className="w-5 h-5 text-primary" /></div>
                           <div><p className="font-medium text-foreground">{med.name} <span className="text-muted-foreground text-xs ml-1">{med.form}</span></p>
-                            <p className="text-xs text-muted-foreground">{med.genericName} · {med.manufacturer}</p></div>
+                            <p className="text-xs text-muted-foreground">{med.genericName} Â· {med.manufacturer}</p></div>
                         </div>
                         <div className="flex items-center gap-3">
                           <span className={`px-2 py-0.5 rounded text-xs font-medium ${low ? 'bg-destructive/10 text-destructive' : 'bg-success/10 text-success'}`}>{med.currentStock} in stock</span>
@@ -337,8 +337,8 @@ export default function Pharmacy() {
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                             <div><p className="text-muted-foreground">Batch</p><p className="font-medium">{med.batchNumber}</p></div>
                             <div><p className="text-muted-foreground">Expiry</p><p className="font-medium">{new Date(med.expiryDate).toLocaleDateString()}</p></div>
-                            <div><p className="text-muted-foreground">Purchase Price</p><p className="font-medium">₹{med.purchasePrice}</p></div>
-                            <div><p className="text-muted-foreground">Selling Price</p><p className="font-medium">₹{med.sellingPrice}</p></div>
+                            <div><p className="text-muted-foreground">Purchase Price</p><p className="font-medium">â‚¹{med.purchasePrice}</p></div>
+                            <div><p className="text-muted-foreground">Selling Price</p><p className="font-medium">â‚¹{med.sellingPrice}</p></div>
                             <div><p className="text-muted-foreground">Reorder Level</p><p className="font-medium">{med.reorderLevel}</p></div>
                             <div><p className="text-muted-foreground">Rack</p><p className="font-medium">{med.rackLocation || 'N/A'}</p></div>
                           </div>
@@ -358,7 +358,7 @@ export default function Pharmacy() {
             </>
           )}
 
-          {/* ═══════════════════ ORDERS ═══════════════════ */}
+          {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• ORDERS â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
           {tab === 'orders' && (
             <>
               <div className="flex flex-wrap gap-3 mb-6 items-center">
@@ -375,10 +375,10 @@ export default function Pharmacy() {
                       <div>
                         <div className="flex items-center gap-2 mb-1"><span className="font-semibold">{o.orderId}</span><StatusBadge status={o.status} /></div>
                         <p className="text-sm font-medium">{o.patientName}</p>
-                        <p className="text-xs text-muted-foreground">{o.phone} · {o.deliveryAddress}</p>
+                        <p className="text-xs text-muted-foreground">{o.phone} Â· {o.deliveryAddress}</p>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold text-lg">₹{o.total.toLocaleString()}</p>
+                        <p className="font-bold text-lg">â‚¹{o.total.toLocaleString()}</p>
                         <StatusBadge status={o.paymentStatus} />
                       </div>
                     </div>
@@ -400,7 +400,7 @@ export default function Pharmacy() {
             </>
           )}
 
-          {/* ═══════════════════ PRESCRIPTIONS ═══════════════════ */}
+          {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• PRESCRIPTIONS â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
           {tab === 'prescriptions' && (
             <>
               <div className="flex flex-wrap gap-3 mb-6 items-center">
@@ -417,7 +417,7 @@ export default function Pharmacy() {
                           <StatusBadge status={rx.status} mapping={{ Active: 'bg-info/10 text-info', Dispensed: 'bg-success/10 text-success', 'Partially Dispensed': 'bg-warning/10 text-warning', Cancelled: 'bg-destructive/10 text-destructive' }} />
                         </div>
                         <p className="text-sm font-medium">{rx.patientName}</p>
-                        <p className="text-xs text-muted-foreground">Dr. {rx.doctorName} · {rx.medicines?.length || 0} medicine(s)</p>
+                        <p className="text-xs text-muted-foreground">Dr. {rx.doctorName} Â· {rx.medicines?.length || 0} medicine(s)</p>
                       </div>
                       <span className="text-xs text-muted-foreground"><Clock className="w-3 h-3 inline mr-1" />{new Date(rx.createdAt).toLocaleDateString()}</span>
                     </div>
@@ -426,7 +426,7 @@ export default function Pharmacy() {
                         <div key={i} className="flex items-center justify-between bg-muted/30 rounded-lg p-2">
                           <div>
                             <p className="text-sm font-medium text-foreground">{m.medicineName} {m.dosage}</p>
-                            <p className="text-xs text-muted-foreground">{m.frequency} · {m.duration} · Qty: {m.quantity}</p>
+                            <p className="text-xs text-muted-foreground">{m.frequency} Â· {m.duration} Â· Qty: {m.quantity}</p>
                           </div>
                           <div className="flex items-center gap-2">
                             {m.isDispensed ? <CheckCircle className="w-4 h-4 text-success" /> : <Button size="sm" variant="outline" onClick={async () => { await pharmApi.dispense(rx._id, { medicineIndex: i }); loadPrescriptions(); showToast(`${m.medicineName} dispensed`); }}>Dispense</Button>}
@@ -441,7 +441,7 @@ export default function Pharmacy() {
             </>
           )}
 
-          {/* ═══════════════════ DELIVERY ═══════════════════ */}
+          {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• DELIVERY â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
           {tab === 'delivery' && (
             <>
               <SectionHeader title="Delivery Management" subtitle={`${deliveries.filter(d => d.status === 'In Transit' || d.status === 'Pending Pickup').length} active deliveries`}
@@ -453,13 +453,13 @@ export default function Pharmacy() {
                       <div>
                         <div className="flex items-center gap-2 mb-1"><span className="font-semibold">{d.orderId}</span><StatusBadge status={d.status} /></div>
                         <p className="text-sm font-medium"><Truck className="w-3 h-3 inline mr-1 text-muted-foreground" />{d.deliveryPerson}</p>
-                        <p className="text-xs text-muted-foreground">{d.phone} · ETA: {d.estimatedTime}</p>
+                        <p className="text-xs text-muted-foreground">{d.phone} Â· ETA: {d.estimatedTime}</p>
                       </div>
                     </div>
                     <div className="space-y-1">
                       {d.tracking.map((t, i) => (
                         <div key={i} className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <div className="w-2 h-2 rounded-full bg-primary" /> {t.location} · {new Date(t.time).toLocaleTimeString()}
+                          <div className="w-2 h-2 rounded-full bg-primary" /> {t.location} Â· {new Date(t.time).toLocaleTimeString()}
                         </div>
                       ))}
                     </div>
@@ -474,7 +474,7 @@ export default function Pharmacy() {
             </>
           )}
 
-          {/* ═══════════════════ BILLING ═══════════════════ */}
+          {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• BILLING â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
           {tab === 'billing' && (
             <>
               <div className="flex flex-wrap gap-3 mb-6 items-center">
@@ -503,7 +503,7 @@ export default function Pharmacy() {
                         <td className="py-3 px-2 font-medium">{b.invoiceId || b._id}</td>
                         <td className="py-3 px-2">{b.patientName}</td>
                         <td className="py-3 px-2">{b.items?.length || 0}</td>
-                        <td className="py-3 px-2 text-right font-medium">₹{b.total?.toLocaleString() || 0}</td>
+                        <td className="py-3 px-2 text-right font-medium">â‚¹{b.total?.toLocaleString() || 0}</td>
                         <td className="py-3 px-2 text-center"><StatusBadge status={b.status} /></td>
                         <td className="py-3 px-2 text-right text-muted-foreground">{b.date || b.orderDate?.split('T')[0]}</td>
                       </tr>
@@ -513,7 +513,7 @@ export default function Pharmacy() {
                         <td className="py-3 px-2 font-medium">{o.orderId}</td>
                         <td className="py-3 px-2">{o.patientName}</td>
                         <td className="py-3 px-2">{o.items?.length || 0}</td>
-                        <td className="py-3 px-2 text-right font-medium">₹{o.total?.toLocaleString() || 0}</td>
+                        <td className="py-3 px-2 text-right font-medium">â‚¹{o.total?.toLocaleString() || 0}</td>
                         <td className="py-3 px-2 text-center"><StatusBadge status={o.paymentStatus} /></td>
                         <td className="py-3 px-2 text-right text-muted-foreground">{o.orderDate?.split('T')[0]}</td>
                       </tr>
@@ -524,7 +524,7 @@ export default function Pharmacy() {
             </>
           )}
 
-          {/* ═══════════════════ RETURNS ═══════════════════ */}
+          {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• RETURNS â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
           {tab === 'returns' && (
             <>
               <SectionHeader title="Returns & Refunds" subtitle={`${returns.filter(r => r.status === 'Pending').length} pending requests`}
@@ -535,9 +535,9 @@ export default function Pharmacy() {
                     <div className="flex items-start justify-between mb-3">
                       <div>
                         <div className="flex items-center gap-2 mb-1"><span className="font-semibold">{r.returnId}</span><StatusBadge status={r.status} /></div>
-                        <p className="text-sm font-medium">{r.patientName} · {r.orderId}</p>
+                        <p className="text-sm font-medium">{r.patientName} Â· {r.orderId}</p>
                       </div>
-                      <p className="font-bold">₹{r.total.toLocaleString()}</p>
+                      <p className="font-bold">â‚¹{r.total.toLocaleString()}</p>
                     </div>
                     <div className="space-y-1">
                       {r.items.map((item, i) => (
@@ -560,7 +560,7 @@ export default function Pharmacy() {
             </>
           )}
 
-          {/* ═══════════════════ STAFF ═══════════════════ */}
+          {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• STAFF â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
           {tab === 'staff' && (
             <>
               <SectionHeader title="Pharmacy Staff" subtitle={`${staffList.filter(s => s.isActive).length} active staff members`}
@@ -579,7 +579,7 @@ export default function Pharmacy() {
                       <p><Phone className="w-3 h-3 inline mr-1" />{s.phone}</p>
                       <p><Mail className="w-3 h-3 inline mr-1" />{s.email}</p>
                       {s.licenseNumber && <p><Shield className="w-3 h-3 inline mr-1" />License: {s.licenseNumber}</p>}
-                      <p className="text-xs">Exp: {s.experience} · Shift: {s.shift} · Since {s.joinedAt}</p>
+                      <p className="text-xs">Exp: {s.experience} Â· Shift: {s.shift} Â· Since {s.joinedAt}</p>
                     </div>
                     <div className="flex gap-2 mt-3 pt-3 border-t">
                       <Button size="sm" variant="outline" onClick={() => { setStaffList(ss => ss.map(st => st._id === s._id ? { ...st, isActive: !st.isActive } : st)); showToast(`Staff ${s.isActive ? 'deactivated' : 'activated'}`); }}>{s.isActive ? 'Deactivate' : 'Activate'}</Button>
@@ -591,7 +591,7 @@ export default function Pharmacy() {
             </>
           )}
 
-          {/* ═══════════════════ OFFERS ═══════════════════ */}
+          {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• OFFERS â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
           {tab === 'offers' && (
             <>
               <SectionHeader title="Offers & Discounts" subtitle={`${offers.filter(o => o.isActive).length} active offers`}
@@ -607,8 +607,8 @@ export default function Pharmacy() {
                       <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${o.isActive ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}`}>{o.isActive ? 'Active' : 'Expired'}</span>
                     </div>
                     <div className="text-sm space-y-1">
-                      <p className="text-lg font-bold text-primary">{o.type === 'percentage' ? `${o.discount}% Off` : `₹${o.discount} Off`}</p>
-                      <p className="text-muted-foreground">Min purchase: ₹{o.minPurchase} · {o.used}/{o.usageLimit} used</p>
+                      <p className="text-lg font-bold text-primary">{o.type === 'percentage' ? `${o.discount}% Off` : `â‚¹${o.discount} Off`}</p>
+                      <p className="text-muted-foreground">Min purchase: â‚¹{o.minPurchase} Â· {o.used}/{o.usageLimit} used</p>
                       <p className="text-xs text-muted-foreground">Valid till: {o.validTill}</p>
                     </div>
                     <div className="flex gap-2 mt-3 pt-3 border-t">
@@ -621,29 +621,29 @@ export default function Pharmacy() {
             </>
           )}
 
-          {/* ═══════════════════ REVIEWS ═══════════════════ */}
+          {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• REVIEWS â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
           {tab === 'reviews' && (
             <>
-              <SectionHeader title="Patient Reviews" subtitle={`${reviews.length} reviews · ${(reviews.reduce((s, r) => s + r.rating, 0) / reviews.length || 0).toFixed(1)} avg rating`} />
+              <SectionHeader title="Patient Reviews" subtitle={`${reviews.length} reviews Â· ${(reviews.reduce((s, r) => s + r.rating, 0) / reviews.length || 0).toFixed(1)} avg rating`} />
               <div className="space-y-3">
                 {reviews.map(r => (
                   <div key={r._id} className="bg-card rounded-xl border p-4">
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center"><User className="w-5 h-5 text-primary" /></div>
-                        <div><p className="font-medium">{r.patientName}</p><p className="text-xs text-muted-foreground">{r.orderId} · {r.date}</p></div>
+                        <div><p className="font-medium">{r.patientName}</p><p className="text-xs text-muted-foreground">{r.orderId} Â· {r.date}</p></div>
                       </div>
                       <div className="flex items-center gap-0.5">{Array.from({ length: 5 }, (_, i) => <Star key={i} className={`w-4 h-4 ${i < r.rating ? 'text-warning fill-warning' : 'text-muted'}`} />)}</div>
                     </div>
                     <p className="text-sm text-foreground/80">{r.comment}</p>
                   </div>
                 ))}
-                {reviews.length === 0 && <div className="text-center py-20"><Star className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" /><p className="text-muted-foreground">No reviews yet</p></div>}
+                {reviews.length === 0 && reviewCount === 0 && <div className="text-center py-20"><Star className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" /><p className="text-muted-foreground">No reviews yet</p></div>${/reviews.length === 0 \&\& reviewCount > 0 && <div className=text-center py-20><Star className=w-12 h-12 text-muted-foreground/30 mx-auto mb-3 /><p className=text-muted-foreground>Reviews summary available, individual reviews loading soon.</p></div>}}
               </div>
             </>
           )}
 
-          {/* ═══════════════════ REPORTS ═══════════════════ */}
+          {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• REPORTS â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
           {tab === 'reports' && (
             <>
               <SectionHeader title="Pharmacy Reports" subtitle="Analytics and sales data"
@@ -654,8 +654,8 @@ export default function Pharmacy() {
                   <div className="space-y-4">
                     {[
                       { label: 'Total Orders', value: orders.length, change: '+12%' },
-                      { label: 'Revenue', value: `₹${orders.filter(o => o.paymentStatus === 'Paid').reduce((s, o) => s + o.total, 0).toLocaleString()}`, change: '+18%' },
-                      { label: 'Avg Order Value', value: `₹${orders.length ? Math.round(orders.reduce((s, o) => s + o.total, 0) / orders.length).toLocaleString() : 0}`, change: '+5%' },
+                      { label: 'Revenue', value: `â‚¹${orders.filter(o => o.paymentStatus === 'Paid').reduce((s, o) => s + o.total, 0).toLocaleString()}`, change: '+18%' },
+                      { label: 'Avg Order Value', value: `â‚¹${orders.length ? Math.round(orders.reduce((s, o) => s + o.total, 0) / orders.length).toLocaleString() : 0}`, change: '+5%' },
                       { label: 'Medicines Dispensed', value: medicines.reduce((s, m) => s + (m.currentStock || 0), 0), change: '-3%' },
                     ].map(d => (
                       <div key={d.label} className="flex items-center justify-between">
@@ -690,7 +690,7 @@ export default function Pharmacy() {
                   {[
                     ...orders.slice(0, 3).map(o => ({ text: `Order ${o.orderId} ${o.status.toLowerCase()} for ${o.patientName}`, time: o.orderDate })),
                     ...prescriptions.slice(0, 3).map(r => ({ text: `Prescription ${r.prescriptionId} ${r.status.toLowerCase()} - ${r.patientName}`, time: r.createdAt })),
-                    ...returns.filter(r => r.status === 'Approved').slice(0, 2).map(r => ({ text: `Return ${r.returnId} approved - ₹${r.total} refunded`, time: r.completedAt })),
+                    ...returns.filter(r => r.status === 'Approved').slice(0, 2).map(r => ({ text: `Return ${r.returnId} approved - â‚¹${r.total} refunded`, time: r.completedAt })),
                   ].sort((a, b) => new Date(b.time) - new Date(a.time)).slice(0, 8).map((act, i) => (
                     <div key={i} className="flex items-center gap-3 text-sm">
                       <div className="w-2 h-2 rounded-full bg-primary" />
@@ -703,10 +703,10 @@ export default function Pharmacy() {
             </>
           )}
 
-          {/* ═══════════════════ STOCK ALERTS ═══════════════════ */}
+          {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• STOCK ALERTS â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
           {tab === 'alerts' && (
             <>
-              <SectionHeader title="Low Stock & Expiry Alerts" subtitle={`${medicines.filter(m => m.currentStock <= m.reorderLevel).length} items low stock · ${medicines.filter(m => new Date(m.expiryDate) < new Date(Date.now() + 90 * 86400000)).length} items expiring soon`}
+              <SectionHeader title="Low Stock & Expiry Alerts" subtitle={`${medicines.filter(m => m.currentStock <= m.reorderLevel).length} items low stock Â· ${medicines.filter(m => new Date(m.expiryDate) < new Date(Date.now() + 90 * 86400000)).length} items expiring soon`}
                 action={<Button size="sm" variant="outline" onClick={() => showToast('Report generated')}><Download className="w-4 h-4 mr-1" /> Export Alert Report</Button>} />
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="bg-card rounded-xl border p-5">
@@ -714,7 +714,7 @@ export default function Pharmacy() {
                   <div className="space-y-3">
                     {medicines.filter(m => m.currentStock <= m.reorderLevel).sort((a, b) => (a.currentStock / a.reorderLevel) - (b.currentStock / b.reorderLevel)).map(m => (
                       <div key={m._id} className="flex items-center justify-between p-3 bg-warning/5 rounded-lg border border-warning/20">
-                        <div><p className="text-sm font-medium">{m.name}</p><p className="text-xs text-muted-foreground">{m.genericName} · Reorder at {m.reorderLevel}</p></div>
+                        <div><p className="text-sm font-medium">{m.name}</p><p className="text-xs text-muted-foreground">{m.genericName} Â· Reorder at {m.reorderLevel}</p></div>
                         <div className="text-right"><p className="text-lg font-bold text-destructive">{m.currentStock}</p><p className="text-xs text-muted-foreground">remaining</p></div>
                       </div>
                     ))}
@@ -737,12 +737,12 @@ export default function Pharmacy() {
             </>
           )}
 
-          {/* ═══════════════════ SETTINGS ═══════════════════ */}
+          {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• SETTINGS â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
           {tab === 'settings' && (
             <div className="max-w-2xl">
               <SectionHeader title="Store Profile Settings" subtitle="Configure your pharmacy store details" />
               <div className="bg-card rounded-xl border p-6 space-y-5">
-                {[{ key: 'name', label: 'Store Name' }, { key: 'address', label: 'Address' }, { key: 'phone', label: 'Phone' }, { key: 'email', label: 'Email' }, { key: 'licenseNo', label: 'License Number' }, { key: 'timing', label: 'Operating Hours' }, { key: 'deliveryRadius', label: 'Delivery Radius' }, { key: 'minOrderAmt', label: 'Minimum Order Amount (₹)' }, { key: 'deliveryFee', label: 'Delivery Fee (₹)' }, { key: 'gst', label: 'GST (%)' }].map(f => (
+                {[{ key: 'name', label: 'Store Name' }, { key: 'address', label: 'Address' }, { key: 'phone', label: 'Phone' }, { key: 'email', label: 'Email' }, { key: 'licenseNo', label: 'License Number' }, { key: 'timing', label: 'Operating Hours' }, { key: 'deliveryRadius', label: 'Delivery Radius' }, { key: 'minOrderAmt', label: 'Minimum Order Amount (â‚¹)' }, { key: 'deliveryFee', label: 'Delivery Fee (â‚¹)' }, { key: 'gst', label: 'GST (%)' }].map(f => (
                   <div key={f.key}>
                     <label className="text-sm font-medium mb-1 block">{f.label}</label>
                     <Input value={storeSettings[f.key]} onChange={e => setStoreSettings(s => ({ ...s, [f.key]: e.target.value }))} />
@@ -761,7 +761,7 @@ export default function Pharmacy() {
         </motion.div>
       </AnimatePresence>
 
-      {/* ═══════════════════ MODALS ═══════════════════ */}
+      {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• MODALS â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
 
       {/* Add / Edit Medicine Modal */}
       {showModal === 'add-medicine' && (
@@ -865,12 +865,12 @@ export default function Pharmacy() {
               <div><label className="text-sm font-medium mb-1 block">Coupon Code</label><Input value={newOffer.code} onChange={e => setNewOffer({ ...newOffer, code: e.target.value.toUpperCase() })} /></div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div><label className="text-sm font-medium mb-1 block">Discount</label><Input type="number" value={newOffer.discount} onChange={e => setNewOffer({ ...newOffer, discount: e.target.value })} placeholder={newOffer.type === 'percentage' ? '%' : '₹'} /></div>
-              <div><label className="text-sm font-medium mb-1 block">Type</label><select value={newOffer.type} onChange={e => setNewOffer({ ...newOffer, type: e.target.value })} className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm"><option value="percentage">Percentage (%)</option><option value="flat">Flat Amount (₹)</option></select></div>
+              <div><label className="text-sm font-medium mb-1 block">Discount</label><Input type="number" value={newOffer.discount} onChange={e => setNewOffer({ ...newOffer, discount: e.target.value })} placeholder={newOffer.type === 'percentage' ? '%' : 'â‚¹'} /></div>
+              <div><label className="text-sm font-medium mb-1 block">Type</label><select value={newOffer.type} onChange={e => setNewOffer({ ...newOffer, type: e.target.value })} className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm"><option value="percentage">Percentage (%)</option><option value="flat">Flat Amount (â‚¹)</option></select></div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div><label className="text-sm font-medium mb-1 block">Min Purchase (₹)</label><Input type="number" value={newOffer.minPurchase} onChange={e => setNewOffer({ ...newOffer, minPurchase: e.target.value })} /></div>
-              <div><label className="text-sm font-medium mb-1 block">Max Discount (₹)</label><Input type="number" value={newOffer.maxDiscount} onChange={e => setNewOffer({ ...newOffer, maxDiscount: e.target.value })} /></div>
+              <div><label className="text-sm font-medium mb-1 block">Min Purchase (â‚¹)</label><Input type="number" value={newOffer.minPurchase} onChange={e => setNewOffer({ ...newOffer, minPurchase: e.target.value })} /></div>
+              <div><label className="text-sm font-medium mb-1 block">Max Discount (â‚¹)</label><Input type="number" value={newOffer.maxDiscount} onChange={e => setNewOffer({ ...newOffer, maxDiscount: e.target.value })} /></div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div><label className="text-sm font-medium mb-1 block">Valid Till</label><Input type="date" value={newOffer.validTill} onChange={e => setNewOffer({ ...newOffer, validTill: e.target.value })} /></div>
@@ -883,5 +883,6 @@ export default function Pharmacy() {
     </div>
   );
 }
+
 
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -51,7 +51,7 @@ const ServiceItem = ({ name, price, index }) => {
         <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">{name}</p>
         <p className="text-[10px] text-muted-foreground">Starting from</p>
       </div>
-      <span className="text-sm font-bold text-foreground whitespace-nowrap">₹{price}</span>
+      <span className="text-sm font-bold text-foreground whitespace-nowrap">â‚¹{price}</span>
     </div>
   );
 };
@@ -204,8 +204,8 @@ export default function ClinicDetail() {
   const clinicWorkingHours = clinic?.timing ? (() => {
     const values = Object.values(clinic.timing || {}).filter(v => v && v !== 'Closed');
     const unique = [...new Set(values)];
-    return unique.length === 1 ? unique[0] : unique.length > 1 ? 'See Schedule' : '—';
-  })() : '—';
+    return unique.length === 1 ? unique[0] : unique.length > 1 ? 'See Schedule' : 'â€”';
+  })() : 'â€”';
 
   useEffect(() => {
     const load = async () => {
@@ -330,7 +330,7 @@ export default function ClinicDetail() {
           <span className="text-foreground font-medium truncate">{clinic.name}</span>
         </motion.div>
 
-        {/* ════════ 1. HERO SECTION ════════ */}
+        {/* â•â•â•â•â•â•â•â• 1. HERO SECTION â•â•â•â•â•â•â•â• */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
 
@@ -414,7 +414,7 @@ export default function ClinicDetail() {
 
               <div className={cn('px-4 py-2.5 rounded-xl border text-sm text-center font-semibold flex items-center justify-center gap-2', clinic.open ? 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10' : 'bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10')}>
                 <span className={cn('w-2 h-2 rounded-full animate-pulse', clinic.open ? 'bg-emerald-500' : 'bg-red-500')} />
-                {clinic.open ? `Open Now — Closes at ${clinic.closingTime}` : 'Closed'}
+                {clinic.open ? `Open Now â€” Closes at ${clinic.closingTime}` : 'Closed'}
               </div>
 
               <div className="flex gap-2 mt-auto pt-3">
@@ -477,7 +477,7 @@ export default function ClinicDetail() {
                           </div>
                           <div className="space-y-1.5">
                             <label className="text-xs font-medium text-foreground">Notes (optional)</label>
-                            <textarea value={bookingNotes} onChange={e => setBookingNotes(e.target.value)} placeholder="Any specific concerns…" className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm resize-none" rows={2} />
+                            <textarea value={bookingNotes} onChange={e => setBookingNotes(e.target.value)} placeholder="Any specific concernsâ€¦" className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm resize-none" rows={2} />
                           </div>
                         </div>
                         <DialogFooter>
@@ -497,7 +497,7 @@ export default function ClinicDetail() {
                         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 border border-primary/20">
                           <CalendarDays className="w-4 h-4 text-primary" />
                           <p className="text-xs font-medium text-primary">
-                            {bookingDate && new Date(bookingDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} • {bookingTime}
+                            {bookingDate && new Date(bookingDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} â€¢ {bookingTime}
                           </p>
                         </div>
                         <DialogFooter className="mt-6">
@@ -520,7 +520,7 @@ export default function ClinicDetail() {
           </div>
         </motion.div>
 
-        {/* ════════ 2. QUICK STATS STRIP ════════ */}
+        {/* â•â•â•â•â•â•â•â• 2. QUICK STATS STRIP â•â•â•â•â•â•â•â• */}
         <motion.div variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true }}
           className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
           {[
@@ -542,10 +542,10 @@ export default function ClinicDetail() {
           ))}
         </motion.div>
 
-        {/* ════════ 3. MAIN CONTENT + STICKY SIDEBAR ════════ */}
+        {/* â•â•â•â•â•â•â•â• 3. MAIN CONTENT + STICKY SIDEBAR â•â•â•â•â•â•â•â• */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
 
-          {/* Left Column — About → Additional Info */}
+          {/* Left Column â€” About â†’ Additional Info */}
           <div className="lg:col-span-2 space-y-6">
 
             <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>
@@ -710,8 +710,8 @@ export default function ClinicDetail() {
                             </div>
                             <div className="mt-auto flex items-center justify-between pt-3 border-t border-border/20">
                               <div>
-                                <span className="text-lg font-bold text-foreground">₹{test.price}</span>
-                                {test.mrp > test.price && <span className="text-xs text-muted-foreground line-through ml-1.5">₹{test.mrp}</span>}
+                                <span className="text-lg font-bold text-foreground">â‚¹{test.price}</span>
+                                {test.mrp > test.price && <span className="text-xs text-muted-foreground line-through ml-1.5">â‚¹{test.mrp}</span>}
                               </div>
                               {testCart[test.id] ? (
                                 <div className="flex items-center gap-1">
@@ -898,7 +898,7 @@ export default function ClinicDetail() {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between mb-6">
                     <SectionTitle icon={Star} label={`Patient Reviews (${clinic.reviewsCount || reviews.length})`} />
-                    <Button variant="outline" size="sm" className="rounded-lg text-xs gap-1.5" onClick={() => toast.success('Review form coming soon')}>
+                    <Button variant="outline" size="sm" className="rounded-lg text-xs gap-1.5" onClick={() => toast.info\('Write a review feature coming soon'\)}>
                       <Star className="w-3.5 h-3.5" /> Write a Review
                     </Button>
                   </div>
@@ -1011,7 +1011,7 @@ export default function ClinicDetail() {
 
           </div>
 
-          {/* ──── RIGHT SIDEBAR ──── */}
+          {/* â”€â”€â”€â”€ RIGHT SIDEBAR â”€â”€â”€â”€ */}
           <div className="space-y-6">
             {/* Trust & Info */}
             <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} className="w-full">
@@ -1024,10 +1024,10 @@ export default function ClinicDetail() {
                   <div className="space-y-4">
                     <div className="space-y-3">
                       {[
-                        ['Established', clinic.established || '—'],
-                        ['Qualified Doctors', clinic.totalDoctors || '—'],
-                        ['Specialties', clinic.totalSpecialties || '—'],
-                        ['Patients Treated', clinic.totalPatients ? `${(clinic.totalPatients/100).toFixed(0)}K+ Patients` : '—'],
+                        ['Established', clinic.established || 'â€”'],
+                        ['Qualified Doctors', clinic.totalDoctors || 'â€”'],
+                        ['Specialties', clinic.totalSpecialties || 'â€”'],
+                        ['Patients Treated', clinic.totalPatients ? `${(clinic.totalPatients/100).toFixed(0)}K+ Patients` : 'â€”'],
                         ['Working Hours', clinicWorkingHours],
                         ['Distance', `${clinic.distance || '0.8'} km`],
                       ].map(([label, val]) => (
@@ -1115,7 +1115,7 @@ export default function ClinicDetail() {
                      <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => { navigator.clipboard?.writeText(window.location.href); toast.success('Link copied!'); }}>
                        <Share2 className="w-4 h-4" /> Share Profile
                      </Button>
-                     <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => toast.success('Review form coming soon')}>
+                     <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => toast.info\('Write a review feature coming soon'\)}>
                        <Star className="w-4 h-4" /> Write a Review
                      </Button>
                   </div>
@@ -1143,7 +1143,7 @@ export default function ClinicDetail() {
           </div>
         </div>
 
-        {/* ════════ 4. OTHER BRANCHES (full width after grid) ════════ */}
+        {/* â•â•â•â•â•â•â•â• 4. OTHER BRANCHES (full width after grid) â•â•â•â•â•â•â•â• */}
         {clinic.branches?.length > 0 && (
           <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} className="mb-8">
             <Card className="rounded-2xl border-border/50 shadow-sm">
@@ -1179,7 +1179,7 @@ export default function ClinicDetail() {
           </motion.div>
         )}
 
-        {/* ═══════════ SUGGESTED CLINICS SECTION ═══════════ */}
+        {/* â•â•â•â•â•â•â•â•â•â•â• SUGGESTED CLINICS SECTION â•â•â•â•â•â•â•â•â•â•â• */}
         {suggestedClinics.length > 0 && (
           <div className="max-w-7xl mx-auto mt-14 mb-20">
             <motion.div variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true }}>

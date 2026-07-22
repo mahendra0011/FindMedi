@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -209,7 +209,7 @@ export default function DiagnosticCenterDetail() {
     description: facility.description || 'Comprehensive diagnostic center offering pathology, imaging, and cardiac services.',
     offers: [
       { title: 'Flat 25% off on Full Body Checkup', code: 'LAB25', desc: 'Use code LAB25 to get 25% off on all full body checkup packages.' },
-      { title: 'Free Home Collection', code: '', desc: 'Free home sample collection on orders above ₹599.' }
+      { title: 'Free Home Collection', code: '', desc: 'Free home sample collection on orders above â‚¹599.' }
     ],
     policies: {
       report: 'Reports are delivered via email and app within the specified turnaround time. Hard copies available on request.',
@@ -304,8 +304,8 @@ export default function DiagnosticCenterDetail() {
           </div>
           <div className="mt-auto flex items-center justify-between pt-2 border-t border-border/30">
             <div>
-              <span className="text-base font-bold text-foreground">₹{test.price}</span>
-              {test.mrp > test.price && <span className="text-[10px] text-muted-foreground line-through ml-1">₹{test.mrp}</span>}
+              <span className="text-base font-bold text-foreground">â‚¹{test.price}</span>
+              {test.mrp > test.price && <span className="text-[10px] text-muted-foreground line-through ml-1">â‚¹{test.mrp}</span>}
               {test.discount > 0 && <span className="text-[9px] font-bold text-emerald-600 ml-1">{test.discount}% off</span>}
             </div>
             {test.rx ? (
@@ -417,7 +417,7 @@ export default function DiagnosticCenterDetail() {
           <span className="text-foreground font-medium truncate">{clinic.name}</span>
         </motion.div>
 
-        {/* ════════ 1. HERO SECTION ════════ */}
+        {/* â•â•â•â•â•â•â•â• 1. HERO SECTION â•â•â•â•â•â•â•â• */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
 
@@ -494,7 +494,7 @@ export default function DiagnosticCenterDetail() {
 
               <div className={cn('px-4 py-2.5 rounded-xl border text-sm text-center font-semibold flex items-center justify-center gap-2', clinic.open ? 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10' : 'bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10')}>
                 <span className={cn('w-2 h-2 rounded-full animate-pulse', clinic.open ? 'bg-emerald-500' : 'bg-red-500')} />
-                {clinic.open ? `Open Now — ${clinic.workingHours}` : 'Closed'}
+                {clinic.open ? `Open Now â€” ${clinic.workingHours}` : 'Closed'}
               </div>
 
               <div className="flex gap-2 mt-auto pt-3">
@@ -514,7 +514,7 @@ export default function DiagnosticCenterDetail() {
           </div>
         </motion.div>
 
-        {/* ════════ STATUS CARDS ════════ */}
+        {/* â•â•â•â•â•â•â•â• STATUS CARDS â•â•â•â•â•â•â•â• */}
         <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} className="mb-8">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {[
@@ -534,7 +534,7 @@ export default function DiagnosticCenterDetail() {
           </div>
         </motion.div>
 
-        {/* ════════ MAIN CONTENT + SIDEBAR ════════ */}
+        {/* â•â•â•â•â•â•â•â• MAIN CONTENT + SIDEBAR â•â•â•â•â•â•â•â• */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
 
           {/* Left Column */}
@@ -685,8 +685,8 @@ export default function DiagnosticCenterDetail() {
                                 <div className="flex items-center justify-between mt-auto pt-2 border-t border-border/30">
                                   <div>
                                     <div className="flex items-baseline gap-1.5">
-                                      <span className="text-base font-bold text-foreground">₹{pkg.price}</span>
-                                      {pkg.mrp > pkg.price && <span className="text-[10px] text-muted-foreground line-through">₹{pkg.mrp}</span>}
+                                      <span className="text-base font-bold text-foreground">â‚¹{pkg.price}</span>
+                                      {pkg.mrp > pkg.price && <span className="text-[10px] text-muted-foreground line-through">â‚¹{pkg.mrp}</span>}
                                       {pkg.mrp > pkg.price && <span className="text-[9px] font-bold text-emerald-600 bg-emerald-500/12 px-1.5 py-0.5 rounded-full">{pkg.discount}% off</span>}
                                     </div>
                                     <p className="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-1"><Heart className="w-3 h-3 text-emerald-500" /> Full body checkup</p>
@@ -948,7 +948,7 @@ export default function DiagnosticCenterDetail() {
                                   </span>
                                 </td>
                                 <td className="py-3 px-4 text-muted-foreground">
-                                  {active ? slot : '—'}
+                                  {active ? slot : 'â€”'}
                                 </td>
                               </tr>
                             );
@@ -1142,7 +1142,7 @@ export default function DiagnosticCenterDetail() {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between mb-6">
                     <SectionTitle icon={Star} label={`Patient Reviews (${clinic.reviewsCount})`} />
-                    <Button variant="outline" size="sm" className="rounded-lg text-xs gap-1.5" onClick={() => toast.success('Review form coming soon')}>
+                    <Button variant="outline" size="sm" className="rounded-lg text-xs gap-1.5" onClick={() => toast.info\('Write a review feature coming soon'\)}>
                       <Star className="w-3.5 h-3.5" /> Write a Review
                     </Button>
                   </div>
@@ -1222,7 +1222,7 @@ export default function DiagnosticCenterDetail() {
 
           </div>
 
-          {/* ──── RIGHT SIDEBAR ──── */}
+          {/* â”€â”€â”€â”€ RIGHT SIDEBAR â”€â”€â”€â”€ */}
           <div className="space-y-6">
 
             {/* Trust & Info */}
@@ -1317,7 +1317,7 @@ export default function DiagnosticCenterDetail() {
                     <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => toast.success('Sharing...')}>
                       <Share2 className="w-4 h-4" /> Share Lab
                     </Button>
-                    <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => toast.success('Review form coming soon')}>
+                    <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => toast.info\('Write a review feature coming soon'\)}>
                       <Star className="w-4 h-4" /> Write a Review
                     </Button>
                   </div>
@@ -1345,7 +1345,7 @@ export default function DiagnosticCenterDetail() {
           </div>
         </div>
 
-        {/* ════════ SUGGESTED LABS ════════ */}
+        {/* â•â•â•â•â•â•â•â• SUGGESTED LABS â•â•â•â•â•â•â•â• */}
         <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} className="mt-8 mb-4">
           <div className="flex items-center justify-between mb-6">
             <h2 className="font-heading text-xl font-bold text-foreground flex items-center gap-2">
@@ -1365,7 +1365,7 @@ export default function DiagnosticCenterDetail() {
 
       </div>
 
-      {/* ═══ PRESCRIPTION MODAL ═══ */}
+      {/* â•â•â• PRESCRIPTION MODAL â•â•â• */}
       {showRx && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setShowRx(false)}>
           <motion.div initial={{ opacity:0, scale:0.95 }} animate={{ opacity:1, scale:1 }}
@@ -1409,7 +1409,7 @@ export default function DiagnosticCenterDetail() {
         </div>
       )}
 
-      {/* ═══ BOTTOM STICKY BAR ═══ */}
+      {/* â•â•â• BOTTOM STICKY BAR â•â•â• */}
       {clinicCartCount > 0 && (
         <motion.div initial={{ y:100 }} animate={{ y:0 }}
           className="fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-xl border-t border-border/50 shadow-2xl">
@@ -1420,7 +1420,7 @@ export default function DiagnosticCenterDetail() {
               </div>
               <div>
                 <span className="text-xs text-muted-foreground">{clinicCartCount} test{clinicCartCount > 1 ? 's' : ''} selected</span>
-                <span className="text-lg font-bold text-foreground block leading-tight">₹{clinicCartTotal}</span>
+                <span className="text-lg font-bold text-foreground block leading-tight">â‚¹{clinicCartTotal}</span>
               </div>
             </div>
             <Button className="gap-2 rounded-xl shadow-lg shadow-primary/30 px-6 h-11" onClick={() => navigate('/cart')}>
