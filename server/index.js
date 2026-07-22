@@ -106,15 +106,6 @@ app.use('/api/auth/forgot-password', forgotPasswordLimiter);
 
 const redactMongoUri = (uri) => uri.replace(/\/\/([^:]+):([^@]+)@/, '//***:***@');
 
-console.log('🔍 Environment check:', {
-  PORT: process.env.PORT || 'not set',
-  MONGO_URI: process.env.MONGO_URI ? 'set' : 'NOT SET',
-  BREVO_API_KEY: process.env.BREVO_API_KEY ? 'set' : 'NOT SET',
-  BREVO_SENDER_EMAIL: process.env.BREVO_SENDER_EMAIL || 'mahendrapra0077@gmail.com',
-  CLIENT_URL: process.env.CLIENT_URL || 'NOT SET',
-  NODE_ENV: process.env.NODE_ENV || 'development'
-});
-
 // Load MONGO_URI with environment fallback
 let MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/medicore';
 
@@ -153,15 +144,15 @@ if (process.env.NODE_ENV === 'production') {
   if (process.env.CORS_ORIGIN) {
     allowedOrigins.push(process.env.CORS_ORIGIN);
   }
-  allowedOrigins.push('https://medicore-main-1.onrender.com');
+  // Configure CORS_ORIGIN or CLIENT_URL in your environment variables for production
   corsOptions.origin = allowedOrigins.filter(Boolean);
 } else {
   corsOptions.origin = true; // Allow all in development
 }
 
 app.use(cors(corsOptions));
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 app.use('/public/uploads', express.static(path.join(__dirname, 'public/uploads')));
 

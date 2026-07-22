@@ -1,5 +1,7 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
+import express from 'express';
+import jwt from 'jsonwebtoken';
 import multer from 'multer';
 import Doctor from '../models/Doctor.js';
 import ClinicProfile from '../models/ClinicProfile.js';
@@ -7,6 +9,7 @@ import User from '../models/User.js';
 import Notification from '../models/Notification.js';
 import { protect, adminOnly, hospitalAdminOnly, superadminOnly, scopeToHospital } from '../middleware/auth.js';
 import { sendDoctorApprovalEmail, sendDoctorRejectionEmail, sendEmail } from '../services/notificationService.js';
+import { auditLog } from '../middleware/audit.js';
 import { uploadFileToCloudinary } from '../services/cloudinaryService.js';
 import { validate, createDoctorSchema, updateDoctorSchema } from '../utils/validate.js';
 
@@ -249,6 +252,7 @@ router.put('/:id/approve', protect, async (req, res) => {
       await sendDoctorApprovalEmail(user);
     }
 
+    await auditLog('approve_doctor', req.user._id, { targetDoctorId: doctor._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json({ message: 'Doctor approved', doctor });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
@@ -278,6 +282,7 @@ router.put('/:id/reject', protect, async (req, res) => {
       await sendDoctorRejectionEmail(user);
     }
 
+    await auditLog('reject_doctor', req.user._id, { targetDoctorId: doctor._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json({ message: 'Doctor rejected', doctor });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
@@ -326,9 +331,9 @@ router.delete('/:id', protect, async (req, res) => {
       return res.status(403).json({ message: 'Not your hospital' });
     }
     await Doctor.findByIdAndDelete(req.params.id);
+    await auditLog('delete_doctor', req.user._id, { targetDoctorId: req.params.id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json({ message: 'Doctor removed' });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
 export default router;
-// 22

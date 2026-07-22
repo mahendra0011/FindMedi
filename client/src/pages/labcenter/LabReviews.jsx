@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Star, Calendar, MessageSquare } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
-
+import { useAuth } from '@/context/AuthContext';
+import { toast } from 'sonner';
 const STORAGE_KEY = 'medicore_labcenter_reviews';
 // TODO: Replace localStorage with api calls once reviews endpoint is added to lab routes
 
@@ -15,10 +16,27 @@ const generateMockReviews = () => [
 ];
 
 export default function LabReviews() {
-  const [reviews] = useState(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    return stored ? JSON.parse(stored) : generateMockReviews();
-  });
+  const { user } = useAuth();
+  const [reviews, setReviews] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchReviews = async () => {
+      try {
+        setLoading(true);
+        const hospitalId = user?.facilityId || user?.hospitalId || user?._id;
+        const data = await api.getReviews({ hospitalId });
+        setReviews(data?.length > 0 ? data : generateMockReviews());
+      } catch (error) {
+        console.error(error);
+        setReviews(generateMockReviews());
+        toast.error('Failed to load reviews');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchReviews();
+  }, [user]);
 
   const avgRating = reviews.length > 0 ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1) : '0';
   const ratingDist = [5, 4, 3, 2, 1].map(r => ({

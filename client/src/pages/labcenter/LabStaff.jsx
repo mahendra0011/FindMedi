@@ -1,5 +1,4 @@
-// TODO: Add dedicated API endpoint - currently using localStorage fallback (data will not persist across sessions)
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { User, Mail, Phone, Shield, Plus, X, Save, Edit2, Users, Stethoscope, Microscope, Eye, Syringe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-
+import { api } from '@/lib/api';
 const DEFAULT_STAFF = [
   { id: 1, name: 'Priya Sharma', role: 'Lab Technician', email: 'priya@medicore.com', phone: '9876543210', status: 'Active', department: 'Pathology', joinDate: '2024-01-15', qualification: 'B.Sc MLT' },
   { id: 2, name: 'Rahul Verma', role: 'Phlebotomist', email: 'rahul@medicore.com', phone: '9876543211', status: 'Active', department: 'Sample Collection', joinDate: '2024-03-01', qualification: 'DMLT' },
@@ -19,40 +18,66 @@ const DEFAULT_STAFF = [
 ];
 
 export default function LabStaff() {
-  const [staffList, setStaffList] = useState(() => {
-    try {
-      const saved = localStorage.getItem('labStaff');
-      return saved ? JSON.parse(saved) : DEFAULT_STAFF;
-    } catch { return DEFAULT_STAFF; }
-  });
+  const [staffList, setStaffList] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState(null);
   const [form, setForm] = useState({ name:'', role:'', email:'', phone:'', department:'', qualification:'', status:'Active', joinDate:'' });
 
-  const saveList = (list) => {
-    setStaffList(list);
-    localStorage.setItem('labStaff', JSON.stringify(list));
+  useEffect(() => {
+    fetchStaff();
+  }, []);
+
+  const fetchStaff = async () => {
+    try {
+      setLoading(true);
+      const data = await api.getStaff();
+      setStaffList(data?.length > 0 ? data : DEFAULT_STAFF);
+    } catch (error) {
+      console.error(error);
+      setStaffList(DEFAULT_STAFF);
+      toast.error('Failed to load staff list');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.name || !form.role) { toast.error('Name and Role are required'); return; }
-    if (editId) {
-      saveList(staffList.map(s => s.id === editId ? { ...s, ...form } : s));
-      toast.success('Staff updated');
-    } else {
-      saveList([...staffList, { ...form, id: Date.now() }]);
-      toast.success('Staff added');
+    
+    try {
+      if (editId) {
+        await api.updateStaff(editId, form);
+        toast.success('Staff updated');
+      } else {
+        await api.createStaff(form);
+        toast.success('Staff added');
+      }
+      fetchStaff();
+      setShowForm(false); 
+      setEditId(null); 
+      setForm({ name:'', role:'', email:'', phone:'', department:'', qualification:'', status:'Active', joinDate:'' });
+    } catch (error) {
+      toast.error(error.message || 'An error occurred while saving staff');
     }
-    setShowForm(false); setEditId(null); setForm({ name:'', role:'', email:'', phone:'', department:'', qualification:'', status:'Active', joinDate:'' });
   };
 
-  const handleEdit = (staff) => { setForm(staff); setEditId(staff.id); setShowForm(true); };
+  const handleEdit = (staff) => { 
+    setForm(staff); 
+    setEditId(staff._id || staff.id); 
+    setShowForm(true); 
+  };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (!window.confirm('Remove this staff member?')) return;
-    saveList(staffList.filter(s => s.id !== id));
-    toast.success('Staff removed');
+    try {
+      await api.deleteStaff(id);
+      toast.success('Staff removed');
+      fetchStaff();
+    } catch (error) {
+      toast.error(error.message || 'Failed to remove staff');
+    }
   };
 
   return (
@@ -112,7 +137,7 @@ export default function LabStaff() {
                 <Badge variant="outline" className={staff.status === 'Active' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : staff.status === 'On Leave' ? 'bg-amber-50 text-amber-600 border-amber-200' : 'bg-muted text-muted-foreground'}>{staff.status}</Badge>
                 <div className="flex gap-2">
                   <Button variant="ghost" size="sm" onClick={() => handleEdit(staff)}><Edit2 className="w-3.5 h-3.5" /></Button>
-                  <Button variant="ghost" size="sm" className="text-destructive" onClick={() => handleDelete(staff.id)}><X className="w-3.5 h-3.5" /></Button>
+                  <Button variant="ghost" size="sm" className="text-destructive" onClick={() => handleDelete(staff._id || staff.id)}><X className="w-3.5 h-3.5" /></Button>
                 </div>
               </div>
             </div>

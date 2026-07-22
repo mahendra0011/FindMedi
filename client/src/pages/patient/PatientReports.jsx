@@ -22,16 +22,14 @@ export default function MyReports() {
     setLoading(true);
     try {
       const token = getStoredAuthToken();
-      console.log('Fetching reports from:', `${API_URL}/records`);
+
       const res = await fetch(`${API_URL}/records`, {
         headers: { 
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
-      console.log('Reports response status:', res.status);
       const data = await res.json();
-      console.log('Reports response data:', data);
       
       if (data.records) {
         const allRecords = data.records;

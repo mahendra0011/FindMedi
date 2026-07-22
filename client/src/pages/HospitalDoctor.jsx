@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -20,6 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
+import ReviewDialog from '@/components/ReviewDialog';
 
 const stagger = {
   hidden: { opacity: 0 },
@@ -58,6 +59,7 @@ const DAY_ORDER = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'frid
 const DAY_LABELS = { sunday: 'Sunday', monday: 'Monday', tuesday: 'Tuesday', wednesday: 'Wednesday', thursday: 'Thursday', friday: 'Friday', saturday: 'Saturday' };
 
 export default function HospitalDoctor() {
+  const [showReviewDialog, setShowReviewDialog] = useState(false);
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -1076,7 +1078,7 @@ export default function HospitalDoctor() {
                 <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => { navigator.clipboard?.writeText(window.location.href); toast.success('Link copied!'); }}>
                   <Share2 className="w-4 h-4" /> Share Profile
                 </Button>
-                <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => toast.info\('Write a review feature coming soon'\)}>
+                <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => setShowReviewDialog(true)}>
                   <Star className="w-4 h-4" /> Write a Review
                 </Button>
               </div>
@@ -1235,7 +1237,18 @@ export default function HospitalDoctor() {
           </motion.div>
 
         </div>
-      </div>
+      
+      <ReviewDialog 
+        open={showReviewDialog} 
+        onOpenChange={setShowReviewDialog}
+        entityType="doctor"
+        entityId={id}
+        entityName={doctor?.name}
+        onReviewSubmitted={(review) => {
+          setReviews(prev => [review, ...(Array.isArray(prev) ? prev : [])]);
+        }}
+      />
+    </div>
     </motion.div>
   );
 }

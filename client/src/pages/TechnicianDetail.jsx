@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -18,6 +18,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
+import ReviewDialog from '@/components/ReviewDialog';
 
 const stagger = {
   hidden: { opacity: 0 },
@@ -137,6 +138,7 @@ function getInitials(name) {
 }
 
 export default function TechnicianDetail() {
+  const [showReviewDialog, setShowReviewDialog] = useState(false);
   const { id } = useParams();
   const navigate = useNavigate();
   const [tech, setTech] = useState(null);
@@ -820,7 +822,7 @@ export default function TechnicianDetail() {
                   </h2>
                   <div className="grid sm:grid-cols-3 gap-3">
                     {RELATED_TECHS.map(r => (
-                      <div key={r.id} className="p-4 rounded-xl bg-muted/20 border border-border/30 hover:border-primary/30 cursor-pointer transition-all" onClick={() => {}}>
+                      <div key={r.id} className="p-4 rounded-xl bg-muted/20 border border-border/30 hover:border-primary/30 cursor-pointer transition-all" onClick={() => navigate(`/technician/${r._id || r.id}`)}>
                         <div className="flex items-center gap-3 mb-2">
                           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0">
                             {getInitials(r.name)}
@@ -899,7 +901,7 @@ export default function TechnicianDetail() {
                 <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => { navigator.clipboard?.writeText(window.location.href); toast.success('Link copied!'); }}>
                   <Share2 className="w-4 h-4" /> Share Profile
                 </Button>
-                <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => toast.info\('Write a review feature coming soon'\)}>
+                <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => setShowReviewDialog(true)}>
                   <Star className="w-4 h-4" /> Write a Review
                 </Button>
               </div>
@@ -997,7 +999,7 @@ export default function TechnicianDetail() {
 
                   <Separator />
 
-                  <Button variant="outline" className="w-full h-9 gap-1.5 text-xs font-semibold rounded-xl" onClick={() => {}}>
+                  <Button variant="outline" className="w-full h-9 gap-1.5 text-xs font-semibold rounded-xl" onClick={() => { navigator.clipboard?.writeText(window.location.href); toast.success('Link copied!'); }}>
                     <Share2 className="w-3.5 h-3.5" />
                     Share Profile
                   </Button>
@@ -1007,7 +1009,18 @@ export default function TechnicianDetail() {
           </motion.div>
 
         </div>
-      </div>
+      
+      <ReviewDialog 
+        open={showReviewDialog} 
+        onOpenChange={setShowReviewDialog}
+        entityType="technician"
+        entityId={id}
+        entityName={technician?.name}
+        onReviewSubmitted={(review) => {
+          setReviewsData(prev => [review, ...(Array.isArray(prev) ? prev : [])]);
+        }}
+      />
+    </div>
     </motion.div>
   );
 }

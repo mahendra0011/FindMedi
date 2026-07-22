@@ -10,7 +10,7 @@ import { protect } from '../middleware/auth.js';
 const router = express.Router();
 
 const createNotification = async (userId, title, message, type = 'system') => {
-  console.log('Creating notification for userId:', userId, 'title:', title);
+
   try {
     await Notification.create({ 
       title, 
@@ -20,7 +20,7 @@ const createNotification = async (userId, title, message, type = 'system') => {
       userId: userId.toString(), 
       date: new Date().toISOString().split('T')[0] 
     });
-    console.log('Notification created successfully');
+
   } catch (err) {
     console.error('Error creating notification:', err);
   }
@@ -78,25 +78,25 @@ router.post('/', protect, async (req, res) => {
 router.put('/:id/assign', protect, async (req, res) => {
   try {
     const { doctorId, doctorName } = req.body;
-    console.log(`[emergency assign] doctorId from frontend: ${doctorId}`);
+
     
     let userDoctorId = doctorId;
     if (doctorId) {
       const doctor = await Doctor.findById(doctorId);
-      console.log(`[emergency assign] Doctor.findById(${doctorId}):`, doctor ? `found user_id=${doctor.user_id}` : 'not found');
+
       if (doctor) {
         if (doctor.user_id) {
           userDoctorId = doctor.user_id;
-          console.log(`[emergency assign] using existing user_id=${userDoctorId}`);
+
         } else {
           // Fallback: find User by email and link
           const user = await User.findOne({ email: doctor.email, role: 'doctor' });
           if (user) {
             userDoctorId = user._id.toString();
             await Doctor.findByIdAndUpdate(doctor._id, { user_id: user._id });
-            console.log(`[emergency assign] doctor missing user_id; fixed via User lookup, userDoctorId=${userDoctorId}`);
+
           } else {
-            console.log(`[emergency assign] doctor found but no matching User; keeping doctorId`);
+
           }
         }
       }

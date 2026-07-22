@@ -22,7 +22,7 @@ export const LAB_SERVICES = [
 
 const createNotification = async (userId, title, message, type = 'payment') => {
   if (!userId) return;
-  console.log('Creating notification for userId:', userId, 'title:', title);
+
   try {
     let finalUserId = userId.toString();
     // If userId is a Doctor._id, convert to User._id
@@ -31,7 +31,7 @@ const createNotification = async (userId, title, message, type = 'payment') => {
       finalUserId = doctor.user_id;
     }
     await Notification.create({ title, message, type, read: false, userId: finalUserId, date: new Date().toISOString().split('T')[0] });
-    console.log('Notification created successfully');
+
   } catch (err) {
     console.error('Error creating notification:', err);
   }

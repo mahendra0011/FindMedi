@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -25,6 +25,7 @@ import { toast } from 'sonner';
 import ServiceLocationMap from '@/components/maps/ServiceLocationMap';
 import ClinicCard from '@/components/ClinicCard';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import ReviewDialog from '@/components/ReviewDialog';
 
 const stagger = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.06 } } };
 const fadeUp = { hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 200, damping: 22 } } };
@@ -97,6 +98,7 @@ const SUGGESTED_CLINICS = [
 ];
 
 export default function ClinicDetail() {
+  const [showReviewDialog, setShowReviewDialog] = useState(false);
   const { clinicId } = useParams();
   const navigate = useNavigate();
   const [doctor, setDoctor] = useState(null);
@@ -242,8 +244,7 @@ export default function ClinicDetail() {
             const r = await api.getReviews({ doctorId: loadedDoctors[0]._id });
             const revs = Array.isArray(r) ? r : r?.reviews || [];
             if (revs.length > 0) setReviews(revs);
-          } catch {} {
-          }
+          } catch {}
         } else {
           setReviews([]);
         }
@@ -898,7 +899,7 @@ export default function ClinicDetail() {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between mb-6">
                     <SectionTitle icon={Star} label={`Patient Reviews (${clinic.reviewsCount || reviews.length})`} />
-                    <Button variant="outline" size="sm" className="rounded-lg text-xs gap-1.5" onClick={() => toast.info\('Write a review feature coming soon'\)}>
+                    <Button variant="outline" size="sm" className="rounded-lg text-xs gap-1.5" onClick={() => setShowReviewDialog(true)}>
                       <Star className="w-3.5 h-3.5" /> Write a Review
                     </Button>
                   </div>
@@ -1115,7 +1116,7 @@ export default function ClinicDetail() {
                      <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => { navigator.clipboard?.writeText(window.location.href); toast.success('Link copied!'); }}>
                        <Share2 className="w-4 h-4" /> Share Profile
                      </Button>
-                     <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => toast.info\('Write a review feature coming soon'\)}>
+                     <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => setShowReviewDialog(true)}>
                        <Star className="w-4 h-4" /> Write a Review
                      </Button>
                   </div>
@@ -1198,6 +1199,17 @@ export default function ClinicDetail() {
         )}
 
       </div>
+    
+      <ReviewDialog 
+        open={showReviewDialog} 
+        onOpenChange={setShowReviewDialog}
+        entityType="clinic"
+        entityId={clinicId}
+        entityName={clinic?.name}
+        onReviewSubmitted={(review) => {
+          setReviews(prev => [review, ...(Array.isArray(prev) ? prev : [])]);
+        }}
+      />
     </div>
   );
 }

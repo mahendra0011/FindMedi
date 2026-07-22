@@ -59,14 +59,6 @@ router.get('/download/:fileId', protect, async (req, res) => {
 });
 
 router.post('/', protect, upload.single('file'), async (req, res) => {
-  console.log('Upload request received:', {
-    user: req.user?.name,
-    userRole: req.user?.role,
-    fileName: req.file?.originalname,
-    fileSize: req.file?.size,
-    mimeType: req.file?.mimetype,
-  });
-
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });

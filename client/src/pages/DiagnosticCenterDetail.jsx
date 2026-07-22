@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -23,6 +23,7 @@ import { useCart } from '@/context/CartContext';
 import { toast } from 'sonner';
 import ServiceLocationMap from '@/components/maps/ServiceLocationMap';
 import DiagnosticCenterCard from '@/components/DiagnosticCenterCard';
+import ReviewDialog from '@/components/ReviewDialog';
 
 const CATEGORIES = ['All', 'Pathology Tests', 'Imaging Tests', 'Cardiac Tests', 'Health Packages'];
 
@@ -108,6 +109,7 @@ function deriveCategory(f) {
 }
 
 export default function DiagnosticCenterDetail() {
+  const [showReviewDialog, setShowReviewDialog] = useState(false);
   const { clinicId } = useParams();
   const navigate = useNavigate();
   const { entries, addItem, updateQty } = useCart();
@@ -1142,7 +1144,7 @@ export default function DiagnosticCenterDetail() {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between mb-6">
                     <SectionTitle icon={Star} label={`Patient Reviews (${clinic.reviewsCount})`} />
-                    <Button variant="outline" size="sm" className="rounded-lg text-xs gap-1.5" onClick={() => toast.info\('Write a review feature coming soon'\)}>
+                    <Button variant="outline" size="sm" className="rounded-lg text-xs gap-1.5" onClick={() => setShowReviewDialog(true)}>
                       <Star className="w-3.5 h-3.5" /> Write a Review
                     </Button>
                   </div>
@@ -1317,7 +1319,7 @@ export default function DiagnosticCenterDetail() {
                     <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => toast.success('Sharing...')}>
                       <Share2 className="w-4 h-4" /> Share Lab
                     </Button>
-                    <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => toast.info\('Write a review feature coming soon'\)}>
+                    <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => setShowReviewDialog(true)}>
                       <Star className="w-4 h-4" /> Write a Review
                     </Button>
                   </div>
@@ -1429,6 +1431,17 @@ export default function DiagnosticCenterDetail() {
           </div>
         </motion.div>
       )}
+    
+      <ReviewDialog 
+        open={showReviewDialog} 
+        onOpenChange={setShowReviewDialog}
+        entityType="lab"
+        entityId={clinicId}
+        entityName={clinic?.name}
+        onReviewSubmitted={(review) => {
+          setReviewsData(prev => [review, ...(Array.isArray(prev) ? prev : [])]);
+        }}
+      />
     </div>
   );
 }
