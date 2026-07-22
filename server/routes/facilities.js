@@ -4,6 +4,8 @@ import Facility from '../models/Facility.js';
 import User from '../models/User.js';
 import Doctor from '../models/Doctor.js';
 import { protect, superadminOnly } from '../middleware/auth.js';
+import { auditLog } from '../middleware/audit.js';
+import License from '../models/License.js';
 
 const router = express.Router();
 
@@ -103,6 +105,19 @@ router.post('/register', async (req, res) => {
       isVerified: false, status: 'active', approvalStatus: 'not_required',
     });
 
+    try {
+      await License.create({
+        facilityId: facility._id,
+        facilityType: type,
+        licenseNumber: licenseNumber || '',
+        issuedDate: new Date(),
+        expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+        status: 'active',
+      });
+    } catch (licenseErr) {
+      console.error('License creation failed:', licenseErr.message);
+    }
+    await auditLog('register_facility', null, { facilityId: facility._id, type, name });
     res.status(201).json({ message: `${type} registered successfully. Awaiting approval.`, facilityId: facility._id });
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -112,6 +127,7 @@ router.put('/:id/approve', protect, superadminOnly, async (req, res) => {
     const facility = await Facility.findByIdAndUpdate(req.params.id, { status: 'approved' }, { new: true });
     if (!facility) return res.status(404).json({ message: 'Facility not found' });
     await User.updateMany({ facilityId: req.params.id }, { isVerified: true });
+    await auditLog('approve_facility', req.user._id, { facilityId: facility._id, type: facility.type, name: facility.name });
     res.json({ message: `${facility.type} approved`, facility });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
@@ -121,6 +137,7 @@ router.put('/:id/reject', protect, superadminOnly, async (req, res) => {
     const { reason } = req.body;
     const facility = await Facility.findByIdAndUpdate(req.params.id, { status: 'rejected', rejectionReason: reason || '' }, { new: true });
     if (!facility) return res.status(404).json({ message: 'Facility not found' });
+    await auditLog('reject_facility', req.user._id, { facilityId: facility._id, type: facility.type, name: facility.name, reason: reason || '' });
     res.json({ message: `${facility.type} rejected`, facility });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
@@ -129,6 +146,7 @@ router.put('/:id/suspend', protect, superadminOnly, async (req, res) => {
   try {
     const facility = await Facility.findByIdAndUpdate(req.params.id, { status: 'suspended' }, { new: true });
     if (!facility) return res.status(404).json({ message: 'Facility not found' });
+    await auditLog('suspend_facility', req.user._id, { facilityId: facility._id, type: facility.type, name: facility.name });
     res.json({ message: `${facility.type} suspended`, facility });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
