@@ -339,7 +339,7 @@ const Home = () => {
                 <Button size="lg" className="gap-2 text-base px-8 h-14 shadow-xl shadow-primary/25" onClick={() => navigate(primaryActionPath)}>
                   {user ? `Open ${dashboardLabel}` : 'Book Appointment Now'} <ArrowRight className="w-5 h-5" />
                 </Button>
-                <Button size="lg" variant="outline" className="gap-2 text-base px-8 h-14">
+                <Button size="lg" variant="outline" className="gap-2 text-base px-8 h-14" onClick={() => window.location.href='tel:108'}>
                   <Phone className="w-4 h-4" /> Emergency Call
                 </Button>
               </div>
@@ -680,7 +680,7 @@ const Home = () => {
               </div>
 
               <div className="mt-8">
-                <Button size="lg" variant="outline" className="gap-2">
+                <Button size="lg" variant="outline" className="gap-2" onClick={() => navigate('/doctors')}>
                   View More Doctors <ChevronRight className="w-4 h-4" />
                 </Button>
               </div>
@@ -740,7 +740,7 @@ const Home = () => {
             <p className="text-muted-foreground mt-4 leading-relaxed">
               Hover over each workflow to bring it alive, then jump straight to the right part of the home screen.
             </p>
-            <Button className="mt-8 gap-2" onClick={() => scrollToSection("services")}>
+            <Button className="mt-8 gap-2" onClick={() => navigate('/labs')}>
               View Lab Services <ArrowRight className="w-4 h-4" />
             </Button>
           </motion.div>

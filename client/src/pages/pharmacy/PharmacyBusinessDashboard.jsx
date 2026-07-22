@@ -8,6 +8,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import StatCard from '@/components/StatCard';
+import LicenseExpiryReminder from '@/components/LicenseExpiryReminder';
 
 const statusColors = {
   Completed: 'bg-success/10 text-success',
@@ -51,6 +52,7 @@ export default function PharmacyBusinessDashboard() {
 
   return (
     <div>
+      <LicenseExpiryReminder />
       <div className="page-header flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
           <h1 className="page-title">Pharmacy Dashboard</h1>

@@ -6,14 +6,14 @@ import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 
 const invApi = {
-  getItems: (p) => api.dispatch(() => Promise.resolve({ items: [] }), '/inventory?' + new URLSearchParams(p)),
-  createItem: (b) => api.dispatch(() => Promise.resolve({}), '/inventory', { method: 'POST', body: JSON.stringify(b) }),
-  addStock: (id, b) => api.dispatch(() => Promise.resolve({}), `/inventory/${id}/stock`, { method: 'PUT', body: JSON.stringify(b) }),
-  issueItem: (id, b) => api.dispatch(() => Promise.resolve({}), `/inventory/${id}/issue`, { method: 'PUT', body: JSON.stringify(b) }),
-  createPR: (b) => api.dispatch(() => Promise.resolve({}), '/inventory/pr', { method: 'POST', body: JSON.stringify(b) }),
-  createPO: (b) => api.dispatch(() => Promise.resolve({}), '/inventory/po', { method: 'POST', body: JSON.stringify(b) }),
-  receiveGRN: (id, b) => api.dispatch(() => Promise.resolve({}), `/inventory/po/${id}/receive`, { method: 'PUT', body: JSON.stringify(b) }),
-  getStats: () => api.dispatch(() => Promise.resolve({ total: 0, lowStock: 0, expiring: 0, deadStock: 0 }), '/inventory/stats'),
+  getItems: async (p) => { try { return await api.getInventoryItems(p); } catch (e) { return { items: [] }; } },
+  createItem: async (b) => { try { return await api.createInventoryItem(b); } catch (e) { return {}; } },
+  addStock: async (id, b) => { try { return await api.addInventoryStock(id, b); } catch (e) { return {}; } },
+  issueItem: async (id, b) => { try { return await api.issueInventoryItem(id, b); } catch (e) { return {}; } },
+  createPR: async (b) => { try { return await api.createInventoryPR(b); } catch (e) { return {}; } },
+  createPO: async (b) => { try { return await api.createInventoryPO(b); } catch (e) { return {}; } },
+  receiveGRN: async (id, b) => { try { return await api.receiveInventoryGRN(id, b); } catch (e) { return {}; } },
+  getStats: async () => { try { return await api.getInventoryStats(); } catch (e) { return { total: 0, lowStock: 0, expiring: 0, deadStock: 0 }; } },
 };
 
 export default function Inventory() {

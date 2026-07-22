@@ -4,6 +4,7 @@ import { CalendarDays, Clock, User, CheckCircle, XCircle, AlertCircle, Star, Tre
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
+import LicenseExpiryReminder from '@/components/LicenseExpiryReminder';
 
 const statusColors = {
   Confirmed: { bg: 'bg-success/10', text: 'text-success', border: 'border-success/20' },
@@ -72,6 +73,7 @@ export default function DoctorDashboard() {
 
   return (
     <div className="space-y-6">
+      <LicenseExpiryReminder />
       {/* Header */}
       <div className="bg-gradient-to-r from-primary to-primary/80 rounded-3xl p-6 text-white">
         <h1 className="font-heading text-2xl font-bold">Welcome, Dr. {user?.name}</h1>

@@ -6,12 +6,12 @@ import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 
 const hkApi = {
-  getTasks: (p) => api.dispatch(() => Promise.resolve({ tasks: [] }), '/housekeeping?' + new URLSearchParams(p)),
-  createTask: (b) => api.dispatch(() => Promise.resolve({}), '/housekeeping', { method: 'POST', body: JSON.stringify(b) }),
-  completeTask: (id, b) => api.dispatch(() => Promise.resolve({}), `/housekeeping/${id}/complete`, { method: 'PUT', body: JSON.stringify(b) }),
-  verifyTask: (id, b) => api.dispatch(() => Promise.resolve({}), `/housekeeping/${id}/verify`, { method: 'PUT', body: JSON.stringify(b) }),
-  autoCreateOnDischarge: (id, b) => api.dispatch(() => Promise.resolve({}), `/housekeeping/auto-create-on-discharge`, { method: 'POST', body: JSON.stringify(b) }),
-  getStats: () => api.dispatch(() => Promise.resolve({ pending: 0, inProgress: 0, completed: 0, total: 0 }), '/housekeeping/stats'),
+  getTasks: async (p) => { try { return await api.getHousekeepingTasks(p); } catch (e) { return { tasks: [] }; } },
+  createTask: async (b) => { try { return await api.createHousekeepingTask(b); } catch (e) { return {}; } },
+  completeTask: async (id, b) => { try { return await api.completeHousekeepingTask(id, b); } catch (e) { return {}; } },
+  verifyTask: async (id, b) => { try { return await api.verifyHousekeepingTask(id, b); } catch (e) { return {}; } },
+  autoCreateOnDischarge: async (id, b) => { try { return await api.autoCreateHousekeepingOnDischarge({ id, ...b }); } catch (e) { return {}; } },
+  getStats: async () => { try { return await api.getHousekeepingStats(); } catch (e) { return { pending: 0, inProgress: 0, completed: 0, total: 0 }; } },
 };
 
 const statusColors = {

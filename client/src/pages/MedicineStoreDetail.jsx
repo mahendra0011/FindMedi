@@ -101,6 +101,7 @@ export default function MedicineStoreDetail() {
   const [searchParams] = useSearchParams();
   const { entries, addItem, updateQty } = useCart();
   const [store, setStore] = useState(null);
+  const [suggestedStores, setSuggestedStores] = useState([]);
   const [allMeds, setAllMeds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showRx, setShowRx] = useState(false);
@@ -130,9 +131,15 @@ export default function MedicineStoreDetail() {
             pack: m.form || '', category: m.category || 'Other', storeId,
           })) : []);
         } catch {}
+        try {
+          const pharm = await api.getPharmacies();
+          const pList = Array.isArray(pharm) ? pharm : (pharm.pharmacies || []);
+          setSuggestedStores(pList.map(mapFacilityToStore));
+        } catch { setSuggestedStores(MOCK_STORES); }
       } catch {
         const fallback = MOCK_STORES.find(s => s.id === storeId) || MOCK_STORES[0];
         setStore(fallback);
+        setSuggestedStores(MOCK_STORES);
         if (fallback) setAllMeds(MOCK_MEDICINES.filter(m => m.storeId === storeId));
       }
       setLoading(false);
@@ -923,7 +930,7 @@ export default function MedicineStoreDetail() {
             <h2 className="font-heading text-xl font-bold text-foreground">Nearby Stores</h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {MOCK_STORES.filter(s => s.id !== storeId).slice(0, 4).map((s, i) => (
+            {suggestedStores.filter(s => s.id !== storeId).slice(0, 4).map((s, i) => (
               <motion.div key={s.id} variants={fadeUp}
                 className="bg-card rounded-2xl border border-border/50 overflow-hidden hover:shadow-lg hover:border-primary/20 transition-all group cursor-pointer"
                 onClick={() => { navigate(`/buy-medicine/${s.id}`); window.scrollTo(0, 0); }}>

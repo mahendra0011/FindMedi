@@ -716,7 +716,7 @@ export default function TechnicianDetail() {
                       Reviews <span className="text-base font-normal text-muted-foreground ml-1">({reviewCount})</span>
                     </h2>
                     {!reviewSubmitted && (
-                      <Button size="sm" variant="outline" className="rounded-xl gap-2" onClick={() => setShowReviewForm(!showReviewForm)}>
+                      <Button size="sm" variant="outline" className="rounded-xl gap-2" onClick={() => setShowReviewDialog(true)}>
                         <Star className="w-3.5 h-3.5" /> Write a Review
                       </Button>
                     )}

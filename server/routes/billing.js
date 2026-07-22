@@ -7,6 +7,7 @@ import { protect } from '../middleware/auth.js';
 import { generateInvoicePDF } from '../services/pdfService.js';
 import { validate, createBillSchema } from '../utils/validate.js';
 import { auditLog } from '../middleware/audit.js';
+import logger from '../config/logger.js';
 
 const router = express.Router();
 
@@ -34,7 +35,7 @@ const createNotification = async (userId, title, message, type = 'payment') => {
     await Notification.create({ title, message, type, read: false, userId: finalUserId, date: new Date().toISOString().split('T')[0] });
 
   } catch (err) {
-    console.error('Error creating notification:', err);
+    logger.error('Error creating notification:', err);
   }
 };
 
@@ -196,7 +197,7 @@ router.post('/', protect, validate(createBillSchema), async (req, res) => {
     try {
       await auditLog('create_bill', req.user._id, { billId: bill._id, invoiceId, amount: finalAmount, ip: req.ip, userAgent: req.get('user-agent') });
     } catch (err) {
-      console.error('Audit error:', err);
+      logger.error('Audit error:', err);
     }
     
     res.status(201).json(bill);
@@ -269,7 +270,7 @@ router.post('/:id/pay', protect, async (req, res) => {
     try {
       await auditLog('process_payment', req.user._id, { billId: bill._id, transactionId, amount: bill.amount, ip: req.ip, userAgent: req.get('user-agent') });
     } catch (err) {
-      console.error('Audit error:', err);
+      logger.error('Audit error:', err);
     }
     
     res.json(bill);
@@ -314,7 +315,7 @@ router.delete('/:id', protect, async (req, res) => {
     try {
       await auditLog('delete_bill', req.user._id, { billId: req.params.id, ip: req.ip, userAgent: req.get('user-agent') });
     } catch (err) {
-      console.error('Audit error:', err);
+      logger.error('Audit error:', err);
     }
     
     res.json({ message: 'Invoice removed' });

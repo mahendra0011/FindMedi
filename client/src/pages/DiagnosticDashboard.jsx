@@ -152,12 +152,20 @@ export default function DiagnosticDashboard() {
   useEffect(() => {
     const load = async () => {
       try {
-        const s = await labApi.getStats();
+        const [s, o, t, b, e, p] = await Promise.all([
+          labApi.getStats(),
+          labApi.getOrders({}).catch(() => ({ orders: [] })),
+          labApi.getTests({}).catch(() => []),
+          labApi.getBookings({}).catch(() => ({ bookings: [] })),
+          labApi.getEquipment({}).catch(() => ({ equipment: [] })),
+          labApi.getPackages({}).catch(() => ({ packages: [] })),
+        ]);
         setStats(s);
-        const o = await labApi.getOrders({});
         setOrders(o.orders || []);
-        const t = await labApi.getTests({});
         setTests(t || []);
+        setBookings(b.bookings || mockBookings);
+        setEquipment(e.equipment || mockEquipment);
+        setPackages(p.packages || mockPackages);
       } catch (e) { console.error(e); }
     };
     load();
@@ -675,8 +683,7 @@ export default function DiagnosticDashboard() {
                     <p className="text-sm text-foreground/80">{r.comment}</p>
                   </div>
                 ))}
-                {reviews.length === 0 && reviewCount === 0 && <div className="text-center py-20"><Star className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" /><p className="text-muted-foreground">No reviews yet</p></div>}
-                {reviews.length === 0 && reviewCount > 0 && <div className="text-center py-20"><Star className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" /><p className="text-muted-foreground">Reviews summary available, individual reviews loading soon.</p></div>}
+                {reviews.length === 0 && <div className="text-center py-20"><Star className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" /><p className="text-muted-foreground">No reviews yet</p></div>}
               </div>
             </>
           )}

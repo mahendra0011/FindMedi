@@ -1076,7 +1076,7 @@ export default function HospitalProfile() {
                 <span className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center"><Star className="w-4 h-4 text-primary fill-primary" /></span>
                 Patient Reviews <span className="text-base font-normal text-muted-foreground ml-1">({hospital.reviewsCount || reviews.length})</span>
               </h2>
-              <Button variant="outline" size="sm" className="rounded-lg text-xs gap-1.5" onClick={() => toast.success('Review submitted successfully!')}>
+              <Button variant="outline" size="sm" className="rounded-lg text-xs gap-1.5" onClick={() => setShowReviewDialog(true)}>
                 <Star className="w-3.5 h-3.5" /> Write a Review
               </Button>
             </div>

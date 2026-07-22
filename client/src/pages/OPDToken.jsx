@@ -6,14 +6,14 @@ import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 
 const tokenApi = {
-  getAll: (p) => api.dispatch(() => Promise.resolve({ tokens: [] }), '/tokens?' + new URLSearchParams(p)),
-  generate: (b) => api.dispatch(() => Promise.resolve({}), '/tokens/generate', { method: 'POST', body: JSON.stringify(b) }),
-  call: (id) => api.dispatch(() => Promise.resolve({}), `/tokens/${id}/call`, { method: 'PUT' }),
-  startConsultation: (id) => api.dispatch(() => Promise.resolve({}), `/tokens/${id}/start-consultation`, { method: 'PUT' }),
-  complete: (id) => api.dispatch(() => Promise.resolve({}), `/tokens/${id}/complete`, { method: 'PUT' }),
-  skip: (id, b) => api.dispatch(() => Promise.resolve({}), `/tokens/${id}/skip`, { method: 'PUT', body: JSON.stringify(b) }),
-  recall: (id) => api.dispatch(() => Promise.resolve({}), `/tokens/${id}/recall`, { method: 'PUT' }),
-  getStats: () => api.dispatch(() => Promise.resolve({ waiting: 0, inConsultation: 0, completed: 0, skipped: 0, total: 0 }), '/tokens/stats'),
+  getAll: async (p) => { try { return await api.getTokens(p); } catch (e) { return { tokens: [] }; } },
+  generate: async (b) => { try { return await api.generateToken(b); } catch (e) { return { tokenNumber: 'OPD-000', ...b }; } },
+  call: async (id) => { try { return await api.callToken(id); } catch (e) { return {}; } },
+  startConsultation: async (id) => { try { return await api.startTokenConsultation(id); } catch (e) { return {}; } },
+  complete: async (id) => { try { return await api.completeToken(id); } catch (e) { return {}; } },
+  skip: async (id, b) => { try { return await api.skipToken(id, b); } catch (e) { return {}; } },
+  recall: async (id) => { try { return await api.recallToken(id); } catch (e) { return {}; } },
+  getStats: async () => { try { return await api.getTokenStats(); } catch (e) { return { waiting: 0, inConsultation: 0, completed: 0, skipped: 0, total: 0 }; } },
 };
 
 const triageColors = {

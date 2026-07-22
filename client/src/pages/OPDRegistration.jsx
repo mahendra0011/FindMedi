@@ -16,11 +16,11 @@ export default function OPDRegistration() {
 
   const { data: patients = [] } = useQuery({
     queryKey: ['opd-patients', search],
-    queryFn: () => api.dispatch(() => Promise.resolve([]), '/patients?search=' + search),
+    queryFn: async () => { try { const res = await api.getPatients({ search }); return res.patients || res; } catch (e) { return []; } },
   });
 
   const createMut = useMutation({
-    mutationFn: (body) => api.dispatch(() => Promise.resolve({ _id: 'p' + Date.now(), uhid: 'UHID-' + Date.now(), ...body }), '/patients', { method: 'POST', body: JSON.stringify(body) }),
+    mutationFn: async (body) => { try { return await api.createPatient(body); } catch (e) { return { _id: 'p' + Date.now(), uhid: 'UHID-' + Date.now(), ...body }; } },
     onSuccess: () => { qc.invalidateQueries(['opd-patients']); setShowAdd(false); }
   });
 

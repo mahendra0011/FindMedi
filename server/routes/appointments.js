@@ -7,6 +7,7 @@ import User from '../models/User.js';
 import Hospital from '../models/Hospital.js';
 import { protect, scopeToHospital } from '../middleware/auth.js';
 import { validate, createAppointmentSchema, updateAppointmentSchema } from '../utils/validate.js';
+import logger from '../config/logger.js';
 
 const router = express.Router();
 
@@ -43,7 +44,7 @@ const createNotification = async (userId, title, message, type = 'appointment') 
     }
     await Notification.create({ title, message, type, read: false, userId: finalUserId, date: new Date().toISOString().split('T')[0] });
   } catch (err) {
-    console.error('[createNotification] ERROR:', err);
+    logger.error('[createNotification] ERROR:', err);
   }
 };
 

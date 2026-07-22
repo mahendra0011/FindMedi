@@ -37,7 +37,6 @@ export default function PublicNavbar() {
   const [selectedCity, setSelectedCity] = useState(() => localStorage.getItem('mediCore_city') || 'Jabalpur');
 
   const handleCitySelect = (cityName) => {
-    if (cityName !== 'Jabalpur') return;
     setSelectedCity(cityName);
     localStorage.setItem('mediCore_city', cityName);
     setCityOpen(false);
@@ -154,7 +153,7 @@ export default function PublicNavbar() {
                 <CommandList>
                   <CommandEmpty>No city found</CommandEmpty>
                   <CommandGroup heading="Available">
-                    {allCities.filter(c => c.name === 'Jabalpur').map((city) => (
+                    {allCities.map((city) => (
                       <CommandItem
                         key={city.name}
                         onSelect={() => handleCitySelect(city.name)}
@@ -167,18 +166,7 @@ export default function PublicNavbar() {
                       </CommandItem>
                     ))}
                   </CommandGroup>
-                  <CommandGroup heading="Coming Soon">
-                    {allCities.filter(c => c.name !== 'Jabalpur').map((city) => (
-                      <div
-                        key={city.name}
-                        className="flex items-center gap-2 px-2 py-1.5 text-sm text-muted-foreground/50 cursor-not-allowed select-none"
-                      >
-                        <Lock className="w-3.5 h-3.5 ml-2 shrink-0" />
-                        <span>{city.name}</span>
-                        <span className="ml-auto text-[10px]">{city.state}</span>
-                      </div>
-                    ))}
-                  </CommandGroup>
+
                 </CommandList>
               </Command>
             </PopoverContent>
