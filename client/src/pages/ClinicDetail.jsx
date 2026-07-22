@@ -90,6 +90,12 @@ function normalizeFaqs(faqs = []) {
   })).filter(faq => faq.q || faq.a);
 }
 
+const SUGGESTED_CLINICS = [
+  { _id:'c1', name:'Apollo City Clinic', type:'Clinic', category:'Multispecialty Clinic', rating:4.8, reviewsCount:342, address:'Wright Town, Jabalpur', photos:[''] },
+  { _id:'c2', name:'Sanjeevani Dental Care', type:'Clinic', category:'Dental Clinic', rating:4.5, reviewsCount:128, address:'Napier Town, Jabalpur', photos:[''] },
+  { _id:'c3', name:'Sharma Skin Clinic', type:'Clinic', category:'Dermatology Clinic', rating:4.6, reviewsCount:210, address:'Vijay Nagar, Jabalpur', photos:[''] }
+];
+
 export default function ClinicDetail() {
   const { clinicId } = useParams();
   const navigate = useNavigate();
@@ -117,7 +123,7 @@ export default function ClinicDetail() {
   const [testHomeFilter, setTestHomeFilter] = useState('all');
   const [testSort, setTestSort] = useState('popularity');
   const [testCart, setTestCart] = useState({});
-  const [suggestedClinics, setSuggestedClinics] = useState([]);
+  const [suggestedClinics, setSuggestedClinics] = useState(SUGGESTED_CLINICS);
   const [showBooking, setShowBooking] = useState(false);
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
   const [bookingDate, setBookingDate] = useState('');
@@ -1083,38 +1089,56 @@ export default function ClinicDetail() {
               </Card>
             </motion.div>
 
+            {/* Quick Actions + Address */}
+            <div className="space-y-6 self-start w-full lg:sticky lg:top-24">
             {/* Quick Actions */}
-            <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} className="w-full lg:sticky lg:top-24">
+            <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} className="w-full">
               <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden bg-gradient-to-br from-primary/5 via-primary/[0.02] to-transparent w-full">
                 <CardContent className="p-6">
                   <h3 className="font-heading font-semibold text-foreground mb-5 flex items-center gap-2.5">
                     <span className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center"><Zap className="w-3.5 h-3.5 text-primary" /></span>
                     Quick Actions
                   </h3>
-<div className="space-y-3">
+                  <div className="space-y-3">
                      <Button className="w-full gap-2.5 rounded-xl h-11 font-semibold shadow-md" onClick={() => setShowBooking(true)}>
                        <CalendarDays className="w-4 h-4" /> Book Appointment
                      </Button>
-
-                    <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => toast.success('Removed from Saved')}>
-                      <Heart className="w-4 h-4" /> Save
-                    </Button>
-                    <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" asChild>
-                      <a href={`tel:${clinic.phone}`}><Phone className="w-4 h-4" /> Call Now</a>
-                    </Button>
-                    <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => toast.success('Opening directions...')}>
-                      <Navigation className="w-4 h-4" /> Get Directions
-                    </Button>
-                    <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => { navigator.clipboard?.writeText(window.location.href); toast.success('Link copied!'); }}>
-                      <Share2 className="w-4 h-4" /> Share Profile
-                    </Button>
-                    <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => toast.success('Review form coming soon')}>
-                      <Star className="w-4 h-4" /> Write a Review
-                    </Button>
+                     <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => toast.success('Removed from Saved')}>
+                       <Heart className="w-4 h-4" /> Save
+                     </Button>
+                     <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" asChild>
+                       <a href={`tel:${clinic.phone}`}><Phone className="w-4 h-4" /> Call Now</a>
+                     </Button>
+                     <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" asChild>
+                       <a href={`mailto:${clinic.email || ''}`}><Mail className="w-4 h-4" /> Email Now</a>
+                     </Button>
+                     <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => { navigator.clipboard?.writeText(window.location.href); toast.success('Link copied!'); }}>
+                       <Share2 className="w-4 h-4" /> Share Profile
+                     </Button>
+                     <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => toast.success('Review form coming soon')}>
+                       <Star className="w-4 h-4" /> Write a Review
+                     </Button>
                   </div>
                 </CardContent>
               </Card>
             </motion.div>
+
+            {/* Address */}
+            <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} className="w-full">
+              <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden w-full">
+                <CardContent className="p-6">
+                  <h3 className="font-heading font-semibold text-foreground mb-4 flex items-center gap-2.5">
+                    <span className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center"><MapPin className="w-3.5 h-3.5 text-primary" /></span>
+                    Address
+                  </h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed mb-4">{clinic.address}{clinic.city ? `, ${clinic.city}` : ''}{clinic.state ? `, ${clinic.state}` : ''}</p>
+                  <Button variant="outline" size="sm" className="w-full gap-2 rounded-xl h-10" onClick={() => window.open(`https://maps.google.com/?q=${encodeURIComponent(clinic.address)}`)}>
+                    <Navigation className="w-4 h-4" /> View in G Map
+                  </Button>
+                </CardContent>
+              </Card>
+            </motion.div>
+            </div>
 
           </div>
         </div>

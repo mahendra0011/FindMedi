@@ -760,7 +760,7 @@ export default function MedicineStoreDetail() {
           </div>
 
           {/* ──── RIGHT SIDEBAR ──── */}
-          <div className="space-y-6 lg:sticky lg:top-24 self-start">
+          <div className="space-y-6">
 
             {/* Trust & Info */}
             <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} className="w-full">
@@ -857,6 +857,9 @@ export default function MedicineStoreDetail() {
               </Card>
             </motion.div>
 
+            {/* Sticky Actions Container */}
+            <div className="space-y-6 lg:sticky lg:top-24 w-full self-start">
+
             {/* Quick Actions */}
             <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} className="w-full">
               <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden bg-gradient-to-br from-primary/5 via-primary/[0.02] to-transparent w-full">
@@ -872,11 +875,17 @@ export default function MedicineStoreDetail() {
                     <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" asChild>
                       <a href={`tel:${store.phone}`}><Phone className="w-4 h-4" /> Call Now</a>
                     </Button>
-                    <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => window.open(`https://maps.google.com/?q=${encodeURIComponent(store.address)}`)}>
-                      <Navigation className="w-4 h-4" /> Get Directions
+                    <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" asChild>
+                      <a href={`mailto:${store.email || ''}`}><Mail className="w-4 h-4" /> Email Now</a>
+                    </Button>
+                    <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => toast.success('Store saved to favorites!')}>
+                      <Bookmark className="w-4 h-4" /> Save
                     </Button>
                     <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => { navigator.clipboard?.writeText(window.location.href); toast.success('Link copied!'); }}>
                       <Share2 className="w-4 h-4" /> Share Profile
+                    </Button>
+                    <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => toast.success('Review functionality coming soon!')}>
+                      <Star className="w-4 h-4" /> Write a Review
                     </Button>
                   </div>
                 </CardContent>
@@ -899,6 +908,7 @@ export default function MedicineStoreDetail() {
               </Card>
             </motion.div>
 
+            </div>
           </div>
         </div>
       </div>

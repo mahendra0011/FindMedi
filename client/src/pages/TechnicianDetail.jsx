@@ -8,7 +8,7 @@ import {
   HeartPulse, Syringe, Plus, Minus, ChevronDown, ChevronUp,
   Home, ExternalLink, Sparkles, FileText, BedDouble,
   CreditCard, Image, FlaskConical, DoorOpen, Store, ArrowRight,
-  Search, X, ThumbsUp, Share2, Navigation, Wifi, Microscope
+  Search, X, ThumbsUp, Share2, Navigation, Wifi, Microscope, Zap, Heart
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -870,6 +870,33 @@ export default function TechnicianDetail() {
                   <span className="text-muted-foreground">Employment</span>
                   <span className="font-semibold text-foreground">{tech.employmentType}</span>
                 </div>
+              </div>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="bg-card rounded-2xl border border-border/60 p-6 shadow-sm">
+              <h3 className="font-heading font-semibold text-foreground mb-5 flex items-center gap-2">
+                <span className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Zap className="w-3.5 h-3.5 text-primary" />
+                </span>
+                Quick Actions
+              </h3>
+              <div className="space-y-3">
+                <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" asChild>
+                  <a href={`tel:${tech.phone || ''}`}><Phone className="w-4 h-4" /> Call Now</a>
+                </Button>
+                <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" asChild>
+                  <a href={`mailto:${tech.email || ''}`}><Mail className="w-4 h-4" /> Email Now</a>
+                </Button>
+                <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => { setSaved(!saved); toast.success(saved ? 'Removed from Saved' : 'Saved'); }}>
+                  <Heart className={cn('w-4 h-4', saved && 'fill-current text-red-500')} /> {saved ? 'Saved' : 'Save'}
+                </Button>
+                <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => { navigator.clipboard?.writeText(window.location.href); toast.success('Link copied!'); }}>
+                  <Share2 className="w-4 h-4" /> Share Profile
+                </Button>
+                <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => toast.success('Review form coming soon')}>
+                  <Star className="w-4 h-4" /> Write a Review
+                </Button>
               </div>
             </div>
 

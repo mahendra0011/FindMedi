@@ -564,33 +564,32 @@ const loadDoctors = async () => {
                       <CalendarDays className="w-3 h-3" />
                       {doc.available ? (doc.next_available_slot || (Array.isArray(doc.time_slots) && doc.time_slots.length > 0 ? doc.time_slots[Math.floor(doc.time_slots.length / 2)] || doc.time_slots[0] : '5:00 PM')) : 'Unavailable'}
                     </span>
-                  </div>
-                  <div className="p-5">
-
-                    {/* Top: Photo + Name + Info */}
-                    <div className="flex items-start gap-4 mb-3">
-                      <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center overflow-hidden shrink-0 border-2 border-primary/10 shadow-sm group-hover:shadow-md group-hover:scale-105 transition-all duration-300">
-                        {doc.profile_photo
-                          ? <img src={doc.profile_photo} alt="" className="w-full h-full object-cover" />
-                          : <span className="text-xl font-bold text-primary">{initials}</span>
-                        }
-                      </div>
-                      <div className="min-w-0 flex-1 pt-1">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-heading font-semibold text-foreground truncate group-hover:text-primary transition-colors">{clinicName}</h3>
-                          {doc.approved && <BadgeCheck className="w-4 h-4 text-primary shrink-0" />}
+</div>
+                    <div className="p-5">
+                      {/* Top: Photo + Name + Info */}
+                      <div className="flex items-start gap-4 mb-3">
+                        <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center overflow-hidden shrink-0 border-2 border-primary/10 shadow-sm group-hover:shadow-md group-hover:scale-105 transition-all duration-300">
+                          {doc.clinicProfile?.clinic_photos?.[0] || doc.photos?.[0]
+                            ? <img src={doc.clinicProfile?.clinic_photos?.[0] || doc.photos?.[0]} alt="" className="w-full h-full object-cover" />
+                            : <Building2 className="w-10 h-10 text-primary/40" />
+                          }
                         </div>
-                        <p className="text-sm font-medium text-foreground truncate group-hover:text-primary/80 transition-colors">{doc.name}</p>
-                        <p className="text-xs text-primary font-medium">{doc.specialization}</p>
-                        <div className="flex items-center gap-1 mt-0.5">
-                          {renderStars(doc.rating)}
-                          <span className="text-xs text-muted-foreground ml-1">{doc.rating} ({doc.reviews_count || 0})</span>
+                        <div className="min-w-0 flex-1 pt-1">
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-heading font-semibold text-foreground truncate group-hover:text-primary transition-colors">{clinicName}</h3>
+                            {doc.approved && <BadgeCheck className="w-4 h-4 text-primary shrink-0" />}
+                          </div>
+                          <p className="text-sm font-medium text-foreground truncate group-hover:text-primary/80 transition-colors">{doc.name}</p>
+                          <p className="text-xs text-primary font-medium">{doc.specialization}</p>
+                          <div className="flex items-center gap-1 mt-0.5">
+                            {renderStars(doc.rating)}
+                            <span className="text-xs text-muted-foreground ml-1">{doc.rating} ({doc.reviews_count || 0})</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Locality + Distance */}
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mb-3 text-xs text-muted-foreground group-hover:text-foreground/80 transition-colors">
+                      {/* Locality + Distance */}
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mb-3 text-xs text-muted-foreground group-hover:text-foreground/80 transition-colors">
                       {area && (
                         <span className="flex items-center gap-1">
                           <MapPin className="w-3 h-3 text-primary shrink-0" /> {area}
