@@ -245,7 +245,7 @@ export default function AutoRetryPanel({ orderContext, onPriceConfirm, onStoreSe
               <Pill className="w-3.5 h-3.5" /> Get a new prescription from your doctor
             </Button>
             <Button variant="outline" size="sm" className="w-full justify-start gap-2 rounded-lg text-xs">
-              <ExternalLink className="w-3.5 h-3.5" /> Contact Support / Live Chat
+              <ExternalLink className="w-3.5 h-3.5" /> Contact Support
             </Button>
             <Button variant="outline" size="sm" className="w-full justify-start gap-2 rounded-lg text-xs text-red-500">
               <XCircle className="w-3.5 h-3.5" /> Cancel Order (Full Refund)
