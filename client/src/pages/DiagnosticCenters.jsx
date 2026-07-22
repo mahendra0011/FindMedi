@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Search, FlaskConical, Shield, Star, MapPin, Home, Clock,
-  SlidersHorizontal, BadgeCheck, Zap, Tag, DollarSign, X, Scan
+  Search, FlaskConical, Shield, Star, Home, Clock,
+  SlidersHorizontal, BadgeCheck, Zap, Tag, DollarSign, X
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -12,10 +12,9 @@ import DiagnosticCenterCard from '@/components/DiagnosticCenterCard';
 
 const CATEGORIES = [
   { key: 'All', label: 'All', icon: null, filterCat: null },
-  { key: 'Lab Technician', label: 'Lab Technician', icon: FlaskConical, filterCat: 'Pathology Lab' },
-  { key: 'Phlebotomist', label: 'Phlebotomist', icon: Shield, filterCat: 'Diagnostic Center' },
-  { key: 'Radiographer', label: 'Radiographer', icon: Zap, filterCat: 'Imaging Center' },
-  { key: 'Sonographer', label: 'Sonographer', icon: Scan, filterCat: 'Imaging Center' },
+  { key: 'Pathology Lab', label: 'Pathology Lab', icon: FlaskConical, filterCat: 'Pathology Lab' },
+  { key: 'Diagnostic Center', label: 'Diagnostic Center', icon: Shield, filterCat: 'Diagnostic Center' },
+  { key: 'Imaging Center', label: 'Imaging Center', icon: Zap, filterCat: 'Imaging Center' },
 ];
 
 const parseKm = (d) => {
@@ -231,7 +230,7 @@ export default function DiagnosticCenters() {
             <option value="distance">Sort: Nearest</option>
             <option value="price">Sort: Price (Low)</option>
           </select>
-          {activeCategory !== 'Imaging Center' && activeCategory !== 'Radiographer' && activeCategory !== 'Sonographer' && (
+          {activeCategory !== 'Imaging Center' && (
             <>
               <ToggleChip label="Home Collection" icon={Home} active={homeCollectionOnly} onClick={() => setHomeCollectionOnly(!homeCollectionOnly)} />
               <ToggleChip label="NABL Accredited" icon={BadgeCheck} active={nablOnly} onClick={() => setNablOnly(!nablOnly)} />
