@@ -129,6 +129,8 @@ export default function DiagnosticCenterDetail() {
   const [selectedSlot, setSelectedSlot] = useState('');
   const [testsData, setTestsData] = useState([]);
   const [packagesData, setPackagesData] = useState([]);
+  const [reviewsData, setReviewsData] = useState([]);
+  const [nearbyLabs, setNearbyLabs] = useState([]);
 
   useEffect(() => {
     const load = async () => {
@@ -139,12 +141,16 @@ export default function DiagnosticCenterDetail() {
         if (!fac || fac.type !== 'lab') throw new Error('Not found');
         setFacility(fac);
         try {
-          const [tests, pkgs] = await Promise.all([
+          const [tests, pkgs, reviews, nearby] = await Promise.all([
             api.getTests({ hospitalId: clinicId }),
-            api.getLabPackages({ hospitalId: clinicId }).catch(() => [])
+            api.getLabPackages({ hospitalId: clinicId }).catch(() => []),
+            api.getReviews({ hospitalId: clinicId }).catch(() => []),
+            api.getFacilities({ type: 'lab', limit: 4 }).catch(() => [])
           ]);
           setTestsData(tests || []);
           setPackagesData(pkgs || []);
+          setReviewsData(reviews || []);
+          setNearbyLabs(Array.isArray(nearby) ? nearby : nearby?.facilities || []);
         } catch {}
       } catch {
         setNotFound(true);
@@ -154,6 +160,9 @@ export default function DiagnosticCenterDetail() {
     };
     load();
   }, [clinicId]);
+
+  const displayReviews = reviewsData.length > 0 ? reviewsData : REVIEWS_DATA;
+  const displayNearbyLabs = nearbyLabs.length > 0 ? nearbyLabs : SUGGESTED_LABS;
 
   const clinic = facility ? {
     _id: facility._id || clinicId,
@@ -1147,8 +1156,8 @@ export default function DiagnosticCenterDetail() {
                     </div>
                     <div className="flex-1 w-full space-y-1.5">
                       {[5,4,3,2,1].map(s => {
-                        const count = REVIEWS_DATA.filter(r => Math.round(r.rating) === s).length;
-                        const pct = REVIEWS_DATA.length > 0 ? (count / REVIEWS_DATA.length) * 100 : 0;
+                        const count = displayReviews.filter(r => Math.round(r.rating) === s).length;
+                        const pct = displayReviews.length > 0 ? (count / displayReviews.length) * 100 : 0;
                         return (
                           <div key={s} className="flex items-center gap-2 text-xs">
                             <span className="w-3 text-muted-foreground font-medium">{s}</span>
@@ -1162,7 +1171,7 @@ export default function DiagnosticCenterDetail() {
                     </div>
                   </div>
                   <div className="space-y-4">
-                    {REVIEWS_DATA.map((r, i) => (
+                    {displayReviews.map((r, i) => (
                       <div key={r.id} className="group p-4 rounded-xl border border-border/30 hover:border-border/60 hover:shadow-sm transition-all">
                         <div className="flex items-start gap-3">
                           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-sm font-bold text-primary shrink-0 border-2 border-primary/10">
@@ -1348,7 +1357,7 @@ export default function DiagnosticCenterDetail() {
             </Button>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {SUGGESTED_LABS.map((lab, i) => (
+            {displayNearbyLabs.map((lab, i) => (
               <DiagnosticCenterCard key={lab._id} clinic={lab} index={i} />
             ))}
           </div>
