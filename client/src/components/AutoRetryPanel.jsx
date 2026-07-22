@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { AlertCircle, CheckCircle2, XCircle, Clock, ArrowRight, RotateCcw, StopCircle, RefreshCw, Store, Pill, ExternalLink } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { AlertCircle, CheckCircle2, XCircle, Clock, ArrowRight, RotateCcw, StopCircle, RefreshCw, Store, Pill, ExternalLink, Timer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -13,6 +13,24 @@ export default function AutoRetryPanel({ orderContext, onPriceConfirm, onStoreSe
   const [showPriceConfirm, setShowPriceConfirm] = useState(false);
   const [priceDiff, setPriceDiff] = useState(0);
   const [pendingRejectParams, setPendingRejectParams] = useState(null);
+  const [slaCountdown, setSlaCountdown] = useState(10); // 10s demo SLA
+
+  // Countdown timer — ticks while a store is being tried
+  useEffect(() => {
+    if (autoRetry.status !== AUTO_RETRY_STATUS.TRYING) {
+      setSlaCountdown(10);
+      return;
+    }
+    setSlaCountdown(10);
+    const interval = setInterval(() => {
+      setSlaCountdown(prev => {
+        if (prev <= 1) { clearInterval(interval); return 0; }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoRetry.status, autoRetry.currentStore?.id]);
 
   const handleSimulateReject = () => {
     if (!autoRetryEnabled || pharmacies.length === 0) return;
@@ -85,12 +103,26 @@ export default function AutoRetryPanel({ orderContext, onPriceConfirm, onStoreSe
             {autoRetry.status === AUTO_RETRY_STATUS.STOPPED && 'Auto-Retry Stopped'}
           </h3>
         </div>
-        {(autoRetry.status === AUTO_RETRY_STATUS.TRYING) && (
-          <Button variant="ghost" size="sm" className="text-xs gap-1.5 text-red-500 hover:text-red-600 rounded-lg"
-            onClick={autoRetry.stopRetry}>
-            <StopCircle className="w-3.5 h-3.5" /> Stop Auto-Retry
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {/* SLA countdown shown while trying */}
+          {autoRetry.status === AUTO_RETRY_STATUS.TRYING && (
+            <div className={cn(
+              'flex items-center gap-1 text-xs font-mono px-2 py-1 rounded-lg border',
+              slaCountdown <= 3
+                ? 'bg-red-50 border-red-200 text-red-600 dark:bg-red-500/10 dark:border-red-500/20'
+                : 'bg-blue-50 border-blue-200 text-blue-600 dark:bg-blue-500/10 dark:border-blue-500/20'
+            )}>
+              <Timer className="w-3 h-3" />
+              <span>Auto-escalate in {slaCountdown}s</span>
+            </div>
+          )}
+          {autoRetry.status === AUTO_RETRY_STATUS.TRYING && (
+            <Button variant="ghost" size="sm" className="text-xs gap-1.5 text-red-500 hover:text-red-600 rounded-lg"
+              onClick={autoRetry.stopRetry}>
+              <StopCircle className="w-3.5 h-3.5" /> Stop Auto-Retry
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Last rejection reason */}

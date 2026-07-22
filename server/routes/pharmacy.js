@@ -17,13 +17,27 @@ const generatePrescriptionId = async () => {
   return `RX-${new Date().getFullYear()}-${String(count + 1).padStart(5, '0')}`;
 };
 
+// ─── Public Store Medicines (no auth required) ─────────────────────────────
+router.get('/medicines/store/:storeId', async (req, res) => {
+  try {
+    const { search, category } = req.query;
+    const filter = { facilityId: req.params.storeId, isActive: true };
+    if (search) filter.$or = [
+      { name: new RegExp(search, 'i') },
+      { genericName: new RegExp(search, 'i') },
+    ];
+    if (category && category !== 'All') filter.category = category;
+    const medicines = await Medicine.find(filter).sort({ name: 1 });
+    res.json({ medicines });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
 // ─── Medicine CRUD ─────────────────────────────────────────────────────────
 router.get('/medicines', protect, async (req, res) => {
   try {
     const { search, category, lowStock } = req.query;
     const filter = {};
     if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
-    if ((req.user.facilityId || req.user.hospitalId) && req.user.role !== 'superadmin') filter.facilityId = req.user.facilityId || req.user.hospitalId;
     if ((req.user.facilityId || req.user.hospitalId) && req.user.role !== 'superadmin') filter.facilityId = req.user.facilityId || req.user.hospitalId;
     if (search) filter.$or = [
       { name: new RegExp(search, 'i') },
@@ -266,7 +280,9 @@ router.post('/orders', protect, async (req, res) => {
   try {
     const count = await PharmacyOrder.countDocuments();
     const orderId = `ORD-${String(count + 1).padStart(4, '0')}`;
-    const order = await PharmacyOrder.create({ ...req.body, orderId, hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined, createdBy: req.user._id });
+    // Use facilityId from body for patient orders, fallback to user's facility for staff
+    const facilityId = req.body.facilityId || req.user.facilityId || req.user.hospitalId || undefined;
+    const order = await PharmacyOrder.create({ ...req.body, orderId, hospitalId: req.user.hospitalId, facilityId, createdBy: req.user._id });
     res.status(201).json(order);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });

@@ -4,6 +4,7 @@ import LabBooking from '../models/LabBooking.js';
 import Equipment from '../models/Equipment.js';
 import HealthPackage from '../models/HealthPackage.js';
 import Test from '../models/Test.js';
+import User from '../models/User.js';
 import Notification from '../models/Notification.js';
 import { protect } from '../middleware/auth.js';
 
@@ -230,10 +231,19 @@ router.get('/stats', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-// ─── Get Available Lab Tests ───────────────────────────────────────────────
+// ─── Get Available Lab Tests (public, supports filtering) ─────────────────
 router.get('/tests', async (req, res) => {
   try {
-    const tests = await Test.find({}).sort({ name: 1 });
+    const { category, providerType, search, hospitalId, facilityId, limit } = req.query;
+    const filter = {};
+    if (category) filter.category = category;
+    if (providerType) filter.providerType = providerType;
+    if (hospitalId) filter.hospitalId = hospitalId;
+    if (facilityId) filter.providerId = facilityId;
+    if (search) filter.name = { $regex: search, $options: 'i' };
+    const query = Test.find(filter).sort({ name: 1 });
+    if (limit) query.limit(parseInt(limit));
+    const tests = await query;
     res.json({ tests: tests.length ? tests : [] });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
@@ -318,7 +328,19 @@ router.delete('/equipment/:id', protect, async (req, res) => {
   catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-// ─── Health Packages ───────────────────────────────────────────────────────
+// ─── Health Packages (public endpoint for browsing) ───────────────────────
+router.get('/packages/public', async (req, res) => {
+  try {
+    const { hospitalId, facilityId } = req.query;
+    const filter = {};
+    if (hospitalId) filter.hospitalId = hospitalId;
+    if (facilityId) filter.facilityId = facilityId;
+    const packages = await HealthPackage.find(filter).sort({ createdAt: -1 });
+    res.json({ packages });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// ─── Health Packages (authenticated, scoped to user's facility) ───────────
 router.get('/packages', protect, async (req, res) => {
   try {
     const filter = {};

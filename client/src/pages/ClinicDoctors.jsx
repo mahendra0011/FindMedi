@@ -328,7 +328,11 @@ const loadDoctors = async () => {
             <select value={locationFilter} onChange={e => setLocationFilter(e.target.value)}
               className="h-9 px-3 rounded-xl border border-border bg-background text-sm">
               <option value="">All Locations</option>
-              {[...new Set(allDoctors.map(d => getClinicAddress(d).split(',').map(p => p.trim()).find(p => p === 'Jabalpur') || '').filter(Boolean))].map(n => (
+              {[...new Set(allDoctors.map(d => {
+                const addr = getClinicAddress(d);
+                const parts = addr.split(',').map(p => p.trim()).filter(Boolean);
+                return parts[parts.length - 1] || parts[0] || '';
+              }).filter(Boolean))].map(n => (
                 <option key={n} value={n}>{n}</option>
               ))}
             </select>
@@ -543,7 +547,7 @@ const loadDoctors = async () => {
                 const initials = doc.name?.split(' ').map(n=>n?.[0]).join('').slice(0,2) || 'DR';
                 const clinicName = getClinicName(doc);
                 const area = getClinicAddress(doc);
-                const dist = doc.distance || ((doc._id?.charCodeAt(doc._id.length - 1) || 5) % 5 + 0.5).toFixed(1);
+                const dist = doc.distance || '0.8';
                 return (
                 <motion.div key={doc._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
                   className="group bg-card rounded-2xl border border-border/60 overflow-hidden hover:shadow-xl hover:shadow-primary/10 hover:border-primary/30 transition-all duration-300 cursor-pointer relative"
@@ -723,7 +727,7 @@ const loadDoctors = async () => {
                         </DialogContent>
                       </Dialog>
                       <Button variant="outline" size="sm" className="w-full gap-1.5 rounded-xl text-[11px] h-9 hover:border-primary/50 hover:text-primary transition-all"
-                        onClick={(e) => { e.stopPropagation(); navigate(`/clinic/${doc.facilityId?._id || doc._id}`); }}>
+                        onClick={(e) => { e.stopPropagation(); navigate(doc.facilityId?._id ? `/clinic/${doc.facilityId._id}` : `/clinic-doctors/${doc._id}`); }}>
                         <Building2 className="w-3.5 h-3.5" /> View Clinic
                       </Button>
                       <Button variant="outline" size="sm" className="w-full gap-1.5 rounded-xl text-[11px] h-9 hover:border-primary/50 hover:text-primary transition-all"

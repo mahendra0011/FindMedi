@@ -124,7 +124,7 @@ export default function DiagnosticCenters() {
     if (searchQuery && !c.name.toLowerCase().includes(searchQuery.toLowerCase()) && !c.type.toLowerCase().includes(searchQuery.toLowerCase())) return false;
     if (openNow && !c.open) return false;
     if (homeCollectionOnly && !c.homeCollection) return false;
-    if (nablOnly && !c.verified) return false;
+    if (nablOnly && !(c.nablNumber || c.tags?.includes('NABL Accredited') || c.accreditations?.includes('NABL'))) return false;
     if (distanceFilter !== 'any') {
       const km = parseKm(c.distance);
       const max = parseInt(distanceFilter);

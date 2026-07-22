@@ -446,7 +446,7 @@ const App = () => (
                     <Route path="/bloodbank" element={<RoleRoute allowedRoles={['admin', 'doctor', 'nurse']}><BloodBank /></RoleRoute>} />
                     <Route path="/physio" element={<RoleRoute allowedRoles={['admin', 'doctor', 'nurse']}><Physiotherapy /></RoleRoute>} />
                     <Route path="/mentalhealth" element={<RoleRoute allowedRoles={['admin', 'doctor', 'nurse']}><MentalHealth /></RoleRoute>} />
-                    <Route path="/reports" element={<RoleRoute allowedRoles={['admin', 'doctor']}><Reports /></RoleRoute>} />
+                    <Route path="/analytics-reports" element={<RoleRoute allowedRoles={['admin', 'doctor']}><Reports /></RoleRoute>} />
                     <Route path="/staff" element={<RoleRoute allowedRoles={['admin']}><Staff /></RoleRoute>} />
                     <Route path="/inventory" element={<RoleRoute allowedRoles={['admin']}><Inventory /></RoleRoute>} />
                     <Route path="/housekeeping" element={<RoleRoute allowedRoles={['admin']}><Housekeeping /></RoleRoute>} />

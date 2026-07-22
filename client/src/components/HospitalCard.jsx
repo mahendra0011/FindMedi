@@ -38,7 +38,7 @@ const [showDoctors, setShowDoctors] = useState(false);
    const yearsSinceEst = hospital.establishedYear
     ? new Date().getFullYear() - hospital.establishedYear
     : null;
-  const fallbackDist = distance || ((hospital._id?.charCodeAt(hospital._id?.length - 1) || 5) % 5 + 0.5).toFixed(1);
+  const fallbackDist = distance || hospital.distance || '0.8';
 
   const renderStars = (rating) => (
     <div className="flex items-center gap-0.5">

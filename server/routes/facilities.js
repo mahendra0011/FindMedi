@@ -71,7 +71,7 @@ router.get('/:id', async (req, res) => {
 
 router.post('/register', async (req, res) => {
   try {
-    const { type, name, email, phone, address, city, state, licenseNumber, description, establishedYear, logo, image, nablNumber, workingHours, pathologistName, pathologistQualification, timing, amenities, socialLinks, adminName, adminEmail, adminPhone, details } = req.body;
+    const { type, name, email, phone, address, city, state, licenseNumber, description, establishedYear, logo, image, nablNumber, aerbNumber, workingHours, pathologistName, pathologistQualification, radiologistName, radiologistQualification, cardiologistName, cardiologistQualification, technicianName, technicianRole, technicianQualification, technicianExperience, timing, amenities, socialLinks, adminName, adminEmail, adminPhone, details } = req.body;
     if (!type || !name || !email || !phone || !address || !licenseNumber || !adminName || !adminEmail || !adminPhone) {
       return res.status(400).json({ message: 'All required fields must be provided' });
     }
@@ -84,8 +84,12 @@ router.post('/register', async (req, res) => {
     const facility = await Facility.create({
       type, name, email: email.toLowerCase(), phone, address, city, state, licenseNumber, slug,
       description: description || '', establishedYear, logo: logo || '', image: image || '',
-      nablNumber: nablNumber || '', workingHours: workingHours || '',
+      nablNumber: nablNumber || '', aerbNumber: aerbNumber || '', workingHours: workingHours || '',
       pathologistName: pathologistName || '', pathologistQualification: pathologistQualification || '',
+      radiologistName: radiologistName || '', radiologistQualification: radiologistQualification || '',
+      cardiologistName: cardiologistName || '', cardiologistQualification: cardiologistQualification || '',
+      technicianName: technicianName || '', technicianRole: technicianRole || '',
+      technicianQualification: technicianQualification || '', technicianExperience: technicianExperience || '',
       timing: timing || {}, amenities: amenities || {}, socialLinks: socialLinks || {},
       status: 'pending', details: details || {},
     });

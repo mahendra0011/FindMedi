@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
+import { Loader2 } from 'lucide-react';
 import {
   Star, ShieldCheck, Home, Clock, MapPin, Phone, Mail, ArrowLeft,
   BadgeCheck, ShoppingCart, Camera, Upload, Share2,
@@ -15,184 +16,28 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
+import { api } from '@/lib/api';
 import { useCart } from '@/context/CartContext';
 import { toast } from 'sonner';
 
-const MOCK_CLINICS = [
-  {
-    _id: 'c7', name: 'Siemens Healthineers Imaging', type: 'Imaging Center', rating: 4.9, reviewsCount: 220,
-    verified: true, open: true, tags: ['MRI Available', 'CT Available', 'Reports Online', 'Emergency Imaging'],
-    testsAvailable: 120, homeCollection: false, reportTime: 'Within 4 hrs (MRI/CT) / 2 hrs (X-Ray)',
-    distance: '3.5 km', phone: '9876543216', email: 'info@siemensimaging.com', startingPrice: 500, established: 2018,
-    address: 'Tech Park, Sector 18, Gurgaon 122001',
-    workingHours: '24x7',
-    imagingTypes: ['MRI', 'CT', 'X-Ray', 'Ultrasound'],
-    equipment: { mri: '3 Tesla MRI', ct: '128-Slice CT Scanner' },
-    aerbNo: 'AERB-IM-2021-01-00567',
-    radiologist: 'Dr. Vikram Singh',
-    cover: 'https://images.unsplash.com/photo-1581595219317-a187d40ef5ef?w=1200&h=400&fit=crop',
-    logo: 'https://images.unsplash.com/photo-1579154204601-01588f351e67?w=200&h=200&fit=crop',
-    description: 'Siemens Healthineers Imaging offers state-of-the-art diagnostic imaging services with cutting-edge MRI and CT technology for accurate and rapid diagnosis.',
-    offers: [
-      { title: 'Flat 25% off on MRI Scans', code: 'MRI25', desc: 'Use code MRI25 to get 25% off on all MRI scans.' },
-      { title: 'Free Radiologist Consultation', code: '', desc: 'Free radiologist consultation with every MRI/CT scan booking.' }
-    ],
-    policies: {
-      report: 'Reports are delivered digitally within the specified turnaround time. Hard copies available on request at the center.',
-      cancel: 'Scans can be cancelled up to 4 hours before the scheduled slot. Full refund processed within 5-7 business days.',
-      refund: 'Full refund before the scheduled slot. 50% refund within 2 hours of missed slot. No refund after procedure.',
-      fasting: 'Fasting of 4-6 hours recommended for Abdomen USG and CT Abdomen. No fasting required for MRI, X-Ray, or Mammography.'
-    },
-    prepInfo: {
-      fasting: 'Required for Abdomen USG',
-      instructions: 'Remove all metal items before MRI. Inform technician about any implants or pacemakers.',
-      mode: 'Visit Required (mandatory)'
-    }
-  },
-  {
-    _id: 'c8', name: 'W Pratiksha Hospital - Radiology', type: 'Imaging Center', rating: 4.3, reviewsCount: 140,
-    verified: true, open: true, tags: ['MRI Available', 'CT Available', 'X-Ray Available'],
-    testsAvailable: 80, homeCollection: false, reportTime: 'Within 6 hrs',
-    distance: '5.0 km', phone: '9876543217', email: 'radiology@wpratiksha.com', startingPrice: 750, established: 2015,
-    address: 'W Pratiksha Hospital, Sector 5, Gurgaon 122002',
-    workingHours: '8 AM - 10 PM',
-    imagingTypes: ['MRI', 'CT Scan', 'X-Ray', 'Mammography'],
-    equipment: { mri: '1.5 Tesla MRI', ct: '64-Slice CT Scanner' },
-    aerbNo: 'AERB-IM-2020-02-00345',
-    radiologist: 'Dr. Ananya Gupta',
-    cover: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=1200&h=400&fit=crop',
-    logo: 'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?w=200&h=200&fit=crop',
-    description: 'W Pratiksha Hospital offers comprehensive radiology services with advanced imaging equipment and experienced radiologists.',
-    offers: [
-      { title: '15% off on CT Scans', code: 'CT15', desc: 'Use code CT15 for 15% off on all CT scan procedures.' }
-    ],
-    policies: {
-      report: 'Digital reports available within 6 hours. Physical copies can be collected from the center.',
-      cancel: 'Free cancellation up to 2 hours before scheduled slot.',
-      refund: 'Full refund before scheduled time. 50% refund within 1 hour of missed slot.',
-      fasting: 'Fasting recommended for CT Abdomen. No preparation needed for other scans.'
-    },
-    prepInfo: {
-      fasting: 'Required for CT Abdomen',
-      instructions: 'Remove all jewelry and metal objects. Inform about any claustrophobia.',
-      mode: 'Visit Required (mandatory)'
-    }
-  },
-  {
-    _id: 'c9', name: 'Mahajan Imaging Centre', type: 'Imaging Center', rating: 4.7, reviewsCount: 190,
-    verified: true, open: false, tags: ['MRI Available', 'CT Available', 'Reports Online'],
-    testsAvailable: 60, homeCollection: false, reportTime: 'Within 12 hrs',
-    distance: '2.0 km', phone: '9876543218', email: 'contact@mahajanimaging.com', startingPrice: 600, established: 2012,
-    address: 'Mahajan Imaging, Main Market, Gurgaon 122001',
-    workingHours: '8 AM - 8 PM',
-    imagingTypes: ['MRI', 'CT Scan', 'Ultrasound'],
-    equipment: { mri: '1.5 Tesla MRI', ct: '128-Slice CT Scanner' },
-    aerbNo: 'AERB-IM-2019-01-00890',
-    radiologist: 'Dr. Rajesh Mahajan',
-    cover: 'https://images.unsplash.com/photo-1587351021759-3e566b6af7cc?w=1200&h=400&fit=crop',
-    logo: 'https://images.unsplash.com/photo-1585435557343-3b092031a831?w=200&h=200&fit=crop',
-    description: 'Mahajan Imaging Centre is a trusted name in diagnostic imaging, offering high-quality scans at affordable prices with quick turnaround.',
-    offers: [],
-    policies: {
-      report: 'Reports delivered within 12 hours via email and WhatsApp.',
-      cancel: 'Cancellation accepted up to 6 hours before scheduled slot.',
-      refund: 'Full refund before scheduled time. No refund after the procedure.',
-      fasting: 'Fasting required for abdomen-related scans. No fasting for MRI or CT Brain.'
-    },
-    prepInfo: {
-      fasting: 'Required for Abdomen USG & CT',
-      instructions: 'Wear loose comfortable clothing. Avoid metal accessories.',
-      mode: 'Visit Required (mandatory)'
-    }
-  },
-];
-
 const CATEGORIES = ['All', 'MRI', 'CT Scan', 'X-Ray', 'Ultrasound', 'Mammography'];
 
-const ALL_TESTS = [
-  { id: 't101', name: 'MRI Brain', category: 'MRI', mrp: 4500, price: 3500, discount: 22, reportTime: '4 hrs', homeCollection: false, rx: true, popular: true, clinicId: 'c7', detailCategory: 'MRI' },
-  { id: 't102', name: 'MRI Spine', category: 'MRI', mrp: 5500, price: 4200, discount: 24, reportTime: '4 hrs', homeCollection: false, rx: true, popular: false, clinicId: 'c7', detailCategory: 'MRI' },
-  { id: 't103', name: 'MRI Knee', category: 'MRI', mrp: 4000, price: 3000, discount: 25, reportTime: '4 hrs', homeCollection: false, rx: true, popular: false, clinicId: 'c7', detailCategory: 'MRI' },
-  { id: 't104', name: 'MRI Abdomen', category: 'MRI', mrp: 6000, price: 4800, discount: 20, reportTime: '4 hrs', homeCollection: false, rx: true, popular: false, clinicId: 'c7', detailCategory: 'MRI' },
-  { id: 't105', name: 'CT Scan Chest', category: 'CT Scan', mrp: 3500, price: 2800, discount: 20, reportTime: '4 hrs', homeCollection: false, rx: true, popular: true, clinicId: 'c7', detailCategory: 'CT Scan' },
-  { id: 't106', name: 'CT Scan Abdomen', category: 'CT Scan', mrp: 4000, price: 3200, discount: 20, reportTime: '4 hrs', homeCollection: false, rx: true, popular: false, clinicId: 'c7', detailCategory: 'CT Scan' },
-  { id: 't107', name: 'CT Scan Brain', category: 'CT Scan', mrp: 3000, price: 2400, discount: 20, reportTime: '4 hrs', homeCollection: false, rx: true, popular: false, clinicId: 'c7', detailCategory: 'CT Scan' },
-  { id: 't108', name: 'X-Ray Chest', category: 'X-Ray', mrp: 500, price: 399, discount: 20, reportTime: '2 hrs', homeCollection: false, rx: false, popular: true, clinicId: 'c7', detailCategory: 'X-Ray' },
-  { id: 't109', name: 'X-Ray Knee', category: 'X-Ray', mrp: 600, price: 499, discount: 17, reportTime: '2 hrs', homeCollection: false, rx: false, popular: false, clinicId: 'c7', detailCategory: 'X-Ray' },
-  { id: 't110', name: 'X-Ray Spine', category: 'X-Ray', mrp: 800, price: 599, discount: 25, reportTime: '2 hrs', homeCollection: false, rx: false, popular: false, clinicId: 'c7', detailCategory: 'X-Ray' },
-  { id: 't111', name: 'X-Ray Abdomen', category: 'X-Ray', mrp: 700, price: 549, discount: 22, reportTime: '2 hrs', homeCollection: false, rx: true, popular: false, clinicId: 'c7', detailCategory: 'X-Ray' },
-  { id: 't112', name: 'Ultrasound Abdomen', category: 'Ultrasound', mrp: 1500, price: 1199, discount: 20, reportTime: '30 mins', homeCollection: false, rx: true, popular: true, clinicId: 'c7', detailCategory: 'Ultrasound' },
-  { id: 't113', name: 'Ultrasound Pelvis', category: 'Ultrasound', mrp: 1800, price: 1399, discount: 22, reportTime: '30 mins', homeCollection: false, rx: true, popular: false, clinicId: 'c7', detailCategory: 'Ultrasound' },
-  { id: 't114', name: 'Ultrasound Breast', category: 'Ultrasound', mrp: 2000, price: 1599, discount: 20, reportTime: '30 mins', homeCollection: false, rx: true, popular: false, clinicId: 'c7', detailCategory: 'Ultrasound' },
-  { id: 't115', name: 'Mammography Screening', category: 'Mammography', mrp: 2500, price: 1999, discount: 20, reportTime: '1 hr', homeCollection: false, rx: true, popular: true, clinicId: 'c7', detailCategory: 'Mammography' },
-  { id: 't116', name: 'Mammography Diagnostic', category: 'Mammography', mrp: 3000, price: 2499, discount: 17, reportTime: '1 hr', homeCollection: false, rx: true, popular: false, clinicId: 'c7', detailCategory: 'Mammography' },
-  { id: 't117', name: 'MRI Brain', category: 'MRI', mrp: 4200, price: 3300, discount: 21, reportTime: '6 hrs', homeCollection: false, rx: true, popular: true, clinicId: 'c8', detailCategory: 'MRI' },
-  { id: 't118', name: 'MRI Knee', category: 'MRI', mrp: 3800, price: 2900, discount: 24, reportTime: '6 hrs', homeCollection: false, rx: true, popular: false, clinicId: 'c8', detailCategory: 'MRI' },
-  { id: 't119', name: 'CT Scan Chest', category: 'CT Scan', mrp: 3200, price: 2600, discount: 19, reportTime: '6 hrs', homeCollection: false, rx: true, popular: true, clinicId: 'c8', detailCategory: 'CT Scan' },
-  { id: 't120', name: 'CT Scan Brain', category: 'CT Scan', mrp: 2800, price: 2200, discount: 21, reportTime: '6 hrs', homeCollection: false, rx: true, popular: false, clinicId: 'c8', detailCategory: 'CT Scan' },
-  { id: 't121', name: 'X-Ray Chest', category: 'X-Ray', mrp: 450, price: 349, discount: 22, reportTime: '2 hrs', homeCollection: false, rx: false, popular: true, clinicId: 'c8', detailCategory: 'X-Ray' },
-  { id: 't122', name: 'X-Ray Knee', category: 'X-Ray', mrp: 550, price: 449, discount: 18, reportTime: '2 hrs', homeCollection: false, rx: false, popular: false, clinicId: 'c8', detailCategory: 'X-Ray' },
-  { id: 't123', name: 'Mammography Screening', category: 'Mammography', mrp: 2200, price: 1799, discount: 18, reportTime: '6 hrs', homeCollection: false, rx: true, popular: true, clinicId: 'c8', detailCategory: 'Mammography' },
-  { id: 't124', name: 'Mammography Diagnostic', category: 'Mammography', mrp: 2800, price: 2299, discount: 18, reportTime: '6 hrs', homeCollection: false, rx: true, popular: false, clinicId: 'c8', detailCategory: 'Mammography' },
-  { id: 't125', name: 'MRI Brain', category: 'MRI', mrp: 4000, price: 3100, discount: 22, reportTime: '12 hrs', homeCollection: false, rx: true, popular: true, clinicId: 'c9', detailCategory: 'MRI' },
-  { id: 't126', name: 'MRI Knee', category: 'MRI', mrp: 3600, price: 2700, discount: 25, reportTime: '12 hrs', homeCollection: false, rx: true, popular: false, clinicId: 'c9', detailCategory: 'MRI' },
-  { id: 't127', name: 'MRI Spine', category: 'MRI', mrp: 4800, price: 3800, discount: 21, reportTime: '12 hrs', homeCollection: false, rx: true, popular: false, clinicId: 'c9', detailCategory: 'MRI' },
-  { id: 't128', name: 'CT Scan Chest', category: 'CT Scan', mrp: 3000, price: 2400, discount: 20, reportTime: '12 hrs', homeCollection: false, rx: true, popular: true, clinicId: 'c9', detailCategory: 'CT Scan' },
-  { id: 't129', name: 'CT Scan Abdomen', category: 'CT Scan', mrp: 3500, price: 2800, discount: 20, reportTime: '12 hrs', homeCollection: false, rx: true, popular: false, clinicId: 'c9', detailCategory: 'CT Scan' },
-  { id: 't130', name: 'Ultrasound Abdomen', category: 'Ultrasound', mrp: 1300, price: 999, discount: 23, reportTime: '12 hrs', homeCollection: false, rx: true, popular: true, clinicId: 'c9', detailCategory: 'Ultrasound' },
-  { id: 't131', name: 'Ultrasound Pelvis', category: 'Ultrasound', mrp: 1600, price: 1299, discount: 19, reportTime: '12 hrs', homeCollection: false, rx: true, popular: false, clinicId: 'c9', detailCategory: 'Ultrasound' },
-];
+const stagger = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.06 } } };
+const fadeUp = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 }, transition: { type: 'spring', stiffness: 200, damping: 22 } };
 
-const PACKAGES = [
-  { id: 'p101', name: 'Full Body Imaging Package', price: 7999, mrp: 12999, discount: 38, includes: ['MRI Brain', 'X-Ray Chest', 'Ultrasound Abdomen', 'CT Scan Chest'], popular: true, clinicId: 'c7' },
-  { id: 'p102', name: 'Cardiac Imaging Package', price: 5999, mrp: 9999, discount: 40, includes: ['CT Scan Chest', 'X-Ray Chest', 'Ultrasound Abdomen'], popular: false, clinicId: 'c7' },
-  { id: 'p103', name: 'Preventive Scan Package', price: 4999, mrp: 8499, discount: 41, includes: ['Ultrasound Abdomen', 'X-Ray Chest', 'MRI Brain'], popular: false, clinicId: 'c7' },
-];
+const SectionTitle = ({ icon: Icon, label }) => (
+  <h2 className="font-heading text-lg font-bold text-foreground mb-5 flex items-center gap-2">
+    <span className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
+      <Icon className="w-3.5 h-3.5 text-primary" />
+    </span>
+    {label}
+  </h2>
+);
 
-const REVIEWS_DATA = [
-  { id: 'r1', user: 'Ankit S.', rating: 5, comment: 'Excellent imaging center. The 3T MRI gave crystal clear images. Very professional staff.', date: '3 days ago' },
-  { id: 'r2', user: 'Sneha R.', rating: 4, comment: 'Quick service and accurate reports. The radiologist explained everything well.', date: '1 week ago' },
-  { id: 'r3', user: 'Vivek M.', rating: 5, comment: 'State-of-the-art equipment. Felt very safe and comfortable during the MRI scan.', date: '2 weeks ago' },
-  { id: 'r4', user: 'Neha G.', rating: 3, comment: 'Good center but waiting time was a bit long. Reports were on time though.', date: '3 weeks ago' },
-  { id: 'r5', user: 'Rohit J.', rating: 4, comment: 'Clean facility and very helpful technicians. Highly recommend for CT scans.', date: '1 month ago' },
-];
-
-function getClinicById(id) { return MOCK_CLINICS.find(c => c._id === id) || MOCK_CLINICS[0]; }
-
-function fadeUp(i) {
-  return { initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0 }, transition: { delay: i * 0.06, duration: 0.4 } };
-}
-
-function SectionCard({ icon: Icon, title, children, className }) {
-  return (
-    <motion.div {...fadeUp(0)} className={cn('bg-card rounded-2xl border border-border/50 overflow-hidden shadow-sm', className)}>
-      <div className="px-6 py-4 border-b border-border/30 bg-gradient-to-r from-blue-500/[0.04] to-transparent">
-        <h3 className="font-heading font-bold text-foreground flex items-center gap-2.5 text-base">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-500/5 flex items-center justify-center shadow-sm">
-            <Icon className="w-4.5 h-4.5 text-blue-600" />
-          </div>
-          {title}
-        </h3>
-      </div>
-      <div className="px-6 py-5">{children}</div>
-    </motion.div>
-  );
-}
-
-function SidebarCard({ icon: Icon, title, children }) {
-  return (
-    <motion.div {...fadeUp(0)} className="bg-card rounded-2xl border border-border/50 overflow-hidden shadow-sm">
-      <div className="px-5 py-3.5 border-b border-border/30 bg-gradient-to-r from-blue-500/[0.04] to-transparent">
-        <h4 className="font-heading font-semibold text-foreground flex items-center gap-2 text-sm">
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500/20 to-blue-500/5 flex items-center justify-center">
-            <Icon className="w-4 h-4 text-blue-600" />
-          </div>
-          {title}
-        </h4>
-      </div>
-      <div className="p-5">{children}</div>
-    </motion.div>
-  );
+function deriveCategory(f) {
+  const s = (f?.specialties || []).map(x => x.toLowerCase());
+  const hasImaging = s.some(x => x.includes('imaging') || x.includes('radiology') || x.includes('mri') || x.includes('ct') || x.includes('ultrasound'));
+  return hasImaging ? 'Imaging Center' : 'Diagnostic Center';
 }
 
 export default function ImagingCenterDetail() {

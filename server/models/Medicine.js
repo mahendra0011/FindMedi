@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 const medicineSchema = new mongoose.Schema({
   name: { type: String, required: true },
   genericName: { type: String, required: true },
-  category: { type: String, enum: ['Antibiotic', 'Analgesic', 'Antihypertensive', 'Antidiabetic', 'Antacid', 'Antihistamine', 'Antiviral', 'Antifungal', 'Vitamin', 'Steroid', 'Anesthetic', 'Diuretic', 'Cardiac', 'Respiratory', 'Other'], required: true },
+  category: { type: String, enum: ['Antibiotic', 'Analgesic', 'Antihypertensive', 'Antidiabetic', 'Antacid', 'Antihistamine', 'Antiviral', 'Antifungal', 'Vitamin', 'Steroid', 'Anesthetic', 'Diuretic', 'Cardiac', 'Respiratory', 'Prescription', 'OTC', 'Generic', 'Baby Care', 'Ayurvedic', 'Devices', 'Vitamins', 'Supplements', 'Personal Care', 'Other'], required: true },
   form: { type: String, enum: ['Tablet', 'Capsule', 'Syrup', 'Injection', 'Drop', 'Cream', 'Inhaler', 'Infusion', 'Other'], required: true },
   manufacturer: { type: String, required: true },
   batchNumber: { type: String, required: true },
@@ -22,9 +22,10 @@ const medicineSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
 });
 
-// Auto update isActive if stock is 0
+// Auto update isActive based on stock level
 medicineSchema.pre('save', function (next) {
   if (this.currentStock === 0) this.isActive = false;
+  else if (this.currentStock > 0 && !this.isActive) this.isActive = true; // Re-enable when restocked
   next();
 });
 

@@ -465,7 +465,7 @@ export default function HospitalProfile() {
                     <span>{hospital.address}, {hospital.city}{hospital.state ? `, ${hospital.state}` : ''}</span>
                     <div className="flex items-center gap-1.5 mt-0.5 text-xs text-muted-foreground/70">
                       <Navigation className="w-3 h-3" />
-                      <span>{((hospital._id?.charCodeAt(hospital._id?.length - 1) || 5) % 5 + 0.5).toFixed(1)} km away</span>
+                      <span>{hospital.distance || '0.8'} km away</span>
                     </div>
                   </div>
                 </div>
@@ -961,7 +961,7 @@ export default function HospitalProfile() {
                     <p className="text-sm text-muted-foreground">{hospital.address}, {hospital.city}{hospital.state ? `, ${hospital.state}` : ''}</p>
                     <p className="text-xs text-muted-foreground/70 mt-1 flex items-center gap-1">
                       <Navigation className="w-3 h-3" />
-                      {((hospital._id?.charCodeAt(hospital._id?.length - 1) || 5) % 5 + 0.5).toFixed(1)} km away
+                      {hospital.distance || '0.8'} km away
                     </p>
                   </div>
                 </div>

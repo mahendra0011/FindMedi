@@ -2,12 +2,29 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   FileText, User, Search, CheckCircle, XCircle, Calendar, Eye, Clock,
-  Pill, AlertTriangle, Activity
+  Pill, AlertTriangle, Activity, Timer, ArrowRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
+import { toast } from 'sonner';
+
+// SLA helpers
+function minutesSince(iso) {
+  if (!iso) return null;
+  const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+  if (diff < 1) return 'Just now';
+  if (diff < 60) return `${diff}m ago`;
+  return `${Math.floor(diff / 60)}h ${diff % 60}m ago`;
+}
+function urgencyLevel(iso) {
+  if (!iso) return null;
+  const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+  if (mins > 20) return 'critical';
+  if (mins > 10) return 'urgent';
+  return null;
+}
 
 const statusColors = {
   Active: 'bg-warning/10 text-warning',
@@ -81,23 +98,45 @@ export default function PharmacyPrescriptionQueue() {
     } catch (e) { console.error(e); }
   };
 
-  const totalPending = queue.filter(r => r.status === 'Active').length;
-  const totalPartial = queue.filter(r => r.status === 'Partially Dispensed').length;
+  const totalActive    = queue.filter(r => r.status === 'Active').length;
+  const totalDispensed = queue.filter(r => r.status === 'Dispensed').length;
+  const totalCancelled = queue.filter(r => r.status === 'Cancelled').length;
+  const totalPartial   = queue.filter(r => r.status === 'Partially Dispensed').length;
+  const avgMins = 12; // mock average
 
-  if (loading) {
-    return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
-  }
+  const handleNotifyNextProvider = (rx) => {
+    toast.info(`🔄 Notifying next preferred pharmacy for ${rx.patientName}'s prescription...`, { duration: 5000 });
+    setTimeout(() => toast.success(`✅ Next provider (HealthFirst Medicals) notified.`, { duration: 4000 }), 1500);
+  };
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="font-heading text-2xl font-bold text-foreground">Prescription Queue</h1>
-        <p className="text-muted-foreground">
-          {totalPending > 0 && <span className="text-warning font-medium">{totalPending} active</span>}
-          {totalPending > 0 && totalPartial > 0 && <span>, </span>}
+        <p className="text-muted-foreground mt-0.5">
+          {totalActive > 0 && <span className="text-warning font-medium">{totalActive} active</span>}
+          {totalActive > 0 && totalPartial > 0 && <span>, </span>}
           {totalPartial > 0 && <span className="text-info font-medium">{totalPartial} partially dispensed</span>}
-          {totalPending === 0 && totalPartial === 0 && <span>No pending prescriptions</span>}
+          {totalActive === 0 && totalPartial === 0 && <span>No pending prescriptions</span>}
         </p>
+      </div>
+
+      {/* Stats bar */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        {[
+          { label: 'Active',        value: totalActive,    color: 'text-amber-600',   icon: Clock       },
+          { label: 'Dispensed',     value: totalDispensed, color: 'text-emerald-600', icon: CheckCircle },
+          { label: 'Cancelled',     value: totalCancelled, color: 'text-red-500',     icon: XCircle     },
+          { label: 'Avg Time',      value: `${avgMins}m`,  color: 'text-primary',     icon: Timer       },
+        ].map(({ label, value, color, icon: Icon }) => (
+          <div key={label} className="bg-card rounded-xl border border-border/60 p-4 flex items-center gap-3">
+            <Icon className={`w-5 h-5 ${color}`} />
+            <div>
+              <p className={`text-xl font-bold font-heading ${color}`}>{value}</p>
+              <p className="text-xs text-muted-foreground">{label}</p>
+            </div>
+          </div>
+        ))}
       </div>
 
       {error && (
@@ -157,6 +196,14 @@ export default function PharmacyPrescriptionQueue() {
                       <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
                         <Calendar className="w-3 h-3" /> {new Date(rx.createdAt).toLocaleDateString()}
                         <Clock className="w-3 h-3 ml-1" /> {new Date(rx.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {rx.status === 'Active' && rx.createdAt && (() => {
+                          const u = urgencyLevel(rx.createdAt);
+                          return u === 'critical'
+                            ? <Badge className="text-[10px] bg-red-500/10 text-red-600 border-red-200 animate-pulse ml-1"><AlertTriangle className="w-2.5 h-2.5 mr-0.5" />Overdue {minutesSince(rx.createdAt)}</Badge>
+                            : u === 'urgent'
+                            ? <Badge className="text-[10px] bg-amber-500/10 text-amber-600 border-amber-200 ml-1"><Timer className="w-2.5 h-2.5 mr-0.5" />Urgent {minutesSince(rx.createdAt)}</Badge>
+                            : null;
+                        })()}
                       </div>
                       {rx.diagnosis && (
                         <p className="text-xs text-muted-foreground/70 mt-1 italic">{rx.diagnosis}</p>
@@ -180,6 +227,14 @@ export default function PharmacyPrescriptionQueue() {
                     <Button size="sm" className="flex-1 gap-1 bg-success hover:bg-success/90"
                       onClick={() => setSelectedRx(rx)}>
                       <Activity className="w-4 h-4" /> Dispense Medicines
+                    </Button>
+                  </div>
+                )}
+                {rx.status === 'Cancelled' && (
+                  <div className="flex gap-2 mt-3 pt-3 border-t border-border/40">
+                    <Button size="sm" variant="outline" className="flex-1 gap-2 text-primary text-xs"
+                      onClick={() => handleNotifyNextProvider(rx)}>
+                      <ArrowRight className="w-3.5 h-3.5" /> Notify Next Preferred Pharmacy
                     </Button>
                   </div>
                 )}

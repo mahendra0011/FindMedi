@@ -15,7 +15,7 @@ router.get('/', async (req, res) => {
     if (hospitalId) filter.hospitalId = hospitalId;
     if (search) filter.name = new RegExp(search, 'i');
     const tests = await Test.find(filter).sort({ name: 1 });
-    res.json(tests);
+    res.json({ tests });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 

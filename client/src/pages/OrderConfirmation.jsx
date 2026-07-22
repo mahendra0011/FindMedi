@@ -18,8 +18,9 @@ export default function OrderConfirmation() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const orderIds = searchParams.get('orderIds')?.split(',') || [`ORD${Date.now().toString(36).toUpperCase()}`];
-  const storeIds = searchParams.get('stores')?.split(',') || [];
-  const hasRx = searchParams.get('rx') === 'true';
+  const storeIds  = searchParams.get('stores')?.split(',') || [];
+  const hasRx     = searchParams.get('rx') === 'true';
+  const flowType  = searchParams.get('type') || 'medicine';
   const { entries, stores, clearCart } = useCart();
   const [countdown, setCountdown] = useState(30);
   const [confirmed, setConfirmed] = useState(false);
@@ -174,7 +175,7 @@ export default function OrderConfirmation() {
           {displayStores.map((st, i) => {
             const tid = orderIds[i];
             return (
-              <Button key={st.storeId} className="gap-2 rounded-xl flex-1" onClick={() => navigate(`/order-tracking/${tid}?rx=${hasRx}&storeId=${st.storeId}`)}>
+              <Button key={st.storeId} className="gap-2 rounded-xl flex-1" onClick={() =>               navigate(`/order-tracking/${tid}?rx=${hasRx}&storeId=${st.storeId}&type=${flowType}`)}>
                 <Truck className="w-4 h-4" /> Track {storeIds.length > 1 ? `Order ${i + 1}` : 'Order'}
               </Button>
             );

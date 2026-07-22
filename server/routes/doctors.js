@@ -62,7 +62,17 @@ router.get('/', async (req, res) => {
     if (hospitalId) {
       try {
         filter.hospitalId = hospitalId;
-        const doctors = await populatePractice(Doctor.find(filter)).sort({ createdAt: -1 });
+        let doctors = await populatePractice(Doctor.find(filter)).sort({ createdAt: -1 }).lean();
+        // Populate clinic profiles for clinic-type doctors
+        const clinicDoctorIds = doctors.filter(d => d.doctor_type === 'clinic').map(d => d._id);
+        if (clinicDoctorIds.length) {
+          const profiles = await ClinicProfile.find({ doctorId: { $in: clinicDoctorIds } }).lean();
+          const profileMap = Object.fromEntries(profiles.map(p => [p.doctorId.toString(), p]));
+          doctors = doctors.map(d => {
+            if (d.doctor_type === 'clinic') d.clinicProfile = profileMap[d._id.toString()] || null;
+            return d;
+          });
+        }
         return res.json(doctors);
       } catch (castErr) {
         return res.json([]);
