@@ -22,8 +22,15 @@ import { api } from '@/lib/api';
 import { useCart } from '@/context/CartContext';
 import { toast } from 'sonner';
 import ServiceLocationMap from '@/components/maps/ServiceLocationMap';
+import DiagnosticCenterCard from '@/components/DiagnosticCenterCard';
 
 const CATEGORIES = ['All', 'Pathology Tests', 'Imaging Tests', 'Cardiac Tests', 'Health Packages'];
+
+const SUGGESTED_LABS = [
+  { _id:'dignolab-center', name:'DiagnoLab Center', slug:'dignolab-center', providerCategory:'Diagnostic Center', type:'lab', rating:4.4, reviewsCount:567, verified:true, open:true, tags:['NABL Accredited','Home Collection','Reports Online','Imaging Available'], testsAvailable:250, homeCollection:true, reportTime:'Within 6 hrs', distance:'1.2 km', phone:'0761-2345678', email:'info@dignolab.com', address:'Marhatal, Jabalpur, MP 482002', startingPrice:350, logo:'', workingHours:'8:00 AM - 8:00 PM' },
+  { _id:'metropolis-labs', name:'Metropolis Labs', slug:'metropolis-labs', providerCategory:'Pathology Lab', type:'lab', rating:4.6, reviewsCount:823, verified:true, open:true, tags:['NABL Accredited','Home Collection','Reports Online'], testsAvailable:350, homeCollection:true, reportTime:'Within 12 hrs', distance:'2.5 km', phone:'0761-3456789', email:'contact@metropolisjabalpur.com', address:'Napier Town, Jabalpur, MP 482001', startingPrice:299, logo:'', workingHours:'7:00 AM - 9:00 PM' },
+  { _id:'apollo-diagnostics', name:'Apollo Diagnostics', slug:'apollo-diagnostics', providerCategory:'Diagnostic Center', type:'lab', rating:4.5, reviewsCount:712, verified:true, open:true, tags:['NABL Accredited','Home Collection','Reports Online','Imaging Available','AERB Certified'], testsAvailable:190, homeCollection:true, reportTime:'Within 8 hrs', distance:'0.8 km', phone:'0761-4567890', email:'jabalpur@apollodiag.com', address:'Civil Lines, Jabalpur, MP 482001', startingPrice:499, logo:'', workingHours:'6:00 AM - 10:00 PM' }
+];
 
 const ALL_TESTS = [
   { id:'dc1', name:'Complete Blood Count (CBC)', detailCategory:'Pathology Tests', mrp:399, price:249, discount:38, reportTime:'6 hrs', homeCollection:true, rx:false, popular:true },
@@ -1207,7 +1214,7 @@ export default function DiagnosticCenterDetail() {
           </div>
 
           {/* ──── RIGHT SIDEBAR ──── */}
-          <div className="space-y-6 lg:sticky lg:top-24 self-start">
+          <div className="space-y-6">
 
             {/* Trust & Info */}
             <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} className="w-full">
@@ -1275,6 +1282,8 @@ export default function DiagnosticCenterDetail() {
               </Card>
             </motion.div>
 
+            {/* Quick Actions + Address */}
+            <div className="space-y-6 self-start w-full lg:sticky lg:top-24">
             {/* Quick Actions */}
             <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} className="w-full">
               <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden bg-gradient-to-br from-primary/5 via-primary/[0.02] to-transparent w-full">
@@ -1290,19 +1299,61 @@ export default function DiagnosticCenterDetail() {
                     <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" asChild>
                       <a href={`tel:${clinic.phone}`}><Phone className="w-4 h-4" /> Call Now</a>
                     </Button>
-                    <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => window.open(`https://maps.google.com/?q=${encodeURIComponent(clinic.address)}`)}>
-                      <Navigation className="w-4 h-4" /> Get Directions
+                    <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" asChild>
+                      <a href={`mailto:${clinic.email || ''}`}><Mail className="w-4 h-4" /> Email Now</a>
                     </Button>
-                    <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => { navigator.clipboard?.writeText(window.location.href); toast.success('Link copied!'); }}>
-                      <Share2 className="w-4 h-4" /> Share Profile
+                    <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => toast.success('Saved to favorites')}>
+                      <Heart className="w-4 h-4" /> Save
+                    </Button>
+                    <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => toast.success('Sharing...')}>
+                      <Share2 className="w-4 h-4" /> Share Lab
+                    </Button>
+                    <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => toast.success('Review form coming soon')}>
+                      <Star className="w-4 h-4" /> Write a Review
                     </Button>
                   </div>
                 </CardContent>
               </Card>
             </motion.div>
 
+            {/* Address */}
+            <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} className="w-full">
+              <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden w-full">
+                <CardContent className="p-6">
+                  <h3 className="font-heading font-semibold text-foreground mb-4 flex items-center gap-2.5">
+                    <span className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center"><MapPin className="w-3.5 h-3.5 text-primary" /></span>
+                    Address
+                  </h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed mb-4">{clinic.address}</p>
+                  <Button variant="outline" size="sm" className="w-full gap-2 rounded-xl h-10" onClick={() => window.open(`https://maps.google.com/?q=${encodeURIComponent(clinic.address)}`)}>
+                    <Navigation className="w-4 h-4" /> View in G Map
+                  </Button>
+                </CardContent>
+              </Card>
+            </motion.div>
+            </div>
+
           </div>
         </div>
+
+        {/* ════════ SUGGESTED LABS ════════ */}
+        <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} className="mt-8 mb-4">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="font-heading text-xl font-bold text-foreground flex items-center gap-2">
+              <FlaskConical className="w-5 h-5 text-primary" />
+              Suggested Labs Nearby
+            </h2>
+            <Button variant="ghost" size="sm" className="text-primary hover:bg-primary/10" onClick={() => navigate('/lab')}>
+              View All <ChevronRight className="w-4 h-4 ml-1" />
+            </Button>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {SUGGESTED_LABS.map((lab, i) => (
+              <DiagnosticCenterCard key={lab._id} clinic={lab} index={i} />
+            ))}
+          </div>
+        </motion.div>
+
       </div>
 
       {/* ═══ PRESCRIPTION MODAL ═══ */}

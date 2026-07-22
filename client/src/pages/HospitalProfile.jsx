@@ -1432,7 +1432,8 @@ export default function HospitalProfile() {
           )}
 
           {/* Quick Actions Card */}
-          <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} className="lg:sticky lg:top-24">
+          <div className="space-y-6 self-start lg:sticky lg:top-24">
+          <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>
             <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden bg-gradient-to-br from-primary/5 via-primary/[0.02] to-transparent">
               <CardContent className="p-6">
                 <h3 className="font-heading font-semibold text-foreground mb-5 flex items-center gap-2.5">
@@ -1450,9 +1451,7 @@ export default function HospitalProfile() {
                     <a href={`tel:${hospital.phone}`}><Phone className="w-4 h-4" /> Call Now</a>
                   </Button>
                   <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" asChild>
-                    <a href={`https://maps.google.com/?q=${encodeURIComponent(`${hospital.address}, ${hospital.city}, ${hospital.state}`)}`} target="_blank" rel="noopener noreferrer">
-                      <Navigation className="w-4 h-4" /> Get Directions
-                    </a>
+                    <a href={`mailto:${hospital.email || ''}`}><Mail className="w-4 h-4" /> Email Now</a>
                   </Button>
                   <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => { setIsFavorited(!isFavorited); toast.success(isFavorited ? 'Removed from Saved' : 'Saved'); }}>
                     <Heart className={cn('w-4 h-4', isFavorited && 'fill-current text-red-500')} /> {isFavorited ? 'Saved' : 'Save'}
@@ -1460,10 +1459,30 @@ export default function HospitalProfile() {
                   <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={handleShare}>
                     <Share2 className="w-4 h-4" /> Share Hospital
                   </Button>
+                  <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => toast.success('Review form coming soon')}>
+                    <Star className="w-4 h-4" /> Write a Review
+                  </Button>
                 </div>
               </CardContent>
             </Card>
           </motion.div>
+
+          {/* Address */}
+          <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>
+            <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden">
+              <CardContent className="p-6">
+                <h3 className="font-heading font-semibold text-foreground mb-4 flex items-center gap-2.5">
+                  <span className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center"><MapPin className="w-3.5 h-3.5 text-primary" /></span>
+                  Address
+                </h3>
+                <p className="text-sm text-muted-foreground leading-relaxed mb-4">{hospital.address}, {hospital.city}{hospital.state ? `, ${hospital.state}` : ''}</p>
+                <Button variant="outline" size="sm" className="w-full gap-2 rounded-xl h-10" onClick={() => window.open(`https://maps.google.com/?q=${encodeURIComponent(`${hospital.address}, ${hospital.city}, ${hospital.state}`)}`)}>
+                  <Navigation className="w-4 h-4" /> View in G Map
+                </Button>
+              </CardContent>
+            </Card>
+          </motion.div>
+          </div>
         </div>
       </div>
       </div>
