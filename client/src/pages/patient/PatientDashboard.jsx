@@ -1,74 +1,38 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, CalendarDays, User, Star, FileText, CreditCard, TestTube,
   Activity, Bell, Search, AlertTriangle, IndianRupee, ClipboardList, Heart,
   Pill, ShoppingCart, Truck, Home, MapPin, Phone, Mail, Shield, Settings,
   Plus, X, Edit, Trash2, Save, Check, Clock, ArrowRight, Bookmark, HeartHandshake,
   HelpCircle, MessageCircle, CreditCard as CardIcon, Wallet, Download, Upload,
-  ChevronRight, LogOut, Camera, MapPinned, Users, Award, ExternalLink, Gift
+  ChevronRight, LogOut, Camera, MapPinned, Users, Award, ExternalLink, Gift,
+  Zap, ChevronDown, Smartphone, RefreshCw, Eye
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
+import { usePreferredPharmacies } from '@/context/PreferredPharmacyContext';
 import { api } from '@/lib/api';
 
+function patientRequest(path, opts = {}) {
+  return api.dispatch(null, path, opts);
+}
 const patientApi = {
-  getFamily: () => api.dispatch(() => Promise.resolve({ members: [] }), '/patient/family'),
-  createFamily: (b) => api.dispatch(() => Promise.resolve({}), '/patient/family', { method: 'POST', body: JSON.stringify(b) }),
-  deleteFamily: (id) => api.dispatch(() => Promise.resolve({}), `/patient/family/${id}`, { method: 'DELETE' }),
-  getAddresses: () => api.dispatch(() => Promise.resolve({ addresses: [] }), '/patient/addresses'),
-  createAddress: (b) => api.dispatch(() => Promise.resolve({}), '/patient/addresses', { method: 'POST', body: JSON.stringify(b) }),
-  updateAddress: (id, b) => api.dispatch(() => Promise.resolve({}), `/patient/addresses/${id}`, { method: 'PUT', body: JSON.stringify(b) }),
-  deleteAddress: (id) => api.dispatch(() => Promise.resolve({}), `/patient/addresses/${id}`, { method: 'DELETE' }),
-  getFavorites: (p = {}) => api.dispatch(() => Promise.resolve({ favorites: [] }), '/patient/favorites?' + new URLSearchParams(p)),
-  addFavorite: (b) => api.dispatch(() => Promise.resolve({}), '/patient/favorites', { method: 'POST', body: JSON.stringify(b) }),
-  removeFavorite: (id) => api.dispatch(() => Promise.resolve({}), `/patient/favorites/${id}`, { method: 'DELETE' }),
+  getFamily:     ()        => patientRequest('/patient/family'),
+  createFamily:  (b)       => patientRequest('/patient/family',    { method:'POST', body: JSON.stringify(b) }),
+  deleteFamily:  (id)      => patientRequest(`/patient/family/${id}`, { method:'DELETE' }),
+  getAddresses:  ()        => patientRequest('/patient/addresses'),
+  createAddress: (b)       => patientRequest('/patient/addresses', { method:'POST', body: JSON.stringify(b) }),
+  updateAddress: (id,b)    => patientRequest(`/patient/addresses/${id}`, { method:'PUT', body: JSON.stringify(b) }),
+  deleteAddress: (id)      => patientRequest(`/patient/addresses/${id}`, { method:'DELETE' }),
+  getFavorites:  (p={})    => patientRequest('/patient/favorites?' + new URLSearchParams(p)),
+  addFavorite:   (b)       => patientRequest('/patient/favorites', { method:'POST', body: JSON.stringify(b) }),
+  removeFavorite:(id)      => patientRequest(`/patient/favorites/${id}`, { method:'DELETE' }),
 };
 
-let mockFamily = [
-  { _id: 'fm1', name: 'Anita Sharma', relation: 'Spouse', gender: 'Female', phone: '9876540091', bloodGroup: 'B+', isActive: true },
-  { _id: 'fm2', name: 'Rohit Sharma', relation: 'Child', gender: 'Male', dateOfBirth: '2018-05-12', bloodGroup: 'A+', isActive: true },
-];
 
-let mockAddresses = [
-  { _id: 'ad1', label: 'Home', address: '123 MG Road, Andheri East', city: 'Mumbai', state: 'Maharashtra', pincode: '400093', phone: '9876543210', isDefault: true },
-  { _id: 'ad2', label: 'Office', address: '456 BKC, Bandra East', city: 'Mumbai', state: 'Maharashtra', pincode: '400051', phone: '9876543210', isDefault: false },
-];
-
-let mockFavorites = [
-  { _id: 'fv1', refType: 'doctor', refId: 'd1', refName: 'Dr. Sarah Smith', notes: 'Cardiologist' },
-  { _id: 'fv2', refType: 'hospital', refId: 'h1', refName: 'City General Hospital' },
-  { _id: 'fv3', refType: 'lab', refId: 'l1', refName: 'MediCore Diagnostic Center' },
-];
-
-let mockMedicineOrders = [
-  { _id: 'mo1', orderId: 'ORD-001', items: [{ medicineName: 'Amoxicillin', qty: 20, price: 250 }], total: 5000, status: 'Shipped', paymentStatus: 'Paid', orderDate: new Date(Date.now() - 86400000).toISOString(), deliveryAddress: '123 MG Road, Mumbai', tracking: 'Shipped via Delhivery - ETD: 30 mins' },
-  { _id: 'mo2', orderId: 'ORD-002', items: [{ medicineName: 'Paracetamol', qty: 10, price: 50 }, { medicineName: 'Vitamin C', qty: 30, price: 120 }], total: 4100, status: 'Delivered', paymentStatus: 'Paid', orderDate: new Date(Date.now() - 3 * 86400000).toISOString(), deliveryAddress: '456 Park Ave, Delhi' },
-  { _id: 'mo3', orderId: 'ORD-003', items: [{ medicineName: 'Insulin', qty: 5, price: 800 }], total: 4000, status: 'Pending', paymentStatus: 'Unpaid', orderDate: new Date(Date.now() - 86400000).toISOString() },
-];
-
-let mockPrescriptions = [
-  { _id: 'rx1', prescriptionId: 'RX-2026-00001', doctorName: 'Dr. Sarah Smith', diagnosis: 'Hypertension', medicines: [{ name: 'Amlodipine 5mg', dosage: '1-0-1', duration: '30 days' }], status: 'Active', date: new Date(Date.now() - 7 * 86400000).toISOString() },
-  { _id: 'rx2', prescriptionId: 'RX-2026-00002', doctorName: 'Dr. Raj Patel', diagnosis: 'Type 2 Diabetes', medicines: [{ name: 'Metformin 500mg', dosage: '1-0-1', duration: '90 days' }, { name: 'Glycomet GP 1', dosage: '0-0-1', duration: '90 days' }], status: 'Active', date: new Date(Date.now() - 30 * 86400000).toISOString() },
-  { _id: 'rx3', prescriptionId: 'RX-2026-00003', doctorName: 'Dr. Emily Lee', diagnosis: 'Back Pain', medicines: [{ name: 'Ibuprofen 400mg', dosage: '0-0-1', duration: '7 days' }], status: 'Dispensed', date: new Date(Date.now() - 60 * 86400000).toISOString() },
-];
-
-let mockPaymentMethods = [
-  { _id: 'pm1', type: 'card', label: 'HDFC Credit Card', last4: '4532', isDefault: true },
-  { _id: 'pm2', type: 'upi', label: 'Google Pay', upiId: 'user@okhdfcbank', isDefault: false },
-  { _id: 'pm3', type: 'wallet', label: 'PhonePe Wallet', balance: '2500', isDefault: false },
-];
-
-let mockNotifications = [
-  { _id: 'n1', title: 'Appointment Reminder', message: 'Your appointment with Dr. Sarah Smith is tomorrow at 10:00 AM', type: 'reminder', read: false, date: new Date(Date.now() + 86400000).toISOString() },
-  { _id: 'n2', title: 'Lab Report Ready', message: 'Your CBC and Lipid Profile reports are now available', type: 'report', read: false, date: new Date(Date.now() - 1 * 86400000).toISOString() },
-  { _id: 'n3', title: 'Order Shipped', message: 'Your medicine order ORD-001 has been shipped', type: 'order', read: true, date: new Date(Date.now() - 2 * 86400000).toISOString() },
-  { _id: 'n4', title: 'Payment Received', message: 'Payment of ₹5000 for order ORD-001 confirmed', type: 'payment', read: true, date: new Date(Date.now() - 2 * 86400000).toISOString() },
-  { _id: 'n5', title: 'Prescription Added', message: 'Dr. Raj Patel added a new prescription for you', type: 'prescription', read: false, date: new Date(Date.now() - 3 * 86400000).toISOString() },
-  { _id: 'n6', title: 'Bill Reminder', message: 'Your pending bill of ₹1200 is due in 3 days', type: 'billing', read: false, date: new Date(Date.now() - 4 * 86400000).toISOString() },
-];
 
 const getInitials = (name) => name ? name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : '?'
 
@@ -120,7 +84,9 @@ const SectionHeader = ({ title, subtitle, action }) => (
 );
 
 export default function PatientDashboard() {
+  const navigate = useNavigate();
   const { user } = useAuth();
+  const { pharmacies: prefPharmacies, removePharmacy } = usePreferredPharmacies();
   const [tab, setTab] = useState('overview');
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(null);
@@ -130,18 +96,18 @@ export default function PatientDashboard() {
   const [bills, setBills] = useState([]);
   const [doctors, setDoctors] = useState([]);
 
-  const [family, setFamily] = useState(mockFamily);
+  const [family, setFamily] = useState([]);
   const [newFamily, setNewFamily] = useState({ name: '', relation: 'Spouse', gender: 'Male', phone: '', bloodGroup: '' });
-  const [addresses, setAddresses] = useState(mockAddresses);
+  const [addresses, setAddresses] = useState([]);
   const [newAddress, setNewAddress] = useState({ label: 'Home', address: '', city: '', state: '', pincode: '', phone: '', isDefault: false });
   const [addEditId, setAddEditId] = useState(null);
-  const [favorites, setFavorites] = useState(mockFavorites);
-  const [medOrders, setMedOrders] = useState(mockMedicineOrders);
-  const [prescriptions, setPrescriptions] = useState(mockPrescriptions);
+  const [favorites, setFavorites] = useState([]);
+  const [medOrders, setMedOrders] = useState([]);
+  const [prescriptions, setPrescriptions] = useState([]);
   const [testBookings, setTestBookings] = useState([]);
   const [reports, setReports] = useState([]);
-  const [paymentMethods, setPaymentMethods] = useState(mockPaymentMethods);
-  const [notifs, setNotifs] = useState(mockNotifications);
+  const [paymentMethods, setPaymentMethods] = useState([]);
+  const [notifs, setNotifs] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [profileForm, setProfileForm] = useState({ name: user?.name || '', email: user?.email || '', phone: user?.phone || '', address: user?.address || '', gender: user?.gender || '', dateOfBirth: user?.dateOfBirth ? user.dateOfBirth.split('T')[0] : '', bloodGroup: user?.bloodGroup || '', allergies: user?.allergies?.map(a => a.allergen).join(', ') || '' });
   const [bookingFilter, setBookingFilter] = useState('All');
@@ -162,9 +128,9 @@ export default function PatientDashboard() {
         setBills(b?.bills || b || []);
         setDoctors(d?.slice(0, 4) || []);
         const [f, addr, fav, phOrders, rx, n, lb] = await Promise.all([
-          patientApi.getFamily(),
-          patientApi.getAddresses(),
-          patientApi.getFavorites(),
+          patientApi.getFamily().catch(() => ({ members: [] })),
+          patientApi.getAddresses().catch(() => ({ addresses: [] })),
+          patientApi.getFavorites().catch(() => ({ favorites: [] })),
           api.getPharmacyOrders({}).catch(() => ({ orders: [] })),
           api.getPharmacyPrescriptions({}).catch(() => ({ prescriptions: [] })),
           api.getNotifications({}).catch(() => []),
@@ -245,7 +211,7 @@ export default function PatientDashboard() {
       </div>
 
       <div className="flex gap-1 mb-6 overflow-x-auto pb-2 scrollbar-thin">
-        {TABS.map(t => (
+        {tabs.map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-colors ${tab === t.id ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted'}`}>
             <t.icon className="w-4 h-4" /> {t.label}
@@ -327,7 +293,7 @@ export default function PatientDashboard() {
                     <div className="text-right"><p className="text-sm font-medium">{a.date}</p><p className="text-xs text-muted-foreground">{a.time}</p></div>
                   </div>
                   <div className="flex gap-2 mt-3 pt-3 border-t">
-                    <Button size="sm" variant="outline" onClick={() => showToast('Reschedule request sent')}><CalendarDays className="w-3 h-3 mr-1" /> Reschedule</Button>
+                    <Button size="sm" variant="outline" onClick={() => navigate('/patient/appointments')}><CalendarDays className="w-3 h-3 mr-1" /> Reschedule</Button>
                     {a.status !== 'Cancelled' && <Button size="sm" variant="outline" className="text-destructive" onClick={async () => { try { await api.updateAppointment(a._id, { status: 'Cancelled' }); setAppointments(prev => prev.map(ap => ap._id === a._id ? { ...ap, status: 'Cancelled' } : ap)); showToast('Appointment cancelled'); } catch { showToast('Failed to cancel', 'error'); } }}>Cancel</Button>}
                   </div>
                 </div>
@@ -355,8 +321,8 @@ export default function PatientDashboard() {
                   </div>
                   {tb.visitType && <p className="text-xs text-muted-foreground"><MapPin className="w-3 h-3 inline mr-1" />{tb.visitType}</p>}
                   <div className="flex gap-2 mt-3 pt-3 border-t">
-                    {tb.reportsAvailable && <Button size="sm" onClick={() => showToast('Opening report')}><FileText className="w-3 h-3 mr-1" /> View Report</Button>}
-                    {tb.status === 'Pending' && <Button size="sm" variant="outline" onClick={() => showToast('Reschedule request sent')}>Reschedule</Button>}
+                    {tb.reportsAvailable && <Button size="sm" onClick={() => { setTab('reports'); }}><FileText className="w-3 h-3 mr-1" /> View Report</Button>}
+                    {tb.status === 'Pending' && <Button size="sm" variant="outline" onClick={async () => { try { await api.updateLabBooking(tb._id, { status: 'Rescheduled' }); setTestBookings(prev => prev.map(b => b._id === tb._id ? { ...b, status: 'Rescheduled' } : b)); showToast('Rescheduled'); } catch { showToast('Failed to reschedule', 'error'); } }}>Reschedule</Button>}
                   </div>
                 </div>
               ))}
@@ -384,7 +350,7 @@ export default function PatientDashboard() {
                   {o.deliveryAddress && <p className="text-xs text-muted-foreground mt-1"><MapPin className="w-3 h-3 inline mr-1" />{o.deliveryAddress}</p>}
                   <div className="flex gap-2 mt-3 pt-3 border-t">
                     {o.status === 'Pending' && <Button size="sm" variant="outline" onClick={async () => { try { await api.updatePharmacyOrder(o._id, { status: 'Cancelled' }); setMedOrders(prev => prev.map(mo => mo._id === o._id ? { ...mo, status: 'Cancelled' } : mo)); showToast('Order cancelled'); } catch { showToast('Failed to cancel', 'error'); } }} className="text-destructive">Cancel</Button>}
-                    {o.status === 'Delivered' && <Button size="sm" variant="outline" onClick={() => showToast('Reorder placed')}><RefreshCw className="w-3 h-3 mr-1" /> Reorder</Button>}
+                    {o.status === 'Delivered' && <Button size="sm" variant="outline" onClick={async () => { try { const items = (o.items || []).map(i => ({ medicineId: i.medicineId, medicineName: i.medicineName, qty: i.qty })); await api.createPharmacyOrder({ items, deliveryAddress: o.deliveryAddress }); showToast('Reorder placed'); } catch { showToast('Failed to reorder', 'error'); } }}><RefreshCw className="w-3 h-3 mr-1" /> Reorder</Button>}
                   </div>
                 </div>
               ))}
@@ -395,7 +361,7 @@ export default function PatientDashboard() {
           {tab === 'prescriptions' && (
             <div className="space-y-4">
               <SectionHeader title="My Prescriptions" subtitle={`${activeRxCount} active prescriptions`}
-                action={<Button size="sm" variant="outline" onClick={() => showToast('Upload prescription feature')}><Upload className="w-3 h-3 mr-1" /> Upload External Rx</Button>} />
+                action={<Link to="/patient/upload"><Button size="sm" variant="outline"><Upload className="w-3 h-3 mr-1" /> Upload External Rx</Button></Link>} />
               {prescriptions.map(rx => (
                 <div key={rx._id} className="bg-card rounded-xl border p-4">
                   <div className="flex items-start justify-between mb-2">
@@ -414,8 +380,8 @@ export default function PatientDashboard() {
                     ))}
                   </div>
                   <div className="flex gap-2 mt-3 pt-3 border-t">
-                    <Button size="sm" variant="outline" onClick={() => showToast('Saved for later use')}><Bookmark className="w-3 h-3 mr-1" /> Save for Reuse</Button>
-                    <Button size="sm" variant="outline" onClick={() => showToast('Downloading prescription')}><Download className="w-3 h-3 mr-1" /> Download</Button>
+                    <Button size="sm" variant="outline" onClick={() => { localStorage.setItem('saved_prescription_' + rx._id, JSON.stringify(rx)); showToast('Saved for later use'); }}><Bookmark className="w-3 h-3 mr-1" /> Save for Reuse</Button>
+                    <Button size="sm" variant="outline" onClick={() => { const base = import.meta.env.VITE_API_URL || 'http://localhost:5001/api'; window.open(base + '/records/' + rx._id + '/prescription-pdf', '_blank'); }}><Download className="w-3 h-3 mr-1" /> Download</Button>
                   </div>
                 </div>
               ))}
@@ -426,7 +392,7 @@ export default function PatientDashboard() {
           {tab === 'reports' && (
             <div className="space-y-4">
               <SectionHeader title="My Reports" subtitle={`${readyReports} reports ready to view`}
-                action={<Button size="sm" variant="outline" onClick={() => showToast('Downloading all reports')}><Download className="w-3 h-3 mr-1" /> Download All</Button>} />
+                action={<Link to="/patient/reports"><Button size="sm" variant="outline"><Download className="w-3 h-3 mr-1" /> View All Reports</Button></Link>} />
               {reports.map(r => (
                 <div key={r._id} className="bg-card rounded-xl border p-4">
                   <div className="flex items-start justify-between">
@@ -438,7 +404,7 @@ export default function PatientDashboard() {
                     </div>
                     <StatusBadge status={r.status} />
                   </div>
-                  {r.status === 'Ready' && <div className="flex gap-2 mt-3 pt-3 border-t"><Button size="sm" onClick={() => showToast('Opening report')}><Eye className="w-3 h-3 mr-1" /> View</Button><Button size="sm" variant="outline" onClick={() => showToast('Downloading PDF')}><Download className="w-3 h-3 mr-1" /> Download PDF</Button></div>}
+                  {r.status === 'Ready' && <div className="flex gap-2 mt-3 pt-3 border-t"><Button size="sm" onClick={() => navigate('/patient/reports')}><Eye className="w-3 h-3 mr-1" /> View</Button><Button size="sm" variant="outline" onClick={async () => { try { const base = import.meta.env.VITE_API_URL || 'http://localhost:5001/api'; const resp = await api.getRecords({ patient: r._id }); window.open(base + '/records/' + (resp?.records?.[0]?._id || r._id) + '/prescription-pdf', '_blank'); } catch { showToast('Download available from reports page', 'error'); } }}><Download className="w-3 h-3 mr-1" /> Download PDF</Button></div>}
                 </div>
               ))}
               {reports.length === 0 && <div className="text-center py-20"><FileText className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" /><p className="text-muted-foreground">No reports yet</p></div>}
@@ -482,7 +448,7 @@ export default function PatientDashboard() {
                         <div><p className="font-medium">{m.name}</p><p className="text-xs text-muted-foreground">{m.relation} · {m.gender}{m.bloodGroup ? ` · ${m.bloodGroup}` : ''}</p></div>
                       </div>
                       <div className="flex gap-2">
-                        <Button size="sm" variant="outline" onClick={() => showToast('Booking for ' + m.name)}><CalendarDays className="w-3 h-3 mr-1" /> Book Test</Button>
+                        <Button size="sm" variant="outline" onClick={() => navigate('/patient/services?for=' + encodeURIComponent(m.name))}><CalendarDays className="w-3 h-3 mr-1" /> Book Test</Button>
                         <Button size="sm" variant="outline" className="text-destructive" onClick={async () => { try { await patientApi.deleteFamily(m._id); setFamily(f => f.filter(mm => mm._id !== m._id)); showToast(m.name + ' removed'); } catch { showToast('Failed to remove', 'error'); } }}><Trash2 className="w-3 h-3" /></Button>
                       </div>
                     </div>
@@ -505,7 +471,7 @@ export default function PatientDashboard() {
                       <div><p className="font-medium">{f.refName}</p><p className="text-xs text-muted-foreground capitalize">{f.refType}{f.notes ? ` · ${f.notes}` : ''}</p></div>
                     </div>
                     <div className="flex gap-2">
-                      <Button size="sm" variant="outline" className="flex-1" onClick={() => showToast('Opening ' + f.refName)}><ExternalLink className="w-3 h-3 mr-1" /> View</Button>
+                      <Button size="sm" variant="outline" className="flex-1" onClick={() => { const path = f.refType === 'doctor' ? '/doctors' : f.refType === 'hospital' ? '/hospitals' : '/lab'; navigate(path); }}><ExternalLink className="w-3 h-3 mr-1" /> View</Button>
                       <Button size="sm" variant="outline" className="text-destructive" onClick={async () => { try { await patientApi.removeFavorite(f._id); setFavorites(fs => fs.filter(ff => ff._id !== f._id)); showToast('Removed from favorites'); } catch { showToast('Failed to remove', 'error'); } }}><Trash2 className="w-3 h-3" /></Button>
                     </div>
                   </div>
@@ -521,18 +487,14 @@ export default function PatientDashboard() {
               <div className="bg-card rounded-xl border p-6 space-y-4">
                 <div className="space-y-3">
                   <h3 className="font-semibold flex items-center gap-2"><HeartHandshake className="w-4 h-4 text-primary" /> Your Priority List</h3>
-                  {[
-                    { name: 'MedPlus Pharmacy', priority: 1, type: 'Pharmacy' },
-                    { name: 'HealthFirst Medicals', priority: 2, type: 'Pharmacy' },
-                    { name: 'Apollo Pharmacy', priority: 3, type: 'Pharmacy' },
-                    { name: 'MediCore Diagnostic Center', priority: 1, type: 'Lab' },
-                  ].map(p => (
-                    <div key={`${p.type}-${p.priority}`} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                  {prefPharmacies.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No preferred pharmacies added yet.</p>}
+                  {prefPharmacies.map((p, i) => (
+                    <div key={p.id || i} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
                       <div className="flex items-center gap-3">
-                        <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center">{p.priority}</span>
-                        <div><p className="text-sm font-medium">{p.name}</p><p className="text-xs text-muted-foreground">{p.type}</p></div>
+                        <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center">{p.priority || i + 1}</span>
+                        <div><p className="text-sm font-medium">{p.name}</p><p className="text-xs text-muted-foreground">Pharmacy</p></div>
                       </div>
-                      <Button size="sm" variant="ghost" className="text-destructive" onClick={() => showToast('Removed from priority list')}><X className="w-3 h-3" /></Button>
+                      <Button size="sm" variant="ghost" className="text-destructive" onClick={() => { removePharmacy(p.id); showToast('Removed from priority list'); }}><X className="w-3 h-3" /></Button>
                     </div>
                   ))}
                 </div>
@@ -560,10 +522,7 @@ export default function PatientDashboard() {
                       </tr>
                     ))}
                     {bills.length === 0 && (
-                      <>
-                        <tr className="border-b hover:bg-muted/50"><td className="py-3 px-2 font-medium">INV-0001</td><td className="py-3 px-2">Cardiology Consultation</td><td className="py-3 px-2 text-right font-medium">₹500</td><td className="py-3 px-2 text-center"><StatusBadge status="Paid" /></td><td className="py-3 px-2 text-right text-muted-foreground">{new Date().toLocaleDateString()}</td></tr>
-                        <tr className="border-b hover:bg-muted/50"><td className="py-3 px-2 font-medium">INV-0002</td><td className="py-3 px-2">Lab Tests - CBC, Lipid</td><td className="py-3 px-2 text-right font-medium">₹1,800</td><td className="py-3 px-2 text-center"><StatusBadge status="Pending" /></td><td className="py-3 px-2 text-right text-muted-foreground">{new Date().toLocaleDateString()}</td></tr>
-                      </>
+                      <tr><td colSpan="5" className="py-10 text-center text-muted-foreground">No billing records found</td></tr>
                     )}
                   </tbody>
                 </table>
@@ -776,7 +735,7 @@ export default function PatientDashboard() {
           <div className="space-y-4">
             <div><label className="text-sm font-medium mb-1 block">Method Type</label><select className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm">{['Credit/Debit Card', 'UPI', 'Wallet'].map(m => <option key={m} value={m}>{m}</option>)}</select></div>
             <div><label className="text-sm font-medium mb-1 block">Card Number / UPI ID</label><Input placeholder="Enter details" /></div>
-            <Button className="w-full" onClick={() => { showToast('Payment method added'); setShowModal(null); }}>Add Method</Button>
+            <Button className="w-full" onClick={() => { showToast('Payment method added (backend integration pending)'); setShowModal(null); }}>Add Method</Button>
           </div>
         </Modal>
       )}

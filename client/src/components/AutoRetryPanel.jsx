@@ -17,7 +17,21 @@ export default function AutoRetryPanel({ orderContext, onPriceConfirm, onStoreSe
   const [showPriceConfirm, setShowPriceConfirm] = useState(false);
   const [priceDiff, setPriceDiff] = useState(0);
   const [pendingRejectParams, setPendingRejectParams] = useState(null);
-  const [slaCountdown, setSlaCountdown] = useState(10); // 10s demo SLA
+  const [slaCountdown, setSlaCountdown] = useState(30);
+
+  // Register real forward function so the hook calls it on timeout/reject
+  useEffect(() => {
+    autoRetry.setForwardFn(async (orderId, storeId) => {
+      try {
+        await api.forwardPharmacyOrder(orderId, { facilityId: storeId });
+        return true;
+      } catch (e) {
+        toast.error('Auto-forward failed: ' + (e.message || 'Unknown error'));
+        return false;
+      }
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Countdown timer — ticks while a store is being tried
   useEffect(() => {
@@ -40,15 +54,16 @@ export default function AutoRetryPanel({ orderContext, onPriceConfirm, onStoreSe
     if (!autoRetryEnabled || pharmacies.length === 0) return;
     const firstStore = pharmacies[0];
     const firstIndex = 0;
+    const ctx = orderContext || {};
     const startResult = autoRetry.startRetry(
       { id: 'blurry', label: 'Unclear/blurry prescription image' },
-      orderContext
+      ctx
     );
     if (startResult) {
-      setTimeout(() => {
+      setTimeout(async () => {
         const diff = Math.floor(Math.random() * 30) + 5;
         if (diff <= 5) {
-          autoRetry.handleReject(firstIndex, firstStore, { id: 'blurry', label: 'Unclear/blurry prescription image' }, orderContext);
+          await autoRetry.handleReject(firstIndex, firstStore, { id: 'blurry', label: 'Unclear/blurry prescription image' }, ctx);
         } else {
           setPriceDiff(diff);
           setPendingRejectParams({
@@ -209,11 +224,11 @@ export default function AutoRetryPanel({ orderContext, onPriceConfirm, onStoreSe
             </div>
           </div>
           <div className="flex gap-2">
-            <Button size="sm" className="flex-1 rounded-lg gap-1.5" onClick={() => {
+            <Button size="sm" className="flex-1 rounded-lg gap-1.5" onClick={async () => {
               setShowPriceConfirm(false);
               if (pendingRejectParams) {
                 onPriceConfirm?.(true);
-                autoRetry.handleReject(
+                await autoRetry.handleReject(
                   pendingRejectParams.storeIndex,
                   pendingRejectParams.store,
                   pendingRejectParams.reason,

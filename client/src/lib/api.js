@@ -187,6 +187,7 @@ export const api = {
   createPharmacyOrder:    (body)    => request('/pharmacy/orders', { method:'POST', body: JSON.stringify(body) }),
   updatePharmacyOrder:    (id,body) => request(`/pharmacy/orders/${id}`, { method:'PUT', body: JSON.stringify(body) }),
   deletePharmacyOrder:    (id)      => request(`/pharmacy/orders/${id}`, { method:'DELETE' }),
+  forwardPharmacyOrder:   (id,body) => request(`/pharmacy/orders/${id}/forward`, { method:'POST', body: JSON.stringify(body) }),
   getPharmacyStaff:       (p={})    => request('/pharmacy/staff?' + new URLSearchParams(p)),
   createPharmacyStaff:    (body)    => request('/pharmacy/staff', { method:'POST', body: JSON.stringify(body) }),
   updatePharmacyStaff:    (id,body) => request(`/pharmacy/staff/${id}`, { method:'PUT', body: JSON.stringify(body) }),
