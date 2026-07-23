@@ -1,6 +1,7 @@
 import express from 'express';
 import { z } from 'zod';
 import Medicine from '../models/Medicine.js';
+import Billing from '../models/Billing.js';
 import Prescription from '../models/Prescription.js';
 import PharmacyOrder from '../models/PharmacyOrder.js';
 import PharmacyDelivery from '../models/PharmacyDelivery.js';
@@ -64,6 +65,25 @@ router.get('/medicines', protect, async (req, res) => {
       return res.json({ medicines: lowStockMedicines });
     }
     const medicines = await Medicine.find(filter).sort({ name: 1 });
+    res.json({ medicines });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// Export medicine alerts (low stock / expiring)
+router.get('/medicines/export-alerts', protect, async (req, res) => {
+  try {
+    const filter = { isActive: true };
+    if (req.user.hospitalId && req.user.role !== 'superadmin') {
+      filter.hospitalId = req.user.hospitalId;
+      filter.facilityId = req.user.facilityId || req.user.hospitalId;
+    }
+    const medicines = await Medicine.find({
+      ...filter,
+      $or: [
+        { $expr: { $lte: ['$currentStock', '$reorderLevel'] } },
+        { expiryDate: { $lte: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000) } }
+      ]
+    }).sort({ name: 1 });
     res.json({ medicines });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
@@ -279,15 +299,26 @@ router.get('/stats', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
+// Export pharmacy billing
+router.get('/billing/export', protect, async (req, res) => {
+  try {
+    const filter = {};
+    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    const bills = await Billing.find({ ...filter, source: 'pharmacy' }).sort({ createdAt: -1 });
+    res.json(bills);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
 // ─── Orders ────────────────────────────────────────────────────────────────
 router.get('/orders', protect, async (req, res) => {
   try {
-    const { status, search } = req.query;
+    const { status, search, orderId } = req.query;
     const filter = {};
     if (req.user.role === 'patient') filter.patientId = req.user._id;
     if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
     if ((req.user.facilityId || req.user.hospitalId) && req.user.role !== 'superadmin') filter.facilityId = req.user.facilityId || req.user.hospitalId;
     if (status && status !== 'All') filter.status = status;
+    if (orderId) filter.orderId = orderId;
     if (search) filter.$or = [{ orderId: new RegExp(search, 'i') }, { patientName: new RegExp(search, 'i') }];
     const orders = await PharmacyOrder.find(filter).sort({ orderDate: -1 });
     res.json({ orders });

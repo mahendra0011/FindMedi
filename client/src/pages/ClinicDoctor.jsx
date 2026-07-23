@@ -195,7 +195,7 @@ export default function ClinicDoctor() {
       try { await navigator.share({ title: doctor?.name || 'Doctor Profile', url }); } catch {}
     } else {
       await navigator.clipboard.writeText(url);
-      alert('Link copied to clipboard!');
+      toast.success('Link copied to clipboard!');
     }
   };
 
@@ -242,7 +242,7 @@ export default function ClinicDoctor() {
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
           <div className="w-10 h-10 border-[3px] border-primary border-t-transparent rounded-full animate-spin" />
-          <p className="text-sm text-muted-foreground animate-pulse">Loading doctorâ€¦</p>
+          <p className="text-sm text-muted-foreground animate-pulse">Loading doctor…</p>
         </div>
       </div>
     );
@@ -259,7 +259,7 @@ export default function ClinicDoctor() {
   return (
     <motion.div initial="hidden" animate="show" className="bg-background min-h-screen">
 
-      {/* â•â•â•â•â•â•â•â•â•â•â• BREADCRUMB â•â•â•â•â•â•â•â•â•â•â• */}
+      {/* ═══════════ BREADCRUMB ═══════════ */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-0">
         <nav className="flex items-center gap-1.5 text-sm text-muted-foreground flex-wrap">
           <Link to="/" className="hover:text-primary transition-colors flex items-center gap-1">
@@ -275,10 +275,10 @@ export default function ClinicDoctor() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-20">
         <div className="grid lg:grid-cols-3 gap-8">
 
-          {/* â•â•â•â•â•â•â•â•â•â•â• MAIN CONTENT â•â•â•â•â•â•â•â•â•â•â• */}
+          {/* ═══════════ MAIN CONTENT ═══════════ */}
           <div className="lg:col-span-2 space-y-8">
 
-            {/* â•â•â• 1. HERO SECTION â•â•â• */}
+            {/* ═══ 1. HERO SECTION ═══ */}
             <motion.div variants={fadeUp}
               className="bg-card rounded-2xl border border-border/60 p-6 sm:p-8 shadow-sm"
             >
@@ -416,7 +416,7 @@ export default function ClinicDoctor() {
               </div>
             </motion.div>
 
-            {/* â•â•â• 3. ABOUT SECTION â•â•â• */}
+            {/* ═══ 3. ABOUT SECTION ═══ */}
             <motion.div variants={fadeUp}>
               <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden">
                 <CardContent className="p-6 sm:p-8">
@@ -486,7 +486,7 @@ export default function ClinicDoctor() {
               </Card>
             </motion.div>
 
-            {/* â•â•â• 4. EDUCATION & CAREER â•â•â• */}
+            {/* ═══ 4. EDUCATION & CAREER ═══ */}
             <motion.div variants={fadeUp}>
               <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden">
                 <CardContent className="p-6 sm:p-8">
@@ -598,7 +598,7 @@ export default function ClinicDoctor() {
               </Card>
             </motion.div>
 
-            {/* â•â•â• 5. CLINIC & LOCATION DETAILS â•â•â• */}
+            {/* ═══ 5. CLINIC & LOCATION DETAILS ═══ */}
             <motion.div variants={fadeUp}>
               <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden">
                 <CardContent className="p-6 sm:p-8">
@@ -723,7 +723,7 @@ export default function ClinicDoctor() {
               </Card>
             </motion.div>
 
-            {/* â•â•â• 6. WEEKLY SCHEDULE â•â•â• */}
+            {/* ═══ 6. WEEKLY SCHEDULE ═══ */}
             <motion.div variants={fadeUp}>
               <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden">
                 <CardContent className="p-6 sm:p-8">
@@ -774,10 +774,10 @@ export default function ClinicDoctor() {
                                 </span>
                               </td>
                               <td className="py-3 px-4 text-muted-foreground">
-                                {active ? (doctor.opd_timings?.split('|')[0]?.trim() || '9:00 AM â€“ 5:00 PM') : 'â€”'}
+                                {active ? (doctor.opd_timings?.split('|')[0]?.trim() || '9:00 AM – 5:00 PM') : '—'}
                               </td>
                               <td className="py-3 px-4 text-muted-foreground">
-                                {active ? (getClinicName(doctor) || 'â€”') : 'â€”'}
+                                {active ? (getClinicName(doctor) || '—') : '—'}
                               </td>
                             </tr>
                           );
@@ -796,7 +796,7 @@ export default function ClinicDoctor() {
               </Card>
             </motion.div>
 
-            {/* â•â•â• 7. REVIEWS SECTION â•â•â• */}
+            {/* ═══ 7. REVIEWS SECTION ═══ */}
             <motion.div variants={fadeUp}>
               <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden">
                 <CardContent className="p-6 sm:p-8">
@@ -908,7 +908,7 @@ export default function ClinicDoctor() {
               </Card>
             </motion.div>
 
-            {/* â•â•â• 8. ADDITIONAL INFO â•â•â• */}
+            {/* ═══ 8. ADDITIONAL INFO ═══ */}
             <motion.div variants={fadeUp}>
               <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden">
                 <CardContent className="p-6 sm:p-8">
@@ -993,7 +993,7 @@ export default function ClinicDoctor() {
               </Card>
             </motion.div>
 
-            {/* â•â•â• 9. RELATED SECTION â•â•â• */}
+            {/* ═══ 9. RELATED SECTION ═══ */}
             {(relatedDoctors.length > 0 || departmentDoctors.length > 0) && (
               <motion.div variants={fadeUp}>
                 <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden">
@@ -1104,7 +1104,7 @@ export default function ClinicDoctor() {
 
           </div>
 
-          {/* â•â•â•â•â•â•â•â•â•â•â• SIDEBAR â€” BOOKING â•â•â•â•â•â•â•â•â•â•â• */}
+          {/* ═══════════ SIDEBAR — BOOKING ═══════════ */}
           <motion.div variants={fadeUp} className="space-y-6">
             {/* Quick Info Sidebar Card */}
             <div className="bg-card rounded-2xl border border-border/60 p-6 shadow-sm">
@@ -1250,7 +1250,7 @@ export default function ClinicDoctor() {
                         return (
                           <div className="px-3 py-2 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-800 text-xs text-red-600 dark:text-red-400 flex items-center gap-2">
                             <CalendarDays className="w-3.5 h-3.5 shrink-0" />
-                            Clinic Closed â€” {dayName.charAt(0).toUpperCase() + dayName.slice(1)} is a holiday
+                            Clinic Closed — {dayName.charAt(0).toUpperCase() + dayName.slice(1)} is a holiday
                           </div>
                         );
                       }
@@ -1308,7 +1308,7 @@ export default function ClinicDoctor() {
                   </div>
                   <div>
                     <label className="text-xs font-medium text-foreground mb-1 block">Notes (optional)</label>
-                    <Input placeholder="Any specific concernsâ€¦" value={bookingNotes} onChange={e => setBookingNotes(e.target.value)} className="rounded-xl h-9" />
+                    <Input placeholder="Any specific concerns…" value={bookingNotes} onChange={e => setBookingNotes(e.target.value)} className="rounded-xl h-9" />
                   </div>
                   <Button className="w-full rounded-xl h-10 font-semibold shadow-lg shadow-primary/25" onClick={handleBook} disabled={!bookingDate || !bookingTime}>
                     <CalendarDays className="w-4 h-4 mr-2" /> Confirm Booking

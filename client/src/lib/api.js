@@ -249,8 +249,8 @@ export const api = {
   deliverMeal:        (id,body) => request(`/diet/orders/${id}/deliver-meal`, { method:'PUT', body: JSON.stringify(body) }),
   confirmMeal:        (id,body) => request(`/diet/orders/${id}/confirm-meal`, { method:'PUT', body: JSON.stringify(body) }),
   reviewDiet:         (id,body) => request(`/diet/orders/${id}/review`, { method:'PUT', body: JSON.stringify(body) }),
-  addDietFeedback:    (id,body) => request(`/diet/orders/${id}/feedback`, { method:'PUT', body: JSON.stringify(body) }),
-  notifyKitchen:      (id)      => request(`/diet/orders/${id}/notify`, { method:'PUT' }),
+  addDietFeedback:    (id,body) => request(`/diet/orders/${id}/review`, { method:'PUT', body: JSON.stringify(body) }),
+  notifyKitchen:      (id)      => request(`/diet/orders/${id}/review`, { method:'PUT', body: JSON.stringify({ kitchenNotified: true }) }),
   addDietToBilling:   (id,body) => request(`/diet/orders/${id}/create-billing`, { method:'POST', body: JSON.stringify(body) }),
   getDietStats:       ()        => request('/diet/stats'),
 
@@ -317,23 +317,31 @@ export const api = {
   createStaff:            (body)    => request('/staff', { method:'POST', body: JSON.stringify(body) }),
   updateStaff:            (id,b)    => request(`/staff/${id}`, { method:'PUT', body: JSON.stringify(b) }),
   deleteStaff:            (id)      => request(`/staff/${id}`, { method:'DELETE' }),
-  getPharmacies:          (p={})    => request('/pharmacies?' + new URLSearchParams(p)),
-  getMedicines:           (p={})    => request('/medicines?' + new URLSearchParams(p)),
-  getOrder:               (id)      => request(`/orders/${id}`),
-  getBookings:            (p={})    => request('/bookings?' + new URLSearchParams(p)),
-  getInventoryItems: (p={}) => request('/inventory?' + new URLSearchParams(p)),
-  createInventoryItem: (b) => request('/inventory', { method: 'POST', body: JSON.stringify(b) }),
-  addInventoryStock: (id, b) => request(`/inventory/${id}/stock`, { method: 'PUT', body: JSON.stringify(b) }),
-  issueInventoryItem: (id, b) => request(`/inventory/${id}/issue`, { method: 'PUT', body: JSON.stringify(b) }),
-  createInventoryPR: (b) => request('/inventory/pr', { method: 'POST', body: JSON.stringify(b) }),
-  createInventoryPO: (b) => request('/inventory/po', { method: 'POST', body: JSON.stringify(b) }),
-  receiveInventoryGRN: (id, b) => request(`/inventory/po/${id}/receive`, { method: 'PUT', body: JSON.stringify(b) }),
+  getPharmacies:          (p={})    => request('/facilities?' + new URLSearchParams({ ...p, type: 'pharmacy' })),
+  getMedicines:           (p={})    => {
+    const { storeId, ...params } = p;
+    return storeId
+      ? request(`/pharmacy/medicines/store/${storeId}?` + new URLSearchParams(params))
+      : request('/pharmacy/medicines?' + new URLSearchParams(params));
+  },
+  getOrder:               async (id) => {
+    const result = await request(`/pharmacy/orders?` + new URLSearchParams({ orderId: id }));
+    return result?.order || result?.orders?.[0] || result;
+  },
+  getBookings:            (p={})    => request('/lab/bookings?' + new URLSearchParams(p)),
+  getInventoryItems: (p={}) => request('/inventory/items?' + new URLSearchParams(p)),
+  createInventoryItem: (b) => request('/inventory/items', { method: 'POST', body: JSON.stringify(b) }),
+  addInventoryStock: (id, b) => request(`/inventory/items/${id}/stock`, { method: 'PUT', body: JSON.stringify(b) }),
+  issueInventoryItem: (id, b) => request(`/inventory/items/${id}/stock`, { method: 'PUT', body: JSON.stringify({ ...b, type: 'deduct' }) }),
+  createInventoryPR: (b) => request('/inventory/items', { method: 'POST', body: JSON.stringify({ ...b, requestType: 'purchase_request' }) }),
+  createInventoryPO: (b) => request('/inventory/items', { method: 'POST', body: JSON.stringify({ ...b, requestType: 'purchase_order' }) }),
+  receiveInventoryGRN: (id, b) => request(`/inventory/items/${id}/stock`, { method: 'PUT', body: JSON.stringify({ ...b, type: 'add' }) }),
   getInventoryStats: () => request('/inventory/stats'),
 
-  getHousekeepingTasks: (p={}) => request('/housekeeping?' + new URLSearchParams(p)),
-  createHousekeepingTask: (b) => request('/housekeeping', { method: 'POST', body: JSON.stringify(b) }),
-  completeHousekeepingTask: (id, b) => request(`/housekeeping/${id}/complete`, { method: 'PUT', body: JSON.stringify(b) }),
-  verifyHousekeepingTask: (id, b) => request(`/housekeeping/${id}/verify`, { method: 'PUT', body: JSON.stringify(b) }),
+  getHousekeepingTasks: (p={}) => request('/housekeeping/tasks?' + new URLSearchParams(p)),
+  createHousekeepingTask: (b) => request('/housekeeping/tasks', { method: 'POST', body: JSON.stringify(b) }),
+  completeHousekeepingTask: (id, b) => request(`/housekeeping/tasks/${id}/complete`, { method: 'PUT', body: JSON.stringify(b) }),
+  verifyHousekeepingTask: (id, b) => request(`/housekeeping/tasks/${id}/verify`, { method: 'PUT', body: JSON.stringify(b) }),
   autoCreateHousekeepingOnDischarge: (b) => request(`/housekeeping/auto-create-on-discharge`, { method: 'POST', body: JSON.stringify(b) }),
   getHousekeepingStats: () => request('/housekeeping/stats'),
 

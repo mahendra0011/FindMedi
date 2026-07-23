@@ -91,6 +91,9 @@ export default function Checkout() {
   const [rxVerifiedGlobally, setRxVerifiedGlobally] = useState(false);
   const [showRxReuploadPrompt, setShowRxReuploadPrompt] = useState(false);
 
+  const [confirmDialog, setConfirmDialog] = useState(null);
+  const [rxConfirmed, setRxConfirmed] = useState(false);
+
   const [storeMap, setStoreMap] = useState({});
 
   useEffect(() => {
@@ -140,7 +143,7 @@ export default function Checkout() {
       setAppliedCoupon(offer);
       setShowCouponInput(false);
     } else {
-      alert('Invalid coupon code');
+      toast.error('Invalid coupon code');
     }
   };
 
@@ -169,14 +172,22 @@ export default function Checkout() {
   const handleBack = () => setStep(s => Math.max(s - 1, 0));
 
   const handlePlaceOrder = async () => {
-    if (!selectedAddress) { alert('Please select a delivery address'); return; }
+    if (!selectedAddress) { toast.error('Please select a delivery address'); return; }
     if (!user) { toast.error('Please login to place order'); navigate('/login'); return; }
     if (hasRxItems) {
-      if (Object.keys(rxStatus).length === 0) { alert('Please upload prescription for Rx items'); return; }
+      if (Object.keys(rxStatus).length === 0) { toast.error('Please upload prescription for Rx items'); return; }
       const anyRejected = Object.values(rxStatus).some(v => v === 'rejected');
       if (anyRejected) {
-        const confirmed = window.confirm('Some prescriptions were rejected. Only OTC (non-prescription) items will be ordered. Rx items will be removed. Continue?');
-        if (!confirmed) return;
+        if (!rxConfirmed) {
+          setConfirmDialog({
+            title: 'Prescriptions Rejected',
+            message: 'Some prescriptions were rejected. Only OTC (non-prescription) items will be ordered. Rx items will be removed. Continue?',
+            onConfirm: () => { setRxConfirmed(true); setConfirmDialog(null); handlePlaceOrder(); },
+            onCancel: () => setConfirmDialog(null),
+          });
+          return;
+        }
+        setRxConfirmed(false);
       }
     }
 
@@ -188,8 +199,20 @@ export default function Checkout() {
     }
     const noAltOos = outOfStock.filter(e => findAlternatives(e, CROSS_STORE_MEDS).length === 0);
     if (noAltOos.length > 0) {
-      const msg = `Some items are out of stock:\n${noAltOos.map(e => `- ${e.item.name}`).join('\n')}\n\nThese will be removed. Continue with remaining items?`;
-      if (!window.confirm(msg)) return;
+      setConfirmDialog({
+        title: 'Items Out of Stock',
+        message: `Some items are out of stock:\n${noAltOos.map(e => `- ${e.item.name}`).join('\n')}\n\nThese will be removed. Continue with remaining items?`,
+        onConfirm: () => {
+          setConfirmDialog(null);
+          const orderIds = stores.map((st, i) => `ORD${Date.now().toString(36).toUpperCase()}-${i + 1}`);
+          const params = new URLSearchParams({ stores: stores.map(s => s.storeId).join(','), orderIds: orderIds.join(','), rx: hasRxItems ? 'true' : 'false' });
+          noAltOos.forEach(e => removeItem(e.key));
+          if (payOnDelivery) { navigate(`/order-confirmation?${params}`); }
+          else { params.set('total', grandTotal.toString()); params.set('method', paymentMethod); navigate(`/payment-gateway?${params}`); }
+        },
+        onCancel: () => setConfirmDialog(null),
+      });
+      return;
     }
 
     try {
@@ -315,7 +338,7 @@ export default function Checkout() {
                   <Input placeholder="City" className="text-sm rounded-lg" value={newAddress.city} onChange={e => setNewAddress(p => ({ ...p, city: e.target.value }))} />
                   <Input placeholder="Pincode" className="text-sm rounded-lg" value={newAddress.pincode} onChange={e => setNewAddress(p => ({ ...p, pincode: e.target.value }))} />
                 </div>
-                <Button size="sm" className="rounded-lg w-full" onClick={() => { if (!newAddress.full || !newAddress.city) { alert('Please fill all fields'); return; } const newId = `a${Date.now()}`; const updated = [...addressList, { id:newId, label:'Other', address:`${newAddress.full}, ${newAddress.city}, ${newAddress.pincode}`, type:'other', default:false }]; setAddressList(updated); setAddress(newId); setShowNewAddress(false); setNewAddress({ full:'', city:'', pincode:'' }); setAddressVersion(v => v + 1); toast.success('New address saved'); }}>Save Address</Button>
+                <Button size="sm" className="rounded-lg w-full" onClick={() => { if (!newAddress.full || !newAddress.city) { toast.error('Please fill all fields'); return; } const newId = `a${Date.now()}`; const updated = [...addressList, { id:newId, label:'Other', address:`${newAddress.full}, ${newAddress.city}, ${newAddress.pincode}`, type:'other', default:false }]; setAddressList(updated); setAddress(newId); setShowNewAddress(false); setNewAddress({ full:'', city:'', pincode:'' }); setAddressVersion(v => v + 1); toast.success('New address saved'); }}>Save Address</Button>
               </div>
             )}
           </div>
@@ -748,17 +771,37 @@ export default function Checkout() {
                 const remainingOos = entries.filter(e => !e.item.inStock && findAlternatives(e, CROSS_STORE_MEDS).length === 0);
                 if (remainingOos.length > 0) {
                   const msg = `These items are out of stock with no alternatives:\n${remainingOos.map(e => `- ${e.item.name}`).join('\n')}\n\nThey will be removed. Continue?`;
-                  if (window.confirm(msg)) {
-                    const orderIds = stores.map((st, i) => `ORD${Date.now().toString(36).toUpperCase()}-${i + 1}`);
-                    const params = new URLSearchParams({ stores: stores.map(s => s.storeId).join(','), orderIds: orderIds.join(','), rx: hasRxItems ? 'true' : 'false' });
-                    remainingOos.forEach(e => removeItem(e.key));
-                    if (payOnDelivery) { navigate(`/order-confirmation?${params}`); }
-                    else { params.set('total', grandTotal.toString()); params.set('method', paymentMethod); navigate(`/payment-gateway?${params}`); }
-                  }
+                  setConfirmDialog({
+                    title: 'Remove Out of Stock Items',
+                    message: msg,
+                    onConfirm: () => {
+                      setConfirmDialog(null);
+                      const orderIds = stores.map((st, i) => `ORD${Date.now().toString(36).toUpperCase()}-${i + 1}`);
+                      const params = new URLSearchParams({ stores: stores.map(s => s.storeId).join(','), orderIds: orderIds.join(','), rx: hasRxItems ? 'true' : 'false' });
+                      remainingOos.forEach(e => removeItem(e.key));
+                      if (payOnDelivery) { navigate(`/order-confirmation?${params}`); }
+                      else { params.set('total', grandTotal.toString()); params.set('method', paymentMethod); navigate(`/payment-gateway?${params}`); }
+                    },
+                    onCancel: () => setConfirmDialog(null),
+                  });
                 }
               }}>
                 <XCircle className="w-4 h-4" /> Skip & Remove
               </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm Dialog */}
+      {confirmDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={confirmDialog.onCancel}>
+          <div className="bg-card rounded-2xl border border-border/60 p-6 max-w-md w-full shadow-2xl" onClick={e => e.stopPropagation()}>
+            <h3 className="font-heading font-semibold text-foreground mb-2">{confirmDialog.title}</h3>
+            <p className="text-sm text-muted-foreground mb-4 whitespace-pre-line">{confirmDialog.message}</p>
+            <div className="flex gap-2">
+              <Button className="flex-1 rounded-xl" onClick={confirmDialog.onConfirm}>Continue</Button>
+              <Button variant="outline" className="rounded-xl" onClick={confirmDialog.onCancel}>Cancel</Button>
             </div>
           </div>
         </div>

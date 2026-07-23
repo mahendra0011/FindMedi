@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/AuthContext';
 import { api, downloadInvoicePdf } from '@/lib/api';
+import { toast } from 'sonner';
 
 const statusColors = { Paid: 'bg-success/10 text-success', Pending: 'bg-warning/10 text-warning', Overdue: 'bg-destructive/10 text-destructive' };
 
@@ -130,7 +131,7 @@ export default function ClinicBilling() {
                     <td className="px-4 py-3 text-sm font-semibold text-success text-right">Rs {bill.paid || 0}</td>
                     <td className="px-4 py-3 text-center"><Badge className={statusColors[bill.status] || 'bg-muted'}>{bill.status}</Badge></td>
                     <td className="px-4 py-3 text-right">
-                      <Button size="sm" variant="outline" onClick={async () => { try { await downloadInvoicePdf(bill._id, `invoice-${bill.invoiceId || 'download'}.pdf`); } catch (e) { alert('Download started'); } }} className="gap-1">
+                      <Button size="sm" variant="outline" onClick={async () => { try { await downloadInvoicePdf(bill._id, `invoice-${bill.invoiceId || 'download'}.pdf`); } catch (e) { toast.error(e.message || 'Unable to download invoice'); } }} className="gap-1">
                         <Download className="w-3.5 h-3.5" /> PDF
                       </Button>
                     </td>

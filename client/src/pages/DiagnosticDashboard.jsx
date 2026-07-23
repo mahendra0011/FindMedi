@@ -75,6 +75,7 @@ export default function DiagnosticDashboard() {
 
   // Bookings
   const [bookingFilter, setBookingFilter] = useState('All');
+  const [bookingForm, setBookingForm] = useState({ patientName: '', patientPhone: '', visitType: 'Walk-in', bookingDate: '', timeSlot: '' });
 
   // Equipment
   const [equipForm, setEquipForm] = useState({ name: '', type: 'MRI', model: '', serialNumber: '', manufacturer: '', installationDate: '', nextMaintenanceDate: '', status: 'Operational', location: '', notes: '' });
@@ -86,6 +87,7 @@ export default function DiagnosticDashboard() {
 
   // Staff
   const [newStaff, setNewStaff] = useState({ name: '', role: 'Lab Technician', email: '', phone: '', licenseNumber: '', experience: '' });
+  const [assignmentForm, setAssignmentForm] = useState({ bookingId: '', phlebotomistId: '' });
 
   // Prescription Queue
   const [rxQueue, setRxQueue] = useState([]);
@@ -96,11 +98,34 @@ export default function DiagnosticDashboard() {
 
   // Reports
   const [reportPeriod, setReportPeriod] = useState('7d');
+  const [reportForm, setReportForm] = useState({ orderId: '' });
+  const [appointmentForm, setAppointmentForm] = useState({ patientName: '', patientPhone: '', bookingDate: '', timeSlot: '', testName: '' });
 
   // Settings
   const [centerSettings, setCenterSettings] = useState({ name: 'MediCore Diagnostic Center', type: 'Pathology Lab', address: '123 Healthcare Ave, New York', phone: '+1 234-567-8900', email: 'lab@medicore.com', licenseNo: 'LAB-LIC-001', nablCertified: true, nablCertNo: 'NABL-MC-2024-001', aerbCertified: false, timings: '7:00 AM - 9:00 PM', homeCollectionAvailable: true, reportDeliveryModes: ['Email', 'SMS', 'Portal'] });
 
   const showToast = (msg, type = 'success') => { setToast({ msg, type }); setTimeout(() => setToast(null), 3000); };
+  const exportBillingCsv = () => {
+    const rows = (filteredBills.length ? filteredBills : bookings).map(b => ({
+      invoice: b.invoiceId || b.bookingId || b._id,
+      patient: b.patientName || '',
+      tests: (b.tests || []).length,
+      amount: b.totalAmount || 0,
+      payment: b.paymentStatus || '',
+      date: b.date || b.bookingDate || '',
+    }));
+    if (!rows.length) return showToast('No billing rows to export', 'error');
+    const csv = ['Invoice,Patient,Tests,Amount,Payment,Date', ...rows.map(r => [r.invoice, r.patient, r.tests, r.amount, r.payment, r.date].map(v => `"${String(v).replaceAll('"', '""')}"`).join(','))].join('\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `lab-billing-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    showToast('Billing CSV exported');
+  };
 
   // Data queries
   const { data: stats } = useQuery({ queryKey: ['lab-stats'], queryFn: labApi.getStats });
@@ -124,6 +149,16 @@ export default function DiagnosticDashboard() {
   const updateBookingMut = useMutation({
     mutationFn: ({ id, ...b }) => labApi.updateBooking(id, b),
     onSuccess: () => qc.invalidateQueries(['lab-bookings', 'lab-stats']),
+  });
+  const createBookingMut = useMutation({
+    mutationFn: (b) => labApi.createBooking(b),
+    onSuccess: () => { qc.invalidateQueries(['lab-bookings', 'lab-stats']); setShowModal(null); showToast('Booking created'); },
+    onError: () => showToast('Unable to create booking', 'error'),
+  });
+  const deliverReportMut = useMutation({
+    mutationFn: ({ id, ...b }) => labApi.deliverReport(id, b),
+    onSuccess: () => { qc.invalidateQueries(['lab-orders']); setShowModal(null); showToast('Report delivered and patient notified'); },
+    onError: () => showToast('Unable to update report', 'error'),
   });
   const createEquipmentMut = useMutation({
     mutationFn: (b) => labApi.createEquipment(b),
@@ -224,7 +259,7 @@ export default function DiagnosticDashboard() {
           <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center"><Microscope className="w-6 h-6 text-primary" /></div>
           <div>
             <h1 className="page-title">{centerSettings.name}</h1>
-            <p className="page-subscript">{centerSettings.type} Â· {new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+            <p className="page-subscript">{centerSettings.type} · {new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
           </div>
         </div>
       </div>
@@ -241,7 +276,7 @@ export default function DiagnosticDashboard() {
       <AnimatePresence mode="wait">
         <motion.div key={tab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
 
-          {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• OVERVIEW â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+          {/* ═══════════════════ OVERVIEW ═══════════════════ */}
           {tab === 'overview' && (
             <div className="space-y-6">
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
@@ -251,7 +286,7 @@ export default function DiagnosticDashboard() {
                   { label: 'Processing', value: derivedStats.processing, icon: Activity, color: 'text-info', bg: 'bg-info/10' },
                   { label: 'Today\'s Bookings', value: derivedStats.todayBookings, icon: CalendarDays, color: 'text-success', bg: 'bg-success/10' },
                   { label: 'Pending Rx', value: derivedStats.pendingRx || rxQueue.length, icon: ClipboardList, color: 'text-warning', bg: 'bg-warning/10' },
-                  { label: 'Revenue', value: `â‚¹${(derivedStats.revenue / 1000).toFixed(1)}k`, icon: IndianRupee, color: 'text-success', bg: 'bg-success/10' },
+                  { label: 'Revenue', value: `₹${(derivedStats.revenue / 1000).toFixed(1)}k`, icon: IndianRupee, color: 'text-success', bg: 'bg-success/10' },
                 ].map(s => (
                   <div key={s.label} className="bg-card rounded-xl border p-4">
                     <div className={`w-10 h-10 rounded-xl ${s.bg} flex items-center justify-center mb-3`}><s.icon className={`w-5 h-5 ${s.color}`} /></div>
@@ -267,7 +302,7 @@ export default function DiagnosticDashboard() {
                   <div className="space-y-3">
                     {bookings.filter(b => b.bookingDate?.startsWith(new Date().toISOString().split('T')[0])).slice(0, 5).map(b => (
                       <div key={b._id} className="flex items-center justify-between text-sm">
-                        <div><span className="font-medium">{b.patientName}</span><p className="text-xs text-muted-foreground">{b.timeSlot} Â· {b.tests?.join(', ')}</p></div>
+                        <div><span className="font-medium">{b.patientName}</span><p className="text-xs text-muted-foreground">{b.timeSlot} · {b.tests?.join(', ')}</p></div>
                         <StatusBadge status={b.status} />
                       </div>
                     ))}
@@ -304,7 +339,7 @@ export default function DiagnosticDashboard() {
             </div>
           )}
 
-          {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• TEST CATALOG â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+          {/* ═══════════════════ TEST CATALOG ═══════════════════ */}
           {tab === 'catalog' && (
             <>
               <SectionHeader title="Test Catalog Management" subtitle={`${tests.length} tests configured`}
@@ -320,13 +355,13 @@ export default function DiagnosticDashboard() {
                         <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center"><FlaskConical className="w-5 h-5 text-primary" /></div>
                         <div>
                           <p className="font-medium text-foreground">{test.name}</p>
-                          <p className="text-xs text-muted-foreground">{test.category} Â· {test.department} Â· Report: {test.reportTime}</p>
+                          <p className="text-xs text-muted-foreground">{test.category} · {test.department} · Report: {test.reportTime}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
                         <div className="text-right">
-                          <p className="font-bold text-lg">â‚¹{test.price}</p>
-                          {test.mrp > test.price && <p className="text-xs text-muted-foreground line-through">â‚¹{test.mrp}</p>}
+                          <p className="font-bold text-lg">₹{test.price}</p>
+                          {test.mrp > test.price && <p className="text-xs text-muted-foreground line-through">₹{test.mrp}</p>}
                         </div>
                         <div className="flex flex-wrap gap-1">
                           {test.popular && <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded">Popular</span>}
@@ -344,7 +379,7 @@ export default function DiagnosticDashboard() {
             </>
           )}
 
-          {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• BOOKINGS â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+          {/* ═══════════════════ BOOKINGS ═══════════════════ */}
           {tab === 'bookings' && (
             <>
               <div className="flex flex-wrap gap-3 mb-6 items-center">
@@ -361,10 +396,10 @@ export default function DiagnosticDashboard() {
                       <div>
                         <div className="flex items-center gap-2 mb-1"><span className="font-semibold">{b.bookingId}</span><StatusBadge status={b.status} /></div>
                         <p className="text-sm font-medium">{b.patientName}</p>
-                        <p className="text-xs text-muted-foreground">{b.patientPhone} Â· {b.visitType} Â· {b.timeSlot}</p>
+                        <p className="text-xs text-muted-foreground">{b.patientPhone} · {b.visitType} · {b.timeSlot}</p>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold text-lg">â‚¹{b.totalAmount?.toLocaleString()}</p>
+                        <p className="font-bold text-lg">₹{b.totalAmount?.toLocaleString()}</p>
                         <StatusBadge status={b.paymentStatus} />
                       </div>
                     </div>
@@ -386,7 +421,7 @@ export default function DiagnosticDashboard() {
             </>
           )}
 
-          {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• RX QUEUE â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+          {/* ═══════════════════ RX QUEUE ═══════════════════ */}
           {tab === 'rxqueue' && (
             <>
               <SectionHeader title="Prescription Verification Queue" subtitle="Verify uploaded prescriptions and approve/reject test requests"
@@ -417,7 +452,7 @@ export default function DiagnosticDashboard() {
             </>
           )}
 
-          {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• SAMPLE COLLECTION â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+          {/* ═══════════════════ SAMPLE COLLECTION ═══════════════════ */}
           {tab === 'samples' && (
             <>
               <SectionHeader title="Sample Collection Management" subtitle={`${bookings.filter(b => b.visitType === 'Home Collection' && b.status !== 'Completed').length} pending home collections`}
@@ -451,7 +486,7 @@ export default function DiagnosticDashboard() {
             </>
           )}
 
-          {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• APPOINTMENTS â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+          {/* ═══════════════════ APPOINTMENTS ═══════════════════ */}
           {tab === 'appointments' && (
             <>
               <SectionHeader title="Appointment / Visit Management" subtitle="Schedule and manage imaging scan slots"
@@ -464,7 +499,7 @@ export default function DiagnosticDashboard() {
                         <div className="w-10 h-10 rounded-xl bg-info/10 flex items-center justify-center"><Calendar className="w-5 h-5 text-info" /></div>
                         <div>
                           <p className="font-medium">{b.patientName}</p>
-                          <p className="text-xs text-muted-foreground">{new Date(b.bookingDate).toLocaleDateString()} at {b.timeSlot} Â· {b.visitType}</p>
+                          <p className="text-xs text-muted-foreground">{new Date(b.bookingDate).toLocaleDateString()} at {b.timeSlot} · {b.visitType}</p>
                         </div>
                       </div>
                       <StatusBadge status={b.status} />
@@ -482,7 +517,7 @@ export default function DiagnosticDashboard() {
             </>
           )}
 
-          {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• REPORTS â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+          {/* ═══════════════════ REPORTS ═══════════════════ */}
           {tab === 'reports' && (
             <>
               <SectionHeader title="Report Upload & Management" subtitle="Upload test reports and notify patients"
@@ -494,7 +529,7 @@ export default function DiagnosticDashboard() {
                       <div>
                         <div className="flex items-center gap-2 mb-1"><span className="font-semibold">{o.orderId}</span><StatusBadge status={o.status} /></div>
                         <p className="text-sm font-medium">{o.patientName}</p>
-                        <p className="text-xs text-muted-foreground">Dr. {o.doctorName} Â· {(o.tests || []).map(t => t.testName).join(', ')}</p>
+                        <p className="text-xs text-muted-foreground">Dr. {o.doctorName} · {(o.tests || []).map(t => t.testName).join(', ')}</p>
                       </div>
                     </div>
                     <div className="flex gap-2">
@@ -508,10 +543,10 @@ export default function DiagnosticDashboard() {
             </>
           )}
 
-          {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• EQUIPMENT â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+          {/* ═══════════════════ EQUIPMENT ═══════════════════ */}
           {tab === 'equipment' && (
             <>
-              <SectionHeader title="Equipment Management" subtitle={`${equipment.filter(e => e.status === 'Operational').length} operational Â· ${equipment.filter(e => e.status !== 'Operational').length} requires attention`}
+              <SectionHeader title="Equipment Management" subtitle={`${equipment.filter(e => e.status === 'Operational').length} operational · ${equipment.filter(e => e.status !== 'Operational').length} requires attention`}
                 action={<Button size="sm" onClick={() => { setEditEquipId(null); setEquipForm({ name: '', type: 'MRI', model: '', serialNumber: '', manufacturer: '', installationDate: '', nextMaintenanceDate: '', status: 'Operational', location: '', notes: '' }); setShowModal('add-equipment'); }}><Plus className="w-4 h-4 mr-1" /> Add Equipment</Button>} />
               <div className="grid md:grid-cols-2 gap-4">
                 {equipment.map(e => (
@@ -519,7 +554,7 @@ export default function DiagnosticDashboard() {
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-3">
                         <div className={`w-10 h-10 rounded-xl ${e.status === 'Operational' ? 'bg-success/10' : 'bg-warning/10'} flex items-center justify-center`}><Microscope className={`w-5 h-5 ${e.status === 'Operational' ? 'text-success' : 'text-warning'}`} /></div>
-                        <div><p className="font-medium">{e.name}</p><p className="text-xs text-muted-foreground">{e.type} Â· {e.model}</p></div>
+                        <div><p className="font-medium">{e.name}</p><p className="text-xs text-muted-foreground">{e.type} · {e.model}</p></div>
                       </div>
                       <StatusBadge status={e.status} />
                     </div>
@@ -538,7 +573,7 @@ export default function DiagnosticDashboard() {
             </>
           )}
 
-          {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• STAFF â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+          {/* ═══════════════════ STAFF ═══════════════════ */}
           {tab === 'staff' && (
             <>
               <SectionHeader title="Lab Staff Management" subtitle={`${staffList.filter(s => s.isActive).length} active staff members`}
@@ -557,7 +592,7 @@ export default function DiagnosticDashboard() {
                       <p><Phone className="w-3 h-3 inline mr-1" />{s.phone}</p>
                       <p><Mail className="w-3 h-3 inline mr-1" />{s.email}</p>
                       {s.licenseNumber && <p><Shield className="w-3 h-3 inline mr-1" />License: {s.licenseNumber}</p>}
-                      <p className="text-xs">Exp: {s.experience} Â· Joined {s.joinedAt}</p>
+                      <p className="text-xs">Exp: {s.experience} · Joined {s.joinedAt}</p>
                     </div>
                     <div className="flex gap-2 mt-3 pt-3 border-t">
                       <Button size="sm" variant="outline" onClick={() => { updateStaffMut.mutate({ id: s._id, isActive: !s.isActive }); showToast(`Staff ${s.isActive ? 'deactivated' : 'activated'}`); }}>{s.isActive ? 'Deactivate' : 'Activate'}</Button>
@@ -568,7 +603,7 @@ export default function DiagnosticDashboard() {
             </>
           )}
 
-          {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• PACKAGES â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+          {/* ═══════════════════ PACKAGES ═══════════════════ */}
           {tab === 'packages' && (
             <>
               <SectionHeader title="Health Package Management" subtitle={`${packages.filter(p => p.isActive).length} active packages`}
@@ -585,14 +620,14 @@ export default function DiagnosticDashboard() {
                     </div>
                     <div className="text-sm space-y-2 mb-3">
                       <div className="flex items-center gap-2">
-                        <p className="text-lg font-bold text-primary">â‚¹{pkg.packagePrice}</p>
-                        <p className="text-xs text-muted-foreground line-through">â‚¹{pkg.originalPrice}</p>
+                        <p className="text-lg font-bold text-primary">₹{pkg.packagePrice}</p>
+                        <p className="text-xs text-muted-foreground line-through">₹{pkg.originalPrice}</p>
                         <span className="text-xs text-success font-medium">{Math.round((1 - pkg.packagePrice / pkg.originalPrice) * 100)}% off</span>
                       </div>
                       <div className="flex flex-wrap gap-1">
                         {(pkg.testNames || []).map((tn, i) => <span key={i} className="text-xs bg-muted px-1.5 py-0.5 rounded">{tn}</span>)}
                       </div>
-                      <p className="text-xs text-muted-foreground">Report: {pkg.reportTime} {pkg.homeCollectionAvailable && 'Â· Home Collection'}</p>
+                      <p className="text-xs text-muted-foreground">Report: {pkg.reportTime} {pkg.homeCollectionAvailable && '· Home Collection'}</p>
                     </div>
                     <div className="flex gap-2 pt-3 border-t">
                       <Button size="sm" variant="outline" onClick={() => { updatePackageMut.mutate({ id: pkg._id, isActive: false }); showToast('Package deactivated'); }}>Disable</Button>
@@ -604,7 +639,7 @@ export default function DiagnosticDashboard() {
             </>
           )}
 
-          {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• BILLING â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+          {/* ═══════════════════ BILLING ═══════════════════ */}
           {tab === 'billing' && (
             <>
               <div className="flex flex-wrap gap-3 mb-6 items-center">
@@ -612,7 +647,7 @@ export default function DiagnosticDashboard() {
                 {['All', 'Paid', 'Unpaid', 'Partially Paid'].map(s => (
                   <button key={s} onClick={() => setBillFilter(s)} className={`px-3 py-1.5 rounded-lg text-xs font-medium ${billFilter === s ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>{s}</button>
                 ))}
-                <Button size="sm" variant="outline" onClick={() => showToast('Export — API not implemented')}><Download className="w-4 h-4 mr-1" /> Export</Button>
+                <Button size="sm" variant="outline" onClick={exportBillingCsv}><Download className="w-4 h-4 mr-1" /> Export</Button>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
@@ -623,7 +658,7 @@ export default function DiagnosticDashboard() {
                         <td className="py-3 px-2 font-medium">{b.bookingId}</td>
                         <td className="py-3 px-2">{b.patientName}</td>
                         <td className="py-3 px-2">{(b.tests || []).length}</td>
-                        <td className="py-3 px-2 text-right font-medium">â‚¹{b.totalAmount?.toLocaleString() || 0}</td>
+                        <td className="py-3 px-2 text-right font-medium">₹{b.totalAmount?.toLocaleString() || 0}</td>
                         <td className="py-3 px-2 text-center"><StatusBadge status={b.paymentStatus} /></td>
                         <td className="py-3 px-2 text-right text-muted-foreground">{b.bookingDate?.split('T')[0]}</td>
                       </tr>
@@ -632,7 +667,7 @@ export default function DiagnosticDashboard() {
                         <td className="py-3 px-2 font-medium">{b.invoiceId || b._id}</td>
                         <td className="py-3 px-2">{b.patientName}</td>
                         <td className="py-3 px-2">{(b.tests || []).length}</td>
-                        <td className="py-3 px-2 text-right font-medium">â‚¹{b.totalAmount?.toLocaleString() || 0}</td>
+                        <td className="py-3 px-2 text-right font-medium">₹{b.totalAmount?.toLocaleString() || 0}</td>
                         <td className="py-3 px-2 text-center"><StatusBadge status={b.paymentStatus} /></td>
                         <td className="py-3 px-2 text-right text-muted-foreground">{b.date || b.bookingDate?.split('T')[0]}</td>
                       </tr>
@@ -643,10 +678,10 @@ export default function DiagnosticDashboard() {
             </>
           )}
 
-          {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• REVIEWS â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+          {/* ═══════════════════ REVIEWS ═══════════════════ */}
           {tab === 'reviews' && (
             <>
-              <SectionHeader title="Patient Reviews" subtitle={`${reviews.length} reviews Â· ${(reviews.reduce((s, r) => s + r.rating, 0) / reviews.length || 0).toFixed(1)} avg rating`} />
+              <SectionHeader title="Patient Reviews" subtitle={`${reviews.length} reviews · ${(reviews.reduce((s, r) => s + r.rating, 0) / reviews.length || 0).toFixed(1)} avg rating`} />
               <div className="space-y-3">
                 {reviews.map(r => (
                   <div key={r._id} className="bg-card rounded-xl border p-4">
@@ -665,7 +700,7 @@ export default function DiagnosticDashboard() {
             </>
           )}
 
-          {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• ANALYTICS â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+          {/* ═══════════════════ ANALYTICS ═══════════════════ */}
           {tab === 'analytics' && (
             <>
               <SectionHeader title="Reports & Analytics" subtitle="Performance metrics and insights"
@@ -678,7 +713,7 @@ export default function DiagnosticDashboard() {
                       { label: 'Total Bookings', value: bookings.length, change: orders.length > 0 ? '+15%' : '0%' },
                       { label: 'Tests Conducted', value: orders.reduce((s, o) => s + (o.tests?.length || 0), 0), change: '+12%' },
                       { label: 'Avg Turnaround', value: orders.length > 0 ? '6.2 hrs' : 'N/A', change: '-8%' },
-                      { label: 'Revenue (Period)', value: `â‚¹${bookings.filter(b => b.paymentStatus === 'Paid').reduce((s, b) => s + (b.totalAmount || 0), 0).toLocaleString()}`, change: '+22%' },
+                      { label: 'Revenue (Period)', value: `₹${bookings.filter(b => b.paymentStatus === 'Paid').reduce((s, b) => s + (b.totalAmount || 0), 0).toLocaleString()}`, change: '+22%' },
                       { label: 'Critical Results', value: stats.critical || 0, change: '0%' },
                       { label: 'Patient Satisfaction', value: reviews.length > 0 ? `${(reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)}/5` : 'N/A', change: '+0.3' },
                     ].map(d => (
@@ -726,7 +761,7 @@ export default function DiagnosticDashboard() {
             </>
           )}
 
-          {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• SETTINGS â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+          {/* ═══════════════════ SETTINGS ═══════════════════ */}
           {tab === 'settings' && (
             <div className="max-w-2xl">
               <SectionHeader title="Center Profile Settings" subtitle="Configure lab/diagnostic center details" />
@@ -755,7 +790,7 @@ export default function DiagnosticDashboard() {
         </motion.div>
       </AnimatePresence>
 
-      {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• MODALS â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+      {/* ═══════════════════ MODALS ═══════════════════ */}
 
       {/* Add Test Modal */}
       {showModal === 'add-test' && (
@@ -767,8 +802,8 @@ export default function DiagnosticDashboard() {
               <div><label className="text-sm font-medium mb-1 block">Category</label><select value={testForm.category} onChange={e => setTestForm({ ...testForm, category: e.target.value })} className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm">{CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div><label className="text-sm font-medium mb-1 block">MRP (â‚¹)</label><Input type="number" value={testForm.mrp} onChange={e => setTestForm({ ...testForm, mrp: e.target.value })} /></div>
-              <div><label className="text-sm font-medium mb-1 block">Selling Price (â‚¹)</label><Input type="number" value={testForm.price} onChange={e => setTestForm({ ...testForm, price: e.target.value })} /></div>
+              <div><label className="text-sm font-medium mb-1 block">MRP (₹)</label><Input type="number" value={testForm.mrp} onChange={e => setTestForm({ ...testForm, mrp: e.target.value })} /></div>
+              <div><label className="text-sm font-medium mb-1 block">Selling Price (₹)</label><Input type="number" value={testForm.price} onChange={e => setTestForm({ ...testForm, price: e.target.value })} /></div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div><label className="text-sm font-medium mb-1 block">Report Time</label><select value={testForm.reportTime} onChange={e => setTestForm({ ...testForm, reportTime: e.target.value })} className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm">{REPORT_TIMES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
@@ -790,15 +825,15 @@ export default function DiagnosticDashboard() {
         <Modal title="New Booking" onClose={() => setShowModal(null)}>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <div><label className="text-sm font-medium mb-1 block">Patient Name</label><Input placeholder="Name" /></div>
-              <div><label className="text-sm font-medium mb-1 block">Phone</label><Input placeholder="Phone" /></div>
+              <div><label className="text-sm font-medium mb-1 block">Patient Name</label><Input value={bookingForm.patientName} onChange={e => setBookingForm({ ...bookingForm, patientName: e.target.value })} placeholder="Name" /></div>
+              <div><label className="text-sm font-medium mb-1 block">Phone</label><Input value={bookingForm.patientPhone} onChange={e => setBookingForm({ ...bookingForm, patientPhone: e.target.value })} placeholder="Phone" /></div>
             </div>
-            <div><label className="text-sm font-medium mb-1 block">Visit Type</label><select className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm">{['Walk-in', 'Home Collection', 'Appointment'].map(v => <option key={v} value={v}>{v}</option>)}</select></div>
+            <div><label className="text-sm font-medium mb-1 block">Visit Type</label><select value={bookingForm.visitType} onChange={e => setBookingForm({ ...bookingForm, visitType: e.target.value })} className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm">{['Walk-in', 'Home Collection', 'Appointment'].map(v => <option key={v} value={v}>{v}</option>)}</select></div>
             <div className="grid grid-cols-2 gap-4">
-              <div><label className="text-sm font-medium mb-1 block">Date</label><Input type="date" /></div>
-              <div><label className="text-sm font-medium mb-1 block">Time Slot</label><Input placeholder="e.g. 10:00 AM" /></div>
+              <div><label className="text-sm font-medium mb-1 block">Date</label><Input type="date" value={bookingForm.bookingDate} onChange={e => setBookingForm({ ...bookingForm, bookingDate: e.target.value })} /></div>
+              <div><label className="text-sm font-medium mb-1 block">Time Slot</label><Input value={bookingForm.timeSlot} onChange={e => setBookingForm({ ...bookingForm, timeSlot: e.target.value })} placeholder="e.g. 10:00 AM" /></div>
             </div>
-            <Button className="w-full" onClick={() => { showToast('Action pending — API integration needed'); setShowModal(null); }}>Create Booking</Button>
+            <Button className="w-full" onClick={() => createBookingMut.mutate(bookingForm)} disabled={createBookingMut.isPending || !bookingForm.patientName || !bookingForm.patientPhone}>Create Booking</Button>
           </div>
         </Modal>
       )}
@@ -827,8 +862,8 @@ export default function DiagnosticDashboard() {
             </div>
             <div><label className="text-sm font-medium mb-1 block">Tests Included (comma separated)</label><Input value={pkgForm.testNames} onChange={e => setPkgForm({ ...pkgForm, testNames: e.target.value })} placeholder="CBC, Lipid Profile, LFT" /></div>
             <div className="grid grid-cols-2 gap-4">
-              <div><label className="text-sm font-medium mb-1 block">Original Price (â‚¹)</label><Input type="number" value={pkgForm.originalPrice} onChange={e => setPkgForm({ ...pkgForm, originalPrice: e.target.value })} /></div>
-              <div><label className="text-sm font-medium mb-1 block">Package Price (â‚¹)</label><Input type="number" value={pkgForm.packagePrice} onChange={e => setPkgForm({ ...pkgForm, packagePrice: e.target.value })} /></div>
+              <div><label className="text-sm font-medium mb-1 block">Original Price (₹)</label><Input type="number" value={pkgForm.originalPrice} onChange={e => setPkgForm({ ...pkgForm, originalPrice: e.target.value })} /></div>
+              <div><label className="text-sm font-medium mb-1 block">Package Price (₹)</label><Input type="number" value={pkgForm.packagePrice} onChange={e => setPkgForm({ ...pkgForm, packagePrice: e.target.value })} /></div>
             </div>
             {pkgForm.originalPrice && pkgForm.packagePrice && <div className="text-xs text-emerald-600 font-medium text-center bg-emerald-500/10 rounded-xl py-1.5">Discount: {Math.round((1 - Number(pkgForm.packagePrice) / Number(pkgForm.originalPrice)) * 100)}% off</div>}
             <div className="grid grid-cols-2 gap-3">
@@ -857,9 +892,9 @@ export default function DiagnosticDashboard() {
       {showModal === 'assign-phlebotomist' && (
         <Modal title="Assign Phlebotomist" onClose={() => setShowModal(null)}>
           <div className="space-y-4">
-            <div><label className="text-sm font-medium mb-1 block">Select Booking</label><select className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm">{bookings.filter(b => b.visitType === 'Home Collection' && b.status !== 'Completed').map(b => <option key={b._id} value={b._id}>{b.bookingId} - {b.patientName}</option>)}</select></div>
-            <div><label className="text-sm font-medium mb-1 block">Select Phlebotomist</label><select className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm">{staffList.filter(s => s.role === 'Phlebotomist' && s.isActive).map(s => <option key={s._id} value={s._id}>{s.name}</option>)}</select></div>
-            <Button className="w-full" onClick={() => { showToast('Action pending — API integration needed'); setShowModal(null); }}>Assign</Button>
+            <div><label className="text-sm font-medium mb-1 block">Select Booking</label><select value={assignmentForm.bookingId} onChange={e => setAssignmentForm({ ...assignmentForm, bookingId: e.target.value })} className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm"><option value="">Select booking</option>{bookings.filter(b => b.visitType === 'Home Collection' && b.status !== 'Completed').map(b => <option key={b._id} value={b._id}>{b.bookingId} - {b.patientName}</option>)}</select></div>
+            <div><label className="text-sm font-medium mb-1 block">Select Phlebotomist</label><select value={assignmentForm.phlebotomistId} onChange={e => setAssignmentForm({ ...assignmentForm, phlebotomistId: e.target.value })} className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm"><option value="">Select staff</option>{staffList.filter(s => s.role === 'Phlebotomist' && s.isActive).map(s => <option key={s._id} value={s._id}>{s.name}</option>)}</select></div>
+            <Button className="w-full" onClick={() => updateBookingMut.mutate({ id: assignmentForm.bookingId, phlebotomistId: assignmentForm.phlebotomistId, status: 'Assigned' })} disabled={!assignmentForm.bookingId || !assignmentForm.phlebotomistId || updateBookingMut.isPending}>Assign</Button>
           </div>
         </Modal>
       )}
@@ -868,9 +903,9 @@ export default function DiagnosticDashboard() {
       {showModal === 'upload-report' && (
         <Modal title="Upload Report" onClose={() => setShowModal(null)}>
           <div className="space-y-4">
-            <div><label className="text-sm font-medium mb-1 block">Select Order</label><select className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm">{orders.filter(o => o.status === 'Processing' || o.status === 'Under Verification').map(o => <option key={o._id} value={o._id}>{o.orderId} - {o.patientName}</option>)}</select></div>
+            <div><label className="text-sm font-medium mb-1 block">Select Order</label><select value={reportForm.orderId} onChange={e => setReportForm({ orderId: e.target.value })} className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm"><option value="">Select order</option>{orders.filter(o => o.status === 'Processing' || o.status === 'Under Verification').map(o => <option key={o._id} value={o._id}>{o.orderId} - {o.patientName}</option>)}</select></div>
             <div><label className="text-sm font-medium mb-1 block">Upload PDF Report</label><div className="border-2 border-dashed rounded-xl p-8 text-center cursor-pointer hover:bg-muted/30"><Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" /><p className="text-sm text-muted-foreground">Click to upload or drag and drop</p></div></div>
-            <Button className="w-full" onClick={() => { showToast('Action pending — API integration needed'); setShowModal(null); }}>Upload & Notify</Button>
+            <Button className="w-full" onClick={() => deliverReportMut.mutate({ id: reportForm.orderId, status: 'Delivered', notified: true })} disabled={!reportForm.orderId || deliverReportMut.isPending}>Upload & Notify</Button>
           </div>
         </Modal>
       )}
@@ -879,10 +914,10 @@ export default function DiagnosticDashboard() {
       {showModal === 'add-appointment' && (
         <Modal title="Schedule Appointment" onClose={() => setShowModal(null)}>
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4"><div><label className="text-sm font-medium mb-1 block">Patient Name</label><Input /></div><div><label className="text-sm font-medium mb-1 block">Phone</label><Input /></div></div>
-            <div className="grid grid-cols-2 gap-4"><div><label className="text-sm font-medium mb-1 block">Date</label><Input type="date" /></div><div><label className="text-sm font-medium mb-1 block">Time Slot</label><Input placeholder="e.g. 10:00 AM" /></div></div>
-            <div><label className="text-sm font-medium mb-1 block">Test / Scan</label><Input placeholder="e.g. MRI Brain, CT Abdomen" /></div>
-            <Button className="w-full" onClick={() => { showToast('Action pending — API integration needed'); setShowModal(null); }}>Schedule</Button>
+            <div className="grid grid-cols-2 gap-4"><div><label className="text-sm font-medium mb-1 block">Patient Name</label><Input value={appointmentForm.patientName} onChange={e => setAppointmentForm({ ...appointmentForm, patientName: e.target.value })} /></div><div><label className="text-sm font-medium mb-1 block">Phone</label><Input value={appointmentForm.patientPhone} onChange={e => setAppointmentForm({ ...appointmentForm, patientPhone: e.target.value })} /></div></div>
+            <div className="grid grid-cols-2 gap-4"><div><label className="text-sm font-medium mb-1 block">Date</label><Input type="date" value={appointmentForm.bookingDate} onChange={e => setAppointmentForm({ ...appointmentForm, bookingDate: e.target.value })} /></div><div><label className="text-sm font-medium mb-1 block">Time Slot</label><Input value={appointmentForm.timeSlot} onChange={e => setAppointmentForm({ ...appointmentForm, timeSlot: e.target.value })} placeholder="e.g. 10:00 AM" /></div></div>
+            <div><label className="text-sm font-medium mb-1 block">Test / Scan</label><Input value={appointmentForm.testName} onChange={e => setAppointmentForm({ ...appointmentForm, testName: e.target.value })} placeholder="e.g. MRI Brain, CT Abdomen" /></div>
+            <Button className="w-full" onClick={() => createBookingMut.mutate({ ...appointmentForm, visitType: 'Appointment', tests: appointmentForm.testName ? [appointmentForm.testName] : [] })} disabled={!appointmentForm.patientName || !appointmentForm.patientPhone || createBookingMut.isPending}>Schedule</Button>
           </div>
         </Modal>
       )}

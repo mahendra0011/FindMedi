@@ -137,7 +137,7 @@ export default function OrderTracking() {
       });
     }, ADVANCE_INTERVAL[flowType]);
     return () => clearInterval(timer);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [flowType, STAGES.length]);
 
   const canCancel  = currentStage <= Math.min(2, STAGES.length - 4);

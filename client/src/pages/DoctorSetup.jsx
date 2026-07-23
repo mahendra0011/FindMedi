@@ -5,6 +5,7 @@ import { Activity, ArrowRight, CheckCircle, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
+import { toast } from 'sonner';
 
 export default function DoctorSetup() {
   const navigate = useNavigate();
@@ -90,7 +91,7 @@ export default function DoctorSetup() {
     try {
       await api.resendOTP({ email });
       setError('');
-      alert('OTP resent to your email');
+      toast.success('OTP resent to your email');
     } catch (err) {
       setError(err.message || 'Failed to resend OTP');
     } finally {

@@ -41,7 +41,7 @@ let mockDeliveries = [
 let mockOffers = [
   { _id: 'o1', title: 'Summer Health Sale', code: 'SUMMER25', discount: 25, type: 'percentage', minPurchase: 500, maxDiscount: 2000, validTill: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0], usageLimit: 100, used: 23, isActive: true },
   { _id: 'o2', title: 'New User Welcome', code: 'WELCOME10', discount: 10, type: 'percentage', minPurchase: 0, maxDiscount: 500, validTill: new Date(Date.now() + 60 * 86400000).toISOString().split('T')[0], usageLimit: 500, used: 87, isActive: true },
-  { _id: 'o3', title: 'Flat â‚¹200 Off', code: 'FLAT200', discount: 200, type: 'flat', minPurchase: 1000, maxDiscount: 200, validTill: new Date(Date.now() - 5 * 86400000).toISOString().split('T')[0], usageLimit: 200, used: 200, isActive: false },
+  { _id: 'o3', title: 'Flat ₹200 Off', code: 'FLAT200', discount: 200, type: 'flat', minPurchase: 1000, maxDiscount: 200, validTill: new Date(Date.now() - 5 * 86400000).toISOString().split('T')[0], usageLimit: 200, used: 200, isActive: false },
 ];
 
 let mockPharmacyStaff = [
@@ -86,6 +86,9 @@ export default function Pharmacy() {
   const [showModal, setShowModal] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
   const [toast, setToast] = useState(null);
+  const [stockModal, setStockModal] = useState(null);
+  const [stockQty, setStockQty] = useState('');
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
 
   // Inventory
   const [medicines, setMedicines] = useState([]);
@@ -101,9 +104,11 @@ export default function Pharmacy() {
   // Orders
   const [orders, setOrders] = useState([]);
   const [orderFilter, setOrderFilter] = useState('All');
+  const [orderForm, setOrderForm] = useState({ patientName: '', phone: '', deliveryAddress: '', medicineName: '', qty: '1', price: '0' });
 
   // Delivery
   const [deliveries, setDeliveries] = useState([]);
+  const [deliveryForm, setDeliveryForm] = useState({ orderId: '', deliveryPerson: '', phone: '', estimatedTime: '' });
 
   // Billing
   const [bills, setBills] = useState([]);
@@ -111,6 +116,7 @@ export default function Pharmacy() {
 
   // Returns
   const [returns, setReturns] = useState([]);
+  const [returnForm, setReturnForm] = useState({ orderId: '', reason: '' });
 
   // Staff
   const [staffList, setStaffList] = useState([]);
@@ -131,6 +137,19 @@ export default function Pharmacy() {
   const [storeSettings, setStoreSettings] = useState({ name: 'MediCore Pharmacy', address: '123 Healthcare Ave, New York', phone: '+1 234-567-8900', email: 'pharmacy@medicore.com', licenseNo: 'PH-LIC-001', timing: '8:00 AM - 10:00 PM', deliveryRadius: '10 km', minOrderAmt: '100', deliveryFee: '30', gst: '18', autoRetry: true });
 
   const showToast = (msg, type = 'success') => { setToast({ msg, type }); setTimeout(() => setToast(null), 3000); };
+  const downloadCsv = (filename, headers, rows) => {
+    if (!rows.length) return showToast('No rows to export', 'error');
+    const csv = [headers.join(','), ...rows.map(row => headers.map(h => `"${String(row[h] ?? '').replaceAll('"', '""')}"`).join(','))].join('\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    showToast('CSV exported');
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -226,7 +245,7 @@ export default function Pharmacy() {
           <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center"><Pill className="w-6 h-6 text-primary" /></div>
           <div>
             <h1 className="page-title">{storeSettings.name}</h1>
-            <p className="page-subtitle">Medical Store Dashboard Â· {new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+            <p className="page-subtitle">Medical Store Dashboard · {new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
           </div>
         </div>
       </div>
@@ -243,7 +262,7 @@ export default function Pharmacy() {
 
       <AnimatePresence mode="wait">
         <motion.div key={tab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
-          {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• OVERVIEW â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+          {/* ═══════════════════ OVERVIEW ═══════════════════ */}
           {tab === 'overview' && (
             <div className="space-y-6">
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
@@ -253,7 +272,7 @@ export default function Pharmacy() {
                   { label: 'Expiring', value: derivedStats.expiringSoon, icon: Clock, color: 'text-destructive', bg: 'bg-destructive/10' },
                   { label: 'Orders', value: derivedStats.totalOrders, icon: ShoppingCart, color: 'text-info', bg: 'bg-info/10' },
                   { label: 'Pending Rx', value: derivedStats.pendingDispense, icon: ClipboardList, color: 'text-warning', bg: 'bg-warning/10' },
-                  { label: 'Revenue', value: `â‚¹${(derivedStats.revenue / 1000).toFixed(1)}k`, icon: IndianRupee, color: 'text-success', bg: 'bg-success/10' },
+                  { label: 'Revenue', value: `₹${(derivedStats.revenue / 1000).toFixed(1)}k`, icon: IndianRupee, color: 'text-success', bg: 'bg-success/10' },
                 ].map(s => (
                   <div key={s.label} className="bg-card rounded-xl border p-4">
                     <div className={`w-10 h-10 rounded-xl ${s.bg} flex items-center justify-center mb-3`}><s.icon className={`w-5 h-5 ${s.color}`} /></div>
@@ -305,7 +324,7 @@ export default function Pharmacy() {
             </div>
           )}
 
-          {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• INVENTORY â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+          {/* ═══════════════════ INVENTORY ═══════════════════ */}
           {tab === 'inventory' && (
             <>
               <div className="flex flex-wrap gap-3 mb-6">
@@ -326,7 +345,7 @@ export default function Pharmacy() {
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center"><Pill className="w-5 h-5 text-primary" /></div>
                           <div><p className="font-medium text-foreground">{med.name} <span className="text-muted-foreground text-xs ml-1">{med.form}</span></p>
-                            <p className="text-xs text-muted-foreground">{med.genericName} Â· {med.manufacturer}</p></div>
+                            <p className="text-xs text-muted-foreground">{med.genericName} · {med.manufacturer}</p></div>
                         </div>
                         <div className="flex items-center gap-3">
                           <span className={`px-2 py-0.5 rounded text-xs font-medium ${low ? 'bg-destructive/10 text-destructive' : 'bg-success/10 text-success'}`}>{med.currentStock} in stock</span>
@@ -338,16 +357,16 @@ export default function Pharmacy() {
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                             <div><p className="text-muted-foreground">Batch</p><p className="font-medium">{med.batchNumber}</p></div>
                             <div><p className="text-muted-foreground">Expiry</p><p className="font-medium">{new Date(med.expiryDate).toLocaleDateString()}</p></div>
-                            <div><p className="text-muted-foreground">Purchase Price</p><p className="font-medium">â‚¹{med.purchasePrice}</p></div>
-                            <div><p className="text-muted-foreground">Selling Price</p><p className="font-medium">â‚¹{med.sellingPrice}</p></div>
+                            <div><p className="text-muted-foreground">Purchase Price</p><p className="font-medium">₹{med.purchasePrice}</p></div>
+                            <div><p className="text-muted-foreground">Selling Price</p><p className="font-medium">₹{med.sellingPrice}</p></div>
                             <div><p className="text-muted-foreground">Reorder Level</p><p className="font-medium">{med.reorderLevel}</p></div>
                             <div><p className="text-muted-foreground">Rack</p><p className="font-medium">{med.rackLocation || 'N/A'}</p></div>
                           </div>
                           <div className="flex gap-2 flex-wrap">
-                            <Button size="sm" variant="outline" onClick={() => { const q = prompt('Add stock quantity:'); if (q) pharmApi.stockUpdate(med._id, { quantity: parseInt(q), type: 'add' }).then(() => { loadMedicines(); showToast('Stock added'); }); }}>+ Add Stock</Button>
-                            <Button size="sm" variant="outline" onClick={() => { const q = prompt('Deduct quantity:'); if (q) pharmApi.stockUpdate(med._id, { quantity: parseInt(q), type: 'deduct' }).then(() => { loadMedicines(); showToast('Stock deducted'); }); }}>- Deduct</Button>
+                            <Button size="sm" variant="outline" onClick={() => { setStockModal({ id: med._id, type: 'add' }); setStockQty(''); }}>+ Add Stock</Button>
+                            <Button size="sm" variant="outline" onClick={() => { setStockModal({ id: med._id, type: 'deduct' }); setStockQty(''); }}>- Deduct</Button>
                             <Button size="sm" variant="outline" onClick={() => { setEditMed(med); setNewMed({ name: med.name, genericName: med.genericName, category: med.category, form: med.form, manufacturer: med.manufacturer, batchNumber: med.batchNumber, expiryDate: med.expiryDate?.split('T')[0] || '', purchasePrice: med.purchasePrice?.toString() || '', sellingPrice: med.sellingPrice?.toString() || '', currentStock: med.currentStock?.toString() || '', reorderLevel: med.reorderLevel?.toString() || '10', rackLocation: med.rackLocation || '' }); setShowModal('add-medicine'); }}><Edit className="w-3 h-3 mr-1" /> Edit</Button>
-                            <Button size="sm" variant="outline" className="text-destructive" onClick={async () => { if (confirm('Delete this medicine?')) { await pharmApi.deleteMedicine(med._id); loadMedicines(); showToast('Medicine deleted'); } }}><Trash2 className="w-3 h-3 mr-1" /> Delete</Button>
+                            <Button size="sm" variant="outline" className="text-destructive" onClick={() => setDeleteConfirmId(med._id)}><Trash2 className="w-3 h-3 mr-1" /> Delete</Button>
                           </div>
                         </div>
                       )}
@@ -359,7 +378,7 @@ export default function Pharmacy() {
             </>
           )}
 
-          {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• ORDERS â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+          {/* ═══════════════════ ORDERS ═══════════════════ */}
           {tab === 'orders' && (
             <>
               <div className="flex flex-wrap gap-3 mb-6 items-center">
@@ -376,10 +395,10 @@ export default function Pharmacy() {
                       <div>
                         <div className="flex items-center gap-2 mb-1"><span className="font-semibold">{o.orderId}</span><StatusBadge status={o.status} /></div>
                         <p className="text-sm font-medium">{o.patientName}</p>
-                        <p className="text-xs text-muted-foreground">{o.phone} Â· {o.deliveryAddress}</p>
+                        <p className="text-xs text-muted-foreground">{o.phone} · {o.deliveryAddress}</p>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold text-lg">â‚¹{o.total.toLocaleString()}</p>
+                        <p className="font-bold text-lg">₹{o.total.toLocaleString()}</p>
                         <StatusBadge status={o.paymentStatus} />
                       </div>
                     </div>
@@ -401,7 +420,7 @@ export default function Pharmacy() {
             </>
           )}
 
-          {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• PRESCRIPTIONS â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+          {/* ═══════════════════ PRESCRIPTIONS ═══════════════════ */}
           {tab === 'prescriptions' && (
             <>
               <div className="flex flex-wrap gap-3 mb-6 items-center">
@@ -418,7 +437,7 @@ export default function Pharmacy() {
                           <StatusBadge status={rx.status} mapping={{ Active: 'bg-info/10 text-info', Dispensed: 'bg-success/10 text-success', 'Partially Dispensed': 'bg-warning/10 text-warning', Cancelled: 'bg-destructive/10 text-destructive' }} />
                         </div>
                         <p className="text-sm font-medium">{rx.patientName}</p>
-                        <p className="text-xs text-muted-foreground">Dr. {rx.doctorName} Â· {rx.medicines?.length || 0} medicine(s)</p>
+                        <p className="text-xs text-muted-foreground">Dr. {rx.doctorName} · {rx.medicines?.length || 0} medicine(s)</p>
                       </div>
                       <span className="text-xs text-muted-foreground"><Clock className="w-3 h-3 inline mr-1" />{new Date(rx.createdAt).toLocaleDateString()}</span>
                     </div>
@@ -427,7 +446,7 @@ export default function Pharmacy() {
                         <div key={i} className="flex items-center justify-between bg-muted/30 rounded-lg p-2">
                           <div>
                             <p className="text-sm font-medium text-foreground">{m.medicineName} {m.dosage}</p>
-                            <p className="text-xs text-muted-foreground">{m.frequency} Â· {m.duration} Â· Qty: {m.quantity}</p>
+                            <p className="text-xs text-muted-foreground">{m.frequency} · {m.duration} · Qty: {m.quantity}</p>
                           </div>
                           <div className="flex items-center gap-2">
                             {m.isDispensed ? <CheckCircle className="w-4 h-4 text-success" /> : <Button size="sm" variant="outline" onClick={async () => { await pharmApi.dispense(rx._id, { medicineIndex: i }); loadPrescriptions(); showToast(`${m.medicineName} dispensed`); }}>Dispense</Button>}
@@ -442,7 +461,7 @@ export default function Pharmacy() {
             </>
           )}
 
-          {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• DELIVERY â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+          {/* ═══════════════════ DELIVERY ═══════════════════ */}
           {tab === 'delivery' && (
             <>
               <SectionHeader title="Delivery Management" subtitle={`${deliveries.filter(d => d.status === 'In Transit' || d.status === 'Pending Pickup').length} active deliveries`}
@@ -454,13 +473,13 @@ export default function Pharmacy() {
                       <div>
                         <div className="flex items-center gap-2 mb-1"><span className="font-semibold">{d.orderId}</span><StatusBadge status={d.status} /></div>
                         <p className="text-sm font-medium"><Truck className="w-3 h-3 inline mr-1 text-muted-foreground" />{d.deliveryPerson}</p>
-                        <p className="text-xs text-muted-foreground">{d.phone} Â· ETA: {d.estimatedTime}</p>
+                        <p className="text-xs text-muted-foreground">{d.phone} · ETA: {d.estimatedTime}</p>
                       </div>
                     </div>
                     <div className="space-y-1">
                       {d.tracking.map((t, i) => (
                         <div key={i} className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <div className="w-2 h-2 rounded-full bg-primary" /> {t.location} Â· {new Date(t.time).toLocaleTimeString()}
+                          <div className="w-2 h-2 rounded-full bg-primary" /> {t.location} · {new Date(t.time).toLocaleTimeString()}
                         </div>
                       ))}
                     </div>
@@ -475,7 +494,7 @@ export default function Pharmacy() {
             </>
           )}
 
-          {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• BILLING â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+          {/* ═══════════════════ BILLING ═══════════════════ */}
           {tab === 'billing' && (
             <>
               <div className="flex flex-wrap gap-3 mb-6 items-center">
@@ -484,7 +503,17 @@ export default function Pharmacy() {
                 {['All', 'Paid', 'Unpaid', 'Partial'].map(s => (
                   <button key={s} onClick={() => setBillFilter(s)} className={`px-3 py-1.5 rounded-lg text-xs font-medium ${billFilter === s ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>{s}</button>
                 ))}
-                <Button size="sm" variant="outline" onClick={() => { window.open('/api/pharmacy/billing/export', '_blank'); showToast('Report downloaded'); }}><Download className="w-4 h-4 mr-1" /> Export</Button>
+                <Button size="sm" variant="outline" onClick={() => downloadCsv(
+                  `pharmacy-billing-${new Date().toISOString().slice(0, 10)}.csv`,
+                  ['invoice', 'patient', 'amount', 'payment', 'date'],
+                  (filteredBills.length ? filteredBills : orders).map(b => ({
+                    invoice: b.invoiceId || b.orderId || b._id,
+                    patient: b.patientName,
+                    amount: b.total || b.amount || 0,
+                    payment: b.paymentStatus || b.status,
+                    date: b.date || b.orderDate || b.createdAt,
+                  }))
+                )}><Download className="w-4 h-4 mr-1" /> Export</Button>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
@@ -504,7 +533,7 @@ export default function Pharmacy() {
                         <td className="py-3 px-2 font-medium">{b.invoiceId || b._id}</td>
                         <td className="py-3 px-2">{b.patientName}</td>
                         <td className="py-3 px-2">{b.items?.length || 0}</td>
-                        <td className="py-3 px-2 text-right font-medium">â‚¹{b.total?.toLocaleString() || 0}</td>
+                        <td className="py-3 px-2 text-right font-medium">₹{b.total?.toLocaleString() || 0}</td>
                         <td className="py-3 px-2 text-center"><StatusBadge status={b.status} /></td>
                         <td className="py-3 px-2 text-right text-muted-foreground">{b.date || b.orderDate?.split('T')[0]}</td>
                       </tr>
@@ -514,7 +543,7 @@ export default function Pharmacy() {
                         <td className="py-3 px-2 font-medium">{o.orderId}</td>
                         <td className="py-3 px-2">{o.patientName}</td>
                         <td className="py-3 px-2">{o.items?.length || 0}</td>
-                        <td className="py-3 px-2 text-right font-medium">â‚¹{o.total?.toLocaleString() || 0}</td>
+                        <td className="py-3 px-2 text-right font-medium">₹{o.total?.toLocaleString() || 0}</td>
                         <td className="py-3 px-2 text-center"><StatusBadge status={o.paymentStatus} /></td>
                         <td className="py-3 px-2 text-right text-muted-foreground">{o.orderDate?.split('T')[0]}</td>
                       </tr>
@@ -525,7 +554,7 @@ export default function Pharmacy() {
             </>
           )}
 
-          {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• RETURNS â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+          {/* ═══════════════════ RETURNS ═══════════════════ */}
           {tab === 'returns' && (
             <>
               <SectionHeader title="Returns & Refunds" subtitle={`${returns.filter(r => r.status === 'Pending').length} pending requests`}
@@ -536,9 +565,9 @@ export default function Pharmacy() {
                     <div className="flex items-start justify-between mb-3">
                       <div>
                         <div className="flex items-center gap-2 mb-1"><span className="font-semibold">{r.returnId}</span><StatusBadge status={r.status} /></div>
-                        <p className="text-sm font-medium">{r.patientName} Â· {r.orderId}</p>
+                        <p className="text-sm font-medium">{r.patientName} · {r.orderId}</p>
                       </div>
-                      <p className="font-bold">â‚¹{r.total.toLocaleString()}</p>
+                      <p className="font-bold">₹{r.total.toLocaleString()}</p>
                     </div>
                     <div className="space-y-1">
                       {r.items.map((item, i) => (
@@ -561,7 +590,7 @@ export default function Pharmacy() {
             </>
           )}
 
-          {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• STAFF â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+          {/* ═══════════════════ STAFF ═══════════════════ */}
           {tab === 'staff' && (
             <>
               <SectionHeader title="Pharmacy Staff" subtitle={`${staffList.filter(s => s.isActive).length} active staff members`}
@@ -580,7 +609,7 @@ export default function Pharmacy() {
                       <p><Phone className="w-3 h-3 inline mr-1" />{s.phone}</p>
                       <p><Mail className="w-3 h-3 inline mr-1" />{s.email}</p>
                       {s.licenseNumber && <p><Shield className="w-3 h-3 inline mr-1" />License: {s.licenseNumber}</p>}
-                      <p className="text-xs">Exp: {s.experience} Â· Shift: {s.shift} Â· Since {s.joinedAt}</p>
+                      <p className="text-xs">Exp: {s.experience} · Shift: {s.shift} · Since {s.joinedAt}</p>
                     </div>
                     <div className="flex gap-2 mt-3 pt-3 border-t">
                       <Button size="sm" variant="outline" onClick={() => { setStaffList(ss => ss.map(st => st._id === s._id ? { ...st, isActive: !st.isActive } : st)); showToast(`Staff ${s.isActive ? 'deactivated' : 'activated'}`); }}>{s.isActive ? 'Deactivate' : 'Activate'}</Button>
@@ -592,7 +621,7 @@ export default function Pharmacy() {
             </>
           )}
 
-          {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• OFFERS â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+          {/* ═══════════════════ OFFERS ═══════════════════ */}
           {tab === 'offers' && (
             <>
               <SectionHeader title="Offers & Discounts" subtitle={`${offers.filter(o => o.isActive).length} active offers`}
@@ -608,8 +637,8 @@ export default function Pharmacy() {
                       <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${o.isActive ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}`}>{o.isActive ? 'Active' : 'Expired'}</span>
                     </div>
                     <div className="text-sm space-y-1">
-                      <p className="text-lg font-bold text-primary">{o.type === 'percentage' ? `${o.discount}% Off` : `â‚¹${o.discount} Off`}</p>
-                      <p className="text-muted-foreground">Min purchase: â‚¹{o.minPurchase} Â· {o.used}/{o.usageLimit} used</p>
+                      <p className="text-lg font-bold text-primary">{o.type === 'percentage' ? `${o.discount}% Off` : `₹${o.discount} Off`}</p>
+                      <p className="text-muted-foreground">Min purchase: ₹{o.minPurchase} · {o.used}/{o.usageLimit} used</p>
                       <p className="text-xs text-muted-foreground">Valid till: {o.validTill}</p>
                     </div>
                     <div className="flex gap-2 mt-3 pt-3 border-t">
@@ -622,17 +651,17 @@ export default function Pharmacy() {
             </>
           )}
 
-          {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• REVIEWS â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+          {/* ═══════════════════ REVIEWS ═══════════════════ */}
           {tab === 'reviews' && (
             <>
-              <SectionHeader title="Patient Reviews" subtitle={`${reviews.length} reviews Â· ${(reviews.reduce((s, r) => s + r.rating, 0) / reviews.length || 0).toFixed(1)} avg rating`} />
+              <SectionHeader title="Patient Reviews" subtitle={`${reviews.length} reviews · ${(reviews.reduce((s, r) => s + r.rating, 0) / reviews.length || 0).toFixed(1)} avg rating`} />
               <div className="space-y-3">
                 {reviews.map(r => (
                   <div key={r._id} className="bg-card rounded-xl border p-4">
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center"><User className="w-5 h-5 text-primary" /></div>
-                        <div><p className="font-medium">{r.patientName}</p><p className="text-xs text-muted-foreground">{r.orderId} Â· {r.date}</p></div>
+                        <div><p className="font-medium">{r.patientName}</p><p className="text-xs text-muted-foreground">{r.orderId} · {r.date}</p></div>
                       </div>
                       <div className="flex items-center gap-0.5">{Array.from({ length: 5 }, (_, i) => <Star key={i} className={`w-4 h-4 ${i < r.rating ? 'text-warning fill-warning' : 'text-muted'}`} />)}</div>
                     </div>
@@ -645,7 +674,7 @@ export default function Pharmacy() {
             </>
           )}
 
-          {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• REPORTS â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+          {/* ═══════════════════ REPORTS ═══════════════════ */}
           {tab === 'reports' && (
             <>
               <SectionHeader title="Pharmacy Reports" subtitle="Analytics and sales data"
@@ -656,8 +685,8 @@ export default function Pharmacy() {
                   <div className="space-y-4">
                     {[
                       { label: 'Total Orders', value: orders.length, change: '+12%' },
-                      { label: 'Revenue', value: `â‚¹${orders.filter(o => o.paymentStatus === 'Paid').reduce((s, o) => s + o.total, 0).toLocaleString()}`, change: '+18%' },
-                      { label: 'Avg Order Value', value: `â‚¹${orders.length ? Math.round(orders.reduce((s, o) => s + o.total, 0) / orders.length).toLocaleString() : 0}`, change: '+5%' },
+                      { label: 'Revenue', value: `₹${orders.filter(o => o.paymentStatus === 'Paid').reduce((s, o) => s + o.total, 0).toLocaleString()}`, change: '+18%' },
+                      { label: 'Avg Order Value', value: `₹${orders.length ? Math.round(orders.reduce((s, o) => s + o.total, 0) / orders.length).toLocaleString() : 0}`, change: '+5%' },
                       { label: 'Medicines Dispensed', value: medicines.reduce((s, m) => s + (m.currentStock || 0), 0), change: '-3%' },
                     ].map(d => (
                       <div key={d.label} className="flex items-center justify-between">
@@ -692,7 +721,7 @@ export default function Pharmacy() {
                   {[
                     ...orders.slice(0, 3).map(o => ({ text: `Order ${o.orderId} ${o.status.toLowerCase()} for ${o.patientName}`, time: o.orderDate })),
                     ...prescriptions.slice(0, 3).map(r => ({ text: `Prescription ${r.prescriptionId} ${r.status.toLowerCase()} - ${r.patientName}`, time: r.createdAt })),
-                    ...returns.filter(r => r.status === 'Approved').slice(0, 2).map(r => ({ text: `Return ${r.returnId} approved - â‚¹${r.total} refunded`, time: r.completedAt })),
+                    ...returns.filter(r => r.status === 'Approved').slice(0, 2).map(r => ({ text: `Return ${r.returnId} approved - ₹${r.total} refunded`, time: r.completedAt })),
                   ].sort((a, b) => new Date(b.time) - new Date(a.time)).slice(0, 8).map((act, i) => (
                     <div key={i} className="flex items-center gap-3 text-sm">
                       <div className="w-2 h-2 rounded-full bg-primary" />
@@ -705,18 +734,22 @@ export default function Pharmacy() {
             </>
           )}
 
-          {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• STOCK ALERTS â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+          {/* ═══════════════════ STOCK ALERTS ═══════════════════ */}
           {tab === 'alerts' && (
             <>
-              <SectionHeader title="Low Stock & Expiry Alerts" subtitle={`${medicines.filter(m => m.currentStock <= m.reorderLevel).length} items low stock Â· ${medicines.filter(m => new Date(m.expiryDate) < new Date(Date.now() + 90 * 86400000)).length} items expiring soon`}
-                action={<Button size="sm" variant="outline" onClick={() => { window.open('/api/pharmacy/medicines/export-alerts', '_blank'); showToast('Report generated'); }}><Download className="w-4 h-4 mr-1" /> Export Alert Report</Button>} />
+              <SectionHeader title="Low Stock & Expiry Alerts" subtitle={`${medicines.filter(m => m.currentStock <= m.reorderLevel).length} items low stock · ${medicines.filter(m => new Date(m.expiryDate) < new Date(Date.now() + 90 * 86400000)).length} items expiring soon`}
+                action={<Button size="sm" variant="outline" onClick={() => downloadCsv(
+                  `pharmacy-stock-alerts-${new Date().toISOString().slice(0, 10)}.csv`,
+                  ['name', 'genericName', 'currentStock', 'reorderLevel', 'expiryDate'],
+                  medicines.filter(m => m.currentStock <= m.reorderLevel || new Date(m.expiryDate) < new Date(Date.now() + 90 * 86400000))
+                )}><Download className="w-4 h-4 mr-1" /> Export Alert Report</Button>} />
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="bg-card rounded-xl border p-5">
                   <h3 className="font-semibold mb-4 flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-warning" /> Low Stock Items</h3>
                   <div className="space-y-3">
                     {medicines.filter(m => m.currentStock <= m.reorderLevel).sort((a, b) => (a.currentStock / a.reorderLevel) - (b.currentStock / b.reorderLevel)).map(m => (
                       <div key={m._id} className="flex items-center justify-between p-3 bg-warning/5 rounded-lg border border-warning/20">
-                        <div><p className="text-sm font-medium">{m.name}</p><p className="text-xs text-muted-foreground">{m.genericName} Â· Reorder at {m.reorderLevel}</p></div>
+                        <div><p className="text-sm font-medium">{m.name}</p><p className="text-xs text-muted-foreground">{m.genericName} · Reorder at {m.reorderLevel}</p></div>
                         <div className="text-right"><p className="text-lg font-bold text-destructive">{m.currentStock}</p><p className="text-xs text-muted-foreground">remaining</p></div>
                       </div>
                     ))}
@@ -739,12 +772,12 @@ export default function Pharmacy() {
             </>
           )}
 
-          {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• SETTINGS â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+          {/* ═══════════════════ SETTINGS ═══════════════════ */}
           {tab === 'settings' && (
             <div className="max-w-2xl">
               <SectionHeader title="Store Profile Settings" subtitle="Configure your pharmacy store details" />
               <div className="bg-card rounded-xl border p-6 space-y-5">
-                {[{ key: 'name', label: 'Store Name' }, { key: 'address', label: 'Address' }, { key: 'phone', label: 'Phone' }, { key: 'email', label: 'Email' }, { key: 'licenseNo', label: 'License Number' }, { key: 'timing', label: 'Operating Hours' }, { key: 'deliveryRadius', label: 'Delivery Radius' }, { key: 'minOrderAmt', label: 'Minimum Order Amount (â‚¹)' }, { key: 'deliveryFee', label: 'Delivery Fee (â‚¹)' }, { key: 'gst', label: 'GST (%)' }].map(f => (
+                {[{ key: 'name', label: 'Store Name' }, { key: 'address', label: 'Address' }, { key: 'phone', label: 'Phone' }, { key: 'email', label: 'Email' }, { key: 'licenseNo', label: 'License Number' }, { key: 'timing', label: 'Operating Hours' }, { key: 'deliveryRadius', label: 'Delivery Radius' }, { key: 'minOrderAmt', label: 'Minimum Order Amount (₹)' }, { key: 'deliveryFee', label: 'Delivery Fee (₹)' }, { key: 'gst', label: 'GST (%)' }].map(f => (
                   <div key={f.key}>
                     <label className="text-sm font-medium mb-1 block">{f.label}</label>
                     <Input value={storeSettings[f.key]} onChange={e => setStoreSettings(s => ({ ...s, [f.key]: e.target.value }))} />
@@ -763,7 +796,7 @@ export default function Pharmacy() {
         </motion.div>
       </AnimatePresence>
 
-      {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• MODALS â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+      {/* ═══════════════════ MODALS ═══════════════════ */}
 
       {/* Add / Edit Medicine Modal */}
       {showModal === 'add-medicine' && (
@@ -787,14 +820,20 @@ export default function Pharmacy() {
       {showModal === 'add-order' && (
         <Modal title="Create New Order" onClose={() => setShowModal(null)}>
           <div className="space-y-4">
-            <div><label className="text-sm font-medium mb-1 block">Patient Name</label><Input placeholder="Patient name" /></div>
-            <div className="grid grid-cols-2 gap-4"><div><label className="text-sm font-medium mb-1 block">Phone</label><Input placeholder="Phone" /></div><div><label className="text-sm font-medium mb-1 block">Delivery Address</label><Input placeholder="Address" /></div></div>
+            <div><label className="text-sm font-medium mb-1 block">Patient Name</label><Input value={orderForm.patientName} onChange={e => setOrderForm({ ...orderForm, patientName: e.target.value })} placeholder="Patient name" /></div>
+            <div className="grid grid-cols-2 gap-4"><div><label className="text-sm font-medium mb-1 block">Phone</label><Input value={orderForm.phone} onChange={e => setOrderForm({ ...orderForm, phone: e.target.value })} placeholder="Phone" /></div><div><label className="text-sm font-medium mb-1 block">Delivery Address</label><Input value={orderForm.deliveryAddress} onChange={e => setOrderForm({ ...orderForm, deliveryAddress: e.target.value })} placeholder="Address" /></div></div>
             <div><label className="text-sm font-medium mb-1 block">Medicine Items</label>
               <div className="space-y-2">
-                <div className="grid grid-cols-3 gap-2"><Input placeholder="Medicine name" /><Input placeholder="Qty" type="number" /><Input placeholder="Price" type="number" /></div>
+                <div className="grid grid-cols-3 gap-2"><Input value={orderForm.medicineName} onChange={e => setOrderForm({ ...orderForm, medicineName: e.target.value })} placeholder="Medicine name" /><Input value={orderForm.qty} onChange={e => setOrderForm({ ...orderForm, qty: e.target.value })} placeholder="Qty" type="number" /><Input value={orderForm.price} onChange={e => setOrderForm({ ...orderForm, price: e.target.value })} placeholder="Price" type="number" /></div>
               </div>
             </div>
-            <Button className="w-full" onClick={async (e) => { const card = e.currentTarget.closest('[class*="bg-card"]'); const inputs = card.querySelectorAll('input'); const orderForm = { patientName: inputs[0]?.value, phone: inputs[1]?.value, deliveryAddress: inputs[2]?.value }; await api.createPharmacyOrder(orderForm); showToast('Order created'); setShowModal(null); }}>Create Order</Button>
+            <Button className="w-full" onClick={async () => {
+              const item = orderForm.medicineName ? [{ medicineName: orderForm.medicineName, qty: Number(orderForm.qty || 1), price: Number(orderForm.price || 0) }] : [];
+              const created = await api.createPharmacyOrder({ ...orderForm, items: item, total: item.reduce((s, i) => s + i.qty * i.price, 0) });
+              setOrders(os => [created, ...os]);
+              showToast('Order created');
+              setShowModal(null);
+            }} disabled={!orderForm.patientName || !orderForm.phone || !orderForm.deliveryAddress}>Create Order</Button>
           </div>
         </Modal>
       )}
@@ -825,10 +864,10 @@ export default function Pharmacy() {
       {showModal === 'add-delivery' && (
         <Modal title="Assign Delivery" onClose={() => setShowModal(null)}>
           <div className="space-y-4">
-            <div><label className="text-sm font-medium mb-1 block">Select Order</label><select className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm">{orders.filter(o => o.status !== 'Delivered').map(o => <option key={o._id} value={o._id}>{o.orderId} - {o.patientName}</option>)}</select></div>
-            <div className="grid grid-cols-2 gap-4"><div><label className="text-sm font-medium mb-1 block">Delivery Person</label><Input placeholder="Name" /></div><div><label className="text-sm font-medium mb-1 block">Phone</label><Input placeholder="Phone" /></div></div>
-            <div><label className="text-sm font-medium mb-1 block">Estimated Time</label><Input placeholder="e.g. 30 mins" /></div>
-            <Button className="w-full" onClick={async (e) => { const card = e.currentTarget.closest('[class*="bg-card"]'); const selects = card.querySelectorAll('select'); const inputs = card.querySelectorAll('input'); const deliveryData = { orderId: selects[0]?.value, deliveryPerson: inputs[0]?.value, phone: inputs[1]?.value, estimatedTime: inputs[2]?.value }; await api.createPharmacyDelivery(deliveryData); showToast('Delivery assigned'); setShowModal(null); }}>Assign Delivery</Button>
+            <div><label className="text-sm font-medium mb-1 block">Select Order</label><select value={deliveryForm.orderId} onChange={e => setDeliveryForm({ ...deliveryForm, orderId: e.target.value })} className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm"><option value="">Select order</option>{orders.filter(o => o.status !== 'Delivered').map(o => <option key={o._id} value={o._id}>{o.orderId} - {o.patientName}</option>)}</select></div>
+            <div className="grid grid-cols-2 gap-4"><div><label className="text-sm font-medium mb-1 block">Delivery Person</label><Input value={deliveryForm.deliveryPerson} onChange={e => setDeliveryForm({ ...deliveryForm, deliveryPerson: e.target.value })} placeholder="Name" /></div><div><label className="text-sm font-medium mb-1 block">Phone</label><Input value={deliveryForm.phone} onChange={e => setDeliveryForm({ ...deliveryForm, phone: e.target.value })} placeholder="Phone" /></div></div>
+            <div><label className="text-sm font-medium mb-1 block">Estimated Time</label><Input value={deliveryForm.estimatedTime} onChange={e => setDeliveryForm({ ...deliveryForm, estimatedTime: e.target.value })} placeholder="e.g. 30 mins" /></div>
+            <Button className="w-full" onClick={async () => { const created = await api.createPharmacyDelivery(deliveryForm); setDeliveries(ds => [created, ...ds]); showToast('Delivery assigned'); setShowModal(null); }} disabled={!deliveryForm.orderId || !deliveryForm.deliveryPerson}>Assign Delivery</Button>
           </div>
         </Modal>
       )}
@@ -837,9 +876,9 @@ export default function Pharmacy() {
       {showModal === 'add-return' && (
         <Modal title="Initiate Return" onClose={() => setShowModal(null)}>
           <div className="space-y-4">
-            <div><label className="text-sm font-medium mb-1 block">Select Order</label><select className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm">{orders.filter(o => o.status === 'Delivered').map(o => <option key={o._id} value={o._id}>{o.orderId} - {o.patientName}</option>)}</select></div>
-            <div><label className="text-sm font-medium mb-1 block">Reason</label><Input placeholder="Reason for return" /></div>
-            <Button className="w-full" onClick={async (e) => { const card = e.currentTarget.closest('[class*="bg-card"]'); const select = card.querySelector('select'); const input = card.querySelector('input'); const returnData = { orderId: select?.value, reason: input?.value }; await api.createPharmacyReturn(returnData); showToast('Return initiated'); setShowModal(null); }}>Initiate Return</Button>
+            <div><label className="text-sm font-medium mb-1 block">Select Order</label><select value={returnForm.orderId} onChange={e => setReturnForm({ ...returnForm, orderId: e.target.value })} className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm"><option value="">Select order</option>{orders.filter(o => o.status === 'Delivered').map(o => <option key={o._id} value={o._id}>{o.orderId} - {o.patientName}</option>)}</select></div>
+            <div><label className="text-sm font-medium mb-1 block">Reason</label><Input value={returnForm.reason} onChange={e => setReturnForm({ ...returnForm, reason: e.target.value })} placeholder="Reason for return" /></div>
+            <Button className="w-full" onClick={async () => { const created = await api.createPharmacyReturn(returnForm); setReturns(rs => [created, ...rs]); showToast('Return initiated'); setShowModal(null); }} disabled={!returnForm.orderId || !returnForm.reason}>Initiate Return</Button>
           </div>
         </Modal>
       )}
@@ -854,8 +893,56 @@ export default function Pharmacy() {
             <div><label className="text-sm font-medium mb-1 block">Role</label><select value={newStaff.role} onChange={e => setNewStaff({ ...newStaff, role: e.target.value })} className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm">{[{ value: 'Pharmacist', label: 'Pharmacist' }, { value: 'Senior Pharmacist', label: 'Senior Pharmacist' }, { value: 'Pharmacy Technician', label: 'Pharmacy Technician' }, { value: 'Store Manager', label: 'Store Manager' }].map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select></div>
             <div><label className="text-sm font-medium mb-1 block">Shift</label><select value={newStaff.shift} onChange={e => setNewStaff({ ...newStaff, shift: e.target.value })} className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm">{['Morning', 'Evening', 'Night', 'Rotating'].map(s => <option key={s} value={s}>{s}</option>)}</select></div>
           </div>
-          <Button className="w-full mt-6" onClick={async () => { try { const created = await api.createPharmacyStaff(newStaff); setStaffList(sl => [...sl, created]); } catch { setStaffList(sl => [...sl, { ...newStaff, _id: `ps${Date.now()}`, isActive: true, joinedAt: new Date().toISOString().split('T')[0] }]); } showToast('Staff added'); setShowModal(null); }} disabled={!newStaff.name}>Add Staff</Button>
+          <Button className="w-full mt-6" onClick={async () => { try { const created = await api.createPharmacyStaff(newStaff); setStaffList(sl => [...sl, created]); showToast('Staff added'); setShowModal(null); } catch { showToast('Unable to add staff', 'error'); } }} disabled={!newStaff.name}>Add Staff</Button>
         </Modal>
+      )}
+
+      {/* Stock Add/Deduct Modal */}
+      {stockModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setStockModal(null)}>
+          <div className="bg-card rounded-2xl border shadow-xl max-w-sm w-full p-6" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="font-heading text-xl font-bold">{stockModal.type === 'add' ? 'Add Stock' : 'Deduct Stock'}</h2>
+              <button onClick={() => setStockModal(null)}><X className="w-5 h-5" /></button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium mb-1 block">Quantity</label>
+                <Input type="number" value={stockQty} onChange={e => setStockQty(e.target.value)} placeholder="Enter quantity" min={1} />
+              </div>
+              <div className="flex gap-2">
+                <Button className="flex-1" onClick={async () => {
+                  if (!stockQty || parseInt(stockQty) <= 0) { showToast('Please enter a valid quantity', 'error'); return; }
+                  await pharmApi.stockUpdate(stockModal.id, { quantity: parseInt(stockQty), type: stockModal.type });
+                  loadMedicines();
+                  showToast(stockModal.type === 'add' ? 'Stock added' : 'Stock deducted');
+                  setStockModal(null);
+                  setStockQty('');
+                }}>Confirm</Button>
+                <Button variant="outline" onClick={() => { setStockModal(null); setStockQty(''); }}>Cancel</Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmId && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setDeleteConfirmId(null)}>
+          <div className="bg-card rounded-2xl border shadow-xl max-w-sm w-full p-6" onClick={e => e.stopPropagation()}>
+            <h2 className="font-heading text-xl font-bold mb-2">Confirm Delete</h2>
+            <p className="text-sm text-muted-foreground mb-6">Are you sure you want to delete this medicine?</p>
+            <div className="flex gap-2">
+              <Button className="flex-1 text-destructive" variant="outline" onClick={async () => {
+                await pharmApi.deleteMedicine(deleteConfirmId);
+                loadMedicines();
+                showToast('Medicine deleted');
+                setDeleteConfirmId(null);
+              }}>Delete</Button>
+              <Button variant="outline" onClick={() => setDeleteConfirmId(null)}>Cancel</Button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* New Offer Modal */}
@@ -867,12 +954,12 @@ export default function Pharmacy() {
               <div><label className="text-sm font-medium mb-1 block">Coupon Code</label><Input value={newOffer.code} onChange={e => setNewOffer({ ...newOffer, code: e.target.value.toUpperCase() })} /></div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div><label className="text-sm font-medium mb-1 block">Discount</label><Input type="number" value={newOffer.discount} onChange={e => setNewOffer({ ...newOffer, discount: e.target.value })} placeholder={newOffer.type === 'percentage' ? '%' : 'â‚¹'} /></div>
-              <div><label className="text-sm font-medium mb-1 block">Type</label><select value={newOffer.type} onChange={e => setNewOffer({ ...newOffer, type: e.target.value })} className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm"><option value="percentage">Percentage (%)</option><option value="flat">Flat Amount (â‚¹)</option></select></div>
+              <div><label className="text-sm font-medium mb-1 block">Discount</label><Input type="number" value={newOffer.discount} onChange={e => setNewOffer({ ...newOffer, discount: e.target.value })} placeholder={newOffer.type === 'percentage' ? '%' : '₹'} /></div>
+              <div><label className="text-sm font-medium mb-1 block">Type</label><select value={newOffer.type} onChange={e => setNewOffer({ ...newOffer, type: e.target.value })} className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm"><option value="percentage">Percentage (%)</option><option value="flat">Flat Amount (₹)</option></select></div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div><label className="text-sm font-medium mb-1 block">Min Purchase (â‚¹)</label><Input type="number" value={newOffer.minPurchase} onChange={e => setNewOffer({ ...newOffer, minPurchase: e.target.value })} /></div>
-              <div><label className="text-sm font-medium mb-1 block">Max Discount (â‚¹)</label><Input type="number" value={newOffer.maxDiscount} onChange={e => setNewOffer({ ...newOffer, maxDiscount: e.target.value })} /></div>
+              <div><label className="text-sm font-medium mb-1 block">Min Purchase (₹)</label><Input type="number" value={newOffer.minPurchase} onChange={e => setNewOffer({ ...newOffer, minPurchase: e.target.value })} /></div>
+              <div><label className="text-sm font-medium mb-1 block">Max Discount (₹)</label><Input type="number" value={newOffer.maxDiscount} onChange={e => setNewOffer({ ...newOffer, maxDiscount: e.target.value })} /></div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div><label className="text-sm font-medium mb-1 block">Valid Till</label><Input type="date" value={newOffer.validTill} onChange={e => setNewOffer({ ...newOffer, validTill: e.target.value })} /></div>
