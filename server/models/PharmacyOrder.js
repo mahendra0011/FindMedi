@@ -23,6 +23,7 @@ const pharmacyOrderSchema = new mongoose.Schema({
   // Prescription fields
   prescriptionUrl: { type: String, default: '' },
   prescriptionStatus: { type: String, enum: ['pending', 'verified', 'rejected', 'not_required'], default: 'not_required' },
+  rejectionReason: { type: String, default: '' },
   // Delivery fields
   deliveryFee: { type: Number, default: 0 },
   deliveryMode: { type: String, enum: ['delivery', 'pickup'], default: 'delivery' },

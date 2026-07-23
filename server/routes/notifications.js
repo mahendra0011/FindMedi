@@ -1,7 +1,7 @@
 import express from 'express';
 import Notification from '../models/Notification.js';
 import Doctor from '../models/Doctor.js';
-import { protect } from '../middleware/auth.js';
+import { protect, adminOnly } from '../middleware/auth.js';
 import { notifyUser } from '../services/socketService.js';
 import { validate, createNotificationSchema } from '../utils/validate.js';
 
@@ -52,7 +52,7 @@ router.put('/mark-all-read', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/', protect, validate(createNotificationSchema), async (req, res) => {
+router.post('/', protect, adminOnly, validate(createNotificationSchema), async (req, res) => {
   try {
     const notification = await Notification.create(req.body);
     if (notification.userId) {

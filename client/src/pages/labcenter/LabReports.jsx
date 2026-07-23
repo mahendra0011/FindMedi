@@ -39,7 +39,8 @@ export default function LabReports() {
   const handleDownload = async (id) => {
     try {
       await api.updateLabBooking(id, { notified: true });
-      alert('Report download initiated');
+      const base = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+      window.open(base + '/lab/bookings/' + id + '/report', '_blank');
     } catch (e) { console.error(e); }
   };
 

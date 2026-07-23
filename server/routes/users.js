@@ -1,8 +1,12 @@
 import express from 'express';
 import User from '../models/User.js';
+import { z } from 'zod';
 import { protect, adminOnly } from '../middleware/auth.js';
 import { sendAccountBlockedEmail } from '../services/notificationService.js';
 import { auditLog } from '../middleware/audit.js';
+import { validate } from '../utils/validate.js';
+
+const blockUserSchema = z.object({ reason: z.string().optional() });
 
 const router = express.Router();
 
@@ -34,7 +38,7 @@ router.get('/', protect, adminOnly, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.put('/:id/block', protect, adminOnly, async (req, res) => {
+router.put('/:id/block', protect, adminOnly, validate(blockUserSchema), async (req, res) => {
   try {
     if (req.params.id === req.user.id) {
       return res.status(400).json({ message: 'You cannot block your own account' });

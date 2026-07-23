@@ -366,7 +366,6 @@ export const createPaymentSchema = z.object({
   patient_id: z.string().min(1, 'Patient ID is required'),
   amount: positiveNumber,
   method: z.string().optional(),
-  status: z.enum(['pending', 'completed', 'failed', 'refunded']).optional().default('pending'),
   description: z.string().optional(),
   appointment_id: z.string().optional(),
   bill_id: z.string().optional(),

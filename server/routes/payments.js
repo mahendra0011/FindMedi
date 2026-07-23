@@ -22,7 +22,14 @@ router.get('/', protect, async (req, res) => {
 router.post('/', protect, validate(createPaymentSchema), async (req, res) => {
   try {
     const transaction_id = `TXN-${Date.now()}`;
-    const payment = await Payment.create({ ...req.body, transaction_id, hospitalId: req.user.hospitalId || undefined });
+    const patient_id = req.user.role === 'patient' ? req.user._id.toString() : req.body.patient_id;
+    const payment = await Payment.create({
+      ...req.body,
+      patient_id,
+      status: 'pending',
+      transaction_id,
+      hospitalId: req.user.hospitalId || undefined,
+    });
     await auditLog('create_payment', req.user._id, { paymentId: payment._id, amount: payment.amount, transaction_id });
     res.status(201).json(payment);
   } catch (err) { res.status(400).json({ message: err.message }); }

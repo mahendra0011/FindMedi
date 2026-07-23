@@ -66,6 +66,11 @@ export const api = {
     body.append('file', file);
     return request('/auth/avatar', { method:'POST', body });
   },
+  uploadFile:         (file)    => {
+    const body = new FormData();
+    body.append('file', file);
+    return request('/upload', { method:'POST', body });
+  },
   changePassword:     (body)    => request('/auth/change-password',  { method:'PUT', body: JSON.stringify(body) }),
   dashboardStats:     ()        => request('/dashboard/stats'),
 
@@ -188,6 +193,7 @@ export const api = {
   updatePharmacyOrder:    (id,body) => request(`/pharmacy/orders/${id}`, { method:'PUT', body: JSON.stringify(body) }),
   deletePharmacyOrder:    (id)      => request(`/pharmacy/orders/${id}`, { method:'DELETE' }),
   forwardPharmacyOrder:   (id,body) => request(`/pharmacy/orders/${id}/forward`, { method:'POST', body: JSON.stringify(body) }),
+  rejectPharmacyOrder:    (id,body) => request(`/pharmacy/orders/${id}/reject`, { method:'PUT', body: JSON.stringify(body) }),
   getPharmacyStaff:       (p={})    => request('/pharmacy/staff?' + new URLSearchParams(p)),
   createPharmacyStaff:    (body)    => request('/pharmacy/staff', { method:'POST', body: JSON.stringify(body) }),
   updatePharmacyStaff:    (id,body) => request(`/pharmacy/staff/${id}`, { method:'PUT', body: JSON.stringify(body) }),
@@ -282,7 +288,11 @@ export const api = {
   updateLeaveRequestStatus: (id,b) => request(`/leave-requests/${id}/status`, { method:'PUT', body: JSON.stringify(b) }),
   getPendingLeaveRequests: ()       => request('/leave-requests/pending'),
 
-  getSupportTickets:      (p={})    => request('/support-tickets?' + new URLSearchParams(p)),
+  getPreferredPharmacies:       ()      => request('/patient/preferred-pharmacies'),
+  addPreferredPharmacy:         (body)  => request('/patient/preferred-pharmacies', { method:'POST', body: JSON.stringify(body) }),
+  reorderPreferredPharmacies:   (body)  => request('/patient/preferred-pharmacies/reorder', { method:'PUT', body: JSON.stringify(body) }),
+  deletePreferredPharmacy:      (id)    => request(`/patient/preferred-pharmacies/${id}`, { method:'DELETE' }),
+  getSupportTickets:            (p={})  => request('/support-tickets?' + new URLSearchParams(p)),
   createSupportTicket:    (body)    => request('/support-tickets', { method:'POST', body: JSON.stringify(body) }),
   getMyTickets:           (p={})    => request('/support-tickets/my-tickets?' + new URLSearchParams(p)),
   updateTicketStatus:     (id,b)    => request(`/support-tickets/${id}/status`, { method:'PUT', body: JSON.stringify(b) }),

@@ -549,7 +549,7 @@ export default function ClinicDetail() {
                     )}
                   </DialogContent>
                 </Dialog>
-                <Button variant="outline" className="rounded-xl h-11 px-3 hover:bg-primary/5 hover:border-primary/30 transition-all" onClick={() => toast.success('Opening directions...')}>
+                <Button variant="outline" className="rounded-xl h-11 px-3 hover:bg-primary/5 hover:border-primary/30 transition-all" onClick={() => { const addr = encodeURIComponent('Clinic'); window.open(`https://www.google.com/maps/search/${addr}`, '_blank'); }}>
                   <Navigation className="w-4 h-4" />
                 </Button>
                 <a href={`tel:${clinic.phone}`}>
@@ -883,7 +883,7 @@ export default function ClinicDetail() {
                           <MapPin className="w-8 h-8 text-primary" />
                         </div>
                         <p className="text-sm font-medium text-foreground mb-2">Get Directions</p>
-                        <Button variant="outline" size="sm" className="rounded-lg text-xs gap-1.5" onClick={() => toast.success('Opening directions...')}>
+                        <Button variant="outline" size="sm" className="rounded-lg text-xs gap-1.5" onClick={() => { const addr = encodeURIComponent('Clinic'); window.open(`https://www.google.com/maps/search/${addr}`, '_blank'); }}>
                           <Navigation className="w-3.5 h-3.5" /> Open in Maps
                         </Button>
                       </div>

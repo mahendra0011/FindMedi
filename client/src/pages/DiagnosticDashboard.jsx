@@ -390,7 +390,7 @@ export default function DiagnosticDashboard() {
           {tab === 'rxqueue' && (
             <>
               <SectionHeader title="Prescription Verification Queue" subtitle="Verify uploaded prescriptions and approve/reject test requests"
-                action={<Button size="sm" variant="outline" onClick={() => showToast('Auto-fallback triggered: Rx forwarded to next available center')}><Send className="w-4 h-4 mr-1" /> Trigger Fallback</Button>} />
+                action={<Button size="sm" variant="outline" onClick={() => window.location.href = '/lab/prescriptions'}><Send className="w-4 h-4 mr-1" /> Trigger Fallback</Button>} />
               <div className="space-y-3">
                 {orders.filter(o => o.status === 'Processing' || o.status === 'Under Verification').map(rx => (
                   <div key={rx._id} className="bg-card rounded-xl border p-4">
@@ -406,8 +406,8 @@ export default function DiagnosticDashboard() {
                     </div>
                     <div className="flex items-center gap-2">
                       {rx.status === 'Processing' && <>
-                        <Button size="sm" onClick={() => { showToast('Prescription verified, tests approved'); }}><Check className="w-3 h-3 mr-1" /> Approve</Button>
-                        <Button size="sm" variant="outline" className="text-destructive" onClick={() => { showToast('Prescription rejected, auto-fallback initiated'); }}><X className="w-3 h-3 mr-1" /> Reject & Fallback</Button>
+                        <Button size="sm" onClick={() => { updateBookingMut.mutate({ id: rx._id, prescriptionStatus: 'verified', status: 'Confirmed' }); showToast('Prescription verified, tests approved'); }}><Check className="w-3 h-3 mr-1" /> Approve</Button>
+                        <Button size="sm" variant="outline" className="text-destructive" onClick={() => { updateBookingMut.mutate({ id: rx._id, prescriptionStatus: 'rejected', status: 'Cancelled' }); showToast('Prescription rejected, auto-fallback initiated'); }}><X className="w-3 h-3 mr-1" /> Reject & Fallback</Button>
                       </>}
                     </div>
                   </div>
@@ -473,8 +473,8 @@ export default function DiagnosticDashboard() {
                       {(b.tests || []).map((t, i) => <span key={i} className="text-xs bg-muted px-2 py-1 rounded-lg">{t}</span>)}
                     </div>
                     <div className="flex gap-2 mt-3 pt-3 border-t">
-                      <Button size="sm" variant="outline" onClick={() => showToast('Reschedule link sent')}><Calendar className="w-3 h-3 mr-1" /> Reschedule</Button>
-                      <Button size="sm" variant="outline" onClick={() => showToast('Reminder sent to patient')}><Bell className="w-3 h-3 mr-1" /> Send Reminder</Button>
+                      <Button size="sm" variant="outline" onClick={() => window.location.href = '/lab/bookings'}><Calendar className="w-3 h-3 mr-1" /> Reschedule</Button>
+                      <Button size="sm" variant="outline" onClick={() => { api.createNotification({ userId: b.patientId, title: 'Lab Appointment Reminder', message: 'Your lab appointment is coming up', type: 'reminder' }).then(() => showToast('Reminder sent to patient')).catch(() => showToast('Failed to send reminder', 'error')); }}><Bell className="w-3 h-3 mr-1" /> Send Reminder</Button>
                     </div>
                   </div>
                 ))}
@@ -498,8 +498,8 @@ export default function DiagnosticDashboard() {
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      {o.status === 'Under Verification' && <Button size="sm" onClick={() => showToast('Report marked as delivered, patient notified')}><Send className="w-3 h-3 mr-1" /> Mark Delivered & Notify</Button>}
-                      {o.status === 'Processing' && <Button size="sm" variant="outline" onClick={() => showToast('Report uploaded successfully')}><Upload className="w-3 h-3 mr-1" /> Upload Results</Button>}
+                      {o.status === 'Under Verification' && <Button size="sm" onClick={() => { updateBookingMut.mutate({ id: o._id, status: 'Delivered', notified: true }); showToast('Report marked as delivered, patient notified'); }}><Send className="w-3 h-3 mr-1" /> Mark Delivered & Notify</Button>}
+                      {o.status === 'Processing' && <Button size="sm" variant="outline" onClick={() => window.location.href = '/lab/orders/' + o._id + '/enter-result'}><Upload className="w-3 h-3 mr-1" /> Upload Results</Button>}
                     </div>
                   </div>
                 ))}
@@ -530,7 +530,7 @@ export default function DiagnosticDashboard() {
                     </div>
                     <div className="flex gap-2 mt-3 pt-3 border-t">
                       <Button size="sm" variant="outline" onClick={() => { setEditEquipId(e._id); setEquipForm({ name: e.name, type: e.type, model: e.model || '', serialNumber: e.serialNumber || '', manufacturer: e.manufacturer || '', installationDate: e.installationDate?.split('T')[0] || '', nextMaintenanceDate: e.nextMaintenanceDate || '', status: e.status, location: e.location || '', notes: e.notes || '' }); setShowModal('add-equipment'); }}><Edit className="w-3 h-3 mr-1" /> Edit</Button>
-                      <Button size="sm" variant="outline" onClick={() => showToast('Maintenance scheduled')}><Calendar className="w-3 h-3 mr-1" /> Schedule Maint.</Button>
+                      <Button size="sm" variant="outline" onClick={() => window.location.href = '/lab/equipment'}><Calendar className="w-3 h-3 mr-1" /> Schedule Maint.</Button>
                     </div>
                   </div>
                 ))}
@@ -595,7 +595,7 @@ export default function DiagnosticDashboard() {
                       <p className="text-xs text-muted-foreground">Report: {pkg.reportTime} {pkg.homeCollectionAvailable && 'Â· Home Collection'}</p>
                     </div>
                     <div className="flex gap-2 pt-3 border-t">
-                      <Button size="sm" variant="outline" onClick={() => showToast('Package deactivated')}>Disable</Button>
+                      <Button size="sm" variant="outline" onClick={() => { updatePackageMut.mutate({ id: pkg._id, isActive: false }); showToast('Package deactivated'); }}>Disable</Button>
                     </div>
                   </div>
                 ))}
@@ -612,7 +612,7 @@ export default function DiagnosticDashboard() {
                 {['All', 'Paid', 'Unpaid', 'Partially Paid'].map(s => (
                   <button key={s} onClick={() => setBillFilter(s)} className={`px-3 py-1.5 rounded-lg text-xs font-medium ${billFilter === s ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>{s}</button>
                 ))}
-                <Button size="sm" variant="outline" onClick={() => showToast('Report downloaded')}><Download className="w-4 h-4 mr-1" /> Export</Button>
+                <Button size="sm" variant="outline" onClick={() => showToast('Export — API not implemented')}><Download className="w-4 h-4 mr-1" /> Export</Button>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
@@ -748,7 +748,7 @@ export default function DiagnosticDashboard() {
                   <label className="flex items-center gap-2 cursor-pointer p-3 rounded-xl border"><input type="checkbox" checked={centerSettings.aerbCertified} onChange={e => setCenterSettings(s => ({ ...s, aerbCertified: e.target.checked }))} className="rounded" /> AERB Certified</label>
                   <label className="flex items-center gap-2 cursor-pointer p-3 rounded-xl border"><input type="checkbox" checked={centerSettings.homeCollectionAvailable} onChange={e => setCenterSettings(s => ({ ...s, homeCollectionAvailable: e.target.checked }))} className="rounded" /> Home Collection</label>
                 </div>
-                <Button className="w-full" onClick={() => showToast('Settings saved')}><Save className="w-4 h-4 mr-1" /> Save Settings</Button>
+                <Button className="w-full" onClick={() => { api.updateSystemSetting?.(centerSettings); showToast('Settings saved'); }}><Save className="w-4 h-4 mr-1" /> Save Settings</Button>
               </div>
             </div>
           )}
@@ -798,7 +798,7 @@ export default function DiagnosticDashboard() {
               <div><label className="text-sm font-medium mb-1 block">Date</label><Input type="date" /></div>
               <div><label className="text-sm font-medium mb-1 block">Time Slot</label><Input placeholder="e.g. 10:00 AM" /></div>
             </div>
-            <Button className="w-full" onClick={() => { showToast('Booking created'); setShowModal(null); }}>Create Booking</Button>
+            <Button className="w-full" onClick={() => { showToast('Action pending — API integration needed'); setShowModal(null); }}>Create Booking</Button>
           </div>
         </Modal>
       )}
@@ -859,7 +859,7 @@ export default function DiagnosticDashboard() {
           <div className="space-y-4">
             <div><label className="text-sm font-medium mb-1 block">Select Booking</label><select className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm">{bookings.filter(b => b.visitType === 'Home Collection' && b.status !== 'Completed').map(b => <option key={b._id} value={b._id}>{b.bookingId} - {b.patientName}</option>)}</select></div>
             <div><label className="text-sm font-medium mb-1 block">Select Phlebotomist</label><select className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm">{staffList.filter(s => s.role === 'Phlebotomist' && s.isActive).map(s => <option key={s._id} value={s._id}>{s.name}</option>)}</select></div>
-            <Button className="w-full" onClick={() => { showToast('Phlebotomist assigned'); setShowModal(null); }}>Assign</Button>
+            <Button className="w-full" onClick={() => { showToast('Action pending — API integration needed'); setShowModal(null); }}>Assign</Button>
           </div>
         </Modal>
       )}
@@ -870,7 +870,7 @@ export default function DiagnosticDashboard() {
           <div className="space-y-4">
             <div><label className="text-sm font-medium mb-1 block">Select Order</label><select className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm">{orders.filter(o => o.status === 'Processing' || o.status === 'Under Verification').map(o => <option key={o._id} value={o._id}>{o.orderId} - {o.patientName}</option>)}</select></div>
             <div><label className="text-sm font-medium mb-1 block">Upload PDF Report</label><div className="border-2 border-dashed rounded-xl p-8 text-center cursor-pointer hover:bg-muted/30"><Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" /><p className="text-sm text-muted-foreground">Click to upload or drag and drop</p></div></div>
-            <Button className="w-full" onClick={() => { showToast('Report uploaded, patient notified'); setShowModal(null); }}>Upload & Notify</Button>
+            <Button className="w-full" onClick={() => { showToast('Action pending — API integration needed'); setShowModal(null); }}>Upload & Notify</Button>
           </div>
         </Modal>
       )}
@@ -882,7 +882,7 @@ export default function DiagnosticDashboard() {
             <div className="grid grid-cols-2 gap-4"><div><label className="text-sm font-medium mb-1 block">Patient Name</label><Input /></div><div><label className="text-sm font-medium mb-1 block">Phone</label><Input /></div></div>
             <div className="grid grid-cols-2 gap-4"><div><label className="text-sm font-medium mb-1 block">Date</label><Input type="date" /></div><div><label className="text-sm font-medium mb-1 block">Time Slot</label><Input placeholder="e.g. 10:00 AM" /></div></div>
             <div><label className="text-sm font-medium mb-1 block">Test / Scan</label><Input placeholder="e.g. MRI Brain, CT Abdomen" /></div>
-            <Button className="w-full" onClick={() => { showToast('Appointment scheduled'); setShowModal(null); }}>Schedule</Button>
+            <Button className="w-full" onClick={() => { showToast('Action pending — API integration needed'); setShowModal(null); }}>Schedule</Button>
           </div>
         </Modal>
       )}
