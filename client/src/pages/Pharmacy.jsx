@@ -27,41 +27,7 @@ const pharmApi = {
 const categoryOptions = ['Antibiotic', 'Analgesic', 'Antihypertensive', 'Antidiabetic', 'Antacid', 'Antihistamine', 'Antiviral', 'Antifungal', 'Vitamin', 'Steroid', 'Anesthetic', 'Diuretic', 'Cardiac', 'Respiratory', 'Other'];
 const formOptions = ['Tablet', 'Capsule', 'Syrup', 'Injection', 'Drop', 'Cream', 'Inhaler', 'Infusion', 'Other'];
 
-let mockOrders = [
-  { _id: 'po1', orderId: 'ORD-001', patientName: 'Ravi Kumar', items: [{ medicineName: 'Amoxicillin', qty: 20, price: 250 }], total: 5000, status: 'Pending', paymentStatus: 'Unpaid', orderDate: new Date().toISOString(), deliveryAddress: '123 MG Road, Mumbai', phone: '9876543210', note: 'Urgent delivery' },
-  { _id: 'po2', orderId: 'ORD-002', patientName: 'Sunita Sharma', items: [{ medicineName: 'Paracetamol', qty: 10, price: 50 }, { medicineName: 'Vitamin C', qty: 30, price: 120 }], total: 4100, status: 'Shipped', paymentStatus: 'Paid', orderDate: new Date(Date.now() - 86400000).toISOString(), deliveryAddress: '456 Park Ave, Delhi', phone: '9876543211', note: '' },
-  { _id: 'po3', orderId: 'ORD-003', patientName: 'Amit Singh', items: [{ medicineName: 'Insulin', qty: 5, price: 800 }], total: 4000, status: 'Delivered', paymentStatus: 'Paid', orderDate: new Date(Date.now() - 172800000).toISOString(), deliveryAddress: '789 Lake View, Bangalore', phone: '9876543212', note: 'Handle with care' },
-];
 
-let mockDeliveries = [
-  { _id: 'd1', orderId: 'ORD-002', deliveryPerson: 'Rajesh', status: 'In Transit', estimatedTime: '30 mins', phone: '9988776655', tracking: [{ location: 'Pharmacy', time: new Date().toISOString() }] },
-  { _id: 'd2', orderId: 'ORD-004', deliveryPerson: 'Suresh', status: 'Pending Pickup', estimatedTime: '45 mins', phone: '9988776644', tracking: [] },
-];
-
-let mockOffers = [
-  { _id: 'o1', title: 'Summer Health Sale', code: 'SUMMER25', discount: 25, type: 'percentage', minPurchase: 500, maxDiscount: 2000, validTill: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0], usageLimit: 100, used: 23, isActive: true },
-  { _id: 'o2', title: 'New User Welcome', code: 'WELCOME10', discount: 10, type: 'percentage', minPurchase: 0, maxDiscount: 500, validTill: new Date(Date.now() + 60 * 86400000).toISOString().split('T')[0], usageLimit: 500, used: 87, isActive: true },
-  { _id: 'o3', title: 'Flat ₹200 Off', code: 'FLAT200', discount: 200, type: 'flat', minPurchase: 1000, maxDiscount: 200, validTill: new Date(Date.now() - 5 * 86400000).toISOString().split('T')[0], usageLimit: 200, used: 200, isActive: false },
-];
-
-let mockPharmacyStaff = [
-  { _id: 'ps1', name: 'Vikram Patel', role: 'Pharmacist', email: 'vikram@pharmacy.com', phone: '9876540001', licenseNumber: 'PH-12345', experience: '8 years', shift: 'Morning', isActive: true, joinedAt: new Date(Date.now() - 365 * 86400000).toISOString().split('T')[0] },
-  { _id: 'ps2', name: 'Priya Singh', role: 'Senior Pharmacist', email: 'priya@pharmacy.com', phone: '9876540002', licenseNumber: 'PH-67890', experience: '12 years', shift: 'Evening', isActive: true, joinedAt: new Date(Date.now() - 730 * 86400000).toISOString().split('T')[0] },
-  { _id: 'ps3', name: 'Amit Kumar', role: 'Pharmacy Technician', email: 'amit@pharmacy.com', phone: '9876540003', licenseNumber: '', experience: '3 years', shift: 'Morning', isActive: false, joinedAt: new Date(Date.now() - 180 * 86400000).toISOString().split('T')[0] },
-];
-
-let mockReviews = [
-  { _id: 'pr1', patientName: 'Rajesh Gupta', rating: 5, comment: 'Excellent service! Got my medicines delivered on time.', date: new Date(Date.now() - 3 * 86400000).toISOString().split('T')[0], orderId: 'ORD-003' },
-  { _id: 'pr2', patientName: 'Neha Verma', rating: 4, comment: 'Good experience but delivery was slightly delayed.', date: new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0], orderId: 'ORD-001' },
-  { _id: 'pr3', patientName: 'Suresh Reddy', rating: 5, comment: 'Very knowledgeable pharmacists. Helped me with dosage info.', date: new Date(Date.now() - 14 * 86400000).toISOString().split('T')[0], orderId: 'ORD-002' },
-  { _id: 'pr4', patientName: 'Anita Desai', rating: 2, comment: 'Wrong medicine delivered. Had to return.', date: new Date(Date.now() - 21 * 86400000).toISOString().split('T')[0], orderId: 'ORD-005' },
-];
-
-let mockReturns = [
-  { _id: 'r1', returnId: 'RET-001', orderId: 'ORD-005', patientName: 'Anita Desai', items: [{ medicineName: 'Amoxicillin', qty: 10, reason: 'Wrong medicine delivered' }], total: 2500, status: 'Approved', initiatedAt: new Date(Date.now() - 10 * 86400000).toISOString().split('T')[0], completedAt: new Date(Date.now() - 8 * 86400000).toISOString().split('T')[0] },
-  { _id: 'r2', returnId: 'RET-002', orderId: 'ORD-006', patientName: 'Vijay Kumar', items: [{ medicineName: 'Cough Syrup', qty: 2, reason: 'Expired product' }], total: 450, status: 'Pending', initiatedAt: new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0], completedAt: null },
-  { _id: 'r3', returnId: 'RET-003', orderId: 'ORD-007', patientName: 'Deepa Nair', items: [{ medicineName: 'Vitamin D', qty: 30, reason: 'Allergic reaction' }], total: 1200, status: 'Rejected', initiatedAt: new Date(Date.now() - 15 * 86400000).toISOString().split('T')[0], completedAt: null },
-];
 
 const TABS = [
   { id: 'overview', label: 'Overview', icon: BarChart3 },
@@ -111,7 +77,7 @@ export default function Pharmacy() {
   const [deliveryForm, setDeliveryForm] = useState({ orderId: '', deliveryPerson: '', phone: '', estimatedTime: '' });
 
   // Billing
-  const [bills, setBills] = useState([]);
+  const [bills] = useState([]);
   const [billFilter, setBillFilter] = useState('All');
 
   // Returns
@@ -127,7 +93,7 @@ export default function Pharmacy() {
   const [newOffer, setNewOffer] = useState({ title: '', code: '', discount: '', type: 'percentage', minPurchase: '0', maxDiscount: '', validTill: '', usageLimit: '100', isActive: true });
 
   // Reviews
-  const [reviews, setReviews] = useState([]);
+  const [reviews, _setReviews] = useState([]);
   const reviewCount = reviews.length;
 
   // Reports

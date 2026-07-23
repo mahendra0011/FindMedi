@@ -47,7 +47,6 @@ export default function ClinicDashboard() {
   const completedAppts = appointments.filter(a => a.status === 'Completed');
   const todayRevenue = bills.filter(b => b.date === today && b.status === 'Paid').reduce((s, b) => s + (b.paid || b.amount || 0), 0);
   const totalEarned = bills.reduce((s, b) => s + (b.paid || 0), 0);
-  const avgRating = reviews.length > 0 ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1) : '0.0';
 
   if (loading) return (
     <div className="flex justify-center py-20">

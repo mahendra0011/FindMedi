@@ -16,8 +16,8 @@ const ALL_AVAILABLE_STORES = [
   { id: 's6', name: 'Generic Medicos' },
 ];
 
-export default function PreferredPharmacySettings({ onSave }) {
-  const { pharmacies, autoRetryEnabled, addPharmacy, removePharmacy, reorderPharmacies, setAutoRetry, setPharmacies } = usePreferredPharmacies();
+export default function PreferredPharmacySettings({ onSave: _onSave }) {
+  const { pharmacies, autoRetryEnabled, addPharmacy, removePharmacy, reorderPharmacies, setAutoRetry, setPharmacies: _setPharmacies } = usePreferredPharmacies();
   const [showAdd, setShowAdd] = useState(false);
 
   const availableToAdd = ALL_AVAILABLE_STORES.filter(

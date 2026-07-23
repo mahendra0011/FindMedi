@@ -13,7 +13,6 @@ import { cn } from '@/lib/utils';
 import { useCart } from '@/context/CartContext';
 import { FLOW_TYPE, TRACKING_STAGES } from '@/hooks/useBookingFlow';
 import { api } from '@/lib/api';
-import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 
 // ─── Icon map (string key → Lucide component) ─────────────────────────────────
@@ -61,7 +60,6 @@ export default function OrderTracking() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { addItem } = useCart();
-  const { user } = useAuth();
 
   const hasRx   = searchParams.get('rx')      === 'true';
   const storeId = searchParams.get('storeId') || 's1';
@@ -72,7 +70,7 @@ export default function OrderTracking() {
   const meta     = FLOW_META[flowType];
 
   const [orderData, setOrderData] = useState(null);
-  const [loadingOrder, setLoadingOrder] = useState(true);
+  const [_loadingOrder, setLoadingOrder] = useState(true);
 
   useEffect(() => {
     if (!orderId) { setLoadingOrder(false); return; }

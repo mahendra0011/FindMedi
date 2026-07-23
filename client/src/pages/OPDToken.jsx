@@ -6,14 +6,14 @@ import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 
 const tokenApi = {
-  getAll: async (p) => { try { return await api.getTokens(p); } catch (e) { return { tokens: [] }; } },
-  generate: async (b) => { try { return await api.generateToken(b); } catch (e) { return { tokenNumber: 'OPD-000', ...b }; } },
-  call: async (id) => { try { return await api.callToken(id); } catch (e) { return {}; } },
-  startConsultation: async (id) => { try { return await api.startTokenConsultation(id); } catch (e) { return {}; } },
-  complete: async (id) => { try { return await api.completeToken(id); } catch (e) { return {}; } },
-  skip: async (id, b) => { try { return await api.skipToken(id, b); } catch (e) { return {}; } },
-  recall: async (id) => { try { return await api.recallToken(id); } catch (e) { return {}; } },
-  getStats: async () => { try { return await api.getTokenStats(); } catch (e) { return { waiting: 0, inConsultation: 0, completed: 0, skipped: 0, total: 0 }; } },
+  getAll: async (p) => { try { return await api.getTokens(p); } catch { return { tokens: [] }; } },
+  generate: async (b) => { try { return await api.generateToken(b); } catch { return { tokenNumber: 'OPD-000', ...b }; } },
+  call: async (id) => { try { return await api.callToken(id); } catch { return {}; } },
+  startConsultation: async (id) => { try { return await api.startTokenConsultation(id); } catch { return {}; } },
+  complete: async (id) => { try { return await api.completeToken(id); } catch { return {}; } },
+  skip: async (id, b) => { try { return await api.skipToken(id, b); } catch { return {}; } },
+  recall: async (id) => { try { return await api.recallToken(id); } catch { return {}; } },
+  getStats: async () => { try { return await api.getTokenStats(); } catch { return { waiting: 0, inConsultation: 0, completed: 0, skipped: 0, total: 0 }; } },
 };
 
 const triageColors = {

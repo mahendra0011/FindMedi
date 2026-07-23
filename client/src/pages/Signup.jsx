@@ -16,11 +16,10 @@ const roles = [
 export default function Signup() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const location = useLocation();
+  useLocation();
   const [role, setRole] = useState('patient');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [isGoogle, setIsGoogle] = useState(false);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [phone, setPhone] = useState('');
@@ -37,22 +36,21 @@ export default function Signup() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  if (user) return <Navigate to="/dashboard" replace />;
-
   useEffect(() => {
     const stored = localStorage.getItem('google_signup');
     if (stored) {
       try {
         const data = JSON.parse(stored);
         if (data.isGoogle) {
-          setIsGoogle(true);
           if (data.role) setRole(data.role);
           if (data.name) setName(data.name);
           if (data.email) setEmail(data.email);
         }
-      } catch {}
+      } catch { /* empty */ }
     }
   }, []);
+
+  if (user) return <Navigate to="/dashboard" replace />;
 
   const handleSignup = async (e) => {
     e.preventDefault();

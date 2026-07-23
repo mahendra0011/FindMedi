@@ -9,7 +9,7 @@ const regApi = {
   search: async (q) => {
     try {
       return await api.getPatients({ search: q });
-    } catch (e) {
+    } catch {
       return { patients: [] };
     }
   },
@@ -19,7 +19,7 @@ const regApi = {
   getStats: async () => {
     try {
       return await api.dispatch(null, '/patients/stats');
-    } catch (e) {
+    } catch {
       return { total: 0, today: 0, newThisMonth: 0 };
     }
   },

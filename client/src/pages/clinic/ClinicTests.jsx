@@ -3,7 +3,6 @@ import { motion } from 'framer-motion';
 import { TestTube, Plus, X, Save, Search, Edit2, CheckCircle, FlaskConical, Activity, Heart, Thermometer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 
@@ -25,9 +24,7 @@ const categoryIcons = {
 };
 
 export default function ClinicTests() {
-  const { user } = useAuth();
   const [tests, setTests] = useState(defaultTests);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [showForm, setShowForm] = useState(false);
@@ -38,7 +35,6 @@ export default function ClinicTests() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    setLoading(true);
     const load = async () => {
       try {
         const res = await api.getTests({});
@@ -46,7 +42,7 @@ export default function ClinicTests() {
         if (list.length > 0) {
           setTests(list.map(t => ({ _id: t._id, name: t.name, price: t.price, category: t.category || t.department || 'Lab' })));
         }
-      } catch {} finally { setLoading(false); }
+      } catch { console.warn('Failed to load tests'); }
     };
     load();
   }, []);
@@ -63,7 +59,7 @@ export default function ClinicTests() {
     try {
       const testData = { name, price: Number(price), mrp: Number(price), category };
       if (editTest) {
-        const updated = await api.updateTest(editTest._id, testData);
+        await api.updateTest(editTest._id, testData);
         setTests(prev => prev.map(t => t._id === editTest._id ? { ...t, ...testData } : t));
         toast.success('Test updated');
       } else {

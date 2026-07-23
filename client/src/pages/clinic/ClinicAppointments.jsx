@@ -32,7 +32,7 @@ export default function ClinicAppointments() {
     setLoading(false);
   };
 
-  useEffect(() => { loadAppointments(); }, [filter]);
+  useEffect(() => { loadAppointments(); }, [filter, loadAppointments]);
 
   const handleStatus = async (id, status) => {
     try { await api.updateAppointment(id, { status }); loadAppointments(); } catch (e) { console.error(e); }

@@ -31,7 +31,6 @@ export default function PatientRecords() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
-  const [expandedDate, setExpandedDate] = useState(null);
 
   const loadData = async () => {
     setLoading(true);

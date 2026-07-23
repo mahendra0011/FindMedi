@@ -82,7 +82,6 @@ const AMENITIES_LIST = [
   { key:'childFriendly', label:'Child Friendly', icon:Baby },
 ];
 
-const stagger = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.06 } } };
 const fadeUp = { hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 200, damping: 22 } } };
 
 const SectionTitle = ({ icon:Icon, label }) => (
@@ -114,6 +113,7 @@ export default function DiagnosticCenterDetail() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [showRx, setShowRx] = useState(false);
+  const [_uploadedRx, setUploadedRx] = useState(null);
   const [copiedCode, setCopiedCode] = useState(null);
   const [labSectionTab, setLabSectionTab] = useState('tests');
   const [medSearch, setMedSearch] = useState('');
@@ -145,8 +145,6 @@ export default function DiagnosticCenterDetail() {
   const [packagesData, setPackagesData] = useState([]);
   const [reviewsData, setReviewsData] = useState([]);
   const [nearbyLabs, setNearbyLabs] = useState([]);
-  const [uploadedRx, setUploadedRx] = useState(null);
-
   useEffect(() => {
     const load = async () => {
       setLoading(true);
@@ -166,8 +164,9 @@ export default function DiagnosticCenterDetail() {
           setPackagesData(pkgs || []);
           setReviewsData(reviews || []);
           setNearbyLabs(Array.isArray(nearby) ? nearby : nearby?.facilities || []);
-        } catch {}
-      } catch {
+        } catch (e) { console.error(e); }
+      } catch (e) {
+        console.error(e);
         setNotFound(true);
       } finally {
         setLoading(false);
@@ -260,14 +259,6 @@ export default function DiagnosticCenterDetail() {
   const clinicEntries = entries.filter(e => e.item._id === clinicId);
   const clinicCartCount = clinicEntries.reduce((s, e) => s + e.qty, 0);
   const clinicCartTotal = clinicEntries.reduce((s, e) => s + e.item.price * e.qty, 0);
-
-  const renderStars = (r, size = 'w-3.5 h-3.5') => (
-    <div className="flex items-center gap-0.5">
-      {[1,2,3,4,5].map(s => (
-        <Star key={s} className={cn(size, s <= Math.round(r) ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground/20')} />
-      ))}
-    </div>
-  );
 
   const handleCopyCode = (code) => {
     navigator.clipboard?.writeText(code);
@@ -373,8 +364,6 @@ export default function DiagnosticCenterDetail() {
     );
   }
 
-  const showPackages = catFilter === 'All' || catFilter === 'Health Packages';
-  const testDepts = [...new Set(clinicTests.map(t => t.detailCategory))];
   const filteredTests = clinicTests.filter(t => {
     if (catFilter !== 'All' && t.detailCategory !== catFilter) return false;
     if (medSearch && !t.name.toLowerCase().includes(medSearch.toLowerCase())) return false;
@@ -416,8 +405,6 @@ export default function DiagnosticCenterDetail() {
     if (pkgSort === 'name') return a.name.localeCompare(b.name);
     return (b.popular ? 1 : 0) - (a.popular ? 1 : 0);
   });
-
-  const testCount = clinicTests.filter(t => catFilter === 'All' || t.detailCategory === catFilter).length;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-muted/20 to-background pb-32">
@@ -1186,7 +1173,7 @@ export default function DiagnosticCenterDetail() {
                     </div>
                   </div>
                   <div className="space-y-4">
-                    {displayReviews.map((r, i) => (
+                    {displayReviews.map((r, _i) => (
                       <div key={r.id} className="group p-4 rounded-xl border border-border/30 hover:border-border/60 hover:shadow-sm transition-all">
                         <div className="flex items-start gap-3">
                           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-sm font-bold text-primary shrink-0 border-2 border-primary/10">

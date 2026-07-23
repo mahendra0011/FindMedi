@@ -66,7 +66,7 @@ export default function JoinPlatform() {
     },
   });
   const [doctors, setDoctors] = useState([emptyDoctor()]);
-  const [services, setServices] = useState([]);
+  const [services] = useState([]);
   const [specialist, setSpecialist] = useState({
     pathologistName: '', pathologistQualification: '',
     radiologistName: '', radiologistQualification: '',

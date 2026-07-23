@@ -44,7 +44,7 @@ export default function HospitalDirectory() {
   const [hospitals, setHospitals] = useState([]);
   const [allHospitals, setAllHospitals] = useState([]);
   const [search, setSearch] = useState('');
-  const [cityFilter, setCityFilter] = useState(searchParams.get('city') || '');
+  const [cityFilter] = useState(searchParams.get('city') || '');
   const [specFilter, setSpecFilter] = useState(searchParams.get('specialty') || '');
   const [loading, setLoading] = useState(true);
   const [selectedDept, setSelectedDept] = useState('');
@@ -96,7 +96,7 @@ export default function HospitalDirectory() {
     setLoading(false);
   };
 
-  useEffect(() => { loadHospitals(); }, [search, cityFilter, specFilter]);
+  useEffect(() => { loadHospitals(); }, [search, cityFilter, specFilter, loadHospitals]);
 
   const insuranceProviders = useMemo(() => {
     const providers = new Set();

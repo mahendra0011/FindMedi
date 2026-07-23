@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, Link, useNavigate, useSearchParams, Navigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Building2, MapPin, Star, Phone, Stethoscope, CalendarDays,
@@ -39,14 +39,7 @@ const fadeUp = {
   hidden: { opacity: 0, y: 30 },
   show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 200, damping: 22 } }
 };
-const fadeIn = {
-  hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { duration: 0.5 } }
-};
-const slideUp = {
-  hidden: { opacity: 0, y: 50 },
-  show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 180, damping: 20 } }
-};
+
 
 const EXPERIENCE_RANGES = [
   { label: '0\u20135 years', min: 0, max: 5 },
@@ -84,7 +77,6 @@ export default function HospitalProfile() {
   const [showReviewDialog, setShowReviewDialog] = useState(false);
   const { id } = useParams();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const [hospital, setHospital] = useState(null);
   const [doctors, setDoctors] = useState([]);
   const [reviews, setReviews] = useState([]);
@@ -178,7 +170,7 @@ export default function HospitalProfile() {
           .slice(0, 10)
           .map(item => item.h);
         setSuggestedHospitals(scored);
-      } catch (e) { /* Could not load suggested hospitals */ }
+      } catch { /* Could not load suggested hospitals */ }
       // Fetch hospital's test catalog
       try {
         const testsData = await api.getTests({ hospitalId: id });
@@ -186,7 +178,7 @@ export default function HospitalProfile() {
           : testsData?.tests ? testsData.tests
           : [];
         if (tests.length > 0) setTestCatalog(tests);
-      } catch (e) { /* Could not load tests */ }
+      } catch { /* Could not load tests */ }
     
     } catch { setNotFound(true); }
     setLoading(false);
@@ -196,10 +188,6 @@ export default function HospitalProfile() {
   // ─── Derived Data ──────────────────────────────────────────────────────────
   const establishedYear = hospital?.establishedYear ||
     (hospital?.createdAt ? new Date(hospital.createdAt).getFullYear() : null);
-  const expYears = establishedYear ? new Date().getFullYear() - establishedYear : null;
-  const tagline = hospital?.hospitalType
-    ? `${hospital.hospitalType}${establishedYear ? `  •  Est. ${establishedYear}` : ''}`
-    : '';
   const totalDepts = hospital?.specialties?.length || 0;
 
   const getOpenStatus = () => {
@@ -217,16 +205,10 @@ export default function HospitalProfile() {
   const openStatus = getOpenStatus();
   const hospitalPhotos = [hospital?.image, hospital?.logo].filter(Boolean);
 
-  const initials = (n) => n?.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase() || 'H';
-
-  const renderStars = (r) => [1,2,3,4,5].map(s => (
-    <Star key={s} className={cn('w-4 h-4', s <= Math.round(r) ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground/20 fill-muted-foreground/20')} />
-  ));
-
   // ─── Handlers ──────────────────────────────────────────────────────────────
   const handleShare = async () => {
     const url = window.location.href;
-    if (navigator.share) { try { await navigator.share({ title: hospital?.name, url }); } catch {} }
+    if (navigator.share) { try { await navigator.share({ title: hospital?.name, url }); } catch { /* empty */ } }
     else { await navigator.clipboard.writeText(url); toast.success('Link copied!'); }
   };
 
@@ -276,13 +258,12 @@ export default function HospitalProfile() {
 
   const [showTestBooking, setShowTestBooking] = useState(false);
   const [testBookingStep, setTestBookingStep] = useState(1);
+  const [_testBookingConfirmed, setTestBookingConfirmed] = useState(false);
+  const [_testBookingId, setTestBookingId] = useState('');
   const [testCollectionMode, setTestCollectionMode] = useState('lab');
   const [testSelectedDate, setTestSelectedDate] = useState('');
   const [testSelectedSlot, setTestSelectedSlot] = useState('');
   const [testPaymentMethod, setTestPaymentMethod] = useState('upi');
-  const [testBookingConfirmed, setTestBookingConfirmed] = useState(false);
-  const [testBookingId, setTestBookingId] = useState('');
-
   const addTestToCart = (testId) => setTestCart(p => ({ ...p, [testId]: (p[testId] || 0) + 1 }));
   const removeTestFromCart = (testId) => setTestCart(p => {
     const next = { ...p };
@@ -899,7 +880,7 @@ export default function HospitalProfile() {
                 <div className="max-h-[420px] overflow-y-auto pr-1 -mr-1 scrollbar-thin"
                   style={{ scrollbarWidth: 'thin', scrollbarColor: 'hsl(var(--border)) transparent' }}>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {filteredDepartments.flatMap(dept => dept.tests).map((test, i) => {
+                  {filteredDepartments.flatMap(dept => dept.tests).map((test, _i) => {
                     const dept = useDepartments.find(d => d.tests.includes(test));
                     if (!dept) return null;
                     return (

@@ -63,11 +63,7 @@ export default function DiagnosticDashboard() {
   const [tab, setTab] = useState('overview');
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(null);
-  const [expandedId, setExpandedId] = useState(null);
   const [toast, setToast] = useState(null);
-
-  // Orders
-  const [orderFilter, setOrderFilter] = useState('All');
 
   // Tests
   const [testForm, setTestForm] = useState({ name: '', category: 'Blood Test', department: 'Pathology', price: '', mrp: '', reportTime: '24 hrs', prescriptionReq: false, homeCollection: false, homeCollectionFee: '50', popular: false, nablAccredited: false, description: '', preparation: '' });
@@ -90,10 +86,10 @@ export default function DiagnosticDashboard() {
   const [assignmentForm, setAssignmentForm] = useState({ bookingId: '', phlebotomistId: '' });
 
   // Prescription Queue
-  const [rxQueue, setRxQueue] = useState([]);
+  const [rxQueue] = useState([]);
 
   // Billing
-  const [bills, setBills] = useState([]);
+  const [bills] = useState([]);
   const [billFilter, setBillFilter] = useState('All');
 
   // Reports
@@ -192,11 +188,6 @@ export default function DiagnosticDashboard() {
     mutationFn: ({ id, ...b }) => api.updateTest(id, b),
     onSuccess: () => { qc.invalidateQueries(['lab-tests']); setShowModal(null); },
   });
-
-  const filteredOrders = useMemo(() => {
-    if (orderFilter === 'All') return orders;
-    return orders.filter(o => o.status === orderFilter);
-  }, [orders, orderFilter]);
 
   const filteredBookings = useMemo(() => {
     let list = bookings;

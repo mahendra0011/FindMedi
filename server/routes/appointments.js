@@ -8,6 +8,7 @@ import Hospital from '../models/Hospital.js';
 import { protect, scopeToHospital } from '../middleware/auth.js';
 import { validate, createAppointmentSchema, updateAppointmentSchema } from '../utils/validate.js';
 import logger from '../config/logger.js';
+import { auditLog } from '../middleware/audit.js';
 
 const router = express.Router();
 
@@ -138,25 +139,27 @@ router.post('/', protect, validate(createAppointmentSchema), async (req, res) =>
     const tokenNumber = `${new Date(date || Date.now()).toISOString().slice(0,10).replace(/-/g,'')}-${String(countToday + 1).padStart(3, '0')}`;
     const patientUser = await User.findById(patientId);
     const estimatedWaitTime = await calculateEstimatedWaitTime(department, priority);
-    const appointment = await Appointment.create({
-      tokenNumber,
-      uhid: patientUser?.uhid || '',
-      patient: patientName,
-      patientId,
-      doctor: doctor || '',
-      doctorId: doctorId || null,
-      department,
-      date,
-      time,
-      type: type || 'Consultation',
-      symptoms: symptoms || '',
-      priority: priority || 'Normal',
-      estimatedWaitTime,
-      hospitalId: hospitalId || undefined,
-      status: 'Pending'
-    });
-    
-    await appointment.populate('doctorId', 'name specialization');
+const appointment = await Appointment.create({
+       tokenNumber,
+       uhid: patientUser?.uhid || '',
+       patient: patientName,
+       patientId,
+       doctor: doctor || '',
+       doctorId: doctorId || null,
+       department,
+       date,
+       time,
+       type: type || 'Consultation',
+       symptoms: symptoms || '',
+       priority: priority || 'Normal',
+       estimatedWaitTime,
+       hospitalId: hospitalId || undefined,
+       status: 'Pending'
+     });
+     
+     await auditLog('create_appointment', req.user._id, { recordId: appointment._id, ip: req.ip, userAgent: req.get('user-agent') });
+     
+     await appointment.populate('doctorId', 'name specialization');
     
     if (doctorId) {
       await createNotification(doctorId, 'New Appointment', `New ${type || 'Consultation'} appointment from ${patientName} for ${date} at ${time}`, 'appointment');
@@ -187,6 +190,7 @@ router.put('/:id/checkin', protect, async (req, res) => {
     appointment.queuePosition = queueCount + 1;
     
     await appointment.save();
+    await auditLog('checkin_appointment', req.user._id, { recordId: appointment._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json(appointment);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -221,21 +225,22 @@ router.put('/:id', protect, validate(updateAppointmentSchema), async (req, res) 
     const oldStatus = appointment.status;
     const updates = { ...req.body };
     
-    const updated = await Appointment.findByIdAndUpdate(req.params.id, updates, { new: true, runValidators: true })
-      .populate('patientId', 'name email')
-      .populate('doctorId', 'name');
-    
-    if (status && status !== oldStatus) {
-      const patientUser = await import('../models/User.js').then(m => m.default.findById(updated.patientId?._id));
-      if (patientUser) {
-        await createNotification(patientUser._id.toString(), 'Appointment Update', `Your appointment status changed to ${status}`, 'appointment');
-      }
-      if (updated.doctorId) {
-        await createNotification(updated.doctorId._id.toString(), 'Appointment Update', `Appointment with ${updated.patient} status changed to ${status}`, 'appointment');
-      }
-    }
-    
-    res.json(updated);
+const updated = await Appointment.findByIdAndUpdate(req.params.id, updates, { new: true, runValidators: true })
+       .populate('patientId', 'name email')
+       .populate('doctorId', 'name');
+     
+     if (status && status !== oldStatus) {
+       const patientUser = await import('../models/User.js').then(m => m.default.findById(updated.patientId?._id));
+       if (patientUser) {
+         await createNotification(patientUser._id.toString(), 'Appointment Update', `Your appointment status changed to ${status}`, 'appointment');
+       }
+       if (updated.doctorId) {
+         await createNotification(updated.doctorId._id.toString(), 'Appointment Update', `Appointment with ${updated.patient} status changed to ${status}`, 'appointment');
+       }
+     }
+     await auditLog('update_appointment', req.user._id, { recordId: updated._id, ip: req.ip, userAgent: req.get('user-agent') });
+     
+     res.json(updated);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
@@ -250,6 +255,7 @@ router.delete('/:id', protect, async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to delete this appointment' });
     }
     await Appointment.findByIdAndDelete(req.params.id);
+    await auditLog('delete_appointment', req.user._id, { recordId: req.params.id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json({ message: 'Appointment removed' });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });

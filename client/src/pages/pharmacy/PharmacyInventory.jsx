@@ -21,7 +21,7 @@ export default function PharmacyInventory() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [search]);
+  useEffect(() => { load(); }, [search, load]);
 
   const openAdd = () => { setEditItem(null); setForm({ name:'', genericName:'', manufacturer:'', category:'', price:'', currentStock:'', reorderLevel:'', expiryDate:'' }); setShowModal(true); };
   const openEdit = (m) => { setEditItem(m); setForm({ name:m.name, genericName:m.genericName||'', manufacturer:m.manufacturer||'', category:m.category||'', price:m.price||'', currentStock:m.currentStock||'', reorderLevel:m.reorderLevel||'', expiryDate:m.expiryDate?.split('T')[0]||'' }); setShowModal(true); };

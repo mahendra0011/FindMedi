@@ -8,26 +8,22 @@ export function dispatch(_fallback, path, options = {}) {
 
 export function getStoredAuthToken() {
   if (typeof localStorage === 'undefined') return null;
-  return localStorage.getItem('hms_token') || localStorage.getItem('token');
+  return localStorage.getItem('_secure_hms_token') || localStorage.getItem('hms_token') || localStorage.getItem('token');
 }
 
 async function request(path, options = {}) {
   const { method = 'GET', body, headers: extraHeaders } = options;
   const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
-  try {
-    const response = await apiClient({
-      url: path,
-      method,
-      data: body,
-      headers: {
-        ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
-        ...extraHeaders,
-      },
-    });
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  const response = await apiClient({
+    url: path,
+    method,
+    data: body,
+    headers: {
+      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
+      ...extraHeaders,
+    },
+  });
+  return response.data;
 }
 
 export async function downloadInvoicePdf(billId, filename = 'invoice.pdf') {

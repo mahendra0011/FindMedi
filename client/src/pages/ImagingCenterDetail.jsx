@@ -23,7 +23,6 @@ import { toast } from 'sonner';
 
 const CATEGORIES = ['All', 'MRI', 'CT Scan', 'X-Ray', 'Ultrasound', 'Mammography'];
 
-const stagger = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.06 } } };
 const fadeUp = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 }, transition: { type: 'spring', stiffness: 200, damping: 22 } };
 
 const SectionTitle = ({ icon: Icon, label }) => (
@@ -148,8 +147,9 @@ export default function ImagingCenterDetail() {
           setAllTests(tests);
           setPackages(Array.isArray(pkgsRes) ? pkgsRes : pkgsRes?.packages || []);
           setReviewsData(Array.isArray(reviewsRes) ? reviewsRes : reviewsRes?.reviews || []);
-        } catch {}
-      } catch {
+        } catch (_e) { console.error(_e); }
+      } catch (_e) {
+        console.error(_e);
         setNotFound(true);
       } finally {
         setLoading(false);

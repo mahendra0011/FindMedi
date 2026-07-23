@@ -76,6 +76,7 @@ export default function MedicineStoreDetail() {
   const [medSearch, setMedSearch] = useState('');
   const [catFilter, setCatFilter] = useState('All');
   const [expandedFaq, setExpandedFaq] = useState(null);
+  const [reviewsData, setReviewsData] = useState([]);
   const [isFavorited, setIsFavorited] = useState(() => localStorage.getItem(`fav_store_${storeId}`) === 'true');
   const toggleFavorite = async () => {
     const next = !isFavorited;
@@ -111,12 +112,12 @@ export default function MedicineStoreDetail() {
             inStock: m.currentStock > 0, rx: m.prescriptionReq || false,
             pack: m.form || '', category: m.category || 'Other', storeId,
           })) : []);
-        } catch {}
+        } catch { /* empty */ }
         try {
           const pharm = await api.getPharmacies();
           const pList = Array.isArray(pharm) ? pharm : (pharm.pharmacies || []);
           setSuggestedStores(pList.map(mapFacilityToStore));
-        } catch {}
+        } catch { /* empty */ }
       } catch {
         setStore(null);
       }
@@ -186,7 +187,7 @@ export default function MedicineStoreDetail() {
     } else {
       window.scrollTo(0, 0);
     }
-  }, [storeId]);
+  }, [storeId, searchParams]);
 
   const renderStars = (r, size = 'w-3.5 h-3.5') => (
     <div className="flex items-center gap-0.5">
@@ -681,8 +682,8 @@ export default function MedicineStoreDetail() {
                     </div>
                     <div className="flex-1 w-full space-y-1.5">
                       {[5,4,3,2,1].map(s => {
-                        const count = REVIEWS_DATA.filter(r => Math.round(r.rating) === s).length;
-                        const pct = REVIEWS_DATA.length > 0 ? (count / REVIEWS_DATA.length) * 100 : 0;
+                        const count = reviewsData.filter(r => Math.round(r.rating) === s).length;
+                        const pct = reviewsData.length > 0 ? (count / reviewsData.length) * 100 : 0;
                         return (
                           <div key={s} className="flex items-center gap-2 text-xs">
                             <span className="w-3 text-muted-foreground font-medium">{s}</span>
@@ -696,7 +697,7 @@ export default function MedicineStoreDetail() {
                     </div>
                   </div>
                   <div className="space-y-4">
-                    {REVIEWS_DATA.map((r, i) => (
+                    {reviewsData.map((r) => (
                       <div key={r.id} className="group p-4 rounded-xl border border-border/30 hover:border-border/60 hover:shadow-sm transition-all">
                         <div className="flex items-start gap-3">
                           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-sm font-bold text-primary shrink-0 border-2 border-primary/10">
@@ -908,7 +909,7 @@ export default function MedicineStoreDetail() {
             <h2 className="font-heading text-xl font-bold text-foreground">Nearby Stores</h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {suggestedStores.filter(s => s.id !== storeId).slice(0, 4).map((s, i) => (
+            {suggestedStores.filter(s => s.id !== storeId).slice(0, 4).map((s, _i) => (
               <motion.div key={s.id} variants={fadeUp}
                 className="bg-card rounded-2xl border border-border/50 overflow-hidden hover:shadow-lg hover:border-primary/20 transition-all group cursor-pointer"
                 onClick={() => { navigate(`/buy-medicine/${s.id}`); window.scrollTo(0, 0); }}>

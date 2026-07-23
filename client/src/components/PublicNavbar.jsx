@@ -7,8 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
-import { allCities, getStateForCity } from '@/data/cities';
-import { cn } from '@/lib/utils';
+import { allCities } from '@/data/cities';
 
 const NAV_ITEMS = [
   { label: 'Home', path: '/' },
@@ -41,10 +40,6 @@ export default function PublicNavbar() {
     localStorage.setItem('mediCore_city', cityName);
     setCityOpen(false);
   };
-
-  const displayedCities = allCities.filter(c =>
-    c.name === 'Jabalpur' || !['Jabalpur'].includes(c.name)
-  );
 
   const isActive = (path) => {
     if (path === '/') return location.pathname === '/';

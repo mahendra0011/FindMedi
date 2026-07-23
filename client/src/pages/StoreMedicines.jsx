@@ -32,8 +32,8 @@ export default function StoreMedicines() {
   const navigate = useNavigate();
   const [store, setStore] = useState(null);
   const [allMeds, setAllMeds] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const { cart, addItem, updateQty, entries } = useCart();
+  const [_loading, setLoading] = useState(true);
+  const { addItem, updateQty, entries } = useCart();
 
   useEffect(() => {
     const load = async () => {
@@ -79,7 +79,7 @@ export default function StoreMedicines() {
             setAllMeds(mapped);
           }
         }
-      } catch {} finally { setLoading(false); }
+      } catch { /* empty */ }
     };
     if (storeId) load(); else setLoading(false);
   }, [storeId]);

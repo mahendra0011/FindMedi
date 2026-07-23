@@ -18,23 +18,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 import ReviewDialog from '@/components/ReviewDialog';
 
-const stagger = {
-  hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { staggerChildren: 0.06, delayChildren: 0.1 } }
-};
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
   show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 200, damping: 22 } }
-};
-const fadeIn = {
-  hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { duration: 0.5 } }
-};
-const slideUp = {
-  hidden: { opacity: 0, y: 50 },
-  show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 180, damping: 20 } }
 };
 
 const FALLBACK_TECH = {
@@ -159,7 +148,7 @@ export default function TechnicianDetail() {
       } else {
         await api.dispatch(() => Promise.resolve({}), `/patient/favorites/${id}`, { method: 'DELETE' });
       }
-    } catch {}
+    } catch { /* empty */ }
     toast.success(next ? 'Saved' : 'Removed from Saved');
   };
   const [showFullBio, setShowFullBio] = useState(false);
@@ -168,6 +157,7 @@ export default function TechnicianDetail() {
   const [reviewComment, setReviewComment] = useState('');
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [reviewSubmitted, setReviewSubmitted] = useState(false);
+  const [, setReviewsData] = useState([]);
 
   useEffect(() => {
     const load = async () => {
@@ -792,7 +782,7 @@ export default function TechnicianDetail() {
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {(showAllReviews ? REVIEWS_DATA : REVIEWS_DATA.slice(0, 2)).map((rv, i) => (
+                      {(showAllReviews ? REVIEWS_DATA : REVIEWS_DATA.slice(0, 2)).map((rv) => (
                         <div key={rv.id} className="p-4 rounded-xl border border-border/40 hover:bg-muted/20 transition-colors">
                           <div className="flex items-start gap-3">
                             <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm shrink-0">
@@ -1028,7 +1018,7 @@ export default function TechnicianDetail() {
         onOpenChange={setShowReviewDialog}
         entityType="technician"
         entityId={id}
-        entityName={technician?.name}
+        entityName={tech?.name}
         onReviewSubmitted={(review) => {
           setReviewsData(prev => [review, ...(Array.isArray(prev) ? prev : [])]);
         }}

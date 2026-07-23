@@ -38,7 +38,7 @@ export default function AdminLeaveRequests() {
       toast.success(`Leave request ${status}`);
       loadLeaves();
       setNotes(prev => ({ ...prev, [id]: '' }));
-    } catch (e) {
+    } catch {
       toast.error('Failed to update status');
     }
   };

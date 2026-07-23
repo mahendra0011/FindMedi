@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
+
 
 const ACCREDITATION_COLORS = {
   NABH: 'bg-emerald-50 text-emerald-700 border-emerald-200',
@@ -55,16 +55,6 @@ const [showDoctors, setShowDoctors] = useState(false);
       ))}
     </div>
   );
-
-  const getInitials = (name) =>
-    name?.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase() || 'H';
-
-  const getHospitalTypeLabel = (type) => {
-    if (!type) return null;
-    if (type.toLowerCase().includes('government')) return 'Government';
-    if (type.toLowerCase().includes('private')) return 'Private';
-    return type;
-  };
 
   const getSpecialtyIcon = (spec) => {
     const icons = {

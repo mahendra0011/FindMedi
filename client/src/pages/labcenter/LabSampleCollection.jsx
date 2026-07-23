@@ -57,7 +57,6 @@ export default function LabSampleCollection() {
     } catch (e) { console.error(e); }
   };
 
-  const today = new Date().toISOString().split('T')[0];
   const filtered = collections.filter(c =>
     c.patient.toLowerCase().includes(search.toLowerCase()) ||
     c.address.toLowerCase().includes(search.toLowerCase()) ||

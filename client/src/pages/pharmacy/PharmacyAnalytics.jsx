@@ -44,7 +44,7 @@ export default function PharmacyAnalytics() {
       const popular = Object.entries(medRevenue)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 5)
-        .map(([name, revenue], i) => ({
+        .map(([name, revenue], _i) => ({
           name,
           count: orders.filter(o => o.items?.some(i => i.medicineName === name)).length,
           revenue,

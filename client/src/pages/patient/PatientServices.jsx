@@ -86,7 +86,7 @@ export default function PatientServices() {
 
   useEffect(() => {
     if (user) loadServices();
-  }, [user?.id, user?._id, user?.name]);
+  }, [user?.id, user?._id, user?.name, loadServices]);
 
   const loadServices = async () => {
     setLoading(true);

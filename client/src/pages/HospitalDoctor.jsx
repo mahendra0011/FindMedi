@@ -22,21 +22,9 @@ import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
 import ReviewDialog from '@/components/ReviewDialog';
 
-const stagger = {
-  hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { staggerChildren: 0.06, delayChildren: 0.1 } }
-};
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
   show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 200, damping: 22 } }
-};
-const fadeIn = {
-  hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { duration: 0.5 } }
-};
-const slideUp = {
-  hidden: { opacity: 0, y: 50 },
-  show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 180, damping: 20 } }
 };
 
 function renderStars(rating, size = 'w-4 h-4') {
@@ -47,12 +35,6 @@ function renderStars(rating, size = 'w-4 h-4') {
 
 function getInitials(name) {
   return name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'DR';
-}
-
-function getExpYears(exp) {
-  if (!exp) return 0;
-  const match = exp.match(/(\d+)/);
-  return match ? parseInt(match[1]) : 0;
 }
 
 const DAY_ORDER = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
@@ -122,7 +104,7 @@ export default function HospitalDoctor() {
         if (doc.specialization) {
           setDepartmentDoctors(filtered.filter(d => d.specialization === doc.specialization).slice(0, 4));
         }
-      } catch (e) {
+      } catch {
         setNotFound(true);
       }
       setLoading(false);
@@ -186,7 +168,7 @@ export default function HospitalDoctor() {
   const handleShare = async () => {
     const url = window.location.href;
     if (navigator.share) {
-      try { await navigator.share({ title: doctor?.name, url }); } catch {}
+      try { await navigator.share({ title: doctor?.name, url }); } catch { /* empty */ }
     } else {
       await navigator.clipboard.writeText(url);
       toast.success('Link copied to clipboard');
@@ -224,7 +206,6 @@ export default function HospitalDoctor() {
     return <Navigate to="/clinic-doctors" replace />;
   }
 
-  const expYears = getExpYears(doctor.experience);
   const reviewCount = doctor.reviews_count || reviews.length;
   const avgRating = reviews.length > 0 ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length) : (doctor.rating || 0);
 
@@ -956,7 +937,7 @@ export default function HospitalDoctor() {
                       {relatedDoctors.length > 0 && (
                         <TabsContent value="same-hospital">
                           <div className="grid sm:grid-cols-2 gap-4">
-                            {relatedDoctors.map((doc, i) => (
+                            {relatedDoctors.map((doc, _i) => (
                               <motion.div key={doc._id} variants={fadeUp}
                                 className="bg-card rounded-xl border border-border/50 p-4 hover:shadow-lg hover:border-primary/20 transition-all cursor-pointer group"
                                 onClick={() => navigate(`/hospital-doctors/${doc._id}`)}
@@ -994,7 +975,7 @@ export default function HospitalDoctor() {
                       {departmentDoctors.length > 0 && (
                         <TabsContent value="same-department">
                           <div className="grid sm:grid-cols-2 gap-4">
-                            {departmentDoctors.map((doc, i) => (
+                            {departmentDoctors.map((doc, _i) => (
                               <motion.div key={doc._id} variants={fadeUp}
                                 className="bg-card rounded-xl border border-border/50 p-4 hover:shadow-lg hover:border-primary/20 transition-all cursor-pointer group"
                                 onClick={() => navigate(`/hospital-doctors/${doc._id}`)}

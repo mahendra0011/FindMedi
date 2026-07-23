@@ -9,6 +9,7 @@ import User from '../models/User.js';
 import Notification from '../models/Notification.js';
 import { protect, adminOnly } from '../middleware/auth.js';
 import { validate, createLabOrderSchema } from '../utils/validate.js';
+import { auditLog } from '../middleware/audit.js';
 
 const labRegisterSampleSchema = z.object({ testIndex: z.number().int().nonnegative(), sampleType: z.string().optional() });
 const labCollectSampleSchema = z.object({ testIndex: z.number().int().nonnegative(), rejectionReason: z.string().optional() });
@@ -36,7 +37,7 @@ router.post('/orders', protect, validate(createLabOrderSchema), async (req, res)
       return res.status(400).json({ message: 'Patient and at least one test required' });
     }
 
-    const orderId = await generateOrderId();
+const orderId = await generateOrderId();
     const order = await LabOrder.create({
       orderId, patientId, patientName,
       doctorId: req.user._id, doctorName: req.user.name,
@@ -48,6 +49,7 @@ router.post('/orders', protect, validate(createLabOrderSchema), async (req, res)
       clinicalNotes: clinicalNotes || '', priority: priority || 'Routine', createdBy: req.user._id,
     });
 
+    await auditLog('create_lab_order', req.user._id, { recordId: order._id, ip: req.ip, userAgent: req.get('user-agent') });
     const labStaff = await User.find({ role: { $in: ['lab_receptionist', 'lab_technician', 'admin'] }, status: 'active' }).select('_id');
     await Notification.insertMany(labStaff.map(staff => ({
       title: 'New Lab Order', message: `Dr. ${req.user.name} ordered ${tests.length} test(s) for ${patientName}`,
@@ -130,6 +132,7 @@ router.put('/orders/:id/register-sample', protect, validate(labRegisterSampleSch
     test.status = 'Sample Needed';
     if (!order.sampleIds.includes(test.sampleId)) order.sampleIds.push(test.sampleId);
     await order.save();
+    await auditLog('register_sample', req.user._id, { recordId: order._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json(order);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -149,6 +152,7 @@ router.put('/orders/:id/collect-sample', protect, validate(labCollectSampleSchem
     if (rejectionReason) { test.status = 'Ordered'; test.rejectionReason = rejectionReason; }
     else { test.status = 'Sample Collected'; test.sampleCollectedAt = new Date(); test.collectedBy = req.user.name; }
     await order.save();
+    await auditLog('collect_sample', req.user._id, { recordId: order._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json(order);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -181,7 +185,8 @@ router.put('/orders/:id/enter-result', protect, adminOnly, validate(labEnterResu
         }
       }
     }
-    await order.save();
+await order.save();
+    await auditLog('enter_lab_result', req.user._id, { recordId: order._id, ip: req.ip, userAgent: req.get('user-agent') });
     if (test.isCritical) {
       await Notification.create({ title: 'Critical Lab Result', message: `Critical result for ${test.testName} (${test.resultValue}) - Patient: ${order.patientName}`, type: 'lab', userId: order.doctorId.toString() });
     }
@@ -203,7 +208,8 @@ router.put('/orders/:id/verify', protect, adminOnly, validate(labVerifySchema), 
     if (!test) return res.status(404).json({ message: 'Test not found' });
     if (approved) { test.status = 'Verified'; test.verifiedBy = req.user._id; test.verifiedAt = new Date(); test.verificationNotes = notes || ''; }
     else { test.status = 'Completed'; test.verificationNotes = notes || 'Rejected by pathologist'; }
-    await order.save();
+await order.save();
+    await auditLog('verify_lab_result', req.user._id, { recordId: order._id, ip: req.ip, userAgent: req.get('user-agent') });
     const allVerified = order.tests.every(t => t.status === 'Verified' || t.status === 'Report Delivered');
     if (allVerified) {
       await Notification.create({ title: 'Lab Report Ready', message: `Your lab report (${order.orderId}) is now available.`, type: 'lab', userId: order.patientId.toString() });
@@ -294,6 +300,7 @@ router.post('/bookings', protect, validate(labBookingSchema), async (req, res) =
     const count = await LabBooking.countDocuments();
     const bookingId = `BK-${new Date().getFullYear()}-${String(count + 1).padStart(5, '0')}`;
     const booking = await LabBooking.create({ ...req.body, bookingId, hospitalId: req.user.hospitalId || undefined, facilityId: req.user.facilityId || req.user.hospitalId || undefined, createdBy: req.user._id });
+    await auditLog('create_lab_booking', req.user._id, { recordId: booking._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.status(201).json(booking);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -305,8 +312,9 @@ router.put('/bookings/:id', protect, adminOnly, validate(labBookingSchema), asyn
     if (req.user.hospitalId && req.user.role !== 'superadmin' && booking.hospitalId?.toString() !== req.user.hospitalId.toString()) {
       return res.status(403).json({ message: 'Access denied' });
     }
-    Object.assign(booking, req.body);
+Object.assign(booking, req.body);
     await booking.save();
+    await auditLog('update_lab_booking', req.user._id, { recordId: booking._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json(booking);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -318,7 +326,8 @@ router.delete('/bookings/:id', protect, adminOnly, async (req, res) => {
     if (req.user.hospitalId && req.user.role !== 'superadmin' && booking.hospitalId?.toString() !== req.user.hospitalId.toString()) {
       return res.status(403).json({ message: 'Access denied' });
     }
-    await LabBooking.findByIdAndDelete(req.params.id);
+await LabBooking.findByIdAndDelete(req.params.id);
+    await auditLog('delete_lab_booking', req.user._id, { recordId: req.params.id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json({ message: 'Deleted' });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
@@ -337,6 +346,7 @@ router.get('/equipment', protect, async (req, res) => {
 router.post('/equipment', protect, validate(labEquipmentSchema), async (req, res) => {
   try {
     const item = await Equipment.create({ ...req.body, hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined });
+    await auditLog('create_lab_equipment', req.user._id, { recordId: item._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.status(201).json(item);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -350,6 +360,7 @@ router.put('/equipment/:id', protect, adminOnly, validate(labEquipmentSchema), a
     }
     Object.assign(item, req.body);
     await item.save();
+     await auditLog('update_lab_equipment', req.user._id, { recordId: item._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json(item);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -361,7 +372,8 @@ router.delete('/equipment/:id', protect, adminOnly, async (req, res) => {
     if (req.user.hospitalId && req.user.role !== 'superadmin' && item.hospitalId?.toString() !== req.user.hospitalId.toString()) {
       return res.status(403).json({ message: 'Access denied' });
     }
-    await Equipment.findByIdAndDelete(req.params.id);
+await Equipment.findByIdAndDelete(req.params.id);
+    await auditLog('delete_lab_equipment', req.user._id, { recordId: req.params.id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json({ message: 'Deleted' });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
@@ -392,6 +404,7 @@ router.get('/packages', protect, async (req, res) => {
 router.post('/packages', protect, validate(labPackageSchema), async (req, res) => {
   try {
     const pkg = await HealthPackage.create({ ...req.body, hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined });
+    await auditLog('create_lab_package', req.user._id, { recordId: pkg._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.status(201).json(pkg);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -403,8 +416,9 @@ router.put('/packages/:id', protect, adminOnly, validate(labPackageSchema), asyn
     if (req.user.hospitalId && req.user.role !== 'superadmin' && pkg.hospitalId?.toString() !== req.user.hospitalId.toString()) {
       return res.status(403).json({ message: 'Access denied' });
     }
-    Object.assign(pkg, req.body);
+Object.assign(pkg, req.body);
     await pkg.save();
+    await auditLog('update_lab_package', req.user._id, { recordId: pkg._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json(pkg);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -416,8 +430,35 @@ router.delete('/packages/:id', protect, adminOnly, async (req, res) => {
     if (req.user.hospitalId && req.user.role !== 'superadmin' && pkg.hospitalId?.toString() !== req.user.hospitalId.toString()) {
       return res.status(403).json({ message: 'Access denied' });
     }
-    await HealthPackage.findByIdAndDelete(req.params.id);
+await HealthPackage.findByIdAndDelete(req.params.id);
+    await auditLog('delete_lab_package', req.user._id, { recordId: req.params.id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json({ message: 'Deleted' });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// ─── Lab Export Endpoints ─────────────────────────────────────────────────────
+router.get('/export', protect, adminOnly, async (req, res) => {
+  try {
+    const { format = 'json', dateFrom, dateTo, status } = req.query;
+    const filter = {};
+    if (dateFrom || dateTo) {
+      filter.createdAt = {};
+      if (dateFrom) filter.createdAt.$gte = new Date(dateFrom);
+      if (dateTo) filter.createdAt.$lte = new Date(dateTo);
+    }
+    if (status && status !== 'All') filter.status = status;
+
+    const orders = await LabOrder.find(filter).populate('patientId', 'name').populate('doctorId', 'name');
+
+    if (format === 'csv') {
+      const header = 'orderId,patient,doctor,tests,status,amount,createdAt\n';
+      const rows = orders.map(o => `${o.orderId},${o.patientName},${o.doctorName},${o.tests?.length || 0},${o.status},${o.amount || 0},${o.createdAt?.toISOString()?.split('T')[0]}`).join('\n');
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename=lab-orders.csv');
+      return res.send(header + rows);
+    }
+
+    res.json({ orders });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 

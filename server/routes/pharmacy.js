@@ -12,6 +12,7 @@ import Notification from '../models/Notification.js';
 import User from '../models/User.js';
 import { protect } from '../middleware/auth.js';
 import { validate, createMedicineSchema } from '../utils/validate.js';
+import { auditLog } from '../middleware/audit.js';
 
 const medicineUpdateSchema = z.object({}).passthrough();
 const pharmacyStockSchema = z.object({ quantity: z.number(), type: z.enum(['add', 'deduct']) });
@@ -91,6 +92,7 @@ router.get('/medicines/export-alerts', protect, async (req, res) => {
 router.post('/medicines', protect, validate(createMedicineSchema), async (req, res) => {
   try {
     const medicine = await Medicine.create({ ...req.body, hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined });
+    await auditLog('create_medicine', req.user._id, { recordId: medicine._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.status(201).json(medicine);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -104,6 +106,7 @@ router.put('/medicines/:id', protect, validate(medicineUpdateSchema), async (req
     }
     Object.assign(medicine, req.body);
     await medicine.save();
+    await auditLog('update_medicine', req.user._id, { recordId: medicine._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json(medicine);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -116,6 +119,7 @@ router.delete('/medicines/:id', protect, async (req, res) => {
       return res.status(403).json({ message: 'Access denied' });
     }
     await Medicine.findByIdAndDelete(req.params.id);
+    await auditLog('delete_medicine', req.user._id, { recordId: req.params.id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json({ message: 'Medicine removed' });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
@@ -132,6 +136,7 @@ router.put('/medicines/:id/stock', protect, validate(pharmacyStockSchema), async
     if (type === 'add') medicine.currentStock += quantity;
     else if (type === 'deduct') medicine.currentStock = Math.max(0, medicine.currentStock - quantity);
     await medicine.save();
+    await auditLog('update_medicine_stock', req.user._id, { recordId: medicine._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json(medicine);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -143,7 +148,7 @@ router.post('/prescriptions', protect, validate(prescriptionSchema), async (req,
     if (!patientId || !medicines?.length) {
       return res.status(400).json({ message: 'Patient and at least one medicine required' });
     }
-    const prescriptionId = await generatePrescriptionId();
+const prescriptionId = await generatePrescriptionId();
     const prescription = await Prescription.create({
       prescriptionId, patientId, patientName,
       doctorId: req.user._id, doctorName: req.user.name,
@@ -157,6 +162,7 @@ router.post('/prescriptions', protect, validate(prescriptionSchema), async (req,
       diagnosis: diagnosis || '', clinicalNotes: clinicalNotes || '',
       isEmergency: isEmergency || false, createdBy: req.user._id,
     });
+    await auditLog('create_prescription', req.user._id, { recordId: prescription._id, ip: req.ip, userAgent: req.get('user-agent') });
     // Notify pharmacy
     const pharmacists = await User.find({ role: { $in: ['pharmacist', 'admin'] }, status: 'active' }).select('_id');
     await Notification.insertMany(pharmacists.map(p => ({
@@ -270,6 +276,7 @@ router.put('/prescriptions/:id/dispense', protect, validate(pharmacyDispenseSche
     med.dispensedAt = new Date();
     med.dispensedBy = req.user.name;
     await prescription.save();
+    await auditLog('dispense_prescription', req.user._id, { recordId: prescription._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json(prescription);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -332,6 +339,7 @@ router.post('/orders', protect, validate(pharmacyOrderSchema), async (req, res) 
     // Use facilityId from body for patient orders, fallback to user's facility for staff
     const facilityId = req.body.facilityId || req.user.facilityId || req.user.hospitalId || undefined;
     const order = await PharmacyOrder.create({ ...req.body, orderId, hospitalId: req.user.hospitalId, facilityId, createdBy: req.user._id });
+    await auditLog('create_pharmacy_order', req.user._id, { recordId: order._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.status(201).json(order);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -342,13 +350,17 @@ router.put('/orders/:id', protect, validate(pharmacyOrderSchema), async (req, re
     if (!order) return res.status(404).json({ message: 'Order not found' });
     Object.assign(order, req.body);
     await order.save();
+    await auditLog('update_pharmacy_order', req.user._id, { recordId: order._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json(order);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
 router.delete('/orders/:id', protect, async (req, res) => {
-  try { await PharmacyOrder.findByIdAndDelete(req.params.id); res.json({ message: 'Deleted' }); }
-  catch (err) { res.status(500).json({ message: err.message }); }
+  try {
+    await PharmacyOrder.findByIdAndDelete(req.params.id);
+    await auditLog('delete_pharmacy_order', req.user._id, { recordId: req.params.id, ip: req.ip, userAgent: req.get('user-agent') });
+    res.json({ message: 'Deleted' });
+  } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
 router.post('/orders/:id/forward', protect, async (req, res) => {
@@ -357,7 +369,7 @@ router.post('/orders/:id/forward', protect, async (req, res) => {
     if (!original) return res.status(404).json({ message: 'Order not found' });
     const { facilityId } = req.body;
     if (!facilityId) return res.status(400).json({ message: 'facilityId (new pharmacy) is required' });
-    const count = await PharmacyOrder.countDocuments();
+const count = await PharmacyOrder.countDocuments();
     const newOrderId = `ORD-${String(count + 1).padStart(4, '0')}`;
     const newOrder = await PharmacyOrder.create({
       patientId: original.patientId,
@@ -378,6 +390,7 @@ router.post('/orders/:id/forward', protect, async (req, res) => {
       paymentMethod: original.paymentMethod,
       discount: original.discount,
     });
+    await auditLog('forward_pharmacy_order', req.user._id, { recordId: newOrder._id, ip: req.ip, userAgent: req.get('user-agent') });
     original.status = 'Cancelled';
     await original.save();
     res.status(201).json({ newOrder, cancelledOrder: original });
@@ -393,6 +406,7 @@ router.put('/orders/:id/reject', protect, async (req, res) => {
     if (reason) order.rejectionReason = reason;
     order.note = order.note + (order.note ? ' | ' : '') + `Rejected: ${reason || 'No reason given'}`;
     await order.save();
+    await auditLog('reject_pharmacy_prescription', req.user._id, { recordId: order._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json(order);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -411,6 +425,7 @@ router.get('/deliveries', protect, async (req, res) => {
 router.post('/deliveries', protect, validate(pharmacyDeliverySchema), async (req, res) => {
   try {
     const delivery = await PharmacyDelivery.create({ ...req.body, hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined });
+    await auditLog('create_pharmacy_delivery', req.user._id, { recordId: delivery._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.status(201).json(delivery);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -440,6 +455,7 @@ router.get('/offers', protect, async (req, res) => {
 router.post('/offers', protect, validate(pharmacyOfferSchema), async (req, res) => {
   try {
     const offer = await PharmacyOffer.create({ ...req.body, hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined });
+    await auditLog('create_pharmacy_offer', req.user._id, { recordId: offer._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.status(201).json(offer);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -450,14 +466,15 @@ router.put('/offers/:id', protect, validate(pharmacyOfferSchema), async (req, re
     if (!offer) return res.status(404).json({ message: 'Offer not found' });
     Object.assign(offer, req.body);
     await offer.save();
+    await auditLog('update_pharmacy_offer', req.user._id, { recordId: offer._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json(offer);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
 router.delete('/offers/:id', protect, async (req, res) => {
-  try { await PharmacyOffer.findByIdAndDelete(req.params.id); res.json({ message: 'Deleted' }); }
-  catch (err) { res.status(500).json({ message: err.message }); }
-});
+   try { await PharmacyOffer.findByIdAndDelete(req.params.id); await auditLog('delete_pharmacy_offer', req.user._id, { recordId: req.params.id, ip: req.ip, userAgent: req.get('user-agent') }); res.json({ message: 'Deleted' }); }
+   catch (err) { res.status(500).json({ message: err.message }); }
+ });
 
 // ─── Returns ───────────────────────────────────────────────────────────────
 router.get('/returns', protect, async (req, res) => {
@@ -475,6 +492,7 @@ router.post('/returns', protect, validate(pharmacyReturnSchema), async (req, res
     const count = await PharmacyReturn.countDocuments();
     const returnId = `RET-${String(count + 1).padStart(4, '0')}`;
     const ret = await PharmacyReturn.create({ ...req.body, returnId, hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined });
+    await auditLog('create_pharmacy_return', req.user._id, { recordId: ret._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.status(201).json(ret);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -486,6 +504,7 @@ router.put('/returns/:id', protect, validate(pharmacyReturnSchema), async (req, 
     if (req.body.status === 'Approved' || req.body.status === 'Refunded') ret.completedAt = new Date();
     Object.assign(ret, req.body);
     await ret.save();
+    await auditLog('update_pharmacy_return', req.user._id, { recordId: ret._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json(ret);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -504,6 +523,7 @@ router.get('/staff', protect, async (req, res) => {
 router.post('/staff', protect, validate(pharmacyStaffSchema), async (req, res) => {
   try {
     const member = await PharmacyStaff.create({ ...req.body, hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined });
+    await auditLog('create_pharmacy_staff', req.user._id, { recordId: member._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.status(201).json(member);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -514,14 +534,15 @@ router.put('/staff/:id', protect, validate(pharmacyStaffSchema), async (req, res
     if (!member) return res.status(404).json({ message: 'Staff not found' });
     Object.assign(member, req.body);
     await member.save();
+    await auditLog('update_pharmacy_staff', req.user._id, { recordId: member._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json(member);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
 router.delete('/staff/:id', protect, async (req, res) => {
-  try { await PharmacyStaff.findByIdAndDelete(req.params.id); res.json({ message: 'Deleted' }); }
-  catch (err) { res.status(500).json({ message: err.message }); }
-});
+   try { await PharmacyStaff.findByIdAndDelete(req.params.id); await auditLog('delete_pharmacy_staff', req.user._id, { recordId: req.params.id, ip: req.ip, userAgent: req.get('user-agent') }); res.json({ message: 'Deleted' }); }
+   catch (err) { res.status(500).json({ message: err.message }); }
+ });
 
 export default router;
 

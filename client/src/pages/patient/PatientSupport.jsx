@@ -21,7 +21,7 @@ export default function PatientSupport() {
       toast.success('Support ticket created successfully');
       setSubject('');
       setMessage('');
-    } catch (error) {
+    } catch {
       toast.error('Failed to create ticket');
     } finally {
       setLoading(false);

@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 import TestCard from '@/components/TestCard';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '@/context/CartContext';
+import { toast } from 'sonner';
 import { api } from '@/lib/api';
 
 const TEST_CATEGORIES = [
@@ -69,7 +70,7 @@ const CATEGORY_TESTS = {
 
 export default function AllTests() {
   const navigate = useNavigate();
-  const { addItem, updateQty, entries, totalItems } = useCart();
+  const { addItem, updateQty, entries } = useCart();
   const [showAllCategories, setShowAllCategories] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -78,7 +79,6 @@ export default function AllTests() {
   const [priceRange, setPriceRange] = useState([0, 5000]);
   const [rxFilter, setRxFilter] = useState('all');
   const [homeCollectionOnly, setHomeCollectionOnly] = useState(false);
-  const [showAdvanced, setShowAdvanced] = useState(false);
   const [distanceFilter, setDistanceFilter] = useState('any');
   const [ratingFilter, setRatingFilter] = useState(0);
   const [showMoreFilters, setShowMoreFilters] = useState(false);

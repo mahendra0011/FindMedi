@@ -10,7 +10,6 @@ import { toast } from 'sonner';
 export default function ClinicManagement() {
   const { user } = useAuth();
   const [clinicProfile, setClinicProfile] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({});
@@ -20,7 +19,6 @@ export default function ClinicManagement() {
 
   useEffect(() => {
     const load = async () => {
-      setLoading(true);
       try {
         const res = await api.getClinicProfile();
         const fac = res?.facility || null;
@@ -32,7 +30,6 @@ export default function ClinicManagement() {
       } catch {
         setClinicProfile(null);
       }
-      setLoading(false);
     };
     load();
   }, [user]);
@@ -63,10 +60,6 @@ export default function ClinicManagement() {
       setForm(updated);
       setNewFacility('');
     }
-  };
-
-  const removeFacility = (idx) => {
-    setForm({ ...form, facilities: form.facilities.filter((_, i) => i !== idx) });
   };
 
   const openEdit = (clinic) => {

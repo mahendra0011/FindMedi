@@ -301,7 +301,7 @@ export default function Settings() {
       dispatch(loadUserSettings(authSettings));
       applyUserSettings(authSettings);
     }
-  }, [user, dispatch]);
+  }, [user, dispatch, authSettings]);
 
   useEffect(() => {
     applyUserSettings(settings);
