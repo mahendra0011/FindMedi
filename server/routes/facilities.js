@@ -8,6 +8,7 @@ import { validate, registerFacilitySchema, updateFacilitySchema } from '../utils
 import { auditLog } from '../middleware/audit.js';
 import License from '../models/License.js';
 import logger from '../config/logger.js';
+import { sendEmail } from '../services/notificationService.js';
 
 const router = express.Router();
 
@@ -75,7 +76,13 @@ router.get('/:id', async (req, res) => {
 
 router.post('/register', validate(registerFacilitySchema), async (req, res) => {
   try {
-    const { type, name, email, phone, address, city, state, licenseNumber, description, establishedYear, logo, image, nablNumber, aerbNumber, workingHours, pathologistName, pathologistQualification, radiologistName, radiologistQualification, cardiologistName, cardiologistQualification, technicianName, technicianRole, technicianQualification, technicianExperience, timing, amenities, socialLinks, adminName, adminEmail, adminPhone, details } = req.body;
+    const { account, facility: facilityData, doctors: doctorsData, services: servicesData, specialist: specialistData } = req.body;
+    const { type, name, email, phone, address, city, state, licenseNumber, description, establishedYear, logo, image, nablNumber, aerbNumber, workingHours, pathologistName, pathologistQualification, radiologistName, radiologistQualification, cardiologistName, cardiologistQualification, technicianName, technicianRole, technicianQualification, technicianExperience, timing, amenities, socialLinks, details } = facilityData || req.body;
+    const adminName = account?.name || req.body.adminName;
+    const adminEmail = account?.email || req.body.adminEmail;
+    const adminPhone = account?.phone || req.body.adminPhone;
+    const adminPassword = account?.password;
+    const doctorsList = doctorsData || req.body.doctors;
     if (!type || !name || !email || !phone || !address || !licenseNumber || !adminName || !adminEmail || !adminPhone) {
       return res.status(400).json({ message: 'All required fields must be provided' });
     }
@@ -98,10 +105,10 @@ router.post('/register', validate(registerFacilitySchema), async (req, res) => {
       status: 'pending', details: details || {},
     });
 
-    const tempPassword = Math.random().toString(36).slice(-10);
+    const finalPassword = adminPassword || Math.random().toString(36).slice(-10);
     const roleMap = { hospital: 'admin', clinic: 'clinic_doctor', lab: 'lab_receptionist', pharmacy: 'pharmacist' };
-    await User.create({
-      name: adminName, email: adminEmail.toLowerCase(), password: tempPassword,
+    const newUser = await User.create({
+      name: adminName, email: adminEmail.toLowerCase(), password: finalPassword,
       role: roleMap[type] || 'admin', phone: adminPhone || '',
       facilityId: facility._id, facilityType: type,
       isVerified: false, status: 'active', approvalStatus: 'not_required',
@@ -120,6 +127,17 @@ router.post('/register', validate(registerFacilitySchema), async (req, res) => {
       logger.error('License creation failed:', licenseErr.message);
     }
     await auditLog('register_facility', null, { facilityId: facility._id, type, name });
+
+    try {
+      await sendEmail({
+        to: adminEmail,
+        subject: `MediCore - ${type} registration received`,
+        html: `<h2>Registration Received</h2><p>Dear ${adminName},</p><p>Your ${type} <strong>${name}</strong> has been registered on MediCore. Our team will review and approve it within 24-48 hours.</p><p>You will receive a notification once approved.</p>`,
+      });
+    } catch (emailErr) {
+      logger.error('Facility registration confirmation email failed:', emailErr.message);
+    }
+
     res.status(201).json({ message: `${type} registered successfully. Awaiting approval.`, facilityId: facility._id });
   } catch (err) { res.status(400).json({ message: err.message }); }
 });

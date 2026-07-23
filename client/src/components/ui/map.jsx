@@ -198,7 +198,7 @@ export function Map({
   return (
     <MapContext.Provider value={value}>
       <div ref={containerRef} className={cn("relative h-full w-full overflow-hidden", className)}>
-        <div ref={mapElementRef} className="absolute inset-0" />
+        <div ref={mapElementRef} className="absolute inset-0" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} />
         {isLoaded && children}
         {loading && (
           <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/50 backdrop-blur-[1px]" />
@@ -574,13 +574,16 @@ export function MapRoute({
     }
 
     return () => {
-      if (interactive && map.getLayer(routeId)) {
-        map.off("click", routeId, click);
-        map.off("mouseenter", routeId, enter);
-        map.off("mouseleave", routeId, leave);
-      }
-      if (map.getLayer(routeId)) map.removeLayer(routeId);
-      if (map.getSource(sourceId)) map.removeSource(sourceId);
+      try {
+        if (!map.getStyle()) return;
+        if (interactive && map.getLayer(routeId)) {
+          map.off("click", routeId, click);
+          map.off("mouseenter", routeId, enter);
+          map.off("mouseleave", routeId, leave);
+        }
+        if (map.getLayer(routeId)) map.removeLayer(routeId);
+        if (map.getSource(sourceId)) map.removeSource(sourceId);
+      } catch { /* map already removed */ }
     };
   }, [map, isLoaded, safeCoordinates, color, width, opacity, dashArray, interactive, onClick, onMouseEnter, onMouseLeave, routeId, sourceId]);
 

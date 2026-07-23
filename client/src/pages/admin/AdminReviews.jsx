@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Star, Search, Trash2, Shield, AlertTriangle, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
 
 export default function AdminReviews() {
@@ -10,19 +11,20 @@ export default function AdminReviews() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
 
-  const loadReviews = async () => {
+  const loadReviews = useCallback(async () => {
     setLoading(true);
     try {
       const data = await api.getReviews();
       setReviews(data);
-    } catch (e) { console.error(e); }
+    } catch { toast.error('Failed to load reviews'); }
     setLoading(false);
-  };
+  }, []);
 
   useEffect(() => { loadReviews(); }, []);
 
   const handleDelete = async (id) => {
-    try { await api.deleteReview(id); loadReviews(); } catch (e) { console.error(e); }
+    if (!confirm('Delete this review permanently?')) return;
+    try { await api.deleteReview(id); loadReviews(); } catch { toast.error('Failed to delete review'); }
   };
 
   const filtered = search

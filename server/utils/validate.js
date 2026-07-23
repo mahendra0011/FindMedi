@@ -31,7 +31,7 @@ export const registerSchema = z.object({
   name: z.string().trim().min(2, 'Name is required'),
   email: emailSchema,
   password: passwordSchema,
-  role: z.enum(['patient', 'doctor', 'admin']).optional().default('patient'),
+  role: z.enum(['patient', 'doctor', 'admin', 'technician']).optional().default('patient'),
   phone: phoneSchema,
   gender: z.enum(['Male', 'Female', 'Other']).optional().default(''),
   dateOfBirth: z.string().optional(),

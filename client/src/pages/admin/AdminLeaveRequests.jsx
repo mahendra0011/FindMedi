@@ -25,7 +25,7 @@ export default function AdminLeaveRequests() {
     try {
       const res = await api.getLeaveRequests();
       setLeaves(res?.leaves || []);
-    } catch (e) { console.error(e); }
+    } catch { toast.error('Failed to load leave requests'); }
     setLoading(false);
   };
 

@@ -32,7 +32,7 @@ export default function AdminAnnouncements() {
     try {
       const data = await api.getAnnouncements();
       setAnnouncements(Array.isArray(data) ? data : []);
-    } catch (e) { console.error(e); }
+    } catch { toast.error('Failed to load announcements'); }
     setLoading(false);
   };
 
@@ -85,7 +85,7 @@ export default function AdminAnnouncements() {
             <div className="space-y-2">
               <Label>Send To</Label>
               <div className="flex gap-1.5 flex-wrap">
-                {['all', 'doctor', 'nurse', 'admin'].map(role => (
+                {['all', 'superadmin', 'admin', 'doctor', 'clinic_doctor', 'patient', 'lab_owner', 'pharmacy_owner'].map(role => (
                   <button key={role} onClick={() => toggleRole(role)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-colors ${targetRoles.includes(role) ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>
                     {role === 'all' ? 'Everyone' : role + 's'}

@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { CreditCard, IndianRupee, CheckCircle, Clock, AlertCircle, History } from 'lucide-react';
+import { CreditCard, IndianRupee, CheckCircle, Clock, AlertCircle, History, Smartphone, Landmark, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import StatCard from '@/components/StatCard';
 
 const statusColors = { completed: 'bg-success/10 text-success', pending: 'bg-warning/10 text-warning', failed: 'bg-destructive/10 text-destructive', refunded: 'bg-info/10 text-info' };
-const methodIcons = { card: '💳', upi: '📱', netbanking: '🏦', cash: '💵' };
+const methodIcons = { card: CreditCard, upi: Smartphone, netbanking: Landmark, cash: Wallet };
 
 export default function PatientPayment() {
   const { user } = useAuth();
@@ -22,8 +22,8 @@ export default function PatientPayment() {
     setLoading(true);
     try {
       const [p, b] = await Promise.all([
-        api.getPayments({ patient_id: user?.id }),
-        api.getBilling({ patient: user?.name }),
+        api.getPayments({ patient_id: user?._id }),
+        api.getBilling({ patientId: user?._id }),
       ]);
       setPayments(p.payments || p);
       setBills(b.bills || b);
@@ -34,7 +34,7 @@ export default function PatientPayment() {
   useEffect(() => { loadData(); }, []);
 
   const totalPaid = payments.filter(p => p.status === 'completed').reduce((s, p) => s + (p.amount || 0), 0);
-  const pendingAmount = bills.filter(b => b.status !== 'Paid').reduce((s, b) => s + (b.amount - b.paid), 0);
+  const pendingAmount = bills.filter(b => b.status !== 'Paid').reduce((s, b) => s + ((b.amount || 0) - (b.paid || 0)), 0);
 
   const handlePay = async (bill) => {
     try {
@@ -129,7 +129,7 @@ export default function PatientPayment() {
                       <td className="px-4 py-3 text-sm font-mono">{pay.transaction_id}</td>
                       <td className="px-4 py-3 text-sm">{pay.invoice_id || '-'}</td>
                       <td className="px-4 py-3 text-sm font-semibold">Rs {pay.amount}</td>
-                      <td className="px-4 py-3 text-sm">{methodIcons[pay.method] || '💳'} {pay.method}</td>
+                      <td className="px-4 py-3 text-sm flex items-center gap-1">{(() => { const Icon = methodIcons[pay.method] || CreditCard; return <Icon className="w-3.5 h-3.5" />; })()} {pay.method}</td>
                       <td className="px-4 py-3">
                         <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${statusColors[pay.status]}`}>{pay.status}</span>
                       </td>

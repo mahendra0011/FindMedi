@@ -1,11 +1,20 @@
-import { useState, useEffect } from 'react';
-import { Users, Search, Trash2, Shield, Stethoscope, UserRound, Ban, CheckCircle, Filter } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Users, Search, Trash2, Shield, Stethoscope, UserRound, Ban, CheckCircle, Activity } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
 
-const roleColors = { admin: 'bg-primary/10 text-primary', doctor: 'bg-info/10 text-info', patient: 'bg-success/10 text-success' };
-const roleIcons = { admin: Shield, doctor: Stethoscope, patient: UserRound };
+const roleColors = {
+  superadmin: 'bg-destructive/10 text-destructive',
+  admin: 'bg-primary/10 text-primary',
+  doctor: 'bg-info/10 text-info',
+  clinic_doctor: 'bg-info/10 text-info',
+  patient: 'bg-success/10 text-success',
+  lab_owner: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+  pharmacy_owner: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+};
+const roleIcons = { superadmin: Shield, admin: Shield, doctor: Stethoscope, clinic_doctor: Stethoscope, patient: UserRound, lab_owner: Activity, pharmacy_owner: Activity };
 
 export default function AdminUsers() {
   const [users, setUsers] = useState([]);
@@ -13,23 +22,24 @@ export default function AdminUsers() {
   const [roleFilter, setRoleFilter] = useState('All');
   const [loading, setLoading] = useState(true);
 
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     setLoading(true);
     try {
       const data = await api.getUsers({ search, role: roleFilter });
       setUsers(data);
-    } catch (e) { console.error(e); }
+    } catch { toast.error('Failed to load users'); }
     setLoading(false);
-  };
+  }, [search, roleFilter]);
 
   useEffect(() => { loadUsers(); }, [search, roleFilter]);
 
   const handleDelete = async (id) => {
-    try { await api.deleteUser(id); loadUsers(); } catch (e) { console.error(e); }
+    if (!confirm('Permanently delete this user?')) return;
+    try { await api.deleteUser(id); loadUsers(); } catch { toast.error('Failed to delete user'); }
   };
 
   const handleBlock = async (id) => {
-    try { await api.blockUser(id); loadUsers(); } catch (e) { console.error(e); }
+    try { await api.blockUser(id); loadUsers(); } catch { toast.error('Failed to update user status'); }
   };
 
   return (
@@ -46,7 +56,7 @@ export default function AdminUsers() {
           <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search users..." className="pl-10" />
         </div>
         <div className="flex gap-2">
-          {['All', 'admin', 'doctor', 'patient'].map(r => (
+          {['All', 'superadmin', 'admin', 'doctor', 'clinic_doctor', 'patient', 'lab_owner', 'pharmacy_owner'].map(r => (
             <button key={r} onClick={() => setRoleFilter(r)}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors capitalize ${roleFilter === r ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>
               {r}
@@ -93,7 +103,7 @@ export default function AdminUsers() {
                 {users.map(u => {
                   const RoleIcon = roleIcons[u.role] || UserRound;
                   return (
-                    <tr key={u.id} className="border-b border-border/30 hover:bg-muted/30">
+                    <tr key={u._id} className="border-b border-border/30 hover:bg-muted/30">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary text-sm font-bold">
@@ -115,11 +125,11 @@ export default function AdminUsers() {
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center gap-2 justify-end">
-                          <Button variant="outline" size="sm" className="gap-1" onClick={() => handleBlock(u.id)}>
+                          <Button variant="outline" size="sm" className="gap-1" onClick={() => handleBlock(u._id)}>
                             {u.status === 'blocked' ? <CheckCircle className="w-3.5 h-3.5" /> : <Ban className="w-3.5 h-3.5" />}
                             {u.status === 'blocked' ? 'Unblock' : 'Block'}
                           </Button>
-                          <Button variant="outline" size="sm" className="gap-1 text-destructive hover:text-destructive" onClick={() => handleDelete(u.id)}>
+                          <Button variant="outline" size="sm" className="gap-1 text-destructive hover:text-destructive" onClick={() => handleDelete(u._id)}>
                             <Trash2 className="w-3.5 h-3.5" />
                           </Button>
                         </div>

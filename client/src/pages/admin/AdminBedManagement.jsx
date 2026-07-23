@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Bed, Plus, Search, Trash2, Edit, Save, X, Eye, Wifi, Snowflake } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
 
 const WARDS = ['General', 'Semi-Private', 'Private', 'ICU', 'NICU', 'PICU', 'Emergency'];
@@ -19,7 +20,7 @@ export default function AdminBedManagement() {
   const [editId, setEditId] = useState(null);
   const [form, setForm] = useState({ bedNumber: '', ward: 'General', bedType: 'General', dailyRate: '', floor: '', isAC: false });
 
-  const loadBeds = async () => {
+  const loadBeds = useCallback(async () => {
     setLoading(true);
     try {
       const params = {};
@@ -31,9 +32,9 @@ export default function AdminBedManagement() {
       ]);
       setBeds(data);
       setStats(statsData);
-    } catch (e) { console.error(e); }
+    } catch { toast.error('Failed to load beds'); }
     setLoading(false);
-  };
+  }, [wardFilter, statusFilter]);
 
   useEffect(() => { loadBeds(); }, [wardFilter, statusFilter]);
 
@@ -52,7 +53,7 @@ export default function AdminBedManagement() {
       }
       resetForm();
       loadBeds();
-    } catch (e) { console.error(e); }
+    } catch { toast.error(editId ? 'Failed to update bed' : 'Failed to create bed'); }
   };
 
   const handleEdit = (bed) => {
@@ -69,7 +70,8 @@ export default function AdminBedManagement() {
   };
 
   const handleDelete = async (id) => {
-    try { await api.deleteBed(id); loadBeds(); } catch (e) { console.error(e); }
+    if (!confirm('Permanently delete this bed?')) return;
+    try { await api.deleteBed(id); loadBeds(); } catch { toast.error('Failed to delete bed'); }
   };
 
   const filtered = beds.filter(b => !search || b.bedNumber.toLowerCase().includes(search.toLowerCase()) || b.ward.toLowerCase().includes(search.toLowerCase()));

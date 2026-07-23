@@ -79,11 +79,19 @@ export default function AdminAnalytics() {
               <Pie data={[
                 { name: 'Patients', value: users.filter(u => u.role === 'patient').length },
                 { name: 'Doctors', value: users.filter(u => u.role === 'doctor').length },
+                { name: 'Clinic Doctors', value: users.filter(u => u.role === 'clinic_doctor').length },
                 { name: 'Admins', value: users.filter(u => u.role === 'admin').length },
+                { name: 'Super Admins', value: users.filter(u => u.role === 'superadmin').length },
+                { name: 'Lab Owners', value: users.filter(u => u.role === 'lab_owner').length },
+                { name: 'Pharmacy Owners', value: users.filter(u => u.role === 'pharmacy_owner').length },
               ]} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
                 <Cell fill="#10b981" />
                 <Cell fill="#3b82f6" />
+                <Cell fill="#06b6d4" />
                 <Cell fill="#8b5cf6" />
+                <Cell fill="#ef4444" />
+                <Cell fill="#f59e0b" />
+                <Cell fill="#ec4899" />
               </Pie>
               <Tooltip />
               <Legend />

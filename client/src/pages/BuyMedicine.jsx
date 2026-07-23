@@ -97,7 +97,8 @@ export default function BuyMedicine() {
 
   const stores = useMemo(() => {
     let result = allStores.filter(s => {
-      if (selectedCity && !s.city.toLowerCase().includes(selectedCity.toLowerCase())) return false;
+      // City filter disabled — show all cities' data regardless of selected city
+      // if (selectedCity && !s.city.toLowerCase().includes(selectedCity.toLowerCase())) return false;
       if (search && !s.name.toLowerCase().includes(search.toLowerCase())) return false;
       if (openNow && !s.open) return false;
       if (filter24x7 && !s.tags.includes('24x7')) return false;

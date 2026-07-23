@@ -1,6 +1,7 @@
 import { createContext, useContext } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { loginUser, registerUser, logoutUser, updateUser as updateUserAction, selectCurrentUser, selectAuthLoading, selectIsAuthenticated } from '@/store/slices/authSlice';
+import { loginUser, registerUser, logoutUser, updateUser as updateUserAction, setUser, selectCurrentUser, selectAuthLoading, selectIsAuthenticated } from '@/store/slices/authSlice';
+import { secureSetItem } from '@/lib/security';
 
 const AuthContext = createContext(null);
 
@@ -28,8 +29,13 @@ export function AuthProvider({ children }) {
     dispatch(updateUserAction(updates));
   };
 
+  const completeOtpLogin = async ({ token, user: userData }) => {
+    await secureSetItem('hms_token', token);
+    dispatch(setUser(userData));
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, loading, updateUser, isAuthenticated }}>
+    <AuthContext.Provider value={{ user, login, register, logout, loading, updateUser, isAuthenticated, completeOtpLogin }}>
       {children}
     </AuthContext.Provider>
   );

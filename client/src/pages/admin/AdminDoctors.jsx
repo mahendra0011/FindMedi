@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Stethoscope, Search, Trash2, Plus, Star, Phone, Mail, Save, CheckCircle, Ban } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
 
 const specializations = ['Cardiology', 'Neurology', 'Orthopedics', 'Pediatrics', 'Dermatology', 'Oncology', 'General Medicine', 'ENT'];
@@ -15,14 +16,14 @@ export default function AdminDoctors() {
   const [editId, setEditId] = useState(null);
   const [form, setForm] = useState({ name: '', specialization: 'Cardiology', experience: '', phone: '', email: '', qualifications: '', available: true });
 
-  const loadDoctors = async () => {
+  const loadDoctors = useCallback(async () => {
     setLoading(true);
     try {
       const data = await api.getDoctors({ search, includeAll: 'true' });
       setDoctors(data);
-    } catch (e) { console.error(e); }
+    } catch { toast.error('Failed to load doctors'); }
     setLoading(false);
-  };
+  }, [search]);
 
   useEffect(() => { loadDoctors(); }, [search]);
 
@@ -36,7 +37,7 @@ export default function AdminDoctors() {
         await api.createDoctor({ ...form, rating: 0, patients: 0, initials: form.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() });
       }
       resetForm(); loadDoctors();
-    } catch (e) { console.error(e); }
+    } catch { toast.error(editId ? 'Failed to update doctor' : 'Failed to create doctor'); }
   };
 
   const handleEdit = (doc) => {
@@ -45,15 +46,16 @@ export default function AdminDoctors() {
   };
 
   const handleDelete = async (id) => {
-    try { await api.deleteDoctor(id); loadDoctors(); } catch (e) { console.error(e); }
+    if (!confirm('Permanently delete this doctor?')) return;
+    try { await api.deleteDoctor(id); loadDoctors(); } catch { toast.error('Failed to delete doctor'); }
   };
 
   const handleToggleAvailability = async (doc) => {
-    try { await api.updateDoctor(doc._id, { available: !doc.available }); loadDoctors(); } catch (e) { console.error(e); }
+    try { await api.updateDoctor(doc._id, { available: !doc.available }); loadDoctors(); } catch { toast.error('Failed to update availability'); }
   };
 
   const handleApprove = async (id) => {
-    try { await api.approveDoctor(id); loadDoctors(); } catch (e) { console.error(e); }
+    try { await api.approveDoctor(id); loadDoctors(); } catch { toast.error('Failed to approve doctor'); }
   };
 
 

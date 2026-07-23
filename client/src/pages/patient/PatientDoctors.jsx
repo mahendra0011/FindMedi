@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Search, Star, Clock, Phone, Mail, CalendarDays, Filter, ChevronRight, CheckCircle, IndianRupee, Download, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -25,6 +25,7 @@ export default function PatientDoctors() {
   const [bookingNotes, setBookingNotes] = useState('');
   const [bookingSuccess, setBookingSuccess] = useState(false);
   const [bookingDetails, setBookingDetails] = useState(null);
+  const bookingTimeoutRef = useRef(null);
 
   const loadDoctors = async () => {
     setLoading(true);
@@ -42,6 +43,12 @@ export default function PatientDoctors() {
 
   useEffect(() => {
     api.getHospitals({ status: 'approved' }).then(setHospitals).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (bookingTimeoutRef.current) clearTimeout(bookingTimeoutRef.current);
+    };
   }, []);
 
   const handleBook = async () => {
@@ -63,7 +70,7 @@ export default function PatientDoctors() {
       await api.createAppointment(details);
       setBookingDetails(details);
       setBookingSuccess(true);
-      setTimeout(() => {
+      bookingTimeoutRef.current = setTimeout(() => {
         setBookingSuccess(false);
         setSelectedDoctor(null);
         setBookingDate('');
@@ -280,7 +287,7 @@ export default function PatientDoctors() {
                   <div>
                     <label className="text-sm font-medium text-foreground mb-1.5 block">Time Slot</label>
                     <div className="grid grid-cols-4 gap-2">
-                      {(selectedDoctor.time_slots || ['09:00 AM', '10:00 AM', '11:00 AM', '02:00 PM', '03:00 PM', '04:00 PM']).map(t => (
+                      {(selectedDoctor.time_slots && selectedDoctor.time_slots.length > 0 ? selectedDoctor.time_slots : ['09:00 AM', '10:00 AM', '11:00 AM', '02:00 PM', '03:00 PM', '04:00 PM']).map(t => (
                         <button key={t} onClick={() => setBookingTime(t)}
                           className={`px-2 py-1.5 rounded-lg text-xs font-medium transition-colors ${bookingTime === t ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>
                           {t}

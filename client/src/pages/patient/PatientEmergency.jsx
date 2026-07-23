@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { AlertTriangle, Phone, Clock, Activity, CheckCircle } from 'lucide-react';
+import { AlertTriangle, Phone, Clock, Activity, CheckCircle, User } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -112,7 +112,7 @@ export default function PatientEmergency() {
                   </span>
                 </div>
                 <h4 className="font-medium text-foreground">{c.condition}</h4>
-                {c.assignedDoctorName && <p className="text-sm text-blue-600 mt-2">👨‍⚕️ Doctor: {c.assignedDoctorName}</p>}
+                {c.assignedDoctorName && <p className="text-sm text-blue-600 mt-2 flex items-center gap-1"><User className="w-3.5 h-3.5" /> Doctor: {c.assignedDoctorName}</p>}
               </div>
             ))}
           </div>

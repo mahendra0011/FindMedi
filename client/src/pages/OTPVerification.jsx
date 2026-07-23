@@ -14,6 +14,7 @@ export default function OTPVerification() {
   const [searchParams] = useSearchParams();
   const { user, completeOtpLogin } = useAuth();
   const email = searchParams.get('email') || user?.email || '';
+  const role = searchParams.get('role') || user?.role || '';
   const deliveryState = searchParams.get('delivery');
   const sentTo = searchParams.get('sentTo') || email;
   const otpInputRef = useRef(null);
@@ -73,9 +74,7 @@ export default function OTPVerification() {
       // Verify OTP on backend
       const data = await api.verifyOTP({ email, otp });
       if (data?.approvalPending) {
-        localStorage.removeItem('temp_password');
-        localStorage.removeItem('temp_role');
-        navigate(`/pending-approval?email=${encodeURIComponent(email)}&status=pending`);
+        navigate(`/pending-approval?email=${encodeURIComponent(email)}&role=${encodeURIComponent(data?.user?.role || 'account')}&status=pending`);
         return;
       }
 
@@ -83,9 +82,6 @@ export default function OTPVerification() {
         completeOtpLogin({ token: data.token, user: data.user });
       }
 
-      // Clean up temp login data from previous flow
-      localStorage.removeItem('temp_password');
-      localStorage.removeItem('temp_role');
       navigate('/dashboard');
     } catch (err) {
       setError(err.message || 'Invalid OTP. Please try again.');

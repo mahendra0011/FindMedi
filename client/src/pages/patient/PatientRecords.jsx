@@ -66,6 +66,9 @@ export default function PatientRecords() {
     return counts;
   };
 
+  const calcAge = (dob) => { if (!dob) return '--'; const a = Math.floor((new Date() - new Date(dob)) / 31557600000); return a >= 0 ? a : '--'; };
+  const allergiesList = user?.allergies?.map(a => a.allergen || a).filter(Boolean).join(', ') || 'None';
+
   if (loading) return (
     <div className="flex justify-center py-20">
       <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
@@ -91,19 +94,19 @@ export default function PatientRecords() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
               <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Age: <span className="text-foreground font-medium">--</span></span>
+                <span className="text-sm text-muted-foreground">Age: <span className="text-foreground font-medium">{calcAge(user?.dateOfBirth)}</span></span>
               </div>
               <div className="flex items-center gap-2">
                 <User className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Gender: <span className="text-foreground font-medium">--</span></span>
+                <span className="text-sm text-muted-foreground">Gender: <span className="text-foreground font-medium">{user?.gender || '--'}</span></span>
               </div>
               <div className="flex items-center gap-2">
                 <Pipette className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Blood: <span className="text-foreground font-medium">--</span></span>
+                <span className="text-sm text-muted-foreground">Blood: <span className="text-foreground font-medium">{user?.bloodGroup || '--'}</span></span>
               </div>
               <div className="flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Allergies: <span className="text-foreground font-medium">None</span></span>
+                <span className="text-sm text-muted-foreground">Allergies: <span className="text-foreground font-medium">{allergiesList}</span></span>
               </div>
             </div>
           </div>
@@ -205,7 +208,7 @@ export default function PatientRecords() {
                           <div className="flex items-center gap-2 mb-1">
                             <span className="font-medium text-foreground">{apt.date}</span>
                             <Badge className={`text-[10px] ${typeColors[apt.type] || 'bg-muted text-muted-foreground'}`}>
-                              {apt.status}
+                              {apt.type || apt.status}
                             </Badge>
                           </div>
                           <p className="text-sm text-muted-foreground">

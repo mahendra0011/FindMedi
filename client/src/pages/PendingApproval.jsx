@@ -1,13 +1,36 @@
+import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Activity, Clock, Mail, ShieldAlert } from 'lucide-react';
+import { Activity, Clock, Mail, ShieldAlert, RefreshCw, ExternalLink, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { api } from '@/lib/api';
 
 export default function PendingApproval() {
   const [searchParams] = useSearchParams();
   const email = searchParams.get('email') || '';
+  const role = searchParams.get('role') || 'account';
   const status = searchParams.get('status') || 'pending';
   const rejected = status === 'rejected';
+  const [checking, setChecking] = useState(false);
+
+  const roleLabel = { doctor: 'doctor', technician: 'technician', admin: 'hospital admin', clinic_doctor: 'clinic', lab_owner: 'lab owner', pharmacy_owner: 'pharmacy owner' }[role] || role;
+
+  useEffect(() => {
+    if (rejected) return;
+    const interval = setInterval(async () => {
+      setChecking(true);
+      try {
+        const user = await api.me();
+        if (user?.approvalStatus === 'approved' || user?.doctorApproved) {
+          window.location.href = '/dashboard';
+        }
+      } catch {
+      } finally {
+        setChecking(false);
+      }
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [rejected]);
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-6">
@@ -25,8 +48,8 @@ export default function PendingApproval() {
         </h1>
         <p className="text-sm text-muted-foreground leading-relaxed">
           {rejected
-            ? 'Your doctor account was not approved. Please contact the MediCore administrator for details.'
-            : 'Your email is verified. An administrator must approve your doctor profile before dashboard access is enabled.'}
+            ? `Your ${roleLabel} account was not approved. Please contact the MediCore administrator for details.`
+            : `Your email is verified. An administrator must approve your ${roleLabel} profile before dashboard access is enabled.`}
         </p>
 
         {email && (
@@ -36,6 +59,11 @@ export default function PendingApproval() {
           </div>
         )}
 
+        <a href={`mailto:support@medicore.com?subject=Approval%20Query%20-%20${roleLabel}&body=Account%20email%3A%20${encodeURIComponent(email)}%0A%0ARole%3A%20${roleLabel}%0AStatus%3A%20${status}`}
+          className="mt-4 inline-flex items-center gap-1.5 text-sm text-primary font-medium hover:underline">
+          <ExternalLink className="w-4 h-4" /> Contact Administrator
+        </a>
+
         <div className="mt-7 flex flex-col gap-3">
           <Button asChild className="gap-2">
             <Link to="/login">
@@ -43,9 +71,12 @@ export default function PendingApproval() {
               Back to Login
             </Link>
           </Button>
-          <p className="text-xs text-muted-foreground">
-            You will receive an email notification when the review is complete.
-          </p>
+          {!rejected && (
+            <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+              {checking ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+              Auto-checks every 30s
+            </div>
+          )}
         </div>
       </motion.div>
     </div>

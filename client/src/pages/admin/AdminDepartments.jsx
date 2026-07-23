@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Building2, Search, Plus, Trash2, Save, Edit, IndianRupee } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
 
 export default function AdminDepartments() {
@@ -12,14 +13,14 @@ export default function AdminDepartments() {
   const [editId, setEditId] = useState(null);
   const [form, setForm] = useState({ name: '', description: '', head: '', active: true, fees_structure: 0 });
 
-  const loadDepartments = async () => {
+  const loadDepartments = useCallback(async () => {
     setLoading(true);
     try {
       const data = await api.getDepartments();
       setDepartments(data);
-    } catch (e) { console.error(e); }
+    } catch { toast.error('Failed to load departments'); }
     setLoading(false);
-  };
+  }, []);
 
   useEffect(() => { loadDepartments(); }, []);
 
@@ -34,7 +35,7 @@ export default function AdminDepartments() {
       }
       resetForm();
       loadDepartments();
-    } catch (e) { console.error(e); }
+    } catch { toast.error(editId ? 'Failed to update department' : 'Failed to create department'); }
   };
 
   const handleEdit = (dept) => {
@@ -44,7 +45,8 @@ export default function AdminDepartments() {
   };
 
   const handleDelete = async (id) => {
-    try { await api.deleteDepartment(id); loadDepartments(); } catch (e) { console.error(e); }
+    if (!confirm('Permanently delete this department?')) return;
+    try { await api.deleteDepartment(id); loadDepartments(); } catch { toast.error('Failed to delete department'); }
   };
 
   return (
