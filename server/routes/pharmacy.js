@@ -314,6 +314,39 @@ router.delete('/orders/:id', protect, async (req, res) => {
   catch (err) { res.status(500).json({ message: err.message }); }
 });
 
+router.post('/orders/:id/forward', protect, async (req, res) => {
+  try {
+    const original = await PharmacyOrder.findById(req.params.id);
+    if (!original) return res.status(404).json({ message: 'Order not found' });
+    const { facilityId } = req.body;
+    if (!facilityId) return res.status(400).json({ message: 'facilityId (new pharmacy) is required' });
+    const count = await PharmacyOrder.countDocuments();
+    const newOrderId = `ORD-${String(count + 1).padStart(4, '0')}`;
+    const newOrder = await PharmacyOrder.create({
+      patientId: original.patientId,
+      patientName: original.patientName,
+      phone: original.phone,
+      deliveryAddress: original.deliveryAddress,
+      items: original.items,
+      total: original.total,
+      note: original.note,
+      orderId: newOrderId,
+      hospitalId: original.hospitalId,
+      facilityId,
+      createdBy: req.user._id,
+      prescriptionUrl: original.prescriptionUrl,
+      deliveryFee: original.deliveryFee,
+      deliveryMode: original.deliveryMode,
+      deliverySlot: original.deliverySlot,
+      paymentMethod: original.paymentMethod,
+      discount: original.discount,
+    });
+    original.status = 'Cancelled';
+    await original.save();
+    res.status(201).json({ newOrder, cancelledOrder: original });
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
 // ─── Deliveries ────────────────────────────────────────────────────────────
 router.get('/deliveries', protect, async (req, res) => {
   try {

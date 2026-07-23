@@ -11,8 +11,7 @@ export const REJECTION_REASONS = [
   { id: 'other', label: 'Other reason' },
 ];
 
-const DEFAULT_SLA_MS = 2 * 60 * 60 * 1000; // 2 hours
-const DEMO_SLA_MS = 10 * 1000; // 10 seconds for demo (can be toggled)
+const DEFAULT_SLA_MS = 2 * 60 * 60 * 1000;
 
 export const AUTO_RETRY_STATUS = {
   IDLE: 'idle',
@@ -34,6 +33,9 @@ export function useAutoRetry() {
   });
   const timeoutRef = useRef(null);
   const isRunningRef = useRef(false);
+  const forwardRef = useRef(null);
+
+  const setForwardFn = useCallback((fn) => { forwardRef.current = fn; }, []);
 
   const startRetry = useCallback((rejectionReason, orderContext) => {
     if (!autoRetryEnabled || pharmacies.length === 0) {
@@ -62,6 +64,7 @@ export function useAutoRetry() {
     }, DEFAULT_SLA_MS);
 
     return true;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pharmacies, autoRetryEnabled]);
 
   const handleAccept = useCallback((storeIndex, store, orderContext) => {
@@ -83,7 +86,17 @@ export function useAutoRetry() {
     isRunningRef.current = false;
   }, []);
 
-  const handleReject = useCallback((storeIndex, store, rejectionReason, orderContext) => {
+  const advanceToNext = useCallback(async (storeIndex, store, rejectionReason, orderContext) => {
+    if (forwardRef.current && orderContext?.orderId) {
+      try {
+        await forwardRef.current(orderContext.orderId, store.id || store.facilityId);
+      } catch {
+        toast.error('Failed to forward order to next pharmacy');
+      }
+    }
+  }, []);
+
+  const handleReject = useCallback(async (storeIndex, store, rejectionReason, orderContext) => {
     if (!isRunningRef.current) return;
 
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -103,6 +116,8 @@ export function useAutoRetry() {
       isRunningRef.current = false;
       return;
     }
+
+    await advanceToNext(storeIndex, store, rejectionReason, orderContext);
 
     const nextStore = pharmacies[nextIndex];
     toast.info(`${store.name} declined — trying ${nextStore.name} (Priority ${nextStore.priority})`);
@@ -124,7 +139,8 @@ export function useAutoRetry() {
     timeoutRef.current = setTimeout(() => {
       handleTimeout(nextIndex, nextStore, orderContext);
     }, DEFAULT_SLA_MS);
-  }, [pharmacies]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pharmacies, advanceToNext]);
 
   const handleTimeout = useCallback((storeIndex, store, orderContext) => {
     if (!isRunningRef.current) return;
@@ -160,5 +176,6 @@ export function useAutoRetry() {
     handleReject,
     stopRetry,
     resetRetry,
+    setForwardFn,
   };
 }
