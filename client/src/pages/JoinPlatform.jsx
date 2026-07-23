@@ -5,7 +5,7 @@ import {
    Building2, Stethoscope, Microscope, Pill, ArrowLeft, ArrowRight,
    Check, ChevronRight, User, Mail, Phone, MapPin, Clock, FileText,
    Plus, X, Users, Star, Award, CalendarDays, BadgeCheck, Loader2,
-   Shield, Heart, Eye, EyeOff, Activity, Lock, Globe, Image, UserRound
+   Shield, Heart, Eye, EyeOff, Activity, Lock, Globe, Image, UserRound, BarChart3
  } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -763,10 +763,4 @@ export default function JoinPlatform() {
   );
 }
 
-function BarChart3(props) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <line x1="12" y1="20" x2="12" y2="10" /><line x1="18" y1="20" x2="18" y2="4" /><line x1="6" y1="20" x2="6" y2="16" />
-    </svg>
-  );
-}
+

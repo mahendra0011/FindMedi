@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { CalendarDays, Clock, User, CheckCircle, XCircle, AlertCircle, Filter, RefreshCw, FileText, IndianRupee, Send, Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 
@@ -65,29 +66,31 @@ export default function DoctorAppointments() {
     setLoading(true);
     try {
       const data = await api.getAppointments({ doctor: user?.name, status: filter });
-      setAppointments(data);
-    } catch (e) { console.error(e); }
+      const docName = user?.name?.toLowerCase();
+      setAppointments((data || []).filter(apt => apt.doctor?.toLowerCase() === docName));
+    } catch (e) { console.error(e); toast.error('Failed to load appointments'); }
     setLoading(false);
   };
 
   useEffect(() => { loadAppointments(); }, [filter, user?.name]);
 
   const handleStatus = async (id, status) => {
-    try { await api.updateAppointment(id, { status }); loadAppointments(); } catch (e) { console.error(e); }
+    try { await api.updateAppointment(id, { status }); loadAppointments(); } catch (e) { console.error(e); toast.error('Failed to update appointment'); }
   };
 
   const handleReschedule = async () => {
     if (!newDate || !newTime || !rescheduleId) return;
     try {
       await api.updateAppointment(rescheduleId, { date: newDate, time: newTime, status: 'Pending' });
+      toast.success('Appointment rescheduled');
       setRescheduleId(null); setNewDate(''); setNewTime('');
       loadAppointments();
-    } catch (e) { console.error(e); }
+    } catch (e) { console.error(e); toast.error('Failed to reschedule appointment'); }
   };
 
   const handleComplete = (apt) => {
     setCompleteId(apt._id);
-    setBillAmount(billServices[apt.type] || 500);
+    setBillAmount(user?.consultationFee || billServices[apt.type] || 500);
     setPrescriptionData({ ...initialPrescriptionData, patientName: apt.patient, doctorName: user?.name, specialization: user?.specialization || '' });
     setLabReportData({ ...initialLabReportData, patientName: apt.patient, doctorName: user?.name, specialization: user?.specialization || '', testDate: new Date().toISOString().split('T')[0], reportDate: new Date().toISOString().split('T')[0] });
     setDischargeData({ ...initialDischargeData, patientName: apt.patient, doctorName: user?.name, specialization: user?.specialization || '', admissionDate: new Date().toISOString().split('T')[0], dischargeDate: new Date().toISOString().split('T')[0] });
@@ -150,7 +153,8 @@ export default function DoctorAppointments() {
 
   const handleGeneratePrescription = async () => {
     const apt = appointments.find(a => a._id === completeId);
-    if (!apt || !prescriptionData.diagnosis) return;
+    if (!apt) return toast.error('Appointment not found');
+    if (!prescriptionData.diagnosis) return toast.error('Please enter a diagnosis');
     try {
       const meds = prescriptionData.medications.filter(m => m.name.trim());
       await api.createRecord({
@@ -173,14 +177,16 @@ export default function DoctorAppointments() {
         },
       });
       await api.createNotification({ title: 'New Prescription', message: `Dr. ${user?.name} has generated your prescription`, type: 'records', userId: apt.patientId || apt.patient });
+      toast.success('Prescription generated');
       setShowReportModal(false);
       loadAppointments();
-    } catch (e) { console.error(e); }
+    } catch (e) { console.error(e); toast.error('Failed to generate prescription'); }
   };
 
   const handleGenerateLabReport = async () => {
     const apt = appointments.find(a => a._id === completeId);
-    if (!apt || !labReportData.reportId) return;
+    if (!apt) return toast.error('Appointment not found');
+    if (!labReportData.reportId) return toast.error('Please enter a Report ID');
     try {
       const tests = labReportData.tests.filter(t => t.name.trim());
       await api.createRecord({
@@ -203,14 +209,16 @@ export default function DoctorAppointments() {
         },
       });
       await api.createNotification({ title: 'Lab Report Ready', message: `Dr. ${user?.name} has generated your lab report`, type: 'records', userId: apt.patientId || apt.patient });
+      toast.success('Lab report generated');
       setShowReportModal(false);
       loadAppointments();
-    } catch (e) { console.error(e); }
+    } catch (e) { console.error(e); toast.error('Failed to generate lab report'); }
   };
 
   const handleGenerateDischargeSummary = async () => {
     const apt = appointments.find(a => a._id === completeId);
-    if (!apt || !dischargeData.diagnosis) return;
+    if (!apt) return toast.error('Appointment not found');
+    if (!dischargeData.diagnosis) return toast.error('Please enter a diagnosis');
     try {
       const meds = dischargeData.medications.filter(m => m.name.trim());
       await api.createRecord({
@@ -238,15 +246,17 @@ export default function DoctorAppointments() {
         },
       });
       await api.createNotification({ title: 'Discharge Summary', message: `Dr. ${user?.name} has generated your discharge summary`, type: 'records', userId: apt.patientId || apt.patient });
+      toast.success('Discharge summary generated');
       setShowReportModal(false);
       loadAppointments();
-    } catch (e) { console.error(e); }
+    } catch (e) { console.error(e); toast.error('Failed to generate discharge summary'); }
   };
 
   const handleGenerateBill = async () => {
-    if (!completeId) return;
+    if (!completeId) return toast.error('No appointment selected');
     const apt = appointments.find(a => a._id === completeId);
-    if (!apt) return;
+    if (!apt) return toast.error('Appointment not found');
+    if (!billAmount) return toast.error('Please enter a bill amount');
     try {
       await api.createBill({
         patient: apt.patient,
@@ -259,15 +269,16 @@ export default function DoctorAppointments() {
       });
       await api.createNotification({
         title: 'New Invoice',
-        message: `New invoice of Rs ${billAmount} generated for ${apt.type} - ${apt.department}`,
+        message: `New invoice of ₹${billAmount} generated for ${apt.type} - ${apt.department}`,
         type: 'payment',
         userId: apt.patientId || apt.patient,
       });
       await api.updateAppointment(completeId, { status: 'Completed' });
+      toast.success('Bill generated');
       setBillModal(null);
       setCompleteId(null);
       loadAppointments();
-    } catch (e) { console.error(e); }
+    } catch (e) { console.error(e); toast.error('Failed to generate bill'); }
   };
 
   return (

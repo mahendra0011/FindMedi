@@ -377,7 +377,7 @@ export default function DoctorConsultation() {
           <Button variant="outline" onClick={handleAdmitToIPD}>
             <Bed className="w-4 h-4 mr-1" /> Admit to IPD
           </Button>
-          <Button variant="outline" onClick={() => navigate('/lab')}>
+          <Button variant="outline" onClick={() => navigate('/diagnostic-centers')}>
             <FlaskConical className="w-4 h-4 mr-1" /> Send to Lab
           </Button>
           <Button variant="outline" onClick={() => navigate('/pharmacy')}>

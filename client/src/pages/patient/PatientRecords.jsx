@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { User, Calendar, Activity, Heart, Thermometer, FileText, Pipette, Clock, Search, AlertCircle, Pill, FlaskConical, Receipt, Wallet } from 'lucide-react';
+import { User, Calendar, Activity, Heart, Thermometer, FileText, Pipette, Clock, Search, AlertCircle, Pill, FlaskConical, Receipt, Wallet, Eye, Download, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 
@@ -31,6 +32,7 @@ export default function PatientRecords() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
+  const [viewRecord, setViewRecord] = useState(null);
 
   const loadData = async () => {
     setLoading(true);
@@ -42,7 +44,7 @@ export default function PatientRecords() {
       setAppointments(a || []);
       const recordsArray = r?.records || r || [];
       setRecords(recordsArray);
-    } catch (e) { console.error(e); }
+    } catch (e) { console.error(e); toast.error('Failed to load records'); }
     setLoading(false);
   };
 
@@ -238,11 +240,16 @@ export default function PatientRecords() {
                                   <span className="text-[10px] text-muted-foreground ml-auto">{rec.date}</span>
                                 </div>
                                 {rec.prescription && <p className="text-xs text-muted-foreground line-clamp-2 ml-7">Rx: {rec.prescription}</p>}
-                                  {(rec.attachments?.length > 0 || rec.data?.fileUrl || rec.fileUrl) && (
-                                    <Button variant="ghost" size="sm" className="mt-1 h-6 text-xs gap-1 ml-7" onClick={() => window.open(rec.attachments?.[0]?.url || rec.data?.fileUrl || rec.fileUrl, '_blank')}>
-                                      <FileText className="w-3 h-3" /> View Document
+                                  <div className="flex gap-1 ml-7 mt-1">
+                                    {(rec.attachments?.length > 0 || rec.data?.fileUrl || rec.fileUrl) && (
+                                      <Button variant="ghost" size="sm" className="h-6 text-xs gap-1" onClick={() => window.open(rec.attachments?.[0]?.url || rec.data?.fileUrl || rec.fileUrl, '_blank')}>
+                                        <FileText className="w-3 h-3" /> View Document
+                                      </Button>
+                                    )}
+                                    <Button variant="ghost" size="sm" className="h-6 text-xs gap-1" onClick={() => setViewRecord(rec)}>
+                                      <Eye className="w-3 h-3" /> Details
                                     </Button>
-                                  )}
+                                  </div>
                               </div>
                             );
                           })}
@@ -283,6 +290,60 @@ export default function PatientRecords() {
           <p className="text-xs text-muted-foreground">Upcoming</p>
         </div>
       </div>
+
+      {/* Record Detail Modal */}
+      {viewRecord && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setViewRecord(null)}>
+          <div className="bg-card rounded-2xl border border-border w-full max-w-lg p-6 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-heading text-lg font-bold text-foreground">{viewRecord.diagnosis || viewRecord.type}</h3>
+              <button onClick={() => setViewRecord(null)}><X className="w-5 h-5" /></button>
+            </div>
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">Type: <span className="text-foreground font-medium">{viewRecord.type}</span></p>
+              <p className="text-sm text-muted-foreground">Date: <span className="text-foreground font-medium">{viewRecord.date}</span></p>
+              {viewRecord.diagnosis && <p className="text-sm text-muted-foreground">Diagnosis: <span className="text-foreground font-medium">{viewRecord.diagnosis}</span></p>}
+              {viewRecord.prescription && (
+                <div>
+                  <p className="text-sm font-medium text-foreground mb-1">Prescription:</p>
+                  <pre className="text-sm bg-muted/30 rounded-lg p-3 whitespace-pre-wrap">{viewRecord.prescription}</pre>
+                </div>
+              )}
+              {viewRecord.notes && (
+                <div>
+                  <p className="text-sm font-medium text-foreground mb-1">Notes:</p>
+                  <p className="text-sm bg-muted/30 rounded-lg p-3">{viewRecord.notes}</p>
+                </div>
+              )}
+              {viewRecord.data?.medications?.length > 0 && (
+                <div>
+                  <p className="text-sm font-medium text-foreground mb-1">Medications:</p>
+                  <div className="space-y-1">
+                    {viewRecord.data.medications.map((m, i) => (
+                      <p key={i} className="text-sm bg-muted/30 rounded-lg p-2">{m.name} - {m.dosage} - {m.frequency}{m.instructions ? ` (${m.instructions})` : ''}</p>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {viewRecord.data?.tests?.length > 0 && (
+                <div>
+                  <p className="text-sm font-medium text-foreground mb-1">Test Results:</p>
+                  <div className="space-y-1">
+                    {viewRecord.data.tests.map((t, i) => (
+                      <p key={i} className="text-sm bg-muted/30 rounded-lg p-2">{t.name}: {t.result} {t.unit} (Ref: {t.referenceRange})</p>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {(viewRecord.attachments?.length > 0 || viewRecord.data?.fileUrl || viewRecord.fileUrl) && (
+                <Button className="w-full gap-2" onClick={() => window.open(viewRecord.attachments?.[0]?.url || viewRecord.data?.fileUrl || viewRecord.fileUrl, '_blank')}>
+                  <Download className="w-4 h-4" /> Download Document
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
