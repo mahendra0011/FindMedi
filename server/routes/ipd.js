@@ -13,8 +13,7 @@ const ipdClinicalSchema = z.object({}).passthrough();
 const router = express.Router();
 
 const generateAdmissionId = async () => {
-  const count = await Admission.countDocuments();
-  return `IPD-${new Date().getFullYear()}-${String(count + 1).padStart(5, '0')}`;
+  return `IPD-${new Date().getFullYear()}-${Date.now().toString(36).slice(-6).toUpperCase()}${Math.floor(Math.random() * 36).toString(36).toUpperCase()}`;
 };
 
 // ─── Bed Management ────────────────────────────────────────────────────────
@@ -162,11 +161,8 @@ router.put('/admissions/:id/discharge', protect, adminOnly, validate(ipdDischarg
 
     // Auto-create housekeeping task on discharge
     const Housekeeping = (await import('../models/Housekeeping.js')).default;
-    const genId = async () => {
-      const c = await Housekeeping.countDocuments();
-      return `HSK-${new Date().getFullYear()}-${String(c + 1).padStart(5, '0')}`;
-    };
-    const taskId = await genId();
+    const genId = () => `HSK-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+    const taskId = genId();
     const taskType = isInfectionCase ? 'Terminal Cleaning (Infection)' : 'Routine Cleaning';
     await Housekeeping.create({
       taskId,

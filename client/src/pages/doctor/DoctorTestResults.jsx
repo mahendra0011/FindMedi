@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
+import { toast } from 'sonner';
 
 const statusColors = {
   pending: 'bg-warning/10 text-warning',
@@ -27,7 +28,7 @@ export default function DoctorTestResults() {
       try {
         const res = await api.getLabOrders({});
         setOrders(res.orders || []);
-      } catch (e) { console.error(e); }
+      } catch (e) { toast.error(e.message); }
       setLoading(false);
     };
     load();
@@ -96,7 +97,7 @@ export default function DoctorTestResults() {
                   </div>
                 </div>
                 <div className="flex flex-col items-end gap-2">
-                  {order.priority === '紧急' || order.priority === 'high' || order.priority === 'STAT' ? (
+                  {order.priority === 'emergency' || order.priority === 'high' || order.priority === 'STAT' ? (
                     <Badge className="bg-destructive/10 text-destructive">STAT</Badge>
                   ) : null}
                   <Badge className={statusColors[order.status] || statusColors.pending}>

@@ -13,9 +13,9 @@ import { auditLog } from '../middleware/audit.js';
 const router = express.Router();
 
 const generateToken = async (department) => {
-  const count = await Appointment.countDocuments({ department });
   const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-  return `TKT-${department.slice(0, 3).toUpperCase()}-${dateStr}-${String(count + 1).padStart(3, '0')}`;
+  const seq = Date.now().toString(36).slice(-4).toUpperCase();
+  return `TKT-${department.slice(0, 3).toUpperCase()}-${dateStr}-${seq}`;
 };
 
 const calculateEstimatedWaitTime = async (department, priority = 'Normal') => {
@@ -75,7 +75,7 @@ router.get('/', protect, async (req, res) => {
     const appointments = await Appointment.find(filter)
       .populate('patientId', 'name email phone')
       .populate('doctorId', 'name specialization')
-      .sort({ date: -1, time: 1 });
+      .sort({ date: -1, createdAt: -1 });
     res.json(appointments);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
@@ -99,7 +99,7 @@ router.get('/my-appointments', protect, async (req, res) => {
     const appointments = await Appointment.find(filter)
       .populate('patientId', 'name email phone')
       .populate('doctorId', 'name specialization')
-      .sort({ date: -1, time: 1 });
+      .sort({ date: -1, createdAt: 1 });
     res.json(appointments);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
@@ -133,6 +133,11 @@ router.post('/', protect, validate(createAppointmentSchema), async (req, res) =>
       if (doctorDoc && doctorDoc.hospitalId) {
         hospitalId = doctorDoc.hospitalId;
       }
+    }
+    
+    if (doctorId && date && time) {
+      const existing = await Appointment.findOne({ doctorId, date, time, status: { $nin: ['Cancelled', 'Completed'] } });
+      if (existing) return res.status(409).json({ message: 'This time slot is already booked' });
     }
     
     const countToday = await Appointment.countDocuments({ date, doctor: doctor || '' });
@@ -221,6 +226,9 @@ router.put('/:id', protect, validate(updateAppointmentSchema), async (req, res) 
     if (req.user.hospitalId && appointment.hospitalId && appointment.hospitalId.toString() !== req.user.hospitalId.toString()) {
       return res.status(403).json({ message: 'Not authorized to modify this appointment' });
     }
+    if ((req.user.role === 'doctor' || req.user.role === 'clinic_doctor') && appointment.doctorId?.toString() !== req.user.doctorProfileId?.toString()) {
+      return res.status(403).json({ message: 'Not authorized to modify this appointment' });
+    }
     
     const oldStatus = appointment.status;
     const updates = { ...req.body };
@@ -252,6 +260,9 @@ router.delete('/:id', protect, async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to delete this appointment' });
     }
     if (req.user.hospitalId && appointment.hospitalId && appointment.hospitalId.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Not authorized to delete this appointment' });
+    }
+    if ((req.user.role === 'doctor' || req.user.role === 'clinic_doctor') && appointment.doctorId?.toString() !== req.user.doctorProfileId?.toString()) {
       return res.status(403).json({ message: 'Not authorized to delete this appointment' });
     }
     await Appointment.findByIdAndDelete(req.params.id);

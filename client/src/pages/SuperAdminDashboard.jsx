@@ -66,7 +66,8 @@ function UserManagementTab() {
     try { await api.deleteUser(id); loadUsers(); } catch { toast.error('Failed to delete user'); }
   };
 
-  const handleBlock = async (id) => {
+  const handleBlock = async (id, currentlyBlocked) => {
+    if (!confirm(currentlyBlocked ? 'Unblock this user?' : 'Block this user?')) return;
     try { await api.blockUser(id); loadUsers(); } catch { toast.error('Failed to update user status'); }
   };
 
@@ -155,7 +156,7 @@ function UserManagementTab() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center gap-2 justify-end">
-                        <Button variant="outline" size="sm" className="gap-1" onClick={() => handleBlock(u._id)}>
+                        <Button variant="outline" size="sm" className="gap-1" onClick={() => handleBlock(u._id, u.status === 'blocked')}>
                           {u.status === 'blocked' ? <CheckCircle className="w-3.5 h-3.5" /> : <Ban className="w-3.5 h-3.5" />}
                           {u.status === 'blocked' ? 'Unblock' : 'Block'}
                         </Button>
@@ -813,6 +814,7 @@ function PayoutsTab() {
   useEffect(() => { fetchPayouts(1); }, []);
 
   const handleMarkPaid = async (id) => {
+    if (!confirm('Mark this payout as paid?')) return;
     try {
       await api.markPayoutPaid(id, { transactionRef: `TXN-${Date.now()}` });
       toast.success('Payout marked as paid');
@@ -1090,7 +1092,7 @@ function DisputesTab() {
                   className="w-full rounded-xl border border-border/60 bg-background p-3 text-sm min-h-[80px]" placeholder="Resolution notes..." />
                 <div className="flex gap-2">
                   <Button className="flex-1 bg-success" onClick={() => handleResolve(selected._id)}>Resolve</Button>
-                  <Button variant="outline" className="flex-1 text-destructive" onClick={() => { api.updateDisputeStatus(selected._id, { status: 'Dismissed' }); setSelected(null); load(); }}>Dismiss</Button>
+                  <Button variant="outline" className="flex-1 text-destructive" onClick={async () => { try { await api.updateDisputeStatus(selected._id, { status: 'Dismissed' }); setSelected(null); load(); } catch { toast.error('Failed to dismiss'); } }}>Dismiss</Button>
                 </div>
               </div>
             )}
@@ -1126,9 +1128,11 @@ function SupportTicketsTab() {
 
   const handleReply = async () => {
     if (!reply.trim()) return;
-    await api.addTicketMessage(selected._id, { message: reply, senderName: 'Super Admin' });
-    setReply('');
-    load();
+    try {
+      await api.addTicketMessage(selected._id, { message: reply, senderName: 'Super Admin' });
+      setReply('');
+      load();
+    } catch { toast.error('Failed to send reply'); }
   };
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
@@ -1220,7 +1224,7 @@ function SupportTicketsTab() {
               <div className="flex gap-2">
                 <Input value={reply} onChange={e => setReply(e.target.value)} placeholder="Type your reply..." className="flex-1" />
                 <Button onClick={handleReply}>Send</Button>
-                <Button variant="outline" size="sm" onClick={() => { api.updateTicketStatus(selected._id, { status: 'Resolved' }); setSelected(null); load(); }}>Resolve</Button>
+                <Button variant="outline" size="sm" onClick={async () => { try { await api.updateTicketStatus(selected._id, { status: 'Resolved' }); setSelected(null); load(); } catch { toast.error('Failed to resolve'); } }}>Resolve</Button>
               </div>
             )}
             <Button variant="outline" className="w-full mt-3" onClick={() => setSelected(null)}>Close</Button>
@@ -1324,7 +1328,7 @@ function CategoriesTab() {
               </div>
               <div className="flex gap-1 mt-2">
                 <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => handleEdit(c)}>Edit</Button>
-                <Button variant="ghost" size="sm" className="h-7 px-2 text-destructive" onClick={() => { api.deleteCategory(c._id); load(); }}>Delete</Button>
+                <Button variant="ghost" size="sm" className="h-7 px-2 text-destructive" onClick={async () => { if (!confirm('Delete this category?')) return; try { await api.deleteCategory(c._id); load(); } catch { toast.error('Failed to delete'); } }}>Delete</Button>
               </div>
             </motion.div>
           ))}
@@ -1485,6 +1489,7 @@ export default function SuperAdminDashboard() {
   }
 
   async function handleSuspend(id) {
+    if (!confirm('Suspend this hospital?')) return;
     try {
       await api.suspendHospital(id);
       toast.success('Hospital suspended');

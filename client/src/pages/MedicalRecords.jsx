@@ -169,4 +169,4 @@ export default function MedicalRecords() {
       )}
     </div>
   );
-}// 5
+}

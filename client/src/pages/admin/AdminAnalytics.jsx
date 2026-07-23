@@ -24,7 +24,7 @@ export default function AdminAnalytics() {
         <StatCard title="Total Patients" value={users.filter(u => u.role === 'patient').length} icon={Users} change="Registered patients" />
         <StatCard title="Total Doctors" value={users.filter(u => u.role === 'doctor').length} icon={Stethoscope} change="Onboard doctors" />
         <StatCard title="Appointments" value={stats?.stats?.todayAppointments || 0} icon={CalendarDays} change="Today" />
-        <StatCard title="Revenue" value={`Rs ${(stats?.stats?.revenue || 0).toLocaleString()}`} icon={IndianRupee} change="Month to date" />
+        <StatCard title="Revenue" value={`₹${(stats?.stats?.revenue || 0).toLocaleString()}`} icon={IndianRupee} change="Month to date" />
       </div>
 
       {/* Charts */}

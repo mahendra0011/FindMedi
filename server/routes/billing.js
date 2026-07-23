@@ -11,16 +11,7 @@ import logger from '../config/logger.js';
 
 const router = express.Router();
 
-export const LAB_SERVICES = [
-  { id: 'bp_check', name: 'Blood Pressure Check', price: 100, category: 'Basic' },
-  { id: 'blood_sugar', name: 'Blood Sugar Test', price: 150, category: 'Lab' },
-  { id: 'fbc', name: 'Full Blood Count', price: 300, category: 'Lab' },
-  { id: 'xray', name: 'X-Ray Scan', price: 500, category: 'Imaging' },
-  { id: 'ecg', name: 'ECG Test', price: 400, category: 'Cardiac' },
-  { id: 'urine_test', name: 'Urine Test', price: 150, category: 'Lab' },
-  { id: 'lipid_profile', name: 'Lipid Profile', price: 450, category: 'Lab' },
-  { id: 'thyroid', name: 'Thyroid Panel', price: 500, category: 'Lab' },
-];
+// LAB_SERVICES removed — use Test catalog instead
 
 const createNotification = async (userId, title, message, type = 'payment') => {
   if (!userId) return;
@@ -41,14 +32,12 @@ const createNotification = async (userId, title, message, type = 'payment') => {
 
 const findPatientByName = async (name) => {
   if (!name) return null;
-  const patient = await User.findOne({ name: new RegExp(name, 'i'), role: 'patient' });
+  const patient = await User.findOne({ name, role: 'patient' });
   return patient;
 };
 
-const COUPONS = [
-  { code: 'WELCOME10', discount: 10, type: 'percent', minAmount: 0, maxDiscount: 500, active: true },
-  { code: 'SAVE500', discount: 500, type: 'fixed', minAmount: 2000, maxDiscount: null, active: true },
-];
+// COUPONS system TODO: move to database-backed admin-managed system
+const COUPONS = [];
 
 router.post('/validate-coupon', protect, async (req, res) => {
   try {
@@ -72,7 +61,7 @@ router.post('/validate-coupon', protect, async (req, res) => {
 
 // Get available lab services
 router.get('/services', protect, async (req, res) => {
-  res.json(LAB_SERVICES);
+  res.json([]);
 });
 
 router.get('/', protect, async (req, res) => {
@@ -84,33 +73,22 @@ router.get('/', protect, async (req, res) => {
       filter.hospitalId = req.user.hospitalId;
     }
     
-    // If admin or doctor, show all bills (or filter by their name for doctors)
     if (req.user.role === 'patient') {
-      filter.$or = [
-        { patientId: req.user._id },
-        { patient: new RegExp(req.user.name, 'i') }
-      ];
+      filter.patientId = req.user._id;
     } else if (req.user.role === 'doctor') {
       filter.doctorId = req.user.doctorProfileId;
     }
-    // Admin sees all bills - no filter needed
-    
+
+    if (req.user.hospitalId && req.user.role !== 'superadmin') {
+      filter.hospitalId = req.user.hospitalId;
+    }
+
     if (status && status !== 'All') filter.status = status;
     if (search) {
-      if (filter.$or) {
-        filter.$or.push(
-          { patient: new RegExp(search, 'i') },
-          { invoiceId: new RegExp(search, 'i') },
-          { service: new RegExp(search, 'i') }
-        );
-      } else {
-        filter.$or = [
-          { patient: new RegExp(search, 'i') },
-          { invoiceId: new RegExp(search, 'i') },
-          { service: new RegExp(search, 'i') },
-          { doctor: new RegExp(search, 'i') }
-        ];
-      }
+      filter.$or = [
+        { invoiceId: new RegExp(search, 'i') },
+        { service: new RegExp(search, 'i') }
+      ];
     }
     
     const bills = await Billing.find(filter)
@@ -121,7 +99,7 @@ router.get('/', protect, async (req, res) => {
     // Calculate totals
     let totalFilter = {};
     if (req.user.role === 'patient') {
-      totalFilter = { $or: [{ patientId: req.user._id }, { patient: new RegExp(req.user.name, 'i') }] };
+      totalFilter = { patientId: req.user._id };
     } else if (req.user.role === 'doctor') {
       totalFilter = { doctorId: req.user.doctorProfileId };
     }
@@ -140,8 +118,7 @@ router.post('/', protect, validate(createBillSchema), async (req, res) => {
   try {
     const { doctorId, doctor, service, amount, date, patient, patientId, services, source } = req.body;
     
-    const count = await Billing.countDocuments();
-    const invoiceId = `INV-${String(count + 1).padStart(4, '0')}`;
+    const invoiceId = `INV-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
     
     let finalPatientId;
     let finalPatient = patient || req.user.name;
@@ -191,9 +168,9 @@ router.post('/', protect, validate(createBillSchema), async (req, res) => {
     if (!finalDoctorId && req.user?.role === 'doctor') {
       const doctorProfile = await Doctor.findOne({
         $or: [
-          { user_id: req.user._id.toString() },
+          { user_id: req.user._id },
           { email: req.user.email },
-          { name: new RegExp(req.user.name, 'i') },
+          { name: req.user.name },
         ],
       });
       finalDoctorId = doctorProfile?._id || null;

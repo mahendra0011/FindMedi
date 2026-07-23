@@ -12,8 +12,8 @@ const bloodCrossmatchSchema = z.object({ unitIds: z.array(z.string()).optional()
 
 const router = express.Router();
 
-const genUnitId = async () => { const c = await BloodUnit.countDocuments(); return `BLD-${new Date().getFullYear()}-${String(c+1).padStart(5,'0')}`; };
-const genReqId = async () => { const c = await BloodRequest.countDocuments(); return `BRQ-${new Date().getFullYear()}-${String(c+1).padStart(5,'0')}`; };
+const genUnitId = () => `BLD-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+const genReqId = () => `BRQ-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 
 router.get('/units', protect, async (req, res) => {
   try {
@@ -29,7 +29,7 @@ router.get('/units', protect, async (req, res) => {
 
 router.post('/units', protect, adminOnly, validate(createBloodUnitSchema), async (req, res) => {
   try {
-    const unitId = await genUnitId();
+    const unitId = genUnitId();
     const unit = await BloodUnit.create({ ...req.body, unitId, hospitalId: req.user.hospitalId || undefined });
     res.status(201).json(unit);
   } catch (err) { res.status(400).json({ message: err.message }); }
@@ -39,7 +39,7 @@ router.post('/requests', protect, validate(createBloodRequestSchema), async (req
   try {
     const { patientId, patientName, bloodGroup, unitsRequired, reason, priority } = req.body;
     if (!patientId || !bloodGroup) return res.status(400).json({ message: 'Patient and blood group required' });
-    const requestId = await genReqId();
+    const requestId = genReqId();
     const request = await BloodRequest.create({ requestId, patientId, patientName, doctorId: req.user.doctorProfileId || req.user._id, doctorName: req.user.name, bloodGroup, unitsRequired: unitsRequired || 1, reason, priority: priority || 'Routine', hospitalId: req.user.hospitalId || undefined, createdBy: req.user._id });
     res.status(201).json(request);
   } catch (err) { res.status(400).json({ message: err.message }); }

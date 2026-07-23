@@ -43,10 +43,19 @@ const billingSchema = new mongoose.Schema({
 
 billingSchema.pre('save', function (next) {
   this.updatedAt = new Date();
-  if (this.balance === undefined) {
-    this.balance = this.amount - this.paid;
+  this.balance = this.amount - this.paid;
+  next();
+});
+
+billingSchema.pre('findOneAndUpdate', function (next) {
+  this.set({ updatedAt: new Date() });
+  const update = this.getUpdate();
+  if (update.amount !== undefined || update.paid !== undefined) {
+    const amount = update.amount || 0;
+    const paid = update.paid || 0;
+    this.set({ balance: amount - paid });
   }
   next();
 });
 
-export default mongoose.model('Billing', billingSchema);// 16
+export default mongoose.model('Billing', billingSchema);

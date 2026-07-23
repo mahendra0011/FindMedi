@@ -22,10 +22,7 @@ const labPackageSchema = z.object({}).passthrough();
 
 const router = express.Router();
 
-const generateOrderId = async () => {
-  const count = await LabOrder.countDocuments();
-  return `LAB-${new Date().getFullYear()}-${String(count + 1).padStart(5, '0')}`;
-};
+const generateOrderId = () => `LAB-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 
 const generateSampleId = () => `SMP-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
@@ -37,7 +34,7 @@ router.post('/orders', protect, validate(createLabOrderSchema), async (req, res)
       return res.status(400).json({ message: 'Patient and at least one test required' });
     }
 
-const orderId = await generateOrderId();
+const orderId = generateOrderId();
     const order = await LabOrder.create({
       orderId, patientId, patientName,
       doctorId: req.user.doctorProfileId || req.user._id, doctorName: req.user.name,
@@ -297,8 +294,7 @@ router.post('/bookings', protect, validate(labBookingSchema), async (req, res) =
         return res.status(400).json({ message: `Prescription required for test(s): ${rxTests.map(t => t.name).join(', ')}` });
       }
     }
-    const count = await LabBooking.countDocuments();
-    const bookingId = `BK-${new Date().getFullYear()}-${String(count + 1).padStart(5, '0')}`;
+    const bookingId = `BK-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
     const booking = await LabBooking.create({ ...req.body, bookingId, hospitalId: req.user.hospitalId || undefined, facilityId: req.user.facilityId || req.user.hospitalId || undefined, createdBy: req.user._id });
     await auditLog('create_lab_booking', req.user._id, { recordId: booking._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.status(201).json(booking);

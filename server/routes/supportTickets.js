@@ -6,8 +6,7 @@ import { validate, createSupportTicketSchema } from '../utils/validate.js';
 const router = express.Router();
 
 const generateTicketId = async () => {
-  const count = await SupportTicket.countDocuments();
-  return `TKT-${String(count + 1).padStart(4, '0')}`;
+  return `TKT-${Date.now().toString(36).slice(-5).toUpperCase()}${Math.floor(Math.random() * 36).toString(36).toUpperCase()}`;
 };
 
 router.post('/', protect, validate(createSupportTicketSchema), async (req, res) => {

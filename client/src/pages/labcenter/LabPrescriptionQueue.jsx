@@ -98,7 +98,7 @@ export default function LabPrescriptionQueue() {
   const pendingCount       = counts.Pending;
   const verifiedToday      = counts.Verified;
   const rejectedToday      = counts.Rejected;
-  const avgProcessingMins  = 8; // mock
+  const avgProcessingMins  = verifiedToday > 0 ? Math.round(480 / verifiedToday) : 0;
 
   const handleAccept = async (id) => {
     setProcessing(true);
@@ -107,10 +107,8 @@ export default function LabPrescriptionQueue() {
       setQueue(prev => prev.map(r => r._id === id ? { ...r, status: 'Verified' } : r));
       if (selectedRx?._id === id) setSelectedRx(prev => ({ ...prev, status: 'Verified' }));
       toast.success('✅ Prescription verified — booking confirmed.');
-    } catch {
-      // Optimistic update for demo
-      setQueue(prev => prev.map(r => r._id === id ? { ...r, status: 'Verified' } : r));
-      toast.success('✅ Prescription verified — booking confirmed.');
+    } catch (e) {
+      toast.error('Failed to verify prescription — please try again.');
     }
     setProcessing(false);
   };
@@ -126,13 +124,14 @@ export default function LabPrescriptionQueue() {
     setProcessing(true);
     try {
       await api.updateLabBooking(rejectTarget._id, { status: 'Rejected', notes: rejectReason });
-    } catch { /* demo fallback */ }
-    setQueue(prev => prev.map(r => r._id === rejectTarget._id
-      ? { ...r, status: 'Rejected', notes: rejectReason } : r));
-    if (selectedRx?._id === rejectTarget._id)
-      setSelectedRx(prev => ({ ...prev, status: 'Rejected', notes: rejectReason }));
-    toast.error(`❌ Prescription rejected: ${REJECTION_REASONS.find(r => r.id === rejectReason)?.label}`);
-    toast.info('🔄 Patient auto-retry initiated — next preferred lab will be notified.', { duration: 6000 });
+      setQueue(prev => prev.map(r => r._id === rejectTarget._id
+        ? { ...r, status: 'Rejected', notes: rejectReason } : r));
+      if (selectedRx?._id === rejectTarget._id)
+        setSelectedRx(prev => ({ ...prev, status: 'Rejected', notes: rejectReason }));
+      toast.error(`❌ Prescription rejected: ${REJECTION_REASONS.find(r => r.id === rejectReason)?.label}`);
+    } catch (e) {
+      toast.error('Failed to reject prescription — please try again.');
+    }
     setShowRejectDlg(false);
     setRejectTarget(null);
     setProcessing(false);
@@ -460,9 +459,7 @@ export default function LabPrescriptionQueue() {
               </Button>
             </div>
 
-            <p className="text-[10px] text-muted-foreground text-center mt-3">
-              Patient's auto-retry will notify the next preferred lab.
-            </p>
+
           </motion.div>
         </div>
       )}

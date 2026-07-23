@@ -486,7 +486,7 @@ export default function ClinicDetail() {
                           <div className="grid grid-cols-2 gap-2">
                             <div className="p-2 rounded-xl bg-primary/5 border border-primary/10 text-center">
                               <p className="text-[11px] text-muted-foreground mb-0.5">Consultation Fee</p>
-                              <p className="font-bold text-sm text-primary">Rs {doctors[0]?.consultation_fees || doctors[0]?.fees || 800}</p>
+                              <p className="font-bold text-sm text-primary">₹{doctors[0]?.consultation_fees || doctors[0]?.fees || 800}</p>
                             </div>
                             <div className="p-2 rounded-xl bg-emerald-50 border border-emerald-200 dark:bg-emerald-500/10 text-center">
                               <p className="text-[11px] text-muted-foreground mb-0.5">Available Slot</p>

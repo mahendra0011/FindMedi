@@ -12,8 +12,7 @@ const disputeAssignSchema = z.object({ assignedTo: z.string().min(1) });
 const router = express.Router();
 
 const generateDisputeId = async () => {
-  const count = await Dispute.countDocuments();
-  return `DSP-${String(count + 1).padStart(4, '0')}`;
+  return `DSP-${Date.now().toString(36).slice(-5).toUpperCase()}${Math.floor(Math.random() * 36).toString(36).toUpperCase()}`;
 };
 
 router.get('/', protect, superadminOnly, async (req, res) => {

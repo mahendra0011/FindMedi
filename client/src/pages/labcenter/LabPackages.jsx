@@ -101,8 +101,8 @@ export default function LabPackages() {
                 <span className="text-sm text-muted-foreground">{pkg.tests.length} test(s)</span>
               </div>
               <div className="flex items-center gap-2 mt-3">
-                <span className="text-sm line-through text-muted-foreground">Rs {orig.toLocaleString()}</span>
-                <span className="text-xl font-bold text-foreground">Rs {pkg.price.toLocaleString()}</span>
+                <span className="text-sm line-through text-muted-foreground">₹{orig.toLocaleString()}</span>
+                <span className="text-xl font-bold text-foreground">₹{pkg.price.toLocaleString()}</span>
               </div>
               <div className="flex gap-1 mt-4 flex-wrap">
                 {pkg.tests.map(tid => {
@@ -142,13 +142,13 @@ export default function LabPackages() {
                       className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left flex items-center gap-2 ${selectedTests.includes(t._id) ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>
                       <Beaker className="w-3.5 h-3.5 flex-shrink-0" />
                       <span className="truncate">{t.name}</span>
-                      <span className="ml-auto text-xs opacity-70">Rs {t.price}</span>
+                      <span className="ml-auto text-xs opacity-70">₹{t.price}</span>
                     </button>
                   ))}
                 </div>
               </div>
               {totalOriginal > 0 && (
-                <p className="text-sm text-muted-foreground">Original total: Rs {totalOriginal.toLocaleString()}</p>
+                <p className="text-sm text-muted-foreground">Original total: ₹{totalOriginal.toLocaleString()}</p>
               )}
               <div className="grid grid-cols-2 gap-4">
                 <div>

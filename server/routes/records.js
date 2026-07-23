@@ -17,7 +17,7 @@ const createNotification = async (userId, title, message, type = 'records') => {
 
 const findPatientByName = async (name) => {
   if (!name) return null;
-  const patient = await User.findOne({ name: new RegExp(name, 'i'), role: 'patient' });
+  const patient = await User.findOne({ name, role: 'patient' });
   return patient;
 };
 
@@ -208,4 +208,4 @@ router.delete('/:id', protect, async (req, res) => {
 });
 
 export default router;
-// 25
+

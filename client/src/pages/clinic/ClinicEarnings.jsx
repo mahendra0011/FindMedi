@@ -83,17 +83,17 @@ export default function ClinicEarnings() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <motion.div whileHover={{ scale: 1.02 }} className="bg-gradient-to-br from-success/20 to-success/5 rounded-2xl border border-success/20 p-6">
           <Wallet className="w-6 h-6 text-success mb-2" />
-          <p className="font-heading text-3xl font-bold text-success">Rs {totalPaid.toLocaleString()}</p>
+          <p className="font-heading text-3xl font-bold text-success">₹{totalPaid.toLocaleString()}</p>
           <p className="text-sm text-muted-foreground mt-1">Total Revenue</p>
         </motion.div>
         <motion.div whileHover={{ scale: 1.02 }} className="bg-gradient-to-br from-primary/20 to-primary/5 rounded-2xl border border-primary/20 p-6">
           <CreditCard className="w-6 h-6 text-primary mb-2" />
-          <p className="font-heading text-3xl font-bold text-foreground">Rs {totalBilled.toLocaleString()}</p>
+          <p className="font-heading text-3xl font-bold text-foreground">₹{totalBilled.toLocaleString()}</p>
           <p className="text-sm text-muted-foreground mt-1">Total Billed</p>
         </motion.div>
         <motion.div whileHover={{ scale: 1.02 }} className="bg-gradient-to-br from-warning/20 to-warning/5 rounded-2xl border border-warning/20 p-6">
           <TrendingUp className="w-6 h-6 text-warning mb-2" />
-          <p className="font-heading text-3xl font-bold text-warning">Rs {pendingAmount.toLocaleString()}</p>
+          <p className="font-heading text-3xl font-bold text-warning">₹{pendingAmount.toLocaleString()}</p>
           <p className="text-sm text-muted-foreground mt-1">Pending</p>
         </motion.div>
         <motion.div whileHover={{ scale: 1.02 }} className="bg-gradient-to-br from-info/20 to-info/5 rounded-2xl border border-info/20 p-6">
@@ -128,11 +128,11 @@ export default function ClinicEarnings() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Billed</span>
-                    <span className="font-medium text-foreground">Rs {data.billed.toLocaleString()}</span>
+                    <span className="font-medium text-foreground">₹{data.billed.toLocaleString()}</span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Earned</span>
-                    <span className="font-medium text-success">Rs {data.earned.toLocaleString()}</span>
+                    <span className="font-medium text-success">₹{data.earned.toLocaleString()}</span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Invoices</span>
@@ -168,7 +168,7 @@ export default function ClinicEarnings() {
                     <td className="px-4 py-3 text-sm font-medium">{bill.patient}</td>
                     <td className="px-4 py-3 text-sm text-muted-foreground">{bill.service}</td>
                     <td className="px-4 py-3 text-sm text-muted-foreground">{bill.date}</td>
-                    <td className="px-4 py-3 text-sm font-semibold text-right">Rs {bill.amount}</td>
+                    <td className="px-4 py-3 text-sm font-semibold text-right">₹{bill.amount}</td>
                     <td className="px-4 py-3 text-center"><Badge className={statusColors[bill.status] || 'bg-muted'}>{bill.status}</Badge></td>
                   </tr>
                 ))}

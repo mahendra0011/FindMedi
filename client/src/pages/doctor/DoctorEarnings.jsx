@@ -96,7 +96,7 @@ export default function DoctorEarnings() {
               <Wallet className="w-6 h-6 text-success" />
             </div>
           </div>
-          <p className="font-heading text-3xl font-bold text-success">Rs {totalEarned.toLocaleString()}</p>
+          <p className="font-heading text-3xl font-bold text-success">₹{totalEarned.toLocaleString()}</p>
           <p className="text-sm text-muted-foreground mt-1">Total Earned</p>
         </motion.div>
         
@@ -106,7 +106,7 @@ export default function DoctorEarnings() {
               <CreditCard className="w-6 h-6 text-primary" />
             </div>
           </div>
-          <p className="font-heading text-3xl font-bold text-foreground">Rs {totalBilled.toLocaleString()}</p>
+          <p className="font-heading text-3xl font-bold text-foreground">₹{totalBilled.toLocaleString()}</p>
           <p className="text-sm text-muted-foreground mt-1">Total Billed</p>
         </motion.div>
         
@@ -116,7 +116,7 @@ export default function DoctorEarnings() {
               <TrendingUp className="w-6 h-6 text-warning" />
             </div>
           </div>
-          <p className="font-heading text-3xl font-bold text-warning">Rs {pending.toLocaleString()}</p>
+          <p className="font-heading text-3xl font-bold text-warning">₹{pending.toLocaleString()}</p>
           <p className="text-sm text-muted-foreground mt-1">Pending Payment</p>
         </motion.div>
       </div>
@@ -195,8 +195,8 @@ export default function DoctorEarnings() {
                     <td className="px-4 py-3 text-sm font-medium">{bill.patient}</td>
                     <td className="px-4 py-3 text-sm text-muted-foreground max-w-[150px] truncate">{bill.service}</td>
                     <td className="px-4 py-3 text-sm text-muted-foreground">{bill.date}</td>
-                    <td className="px-4 py-3 text-sm font-semibold text-foreground text-right">Rs {bill.amount}</td>
-                    <td className="px-4 py-3 text-sm font-semibold text-success text-right">Rs {bill.paid}</td>
+                    <td className="px-4 py-3 text-sm font-semibold text-foreground text-right">₹{bill.amount}</td>
+                    <td className="px-4 py-3 text-sm font-semibold text-success text-right">₹{bill.paid}</td>
                     <td className="px-4 py-3 text-center">
                       <Badge className={statusColors[bill.status] || 'bg-muted text-muted-foreground'}>
                         {bill.status}
@@ -229,11 +229,11 @@ export default function DoctorEarnings() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Billed</span>
-                    <span className="font-medium text-foreground">Rs {data.billed.toLocaleString()}</span>
+                    <span className="font-medium text-foreground">₹{data.billed.toLocaleString()}</span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Earned</span>
-                    <span className="font-medium text-success">Rs {data.earned.toLocaleString()}</span>
+                    <span className="font-medium text-success">₹{data.earned.toLocaleString()}</span>
                   </div>
                   <div className="h-2 bg-muted rounded-full overflow-hidden">
                     <div 

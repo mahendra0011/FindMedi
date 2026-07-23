@@ -63,7 +63,7 @@ export default function PharmacyOrders() {
                 <td className="py-3 px-4 font-medium text-foreground">{o.orderId || o._id?.slice(-6)}</td>
                 <td className="py-3 px-4 text-muted-foreground">{o.patientName || o.customer || '—'}</td>
                 <td className="py-3 px-4 text-right hidden sm:table-cell text-muted-foreground">{o.items?.length || o.totalItems || '—'}</td>
-                <td className="py-3 px-4 text-right font-medium text-foreground">Rs {(o.total || o.amount || 0).toLocaleString()}</td>
+                <td className="py-3 px-4 text-right font-medium text-foreground">₹{(o.total || o.amount || 0).toLocaleString()}</td>
                 <td className="py-3 px-4 text-right"><Badge className={statusColors[o.status]}>{o.status}</Badge></td>
               </tr>
             ))}
@@ -82,7 +82,7 @@ export default function PharmacyOrders() {
             <div className="space-y-3 text-sm">
               <div className="grid grid-cols-2 gap-2"><span className="text-muted-foreground">Customer:</span><span className="text-foreground font-medium">{selected.patientName || selected.customer || '—'}</span></div>
               <div className="grid grid-cols-2 gap-2"><span className="text-muted-foreground">Status:</span><Badge className={statusColors[selected.status]}>{selected.status}</Badge></div>
-              <div className="grid grid-cols-2 gap-2"><span className="text-muted-foreground">Total:</span><span className="text-foreground font-medium">Rs {(selected.total || selected.amount || 0).toLocaleString()}</span></div>
+              <div className="grid grid-cols-2 gap-2"><span className="text-muted-foreground">Total:</span><span className="text-foreground font-medium">₹{(selected.total || selected.amount || 0).toLocaleString()}</span></div>
               <div className="grid grid-cols-2 gap-2"><span className="text-muted-foreground">Items:</span><span className="text-foreground">{selected.items?.length || selected.totalItems || '—'}</span></div>
               {selected.notes && <div className="grid grid-cols-2 gap-2"><span className="text-muted-foreground">Notes:</span><span className="text-foreground">{selected.notes}</span></div>}
             </div>

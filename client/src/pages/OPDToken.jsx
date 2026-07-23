@@ -3,17 +3,18 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Search, Clock, User, Plus, X, CheckCircle, SkipForward, Phone, Monitor } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
 import { api } from '@/lib/api';
 
 const tokenApi = {
-  getAll: async (p) => { try { return await api.getTokens(p); } catch { return { tokens: [] }; } },
-  generate: async (b) => { try { return await api.generateToken(b); } catch { return { tokenNumber: 'OPD-000', ...b }; } },
-  call: async (id) => { try { return await api.callToken(id); } catch { return {}; } },
-  startConsultation: async (id) => { try { return await api.startTokenConsultation(id); } catch { return {}; } },
-  complete: async (id) => { try { return await api.completeToken(id); } catch { return {}; } },
-  skip: async (id, b) => { try { return await api.skipToken(id, b); } catch { return {}; } },
-  recall: async (id) => { try { return await api.recallToken(id); } catch { return {}; } },
-  getStats: async () => { try { return await api.getTokenStats(); } catch { return { waiting: 0, inConsultation: 0, completed: 0, skipped: 0, total: 0 }; } },
+  getAll: async (p) => { return await api.getTokens(p); },
+  generate: async (b) => { return await api.generateToken(b); },
+  call: async (id) => { return await api.callToken(id); },
+  startConsultation: async (id) => { return await api.startTokenConsultation(id); },
+  complete: async (id) => { return await api.completeToken(id); },
+  skip: async (id, b) => { return await api.skipToken(id, b); },
+  recall: async (id) => { return await api.recallToken(id); },
+  getStats: async () => { return await api.getTokenStats(); },
 };
 
 const triageColors = {
@@ -35,12 +36,12 @@ export default function OPDToken() {
   const { data: stats } = useQuery({ queryKey: ['token-stats'], queryFn: tokenApi.getStats });
   const tokens = data?.tokens || [];
 
-  const generateMut = useMutation({ mutationFn: tokenApi.generate, onSuccess: (d) => { qc.invalidateQueries(['tokens', 'token-stats']); setShowGenerate(false); setDisplayToken(d); setTimeout(() => setDisplayToken(null), 5000); } });
-  const callMut = useMutation({ mutationFn: tokenApi.call, onSuccess: () => qc.invalidateQueries(['tokens']) });
-  const startMut = useMutation({ mutationFn: tokenApi.startConsultation, onSuccess: () => qc.invalidateQueries(['tokens']) });
-  const completeMut = useMutation({ mutationFn: tokenApi.complete, onSuccess: () => qc.invalidateQueries(['tokens', 'token-stats']) });
-  const skipMut = useMutation({ mutationFn: ({ id, ...b }) => tokenApi.skip(id, b), onSuccess: () => qc.invalidateQueries(['tokens']) });
-  const recallMut = useMutation({ mutationFn: tokenApi.recall, onSuccess: () => qc.invalidateQueries(['tokens']) });
+  const generateMut = useMutation({ mutationFn: tokenApi.generate, onSuccess: (d) => { qc.invalidateQueries(['tokens', 'token-stats']); setShowGenerate(false); setDisplayToken(d); setTimeout(() => setDisplayToken(null), 5000); }, onError: (e) => toast.error(e.message) });
+  const callMut = useMutation({ mutationFn: tokenApi.call, onSuccess: () => qc.invalidateQueries(['tokens']), onError: (e) => toast.error(e.message) });
+  const startMut = useMutation({ mutationFn: tokenApi.startConsultation, onSuccess: () => qc.invalidateQueries(['tokens']), onError: (e) => toast.error(e.message) });
+  const completeMut = useMutation({ mutationFn: tokenApi.complete, onSuccess: () => qc.invalidateQueries(['tokens', 'token-stats']), onError: (e) => toast.error(e.message) });
+  const skipMut = useMutation({ mutationFn: ({ id, ...b }) => tokenApi.skip(id, b), onSuccess: () => qc.invalidateQueries(['tokens']), onError: (e) => toast.error(e.message) });
+  const recallMut = useMutation({ mutationFn: tokenApi.recall, onSuccess: () => qc.invalidateQueries(['tokens']), onError: (e) => toast.error(e.message) });
 
   return (
     <div>
@@ -143,4 +144,4 @@ export default function OPDToken() {
       )}
     </div>
   );
-}// 39
+}

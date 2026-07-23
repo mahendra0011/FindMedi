@@ -378,7 +378,7 @@ export default function TechnicianDetail() {
                 )}
                 <span className="flex items-center gap-1.5">
                   <IndianRupee className="w-4 h-4 text-success shrink-0" />
-                  <span className="text-success font-semibold">Rs {tech.fee}</span>
+                  <span className="text-success font-semibold">₹{tech.fee}</span>
                   <span className="text-xs">/ collection</span>
                 </span>
                 <span className="flex items-center gap-1.5">
@@ -683,7 +683,7 @@ export default function TechnicianDetail() {
                     </div>
                     <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-muted/30 border border-border/60">
                       <span className="text-sm text-muted-foreground">Collection Fee</span>
-                      <span className="text-sm font-semibold text-success">Rs {tech.fee}</span>
+                      <span className="text-sm font-semibold text-success">₹{tech.fee}</span>
                     </div>
                     <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-muted/30 border border-border/60">
                       <span className="text-sm text-muted-foreground">Employment</span>
@@ -926,7 +926,7 @@ export default function TechnicianDetail() {
 
               <div className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/60 mb-3">
                 <span className="text-sm text-muted-foreground">Collection Fee</span>
-                <span className="font-bold text-lg text-foreground">Rs {tech.fee}</span>
+                <span className="font-bold text-lg text-foreground">₹{tech.fee}</span>
               </div>
 
               {bookingSuccess && bookingDetails ? (
@@ -939,7 +939,7 @@ export default function TechnicianDetail() {
                     <p><span className="text-foreground font-medium">Technician:</span> {bookingDetails.technician}</p>
                     <p><span className="text-foreground font-medium">Date:</span> {bookingDetails.date}</p>
                     <p><span className="text-foreground font-medium">Time:</span> {bookingDetails.time}</p>
-                    <p><span className="text-foreground font-medium">Fee:</span> Rs {bookingDetails.fee}</p>
+                    <p><span className="text-foreground font-medium">Fee:</span> ₹{bookingDetails.fee}</p>
                   </div>
                   <Button className="w-full rounded-xl" onClick={() => navigate('/patient/appointments')}>
                     View My Bookings
@@ -978,7 +978,7 @@ export default function TechnicianDetail() {
                   <Separator />
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Collection Fee</span>
-                    <span className="font-bold text-lg text-foreground">Rs {tech.fee}</span>
+                    <span className="font-bold text-lg text-foreground">₹{tech.fee}</span>
                   </div>
                   <Button className="w-full rounded-xl h-11 font-semibold shadow-lg shadow-primary/25" onClick={handleBook} disabled={!bookingDate || !bookingTime}>
                     <CalendarDays className="w-4 h-4 mr-2" /> Confirm Booking

@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
+import { toast } from 'sonner';
 
 const statusColors = {
   Confirmed: { bg: 'bg-success/10', text: 'text-success', border: 'border-success/20' },
@@ -48,7 +49,7 @@ export default function DoctorPatients() {
       
       setAppointments(myAppointments);
       setRecords(r?.records || r || []);
-    } catch (e) { console.error(e); }
+    } catch (e) { toast.error(e.message); }
     setLoading(false);
   };
 
@@ -91,7 +92,7 @@ export default function DoctorPatients() {
       setDiagnosis(''); setPrescription(''); setNotes('');
       setChiefComplaints(''); setAdvice(''); setFollowUp('');
       loadData();
-    } catch (e) { console.error(e); }
+    } catch (e) { toast.error(e.message); }
   };
 
   const openPatientDetail = (patient) => {

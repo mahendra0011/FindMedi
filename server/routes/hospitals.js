@@ -5,6 +5,7 @@ import Doctor from '../models/Doctor.js';
 import { protect, superadminOnly, hospitalAdminOnly } from '../middleware/auth.js';
 import { validate, registerHospitalSchema } from '../utils/validate.js';
 import { auditLog } from '../middleware/audit.js';
+import logger from '../config/logger.js';
 
 const router = express.Router();
 
@@ -115,7 +116,7 @@ router.post('/register', validate(registerHospitalSchema), async (req, res) => {
         text: `Hospital "${name}" registered by ${adminName} (${adminEmail}).\n\nTemporary password: ${tempPassword}\n\nAdmin can login with this password and will be prompted to change it.`,
       });
     } catch {
-      console.warn('Could not send notification email for hospital registration');
+      logger.warn('Could not send notification email for hospital registration');
     }
 
     res.status(201).json({
@@ -131,6 +132,7 @@ router.put('/:id/approve', protect, superadminOnly, async (req, res) => {
   try {
     const hospital = await Hospital.findByIdAndUpdate(req.params.id, { status: 'approved' }, { new: true });
     if (!hospital) return res.status(404).json({ message: 'Hospital not found' });
+    await User.updateMany({ hospitalId: req.params.id }, { status: 'active', isVerified: true });
     await auditLog('approve_hospital', req.user._id, { targetHospitalId: req.params.id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json({ message: 'Hospital approved', hospital });
   } catch (err) { res.status(500).json({ message: err.message }); }

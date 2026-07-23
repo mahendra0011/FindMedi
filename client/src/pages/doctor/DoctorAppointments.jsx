@@ -327,7 +327,7 @@ export default function DoctorAppointments() {
                     <Button size="sm" className="flex-1 gap-1" onClick={() => handleStatus(apt._id, 'Confirmed')}>
                       <CheckCircle className="w-3.5 h-3.5" /> Accept
                     </Button>
-                    <Button variant="outline" size="sm" className="flex-1 gap-1 text-destructive hover:text-destructive" onClick={() => handleStatus(apt._id, 'Cancelled')}>
+                    <Button variant="outline" size="sm" className="flex-1 gap-1 text-destructive hover:text-destructive" onClick={() => { if (confirm('Reject this appointment?')) handleStatus(apt._id, 'Cancelled'); }}>
                       <XCircle className="w-3.5 h-3.5" /> Reject
                     </Button>
                   </>
@@ -387,7 +387,10 @@ export default function DoctorAppointments() {
                 </div>
               </div>
             </div>
-            <div className="flex gap-3 mt-6">
+            <p className="text-xs text-muted-foreground mt-3 bg-warning/10 p-2 rounded-lg">
+              <AlertCircle className="w-3 h-3 inline mr-1" /> All slots shown may not reflect real-time availability. The system will confirm after checking schedule conflicts.
+            </p>
+            <div className="flex gap-3 mt-4">
               <Button variant="outline" className="flex-1" onClick={() => setRescheduleId(null)}>Cancel</Button>
               <Button className="flex-1" onClick={handleReschedule} disabled={!newDate || !newTime}>Confirm</Button>
             </div>
@@ -752,7 +755,7 @@ export default function DoctorAppointments() {
                 <Input value={`${appointments.find(a => a._id === completeId)?.type || 'Consultation'} - ${appointments.find(a => a._id === completeId)?.department || ''}`} disabled />
               </div>
               <div>
-                <label className="text-sm font-medium text-foreground mb-1.5 block">Amount (Rs)</label>
+                <label className="text-sm font-medium text-foreground mb-1.5 block">Amount (₹) — default uses your registered consultation fee</label>
                 <Input type="number" value={billAmount} onChange={e => setBillAmount(Number(e.target.value))} min={0} />
               </div>
             </div>

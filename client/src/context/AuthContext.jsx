@@ -2,6 +2,7 @@ import { createContext, useContext } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { loginUser, registerUser, logoutUser, updateUser as updateUserAction, setUser, selectCurrentUser, selectAuthLoading, selectIsAuthenticated } from '@/store/slices/authSlice';
 import { secureSetItem } from '@/lib/security';
+import { mergeSettings, readStoredSettings } from '@/lib/settings';
 
 const AuthContext = createContext(null);
 
@@ -31,7 +32,10 @@ export function AuthProvider({ children }) {
 
   const completeOtpLogin = async ({ token, user: userData }) => {
     await secureSetItem('hms_token', token);
-    dispatch(setUser(userData));
+    dispatch(setUser({
+      ...userData,
+      settings: mergeSettings(readStoredSettings(), userData?.settings),
+    }));
   };
 
   return (

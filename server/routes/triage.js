@@ -14,13 +14,11 @@ const triageNoteSchema = z.object({ text: z.string().min(1) });
 const router = express.Router();
 
 const generateEmergencyId = async () => {
-  const count = await Triage.countDocuments();
-  return `ER-${new Date().getFullYear()}-${String(count + 1).padStart(5, '0')}`;
+  return `ER-${new Date().getFullYear()}-${Date.now().toString(36).slice(-6).toUpperCase()}${Math.floor(Math.random() * 36).toString(36).toUpperCase()}`;
 };
 
 const generateMlcNumber = async () => {
-  const count = await Triage.countDocuments({ isMLCO: true });
-  return `MLC-${new Date().getFullYear()}-${String(count + 1).padStart(5, '0')}`;
+  return `MLC-${new Date().getFullYear()}-${Date.now().toString(36).slice(-6).toUpperCase()}${Math.floor(Math.random() * 36).toString(36).toUpperCase()}`;
 };
 
 router.post('/', protect, adminOnly, validate(createTriageSchema), async (req, res) => {

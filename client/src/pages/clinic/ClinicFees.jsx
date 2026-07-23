@@ -148,7 +148,7 @@ export default function ClinicFees() {
               <div key={s._id} className="flex items-center justify-between p-3 bg-muted/30 rounded-xl">
                 <div>
                   <p className="font-medium text-foreground text-sm">{s.name}</p>
-                  <p className="text-sm text-primary font-semibold">Rs {s.fee}</p>
+                  <p className="text-sm text-primary font-semibold">₹{s.fee}</p>
                 </div>
                 <Button variant="ghost" size="icon" className="text-destructive" onClick={() => removeService(s._id)}>
                   <X className="w-4 h-4" />
@@ -166,15 +166,15 @@ export default function ClinicFees() {
         <h3 className="font-heading font-semibold text-foreground mb-3">Current Pricing Summary</h3>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
           <div className="bg-card rounded-lg p-3 text-center border border-border/40">
-            <p className="text-lg font-bold text-primary">Rs {consultationFee || '-'}</p>
+            <p className="text-lg font-bold text-primary">₹{consultationFee || '-'}</p>
             <p className="text-xs text-muted-foreground">Consultation</p>
           </div>
           <div className="bg-card rounded-lg p-3 text-center border border-border/40">
-            <p className="text-lg font-bold text-primary">Rs {homeVisitFee || '-'}</p>
+            <p className="text-lg font-bold text-primary">₹{homeVisitFee || '-'}</p>
             <p className="text-xs text-muted-foreground">Home Visit</p>
           </div>
           <div className="bg-card rounded-lg p-3 text-center border border-border/40">
-            <p className="text-lg font-bold text-primary">Rs {followUpFee || '-'}</p>
+            <p className="text-lg font-bold text-primary">₹{followUpFee || '-'}</p>
             <p className="text-xs text-muted-foreground">Follow-up</p>
           </div>
           <div className="bg-card rounded-lg p-3 text-center border border-border/40">

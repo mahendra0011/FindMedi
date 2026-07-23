@@ -29,9 +29,7 @@ tokenSchema.pre('save', async function (next) {
   if (!this.tokenNumber) {
     const today = new Date();
     const dateStr = `${today.getFullYear()}${String(today.getMonth()+1).padStart(2,'0')}${String(today.getDate()).padStart(2,'0')}`;
-    const count = await mongoose.models.Token?.countDocuments({ tokenNumber: new RegExp(dateStr) }) || 0;
-    this.tokenNumber = `TKN-${dateStr}-${String(count+1).padStart(3,'0')}`;
-    this.queuePosition = count + 1;
+    this.tokenNumber = `TKN-${dateStr}-${Date.now().toString(36).slice(-4).toUpperCase()}${Math.floor(Math.random() * 36).toString(36).toUpperCase()}`;
   }
   next();
 });

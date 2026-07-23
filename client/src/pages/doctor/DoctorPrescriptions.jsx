@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
+import { toast } from 'sonner';
 
 const initialPrescription = {
   patientName: '', age: '', gender: '', phone: '', email: '', address: '',
@@ -33,7 +34,7 @@ export default function DoctorPrescriptions() {
         r.doctor?.toLowerCase().includes(user?.name?.toLowerCase()) &&
         r.type === 'Prescription'
       ));
-    } catch (e) { console.error(e); }
+    } catch (e) { toast.error(e.message); }
     setLoading(false);
   };
 
@@ -89,7 +90,7 @@ export default function DoctorPrescriptions() {
       setShowForm(false);
       setForm(initialPrescription);
       loadRecords();
-    } catch (e) { console.error(e); }
+    } catch (e) { toast.error(e.message); }
     setSaving(false);
   };
 

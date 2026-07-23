@@ -272,58 +272,7 @@ export default function HospitalProfile() {
     return next;
   });
 
-  const DEPARTMENTS = [
-    {
-      id:'pathology', name:'Pathology', icon:FlaskConical, count:45,
-      doctor:'Dr. Rajesh Verma',
-      tests:[
-        { id:'ht1', name:'Complete Blood Count (CBC)', price:249, mrp:399, reportTime:'6 hrs', homeCollection:true, rx:false, popular:true },
-        { id:'ht2', name:'Lipid Profile', price:349, mrp:599, reportTime:'8 hrs', homeCollection:true, rx:false, popular:true },
-        { id:'ht3', name:'Blood Glucose (Fasting)', price:99, mrp:150, reportTime:'4 hrs', homeCollection:true, rx:false, popular:false },
-        { id:'ht4', name:'Liver Function Test', price:499, mrp:799, reportTime:'10 hrs', homeCollection:true, rx:false, popular:false },
-        { id:'ht5', name:'Kidney Function Test', price:449, mrp:699, reportTime:'10 hrs', homeCollection:true, rx:false, popular:false },
-        { id:'ht6', name:'HbA1c', price:299, mrp:499, reportTime:'8 hrs', homeCollection:true, rx:false, popular:false },
-        { id:'ht15', name:'Thyroid Profile (T3,T4,TSH)', price:449, mrp:699, reportTime:'12 hrs', homeCollection:true, rx:false, popular:false },
-        { id:'ht16', name:'Vitamin D Total', price:799, mrp:1299, reportTime:'24 hrs', homeCollection:true, rx:false, popular:true },
-        { id:'ht17', name:'Urine Routine', price:129, mrp:199, reportTime:'6 hrs', homeCollection:true, rx:false, popular:false },
-        { id:'ht18', name:'Stool Examination', price:199, mrp:299, reportTime:'8 hrs', homeCollection:true, rx:false, popular:false },
-        { id:'ht19', name:'Iron Studies', price:399, mrp:599, reportTime:'12 hrs', homeCollection:true, rx:false, popular:false },
-        { id:'ht20', name:'Hb Electrophoresis', price:899, mrp:1299, reportTime:'24 hrs', homeCollection:true, rx:false, popular:false },
-      ]
-    },
-    {
-      id:'radiology', name:'Radiology', icon:Activity, count:20,
-      doctor:'Dr. Priya Sharma',
-      tests:[
-        { id:'ht14', name:'Chest X-Ray', price:499, mrp:899, reportTime:'2 hrs', homeCollection:false, rx:true, popular:false },
-        { id:'ht21', name:'MRI Brain', price:4999, mrp:8999, reportTime:'4 hrs', homeCollection:false, rx:true, popular:false },
-        { id:'ht22', name:'CT Abdomen', price:3999, mrp:6999, reportTime:'6 hrs', homeCollection:false, rx:true, popular:false },
-        { id:'ht23', name:'Ultrasound Abdomen', price:1499, mrp:2499, reportTime:'1 hr', homeCollection:false, rx:true, popular:false },
-        { id:'ht24', name:'Mammography', price:2499, mrp:3999, reportTime:'2 hrs', homeCollection:false, rx:true, popular:false },
-        { id:'ht25', name:'Bone Density Scan', price:1999, mrp:2999, reportTime:'1 hr', homeCollection:false, rx:true, popular:false },
-      ]
-    },
-    {
-      id:'cardiology', name:'Cardiology', icon:Heart, count:12,
-      doctor:'Dr. Amit Patel',
-      tests:[
-        { id:'ht11', name:'ECG', price:249, mrp:399, reportTime:'30 mins', homeCollection:false, rx:true, popular:false },
-        { id:'ht12', name:'2D Echo', price:1799, mrp:2499, reportTime:'1 hr', homeCollection:false, rx:true, popular:false },
-        { id:'ht26', name:'TMT (Stress Test)', price:2499, mrp:3999, reportTime:'2 hrs', homeCollection:false, rx:true, popular:false },
-        { id:'ht27', name:'Holter Monitoring', price:3499, mrp:4999, reportTime:'48 hrs', homeCollection:false, rx:true, popular:false },
-      ]
-    },
-    {
-      id:'packages', name:'Health Packages', icon:Sparkles, count:8,
-      doctor:null,
-      tests:[
-        { id:'hp1', name:'Full Body Checkup (70 parameters)', price:1499, mrp:2999, reportTime:'24 hrs', homeCollection:true, rx:false, popular:true, package:true, includes:['CBC','Blood Sugar','Lipid Profile','Liver Function','Kidney Function','Thyroid','Vitamin D','Urine Routine'] },
-        { id:'hp2', name:'Diabetes Screening Package', price:699, mrp:1299, reportTime:'12 hrs', homeCollection:true, rx:false, popular:false, package:true, includes:['Fasting Blood Sugar','HbA1c','Urine Routine','Lipid Profile'] },
-        { id:'hp3', name:'Senior Citizen Package', price:1999, mrp:3999, reportTime:'24 hrs', homeCollection:true, rx:false, popular:false, package:true, includes:['CBC','Lipid Profile','Kidney Function','Liver Function','Thyroid','Vitamin B12','ECG'] },
-        { id:'hp4', name:'Cardiac Risk Assessment', price:2499, mrp:4999, reportTime:'24 hrs', homeCollection:true, rx:false, popular:true, package:true, includes:['Lipid Profile','ECG','Troponin I','CRP','Homocysteine'] },
-      ]
-    },
-  ];
+  const DEPARTMENTS = [];
 
   const apiTestDept = testCatalog.length > 0 ? [{
     id:'lab-tests', name:'Lab Tests', icon:FlaskConical, count:testCatalog.length,
@@ -1210,10 +1159,10 @@ export default function HospitalProfile() {
             <motion.div {...fadeUp}>
               <div className="flex items-center justify-between gap-3 mb-1">
                 <h2 className="font-heading text-xl font-bold text-foreground">
-                  {totalTestCount}+ Tests Available at {hospital.name}
+                  {totalTestCount > 0 ? `${totalTestCount}+ Tests Available at ${hospital.name}` : 'No Tests Available'}
                 </h2>
               </div>
-              <p className="text-sm text-muted-foreground mb-4">Browse tests by department</p>
+              <p className="text-sm text-muted-foreground mb-4">{totalTestCount > 0 ? 'Browse tests by department' : 'No test catalog has been configured yet'}</p>
               <div className="relative">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input value={testSearch} onChange={e => setTestSearch(e.target.value)}
@@ -1639,7 +1588,7 @@ export default function HospitalProfile() {
                                <p className="text-[10px] text-primary">{doc.specialization}</p>
                                <div className="flex items-center gap-1.5 mt-0.5">
                                  <span className="text-[9px] text-muted-foreground">{doc.experience || '0-5 years'}</span>
-                                 <span className="text-[9px] font-medium text-primary">Rs {doc.consultation_fees || doc.fees || 0}</span>
+                                 <span className="text-[9px] font-medium text-primary">₹{doc.consultation_fees || doc.fees || 0}</span>
                                </div>
                              </div>
                            </div>
@@ -1662,7 +1611,7 @@ export default function HospitalProfile() {
                            <p className="text-[10px] text-primary">Dermatology</p>
                            <div className="flex items-center gap-1.5 mt-0.5">
                              <span className="text-[9px] text-muted-foreground">7 years</span>
-                             <span className="text-[9px] font-medium text-primary">Rs 900</span>
+                             <span className="text-[9px] font-medium text-primary">₹900</span>
                            </div>
                          </div>
                        </div>
@@ -1681,7 +1630,7 @@ export default function HospitalProfile() {
                            <p className="text-[10px] text-primary">Orthopedics</p>
                            <div className="flex items-center gap-1.5 mt-0.5">
                              <span className="text-[9px] text-muted-foreground">10 years</span>
-                             <span className="text-[9px] font-medium text-primary">Rs 1200</span>
+                             <span className="text-[9px] font-medium text-primary">₹1200</span>
                            </div>
                          </div>
                        </div>
@@ -1714,7 +1663,7 @@ export default function HospitalProfile() {
                  <div className="grid grid-cols-2 gap-2">
                    <div className="p-2 rounded-xl bg-primary/5 border border-primary/10 text-center">
                      <p className="text-[11px] text-muted-foreground mb-0.5">Consultation Fee</p>
-                     <p className="font-bold text-sm text-primary">Rs {selectedDoctorForBooking?.consultation_fees || selectedDoctorForBooking?.fees || 0}</p>
+                     <p className="font-bold text-sm text-primary">₹{selectedDoctorForBooking?.consultation_fees || selectedDoctorForBooking?.fees || 0}</p>
                    </div>
                    <div className="p-2 rounded-xl bg-emerald-50 border border-emerald-200 dark:bg-emerald-500/10 text-center">
                      <p className="text-[11px] text-muted-foreground mb-0.5">Available Slot</p>

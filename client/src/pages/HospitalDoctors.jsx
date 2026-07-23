@@ -557,7 +557,7 @@ export default function HospitalDoctors() {
 
                   <div className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-primary/5 to-primary/0 border border-primary/10 mb-4 group-hover:bg-primary/10 group-hover:border-primary/20 transition-all duration-300">
                     <span className="text-sm text-muted-foreground">Consultation Fee</span>
-                    <span className="font-bold text-lg text-primary">Rs {doc.consultation_fees || doc.fees || 0}</span>
+                    <span className="font-bold text-lg text-primary">₹{doc.consultation_fees || doc.fees || 0}</span>
                   </div>
 
                   <div className="flex gap-2">
@@ -589,7 +589,7 @@ export default function HospitalDoctors() {
                           <div className="grid grid-cols-2 gap-2">
                             <div className="p-2 rounded-xl bg-primary/5 border border-primary/10 text-center">
                               <p className="text-[11px] text-muted-foreground mb-0.5">Consultation Fee</p>
-                              <p className="font-bold text-sm text-primary">Rs {selectedDoctor?.consultation_fees || 0}</p>
+                              <p className="font-bold text-sm text-primary">₹{selectedDoctor?.consultation_fees || 0}</p>
                             </div>
                             <div className="p-2 rounded-xl bg-emerald-50 border border-emerald-200 dark:bg-emerald-500/10 text-center">
                               <p className="text-[11px] text-muted-foreground mb-0.5">Available Slot</p>

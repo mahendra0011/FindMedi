@@ -4,11 +4,12 @@ import { Search, Plus, Clock, User, X, Printer, QrCode } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
+import { toast } from 'sonner';
 
 const empty = { name: '', age: '', gender: 'Male', phone: '', address: '', bloodGroup: '', uhid: '' };
 const tokenApi = {
   getAll: async (p) => { try { return await api.getTokens(p); } catch { return { tokens: [] }; } },
-  generate: async (b) => { try { return await api.generateToken(b); } catch { return null; } },
+  generate: async (b) => { return await api.generateToken(b); },
 };
 
 export default function OPDRegistration() {
@@ -16,6 +17,7 @@ export default function OPDRegistration() {
   const [search, setSearch] = useState('');
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState(empty);
+  const [printPatient, setPrintPatient] = useState(null);
 
   const { data: patients = [] } = useQuery({
     queryKey: ['opd-patients', search],
@@ -30,16 +32,19 @@ export default function OPDRegistration() {
 
   const createMut = useMutation({
     mutationFn: async (body) => { return await api.createPatient(body); },
-    onSuccess: () => { qc.invalidateQueries(['opd-patients']); setShowAdd(false); }
+    onSuccess: () => { qc.invalidateQueries(['opd-patients']); setShowAdd(false); },
+    onError: (e) => toast.error(e.message),
   });
 
   const generateTokenMut = useMutation({
     mutationFn: tokenApi.generate,
     onSuccess: () => qc.invalidateQueries(['opd-tokens']),
+    onError: (e) => toast.error(e.message),
   });
 
   const printCard = (_patient) => {
-    window.print();
+    setPrintPatient(_patient);
+    setTimeout(() => { window.print(); setPrintPatient(null); }, 100);
   };
 
   return (
@@ -114,6 +119,33 @@ export default function OPDRegistration() {
               <div className="col-span-2"><label className="text-sm font-medium mb-1 block">Address</label><Input value={form.address} onChange={e => setForm({...form, address: e.target.value})} /></div>
             </div>
             <Button className="w-full mt-6" onClick={() => createMut.mutate(form)} disabled={createMut.isPending || !form.name || !form.age || !form.phone}>Register Patient</Button>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @media print {
+          body > :not(#print-card-wrapper) { display: none !important; }
+          #print-card-wrapper { display: block !important; position: absolute; left: 0; top: 0; width: 100%; }
+        }
+      `}</style>
+      {printPatient && (
+        <div id="print-card-wrapper" style={{ display: 'none' }}>
+          <div className="border-2 border-primary rounded-2xl p-6 max-w-sm mx-auto mt-20">
+            <div className="text-center mb-4 border-b pb-3">
+              <h2 className="text-xl font-bold text-primary">mediCore</h2>
+              <p className="text-xs text-gray-500">Patient ID Card</p>
+            </div>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between"><span className="text-gray-500">Name:</span><span className="font-semibold">{printPatient.name}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">UHID:</span><span className="font-mono font-bold text-primary">{printPatient.uhid || 'N/A'}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">Phone:</span><span>{printPatient.phone || 'N/A'}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">Blood Group:</span><span className="font-semibold">{printPatient.bloodGroup || 'N/A'}</span></div>
+            </div>
+            <div className="mt-4 pt-3 border-t text-center text-[10px] text-gray-400">
+              <p>Issued on {new Date().toLocaleDateString()}</p>
+              <p className="mt-1">Present this card at registration desk</p>
+            </div>
           </div>
         </div>
       )}

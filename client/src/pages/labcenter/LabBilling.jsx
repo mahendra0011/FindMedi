@@ -113,15 +113,15 @@ export default function LabBilling() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <motion.div whileHover={{ scale: 1.02 }} className="bg-gradient-to-br from-success/20 to-success/5 rounded-2xl border border-success/20 p-6">
           <p className="text-sm text-muted-foreground">Total Collected</p>
-          <p className="font-heading text-3xl font-bold text-success">Rs {totalCollected.toLocaleString()}</p>
+          <p className="font-heading text-3xl font-bold text-success">₹{totalCollected.toLocaleString()}</p>
         </motion.div>
         <motion.div whileHover={{ scale: 1.02 }} className="bg-gradient-to-br from-warning/20 to-warning/5 rounded-2xl border border-warning/20 p-6">
           <p className="text-sm text-muted-foreground">Pending</p>
-          <p className="font-heading text-3xl font-bold text-warning">Rs {totalPending.toLocaleString()}</p>
+          <p className="font-heading text-3xl font-bold text-warning">₹{totalPending.toLocaleString()}</p>
         </motion.div>
         <motion.div whileHover={{ scale: 1.02 }} className="bg-gradient-to-br from-destructive/20 to-destructive/5 rounded-2xl border border-destructive/20 p-6">
           <p className="text-sm text-muted-foreground">Overdue</p>
-          <p className="font-heading text-3xl font-bold text-destructive">Rs {totalOverdue.toLocaleString()}</p>
+          <p className="font-heading text-3xl font-bold text-destructive">₹{totalOverdue.toLocaleString()}</p>
         </motion.div>
       </div>
 
@@ -165,7 +165,7 @@ export default function LabBilling() {
                     <td className="px-4 py-3 text-sm font-medium">{bill.patient}</td>
                     <td className="px-4 py-3 text-sm text-muted-foreground">{bill.tests.length} test(s)</td>
                     <td className="px-4 py-3 text-sm text-muted-foreground">{bill.date}</td>
-                    <td className="px-4 py-3 text-sm font-semibold text-right">Rs {bill.total || bill.amount}</td>
+                    <td className="px-4 py-3 text-sm font-semibold text-right">₹{bill.total || bill.amount}</td>
                     <td className="px-4 py-3 text-center"><Badge className={statusColors[bill.status] || 'bg-muted'}>{bill.status}</Badge></td>
                     <td className="px-4 py-3 text-right">
                       {bill.status !== 'Paid' && (
@@ -199,16 +199,16 @@ export default function LabBilling() {
                     <button key={t._id} onClick={() => setSelectedTests(prev => prev.includes(t._id) ? prev.filter(id => id !== t._id) : [...prev, t._id])}
                       className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left flex items-center gap-2 ${selectedTests.includes(t._id) ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>
                       <span className="truncate">{t.name}</span>
-                      <span className="ml-auto text-xs opacity-70">Rs {t.price}</span>
+                      <span className="ml-auto text-xs opacity-70">₹{t.price}</span>
                     </button>
                   ))}
                 </div>
               </div>
               {selectedTests.length > 0 && (
                 <div className="bg-muted/50 rounded-lg p-3 space-y-1 text-sm">
-                  <div className="flex justify-between"><span>Subtotal</span><span>Rs {subTotal}</span></div>
-                  <div className="flex justify-between"><span>Discount ({discount}%)</span><span className="text-destructive">-Rs {Math.round(subTotal * discount / 100)}</span></div>
-                  <div className="flex justify-between font-bold text-foreground border-t border-border pt-1"><span>Total</span><span>Rs {Math.round(total)}</span></div>
+                  <div className="flex justify-between"><span>Subtotal</span><span>₹{subTotal}</span></div>
+                  <div className="flex justify-between"><span>Discount ({discount}%)</span><span className="text-destructive">-₹{Math.round(subTotal * discount / 100)}</span></div>
+                  <div className="flex justify-between font-bold text-foreground border-t border-border pt-1"><span>Total</span><span>₹{Math.round(total)}</span></div>
                 </div>
               )}
               <div>

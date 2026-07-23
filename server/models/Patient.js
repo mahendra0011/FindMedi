@@ -49,11 +49,10 @@ const patientSchema = new mongoose.Schema({
 
 patientSchema.pre('save', async function (next) {
   if (!this.uhid) {
-    const count = await mongoose.models.Patient?.countDocuments({}) || 0;
-    this.uhid = `UHID${String(count + 1).padStart(7, '0')}`;
+    this.uhid = `UHID${Date.now()}${Math.floor(Math.random() * 1000)}`;
   }
   next();
 });
 
 export default mongoose.model('Patient', patientSchema);
-// 17
+

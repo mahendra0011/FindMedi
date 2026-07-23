@@ -176,7 +176,7 @@ export default function PatientServices() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <p className="font-medium text-foreground">Selected Services ({selectedServices.length})</p>
-              <p className="text-sm text-muted-foreground">Total: Rs {totalAmount}</p>
+              <p className="text-sm text-muted-foreground">Total: ₹{totalAmount}</p>
             </div>
             <Button onClick={handleBook} disabled={booking} className="gap-2">
               {booking ? <Loader2 className="w-4 h-4 animate-spin" /> : <Calendar className="w-4 h-4" />}
@@ -186,7 +186,7 @@ export default function PatientServices() {
           <div className="flex flex-wrap gap-2">
             {selectedServices.map(s => (
               <span key={s.id} className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm">
-                {s.name} - Rs {s.price}
+                {s.name} - ₹{s.price}
               </span>
             ))}
           </div>
@@ -225,7 +225,7 @@ export default function PatientServices() {
                 <div className="flex flex-wrap gap-2 mt-3">
                   {booking.services.map((service, index) => (
                     <span key={`${booking.id}-${service.id || service.name || index}`} className="px-2.5 py-1 rounded-full bg-background text-xs text-foreground border border-border/60">
-                      {service.name}{service.price ? ` - Rs ${service.price}` : ''}
+                      {service.name}{service.price ? ` - ₹${service.price}` : ''}
                     </span>
                   ))}
                 </div>

@@ -14,13 +14,13 @@ const physioCompleteSchema = z.object({}).passthrough();
 
 const router = express.Router();
 
-const genId = async () => { const c = await Physiotherapy.countDocuments(); return `PHY-${new Date().getFullYear()}-${String(c+1).padStart(5,'0')}`; };
+const genId = () => `PHY-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 
 router.post('/referrals', protect, adminOnly, validate(createPhysioReferralSchema), async (req, res) => {
   try {
     const { patientId, patientName, diagnosis, treatmentPlan } = req.body;
     if (!patientId) return res.status(400).json({ message: 'Patient required' });
-    const referralId = await genId();
+    const referralId = genId();
     const r = await Physiotherapy.create({ 
       referralId, patientId, patientName, diagnosis, treatmentPlan,
       doctorId: req.user.doctorProfileId || req.user._id, doctorName: req.user.name, hospitalId: req.user.hospitalId || undefined, createdBy: req.user._id 
@@ -104,7 +104,7 @@ router.post('/referrals/:id/create-billing', protect, adminOnly, validate(physio
     
     const { amount, description, sessionType } = req.body;
     
-    const invoiceId = `INV-${new Date().getFullYear()}-${String(await Billing.countDocuments() + 1).padStart(5, '0')}`;
+    const invoiceId = `INV-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
     
     const billing = await Billing.create({
       invoiceId,

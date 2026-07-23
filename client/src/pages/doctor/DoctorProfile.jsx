@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
+import { toast } from 'sonner';
 
 export default function DoctorProfile() {
   const { user } = useAuth();
@@ -75,7 +76,7 @@ export default function DoctorProfile() {
           setClinicTreatments((cp.clinic_treatments || []).join(', '));
           setClinicInsurance((cp.clinic_insurance || []).join(', '));
         }
-      } catch (e) { console.error(e); }
+      } catch (e) { toast.error(e.message); }
       setLoading(false);
     };
     load();
@@ -84,7 +85,7 @@ export default function DoctorProfile() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const body = { bio, qualifications: qualification, experience, phone, location: address, consultation_fees: consultationFee, avatar };
+      const body = { bio, qualifications: qualification, experience, phone, location: address, consultation_fees: consultationFee ? Number(consultationFee) : 0, avatar };
       if (doctor) {
         await api.updateDoctor(doctor._id, body);
         if (doctor.doctor_type === 'clinic') {
@@ -106,7 +107,7 @@ export default function DoctorProfile() {
       await api.updateProfile({ bio: body.bio, phone: body.phone, address: body.location });
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
-    } catch (e) { console.error(e); }
+    } catch (e) { toast.error(e.message); }
     setSaving(false);
   };
 
@@ -117,7 +118,7 @@ export default function DoctorProfile() {
     try {
       const res = await api.uploadDoctorSignature(doctor._id, file);
       setSignatureUrl(res.signatureUrl);
-    } catch (err) { console.error(err); }
+    } catch (err) { toast.error(err.message); }
     setSignatureUploading(false);
   };
 
@@ -379,7 +380,7 @@ export default function DoctorProfile() {
             <Save className="w-5 h-5 text-primary" /> Consultation Fee
           </h3>
           <div className="max-w-xs">
-            <label className="text-sm font-medium text-foreground mb-1.5 block">Fee (Rs)</label>
+            <label className="text-sm font-medium text-foreground mb-1.5 block">Fee (₹)</label>
             <Input type="number" value={consultationFee} onChange={e => setConsultationFee(e.target.value)} placeholder="e.g. 500" min={0} />
           </div>
         </div>

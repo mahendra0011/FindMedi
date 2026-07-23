@@ -14,6 +14,7 @@ import { protect } from '../middleware/auth.js';
 import { validate, createMedicineSchema } from '../utils/validate.js';
 import { auditLog } from '../middleware/audit.js';
 
+// TODO: move rejection reasons to DB-backed admin-managed config
 const REJECTION_REASONS = [
   'Unclear/blurry prescription image',
   'Prescription has expired',
@@ -35,8 +36,7 @@ const pharmacyDispenseSchema = z.object({ medicineIndex: z.number().int().nonneg
 const router = express.Router();
 
 const generatePrescriptionId = async () => {
-  const count = await Prescription.countDocuments();
-  return `RX-${new Date().getFullYear()}-${String(count + 1).padStart(5, '0')}`;
+  return `RX-${new Date().getFullYear()}-${Date.now().toString(36).slice(-6).toUpperCase()}${Math.floor(Math.random() * 36).toString(36).toUpperCase()}`;
 };
 
 // ─── Public Store Medicines (no auth required) ─────────────────────────────
@@ -342,8 +342,7 @@ router.get('/orders', protect, async (req, res) => {
 
 router.post('/orders', protect, validate(pharmacyOrderSchema), async (req, res) => {
   try {
-    const count = await PharmacyOrder.countDocuments();
-    const orderId = `ORD-${String(count + 1).padStart(4, '0')}`;
+    const orderId = `ORD-${Date.now().toString(36).slice(-5).toUpperCase()}${Math.floor(Math.random() * 36).toString(36).toUpperCase()}`;
     // Use facilityId from body for patient orders, fallback to user's facility for staff
     const facilityId = req.body.facilityId || req.user.facilityId || req.user.hospitalId || undefined;
     const order = await PharmacyOrder.create({ ...req.body, orderId, hospitalId: req.user.hospitalId, facilityId, createdBy: req.user._id });
@@ -377,8 +376,7 @@ router.post('/orders/:id/forward', protect, async (req, res) => {
     if (!original) return res.status(404).json({ message: 'Order not found' });
     const { facilityId } = req.body;
     if (!facilityId) return res.status(400).json({ message: 'facilityId (new pharmacy) is required' });
-const count = await PharmacyOrder.countDocuments();
-    const newOrderId = `ORD-${String(count + 1).padStart(4, '0')}`;
+    const newOrderId = `ORD-${Date.now().toString(36).slice(-5).toUpperCase()}${Math.floor(Math.random() * 36).toString(36).toUpperCase()}`;
     const newOrder = await PharmacyOrder.create({
       patientId: original.patientId,
       patientName: original.patientName,
@@ -497,8 +495,7 @@ router.get('/returns', protect, async (req, res) => {
 
 router.post('/returns', protect, validate(pharmacyReturnSchema), async (req, res) => {
   try {
-    const count = await PharmacyReturn.countDocuments();
-    const returnId = `RET-${String(count + 1).padStart(4, '0')}`;
+    const returnId = `RET-${Date.now().toString(36).slice(-5).toUpperCase()}${Math.floor(Math.random() * 36).toString(36).toUpperCase()}`;
     const ret = await PharmacyReturn.create({ ...req.body, returnId, hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined });
     await auditLog('create_pharmacy_return', req.user._id, { recordId: ret._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.status(201).json(ret);
