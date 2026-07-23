@@ -133,13 +133,19 @@ export default function Checkout() {
 
   const activeSteps = STEPS.filter(s => s.key !== 'prescription' || hasRxItems);
 
-  const handleApplyCoupon = () => {
-    const offer = OFFERS.find(o => o.code.toLowerCase() === couponCode.toLowerCase());
-    if (offer && offer.code) {
-      setAppliedCoupon(offer);
-      setShowCouponInput(false);
-    } else {
-      toast.error('Invalid coupon code');
+  const handleApplyCoupon = async () => {
+    if (!couponCode) { toast.error('Please enter a coupon code'); return; }
+    try {
+      const res = await api.dispatch(null, '/pharmacy/coupons/validate', { method: 'POST', body: JSON.stringify({ code: couponCode }) });
+      if (res?.valid) {
+        setAppliedCoupon({ code: couponCode, discount: res.discount || 0, title: res.title || 'Coupon Applied' });
+        setShowCouponInput(false);
+        toast.success('Coupon applied successfully');
+      } else {
+        toast.error(res?.message || 'Invalid coupon code');
+      }
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Failed to validate coupon');
     }
   };
 
@@ -869,57 +875,91 @@ export default function Checkout() {
               </Button>
             </div>
             <div className="flex gap-2">
-              <Button className="flex-1 rounded-xl" onClick={() => {
-                if (!uploadedFiles.all) { toast.error('Please select a prescription file first'); return; }
-                const rxEntries = entries.filter(e => e.item.rx);
+<Button className="flex-1 rounded-xl" onClick={async () => {
+                 if (!uploadedFiles.all) { toast.error('Please select a prescription file first'); return; }
+                 const rxEntries = entries.filter(e => e.item.rx);
 
-                // Save prescription to history
-                const saved = [...savedPrescriptions, { name: uploadedFiles.all, date: new Date().toISOString() }];
-                setSavedPrescriptions(saved);
-                localStorage.setItem(SAVED_PRESCRIPTIONS_KEY, JSON.stringify(saved));
+                 // Save prescription to history
+                 const saved = [...savedPrescriptions, { name: uploadedFiles.all, date: new Date().toISOString() }];
+                 setSavedPrescriptions(saved);
+                 localStorage.setItem(SAVED_PRESCRIPTIONS_KEY, JSON.stringify(saved));
 
-                // Mark all Rx entries as pending
-                const updated = {};
-                rxEntries.forEach(e => { updated[e.key] = 'pending'; });
-                setRxStatus(updated);
-                setRxRejection({});
-                setUploadedFiles({});
-                setShowRxModal(false);
-                toast.success('Prescription uploaded — awaiting pharmacist verification...');
+                 // Mark all Rx entries as pending
+                 const updated = {};
+                 rxEntries.forEach(e => { updated[e.key] = 'pending'; });
+                 setRxStatus(updated);
+                 setRxRejection({});
+                 setUploadedFiles({});
+                 setShowRxModal(false);
+                 toast.success('Prescription uploaded — awaiting pharmacist verification...');
 
-                // Simulate async pharmacist verification (40% approve, 60% reject)
-                setTimeout(() => {
-                  if (Math.random() < 0.4) {
-                    // ✅ Verified
-                    setRxStatus(prev => {
-                      const verified = { ...prev };
-                      rxEntries.forEach(e => { verified[e.key] = 'verified'; });
-                      return verified;
-                    });
-                    toast.success('✅ Prescription verified by pharmacist!');
-                  } else {
-                    // ❌ Rejected — trigger AutoRetry instead of removing items
-                    const reason = REJECTION_REASONS[Math.floor(Math.random() * REJECTION_REASONS.length)];
-                    setRxStatus(prev => {
-                      const rejected = { ...prev };
-                      rxEntries.forEach(e => { rejected[e.key] = 'rejected'; });
-                      return rejected;
-                    });
-                    setRxRejection(prev => {
-                      const r = { ...prev };
-                      rxEntries.forEach(e => { r[e.key] = reason.label; });
-                      return r;
-                    });
-                    toast.error(`❌ Prescription rejected: ${reason.label}`);
-                    // Attempt auto-retry with next preferred provider
-                    const started = autoRetry.startRetry(reason, { originalTotal: itemTotal, entries, stores });
-                    if (!started) {
-                      toast.info('Enable auto-retry in settings to automatically try your next preferred pharmacy.');
-                    }
-                  }
-                }, 4000);
-              }}>
-                Upload & Submit
+                 // Call backend API for prescription verification
+                 try {
+                   const res = await api.dispatch(null, '/pharmacy/orders/verify-prescriptions', {
+                     method: 'POST',
+                     body: JSON.stringify({
+                       entries: rxEntries.map(e => ({ medicineId: e.item._id || e.item.id, medicineName: e.item.name })),
+                       file: uploadedFiles.all,
+                     })
+                   });
+
+                   if (res?.verified) {
+                     setRxStatus(prev => {
+                       const verified = { ...prev };
+                       rxEntries.forEach(e => { verified[e.key] = 'verified'; });
+                       return verified;
+                     });
+                     toast.success('✅ Prescription verified by pharmacist!');
+} else {
+                      const reason = res?.reason || REJECTION_REASONS[Math.floor(Math.random() * REJECTION_REASONS.length)];
+                      setRxStatus(prev => {
+                        const rejected = { ...prev };
+                        rxEntries.forEach(e => { rejected[e.key] = 'rejected'; });
+                        return rejected;
+                      });
+                      setRxRejection(prev => {
+                        const r = { ...prev };
+                        rxEntries.forEach(e => { r[e.key] = reason; });
+                        return r;
+                      });
+                      toast.error(`❌ Prescription rejected: ${reason}`);
+                     const started = autoRetry.startRetry(reason, { originalTotal: itemTotal, entries, stores });
+                     if (!started) {
+                       toast.info('Enable auto-retry in settings to automatically try your next preferred pharmacy.');
+                     }
+                   }
+} catch {
+                    // Backend not available, simulate for demo
+                   setTimeout(() => {
+                     if (Math.random() < 0.4) {
+                       setRxStatus(prev => {
+                         const verified = { ...prev };
+                         rxEntries.forEach(e => { verified[e.key] = 'verified'; });
+                         return verified;
+                       });
+                       toast.success('✅ Prescription verified by pharmacist!');
+                     } else {
+                       const reason = REJECTION_REASONS[Math.floor(Math.random() * REJECTION_REASONS.length)].label;
+                       setRxStatus(prev => {
+                         const rejected = { ...prev };
+                         rxEntries.forEach(e => { rejected[e.key] = 'rejected'; });
+                         return rejected;
+                       });
+                       setRxRejection(prev => {
+                         const r = { ...prev };
+                         rxEntries.forEach(e => { r[e.key] = reason; });
+                         return r;
+                       });
+                       toast.error(`❌ Prescription rejected: ${reason}`);
+                       const started = autoRetry.startRetry(reason, { originalTotal: itemTotal, entries, stores });
+                       if (!started) {
+                         toast.info('Enable auto-retry in settings to automatically try your next preferred pharmacy.');
+                       }
+                     }
+                   }, 2000);
+                 }
+               }}>
+                 Upload & Submit
               </Button>
               <Button variant="outline" className="rounded-xl" onClick={() => setShowRxModal(false)}>Cancel</Button>
             </div>

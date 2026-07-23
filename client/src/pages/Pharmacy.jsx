@@ -22,6 +22,8 @@ const pharmApi = {
   createPrescription: (b) => api.dispatch(() => Promise.resolve({}), '/pharmacy/prescriptions', { method: 'POST', body: JSON.stringify(b) }),
   dispense: (id, b) => api.dispatch(() => Promise.resolve({}), `/pharmacy/prescriptions/${id}/dispense`, { method: 'PUT', body: JSON.stringify(b) }),
   getStats: () => api.dispatch(() => Promise.resolve({ totalMedicines: 0, lowStock: 0, expiringSoon: 0, totalPrescriptions: 0, pendingDispense: 0 }), '/pharmacy/stats'),
+  getBillingExport: () => api.dispatch(() => Promise.resolve({ bills: [] }), '/pharmacy/billing/export'),
+  getMedicineAlerts: () => api.dispatch(() => Promise.resolve({ medicines: [] }), '/pharmacy/medicines/export-alerts'),
 };
 
 const categoryOptions = ['Antibiotic', 'Analgesic', 'Antihypertensive', 'Antidiabetic', 'Antacid', 'Antihistamine', 'Antiviral', 'Antifungal', 'Vitamin', 'Steroid', 'Anesthetic', 'Diuretic', 'Cardiac', 'Respiratory', 'Other'];
@@ -99,22 +101,36 @@ export default function Pharmacy() {
   // Reports
   const [reportPeriod, setReportPeriod] = useState('7d');
 
-  // Settings
+// Settings
   const [storeSettings, setStoreSettings] = useState({ name: 'MediCore Pharmacy', address: '123 Healthcare Ave, New York', phone: '+1 234-567-8900', email: 'pharmacy@medicore.com', licenseNo: 'PH-LIC-001', timing: '8:00 AM - 10:00 PM', deliveryRadius: '10 km', minOrderAmt: '100', deliveryFee: '30', gst: '18', autoRetry: true });
 
   const showToast = (msg, type = 'success') => { setToast({ msg, type }); setTimeout(() => setToast(null), 3000); };
-  const downloadCsv = (filename, headers, rows) => {
-    if (!rows.length) return showToast('No rows to export', 'error');
-    const csv = [headers.join(','), ...rows.map(row => headers.map(h => `"${String(row[h] ?? '').replaceAll('"', '""')}"`).join(','))].join('\n');
-    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-    showToast('CSV exported');
+
+  const exportBillingCsv = async () => {
+    try {
+      const data = await pharmApi.getBillingExport();
+      const rows = (data.bills || filteredBills.length ? filteredBills : orders).map(b => ({
+        invoice: b.invoiceId || b.orderId || b._id,
+        patient: b.patientName,
+        amount: b.total || b.amount || 0,
+        payment: b.paymentStatus || b.status,
+        date: b.date || b.orderDate || b.createdAt,
+      }));
+      if (!rows.length) return showToast('No rows to export', 'error');
+      const csv = ['Invoice,Patient,Amount,Payment,Date', ...rows.map(r => [r.invoice, r.patient, r.amount, r.payment, r.date].map(v => `"${String(v).replaceAll('"', '""')}"`).join(','))].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `pharmacy-billing-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      showToast('CSV exported');
+    } catch {
+showToast('Failed to export billing', 'error');
+    }
   };
 
   useEffect(() => {
@@ -469,17 +485,7 @@ export default function Pharmacy() {
                 {['All', 'Paid', 'Unpaid', 'Partial'].map(s => (
                   <button key={s} onClick={() => setBillFilter(s)} className={`px-3 py-1.5 rounded-lg text-xs font-medium ${billFilter === s ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>{s}</button>
                 ))}
-                <Button size="sm" variant="outline" onClick={() => downloadCsv(
-                  `pharmacy-billing-${new Date().toISOString().slice(0, 10)}.csv`,
-                  ['invoice', 'patient', 'amount', 'payment', 'date'],
-                  (filteredBills.length ? filteredBills : orders).map(b => ({
-                    invoice: b.invoiceId || b.orderId || b._id,
-                    patient: b.patientName,
-                    amount: b.total || b.amount || 0,
-                    payment: b.paymentStatus || b.status,
-                    date: b.date || b.orderDate || b.createdAt,
-                  }))
-                )}><Download className="w-4 h-4 mr-1" /> Export</Button>
+<Button size="sm" variant="outline" onClick={exportBillingCsv}><Download className="w-4 h-4 mr-1" /> Export</Button>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
@@ -700,15 +706,30 @@ export default function Pharmacy() {
             </>
           )}
 
-          {/* ═══════════════════ STOCK ALERTS ═══════════════════ */}
+{/* ═══════════════════ STOCK ALERTS ═══════════════════ */}
           {tab === 'alerts' && (
             <>
               <SectionHeader title="Low Stock & Expiry Alerts" subtitle={`${medicines.filter(m => m.currentStock <= m.reorderLevel).length} items low stock · ${medicines.filter(m => new Date(m.expiryDate) < new Date(Date.now() + 90 * 86400000)).length} items expiring soon`}
-                action={<Button size="sm" variant="outline" onClick={() => downloadCsv(
-                  `pharmacy-stock-alerts-${new Date().toISOString().slice(0, 10)}.csv`,
-                  ['name', 'genericName', 'currentStock', 'reorderLevel', 'expiryDate'],
-                  medicines.filter(m => m.currentStock <= m.reorderLevel || new Date(m.expiryDate) < new Date(Date.now() + 90 * 86400000))
-                )}><Download className="w-4 h-4 mr-1" /> Export Alert Report</Button>} />
+                action={<Button size="sm" variant="outline" onClick={async () => {
+                  try {
+                    const data = await pharmApi.getMedicineAlerts();
+                    const rows = (data.medicines || medicines.filter(m => m.currentStock <= m.reorderLevel || new Date(m.expiryDate) < new Date(Date.now() + 90 * 86400000))).map(m => ({ name: m.name, genericName: m.genericName, currentStock: m.currentStock, reorderLevel: m.reorderLevel, expiryDate: m.expiryDate ? new Date(m.expiryDate).toLocaleDateString() : '' }));
+                    if (!rows.length) return showToast('No rows to export', 'error');
+                    const csv = ['Name,Generic Name,Current Stock,Reorder Level,Expiry Date', ...rows.map(r => [r.name, r.genericName, r.currentStock, r.reorderLevel, r.expiryDate].map(v => `"${String(v).replaceAll('"', '""')}"`).join(','))].join('\n');
+                    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `pharmacy-stock-alerts-${new Date().toISOString().slice(0, 10)}.csv`;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    URL.revokeObjectURL(url);
+                    showToast('CSV exported');
+                  } catch {
+                    showToast('Failed to export stock alerts', 'error');
+                  }
+                }}><Download className="w-4 h-4 mr-1" /> Export Alert Report</Button>} />
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="bg-card rounded-xl border p-5">
                   <h3 className="font-semibold mb-4 flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-warning" /> Low Stock Items</h3>
