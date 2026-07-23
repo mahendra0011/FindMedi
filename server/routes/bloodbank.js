@@ -40,7 +40,7 @@ router.post('/requests', protect, validate(createBloodRequestSchema), async (req
     const { patientId, patientName, bloodGroup, unitsRequired, reason, priority } = req.body;
     if (!patientId || !bloodGroup) return res.status(400).json({ message: 'Patient and blood group required' });
     const requestId = await genReqId();
-    const request = await BloodRequest.create({ requestId, patientId, patientName, doctorId: req.user._id, doctorName: req.user.name, bloodGroup, unitsRequired: unitsRequired || 1, reason, priority: priority || 'Routine', hospitalId: req.user.hospitalId || undefined, createdBy: req.user._id });
+    const request = await BloodRequest.create({ requestId, patientId, patientName, doctorId: req.user.doctorProfileId || req.user._id, doctorName: req.user.name, bloodGroup, unitsRequired: unitsRequired || 1, reason, priority: priority || 'Routine', hospitalId: req.user.hospitalId || undefined, createdBy: req.user._id });
     res.status(201).json(request);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });

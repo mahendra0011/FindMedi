@@ -25,7 +25,7 @@ router.post('/surgeries', protect, adminOnly, validate(createSurgerySchema), asy
     if (!patientId || !surgeryName) return res.status(400).json({ message: 'Patient and surgery required' });
     const otId = await generateOTId();
     const surgery = await OperationTheatre.create({
-      otId, patientId, patientName, doctorId: req.user._id, doctorName: req.user.name,
+      otId, patientId, patientName, doctorId: req.user.doctorProfileId || req.user._id, doctorName: req.user.name,
       hospitalId: req.user.hospitalId || undefined,
       surgeryName, surgeryType: surgeryType || 'Elective',
       anaesthesiaType: anaesthesiaType || 'General', assistants: assistants || [],
