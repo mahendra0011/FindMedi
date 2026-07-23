@@ -151,13 +151,19 @@ router.get('/prescriptions', protect, async (req, res) => {
   try {
     const { status, patientId, doctorId, search } = req.query;
     const filter = {};
-    if (req.user.role === 'doctor') filter.doctorId = req.user._id;
-    if (req.user.role === 'patient') filter.patientId = req.user._id;
+    if (req.user.role === 'patient') {
+      filter.patientId = req.user._id;
+    } else if (patientId) {
+      filter.patientId = patientId;
+    }
+    if (req.user.role === 'doctor') {
+      filter.doctorId = req.user._id;
+    } else if (doctorId) {
+      filter.doctorId = doctorId;
+    }
     if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
     if ((req.user.facilityId || req.user.hospitalId) && req.user.role !== 'superadmin') filter.facilityId = req.user.facilityId || req.user.hospitalId;
     if (status && status !== 'All') filter.status = status;
-    if (patientId) filter.patientId = patientId;
-    if (doctorId) filter.doctorId = doctorId;
     if (search) {
       filter.$or = [
         { prescriptionId: new RegExp(search, 'i') },
