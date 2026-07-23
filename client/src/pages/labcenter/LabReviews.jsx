@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Star, Calendar, MessageSquare } from 'lucide-react';
+import { Star, Calendar, MessageSquare, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
@@ -24,6 +24,16 @@ export default function LabReviews() {
     };
     fetchReviews();
   }, [user]);
+
+  const handleDelete = async (id) => {
+    try {
+      await api.deleteReview(id);
+      setReviews(prev => prev.filter(r => r._id !== id));
+      toast.success('Review deleted');
+    } catch (err) {
+      toast.error(err.message || 'Failed to delete review');
+    }
+  };
 
   const avgRating = reviews.length > 0 ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1) : '0';
   const ratingDist = [5, 4, 3, 2, 1].map(r => ({
@@ -92,8 +102,13 @@ export default function LabReviews() {
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <Calendar className="w-3.5 h-3.5" />{rv.date}
+              <div className="flex items-center gap-2">
+                <button onClick={() => handleDelete(rv._id)} className="text-muted-foreground hover:text-destructive transition-colors">
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Calendar className="w-3.5 h-3.5" />{rv.date}
+                </div>
               </div>
             </div>
             {rv.comment && (

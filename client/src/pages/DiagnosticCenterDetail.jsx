@@ -1397,7 +1397,7 @@ export default function DiagnosticCenterDetail() {
               <FlaskConical className="w-5 h-5 text-primary" />
               Suggested Labs Nearby
             </h2>
-            <Button variant="ghost" size="sm" className="text-primary hover:bg-primary/10" onClick={() => navigate('/lab')}>
+            <Button variant="ghost" size="sm" className="text-primary hover:bg-primary/10" onClick={() => navigate('/diagnostic-centers')}>
               View All <ChevronRight className="w-4 h-4 ml-1" />
             </Button>
           </div>

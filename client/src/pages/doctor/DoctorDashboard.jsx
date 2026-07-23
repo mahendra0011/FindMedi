@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { CalendarDays, Clock, User, CheckCircle, XCircle, AlertCircle, Star, TrendingUp, DollarSign, Stethoscope, Activity, Heart, FileText, Users, FlaskConical, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import LicenseExpiryReminder from '@/components/LicenseExpiryReminder';
@@ -31,15 +32,16 @@ export default function DoctorDashboard() {
           api.getBilling(),
           api.getRecords(),
         ]);
+        const docName = user?.name?.toLowerCase();
         const myAppointments = a?.filter(apt => 
-          apt.doctor?.toLowerCase().includes(user?.name?.toLowerCase())
+          apt.doctor?.toLowerCase() === docName
         ) || [];
         setAppointments(myAppointments);
         setReviews(r?.filter(rv => rv.doctorName === user?.name) || []);
         
         const billsArray = b?.bills || b || [];
         const myBills = billsArray?.filter(bill => 
-          bill.doctor?.toLowerCase().includes(user?.name?.toLowerCase())
+          bill.doctor?.toLowerCase() === docName
         ) || [];
         setBills(myBills);
 
@@ -49,7 +51,7 @@ export default function DoctorDashboard() {
           .slice(-10)
           .reverse();
         setLabReports(myLabReports);
-      } catch (e) { console.error(e); }
+      } catch (e) { console.error(e); toast.error('Failed to load dashboard data'); }
       setLoading(false);
     };
     load();
@@ -59,6 +61,7 @@ export default function DoctorDashboard() {
   const todayAppts = appointments.filter(a => a.date === today);
   const pendingAppts = appointments.filter(a => a.status === 'Pending');
   const completedAppts = appointments.filter(a => a.status === 'Completed');
+  const uniquePatients = new Set(appointments.map(a => a.patient?.toLowerCase())).size;
   const avgRating = reviews.length > 0 ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1) : '0.0';
   
   // Earnings
@@ -262,8 +265,8 @@ export default function DoctorDashboard() {
         </div>
         <div className="bg-gradient-to-br from-info/10 to-info/5 rounded-2xl border border-info/20 p-4 text-center">
           <Users className="w-6 h-6 mx-auto text-info mb-1" />
-          <p className="font-bold text-lg text-info">{appointments.length}</p>
-          <p className="text-xs text-muted-foreground">Total Patients</p>
+          <p className="font-bold text-lg text-info">{uniquePatients}</p>
+          <p className="text-xs text-muted-foreground">Unique Patients</p>
         </div>
         <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-2xl border border-primary/20 p-4 text-center">
           <Activity className="w-6 h-6 mx-auto text-primary mb-1" />

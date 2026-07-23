@@ -260,7 +260,7 @@ export default function TechnicianDetail() {
           <UserRound className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-foreground mb-2">Technician not found</h2>
           <p className="text-sm text-muted-foreground mb-6">The technician profile you are looking for is not available.</p>
-          <Button onClick={() => navigate('/lab')}>Back to Labs</Button>
+          <Button onClick={() => navigate('/diagnostic-centers')}>Back to Labs</Button>
         </div>
       </div>
     );
