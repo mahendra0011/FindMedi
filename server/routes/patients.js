@@ -31,6 +31,9 @@ router.get('/:id', protect, async (req, res) => {
   try {
     const p = await Patient.findById(req.params.id);
     if (!p) return res.status(404).json({ message: 'Patient not found' });
+    if (req.user.role === 'patient' && p._id.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     if (req.user.hospitalId && req.user.role !== 'superadmin' && p.hospitalId?.toString() !== req.user.hospitalId.toString()) {
       return res.status(403).json({ message: 'Access denied' });
     }
@@ -50,6 +53,9 @@ router.put('/:id', protect, validate(updatePatientSchema), async (req, res) => {
   try {
     const p = await Patient.findById(req.params.id);
     if (!p) return res.status(404).json({ message: 'Patient not found' });
+    if (req.user.role === 'patient' && p._id.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     if (req.user.hospitalId && req.user.role !== 'superadmin' && p.hospitalId?.toString() !== req.user.hospitalId.toString()) {
       return res.status(403).json({ message: 'Access denied' });
     }
@@ -63,6 +69,9 @@ router.delete('/:id', protect, async (req, res) => {
   try {
     const p = await Patient.findById(req.params.id);
     if (!p) return res.status(404).json({ message: 'Patient not found' });
+    if (req.user.role === 'patient' && p._id.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     if (req.user.hospitalId && req.user.role !== 'superadmin' && p.hospitalId?.toString() !== req.user.hospitalId.toString()) {
       return res.status(403).json({ message: 'Access denied' });
     }
@@ -76,6 +85,9 @@ router.get('/:id/card', protect, async (req, res) => {
   try {
     const patient = await Patient.findById(req.params.id);
     if (!patient) return res.status(404).json({ message: 'Patient not found' });
+    if (req.user.role === 'patient' && patient._id.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     if (req.user.hospitalId && req.user.role !== 'superadmin' && patient.hospitalId?.toString() !== req.user.hospitalId.toString()) {
       return res.status(403).json({ message: 'Access denied' });
     }

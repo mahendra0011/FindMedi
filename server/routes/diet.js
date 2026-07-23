@@ -4,7 +4,7 @@ import DietOrder from '../models/DietOrder.js';
 import Notification from '../models/Notification.js';
 import User from '../models/User.js';
 import Billing from '../models/Billing.js';
-import { protect } from '../middleware/auth.js';
+import { protect, adminOnly } from '../middleware/auth.js';
 import { validate, createDietOrderSchema } from '../utils/validate.js';
 
 const dietDeliverMealSchema = z.object({ mealType: z.string().optional(), items: z.any().optional() });
@@ -18,7 +18,7 @@ const generateOrderId = async () => {
   return `DIET-${new Date().getFullYear()}-${String(count + 1).padStart(5, '0')}`;
 };
 
-router.post('/orders', protect, validate(createDietOrderSchema), async (req, res) => {
+router.post('/orders', protect, adminOnly, validate(createDietOrderSchema), async (req, res) => {
   try {
     const { patientId, patientName, admissionId, ward, bedNumber, dietType, mealTimes, instructions, allergies } = req.body;
     if (!patientId || !dietType) return res.status(400).json({ message: 'Patient and diet type required' });
@@ -119,7 +119,7 @@ router.put('/orders/:id/review', protect, async (req, res) => {
 });
 
 // Create billing for diet order
-router.post('/orders/:id/create-billing', protect, validate(dietBillingSchema), async (req, res) => {
+router.post('/orders/:id/create-billing', protect, adminOnly, validate(dietBillingSchema), async (req, res) => {
   try {
     const order = await DietOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });

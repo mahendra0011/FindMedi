@@ -170,6 +170,9 @@ router.put('/:id/checkin', protect, async (req, res) => {
   try {
     const appointment = await Appointment.findById(req.params.id);
     if (!appointment) return res.status(404).json({ message: 'Appointment not found' });
+    if (req.user.role === 'patient' && appointment.patientId?.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to modify this appointment' });
+    }
     if (req.user.hospitalId && appointment.hospitalId && appointment.hospitalId.toString() !== req.user.hospitalId.toString()) {
       return res.status(403).json({ message: 'Not authorized to modify this appointment' });
     }
@@ -208,6 +211,9 @@ router.put('/:id', protect, validate(updateAppointmentSchema), async (req, res) 
     const appointment = await Appointment.findById(req.params.id);
     
     if (!appointment) return res.status(404).json({ message: 'Appointment not found' });
+    if (req.user.role === 'patient' && appointment.patientId?.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to modify this appointment' });
+    }
     if (req.user.hospitalId && appointment.hospitalId && appointment.hospitalId.toString() !== req.user.hospitalId.toString()) {
       return res.status(403).json({ message: 'Not authorized to modify this appointment' });
     }
@@ -237,6 +243,9 @@ router.delete('/:id', protect, async (req, res) => {
   try {
     const appointment = await Appointment.findById(req.params.id);
     if (!appointment) return res.status(404).json({ message: 'Appointment not found' });
+    if (req.user.role === 'patient' && appointment.patientId?.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to delete this appointment' });
+    }
     if (req.user.hospitalId && appointment.hospitalId && appointment.hospitalId.toString() !== req.user.hospitalId.toString()) {
       return res.status(403).json({ message: 'Not authorized to delete this appointment' });
     }

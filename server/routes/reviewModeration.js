@@ -1,7 +1,7 @@
 import express from 'express';
 import { z } from 'zod';
 import Review from '../models/Review.js';
-import { protect, superadminOnly } from '../middleware/auth.js';
+import { protect, adminOnly, superadminOnly } from '../middleware/auth.js';
 import { auditLog } from '../middleware/audit.js';
 import { validate } from '../utils/validate.js';
 
@@ -9,7 +9,7 @@ const flagSchema = z.object({ reason: z.string().optional() });
 
 const router = express.Router();
 
-router.get('/', protect, async (req, res) => {
+router.get('/', protect, adminOnly, async (req, res) => {
   try {
     const { flagged, search } = req.query;
     const filter = {};
@@ -28,7 +28,7 @@ router.get('/', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.put('/:id/flag', protect, validate(flagSchema), async (req, res) => {
+router.put('/:id/flag', protect, adminOnly, validate(flagSchema), async (req, res) => {
   try {
     const { reason } = req.body;
     const review = await Review.findByIdAndUpdate(
@@ -42,7 +42,7 @@ router.put('/:id/flag', protect, validate(flagSchema), async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.put('/:id/unflag', protect, async (req, res) => {
+router.put('/:id/unflag', protect, superadminOnly, async (req, res) => {
   try {
     const review = await Review.findByIdAndUpdate(
       req.params.id,
@@ -55,7 +55,7 @@ router.put('/:id/unflag', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.delete('/:id', protect, async (req, res) => {
+router.delete('/:id', protect, superadminOnly, async (req, res) => {
   try {
     const review = await Review.findById(req.params.id);
     if (!review) return res.status(404).json({ message: 'Review not found' });

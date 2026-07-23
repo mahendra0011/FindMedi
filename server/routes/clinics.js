@@ -2,7 +2,7 @@ import express from 'express';
 import Doctor from '../models/Doctor.js';
 import Facility from '../models/Facility.js';
 import User from '../models/User.js';
-import { protect } from '../middleware/auth.js';
+import { protect, adminOnly } from '../middleware/auth.js';
 import { validate, updateClinicProfileSchema, createClinicStaffSchema, updateClinicStaffSchema } from '../utils/validate.js';
 
 const router = express.Router();
@@ -38,7 +38,7 @@ router.get('/staff', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/staff', protect, validate(createClinicStaffSchema), async (req, res) => {
+router.post('/staff', protect, adminOnly, validate(createClinicStaffSchema), async (req, res) => {
   try {
     const facilityId = req.user.facilityId || req.user.hospitalId;
     const { name, email, phone, role } = req.body;
@@ -52,7 +52,7 @@ router.post('/staff', protect, validate(createClinicStaffSchema), async (req, re
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/staff/:id', protect, validate(updateClinicStaffSchema), async (req, res) => {
+router.put('/staff/:id', protect, adminOnly, validate(updateClinicStaffSchema), async (req, res) => {
   try {
     const facilityId = req.user.facilityId || req.user.hospitalId;
     const { name, email, phone, role } = req.body;
@@ -66,7 +66,7 @@ router.put('/staff/:id', protect, validate(updateClinicStaffSchema), async (req,
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.delete('/staff/:id', protect, async (req, res) => {
+router.delete('/staff/:id', protect, adminOnly, async (req, res) => {
   try {
     const facilityId = req.user.facilityId || req.user.hospitalId;
     await User.findOneAndDelete({ _id: req.params.id, facilityId });

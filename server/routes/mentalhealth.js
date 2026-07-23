@@ -3,7 +3,7 @@ import { z } from 'zod';
 import MentalHealth from '../models/MentalHealth.js';
 import Billing from '../models/Billing.js';
 import Notification from '../models/Notification.js';
-import { protect } from '../middleware/auth.js';
+import { protect, adminOnly } from '../middleware/auth.js';
 import { validate, createMentalHealthReferralSchema } from '../utils/validate.js';
 
 const mhAssessmentSchema = z.object({}).passthrough();
@@ -69,7 +69,7 @@ router.post('/referrals/:id/session', protect, validate(mhSessionSchema), async 
 });
 
 // ─── Medication Management ───────────────────────────────────────────────────
-router.put('/referrals/:id/medication', protect, validate(mhMedicationSchema), async (req, res) => {
+router.put('/referrals/:id/medication', protect, adminOnly, validate(mhMedicationSchema), async (req, res) => {
   try {
     const r = await MentalHealth.findById(req.params.id);
     if (!r) return res.status(404).json({ message: 'Not found' });
@@ -136,7 +136,7 @@ router.post('/referrals/:id/consent', protect, validate(mhConsentSchema), async 
 });
 
 // Create billing for mental health session
-router.post('/referrals/:id/create-billing', protect, validate(mhBillingSchema), async (req, res) => {
+router.post('/referrals/:id/create-billing', protect, adminOnly, validate(mhBillingSchema), async (req, res) => {
   try {
     const referral = await MentalHealth.findById(req.params.id);
     if (!referral) return res.status(404).json({ message: 'Referral not found' });
