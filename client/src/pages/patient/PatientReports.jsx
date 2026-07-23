@@ -1,15 +1,18 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FileText, Download, Calendar, User, Stethoscope, Loader2 } from 'lucide-react';
-import { getStoredAuthToken } from '@/lib/api';
+import { api } from '@/lib/api';
+import { toast } from 'sonner';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+const UPLOAD_BASE = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'http://localhost:5001';
 
 export default function MyReports() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [reports, setReports] = useState({ prescriptions: [], labReports: [], dischargeSummaries: [] });
   const [activeTab, setActiveTab] = useState('prescriptions');
@@ -21,23 +24,12 @@ export default function MyReports() {
   const fetchReports = async () => {
     setLoading(true);
     try {
-      const token = getStoredAuthToken();
-
-      const res = await fetch(`${API_URL}/records`, {
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      const data = await res.json();
-      
-      if (data.records) {
-        const allRecords = data.records;
-        const prescriptions = allRecords.filter(r => r.type === 'prescription');
-        const labReports = allRecords.filter(r => r.type === 'lab_report');
-        const dischargeSummaries = allRecords.filter(r => r.type === 'discharge_summary');
-        setReports({ prescriptions, labReports, dischargeSummaries });
-      }
+      const data = await api.getRecords();
+      const allRecords = data?.records || data || [];
+      const prescriptions = allRecords.filter(r => r.type === 'prescription');
+      const labReports = allRecords.filter(r => r.type === 'lab_report');
+      const dischargeSummaries = allRecords.filter(r => r.type === 'discharge_summary');
+      setReports({ prescriptions, labReports, dischargeSummaries });
     } catch (error) {
       console.error('Error fetching reports:', error);
     }
@@ -46,31 +38,16 @@ export default function MyReports() {
 
   const downloadReport = async (report) => {
     try {
-      const type = report.type === 'prescription' ? 'prescription' 
-        : report.type === 'lab_report' ? 'lab-report' 
-        : 'discharge-summary';
-      
-      const res = await fetch(`${API_URL}/reports/generate-${type}`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${getStoredAuthToken()}` 
-        },
-        body: JSON.stringify({
-          patient: { name: user.name, email: user.email },
-          ...report.data
-        })
-      });
-
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${report.type}-${report._id || Date.now()}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      a.remove();
+      if (report.reportUrl) {
+        window.open(report.reportUrl, '_blank');
+      } else if (report.type === 'prescription') {
+        navigate('/patient/prescriptions');
+      } else if (report.type === 'lab_report') {
+        toast.info('View lab reports from your bookings page');
+        navigate('/patient/bookings');
+      } else {
+        toast.info('Please contact the hospital to get a copy of your discharge summary');
+      }
     } catch (error) {
       console.error('Error downloading report:', error);
     }
@@ -183,7 +160,7 @@ export default function MyReports() {
             <p className="text-xs text-muted-foreground mb-2">{report.data.uploadedFile.filename}</p>
             {(report.data.uploadedFile.url || report.data.uploadedFile.filepath) && (
               <a 
-                href={report.data.uploadedFile.url || `${API_URL.replace('/api', '')}${report.data.uploadedFile.filepath}`}
+                href={report.data.uploadedFile.url || `${UPLOAD_BASE}${report.data.uploadedFile.filepath}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm text-primary hover:underline"
@@ -221,7 +198,7 @@ export default function MyReports() {
         {(report.data?.uploadedFile?.url || report.data?.uploadedFile?.filepath) ? (
           <Button size="sm" className="mt-3" asChild>
             <a 
-              href={report.data.uploadedFile.url || `${API_URL.replace('/api', '')}${report.data.uploadedFile.filepath}`}
+              href={report.data.uploadedFile.url || `${UPLOAD_BASE}${report.data.uploadedFile.filepath}`}
               target="_blank"
               rel="noopener noreferrer"
             >

@@ -1,7 +1,5 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
-import express from 'express';
-import jwt from 'jsonwebtoken';
 import multer from 'multer';
 import Doctor from '../models/Doctor.js';
 import ClinicProfile from '../models/ClinicProfile.js';

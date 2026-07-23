@@ -6,15 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-
-const MOCK_STORES = [
-  { id:'s1', name:'MediStore Pharmacy', photo:'https://images.unsplash.com/photo-1585435557343-3b092031a831?w=400&h=300&fit=crop', verified:true, open:true, type:'Pharmacy', rating:4.2, reviews:234, tags:['Home Delivery','Generic'], deliveryTime:'25 mins', phone:'0761-3456789', email:'orders@medistore.com', address:'Vijay Nagar, Jabalpur, Madhya Pradesh 482003', deliveryCharges:0, freeDeliveryAbove:0, city:'Jabalpur' },
-  { id:'s2', name:'Apollo Pharmacy', photo:'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=400&h=300&fit=crop', verified:true, open:true, type:'Pharmacy', rating:4.8, reviews:210, tags:['24x7','Home Delivery','Generic'], deliveryTime:'20 mins', phone:'9876543213', email:'care@apollopharm.com', address:'Civil Lines, Jabalpur, Madhya Pradesh 482001', deliveryCharges:0, freeDeliveryAbove:0, city:'Jabalpur' },
-  { id:'s3', name:'City Drug House', photo:'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?w=400&h=300&fit=crop', verified:false, open:true, type:'Pharmacy', rating:4.0, reviews:45, tags:['24x7'], deliveryTime:'40 mins', phone:'9876543212', email:'citydrug@email.com', address:'Napier Town, Jabalpur, Madhya Pradesh 482001', deliveryCharges:25, freeDeliveryAbove:300, city:'Jabalpur' },
-  { id:'s4', name:'HealthFirst Medicals', photo:'https://images.unsplash.com/photo-1631217868264-e5b90bb7e133?w=400&h=300&fit=crop', verified:true, open:true, type:'Medical Store', rating:4.2, reviews:89, tags:['Home Delivery','Generic'], deliveryTime:'30 mins', phone:'9876543211', email:'info@healthfirst.com', address:'Marhatal, Jabalpur, Madhya Pradesh 482002', deliveryCharges:15, freeDeliveryAbove:150, city:'Jabalpur' },
-  { id:'s5', name:'Wellness Mart', photo:'https://images.unsplash.com/photo-1587351021759-3e566b6af7cc?w=400&h=300&fit=crop', verified:true, open:true, type:'Medical Store', rating:4.3, reviews:67, tags:['Home Delivery'], deliveryTime:'35 mins', phone:'9876543214', email:'hello@wellnessmart.com', address:'Gol Bazar, Jabalpur, Madhya Pradesh 482001', deliveryCharges:10, freeDeliveryAbove:100, city:'Jabalpur' },
-  { id:'s6', name:'Generic Medicos', photo:'https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=400&h=300&fit=crop', verified:false, open:false, type:'Pharmacy', rating:3.8, reviews:32, tags:['Generic'], deliveryTime:'45 mins', phone:'9876543215', email:'info@genericmed.com', address:'Sadar Cantt, Jabalpur, Madhya Pradesh 482001', deliveryCharges:30, freeDeliveryAbove:500, city:'Jabalpur' },
-];
+import { api } from '@/lib/api';
 
 const LOCALITIES = ['Vijay Nagar', 'Civil Lines', 'Napier Town', 'Marhatal', 'Gol Bazar', 'Sadar Cantt'];
 
@@ -34,6 +26,40 @@ function getLocality(address) {
 export default function BuyMedicine() {
   const navigate = useNavigate();
   const selectedCity = localStorage.getItem('mediCore_city') || '';
+  const [allStores, setAllStores] = useState([]);
+  const [loadingStores, setLoadingStores] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await api.getPharmacies({ limit: 50 });
+        const list = Array.isArray(res) ? res : res?.pharmacies || res?.data || [];
+        if (list.length > 0) {
+          const mapped = list.map(p => ({
+            id: p._id || p.id,
+            _id: p._id,
+            name: p.name,
+            photo: p.photo || 'https://images.unsplash.com/photo-1585435557343-3b092031a831?w=400&h=300&fit=crop',
+            verified: p.verified || p.status === 'approved',
+            open: p.open ?? true,
+            type: p.type || 'Pharmacy',
+            rating: p.rating || 4.0,
+            reviews: p.reviewsCount || p.reviews || 0,
+            tags: p.tags || ['Home Delivery'],
+            deliveryTime: p.deliveryTime || '30 mins',
+            phone: p.phone || '',
+            email: p.email || '',
+            address: p.address || '',
+            deliveryCharges: p.deliveryCharges ?? 0,
+            freeDeliveryAbove: p.freeDeliveryAbove ?? 0,
+            city: p.city || '',
+          }));
+          setAllStores(mapped);
+        }
+      } catch {} finally { setLoadingStores(false); }
+    };
+    load();
+  }, []);
 
   // Quick filters
   const [search, setSearch] = useState('');
@@ -71,7 +97,7 @@ export default function BuyMedicine() {
   };
 
   const stores = useMemo(() => {
-    let result = MOCK_STORES.filter(s => {
+    let result = allStores.filter(s => {
       if (selectedCity && !s.city.toLowerCase().includes(selectedCity.toLowerCase())) return false;
       if (search && !s.name.toLowerCase().includes(search.toLowerCase())) return false;
       if (openNow && !s.open) return false;

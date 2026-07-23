@@ -14,11 +14,7 @@ const regApi = {
     }
   },
   register: async (b) => {
-    try {
-      return await api.createPatient(b);
-    } catch (e) {
-      return { _id: Date.now().toString(), uhid: 'MOCK-' + Date.now(), ...b };
-    }
+    return await api.createPatient(b);
   },
   getStats: async () => {
     try {

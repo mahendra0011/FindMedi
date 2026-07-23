@@ -55,13 +55,6 @@ let mockPrescriptions = [
   { _id: 'rx3', prescriptionId: 'RX-2026-00003', doctorName: 'Dr. Emily Lee', diagnosis: 'Back Pain', medicines: [{ name: 'Ibuprofen 400mg', dosage: '0-0-1', duration: '7 days' }], status: 'Dispensed', date: new Date(Date.now() - 60 * 86400000).toISOString() },
 ];
 
-let mockReports = [
-  { _id: 'rp1', name: 'Complete Blood Count (CBC)', type: 'Lab Report', date: new Date(Date.now() - 5 * 86400000).toISOString(), status: 'Ready', orderedBy: 'Dr. Sarah Smith', labName: 'MediCore Diagnostic Center' },
-  { _id: 'rp2', name: 'Lipid Profile', type: 'Lab Report', date: new Date(Date.now() - 5 * 86400000).toISOString(), status: 'Ready', orderedBy: 'Dr. Sarah Smith', labName: 'MediCore Diagnostic Center' },
-  { _id: 'rp3', name: 'Chest X-Ray', type: 'Imaging', date: new Date(Date.now() - 14 * 86400000).toISOString(), status: 'Ready', orderedBy: 'Dr. Emily Lee', labName: 'City Imaging Center' },
-  { _id: 'rp4', name: 'ECG', type: 'Cardiac', date: new Date(Date.now() - 21 * 86400000).toISOString(), status: 'Pending', orderedBy: 'Dr. Sarah Smith', labName: 'MediCore Diagnostic Center' },
-];
-
 let mockPaymentMethods = [
   { _id: 'pm1', type: 'card', label: 'HDFC Credit Card', last4: '4532', isDefault: true },
   { _id: 'pm2', type: 'upi', label: 'Google Pay', upiId: 'user@okhdfcbank', isDefault: false },
@@ -75,12 +68,6 @@ let mockNotifications = [
   { _id: 'n4', title: 'Payment Received', message: 'Payment of ₹5000 for order ORD-001 confirmed', type: 'payment', read: true, date: new Date(Date.now() - 2 * 86400000).toISOString() },
   { _id: 'n5', title: 'Prescription Added', message: 'Dr. Raj Patel added a new prescription for you', type: 'prescription', read: false, date: new Date(Date.now() - 3 * 86400000).toISOString() },
   { _id: 'n6', title: 'Bill Reminder', message: 'Your pending bill of ₹1200 is due in 3 days', type: 'billing', read: false, date: new Date(Date.now() - 4 * 86400000).toISOString() },
-];
-
-let mockTestBookings = [
-  { _id: 'tb1', bookingId: 'BK-2026-0001', tests: ['CBC', 'Lipid Profile'], labName: 'MediCore Diagnostic Center', status: 'Completed', date: new Date(Date.now() - 5 * 86400000).toISOString(), amount: 1800, reportsAvailable: true },
-  { _id: 'tb2', bookingId: 'BK-2026-0002', tests: ['Thyroid', 'Blood Sugar'], labName: 'HealthFirst Labs', status: 'Confirmed', date: new Date(Date.now() - 1 * 86400000).toISOString(), timeSlot: '10:00 AM', amount: 1200, visitType: 'Home Collection' },
-  { _id: 'tb3', bookingId: 'BK-2026-0003', tests: ['ECG', 'X-Ray Chest'], labName: 'City Imaging Center', status: 'Pending', date: new Date(Date.now() + 2 * 86400000).toISOString(), timeSlot: '11:30 AM', amount: 2500 },
 ];
 
 const getInitials = (name) => name ? name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : '?'
@@ -151,8 +138,8 @@ export default function PatientDashboard() {
   const [favorites, setFavorites] = useState(mockFavorites);
   const [medOrders, setMedOrders] = useState(mockMedicineOrders);
   const [prescriptions, setPrescriptions] = useState(mockPrescriptions);
-  const [testBookings, setTestBookings] = useState(mockTestBookings);
-  const [reports, setReports] = useState(mockReports);
+  const [testBookings, setTestBookings] = useState([]);
+  const [reports, setReports] = useState([]);
   const [paymentMethods, setPaymentMethods] = useState(mockPaymentMethods);
   const [notifs, setNotifs] = useState(mockNotifications);
   const [reviews, setReviews] = useState([]);
@@ -174,8 +161,48 @@ export default function PatientDashboard() {
         setRecords(r?.records || r || []);
         setBills(b?.bills || b || []);
         setDoctors(d?.slice(0, 4) || []);
-        const f = await patientApi.getFamily();
+        const [f, addr, fav, phOrders, rx, n, lb] = await Promise.all([
+          patientApi.getFamily(),
+          patientApi.getAddresses(),
+          patientApi.getFavorites(),
+          api.getPharmacyOrders({}).catch(() => ({ orders: [] })),
+          api.getPharmacyPrescriptions({}).catch(() => ({ prescriptions: [] })),
+          api.getNotifications({}).catch(() => []),
+          api.getLabBookings({}).catch(() => ({ bookings: [] })),
+        ]);
         if (f?.members?.length) setFamily(f.members);
+        if (addr?.addresses?.length) setAddresses(addr.addresses);
+        if (fav?.favorites?.length) setFavorites(fav.favorites);
+        if (phOrders?.orders?.length) setMedOrders(phOrders.orders);
+        if (rx?.prescriptions?.length) setPrescriptions(rx.prescriptions);
+        if (n?.length) setNotifs(n);
+        if (lb?.bookings?.length) {
+          setTestBookings(lb.bookings.map(b => ({
+            _id: b._id,
+            bookingId: b.bookingId || `LB-${String(b._id).slice(-6)}`,
+            tests: b.tests || [],
+            labName: b.facilityId?.name || b.labName || 'Lab',
+            status: b.status || 'Pending',
+            date: b.bookingDate || b.date || new Date().toISOString(),
+            timeSlot: b.timeSlot || '',
+            amount: b.totalAmount || b.discountedAmount || 0,
+            visitType: b.homeCollectionAddress ? 'Home Collection' : (b.visitType || ''),
+            reportsAvailable: ['Completed', 'Report Ready', 'Delivered'].includes(b.status),
+          })));
+        }
+        const allRecs = r?.records || r || [];
+        const reportRecs = allRecs.filter(rec => ['Lab Report', 'Imaging', 'lab_report', 'Cardiac'].includes(rec.type));
+        if (reportRecs.length) {
+          setReports(reportRecs.map(rec => ({
+            _id: rec._id,
+            name: rec.diagnosis || rec.data?.testName || rec.type,
+            type: rec.type,
+            date: rec.date,
+            status: rec.data?.status === 'Completed' ? 'Ready' : (rec.data?.status || 'Ready'),
+            orderedBy: rec.doctor,
+            labName: rec.data?.labName || rec.data?.facilityName || '',
+          })));
+        }
       } catch (e) { console.error(e); }
     };
     load();

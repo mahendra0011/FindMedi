@@ -1,61 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Star, MapPin, CalendarDays, IndianRupee, Award, Users, ArrowLeft, Stethoscope, Heart, Brain, Bone, Baby, Eye, Activity, Building2, Clock, Shield, Syringe, BedDouble, Languages, GraduationCap, CircleDot, ChevronDown, ChevronUp, ChevronRight, Ambulance, SlidersHorizontal, X, BadgeCheck, UserRound, Phone, Mail } from 'lucide-react';
+import { Search, Star, MapPin, CalendarDays, IndianRupee, Award, Users, ArrowLeft, Stethoscope, Heart, Brain, Bone, Baby, Eye, Activity, Building2, Clock, Shield, Syringe, BedDouble, Languages, GraduationCap, CircleDot, ChevronDown, ChevronUp, ChevronRight, Ambulance, SlidersHorizontal, X, BadgeCheck, UserRound, Phone, Mail, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-
-const mockHospital = {
-  _id: '1',
-  name: 'City Care Hospital',
-  specialties: ['Cardiology', 'Orthopedics', 'Pediatrics'],
-  address: '123 Main Street, Mumbai'
-};
-
-const mockDoctors = [
-  {
-    _id: 'doc1',
-    name: 'Dr. Rohit Verma',
-    initials: 'RV',
-    profile_photo: '',
-    specialization: 'Dermatology',
-    qualifications: 'MBBS, MD Dermatology, Fellowship in Cosmetic Dermatology',
-    rating: 4.5,
-    reviews_count: 156,
-    experience: '7 years',
-    patients: 1567,
-    languages: ['Hindi', 'English'],
-    consultation_fees: 900,
-    available: true,
-    next_available_slot: '03:00 PM',
-    phone: '9876543210',
-    email: 'rohit@citycare.com'
-  },
-  {
-    _id: 'doc2',
-    name: 'Dr. Anita Sharma',
-    initials: 'AS',
-    profile_photo: '',
-    specialization: 'Orthopedics',
-    qualifications: 'MBBS, MS Orthopedics, Fellowship in Joint Replacement',
-    rating: 4.6,
-    reviews_count: 189,
-    experience: '10 years',
-    patients: 2134,
-    languages: ['Hindi', 'English'],
-    consultation_fees: 1200,
-    available: true,
-    next_available_slot: '11:00 AM',
-    phone: '9876543211',
-    email: 'anita@citycare.com'
-  }
-];
+import { useAuth } from '@/context/AuthContext';
 
 const DEFAULT_SPECS = ['All', 'Cardiology', 'Neurology', 'Orthopedics', 'Pediatrics', 'Dermatology', 'Oncology', 'General Medicine', 'ENT'];
 
@@ -91,6 +46,7 @@ function getExpYears(exp) {
 export default function HospitalDoctors() {
   const { hospitalId } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [hospital, setHospital] = useState(null);
   const [doctors, setDoctors] = useState([]);
   const [allDoctors, setAllDoctors] = useState([]);
@@ -102,6 +58,38 @@ export default function HospitalDoctors() {
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [bookingType, setBookingType] = useState('Consultation');
   const [bookingNotes, setBookingNotes] = useState('');
+  const [bookingDate, setBookingDate] = useState(new Date().toISOString().split('T')[0]);
+  const [bookingTime, setBookingTime] = useState('09:00 AM - 10:00 AM');
+  const [bookingLoading, setBookingLoading] = useState(false);
+  const [loadError, setLoadError] = useState(null);
+
+  const handleConfirmBooking = async () => {
+    if (!selectedDoctor) return;
+    if (!user) { toast.error('Please login to book an appointment'); navigate('/login'); return; }
+    setBookingLoading(true);
+    try {
+      await api.createAppointment({
+        doctorId: selectedDoctor._id,
+        doctor: selectedDoctor.name,
+        doctorName: selectedDoctor.name,
+        hospitalId: hospitalId || selectedDoctor.hospitalId,
+        patient: user.name || 'Patient',
+        patientId: user._id,
+        email: user.email,
+        phone: user.phone || '',
+        date: bookingDate,
+        timeSlot: bookingTime,
+        type: bookingType,
+        notes: bookingNotes,
+        status: 'Scheduled',
+      });
+      setShowBooking(false);
+      toast.success('Appointment booked successfully!');
+    } catch (e) {
+      toast.error(e.response?.data?.message || e.message || 'Failed to book appointment');
+    }
+    setBookingLoading(false);
+  };
 
   const [availabilityFilter, setAvailabilityFilter] = useState('');
   const [genderFilter, setGenderFilter] = useState('');
@@ -123,15 +111,14 @@ export default function HospitalDoctors() {
       setLoading(true);
       try {
         const [hosp, docs] = await Promise.all([
-          api.getHospital(hospitalId).catch(() => mockHospital),
-          api.getDoctors({ hospitalId }).catch(() => mockDoctors),
+          api.getHospital(hospitalId),
+          api.getDoctors({ hospitalId }),
         ]);
         setHospital(hosp);
         setAllDoctors(docs || []);
       } catch (e) {
         console.error(e);
-        setHospital(mockHospital);
-        setAllDoctors(mockDoctors);
+        setLoadError('Failed to load doctors. Please try again.');
       }
       setLoading(false);
     })();
@@ -456,7 +443,14 @@ export default function HospitalDoctors() {
           </AnimatePresence>
         </div>
 
-        {allDoctors.length === 0 && !loading ? (
+        {loadError ? (
+          <div className="text-center py-16">
+            <AlertCircle className="w-16 h-16 text-destructive/50 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-foreground mb-1">Failed to load doctors</h3>
+            <p className="text-muted-foreground mb-4">{loadError}</p>
+            <Button variant="outline" onClick={() => window.location.reload()}>Retry</Button>
+          </div>
+        ) : allDoctors.length === 0 && !loading ? (
           <div className="text-center py-16">
             <Stethoscope className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-foreground mb-1">No doctors found</h3>
@@ -604,11 +598,11 @@ export default function HospitalDoctors() {
                           </div>
                           <div className="space-y-1.5">
                             <label className="text-xs font-medium text-foreground">Select Date</label>
-                            <Input type="date" className="w-full" defaultValue={new Date().toISOString().split('T')[0]} />
+                            <Input type="date" className="w-full" value={bookingDate} onChange={e => setBookingDate(e.target.value)} />
                           </div>
                           <div className="space-y-1.5">
                             <label className="text-xs font-medium text-foreground">Select Time Slot</label>
-                            <select className="w-full h-9 px-3 rounded-xl border border-border bg-background text-sm">
+                            <select className="w-full h-9 px-3 rounded-xl border border-border bg-background text-sm" value={bookingTime} onChange={e => setBookingTime(e.target.value)}>
                               <option>09:00 AM - 10:00 AM</option>
                               <option>10:00 AM - 11:00 AM</option>
                               <option>11:00 AM - 12:00 PM</option>
@@ -631,7 +625,7 @@ export default function HospitalDoctors() {
                         </div>
                         <DialogFooter>
                           <Button variant="outline" size="sm" onClick={() => setShowBooking(false)}>Cancel</Button>
-                          <Button size="sm" onClick={() => { setShowBooking(false); toast.success('Appointment booked!'); }}>Confirm Booking</Button>
+                          <Button size="sm" onClick={handleConfirmBooking} disabled={bookingLoading}>{bookingLoading ? 'Booking...' : 'Confirm Booking'}</Button>
                         </DialogFooter>
                       </DialogContent>
                     </Dialog>

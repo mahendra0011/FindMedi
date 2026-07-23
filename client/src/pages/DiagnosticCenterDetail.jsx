@@ -124,6 +124,22 @@ export default function DiagnosticCenterDetail() {
   const [pkgSearch, setPkgSearch] = useState('');
   const [pkgCatFilter, setPkgCatFilter] = useState('All');
   const [pkgSort, setPkgSort] = useState('popularity');
+  const [isFavorited, setIsFavorited] = useState(() => localStorage.getItem(`fav_clinic_${clinicId}`) === 'true');
+  const toggleFavorite = async () => {
+    const next = !isFavorited;
+    setIsFavorited(next);
+    try {
+      if (next) {
+        await api.dispatch(() => Promise.resolve({}), '/patient/favorites', { method: 'POST', body: JSON.stringify({ targetId: clinicId, targetType: 'lab', name: clinic?.name }) });
+      } else {
+        await api.dispatch(() => Promise.resolve({}), `/patient/favorites/${clinicId}`, { method: 'DELETE' });
+      }
+      toast.success(next ? 'Saved' : 'Removed from Saved');
+    } catch {
+      setIsFavorited(!next);
+      toast.error('Failed to update favorite');
+    }
+  };
   const [selectedSlot, setSelectedSlot] = useState('');
   const [testsData, setTestsData] = useState([]);
   const [packagesData, setPackagesData] = useState([]);
@@ -427,8 +443,8 @@ export default function DiagnosticCenterDetail() {
                 <Badge className="bg-primary/90 text-white border-0 text-xs px-3 py-1.5 rounded-full shadow-lg">{clinic.type}</Badge>
               </div>
               <div className="absolute top-4 right-4 flex gap-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button className="w-9 h-9 rounded-xl bg-black/30 backdrop-blur-sm text-white flex items-center justify-center hover:bg-black/50 transition-all hover:scale-105" onClick={() => toast.success('Bookmarked')}>
-                  <Bookmark className="w-4 h-4" />
+                <button className="w-9 h-9 rounded-xl bg-black/30 backdrop-blur-sm text-white flex items-center justify-center hover:bg-black/50 transition-all hover:scale-105" onClick={toggleFavorite}>
+                  <Bookmark className={cn('w-4 h-4', isFavorited && 'fill-current')} />
                 </button>
                 <button className="w-9 h-9 rounded-xl bg-black/30 backdrop-blur-sm text-white flex items-center justify-center hover:bg-black/50 transition-all hover:scale-105" onClick={() => { navigator.clipboard?.writeText(window.location.href); toast.success('Link copied!'); }}>
                   <Share2 className="w-4 h-4" />
@@ -1309,10 +1325,10 @@ export default function DiagnosticCenterDetail() {
                     <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" asChild>
                       <a href={`mailto:${clinic.email || ''}`}><Mail className="w-4 h-4" /> Email Now</a>
                     </Button>
-                    <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => toast.success('Saved to favorites')}>
-                      <Heart className="w-4 h-4" /> Save
+                    <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={toggleFavorite}>
+                      <Heart className={cn('w-4 h-4', isFavorited && 'fill-current text-red-500')} /> {isFavorited ? 'Saved' : 'Save'}
                     </Button>
-                    <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => toast.success('Sharing...')}>
+                    <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => { navigator.clipboard?.writeText(window.location.href); toast.success('Link copied!'); }}>
                       <Share2 className="w-4 h-4" /> Share Lab
                     </Button>
                     <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => setShowReviewDialog(true)}>

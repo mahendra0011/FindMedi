@@ -55,6 +55,7 @@ const navConfig = {
     { icon: FileUp,          labelKey: 'nav.importExport',     path: '/import-export'    },
     { icon: Settings2,       labelKey: 'nav.hospitalSettings', path: '/admin/hospital-settings' },
     { icon: Megaphone,       labelKey: 'nav.announcements',    path: '/admin/announcements' },
+    { icon: Calendar,        labelKey: 'nav.leaveManagement',  path: '/admin/leave-requests' },
     { icon: Bell,            labelKey: 'nav.notifications',    path: '/notifications'    },
     { icon: Settings,        labelKey: 'nav.settings',         path: '/settings'         },
   ],

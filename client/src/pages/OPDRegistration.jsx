@@ -6,36 +6,37 @@ import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 
 const empty = { name: '', age: '', gender: 'Male', phone: '', address: '', bloodGroup: '', uhid: '' };
+const tokenApi = {
+  getAll: async (p) => { try { return await api.getTokens(p); } catch (e) { return { tokens: [] }; } },
+  generate: async (b) => { try { return await api.generateToken(b); } catch (e) { return null; } },
+};
 
 export default function OPDRegistration() {
   const qc = useQueryClient();
   const [search, setSearch] = useState('');
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState(empty);
-  const [tokens, setTokens] = useState([]);
 
   const { data: patients = [] } = useQuery({
     queryKey: ['opd-patients', search],
     queryFn: async () => { try { const res = await api.getPatients({ search }); return res.patients || res; } catch (e) { return []; } },
   });
 
+  const { data: tokensData } = useQuery({
+    queryKey: ['opd-tokens'],
+    queryFn: () => tokenApi.getAll({}),
+  });
+  const tokens = tokensData?.tokens || [];
+
   const createMut = useMutation({
-    mutationFn: async (body) => { try { return await api.createPatient(body); } catch (e) { return { _id: 'p' + Date.now(), uhid: 'UHID-' + Date.now(), ...body }; } },
+    mutationFn: async (body) => { return await api.createPatient(body); },
     onSuccess: () => { qc.invalidateQueries(['opd-patients']); setShowAdd(false); }
   });
 
-  const generateToken = (patient) => {
-    const token = {
-      _id: 't' + Date.now(),
-      tokenNumber: 'OPD-' + new Date().getFullYear() + '-' + Math.floor(1000 + Math.random() * 9000),
-      patientName: patient.name,
-      department: 'General',
-      status: 'Waiting',
-      createdAt: new Date(),
-      estimatedWaitTime: (tokens.length + 1) * 15
-    };
-    setTokens([token, ...tokens]);
-  };
+  const generateTokenMut = useMutation({
+    mutationFn: tokenApi.generate,
+    onSuccess: () => qc.invalidateQueries(['opd-tokens']),
+  });
 
   const printCard = (patient) => {
     alert('Printing patient card for ' + patient.name);
@@ -56,7 +57,7 @@ export default function OPDRegistration() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input placeholder="Search by UHID/Phone..." className="pl-10" value={search} onChange={e => setSearch(e.target.value)} />
         </div>
-        <Button variant="outline" onClick={() => setTokens([])}>Refresh Tokens</Button>
+        <Button variant="outline" onClick={() => qc.invalidateQueries(['opd-tokens'])}>Refresh Tokens</Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -70,7 +71,7 @@ export default function OPDRegistration() {
                   <p className="text-xs text-muted-foreground">UHID: {p.uhid} · {p.phone}</p>
                 </div>
                 <div className="flex gap-2">
-                  <Button size="sm" variant="outline" onClick={() => generateToken(p)}>Token</Button>
+                  <Button size="sm" variant="outline" onClick={() => generateTokenMut.mutate({ patientName: p.name, patientId: p._id, uhid: p.uhid })} disabled={generateTokenMut.isPending}>Token</Button>
                   <Button size="sm" variant="ghost" onClick={() => printCard(p)}><Printer className="w-4 h-4" /></Button>
                 </div>
               </div>
@@ -86,7 +87,7 @@ export default function OPDRegistration() {
               <div key={t._id} className="bg-card rounded-xl border p-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-heading font-bold text-primary text-lg">{t.tokenNumber}</span>
-                  <span className={`text-xs px-2 py-1 rounded-full ${t.status === 'Waiting' ? 'bg-warning/10 text-warning' : 'bg-success/10 text-success'}`}>{t.status}</span>
+                  <span className={`text-xs px-2 py-1 rounded-full ${t.status === 'Waiting' ? 'bg-warning/10 text-warning' : t.status === 'In Consultation' ? 'bg-primary/10 text-primary' : 'bg-success/10 text-success'}`}>{t.status}</span>
                 </div>
                 <p className="text-sm text-foreground">{t.patientName}</p>
                 <p className="text-xs text-muted-foreground">{t.department} · Est. wait: {t.estimatedWaitTime} min</p>
@@ -118,4 +119,4 @@ export default function OPDRegistration() {
       )}
     </div>
   );
-}// 38
+}

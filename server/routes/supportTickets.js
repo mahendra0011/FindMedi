@@ -9,6 +9,30 @@ const generateTicketId = async () => {
   return `TKT-${String(count + 1).padStart(4, '0')}`;
 };
 
+router.post('/', protect, async (req, res) => {
+  try {
+    const { subject, message } = req.body;
+    if (!subject || !message) return res.status(400).json({ message: 'Subject and message are required' });
+    const ticketId = await generateTicketId();
+    const ticket = await SupportTicket.create({
+      ticketId,
+      raisedBy: req.user._id,
+      raisedByName: req.user.name,
+      subject,
+      description: message,
+      status: 'Open',
+    });
+    res.status(201).json(ticket);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+router.get('/my-tickets', protect, async (req, res) => {
+  try {
+    const tickets = await SupportTicket.find({ raisedBy: req.user._id }).sort({ createdAt: -1 });
+    res.json({ tickets });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
 router.get('/', protect, superadminOnly, async (req, res) => {
   try {
     const { status, priority, category, search } = req.query;

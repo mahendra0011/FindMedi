@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -24,6 +24,7 @@ import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import ServiceLocationMap from '@/components/maps/ServiceLocationMap';
 import ClinicCard from '@/components/ClinicCard';
+import { useAuth } from '@/context/AuthContext';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import ReviewDialog from '@/components/ReviewDialog';
 
@@ -104,13 +105,7 @@ export default function ClinicDetail() {
   const [doctor, setDoctor] = useState(null);
   const [facility, setFacility] = useState(null);
   const [clinicDoctors, setClinicDoctors] = useState([]);
-  const [reviews, setReviews] = useState([
-    { _id: 'demo-1', patientName: 'Rahul Sharma', rating: 5, comment: 'Excellent clinic. Very thorough examination and clean facilities.', date: '2026-06-15' },
-    { _id: 'demo-2', patientName: 'Priya Patel', rating: 4, comment: 'Good experience. The waiting time was a bit long but the consultation was worth it.', date: '2026-06-10' },
-    { _id: 'demo-3', patientName: 'Amit Verma', rating: 5, comment: 'Best clinic in the city. The staff is very cooperative.', date: '2026-06-05' },
-    { _id: 'demo-4', patientName: 'Sunita Gupta', rating: 4, comment: 'Very caring doctor. Well-maintained clinic and polite staff.', date: '2026-05-28' },
-    { _id: 'demo-5', patientName: 'Vikram Singh', rating: 3, comment: 'Decent consultation but the billing process was slow.', date: '2026-05-20' },
-  ]);
+  const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activePhoto, setActivePhoto] = useState(0);
   const [showFullDesc, setShowFullDesc] = useState(false);
@@ -125,13 +120,59 @@ export default function ClinicDetail() {
   const [testHomeFilter, setTestHomeFilter] = useState('all');
   const [testSort, setTestSort] = useState('popularity');
   const [testCart, setTestCart] = useState({});
-  const [suggestedClinics, setSuggestedClinics] = useState(SUGGESTED_CLINICS);
+  const [suggestedClinics, setSuggestedClinics] = useState([]);
   const [showBooking, setShowBooking] = useState(false);
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
   const [bookingDate, setBookingDate] = useState('');
   const [bookingTime, setBookingTime] = useState('');
   const [bookingType, setBookingType] = useState('Consultation');
+  const [bookingLoading, setBookingLoading] = useState(false);
+  const { user } = useAuth();
+  const [isFavorited, setIsFavorited] = useState(() => localStorage.getItem(`fav_clinic_${clinicId}`) === 'true');
+  const toggleFavorite = async () => {
+    const next = !isFavorited;
+    setIsFavorited(next);
+    try {
+      if (next) {
+        await api.dispatch(() => Promise.resolve({}), '/patient/favorites', { method: 'POST', body: JSON.stringify({ targetId: clinicId, targetType: 'clinic', name: clinic?.name }) });
+      } else {
+        await api.dispatch(() => Promise.resolve({}), `/patient/favorites/${clinicId}`, { method: 'DELETE' });
+      }
+      toast.success(next ? 'Saved' : 'Removed from Saved');
+    } catch {
+      setIsFavorited(!next);
+      toast.error('Failed to update favorite');
+    }
+  };
   const [bookingNotes, setBookingNotes] = useState('');
+
+  const handleConfirmBooking = async () => {
+    const targetDoctor = doctors[0];
+    if (!targetDoctor) { toast.error('No doctor available for booking'); return; }
+    if (!user) { toast.error('Please login to book an appointment'); navigate('/login'); return; }
+    setBookingLoading(true);
+    try {
+      await api.createAppointment({
+        doctorId: targetDoctor._id,
+        doctor: targetDoctor.name,
+        doctorName: targetDoctor.name,
+        facilityId: facility?._id || clinicId,
+        patient: user.name || 'Patient',
+        patientId: user._id,
+        email: user.email,
+        phone: user.phone || '',
+        date: bookingDate,
+        timeSlot: bookingTime,
+        type: bookingType,
+        notes: bookingNotes,
+        status: 'Scheduled',
+      });
+      setBookingConfirmed(true);
+    } catch (e) {
+      toast.error(e.response?.data?.message || e.message || 'Failed to book appointment');
+    }
+    setBookingLoading(false);
+  };
 
   const cp = doctor?.clinicProfile || {};
   const details = facility?.details || {};
@@ -349,10 +390,10 @@ export default function ClinicDetail() {
                 ))}
               </div>
               <div className="absolute top-4 right-4 flex gap-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button className="w-9 h-9 rounded-xl bg-black/30 backdrop-blur-sm text-white flex items-center justify-center hover:bg-black/50 transition-all hover:scale-105" onClick={() => toast.success('Bookmarked')}>
-                  <Bookmark className="w-4 h-4" />
+                <button className="w-9 h-9 rounded-xl bg-black/30 backdrop-blur-sm text-white flex items-center justify-center hover:bg-black/50 transition-all hover:scale-105" onClick={toggleFavorite}>
+                  <Bookmark className={cn('w-4 h-4', isFavorited && 'fill-current')} />
                 </button>
-                <button className="w-9 h-9 rounded-xl bg-black/30 backdrop-blur-sm text-white flex items-center justify-center hover:bg-black/50 transition-all hover:scale-105" onClick={() => toast.success('Link copied!')}>
+                <button className="w-9 h-9 rounded-xl bg-black/30 backdrop-blur-sm text-white flex items-center justify-center hover:bg-black/50 transition-all hover:scale-105" onClick={() => { navigator.clipboard?.writeText(window.location.href); toast.success('Link copied!'); }}>
                   <Share2 className="w-4 h-4" />
                 </button>
               </div>
@@ -483,7 +524,7 @@ export default function ClinicDetail() {
                         </div>
                         <DialogFooter>
                           <Button variant="outline" size="sm" onClick={() => setShowBooking(false)}>Cancel</Button>
-                          <Button size="sm" disabled={!bookingDate || !bookingTime} onClick={() => { setBookingConfirmed(true); }}>Confirm Booking</Button>
+                          <Button size="sm" disabled={!bookingDate || !bookingTime || bookingLoading} onClick={handleConfirmBooking}>{bookingLoading ? 'Booking...' : 'Confirm Booking'}</Button>
                         </DialogFooter>
                       </>
                     ) : (
@@ -1101,8 +1142,8 @@ export default function ClinicDetail() {
                      <Button className="w-full gap-2.5 rounded-xl h-11 font-semibold shadow-md" onClick={() => setShowBooking(true)}>
                        <CalendarDays className="w-4 h-4" /> Book Appointment
                      </Button>
-                     <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => toast.success('Removed from Saved')}>
-                       <Heart className="w-4 h-4" /> Save
+                     <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={toggleFavorite}>
+                        <Heart className={cn('w-4 h-4', isFavorited && 'fill-current text-red-500')} /> {isFavorited ? 'Saved' : 'Save'}
                      </Button>
                      <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" asChild>
                        <a href={`tel:${clinic.phone}`}><Phone className="w-4 h-4" /> Call Now</a>

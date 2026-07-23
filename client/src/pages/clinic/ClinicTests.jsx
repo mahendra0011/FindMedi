@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
+import { toast } from 'sonner';
 
 const testCategories = ['Basic', 'Lab', 'Imaging', 'Cardiac', 'Other'];
 
@@ -25,11 +26,8 @@ const categoryIcons = {
 
 export default function ClinicTests() {
   const { user } = useAuth();
-  const [tests, setTests] = useState(() => {
-    const stored = localStorage.getItem('medicore_clinic_tests');
-    return stored ? JSON.parse(stored) : defaultTests;
-  });
-  const [loading, setLoading] = useState(false);
+  const [tests, setTests] = useState(defaultTests);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [showForm, setShowForm] = useState(false);
@@ -40,8 +38,18 @@ export default function ClinicTests() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    localStorage.setItem('medicore_clinic_tests', JSON.stringify(tests));
-  }, [tests]);
+    setLoading(true);
+    const load = async () => {
+      try {
+        const res = await api.getTests({});
+        const list = Array.isArray(res) ? res : res?.tests || [];
+        if (list.length > 0) {
+          setTests(list.map(t => ({ _id: t._id, name: t.name, price: t.price, category: t.category || t.department || 'Lab' })));
+        }
+      } catch {} finally { setLoading(false); }
+    };
+    load();
+  }, []);
 
   const filtered = tests.filter(t => {
     const m = !search || t.name.toLowerCase().includes(search.toLowerCase());
@@ -54,16 +62,21 @@ export default function ClinicTests() {
     setSaving(true);
     try {
       if (editTest) {
+        const updated = await api.updateTest(editTest._id, { name, price: Number(price), category });
         setTests(prev => prev.map(t => t._id === editTest._id ? { ...t, name, price: Number(price), category } : t));
+        toast.success('Test updated');
       } else {
-        setTests(prev => [{ _id: `ct_${Date.now()}`, name, price: Number(price), category }, ...prev]);
+        const res = await api.createTest({ name, price: Number(price), category });
+        const newTest = res?.test || res || { _id: `ct_${Date.now()}`, name, price: Number(price), category };
+        setTests(prev => [newTest, ...prev]);
+        toast.success('Test added');
       }
       setShowForm(false);
       setEditTest(null);
       setName('');
       setPrice('');
       setCategory('Lab');
-    } catch (e) { console.error(e); }
+    } catch (e) { toast.error(e.message || 'Failed to save'); }
     setSaving(false);
   };
 
@@ -75,8 +88,12 @@ export default function ClinicTests() {
     setShowForm(true);
   };
 
-  const handleDelete = (id) => {
-    setTests(prev => prev.filter(t => t._id !== id));
+  const handleDelete = async (id) => {
+    try {
+      await api.deleteTest(id);
+      setTests(prev => prev.filter(t => t._id !== id));
+      toast.success('Test deleted');
+    } catch (e) { toast.error(e.message || 'Failed to delete'); }
   };
 
   const openNewForm = () => {

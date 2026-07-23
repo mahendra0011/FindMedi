@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
+import { toast } from 'sonner';
 
 const leaveStatusColors = {
   Pending: 'bg-warning/10 text-warning border-warning/20',
@@ -35,19 +36,16 @@ export default function DoctorLeaveRequests() {
   const [endDate, setEndDate] = useState('');
   const [reason, setReason] = useState('');
 
-  // Load doctor data + existing leave requests from localStorage
   const loadData = async () => {
     setLoading(true);
     try {
-      const doctors = await api.getDoctors();
+      const [doctors, leavesRes] = await Promise.all([
+        api.getDoctors(),
+        api.getLeaveRequests(),
+      ]);
       const myDoc = doctors.find(d => d.email === user?.email) || doctors.find(d => d.name?.includes(user?.name)) || null;
-      if (myDoc) {
-        setDoctor(myDoc);
-      }
-      // Load leave requests from stored data
-      const stored = localStorage.getItem('medicore_leave_requests');
-      const allLeaves = stored ? JSON.parse(stored) : [];
-      setLeaves(allLeaves.filter(l => l.doctorEmail === user?.email));
+      if (myDoc) setDoctor(myDoc);
+      setLeaves(leavesRes?.leaves || []);
     } catch (e) { console.error(e); }
     setLoading(false);
   };
@@ -58,53 +56,19 @@ export default function DoctorLeaveRequests() {
     if (!startDate || !endDate || !reason) return;
     setSubmitting(true);
     try {
-      const newLeave = {
-        _id: `lv_${Date.now()}`,
-        doctorEmail: user?.email,
-        doctorName: user?.name,
-        leaveType,
-        startDate,
-        endDate,
-        reason,
-        status: 'Pending',
-        appliedOn: new Date().toISOString().split('T')[0],
-        adminNotes: '',
-      };
-
-      // Persist to localStorage
-      const stored = localStorage.getItem('medicore_leave_requests');
-      const allLeaves = stored ? JSON.parse(stored) : [];
-      allLeaves.unshift(newLeave);
-      localStorage.setItem('medicore_leave_requests', JSON.stringify(allLeaves));
-
-      // Also add to doctor's leaves array
-      if (doctor) {
-        const dates = [];
-        let d = new Date(startDate);
-        const end = new Date(endDate);
-        while (d <= end) {
-          dates.push(d.toISOString().split('T')[0]);
-          d.setDate(d.getDate() + 1);
-        }
-        const existingLeaves = doctor.leaves || [];
-        await api.updateDoctorSchedule(doctor._id, {
-          leaves: [...existingLeaves, ...dates],
-        });
-      }
-
-      await api.createNotification({
-        title: 'Leave Request Submitted',
-        message: `${user?.name} requested ${leaveType} from ${startDate} to ${endDate}`,
-        type: 'system',
+      const created = await api.createLeaveRequest({
+        leaveType, startDate, endDate, reason,
       });
-
-      setLeaves(prev => [newLeave, ...prev]);
+      setLeaves(prev => [created, ...prev]);
       setShowForm(false);
       setLeaveType('Sick Leave');
       setStartDate('');
       setEndDate('');
       setReason('');
-    } catch (e) { console.error(e); }
+      toast.success('Leave request submitted');
+    } catch (e) {
+      toast.error('Failed to submit leave request');
+    }
     setSubmitting(false);
   };
 
@@ -199,7 +163,7 @@ export default function DoctorLeaveRequests() {
                           <Calendar className="w-3.5 h-3.5" /> {lv.startDate} → {lv.endDate}
                         </span>
                         <span className="flex items-center gap-1">
-                          <Clock className="w-3.5 h-3.5" /> Applied: {lv.appliedOn}
+                          <Clock className="w-3.5 h-3.5" /> Applied: {lv.createdAt ? new Date(lv.createdAt).toLocaleDateString() : ''}
                         </span>
                       </div>
                       {lv.reason && <p className="text-sm text-foreground mt-2">{lv.reason}</p>}

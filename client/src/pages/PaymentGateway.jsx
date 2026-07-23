@@ -6,12 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
-
-const MOCK_STORES = [
-  { id:'s1', name:'MedPlus Pharmacy' },
-  { id:'s2', name:'HealthFirst Medicals' },
-  { id:'s3', name:'City Drug House' },
-];
+import { api } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
 
 const UPI_APPS = ['Google Pay', 'PhonePe', 'Paytm', 'BHIM', 'CRED'];
 
@@ -40,17 +36,54 @@ export default function PaymentGateway() {
   const [copied, setCopied] = useState(false);
   const [saveCard, setSaveCard] = useState(false);
   const [agreed, setAgreed] = useState(false);
+  const [paying, setPaying] = useState(false);
+  const [storeNames, setStoreNames] = useState({});
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (storeIds.length === 0) return;
+    const load = async () => {
+      try {
+        const res = await api.getFacilities({ type: 'pharmacy' });
+        const list = Array.isArray(res) ? res : res?.facilities || [];
+        const map = {};
+        list.forEach(f => { map[f._id] = f.name; map[f.id] = f.name; });
+        storeIds.forEach(sid => {
+          if (sid) {
+            const found = list.find(f => f._id === sid || f.id === sid);
+            if (found) map[sid] = found.name;
+          }
+        });
+        setStoreNames(map);
+      } catch {}
+    };
+    load();
+  }, []);
+
+  const getStoreName = (sid) => storeNames[sid] || sid;
 
   const methodInfo = PAYMENT_METHODS[method] || PAYMENT_METHODS.upi;
   const MethodIcon = methodInfo.icon;
   const upiQrUpiId = 'medicore@upi';
 
-  const handlePay = () => {
+  const handlePay = async () => {
+    setPaying(true);
     setStep('processing');
-    setTimeout(() => {
-      const success = Math.random() > 0.2;
-      setStep(success ? 'success' : 'failed');
-    }, 2500);
+    try {
+      await api.createPayment({
+        patientId: user?._id,
+        patientName: user?.name,
+        email: user?.email,
+        orderIds,
+        total,
+        method,
+        status: 'Completed',
+      });
+      setStep('success');
+    } catch (e) {
+      setStep('failed');
+    }
+    setPaying(false);
   };
 
   const handleProceed = () => {
@@ -84,10 +117,9 @@ export default function PaymentGateway() {
         <div className="bg-card rounded-2xl border border-border/60 p-5 mb-4">
           <p className="text-xs text-muted-foreground mb-3">Order{storeIds.length > 1 ? 's' : ''}</p>
           {storeIds.map((sid, i) => {
-            const store = MOCK_STORES.find(s => s.id === sid);
             return (
               <div key={sid} className="flex items-center justify-between py-1.5 text-sm">
-                <span className="text-muted-foreground">{store?.name || sid}</span>
+                <span className="text-muted-foreground">{getStoreName(sid)}</span>
                 <Badge className="text-[10px] font-mono bg-primary/10 text-primary">{orderIds[i]}</Badge>
               </div>
             );

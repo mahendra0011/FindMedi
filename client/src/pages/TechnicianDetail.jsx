@@ -148,7 +148,20 @@ export default function TechnicianDetail() {
   const [bookingAddress, setBookingAddress] = useState('');
   const [bookingSuccess, setBookingSuccess] = useState(false);
   const [bookingDetails, setBookingDetails] = useState(null);
-  const [saved, setSaved] = useState(false);
+  const [saved, setSaved] = useState(() => localStorage.getItem(`fav_tech_${id}`) === 'true');
+  const toggleSaved = async () => {
+    const next = !saved;
+    setSaved(next);
+    localStorage.setItem(`fav_tech_${id}`, next.toString());
+    try {
+      if (next) {
+        await api.dispatch(() => Promise.resolve({}), '/patient/favorites', { method: 'POST', body: JSON.stringify({ targetId: id, targetType: 'technician', name: tech?.name }) });
+      } else {
+        await api.dispatch(() => Promise.resolve({}), `/patient/favorites/${id}`, { method: 'DELETE' });
+      }
+    } catch {}
+    toast.success(next ? 'Saved' : 'Removed from Saved');
+  };
   const [showFullBio, setShowFullBio] = useState(false);
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [reviewRating, setReviewRating] = useState(5);
@@ -895,7 +908,7 @@ export default function TechnicianDetail() {
                 <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" asChild>
                   <a href={`mailto:${tech.email || ''}`}><Mail className="w-4 h-4" /> Email Now</a>
                 </Button>
-                <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => { setSaved(!saved); toast.success(saved ? 'Removed from Saved' : 'Saved'); }}>
+                <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={toggleSaved}>
                   <Heart className={cn('w-4 h-4', saved && 'fill-current text-red-500')} /> {saved ? 'Saved' : 'Save'}
                 </Button>
                 <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => { navigator.clipboard?.writeText(window.location.href); toast.success('Link copied!'); }}>
@@ -913,7 +926,7 @@ export default function TechnicianDetail() {
                   <CalendarDays className="w-5 h-5 text-primary" />
                   Book Technician
                 </h2>
-                <button onClick={() => setSaved(!saved)} className="p-2 rounded-lg hover:bg-muted transition-colors">
+                <button onClick={toggleSaved} className="p-2 rounded-lg hover:bg-muted transition-colors">
                   {saved
                     ? <BookMarked className="w-5 h-5 text-primary" />
                     : <Bookmark className="w-5 h-5 text-muted-foreground" />

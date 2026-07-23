@@ -1,70 +1,88 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Building2, MapPin, Phone, Mail, Clock, Image, Plus, X, Save, CheckCircle, Upload, Globe, Edit2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
+import { api } from '@/lib/api';
+import { toast } from 'sonner';
 
 export default function ClinicManagement() {
   const { user } = useAuth();
-  const [clinics, setClinics] = useState(() => {
-    const stored = localStorage.getItem('medicore_clinics');
-    if (stored) return JSON.parse(stored);
-    return [{
-      _id: 'clinic_1',
-      name: `${user?.name}'s Clinic`,
-      address: '123 Main Street',
-      city: 'New York',
-      phone: '+1 234 567 890',
-      email: user?.email || '',
-      timings: { weekday: '09:00 - 17:00', weekend: '10:00 - 14:00' },
-      photos: [],
-      facilities: ['Free WiFi', 'Parking', 'Pharmacy'],
-      description: 'General medical clinic',
-      status: 'active',
-    }];
-  });
-
-  const [editing, setEditing] = useState(null);
+  const [clinicProfile, setClinicProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({});
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [newFacility, setNewFacility] = useState('');
 
-  const saveClinics = (data) => {
-    localStorage.setItem('medicore_clinics', JSON.stringify(data));
-    setClinics(data);
-  };
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        const res = await api.getClinicProfile();
+        const profile = res?.profile || res || null;
+        if (profile) {
+          setClinicProfile({ ...profile, _id: profile._id || 'clinic_1' });
+        } else {
+          setClinicProfile({
+            _id: 'clinic_1',
+            name: `${user?.name}'s Clinic`,
+            address: '123 Main Street',
+            city: 'New York',
+            phone: '+1 234 567 890',
+            email: user?.email || '',
+            timings: { weekday: '09:00 - 17:00', weekend: '10:00 - 14:00' },
+            photos: [],
+            facilities: ['Free WiFi', 'Parking', 'Pharmacy'],
+            description: 'General medical clinic',
+            status: 'active',
+          });
+        }
+      } catch {
+        setClinicProfile({
+          _id: 'clinic_1',
+          name: `${user?.name}'s Clinic`,
+          address: '123 Main Street',
+          city: 'New York',
+          phone: '+1 234 567 890',
+          email: user?.email || '',
+          timings: { weekday: '09:00 - 17:00', weekend: '10:00 - 14:00' },
+          photos: [],
+          facilities: ['Free WiFi', 'Parking', 'Pharmacy'],
+          description: 'General medical clinic',
+          status: 'active',
+        });
+      }
+      setLoading(false);
+    };
+    load();
+  }, [user]);
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      if (editing) {
-        saveClinics(clinics.map(c => c._id === editing._id ? { ...c, ...form } : c));
-      } else {
-        saveClinics([{ _id: `clinic_${Date.now()}`, ...form, photos: [], facilities: [], status: 'active' }, ...clinics]);
-      }
+      await api.updateClinicProfile(form);
+      setClinicProfile(prev => ({ ...prev, ...form }));
       setShowForm(false);
-      setEditing(null);
       setSaved(true);
+      toast.success('Clinic settings updated successfully');
       setTimeout(() => setSaved(false), 2000);
-    } catch (e) { console.error(e); }
+    } catch (e) { toast.error(e.message || 'Failed to save'); }
     setSaving(false);
   };
 
   const addFacility = () => {
     if (newFacility.trim()) {
-      const updated = clinics.map(c => c._id === form._id ? { ...c, facilities: [...(c.facilities || []), newFacility.trim()] } : c);
-      saveClinics(updated);
-      setForm({ ...form, facilities: [...(form.facilities || []), newFacility.trim()] });
+      const updated = { ...form, facilities: [...(form.facilities || []), newFacility.trim()] };
+      setForm(updated);
       setNewFacility('');
     }
   };
 
   const removeFacility = (idx) => {
-    const updated = clinics.map(c => c._id === form._id ? { ...c, facilities: c.facilities.filter((_, i) => i !== idx) } : c);
-    saveClinics(updated);
     setForm({ ...form, facilities: form.facilities.filter((_, i) => i !== idx) });
   };
 
@@ -76,9 +94,22 @@ export default function ClinicManagement() {
 
   const openNew = () => {
     setEditing(null);
-    setForm({ name: '', address: '', city: '', phone: '', email: '', timings: { weekday: '09:00 - 17:00', weekend: 'Closed' }, description: '', facilities: [] });
+    setForm({
+      name: `${user?.name}'s Clinic`,
+      address: '',
+      city: '',
+      phone: '',
+      email: user?.email || '',
+      timings: { weekday: '09:00 - 17:00', weekend: '10:00 - 14:00' },
+      photos: [],
+      facilities: [],
+      description: '',
+      status: 'active',
+    });
     setShowForm(true);
   };
+
+  const clinics = clinicProfile ? [clinicProfile] : [];
 
   return (
     <div className="space-y-6">
@@ -197,8 +228,6 @@ export default function ClinicManagement() {
                       <span key={idx} className="flex items-center gap-1 px-2 py-1 rounded-md text-xs bg-muted">
                         {f}
                         <button onClick={() => {
-                          const updated = clinics.map(c => c._id === form._id ? { ...c, facilities: c.facilities.filter((_, i) => i !== idx) } : c);
-                          saveClinics(updated);
                           setForm({ ...form, facilities: form.facilities.filter((_, i) => i !== idx) });
                         }} className="text-destructive"><X className="w-3 h-3" /></button>
                       </span>

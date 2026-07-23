@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate, Navigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Activity, ArrowRight, Shield, Stethoscope, UserRound, Building2, Hospital, Microscope, Pill, Heart } from 'lucide-react';
@@ -9,8 +9,7 @@ import { api } from '@/lib/api';
 
 const roles = [
   { key: 'superadmin', label: 'SuperAdmin', desc: 'Platform mgmt',         icon: Shield,      color: 'text-purple-600',  bg: 'bg-purple-500/10'  },
-  { key: 'admin',      label: 'Admin',      desc: 'Full system access',    icon: Shield,      color: 'text-primary',     bg: 'bg-primary/10'     },
-  { key: 'hospital',   label: 'Hospital',   desc: 'Hospital admin',        icon: Hospital,    color: 'text-blue-600',    bg: 'bg-blue-500/10'    },
+  { key: 'admin', label: 'Hospital Admin', desc: 'Full system & hospital access', icon: Shield, color: 'text-primary', bg: 'bg-primary/10' },
   { key: 'doctor',     label: 'Hosp Doctor', desc: 'Patient & schedule',   icon: Stethoscope, color: 'text-info',         bg: 'bg-info/10'        },
   { key: 'clinic_doctor', label: 'Clinic',     desc: 'Clinic management',     icon: Heart,       color: 'text-rose-600',    bg: 'bg-rose-500/10'    },
   { key: 'lab_owner',     label: 'Diagnostic', desc: 'Lab test mgmt',         icon: Microscope,  color: 'text-emerald-600', bg: 'bg-emerald-500/10' },
@@ -37,17 +36,16 @@ export default function Login() {
     setError('');
   };
 
-  const handleGoogleLogin = async () => {
+  const googleBtnRef = useRef(null);
+
+  const handleGoogleCredential = async (credential) => {
     setError('');
     setGoogleLoading(true);
     try {
-      const googleUser = prompt('Paste Google ID token here (demo mode):');
-      if (!googleUser) return;
-      const data = await api.googleAuth({ idToken: googleUser });
+      const data = await api.googleAuth({ idToken: credential });
       const g = data.googleUser || {};
-      const mergedRole = role;
       const signupData = {
-        role: mergedRole,
+        role,
         name: g.name || email || '',
         email: g.email || email || '',
         isGoogle: true,
@@ -58,6 +56,18 @@ export default function Login() {
       setError(err.message || 'Google sign-in failed');
     } finally {
       setGoogleLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = () => {
+    if (window.google?.accounts?.id) {
+      window.google.accounts.id.initialize({
+        client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || 'your_google_client_id_here',
+        callback: (response) => handleGoogleCredential(response.credential),
+      });
+      window.google.accounts.id.prompt();
+    } else {
+      setError('Google Sign-In is not available. Check your internet or try again later.');
     }
   };
 

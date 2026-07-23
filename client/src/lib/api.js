@@ -253,6 +253,8 @@ export const api = {
   getAuditLogs:               (p={})    => request('/audit-logs?' + new URLSearchParams(p)),
   getAuditLogStats:           ()        => request('/audit-logs/stats'),
 
+  replyToReview:              (id,b)    => request(`/reviews/${id}/reply`, { method:'PUT', body: JSON.stringify(b) }),
+
   getFlaggedReviews:          (p={})    => request('/reviews/moderation?' + new URLSearchParams(p)),
   flagReview:                 (id,b)    => request(`/reviews/moderation/${id}/flag`,   { method:'PUT', body: JSON.stringify(b) }),
   unflagReview:               (id)      => request(`/reviews/moderation/${id}/unflag`, { method:'PUT' }),
@@ -273,7 +275,14 @@ export const api = {
   assignDispute:          (id,b)    => request(`/disputes/${id}/assign`, { method:'PUT', body: JSON.stringify(b) }),
   getDisputeStats:        ()        => request('/disputes/stats'),
 
+  getLeaveRequests:       (p={})    => request('/leave-requests?' + new URLSearchParams(p)),
+  createLeaveRequest:     (body)    => request('/leave-requests', { method:'POST', body: JSON.stringify(body) }),
+  updateLeaveRequestStatus: (id,b) => request(`/leave-requests/${id}/status`, { method:'PUT', body: JSON.stringify(b) }),
+  getPendingLeaveRequests: ()       => request('/leave-requests/pending'),
+
   getSupportTickets:      (p={})    => request('/support-tickets?' + new URLSearchParams(p)),
+  createSupportTicket:    (body)    => request('/support-tickets', { method:'POST', body: JSON.stringify(body) }),
+  getMyTickets:           (p={})    => request('/support-tickets/my-tickets?' + new URLSearchParams(p)),
   updateTicketStatus:     (id,b)    => request(`/support-tickets/${id}/status`, { method:'PUT', body: JSON.stringify(b) }),
   assignTicket:           (id,b)    => request(`/support-tickets/${id}/assign`, { method:'PUT', body: JSON.stringify(b) }),
   addTicketMessage:       (id,b)    => request(`/support-tickets/${id}/messages`, { method:'POST', body: JSON.stringify(b) }),

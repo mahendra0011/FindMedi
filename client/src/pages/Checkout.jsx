@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, MapPin, Plus, Truck, Store, BadgeCheck, CreditCard, Wallet, Banknote, Percent, Tag, CheckCircle2, AlertCircle, Clock, Shield, Home, Building, Camera, Upload, Image, FileText, X, XCircle, Lock, ShoppingCart, RotateCcw, RefreshCw, ChevronRight, ChevronLeft, Package, Stethoscope } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,17 +8,13 @@ import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { api } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
 import AutoRetryPanel from '@/components/AutoRetryPanel';
 import { useAutoRetry, AUTO_RETRY_STATUS } from '@/hooks/useAutoRetry';
 import { usePreferredPharmacies } from '@/context/PreferredPharmacyContext';
 import { toast } from 'sonner';
-
-const MOCK_STORES = [
-  { id:'s1', name:'MedPlus Pharmacy', deliveryCharges:20, freeDeliveryAbove:200 },
-  { id:'s2', name:'HealthFirst Medicals', deliveryCharges:15, freeDeliveryAbove:150 },
-  { id:'s3', name:'City Drug House', deliveryCharges:25, freeDeliveryAbove:300 },
-];
 
 const CROSS_STORE_MEDS = [
   { id:'m1_s2', name:'Paracetamol 500mg', image:'', brand:'PharmaPlus', mrp:48, price:32, discount:33, inStock:true, rx:false, pack:'10 tablets', category:'OTC', storeId:'s2' },
@@ -63,8 +59,9 @@ const STEPS = [
 
 export default function Checkout() {
   const navigate = useNavigate();
-  const { entries, stores, totalItems, addItem, removeItem } = useCart();
+  const { entries, stores, totalItems, addItem, removeItem, clearCart } = useCart();
   const fileInputRef = useRef(null);
+  const { user } = useAuth();
   const autoRetry = useAutoRetry();
   const { autoRetryEnabled, setAutoRetry: setPreferredAutoRetry } = usePreferredPharmacies();
   const [step, setStep] = useState(0);
@@ -94,7 +91,25 @@ export default function Checkout() {
   const [rxVerifiedGlobally, setRxVerifiedGlobally] = useState(false);
   const [showRxReuploadPrompt, setShowRxReuploadPrompt] = useState(false);
 
-  const getStore = (storeId) => MOCK_STORES.find(s => s.id === storeId);
+  const [storeMap, setStoreMap] = useState({});
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await api.getFacilities({ type: 'pharmacy' });
+        const list = Array.isArray(res) ? res : res?.facilities || [];
+        const map = {};
+        list.forEach(f => {
+          const id = f._id || f.id;
+          map[id] = { id, name: f.name || f.storeName, deliveryCharges: f.deliveryCharges || 20, freeDeliveryAbove: f.freeDeliveryAbove || 200 };
+        });
+        setStoreMap(map);
+      } catch {}
+    };
+    load();
+  }, []);
+
+  const getStore = (storeId) => storeMap[storeId];
   const hasRxItems = entries.some(e => e.item.rx);
   const findAlternatives = (entry, allMeds) => allMeds.filter(m => m.name === entry.item.name && m.storeId !== entry.storeId && m.inStock);
 
@@ -153,8 +168,9 @@ export default function Checkout() {
 
   const handleBack = () => setStep(s => Math.max(s - 1, 0));
 
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
     if (!selectedAddress) { alert('Please select a delivery address'); return; }
+    if (!user) { toast.error('Please login to place order'); navigate('/login'); return; }
     if (hasRxItems) {
       if (Object.keys(rxStatus).length === 0) { alert('Please upload prescription for Rx items'); return; }
       const anyRejected = Object.values(rxStatus).some(v => v === 'rejected');
@@ -176,25 +192,53 @@ export default function Checkout() {
       if (!window.confirm(msg)) return;
     }
 
-    const orderIds = stores.map((st, i) => `ORD${Date.now().toString(36).toUpperCase()}-${i + 1}`);
-    const params = new URLSearchParams({ stores: stores.map(s => s.storeId).join(','), orderIds: orderIds.join(','), rx: hasRxItems ? 'true' : 'false' });
+    try {
+      const orderPayload = {
+        patientId: user._id,
+        patientName: user.name,
+        email: user.email,
+        phone: user.phone || '',
+        address: selectedAddress?.address || '',
+        items: entries.map(e => ({
+          medicineId: e.item._id || e.item.id,
+          medicineName: e.item.name,
+          quantity: e.qty,
+          price: e.item.price,
+          storeId: e.storeId,
+          rx: e.item.rx || false,
+        })),
+        total: grandTotal,
+        deliveryMode,
+        deliverySlot,
+        paymentMethod: payOnDelivery ? 'cod' : paymentMethod,
+        status: payOnDelivery ? 'Confirmed' : 'Pending',
+      };
+      const res = await api.createPharmacyOrder(orderPayload);
+      const orderIds = Array.isArray(res?.orders) ? res.orders.map(o => o._id) : [res?.order?._id || res?._id];
+      const orderIdStr = orderIds.join(',');
+      const params = new URLSearchParams({ stores: stores.map(s => s.storeId).join(','), orderIds: orderIdStr, rx: hasRxItems ? 'true' : 'false' });
 
-    const rejectedEntries = entries.filter(e => rxStatus[e.key] === 'rejected');
-    if (rejectedEntries.length > 0) {
-      const refundAmount = rejectedEntries.reduce((s, e) => s + e.item.price * e.qty, 0);
-      const refundItems = rejectedEntries.map(e => `${e.item.name} x${e.qty}`);
-      params.set('refunded', 'true');
-      params.set('refundAmount', refundAmount.toString());
-      params.set('refundItems', refundItems.join(','));
-      rejectedEntries.forEach(e => removeItem(e.key));
-    }
+      const rejectedEntries = entries.filter(e => rxStatus[e.key] === 'rejected');
+      if (rejectedEntries.length > 0) {
+        const refundAmount = rejectedEntries.reduce((s, e) => s + e.item.price * e.qty, 0);
+        const refundItems = rejectedEntries.map(e => `${e.item.name} x${e.qty}`);
+        params.set('refunded', 'true');
+        params.set('refundAmount', refundAmount.toString());
+        params.set('refundItems', refundItems.join(','));
+        rejectedEntries.forEach(e => removeItem(e.key));
+      }
 
-    if (payOnDelivery) {
-      navigate(`/order-confirmation?${params}`);
-    } else {
-      params.set('total', grandTotal.toString());
-      params.set('method', paymentMethod);
-      navigate(`/payment-gateway?${params}`);
+      clearCart();
+
+      if (payOnDelivery) {
+        navigate(`/order-confirmation?${params}`);
+      } else {
+        params.set('total', grandTotal.toString());
+        params.set('method', paymentMethod);
+        navigate(`/payment-gateway?${params}`);
+      }
+    } catch (e) {
+      toast.error(e.response?.data?.message || e.message || 'Failed to place order');
     }
   };
 

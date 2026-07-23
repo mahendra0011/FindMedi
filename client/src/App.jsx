@@ -55,6 +55,7 @@ import Notifications from './pages/Notifications';
 import OTPVerification from './pages/OTPVerification';
 import DoctorSetup from './pages/DoctorSetup';
 import { LenisScroll } from './components/LenisScroll';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Patient pages
 import PatientAppointments from './pages/patient/PatientAppointments';
@@ -116,6 +117,7 @@ import AdminClinicSettings from './pages/admin/AdminClinicSettings';
 import AdminLabSettings from './pages/admin/AdminLabSettings';
 import AdminPharmacySettings from './pages/admin/AdminPharmacySettings';
 import AdminAnnouncements from './pages/admin/AdminAnnouncements';
+import AdminLeaveRequests from './pages/admin/AdminLeaveRequests';
 import DiagnosticDashboard from './pages/DiagnosticDashboard';
 import PDFReports from './pages/PDFReports';
 import ImportExport from './pages/ImportExport';
@@ -320,6 +322,7 @@ function ReduxAuthProvider({ children }) {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
+    <ErrorBoundary>
     <ReduxAuthProvider>
       <NotificationProvider>
         <PreferredPharmacyProvider>
@@ -428,6 +431,7 @@ const App = () => (
                     <Route path="/admin/lab-settings" element={<RoleRoute allowedRoles={['admin', 'lab_owner']}><AdminLabSettings /></RoleRoute>} />
                     <Route path="/admin/pharmacy-settings" element={<RoleRoute allowedRoles={['admin', 'pharmacy_owner']}><AdminPharmacySettings /></RoleRoute>} />
                     <Route path="/admin/announcements" element={<RoleRoute allowedRoles={['admin']}><AdminAnnouncements /></RoleRoute>} />
+                    <Route path="/admin/leave-requests" element={<RoleRoute allowedRoles={['admin']}><AdminLeaveRequests /></RoleRoute>} />
                     <Route path="/admin/diagnostic" element={<RoleRoute allowedRoles={['admin', 'doctor', 'lab_receptionist', 'lab_technician', 'pathologist']}><DiagnosticDashboard /></RoleRoute>} />
                     <Route path="/doctors" element={<RoleRoute allowedRoles={['admin']}><Doctors /></RoleRoute>} />
                     <Route path="/patients" element={<RoleRoute allowedRoles={['admin']}><Patients /></RoleRoute>} />
@@ -510,6 +514,7 @@ const App = () => (
         </PreferredPharmacyProvider>
       </NotificationProvider>
     </ReduxAuthProvider>
+    </ErrorBoundary>
   </QueryClientProvider>
 );
 

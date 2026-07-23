@@ -1,17 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { User, Mail, Phone, Shield, Plus, X, Save, Edit2, CheckCircle, Users, Stethoscope } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { api } from '@/lib/api';
+import { toast } from 'sonner';
 
 const staffRoles = ['Receptionist', 'Nurse', 'Lab Technician', 'Pharmacist', 'Accountant', 'Helper'];
 
 export default function ClinicStaff() {
-  const [staff, setStaff] = useState(() => {
-    const stored = localStorage.getItem('medicore_clinic_staff');
-    return stored ? JSON.parse(stored) : [];
-  });
+  const [staff, setStaff] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [name, setName] = useState('');
@@ -20,29 +20,47 @@ export default function ClinicStaff() {
   const [role, setRole] = useState('Receptionist');
   const [saving, setSaving] = useState(false);
 
-  const saveStaff = (data) => {
-    localStorage.setItem('medicore_clinic_staff', JSON.stringify(data));
-    setStaff(data);
-  };
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        const res = await api.getClinicStaff();
+        const list = Array.isArray(res) ? res : res?.staff || [];
+        setStaff(list);
+      } catch { setStaff([]); }
+      setLoading(false);
+    };
+    load();
+  }, []);
 
   const handleSave = async () => {
     if (!name) return;
     setSaving(true);
     try {
       if (editing) {
-        saveStaff(staff.map(s => s._id === editing._id ? { ...s, name, email, phone, role } : s));
+        const updated = { name, email, phone, role };
+        await api.createClinicStaff(updated);
+        setStaff(staff.map(s => s._id === editing._id ? { ...s, ...updated } : s));
+        toast.success('Staff updated');
       } else {
-        saveStaff([{ _id: `st_${Date.now()}`, name, email, phone, role, status: 'active' }, ...staff]);
+        const res = await api.createClinicStaff({ name, email, phone, role });
+        const newMember = res?.staff || res || { _id: `st_${Date.now()}`, name, email, phone, role, status: 'active' };
+        setStaff([newMember, ...staff]);
+        toast.success('Staff added');
       }
       setShowForm(false);
       setEditing(null);
       setName(''); setEmail(''); setPhone(''); setRole('Receptionist');
-    } catch (e) { console.error(e); }
+    } catch (e) { toast.error(e.message || 'Failed to save'); }
     setSaving(false);
   };
 
-  const handleDelete = (id) => {
-    saveStaff(staff.filter(s => s._id !== id));
+  const handleDelete = async (id) => {
+    try {
+      await api.deleteClinicStaff(id);
+      setStaff(staff.filter(s => s._id !== id));
+      toast.success('Staff removed');
+    } catch (e) { toast.error(e.message || 'Failed to delete'); }
   };
 
   const openEdit = (member) => {
@@ -93,7 +111,9 @@ export default function ClinicStaff() {
         </div>
       </div>
 
-      {staff.length === 0 ? (
+      {loading ? (
+        <div className="text-center py-20"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" /></div>
+      ) : staff.length === 0 ? (
         <div className="text-center py-20 bg-card rounded-2xl border border-dashed">
           <Users className="w-16 h-16 mx-auto text-muted-foreground/30 mb-4" />
           <p className="text-muted-foreground text-lg">No staff members yet</p>

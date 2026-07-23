@@ -11,6 +11,8 @@ const reviewSchema = new mongoose.Schema({
   flagged: { type: Boolean, default: false },
   flagReason: { type: String, default: '' },
   flaggedBy: { type: String, default: '' },
+  reply: { type: String, default: '' },
+  repliedAt: { type: Date },
   createdAt: { type: Date, default: Date.now },
 });
 

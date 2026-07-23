@@ -1,13 +1,17 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Star, Calendar, MessageSquare } from 'lucide-react';
+import { Star, Calendar, MessageSquare, Send, Reply } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
+import { toast } from 'sonner';
 
 export default function DoctorReviews() {
   const { user } = useAuth();
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [replyingId, setReplyingId] = useState(null);
+  const [replyText, setReplyText] = useState({});
 
   useEffect(() => {
     const load = async () => {
@@ -19,7 +23,20 @@ export default function DoctorReviews() {
       setLoading(false);
     };
     load();
-  }, []);
+  }, [user?.name]);
+
+  const handleReply = async (reviewId) => {
+    if (!replyText[reviewId]?.trim()) return;
+    try {
+      const updated = await api.replyToReview(reviewId, { reply: replyText[reviewId] });
+      setReviews(prev => prev.map(r => r._id === reviewId ? updated : r));
+      setReplyingId(null);
+      setReplyText(prev => ({ ...prev, [reviewId]: '' }));
+      toast.success('Reply posted');
+    } catch (e) {
+      toast.error('Failed to post reply');
+    }
+  };
 
   const avgRating = reviews.length > 0 ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1) : '0';
   const ratingDist = [5,4,3,2,1].map(r => ({ rating: r, count: reviews.filter(rv => rv.rating === r).length, pct: reviews.length > 0 ? (reviews.filter(rv => rv.rating === r).length / reviews.length * 100) : 0 }));
@@ -86,6 +103,38 @@ export default function DoctorReviews() {
                 <div className="flex items-start gap-2 mt-3">
                   <MessageSquare className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
                   <p className="text-sm text-muted-foreground">{rv.comment}</p>
+                </div>
+              )}
+              {/* Doctor Reply */}
+              {rv.reply && (
+                <div className="mt-3 ml-6 p-3 bg-primary/5 rounded-xl border border-primary/10">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Reply className="w-3.5 h-3.5 text-primary" />
+                    <span className="text-xs font-semibold text-primary">Your Reply</span>
+                    {rv.repliedAt && (
+                      <span className="text-xs text-muted-foreground">{new Date(rv.repliedAt).toLocaleDateString()}</span>
+                    )}
+                  </div>
+                  <p className="text-sm text-foreground">{rv.reply}</p>
+                </div>
+              )}
+              {/* Reply Button / Form */}
+              {!rv.reply && replyingId !== rv._id && (
+                <Button variant="ghost" size="sm" className="mt-3 gap-1.5 text-muted-foreground" onClick={() => { setReplyingId(rv._id); setReplyText(prev => ({ ...prev, [rv._id]: '' })); }}>
+                  <Reply className="w-3.5 h-3.5" /> Reply
+                </Button>
+              )}
+              {replyingId === rv._id && (
+                <div className="mt-3 flex gap-2">
+                  <textarea value={replyText[rv._id] || ''} onChange={e => setReplyText(prev => ({ ...prev, [rv._id]: e.target.value }))}
+                    placeholder="Write your reply..."
+                    className="flex-1 px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm resize-none h-20" />
+                  <div className="flex flex-col gap-2">
+                    <Button size="sm" className="gap-1" onClick={() => handleReply(rv._id)} disabled={!replyText[rv._id]?.trim()}>
+                      <Send className="w-3.5 h-3.5" /> Post
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => setReplyingId(null)}>Cancel</Button>
+                  </div>
                 </div>
               )}
             </motion.div>

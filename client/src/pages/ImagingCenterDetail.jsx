@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Monitor } from 'lucide-react';
 import {
   Star, ShieldCheck, Home, Clock, MapPin, Phone, Mail, ArrowLeft,
   BadgeCheck, ShoppingCart, Camera, Upload, Share2,
@@ -9,10 +9,11 @@ import {
   Copy, CheckCircle2, CalendarDays, Award, Search, Plus, Minus, Lock,
   ChevronRight, Sparkles, Clock4, Utensils, Heart,
   Droplets, Activity, Bone, Eye, Stethoscope, Pill, Calendar, Users, Image,
-  Radio, Scan, Monitor, FlaskConical
+  Radio, Scan, FlaskConical
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
@@ -34,6 +35,34 @@ const SectionTitle = ({ icon: Icon, label }) => (
   </h2>
 );
 
+const SectionCard = ({ icon: Icon, title, children }) => (
+  <div className="bg-card rounded-2xl border border-border/50 overflow-hidden shadow-sm">
+    <div className="px-5 py-4 border-b border-border/30 bg-gradient-to-r from-blue-500/[0.04] to-transparent">
+      <h3 className="font-heading font-bold text-foreground flex items-center gap-2.5 text-base">
+        <span className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-500/5 flex items-center justify-center shadow-sm">
+          <Icon className="w-4.5 h-4.5 text-blue-600" />
+        </span>
+        {title}
+      </h3>
+    </div>
+    <div className="p-5">{children}</div>
+  </div>
+);
+
+const SidebarCard = ({ icon: Icon, title, children }) => (
+  <div className="bg-card rounded-2xl border border-border/50 overflow-hidden shadow-sm">
+    <div className="px-5 py-4 border-b border-border/30">
+      <h3 className="font-heading font-bold text-foreground flex items-center gap-2 text-sm">
+        <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500/15 to-blue-500/5 flex items-center justify-center">
+          <Icon className="w-3.5 h-3.5 text-blue-600" />
+        </span>
+        {title}
+      </h3>
+    </div>
+    <div className="p-5">{children}</div>
+  </div>
+);
+
 function deriveCategory(f) {
   const s = (f?.specialties || []).map(x => x.toLowerCase());
   const hasImaging = s.some(x => x.includes('imaging') || x.includes('radiology') || x.includes('mri') || x.includes('ct') || x.includes('ultrasound'));
@@ -43,9 +72,14 @@ function deriveCategory(f) {
 export default function ImagingCenterDetail() {
   const { clinicId } = useParams();
   const navigate = useNavigate();
-  const clinic = getClinicById(clinicId);
   const { entries, addItem, updateQty } = useCart();
 
+  const [clinic, setClinic] = useState(null);
+  const [allTests, setAllTests] = useState([]);
+  const [packages, setPackages] = useState([]);
+  const [reviewsData, setReviewsData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
   const [showRx, setShowRx] = useState(false);
   const [copiedCode, setCopiedCode] = useState(null);
   const [medSearch, setMedSearch] = useState('');
@@ -53,11 +87,84 @@ export default function ImagingCenterDetail() {
   const [selectedSlot, setSelectedSlot] = useState('');
   const [fastingToggle, setFastingToggle] = useState(false);
 
-  const clinicTests = ALL_TESTS.filter(t => t.clinicId === clinic._id);
-  const clinicPackages = PACKAGES.filter(p => p.clinicId === clinic._id);
-  const clinicEntries = entries.filter(e => e.item.clinicId === clinic._id);
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        const result = await api.getFacility(clinicId);
+        const fac = result?.facility || result;
+        if (!fac) throw new Error('Not found');
+        setClinic({
+          _id: fac._id || clinicId,
+          id: fac._id || clinicId,
+          name: fac.name || 'Imaging Center',
+          type: deriveCategory(fac) || 'Imaging Center',
+          rating: fac.rating || 4.5,
+          reviewsCount: fac.reviewsCount || 0,
+          verified: fac.status === 'approved' || fac.verified,
+          open: fac.open ?? true,
+          workingHours: fac.workingHours || '8:00 AM - 8:00 PM',
+          cover: fac.cover || fac.photo || '',
+          logo: fac.logo || '',
+          phone: fac.phone || '',
+          email: fac.email || '',
+          address: fac.address || '',
+          description: fac.description || '',
+          tags: fac.tags || ['MRI', 'CT Scan', 'X-Ray', 'Digital Reports'],
+          imagingTypes: fac.imagingTypes || ['MRI', 'CT Scan', 'X-Ray', 'Ultrasound'],
+          reportTime: fac.reportTime || 'Within 6 hrs',
+          distance: fac.distance ? `${fac.distance} km` : '1.2 km',
+          aerbNo: fac.aerbNumber || fac.aerbNo || 'AERB-IM-2024-00789',
+          radiologist: fac.radiologistName || fac.radiologist || 'Dr. Rajesh Kumar',
+          established: fac.establishedYear || fac.established || 2015,
+          equipment: fac.equipment || { mri: '3T MRI (Siemens)', ct: '128-Slice CT (GE)' },
+          policies: fac.policies || { report: 'Reports are delivered within 24 hours via email and app.', cancel: 'Free cancellation up to 2 hours before appointment.', refund: 'Full refund if cancelled 24 hours in advance.', fasting: 'Fasting required for abdomen scans (6-8 hrs).' },
+          prepInfo: fac.prepInfo || { fasting: 'Required for Abdomen USG', instructions: 'Remove all metal items before MRI' },
+          offers: fac.offers || [],
+          _raw: fac,
+        });
+        try {
+          const [testsRes, pkgsRes, reviewsRes] = await Promise.all([
+            api.getTests({ hospitalId: clinicId }).catch(() => []),
+            api.getFacility(clinicId).then(r => {
+              const f = r?.facility || r;
+              return f?.packages || [];
+            }).catch(() => []),
+            api.getReviews({ hospitalId: clinicId }).catch(() => []),
+          ]);
+          const tests = (Array.isArray(testsRes) ? testsRes : testsRes?.tests || []).map(t => ({
+            id: t._id || t.id,
+            _id: t._id,
+            name: t.name,
+            price: t.price || t.sellingPrice || 0,
+            mrp: t.mrp || t.price || 0,
+            discount: t.discount || (t.mrp ? Math.round((1 - t.price / t.mrp) * 100) : 0),
+            reportTime: t.reportTime || '24 hrs',
+            popular: t.popular || false,
+            rx: t.prescriptionReq || t.rx || false,
+            category: t.category || t.department || 'All',
+            clinicId,
+          }));
+          setAllTests(tests);
+          setPackages(Array.isArray(pkgsRes) ? pkgsRes : pkgsRes?.packages || []);
+          setReviewsData(Array.isArray(reviewsRes) ? reviewsRes : reviewsRes?.reviews || []);
+        } catch {}
+      } catch {
+        setNotFound(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [clinicId]);
+
+  const clinicTests = allTests;
+  const clinicPackages = packages;
+  const clinicEntries = entries.filter(e => e.item.clinicId === clinic?._id);
   const clinicCartCount = clinicEntries.reduce((s, e) => s + e.qty, 0);
   const clinicCartTotal = clinicEntries.reduce((s, e) => s + e.item.price * e.qty, 0);
+
+  const displayReviews = reviewsData.length > 0 ? reviewsData : [];
 
   const renderStars = (r, size = 'w-3.5 h-3.5') => (
     <div className="flex items-center gap-0.5">
@@ -108,7 +215,7 @@ export default function ImagingCenterDetail() {
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-md">
-                  🟢 Direct
+                  Direct
                 </span>
               )}
             </div>
@@ -123,12 +230,12 @@ export default function ImagingCenterDetail() {
                     <Minus className="w-3 h-3" />
                   </Button>
                   <span className="w-6 text-center text-xs font-bold">{entry.qty}</span>
-                  <Button variant="outline" size="icon" className="h-7 w-7 rounded-lg" onClick={() => addItem(test, clinic._id)}>
+                  <Button variant="outline" size="icon" className="h-7 w-7 rounded-lg" onClick={() => addItem(test, clinic?._id)}>
                     <Plus className="w-3 h-3" />
                   </Button>
                 </div>
               ) : (
-                <Button size="sm" className="gap-1.5 rounded-lg h-8 text-xs" onClick={() => { addItem(test, clinic._id); toast.success(`${test.name} added`); }}>
+                <Button size="sm" className="gap-1.5 rounded-lg h-8 text-xs" onClick={() => { addItem(test, clinic?._id); toast.success(`${test.name} added`); }}>
                   <ShoppingCart className="w-3 h-3" /> Book Scan
                 </Button>
               )}
@@ -141,7 +248,16 @@ export default function ImagingCenterDetail() {
 
   useEffect(() => { window.scrollTo(0, 0); }, [clinicId]);
 
-  if (!clinic) {
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-16 text-center">
+        <Loader2 className="w-10 h-10 animate-spin text-primary mx-auto mb-4" />
+        <p className="text-muted-foreground">Loading imaging center details...</p>
+      </div>
+    );
+  }
+
+  if (notFound || !clinic) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-16 text-center">
         <Scan className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
@@ -347,7 +463,7 @@ export default function ImagingCenterDetail() {
                             <div className="flex gap-2">
                               <Button variant="outline" size="sm" className="rounded-lg text-xs h-9">View Details</Button>
                               <Button size="sm" className="rounded-lg text-xs h-9 gap-1 bg-blue-600 hover:bg-blue-700 text-white"
-                                onClick={() => { toast.success(`${pkg.name} added to cart`); }}>
+                                onClick={() => { addItem(pkg, clinic._id); toast.success(`${pkg.name} added to cart`); }}>
                                 <ShoppingCart className="w-3.5 h-3.5" /> Book Package
                               </Button>
                             </div>
@@ -516,8 +632,8 @@ export default function ImagingCenterDetail() {
                   </div>
                   <div className="flex-1 space-y-1.5 pt-1">
                     {[5, 4, 3, 2, 1].map(s => {
-                      const count = REVIEWS_DATA.filter(r => Math.round(r.rating) === s).length;
-                      const pct = REVIEWS_DATA.length > 0 ? (count / REVIEWS_DATA.length) * 100 : 0;
+                      const count = displayReviews.filter(r => Math.round(r.rating) === s).length;
+                      const pct = displayReviews.length > 0 ? (count / displayReviews.length) * 100 : 0;
                       return (
                         <div key={s} className="flex items-center gap-2 text-xs">
                           <span className="w-3 text-muted-foreground font-medium">{s}</span>
@@ -533,17 +649,19 @@ export default function ImagingCenterDetail() {
                 </div>
                 <Separator />
                 <div className="space-y-4">
-                  {REVIEWS_DATA.map((r, i) => (
-                    <motion.div key={r.id} {...fadeUp(i)} className="pb-4 border-b border-border/20 last:border-0 last:pb-0">
+                  {displayReviews.length > 0 ? displayReviews.map((r, i) => (
+                    <motion.div key={r._id || r.id || i} {...fadeUp(i)} className="pb-4 border-b border-border/20 last:border-0 last:pb-0">
                       <div className="flex items-center gap-3 mb-1.5">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500/20 to-blue-500/10 flex items-center justify-center text-xs font-bold text-blue-600 shadow-sm">{r.user[0]}</div>
-                        <span className="text-sm font-semibold text-foreground">{r.user}</span>
-                        <span className="text-[10px] text-muted-foreground ml-auto bg-muted/50 px-2 py-0.5 rounded-full">{r.date}</span>
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500/20 to-blue-500/10 flex items-center justify-center text-xs font-bold text-blue-600 shadow-sm">{(r.userName || r.user || 'A')[0]}</div>
+                        <span className="text-sm font-semibold text-foreground">{r.userName || r.user || 'Anonymous'}</span>
+                        <span className="text-[10px] text-muted-foreground ml-auto bg-muted/50 px-2 py-0.5 rounded-full">{r.date || r.createdAt?.split('T')[0] || ''}</span>
                       </div>
-                      <div className="flex mb-1.5 ml-11">{renderStars(r.rating)}</div>
-                      <p className="text-sm text-muted-foreground ml-11 leading-relaxed">{r.comment}</p>
+                      <div className="flex mb-1.5 ml-11">{renderStars(r.rating || r.score || 0)}</div>
+                      <p className="text-sm text-muted-foreground ml-11 leading-relaxed">{r.comment || r.text || ''}</p>
                     </motion.div>
-                  ))}
+                  )) : (
+                    <p className="text-sm text-muted-foreground text-center py-4">No reviews yet</p>
+                  )}
                 </div>
               </div>
             </SectionCard>

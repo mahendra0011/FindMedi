@@ -5,38 +5,50 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
+import { api } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
 import { toast } from 'sonner';
-
-const MOCK_STORES = [
-  { id:'s1', name:'MedPlus Pharmacy', photo:'https://images.unsplash.com/photo-1585435557343-3b092031a831?w=400&h=300&fit=crop', deliveryCharges:20, freeDeliveryAbove:200 },
-  { id:'s2', name:'HealthFirst Medicals', photo:'https://images.unsplash.com/photo-1631217868264-e5b90bb7e133?w=400&h=300&fit=crop', deliveryCharges:15, freeDeliveryAbove:150 },
-  { id:'s3', name:'City Drug House', photo:'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?w=400&h=300&fit=crop', deliveryCharges:25, freeDeliveryAbove:300 },
-];
 
 export default function OrderConfirmation() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const orderIds = searchParams.get('orderIds')?.split(',') || [`ORD${Date.now().toString(36).toUpperCase()}`];
+  const orderIds = searchParams.get('orderIds')?.split(',') || [];
   const storeIds  = searchParams.get('stores')?.split(',') || [];
   const hasRx     = searchParams.get('rx') === 'true';
   const flowType  = searchParams.get('type') || 'medicine';
   const { entries, stores, clearCart } = useCart();
+  const { user } = useAuth();
   const [countdown, setCountdown] = useState(30);
   const [confirmed, setConfirmed] = useState(false);
   const [snapshotStores, setSnapshotStores] = useState(null);
   const [snapshotTotal, setSnapshotTotal] = useState(0);
+  const [storeNames, setStoreNames] = useState({});
 
-  const getStore = (storeId) => MOCK_STORES.find(s => s.id === storeId);
+  const getStore = (storeId) => {
+    const name = storeNames[storeId];
+    return name ? { id: storeId, name } : { id: storeId, name: 'Store' };
+  };
 
   useEffect(() => {
-    if (entries.length > 0 && !confirmed) {
-      setSnapshotStores([...stores]);
-      setSnapshotTotal(entries.reduce((s, e) => s + e.item.price * e.qty, 0));
-      clearCart();
-      setConfirmed(true);
-      toast.success('Order placed successfully! Check your email for confirmation.');
-    }
+    const load = async () => {
+      if (storeIds.length > 0) {
+        try {
+          const facilities = await api.getFacilities({ type: 'pharmacy' });
+          const list = Array.isArray(facilities) ? facilities : facilities?.facilities || [];
+          const map = {};
+          list.forEach(f => { map[f._id] = f.name; map[f.id] = f.name; });
+          storeIds.forEach(sid => {
+            if (sid) {
+              const found = list.find(f => f._id === sid || f.id === sid);
+              if (found) map[sid] = found.name;
+            }
+          });
+          setStoreNames(map);
+        } catch {}
+      }
+    };
+    load();
   }, []);
 
   const displayStores = snapshotStores ?? stores;
@@ -77,7 +89,7 @@ export default function OrderConfirmation() {
           <Bell className="w-5 h-5 text-blue-600 shrink-0 animate-pulse" />
           <div className="text-xs text-blue-700 dark:text-blue-300">
             <p className="font-semibold">Confirmation sent</p>
-            <p>Email to <strong>user@example.com</strong> &bull; SMS to <strong>+91 XXXXXXXX</strong></p>
+            <p>Email to <strong>{user?.email || 'your email'}</strong> &bull; SMS to <strong>{user?.phone || 'your phone'}</strong></p>
           </div>
         </div>
 

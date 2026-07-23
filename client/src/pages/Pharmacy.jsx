@@ -99,29 +99,30 @@ export default function Pharmacy() {
   const [newRx, setNewRx] = useState({ patientName: '', diagnosis: '', medicines: [{ medicineName: '', dosage: '', frequency: '1-0-1', duration: '7 days', quantity: 1 }] });
 
   // Orders
-  const [orders, setOrders] = useState(mockOrders);
+  const [orders, setOrders] = useState([]);
   const [orderFilter, setOrderFilter] = useState('All');
 
   // Delivery
-  const [deliveries, setDeliveries] = useState(mockDeliveries);
+  const [deliveries, setDeliveries] = useState([]);
 
   // Billing
   const [bills, setBills] = useState([]);
   const [billFilter, setBillFilter] = useState('All');
 
   // Returns
-  const [returns, setReturns] = useState(mockReturns);
+  const [returns, setReturns] = useState([]);
 
   // Staff
-  const [staffList, setStaffList] = useState(mockPharmacyStaff);
+  const [staffList, setStaffList] = useState([]);
   const [newStaff, setNewStaff] = useState({ name: '', role: 'Pharmacist', email: '', phone: '', licenseNumber: '', experience: '', shift: 'Morning' });
 
   // Offers
-  const [offers, setOffers] = useState(mockOffers);
+  const [offers, setOffers] = useState([]);
   const [newOffer, setNewOffer] = useState({ title: '', code: '', discount: '', type: 'percentage', minPurchase: '0', maxDiscount: '', validTill: '', usageLimit: '100', isActive: true });
 
   // Reviews
-  const [reviews, setReviews] = useState(mockReviews);
+  const [reviews, setReviews] = useState([]);
+  const reviewCount = reviews.length;
 
   // Reports
   const [reportPeriod, setReportPeriod] = useState('7d');
