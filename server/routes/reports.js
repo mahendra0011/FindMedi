@@ -1,5 +1,6 @@
 import express from 'express';
 import { z } from 'zod';
+import multer from 'multer';
 import Report from '../models/Report.js';
 import Bed from '../models/Bed.js';
 import Admission from '../models/Admission.js';
@@ -10,8 +11,15 @@ import Medicine from '../models/Medicine.js';
 import Inventory from '../models/Inventory.js';
 import OperationTheatre from '../models/OperationTheatre.js';
 import Staff from '../models/Staff.js';
+import Patient from '../models/Patient.js';
+import Doctor from '../models/Doctor.js';
 import { protect } from '../middleware/auth.js';
 import { validate } from '../utils/validate.js';
+import { parseExcelFile, exportToExcel, exportToCSV, validatePatientData, validateDoctorData, validateBillingData, formatPatientsForExport, formatDoctorsForExport, formatBillingForExport, formatAppointmentsForExport } from '../utils/excelUtils.js';
+import { generatePrescriptionPDF, generateLabReportPDF, generateDischargeSummaryPDF } from '../services/pdfService.js';
+import { sendEmail, attachmentFromPdf } from '../services/notificationService.js';
+
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
 const reportGenerateSchema = z.object({
   reportType: z.string().min(1, 'Report type is required'),
@@ -342,4 +350,200 @@ router.get('/types/list', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-export default router;// 26
+// ──────────────────────────────────────────────
+// Import / Export routes
+// ──────────────────────────────────────────────
+
+router.get('/export/:type', protect, async (req, res) => {
+  try {
+    const { type } = req.params;
+    const format = req.query.format || 'excel';
+    const hospFilter = req.user.hospitalId ? { hospitalId: req.user.hospitalId } : {};
+
+    let records;
+    switch (type) {
+      case 'patients':
+        records = await Patient.find(hospFilter).lean();
+        records = formatPatientsForExport(records);
+        break;
+      case 'doctors':
+        records = await Doctor.find(hospFilter).lean();
+        records = formatDoctorsForExport(records);
+        break;
+      case 'billing':
+        records = await Billing.find(hospFilter).lean();
+        records = formatBillingForExport(records);
+        break;
+      case 'appointments':
+        records = await Appointment.find(hospFilter).lean();
+        records = formatAppointmentsForExport(records);
+        break;
+      default:
+        return res.status(400).json({ message: 'Invalid export type. Use: patients, doctors, billing, appointments' });
+    }
+
+    if (format === 'csv') {
+      const csv = exportToCSV(records, Object.keys(records[0] || {}));
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="${type}.csv"`);
+      return res.send(csv);
+    }
+
+    const buffer = exportToExcel(records);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${type}.xlsx"`);
+    res.send(buffer);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+router.post('/import/:type', protect, upload.single('file'), async (req, res) => {
+  try {
+    const { type } = req.params;
+    if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+
+    const rows = parseExcelFile(req.file.buffer);
+    if (!rows || rows.length === 0) return res.status(400).json({ message: 'Excel file is empty or has no valid data' });
+
+    const hospFilter = req.user.hospitalId ? { hospitalId: req.user.hospitalId } : {};
+    let result;
+
+    switch (type) {
+      case 'patients': {
+        const { validPatients, errors } = validatePatientData(rows);
+        if (validPatients.length === 0) return res.status(400).json({ message: 'No valid patient records found', errors });
+        const imported = await Patient.insertMany(validPatients.map(p => ({ ...p, ...hospFilter })));
+        result = { success: true, imported: imported.length, errors };
+        break;
+      }
+      case 'doctors': {
+        const { validDoctors, errors } = validateDoctorData(rows);
+        if (validDoctors.length === 0) return res.status(400).json({ message: 'No valid doctor records found', errors });
+        const imported = await Doctor.insertMany(validDoctors.map(d => ({ ...d, ...hospFilter })));
+        result = { success: true, imported: imported.length, errors };
+        break;
+      }
+      case 'billing': {
+        const { validRecords, errors } = validateBillingData(rows);
+        if (validRecords.length === 0) return res.status(400).json({ message: 'No valid billing records found', errors });
+        const imported = [];
+        for (const record of validRecords) {
+          const bill = await Billing.create({
+            invoiceId: `IMP-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
+            patient: record.patient,
+            doctor: record.doctor,
+            service: record.service,
+            amount: record.amount,
+            description: record.description,
+            status: record.status,
+            date: record.date,
+            dueDate: record.dueDate,
+            paid: record.status === 'Paid' ? record.amount : 0,
+            balance: record.status === 'Paid' ? 0 : record.amount,
+            ...hospFilter,
+          });
+          imported.push(bill);
+        }
+        result = { success: true, imported: imported.length, errors };
+        break;
+      }
+      default:
+        return res.status(400).json({ message: 'Invalid import type. Use: patients, doctors, billing' });
+    }
+
+    res.json(result);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// ──────────────────────────────────────────────
+// PDF Generation routes
+// ──────────────────────────────────────────────
+
+router.post('/generate-prescription', protect, async (req, res) => {
+  try {
+    const pdfBuffer = await generatePrescriptionPDF(req.body);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="prescription-${Date.now()}.pdf"`);
+    res.send(pdfBuffer);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+router.post('/generate-lab-report', protect, async (req, res) => {
+  try {
+    const pdfBuffer = await generateLabReportPDF(req.body);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="lab-report-${Date.now()}.pdf"`);
+    res.send(pdfBuffer);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+router.post('/generate-discharge-summary', protect, async (req, res) => {
+  try {
+    const pdfBuffer = await generateDischargeSummaryPDF(req.body);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="discharge-summary-${Date.now()}.pdf"`);
+    res.send(pdfBuffer);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// ──────────────────────────────────────────────
+// Email routes
+// ──────────────────────────────────────────────
+
+router.post('/email/prescription', protect, async (req, res) => {
+  try {
+    const { patient, prescription: data } = req.body;
+    if (!patient?.email) return res.status(400).json({ message: 'Patient email is required' });
+
+    const pdfBuffer = await generatePrescriptionPDF(data || req.body);
+    const emailRes = await sendEmail({
+      to: patient.email,
+      subject: 'Your Prescription - MediCore Hospital',
+      text: `Dear ${patient.name}, please find your prescription attached.`,
+      html: `<p>Dear ${patient.name},</p><p>Please find your prescription attached to this email.</p><p>Thank you,<br>MediCore Hospital</p>`,
+      attachments: [attachmentFromPdf(`prescription-${Date.now()}.pdf`, pdfBuffer)],
+    });
+
+    if (!emailRes.success && emailRes.error) throw new Error(emailRes.error);
+    res.json({ success: true, message: 'Prescription emailed successfully' });
+  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+});
+
+router.post('/email/lab-result', protect, async (req, res) => {
+  try {
+    const { patient, report: data } = req.body;
+    if (!patient?.email) return res.status(400).json({ message: 'Patient email is required' });
+
+    const pdfBuffer = await generateLabReportPDF(data || req.body);
+    const emailRes = await sendEmail({
+      to: patient.email,
+      subject: 'Your Lab Report - MediCore Hospital',
+      text: `Dear ${patient.name}, please find your lab report attached.`,
+      html: `<p>Dear ${patient.name},</p><p>Please find your lab report attached to this email.</p><p>Thank you,<br>MediCore Hospital</p>`,
+      attachments: [attachmentFromPdf(`lab-report-${Date.now()}.pdf`, pdfBuffer)],
+    });
+
+    if (!emailRes.success && emailRes.error) throw new Error(emailRes.error);
+    res.json({ success: true, message: 'Lab report emailed successfully' });
+  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+});
+
+router.post('/email/discharge-summary', protect, async (req, res) => {
+  try {
+    const { patient, summary: data } = req.body;
+    if (!patient?.email) return res.status(400).json({ message: 'Patient email is required' });
+
+    const pdfBuffer = await generateDischargeSummaryPDF(data || req.body);
+    const emailRes = await sendEmail({
+      to: patient.email,
+      subject: 'Your Discharge Summary - MediCore Hospital',
+      text: `Dear ${patient.name}, please find your discharge summary attached.`,
+      html: `<p>Dear ${patient.name},</p><p>Please find your discharge summary attached to this email.</p><p>Thank you,<br>MediCore Hospital</p>`,
+      attachments: [attachmentFromPdf(`discharge-summary-${Date.now()}.pdf`, pdfBuffer)],
+    });
+
+    if (!emailRes.success && emailRes.error) throw new Error(emailRes.error);
+    res.json({ success: true, message: 'Discharge summary emailed successfully' });
+  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+});
+
+export default router;

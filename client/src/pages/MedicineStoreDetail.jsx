@@ -398,7 +398,7 @@ export default function MedicineStoreDetail() {
                         <p className="text-sm font-semibold text-foreground mb-1">Upload your prescription</p>
                         <p className="text-xs text-muted-foreground">JPG, PNG, PDF (max 5MB)</p>
                         <input ref={fileInputRef} type="file" accept="image/*,.pdf" className="hidden"
-                          onChange={(e) => { if (e.target.files?.[0]) toast.success('Prescription uploaded'); }} />
+                          onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; try { await api.uploadFile(f); toast.success('Prescription uploaded'); } catch { toast.error('Upload failed'); } }} />
                       </div>
                       <div className="flex gap-3 mt-3">
                         <Button variant="outline" size="sm" className="flex-1 gap-1.5 rounded-lg text-xs"
@@ -966,9 +966,10 @@ export default function MedicineStoreDetail() {
               <p className="text-sm font-semibold text-foreground mb-1">Tap to upload your prescription</p>
               <p className="text-xs text-muted-foreground">Supports JPG, PNG, PDF (max 5MB)</p>
               <input ref={fileInputRef} type="file" accept="image/*,.pdf" className="hidden"
-                onChange={(e) => {
+                onChange={async (e) => {
                   const file = e.target.files?.[0];
-                  if (file) toast.success(`Uploaded: ${file.name}`);
+                  if (!file) return;
+                  try { await api.uploadFile(file); toast.success(`Uploaded: ${file.name}`); } catch { toast.error('Upload failed'); }
                 }} />
             </div>
             <div className="grid grid-cols-2 gap-3 mb-5">

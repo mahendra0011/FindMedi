@@ -39,7 +39,7 @@ export default function OPDRegistration() {
   });
 
   const printCard = (patient) => {
-    alert('Printing patient card for ' + patient.name);
+    window.print();
   };
 
   return (

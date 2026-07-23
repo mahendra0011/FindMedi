@@ -3,6 +3,7 @@ import { z } from 'zod';
 import FamilyMember from '../models/FamilyMember.js';
 import PatientAddress from '../models/PatientAddress.js';
 import SavedFavorite from '../models/SavedFavorite.js';
+import PreferredPharmacy from '../models/PreferredPharmacy.js';
 import { protect } from '../middleware/auth.js';
 import { validate } from '../utils/validate.js';
 
@@ -108,6 +109,50 @@ router.delete('/favorites/:id', protect, async (req, res) => {
   try {
     await SavedFavorite.findOneAndDelete({ _id: req.params.id, patientId: req.user._id });
     res.json({ message: 'Removed from favorites' });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+router.get('/preferred-pharmacies', protect, async (req, res) => {
+  try {
+    const list = await PreferredPharmacy.find({ patientId: req.user._id }).sort({ priority: 1 });
+    res.json({ pharmacies: list });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+router.post('/preferred-pharmacies', protect, async (req, res) => {
+  try {
+    const { pharmacyId, name } = req.body;
+    if (!pharmacyId || !name) return res.status(400).json({ message: 'pharmacyId and name are required' });
+    const count = await PreferredPharmacy.countDocuments({ patientId: req.user._id });
+    const pref = await PreferredPharmacy.create({ patientId: req.user._id, pharmacyId, name, priority: count + 1 });
+    res.status(201).json(pref);
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+router.put('/preferred-pharmacies/reorder', protect, async (req, res) => {
+  try {
+    const { orderedIds } = req.body;
+    if (!Array.isArray(orderedIds)) return res.status(400).json({ message: 'orderedIds array is required' });
+    for (let i = 0; i < orderedIds.length; i++) {
+      await PreferredPharmacy.findOneAndUpdate(
+        { _id: orderedIds[i], patientId: req.user._id },
+        { priority: i + 1 }
+      );
+    }
+    const list = await PreferredPharmacy.find({ patientId: req.user._id }).sort({ priority: 1 });
+    res.json({ pharmacies: list });
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+router.delete('/preferred-pharmacies/:id', protect, async (req, res) => {
+  try {
+    const removed = await PreferredPharmacy.findOneAndDelete({ _id: req.params.id, patientId: req.user._id });
+    if (!removed) return res.status(404).json({ message: 'Not found' });
+    await PreferredPharmacy.updateMany(
+      { patientId: req.user._id, priority: { $gt: removed.priority } },
+      { $inc: { priority: -1 } }
+    );
+    res.json({ message: 'Removed' });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 

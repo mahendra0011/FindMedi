@@ -390,9 +390,9 @@ export default function Pharmacy() {
                     </div>
                     {o.note && <p className="text-xs text-muted-foreground mt-2">Note: {o.note}</p>}
                     <div className="flex gap-2 mt-3 pt-3 border-t">
-                      {o.status === 'Pending' && <Button size="sm" onClick={() => { setOrders(os => os.map(ord => ord._id === o._id ? { ...ord, status: 'Shipped' } : ord)); showToast('Order marked as shipped'); }}><Truck className="w-3 h-3 mr-1" /> Mark Shipped</Button>}
-                      {o.status === 'Shipped' && <Button size="sm" onClick={() => { setOrders(os => os.map(ord => ord._id === o._id ? { ...ord, status: 'Delivered', paymentStatus: 'Paid' } : ord)); showToast('Order delivered'); }}><Check className="w-3 h-3 mr-1" /> Mark Delivered</Button>}
-                      {o.paymentStatus === 'Unpaid' && <Button size="sm" variant="outline" onClick={() => { setOrders(os => os.map(ord => ord._id === o._id ? { ...ord, paymentStatus: 'Paid' } : ord)); showToast('Payment received'); }}>Mark Paid</Button>}
+                      {o.status === 'Pending' && <Button size="sm" onClick={async () => { await api.updatePharmacyOrder(o._id, { status: 'Shipped' }); setOrders(os => os.map(ord => ord._id === o._id ? { ...ord, status: 'Shipped' } : ord)); showToast('Order marked as shipped'); }}><Truck className="w-3 h-3 mr-1" /> Mark Shipped</Button>}
+                      {o.status === 'Shipped' && <Button size="sm" onClick={async () => { await api.updatePharmacyOrder(o._id, { status: 'Delivered', paymentStatus: 'Paid' }); setOrders(os => os.map(ord => ord._id === o._id ? { ...ord, status: 'Delivered', paymentStatus: 'Paid' } : ord)); showToast('Order delivered'); }}><Check className="w-3 h-3 mr-1" /> Mark Delivered</Button>}
+                      {o.paymentStatus === 'Unpaid' && <Button size="sm" variant="outline" onClick={async () => { await api.updatePharmacyOrder(o._id, { paymentStatus: 'Paid' }); setOrders(os => os.map(ord => ord._id === o._id ? { ...ord, paymentStatus: 'Paid' } : ord)); showToast('Payment received'); }}>Mark Paid</Button>}
                     </div>
                   </div>
                 ))}
@@ -465,8 +465,8 @@ export default function Pharmacy() {
                       ))}
                     </div>
                     <div className="flex gap-2 mt-3 pt-3 border-t">
-                      <Button size="sm" variant="outline" onClick={() => showToast('Delivery person notified')}><Send className="w-3 h-3 mr-1" /> Notify</Button>
-                      <Button size="sm" variant="outline" onClick={() => { setDeliveries(ds => ds.map(dd => dd._id === d._id ? { ...dd, status: 'Delivered' } : dd)); showToast('Marked delivered'); }}><Check className="w-3 h-3 mr-1" /> Complete</Button>
+                      <Button size="sm" variant="outline" onClick={async () => { await api.createNotification({ message: `Delivery notification for ${d.deliveryPerson} - Order ${d.orderId}`, type: 'delivery', relatedId: d._id }); showToast('Delivery person notified'); }}><Send className="w-3 h-3 mr-1" /> Notify</Button>
+                      <Button size="sm" variant="outline" onClick={async () => { await api.updatePharmacyDelivery(d._id, { status: 'Delivered' }); setDeliveries(ds => ds.map(dd => dd._id === d._id ? { ...dd, status: 'Delivered' } : dd)); showToast('Marked delivered'); }}><Check className="w-3 h-3 mr-1" /> Complete</Button>
                     </div>
                   </div>
                 ))}
@@ -484,7 +484,7 @@ export default function Pharmacy() {
                 {['All', 'Paid', 'Unpaid', 'Partial'].map(s => (
                   <button key={s} onClick={() => setBillFilter(s)} className={`px-3 py-1.5 rounded-lg text-xs font-medium ${billFilter === s ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>{s}</button>
                 ))}
-                <Button size="sm" variant="outline" onClick={() => showToast('Report downloaded')}><Download className="w-4 h-4 mr-1" /> Export</Button>
+                <Button size="sm" variant="outline" onClick={() => { window.open('/api/pharmacy/billing/export', '_blank'); showToast('Report downloaded'); }}><Download className="w-4 h-4 mr-1" /> Export</Button>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
@@ -550,8 +550,8 @@ export default function Pharmacy() {
                     </div>
                     <div className="flex gap-2 mt-3 pt-3 border-t">
                       {r.status === 'Pending' && <>
-                        <Button size="sm" onClick={() => { setReturns(rs => rs.map(rr => rr._id === r._id ? { ...rr, status: 'Approved', completedAt: new Date().toISOString().split('T')[0] } : rr)); showToast('Return approved, refund initiated'); }}><Check className="w-3 h-3 mr-1" /> Approve</Button>
-                        <Button size="sm" variant="outline" className="text-destructive" onClick={() => { setReturns(rs => rs.map(rr => rr._id === r._id ? { ...rr, status: 'Rejected' } : rr)); showToast('Return rejected'); }}><X className="w-3 h-3 mr-1" /> Reject</Button>
+                        <Button size="sm" onClick={async () => { await api.updatePharmacyReturn(r._id, { status: 'Approved' }); setReturns(rs => rs.map(rr => rr._id === r._id ? { ...rr, status: 'Approved', completedAt: new Date().toISOString().split('T')[0] } : rr)); showToast('Return approved, refund initiated'); }}><Check className="w-3 h-3 mr-1" /> Approve</Button>
+                        <Button size="sm" variant="outline" className="text-destructive" onClick={async () => { await api.updatePharmacyReturn(r._id, { status: 'Rejected' }); setReturns(rs => rs.map(rr => rr._id === r._id ? { ...rr, status: 'Rejected' } : rr)); showToast('Return rejected'); }}><X className="w-3 h-3 mr-1" /> Reject</Button>
                       </>}
                     </div>
                   </div>
@@ -709,7 +709,7 @@ export default function Pharmacy() {
           {tab === 'alerts' && (
             <>
               <SectionHeader title="Low Stock & Expiry Alerts" subtitle={`${medicines.filter(m => m.currentStock <= m.reorderLevel).length} items low stock Â· ${medicines.filter(m => new Date(m.expiryDate) < new Date(Date.now() + 90 * 86400000)).length} items expiring soon`}
-                action={<Button size="sm" variant="outline" onClick={() => showToast('Report generated')}><Download className="w-4 h-4 mr-1" /> Export Alert Report</Button>} />
+                action={<Button size="sm" variant="outline" onClick={() => { window.open('/api/pharmacy/medicines/export-alerts', '_blank'); showToast('Report generated'); }}><Download className="w-4 h-4 mr-1" /> Export Alert Report</Button>} />
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="bg-card rounded-xl border p-5">
                   <h3 className="font-semibold mb-4 flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-warning" /> Low Stock Items</h3>
@@ -756,7 +756,7 @@ export default function Pharmacy() {
                     <div className={`w-5 h-5 rounded-full bg-white shadow-sm absolute top-0.5 transition-transform ${storeSettings.autoRetry ? 'translate-x-6' : 'translate-x-0.5'}`} />
                   </button>
                 </div>
-                <Button className="w-full" onClick={() => showToast('Settings saved')}><Save className="w-4 h-4 mr-1" /> Save Settings</Button>
+                <Button className="w-full" onClick={() => { window.location.href = '/admin/pharmacy-settings'; }}><Save className="w-4 h-4 mr-1" /> Save Settings</Button>
               </div>
             </div>
           )}
@@ -794,7 +794,7 @@ export default function Pharmacy() {
                 <div className="grid grid-cols-3 gap-2"><Input placeholder="Medicine name" /><Input placeholder="Qty" type="number" /><Input placeholder="Price" type="number" /></div>
               </div>
             </div>
-            <Button className="w-full" onClick={() => { showToast('Order created'); setShowModal(null); }}>Create Order</Button>
+            <Button className="w-full" onClick={async (e) => { const card = e.currentTarget.closest('[class*="bg-card"]'); const inputs = card.querySelectorAll('input'); const orderForm = { patientName: inputs[0]?.value, phone: inputs[1]?.value, deliveryAddress: inputs[2]?.value }; await api.createPharmacyOrder(orderForm); showToast('Order created'); setShowModal(null); }}>Create Order</Button>
           </div>
         </Modal>
       )}
@@ -828,7 +828,7 @@ export default function Pharmacy() {
             <div><label className="text-sm font-medium mb-1 block">Select Order</label><select className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm">{orders.filter(o => o.status !== 'Delivered').map(o => <option key={o._id} value={o._id}>{o.orderId} - {o.patientName}</option>)}</select></div>
             <div className="grid grid-cols-2 gap-4"><div><label className="text-sm font-medium mb-1 block">Delivery Person</label><Input placeholder="Name" /></div><div><label className="text-sm font-medium mb-1 block">Phone</label><Input placeholder="Phone" /></div></div>
             <div><label className="text-sm font-medium mb-1 block">Estimated Time</label><Input placeholder="e.g. 30 mins" /></div>
-            <Button className="w-full" onClick={() => { showToast('Delivery assigned'); setShowModal(null); }}>Assign Delivery</Button>
+            <Button className="w-full" onClick={async (e) => { const card = e.currentTarget.closest('[class*="bg-card"]'); const selects = card.querySelectorAll('select'); const inputs = card.querySelectorAll('input'); const deliveryData = { orderId: selects[0]?.value, deliveryPerson: inputs[0]?.value, phone: inputs[1]?.value, estimatedTime: inputs[2]?.value }; await api.createPharmacyDelivery(deliveryData); showToast('Delivery assigned'); setShowModal(null); }}>Assign Delivery</Button>
           </div>
         </Modal>
       )}
@@ -839,7 +839,7 @@ export default function Pharmacy() {
           <div className="space-y-4">
             <div><label className="text-sm font-medium mb-1 block">Select Order</label><select className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm">{orders.filter(o => o.status === 'Delivered').map(o => <option key={o._id} value={o._id}>{o.orderId} - {o.patientName}</option>)}</select></div>
             <div><label className="text-sm font-medium mb-1 block">Reason</label><Input placeholder="Reason for return" /></div>
-            <Button className="w-full" onClick={() => { showToast('Return initiated'); setShowModal(null); }}>Initiate Return</Button>
+            <Button className="w-full" onClick={async (e) => { const card = e.currentTarget.closest('[class*="bg-card"]'); const select = card.querySelector('select'); const input = card.querySelector('input'); const returnData = { orderId: select?.value, reason: input?.value }; await api.createPharmacyReturn(returnData); showToast('Return initiated'); setShowModal(null); }}>Initiate Return</Button>
           </div>
         </Modal>
       )}
@@ -854,7 +854,7 @@ export default function Pharmacy() {
             <div><label className="text-sm font-medium mb-1 block">Role</label><select value={newStaff.role} onChange={e => setNewStaff({ ...newStaff, role: e.target.value })} className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm">{[{ value: 'Pharmacist', label: 'Pharmacist' }, { value: 'Senior Pharmacist', label: 'Senior Pharmacist' }, { value: 'Pharmacy Technician', label: 'Pharmacy Technician' }, { value: 'Store Manager', label: 'Store Manager' }].map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select></div>
             <div><label className="text-sm font-medium mb-1 block">Shift</label><select value={newStaff.shift} onChange={e => setNewStaff({ ...newStaff, shift: e.target.value })} className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm">{['Morning', 'Evening', 'Night', 'Rotating'].map(s => <option key={s} value={s}>{s}</option>)}</select></div>
           </div>
-          <Button className="w-full mt-6" onClick={() => { setStaffList(sl => [...sl, { ...newStaff, _id: `ps${Date.now()}`, isActive: true, joinedAt: new Date().toISOString().split('T')[0] }]); showToast('Staff added'); setShowModal(null); }} disabled={!newStaff.name}>Add Staff</Button>
+          <Button className="w-full mt-6" onClick={async () => { try { const created = await api.createPharmacyStaff(newStaff); setStaffList(sl => [...sl, created]); } catch { setStaffList(sl => [...sl, { ...newStaff, _id: `ps${Date.now()}`, isActive: true, joinedAt: new Date().toISOString().split('T')[0] }]); } showToast('Staff added'); setShowModal(null); }} disabled={!newStaff.name}>Add Staff</Button>
         </Modal>
       )}
 
@@ -878,7 +878,7 @@ export default function Pharmacy() {
               <div><label className="text-sm font-medium mb-1 block">Valid Till</label><Input type="date" value={newOffer.validTill} onChange={e => setNewOffer({ ...newOffer, validTill: e.target.value })} /></div>
               <div><label className="text-sm font-medium mb-1 block">Usage Limit</label><Input type="number" value={newOffer.usageLimit} onChange={e => setNewOffer({ ...newOffer, usageLimit: e.target.value })} /></div>
             </div>
-            <Button className="w-full" onClick={() => { setOffers(os => [...os, { ...newOffer, _id: `o${Date.now()}`, discount: Number(newOffer.discount), minPurchase: Number(newOffer.minPurchase), maxDiscount: Number(newOffer.maxDiscount), usageLimit: Number(newOffer.usageLimit), used: 0 }]); showToast('Offer created'); setShowModal(null); }} disabled={!newOffer.title || !newOffer.code}>Create Offer</Button>
+            <Button className="w-full" onClick={async () => { await api.createPharmacyOffer({ ...newOffer, discount: Number(newOffer.discount), minPurchase: Number(newOffer.minPurchase), maxDiscount: Number(newOffer.maxDiscount), usageLimit: Number(newOffer.usageLimit) }); showToast('Offer created'); setShowModal(null); }} disabled={!newOffer.title || !newOffer.code}>Create Offer</Button>
           </div>
         </Modal>
       )}

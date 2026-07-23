@@ -145,6 +145,7 @@ export default function DiagnosticCenterDetail() {
   const [packagesData, setPackagesData] = useState([]);
   const [reviewsData, setReviewsData] = useState([]);
   const [nearbyLabs, setNearbyLabs] = useState([]);
+  const [uploadedRx, setUploadedRx] = useState(null);
 
   useEffect(() => {
     const load = async () => {
@@ -838,7 +839,7 @@ export default function DiagnosticCenterDetail() {
                         <p className="text-sm font-semibold text-foreground mb-1">Upload your prescription</p>
                         <p className="text-xs text-muted-foreground">JPG, PNG, PDF (max 5MB)</p>
                         <input id="rx-upload" type="file" accept="image/*,.pdf" className="hidden"
-                          onChange={(e) => { if (e.target.files?.[0]) toast.success('Prescription uploaded'); }} />
+                          onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; try { const res = await api.uploadFile(f); setUploadedRx(res?.data?.uploadedFile?.url || res?._id || 'uploaded'); toast.success('Prescription uploaded'); } catch { toast.error('Upload failed'); } }} />
                       </div>
                       <div className="flex gap-3 mt-3">
                         <Button variant="outline" size="sm" className="flex-1 gap-1.5 rounded-lg text-xs"
@@ -1399,7 +1400,7 @@ export default function DiagnosticCenterDetail() {
               <p className="text-sm font-semibold text-foreground mb-1">Tap to upload prescription</p>
               <p className="text-xs text-muted-foreground">JPG, PNG, PDF (max 5MB)</p>
               <input id="rx-modal-upload" type="file" accept="image/*,.pdf" className="hidden"
-                onChange={(e) => { if (e.target.files?.[0]) { toast.success('Prescription uploaded'); setShowRx(false); } }} />
+                onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; try { const res = await api.uploadFile(f); setUploadedRx(res?.data?.uploadedFile?.url || res?._id || 'uploaded'); toast.success('Prescription uploaded'); setShowRx(false); } catch { toast.error('Upload failed'); } }} />
             </div>
             <div className="grid grid-cols-2 gap-3 mb-5">
               <Button variant="outline" className="gap-2 rounded-xl py-6" onClick={() => document.getElementById('rx-modal-upload')?.click()}>

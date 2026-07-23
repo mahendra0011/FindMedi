@@ -375,7 +375,7 @@ export default function PatientDashboard() {
                     {(rx.medicines || []).map((m, i) => (
                       <div key={i} className="flex items-center justify-between bg-muted/30 rounded-lg p-2">
                         <div><p className="text-sm font-medium">{m.name}</p><p className="text-xs text-muted-foreground">{m.dosage} · {m.duration}</p></div>
-                        <Button size="sm" variant="outline" onClick={() => { setTab('medicine-orders'); showToast('Quick order: ' + m.name); }}><ShoppingCart className="w-3 h-3" /></Button>
+                        <Button size="sm" variant="outline" onClick={() => { navigate('/pharmacy?search=' + encodeURIComponent(m.name)); }}><ShoppingCart className="w-3 h-3" /></Button>
                       </div>
                     ))}
                   </div>
@@ -689,7 +689,7 @@ export default function PatientDashboard() {
                   <h3 className="font-semibold mb-2">Still need help?</h3>
                   <p className="text-sm text-muted-foreground mb-4">Our support team is available 24/7</p>
                   <div className="flex justify-center gap-3">
-                    <Button variant="outline" onClick={() => showToast('Email: support@medicore.com')}><Mail className="w-4 h-4 mr-1" /> Email Us</Button>
+                    <Button variant="outline" onClick={() => window.location.href = 'mailto:support@medicore.com'}><Mail className="w-4 h-4 mr-1" /> Email Us</Button>
                   </div>
                 </div>
               </div>
@@ -735,7 +735,7 @@ export default function PatientDashboard() {
           <div className="space-y-4">
             <div><label className="text-sm font-medium mb-1 block">Method Type</label><select className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm">{['Credit/Debit Card', 'UPI', 'Wallet'].map(m => <option key={m} value={m}>{m}</option>)}</select></div>
             <div><label className="text-sm font-medium mb-1 block">Card Number / UPI ID</label><Input placeholder="Enter details" /></div>
-            <Button className="w-full" onClick={() => { showToast('Payment method added (backend integration pending)'); setShowModal(null); }}>Add Method</Button>
+            <Button className="w-full" onClick={() => { showToast('Payment gateway integration coming soon'); setShowModal(null); }}>Add Method</Button>
           </div>
         </Modal>
       )}

@@ -347,6 +347,19 @@ router.post('/orders/:id/forward', protect, async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
+router.put('/orders/:id/reject', protect, async (req, res) => {
+  try {
+    const order = await PharmacyOrder.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+    const { reason } = req.body;
+    order.prescriptionStatus = 'rejected';
+    if (reason) order.rejectionReason = reason;
+    order.note = order.note + (order.note ? ' | ' : '') + `Rejected: ${reason || 'No reason given'}`;
+    await order.save();
+    res.json(order);
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
 // ─── Deliveries ────────────────────────────────────────────────────────────
 router.get('/deliveries', protect, async (req, res) => {
   try {

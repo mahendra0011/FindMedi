@@ -81,27 +81,25 @@ router.post('/', protect, validate(createRecordSchema), async (req, res) => {
     
     let doctorName = req.user.name;
     let doctorId = req.user._id;
-    let finalPatientId = patientId;
-    
-    // If patientId not provided, try to find by patient name
-    if (!finalPatientId && patient) {
-      const patientUser = await findPatientByName(patient);
-      if (patientUser) finalPatientId = patientUser._id;
-    }
-    
-    // If still no patientId and user is a patient, use their own ID
-    if (!finalPatientId && req.user.role === 'patient') {
-      finalPatientId = req.user._id;
-    }
-    
-    // For doctors creating records, if no patient found, return error
-    if (!finalPatientId && req.user.role === 'doctor') {
-      return res.status(400).json({ message: 'Patient not found. Please select a valid patient.' });
-    }
+    let finalPatientId;
     
     if (req.user.role === 'patient') {
+      finalPatientId = req.user._id;
       doctorName = req.body.doctor || '';
       doctorId = req.body.doctorId || null;
+    } else {
+      finalPatientId = patientId;
+      
+      // If patientId not provided, try to find by patient name
+      if (!finalPatientId && patient) {
+        const patientUser = await findPatientByName(patient);
+        if (patientUser) finalPatientId = patientUser._id;
+      }
+      
+      // For doctors creating records, if no patient found, return error
+      if (!finalPatientId && req.user.role === 'doctor') {
+        return res.status(400).json({ message: 'Patient not found. Please select a valid patient.' });
+      }
     }
     
     const record = await Record.create({
