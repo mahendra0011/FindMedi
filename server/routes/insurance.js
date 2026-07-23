@@ -43,9 +43,12 @@ router.get('/', protect, async (req, res) => {
     const { status, search, patientId } = req.query;
     const filter = {};
     if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
-    if (req.user.role === 'patient') filter.patientId = req.user._id;
+    if (req.user.role === 'patient') {
+      filter.patientId = req.user._id;
+    } else if (patientId) {
+      filter.patientId = patientId;
+    }
     if (status && status !== 'All') filter.claimStatus = status;
-    if (patientId) filter.patientId = patientId;
     if (search) {
       filter.$or = [
         { claimId: new RegExp(search, 'i') },
