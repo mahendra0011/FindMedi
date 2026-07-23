@@ -36,7 +36,7 @@ router.get('/', protect, async (req, res) => {
     
     if (req.user.role === 'doctor') {
       filter.$or = [
-        { assignedDoctor: req.user._id },
+        { assignedDoctor: req.user.doctorProfileId || req.user._id },
         { status: 'Pending' }
       ];
     } else if (req.user.role === 'patient') {
@@ -139,7 +139,7 @@ router.put('/:id/status', protect, adminOnly, async (req, res) => {
     
     emergency.status = status;
     if (status === 'Assigned' && !emergency.assignedDoctor && req.user.role === 'doctor') {
-      emergency.assignedDoctor = req.user._id;
+      emergency.assignedDoctor = req.user.doctorProfileId || req.user._id;
       emergency.assignedDoctorName = req.user.name;
     }
     

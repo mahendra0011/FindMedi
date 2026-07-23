@@ -159,7 +159,7 @@ router.post('/prescriptions', protect, validate(prescriptionSchema), async (req,
 const prescriptionId = await generatePrescriptionId();
     const prescription = await Prescription.create({
       prescriptionId, patientId, patientName,
-      doctorId: req.user._id, doctorName: req.user.name,
+      doctorId: req.user.doctorProfileId || req.user._id, doctorName: req.user.name,
       hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined,
       medicines: medicines.map(m => ({
         medicineId: m.medicineId, medicineName: m.medicineName,
@@ -191,7 +191,7 @@ router.get('/prescriptions', protect, async (req, res) => {
       filter.patientId = patientId;
     }
     if (req.user.role === 'doctor') {
-      filter.doctorId = req.user._id;
+      filter.doctorId = req.user.doctorProfileId;
     } else if (doctorId) {
       filter.doctorId = doctorId;
     }

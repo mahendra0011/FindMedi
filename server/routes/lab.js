@@ -40,7 +40,7 @@ router.post('/orders', protect, validate(createLabOrderSchema), async (req, res)
 const orderId = await generateOrderId();
     const order = await LabOrder.create({
       orderId, patientId, patientName,
-      doctorId: req.user._id, doctorName: req.user.name,
+      doctorId: req.user.doctorProfileId || req.user._id, doctorName: req.user.name,
       hospitalId: req.user.hospitalId || undefined, facilityId: req.user.facilityId || req.user.hospitalId || undefined,
       tests: tests.map(t => ({
         testName: t.testName, category: t.category || 'Blood',
@@ -71,7 +71,7 @@ router.get('/orders', protect, async (req, res) => {
       filter.patientId = patientId;
     }
     if (req.user.role === 'doctor') {
-      filter.doctorId = req.user._id;
+      filter.doctorId = req.user.doctorProfileId;
     } else if (doctorId) {
       filter.doctorId = doctorId;
     }
@@ -241,7 +241,7 @@ router.put('/orders/:id/deliver-report', protect, validate(labDeliverReportSchem
 router.get('/stats', protect, async (req, res) => {
   try {
     const filter = {};
-    if (req.user.role === 'doctor') filter.doctorId = req.user._id;
+    if (req.user.role === 'doctor') filter.doctorId = req.user.doctorProfileId;
     if (req.user.role === 'patient') filter.patientId = req.user._id;
     if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
     if ((req.user.facilityId || req.user.hospitalId) && req.user.role !== 'superadmin') filter.facilityId = req.user.facilityId || req.user.hospitalId;

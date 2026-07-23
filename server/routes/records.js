@@ -29,7 +29,7 @@ router.get('/', protect, async (req, res) => {
     if (req.user.role === 'patient') {
       filter.patientId = req.user._id;
     } else if (req.user.role === 'doctor') {
-      filter.doctorId = req.user._id;
+      filter.doctorId = req.user.doctorProfileId;
       if (req.user.hospitalId) filter.hospitalId = req.user.hospitalId;
     } else if (req.user.role === 'admin' && req.user.hospitalId) {
       filter.hospitalId = req.user.hospitalId;
@@ -62,13 +62,13 @@ router.get('/patient/:patientId', protect, async (req, res) => {
 
     if (req.user.role === 'patient') {
       filter.patientId = req.user._id;
-    } else if (req.user.role === 'doctor') {
-      filter.doctorId = req.user._id;
+} else if (req.user.role === 'doctor') {
+      filter.doctorId = req.user.doctorProfileId;
       if (req.user.hospitalId) filter.hospitalId = req.user.hospitalId;
     } else if (req.user.role === 'admin' && req.user.hospitalId) {
       filter.hospitalId = req.user.hospitalId;
     }
-
+    
     const records = await Record.find(filter)
       .populate('doctorId', 'name specialization')
       .sort({ createdAt: -1 });
@@ -81,7 +81,7 @@ router.post('/', protect, validate(createRecordSchema), async (req, res) => {
     const { patientId, patient, diagnosis, prescription, type, notes, data, appointmentId, attachments } = req.body;
     
     let doctorName = req.user.name;
-    let doctorId = req.user._id;
+    let doctorId = req.user.doctorProfileId;
     let finalPatientId;
     
     if (req.user.role === 'patient') {

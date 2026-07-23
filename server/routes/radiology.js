@@ -27,7 +27,7 @@ router.post('/orders', protect, adminOnly, validate(createRadiologyOrderSchema),
     const orderId = await generateOrderId();
     const order = await Radiology.create({
       orderId, patientId, patientName,
-      doctorId: req.user._id, doctorName: req.user.name,
+      doctorId: req.user.doctorProfileId || req.user._id, doctorName: req.user.name,
       hospitalId: req.user.hospitalId || undefined,
       modality, bodyPart, clinicalHistory: clinicalHistory || '',
       priority: priority || 'Routine', createdBy: req.user._id,
@@ -48,7 +48,7 @@ router.get('/orders', protect, async (req, res) => {
     const { status, modality, search } = req.query;
     const filter = {};
     if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
-    if (req.user.role === 'doctor') filter.doctorId = req.user._id;
+    if (req.user.role === 'doctor') filter.doctorId = req.user.doctorProfileId;
     if (req.user.role === 'patient') filter.patientId = req.user._id;
     if (status && status !== 'All') filter.status = status;
     if (modality && modality !== 'All') filter.modality = modality;
@@ -174,7 +174,7 @@ router.get('/stats', protect, async (req, res) => {
   try {
     const filter = {};
     if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
-    if (req.user.role === 'doctor') filter.doctorId = req.user._id;
+    if (req.user.role === 'doctor') filter.doctorId = req.user.doctorProfileId;
     if (req.user.role === 'patient') filter.patientId = req.user._id;
     const total = await Radiology.countDocuments(filter);
     const pending = await Radiology.countDocuments({ ...filter, status: { $in: ['Ordered', 'Scheduled'] } });

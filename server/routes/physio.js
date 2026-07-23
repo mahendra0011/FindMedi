@@ -23,7 +23,7 @@ router.post('/referrals', protect, adminOnly, validate(createPhysioReferralSchem
     const referralId = await genId();
     const r = await Physiotherapy.create({ 
       referralId, patientId, patientName, diagnosis, treatmentPlan,
-      doctorId: req.user._id, doctorName: req.user.name, hospitalId: req.user.hospitalId || undefined, createdBy: req.user._id 
+      doctorId: req.user.doctorProfileId || req.user._id, doctorName: req.user.name, hospitalId: req.user.hospitalId || undefined, createdBy: req.user._id 
     });
     res.status(201).json(r);
   } catch (err) { res.status(400).json({ message: err.message }); }

@@ -91,7 +91,7 @@ router.get('/', protect, async (req, res) => {
         { patient: new RegExp(req.user.name, 'i') }
       ];
     } else if (req.user.role === 'doctor') {
-      filter.doctor = new RegExp(req.user.name, 'i');
+      filter.doctorId = req.user.doctorProfileId;
     }
     // Admin sees all bills - no filter needed
     
@@ -123,7 +123,7 @@ router.get('/', protect, async (req, res) => {
     if (req.user.role === 'patient') {
       totalFilter = { $or: [{ patientId: req.user._id }, { patient: new RegExp(req.user.name, 'i') }] };
     } else if (req.user.role === 'doctor') {
-      totalFilter = { doctor: new RegExp(req.user.name, 'i') };
+      totalFilter = { doctorId: req.user.doctorProfileId };
     }
     // Admin gets all
     

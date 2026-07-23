@@ -26,7 +26,7 @@ router.post('/orders', protect, adminOnly, validate(createDietOrderSchema), asyn
     const orderId = await generateOrderId();
 const order = await DietOrder.create({
        orderId, patientId, patientName, admissionId, ward, bedNumber,
-       doctorId: req.user._id, doctorName: req.user.name,
+       doctorId: req.user.doctorProfileId || req.user._id, doctorName: req.user.name,
        hospitalId: req.user.hospitalId || undefined,
        dietType, mealTimes: mealTimes || ['Breakfast', 'Lunch', 'Dinner'],
        instructions: instructions || '', allergies: allergies || '',

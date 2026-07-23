@@ -32,8 +32,9 @@ export const protect = async (req, res, next) => {
       });
     }
 
+    let doctor = null;
     if (user.role === 'doctor') {
-      const doctor = await Doctor.findOne({
+      doctor = await Doctor.findOne({
         $or: [
           { user_id: user._id.toString() },
           { email: user.email },
@@ -64,6 +65,7 @@ export const protect = async (req, res, next) => {
       hospitalId: user.hospitalId || null,
       facilityId: user.facilityId || null,
       facilityType: user.facilityType || '',
+      doctorProfileId: user.role === 'doctor' ? (doctor?._id || null) : null,
     };
     req.authUser = user;
     next();
@@ -148,7 +150,7 @@ export const canAccessRecord = async (req, res, next) => {
       return next();
     }
 
-    if (user.role === 'doctor' && record.doctorId?.toString() !== user.id) {
+    if (user.role === 'doctor' && record.doctorId?.toString() !== (user.doctorProfileId?.toString() || user.id)) {
       return res.status(403).json({ message: 'Forbidden: you can only access your assigned records' });
     }
 
@@ -181,7 +183,7 @@ export const canAccessPatient = async (req, res, next) => {
       return next();
     }
 
-    if (user.role === 'doctor' && patient.assignedDoctor !== user.id) {
+    if (user.role === 'doctor' && patient.assignedDoctor !== (user.doctorProfileId?.toString() || user.id)) {
       return res.status(403).json({ message: 'Forbidden: you can only access your assigned patients' });
     }
 
