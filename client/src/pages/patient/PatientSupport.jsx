@@ -1,15 +1,31 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { HelpCircle, Send, MessageSquare, AlertCircle } from 'lucide-react';
+import { HelpCircle, Send, MessageSquare, AlertCircle, TicketCheck, Clock, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
 
+const ticketStatusColors = { Open: 'bg-warning/10 text-warning', 'In Progress': 'bg-info/10 text-info', Resolved: 'bg-success/10 text-success', Closed: 'bg-muted text-muted-foreground' };
+const ticketStatusIcons = { Open: AlertCircle, 'In Progress': Clock, Resolved: CheckCircle2, Closed: TicketCheck };
+
 export default function PatientSupport() {
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [tickets, setTickets] = useState([]);
+  const [ticketsLoading, setTicketsLoading] = useState(true);
+
+  const loadTickets = async () => {
+    setTicketsLoading(true);
+    try {
+      const data = await api.getMyTickets();
+      setTickets(data.tickets || []);
+    } catch { /* ignore */ }
+    setTicketsLoading(false);
+  };
+
+  useEffect(() => { loadTickets(); }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -21,6 +37,7 @@ export default function PatientSupport() {
       toast.success('Support ticket created successfully');
       setSubject('');
       setMessage('');
+      loadTickets();
     } catch {
       toast.error('Failed to create ticket');
     } finally {
@@ -58,6 +75,37 @@ export default function PatientSupport() {
               {loading ? 'Submitting...' : 'Submit Ticket'}
             </Button>
           </form>
+
+          {/* My Tickets */}
+          <div className="mt-6">
+            <h3 className="font-semibold mb-3 flex items-center gap-2">
+              <TicketCheck className="w-4 h-4 text-primary" /> My Tickets
+            </h3>
+            {ticketsLoading ? (
+              <div className="text-center py-4"><div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" /></div>
+            ) : tickets.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">No support tickets yet</p>
+            ) : (
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {tickets.map(t => {
+                  const StatusIcon = ticketStatusIcons[t.status] || AlertCircle;
+                  return (
+                    <div key={t._id} className="p-3 rounded-xl bg-muted/30 border border-border/50">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">{t.subject}</p>
+                          <p className="text-xs text-muted-foreground">{t.ticketId} · {new Date(t.createdAt).toLocaleDateString()}</p>
+                        </div>
+                        <span className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-medium flex items-center gap-1 ${ticketStatusColors[t.status]}`}>
+                          <StatusIcon className="w-2.5 h-2.5" /> {t.status}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="space-y-6">

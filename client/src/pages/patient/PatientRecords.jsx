@@ -238,6 +238,11 @@ export default function PatientRecords() {
                                   <span className="text-[10px] text-muted-foreground ml-auto">{rec.date}</span>
                                 </div>
                                 {rec.prescription && <p className="text-xs text-muted-foreground line-clamp-2 ml-7">Rx: {rec.prescription}</p>}
+                                  {(rec.attachments?.length > 0 || rec.data?.fileUrl || rec.fileUrl) && (
+                                    <Button variant="ghost" size="sm" className="mt-1 h-6 text-xs gap-1 ml-7" onClick={() => window.open(rec.attachments?.[0]?.url || rec.data?.fileUrl || rec.fileUrl, '_blank')}>
+                                      <FileText className="w-3 h-3" /> View Document
+                                    </Button>
+                                  )}
                               </div>
                             );
                           })}
@@ -280,4 +285,4 @@ export default function PatientRecords() {
       </div>
     </div>
   );
-}// 9
+}
