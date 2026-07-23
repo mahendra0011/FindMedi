@@ -67,6 +67,29 @@ const StatusBadge = ({ status, mapping }) => {
   return <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${colors[status] || 'bg-muted text-muted-foreground'}`}>{status}</span>;
 };
 
+const SupportTicketForm = ({ onClose, showToast }) => {
+  const [subject, setSubject] = useState('');
+  const [message, setMessage] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const handleSubmit = async () => {
+    if (!subject || !message) return showToast('Please fill all fields', 'error');
+    setSubmitting(true);
+    try {
+      await api.createSupportTicket({ subject, message });
+      showToast('Support ticket submitted');
+      onClose();
+    } catch { showToast('Failed to submit ticket', 'error'); }
+    setSubmitting(false);
+  };
+  return (
+    <div className="space-y-4">
+      <div><label className="text-sm font-medium mb-1 block">Subject</label><Input value={subject} onChange={e => setSubject(e.target.value)} placeholder="Brief title for your issue" /></div>
+      <div><label className="text-sm font-medium mb-1 block">Message</label><textarea value={message} onChange={e => setMessage(e.target.value)} placeholder="Describe your issue in detail..." className="w-full min-h-[100px] rounded-lg border border-input bg-transparent px-3 py-2 text-sm" /></div>
+      <Button className="w-full" onClick={handleSubmit} disabled={submitting || !subject || !message}>{submitting ? 'Submitting...' : 'Submit Ticket'}</Button>
+    </div>
+  );
+};
+
 const Modal = ({ title, children, onClose }) => (
   <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
     <div className="bg-card rounded-2xl border shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
@@ -103,9 +126,9 @@ export default function PatientDashboard() {
   const [prescriptions, setPrescriptions] = useState([]);
   const [testBookings, setTestBookings] = useState([]);
   const [reports, setReports] = useState([]);
-  const [paymentMethods] = useState([]);
+  const [paymentMethods, setPaymentMethods] = useState([]);
   const [notifs, setNotifs] = useState([]);
-  const [reviews] = useState([]);
+  const [reviews, setReviews] = useState([]);
   const formatDate = (d) => { if (!d) return ''; try { return d.includes('T') ? d.split('T')[0] : d.slice(0, 10); } catch { return ''; } };
   const [profileForm, setProfileForm] = useState({ name: user?.name || '', email: user?.email || '', phone: user?.phone || '', address: user?.address || '', gender: user?.gender || '', dateOfBirth: formatDate(user?.dateOfBirth), bloodGroup: user?.bloodGroup || '', allergies: user?.allergies?.map(a => a.allergen).join(', ') || '' });
   const [bookingFilter, setBookingFilter] = useState('All');
@@ -120,6 +143,18 @@ export default function PatientDashboard() {
           api.getRecords(),
           api.getBilling(),
         ]);
+        const [pData] = await Promise.all([
+          api.getPayments({ patient_id: user?._id }).catch(() => ({ payments: [] })),
+        ]);
+        setPaymentMethods((pData?.payments || []).map(pay => ({
+          _id: pay._id,
+          label: pay.method === 'card' ? 'Card Payment' : pay.method === 'upi' ? 'UPI Payment' : 'Wallet Payment',
+          type: pay.method || 'card',
+          last4: pay.transaction_id?.slice(-4) || '0000',
+          upiId: pay.method === 'upi' ? pay.transaction_id : undefined,
+          balance: pay.amount || 0,
+          isDefault: pay.status === 'completed',
+        })));
         setAppointments(a?.slice(0, 8) || []);
         setBills(b?.bills || b || []);
         const [f, addr, fav, phOrders, rx, n, lb] = await Promise.all([
@@ -137,6 +172,10 @@ export default function PatientDashboard() {
         if (phOrders?.orders?.length) setMedOrders(phOrders.orders);
         if (rx?.prescriptions?.length) setPrescriptions(rx.prescriptions);
         if (n?.length) setNotifs(n);
+        const revData = await api.getReviews({ patientId: user?._id }).catch(() => []);
+        if (revData?.reviews?.length) setReviews(revData.reviews);
+        else if (Array.isArray(revData) && revData.length) setReviews(revData);
+
         if (lb?.bookings?.length) {
           setTestBookings(lb.bookings.map(b => ({
             _id: b._id,
@@ -164,7 +203,7 @@ export default function PatientDashboard() {
             labName: rec.data?.labName || rec.data?.facilityName || '',
           })));
         }
-      } catch (e) { console.error(e); }
+      } catch (e) { console.error(e); showToast('Failed to load dashboard data', 'error'); }
     };
     load();
   }, []);
@@ -289,7 +328,7 @@ export default function PatientDashboard() {
                   </div>
                   <div className="flex gap-2 mt-3 pt-3 border-t">
                     <Button size="sm" variant="outline" onClick={() => navigate('/patient/appointments')}><CalendarDays className="w-3 h-3 mr-1" /> Reschedule</Button>
-                    {a.status !== 'Cancelled' && <Button size="sm" variant="outline" className="text-destructive" onClick={async () => { try { await api.updateAppointment(a._id, { status: 'Cancelled' }); setAppointments(prev => prev.map(ap => ap._id === a._id ? { ...ap, status: 'Cancelled' } : ap)); showToast('Appointment cancelled'); } catch { showToast('Failed to cancel', 'error'); } }}>Cancel</Button>}
+                    {a.status !== 'Cancelled' && <Button size="sm" variant="outline" className="text-destructive" onClick={async () => { if (!window.confirm('Are you sure you want to cancel this appointment?')) return; try { await api.updateAppointment(a._id, { status: 'Cancelled' }); setAppointments(prev => prev.map(ap => ap._id === a._id ? { ...ap, status: 'Cancelled' } : ap)); showToast('Appointment cancelled'); } catch { showToast('Failed to cancel', 'error'); } }}>Cancel</Button>}
                   </div>
                 </div>
               ))}
@@ -684,6 +723,7 @@ export default function PatientDashboard() {
                   <h3 className="font-semibold mb-2">Still need help?</h3>
                   <p className="text-sm text-muted-foreground mb-4">Our support team is available 24/7</p>
                   <div className="flex justify-center gap-3">
+                    <Button variant="outline" onClick={() => setShowModal('support-ticket')}><MessageCircle className="w-4 h-4 mr-1" /> Submit Ticket</Button>
                     <Button variant="outline" onClick={() => window.location.href = 'mailto:support@medicore.com'}><Mail className="w-4 h-4 mr-1" /> Email Us</Button>
                   </div>
                 </div>
@@ -725,12 +765,26 @@ export default function PatientDashboard() {
         </Modal>
       )}
 
+      {showModal === 'support-ticket' && (
+        <Modal title="Submit Support Ticket" onClose={() => setShowModal(null)}>
+          <SupportTicketForm onClose={() => { setShowModal(null); showToast('Ticket submitted'); }} showToast={showToast} />
+        </Modal>
+      )}
+
       {showModal === 'add-payment' && (
-        <Modal title="Add Payment Method" onClose={() => setShowModal(null)}>
+        <Modal title="Make a Payment" onClose={() => setShowModal(null)}>
           <div className="space-y-4">
-            <div><label className="text-sm font-medium mb-1 block">Method Type</label><select className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm">{['Credit/Debit Card', 'UPI', 'Wallet'].map(m => <option key={m} value={m}>{m}</option>)}</select></div>
-            <div><label className="text-sm font-medium mb-1 block">Card Number / UPI ID</label><Input placeholder="Enter details" /></div>
-            <Button className="w-full" onClick={() => { showToast('Payment gateway integration coming soon'); setShowModal(null); }}>Add Method</Button>
+            <p className="text-sm text-muted-foreground">Select a bill to pay from your pending invoices.</p>
+            {bills.filter(b => b.status !== 'Paid').slice(0, 5).map(b => (
+              <div key={b._id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                <div>
+                  <p className="text-sm font-medium">{b.invoiceId}</p>
+                  <p className="text-xs text-muted-foreground">{b.service} · ₹{((b.amount || 0) - (b.paid || 0)).toLocaleString()}</p>
+                </div>
+                <Button size="sm" onClick={() => { navigate('/patient/payment'); setShowModal(null); }}>Pay Now</Button>
+              </div>
+            ))}
+            {bills.filter(b => b.status !== 'Paid').length === 0 && <p className="text-center py-4 text-sm text-muted-foreground">No pending bills</p>}
           </div>
         </Modal>
       )}

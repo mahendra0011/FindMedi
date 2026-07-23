@@ -192,51 +192,7 @@ export default function Login() {
             {googleLoading ? 'Connecting...' : 'Continue with Google'}
           </Button>
 
-          <div className="mt-6 p-4 bg-muted/50 rounded-xl border border-border/50">
-            <p className="text-xs font-medium text-muted-foreground mb-2">Quick Demo Login:</p>
-            <div className="grid grid-cols-4 gap-1.5">
-              <button type="button" onClick={() => { setRole('superadmin'); setEmail('mahendrapra0077@gmail.com'); setPassword('admin@123'); setError(''); }}
-                className="text-[10px] text-center px-1.5 py-1.5 rounded-lg bg-purple-500/10 border border-purple-500/20 hover:bg-purple-500/20 transition-colors">
-                <span className="font-semibold text-purple-600 dark:text-purple-400">Super</span>
-                <span className="block text-muted-foreground truncate">mahendrapra0077</span>
-              </button>
-              <button type="button" onClick={() => { setRole('admin'); setEmail('admin@medicore.com'); setPassword('password'); setError(''); }}
-                className="text-[10px] text-center px-1.5 py-1.5 rounded-lg bg-primary/10 border border-primary/20 hover:bg-primary/20 transition-colors">
-                <span className="font-semibold text-primary">Admin</span>
-                <span className="block text-muted-foreground truncate">admin</span>
-              </button>
-              <button type="button" onClick={() => { setRole('admin'); setEmail('hospital@medicore.com'); setPassword('password'); setError(''); }}
-                className="text-[10px] text-center px-1.5 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/20 transition-colors">
-                <span className="font-semibold text-blue-600 dark:text-blue-400">Hosp</span>
-                <span className="block text-muted-foreground truncate">hospital</span>
-              </button>
-              <button type="button" onClick={() => { setRole('doctor'); setEmail('sarah.smith@medicore.com'); setPassword('password'); setError(''); }}
-                className="text-[10px] text-center px-1.5 py-1.5 rounded-lg bg-info/10 border border-info/20 hover:bg-info/20 transition-colors">
-                <span className="font-semibold text-info">Doctor</span>
-                <span className="block text-muted-foreground truncate">sarah.smith</span>
-              </button>
-              <button type="button" onClick={() => { setRole('clinic_doctor'); setEmail('clinic@medicore.com'); setPassword('password'); setError(''); }}
-                className="text-[10px] text-center px-1.5 py-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20 hover:bg-rose-500/20 transition-colors">
-                <span className="font-semibold text-rose-600 dark:text-rose-400">Clinic</span>
-                <span className="block text-muted-foreground truncate">clinic</span>
-              </button>
-              <button type="button" onClick={() => { setRole('lab_owner'); setEmail('diagnostic@medicore.com'); setPassword('password'); setError(''); }}
-                className="text-[10px] text-center px-1.5 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors">
-                <span className="font-semibold text-emerald-600 dark:text-emerald-400">Diag</span>
-                <span className="block text-muted-foreground truncate">diagnostic</span>
-              </button>
-              <button type="button" onClick={() => { setRole('pharmacy_owner'); setEmail('pharmacy@medicore.com'); setPassword('password'); setError(''); }}
-                className="text-[10px] text-center px-1.5 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/20 transition-colors">
-                <span className="font-semibold text-amber-600 dark:text-amber-400">Pharm</span>
-                <span className="block text-muted-foreground truncate">pharmacy</span>
-              </button>
-              <button type="button" onClick={() => { setRole('patient'); setEmail('patient@medicore.com'); setPassword('password'); setError(''); }}
-                className="text-[10px] text-center px-1.5 py-1.5 rounded-lg bg-success/10 border border-success/20 hover:bg-success/20 transition-colors">
-                <span className="font-semibold text-success">Patient</span>
-                <span className="block text-muted-foreground truncate">patient</span>
-              </button>
-            </div>
-          </div>
+
         </motion.div>
       </div>
     </div>

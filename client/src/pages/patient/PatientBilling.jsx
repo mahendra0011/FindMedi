@@ -1,15 +1,20 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Search, Calendar, Download } from 'lucide-react';
+import { Search, Calendar, Download, CreditCard } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 import { api, downloadInvoicePdf } from '@/lib/api';
 
 const statusColors = { Paid: 'bg-success/10 text-success', Pending: 'bg-warning/10 text-warning', Overdue: 'bg-destructive/10 text-destructive', Partial: 'bg-info/10 text-info' };
+const statusFilters = ['All', 'Paid', 'Pending', 'Overdue'];
 
 export default function PatientBilling() {
+  const navigate = useNavigate();
   const [bills, setBills] = useState([]);
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
   const [loading, setLoading] = useState(true);
 
   const loadBilling = async () => {
@@ -29,11 +34,12 @@ export default function PatientBilling() {
     try {
       await downloadInvoicePdf(bill._id, `${bill.invoiceId || 'invoice'}.pdf`);
     } catch (error) {
-      alert(error.message || 'Unable to download invoice');
+      toast.error(error.message || 'Unable to download invoice');
     }
   };
 
   const filteredBills = bills.filter((bill) => {
+    if (statusFilter !== 'All' && bill.status !== statusFilter) return false;
     const query = search.trim().toLowerCase();
     if (!query) return true;
     return [bill.invoiceId, bill.service, bill.doctor, bill.doctorId?.name, bill.status]
@@ -49,10 +55,20 @@ export default function PatientBilling() {
         <p className="text-muted-foreground">View invoices and payment history</p>
       </div>
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search invoices..." className="pl-10" />
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search invoices..." className="pl-10" />
+        </div>
+        <div className="flex gap-1.5">
+          {statusFilters.map(f => (
+            <button key={f} onClick={() => setStatusFilter(f)}
+              className={`px-3 py-2 rounded-lg text-xs font-medium transition-colors ${statusFilter === f ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>
+              {f}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Bills */}
@@ -77,15 +93,20 @@ export default function PatientBilling() {
               <div className="grid grid-cols-2 gap-3 mb-3 text-sm">
                 <div>
                   <p className="text-xs text-muted-foreground">Amount</p>
-                  <p className="font-heading font-bold text-foreground">Rs {bill.amount}</p>
+                  <p className="font-heading font-bold text-foreground">₹{bill.amount?.toLocaleString() || 0}</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Outstanding</p>
-                  <p className="font-heading font-bold text-warning">Rs {bill.amount - bill.paid}</p>
+                  <p className="font-heading font-bold text-warning">₹{((bill.amount || 0) - (bill.paid || 0)).toLocaleString()}</p>
                 </div>
               </div>
               <div className="flex items-center justify-between mb-3">
                 <div className="flex gap-2">
+                  {bill.status !== 'Paid' && (
+                    <Button size="sm" onClick={() => navigate('/patient/payment')}>
+                      <CreditCard className="w-3.5 h-3.5 mr-1" /> Pay Now
+                    </Button>
+                  )}
                   <Button size="sm" variant="outline" onClick={() => downloadInvoice(bill)}>
                     <Download className="w-3.5 h-3.5 mr-1" /> Download
                   </Button>
