@@ -37,7 +37,7 @@ export default function DoctorPrescriptions() {
     setLoading(false);
   };
 
-  useEffect(() => { loadRecords(); }, [user?.name, loadRecords]);
+  useEffect(() => { loadRecords(); }, [user?.name]);
 
   const filtered = records.filter(r =>
     !search || r.patient?.toLowerCase().includes(search.toLowerCase()) ||

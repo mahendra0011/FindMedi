@@ -1,3 +1,5 @@
+const UNLOCKED_CITIES = new Set(['Jabalpur']);
+
 const citiesByState = [
   { state: "Andaman and Nicobar Islands", cities: ["Port Blair"] },
   { state: "Andhra Pradesh", cities: ["Adoni", "Amaravati", "Anantapur", "Chandragiri", "Chittoor", "Dowlaiswaram", "Eluru", "Guntur", "Kadapa", "Kakinada", "Kurnool", "Machilipatnam", "Nagarjunakoṇḍa", "Rajahmundry", "Srikakulam", "Tirupati", "Vijayawada", "Visakhapatnam", "Vizianagaram", "Yemmiganur"] },
@@ -36,7 +38,9 @@ const citiesByState = [
   { state: "West Bengal", cities: ["Alipore", "Alipur Duar", "Asansol", "Baharampur", "Bally", "Balurghat", "Bankura", "Baranagar", "Barasat", "Barrackpore", "Basirhat", "Bhatpara", "Bishnupur", "Budge Budge", "Burdwan", "Chandernagore", "Darjeeling", "Diamond Harbour", "Dum Dum", "Durgapur", "Halisahar", "Haora", "Hugli", "Ingraj Bazar", "Jalpaiguri", "Kalimpong", "Kamarhati", "Kanchrapara", "Kharagpur", "Cooch Behar", "Kolkata", "Krishnanagar", "Malda", "Midnapore", "Murshidabad", "Nabadwip", "Palashi", "Panihati", "Purulia", "Raiganj", "Santipur", "Shantiniketan", "Shrirampur", "Siliguri", "Siuri", "Tamluk", "Titagarh"] },
 ];
 
-export const allCities = citiesByState.flatMap(s => s.cities.map(c => ({ name: c, state: s.state }))).sort((a, b) => a.name.localeCompare(b.name));
+export const allCities = citiesByState.flatMap(s => s.cities.map(c => ({ name: c, state: s.state, locked: !UNLOCKED_CITIES.has(c) }))).sort((a, b) => a.name.localeCompare(b.name));
+
+export const unlockedCities = allCities.filter(c => !c.locked);
 
 export const getCitiesByState = (stateName) => {
   const entry = citiesByState.find(s => s.state === stateName);
@@ -47,5 +51,7 @@ export const getStateForCity = (cityName) => {
   const match = allCities.find(c => c.name === cityName);
   return match ? match.state : '';
 };
+
+export const isCityUnlocked = (cityName) => UNLOCKED_CITIES.has(cityName);
 
 export default citiesByState;

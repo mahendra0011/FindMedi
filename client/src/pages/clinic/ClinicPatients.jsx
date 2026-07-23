@@ -36,7 +36,7 @@ export default function ClinicPatients() {
     setLoading(false);
   };
 
-  useEffect(() => { loadData(); }, [user?.name, loadData]);
+  useEffect(() => { loadData(); }, [user?.name]);
 
   const uniquePatients = [...new Map(appointments.map(a => [a.patient, a])).values()];
   const filteredPatients = uniquePatients.filter(p => !search || p.patient?.toLowerCase().includes(search.toLowerCase()));

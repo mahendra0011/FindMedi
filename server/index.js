@@ -31,7 +31,8 @@ app.use(helmet({
     directives: {
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'"],
-      imgSrc: ["'self'", "data:", "res.cloudinary.com"],
+      imgSrc: ["'self'", "data:", "res.cloudinary.com", "https://basemaps.cartocdn.com", "https://api.maptiler.com", "https://*.tile.openstreetmap.org"],
+      connectSrc: ["'self'", "https://api.maptiler.com", "https://api.openrouteservice.org", "https://api.open-elevation.com"],
     },
   },
   hsts: { maxAge: 31536000, includeSubDomains: true },
@@ -78,7 +79,7 @@ if (process.env.NODE_ENV === 'production') {
 // Rate limiting
 const apiLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 100,
+  max: process.env.NODE_ENV === 'development' ? 200 : 100,
   message: { message: 'Too many requests, please try again later.' },
 });
 

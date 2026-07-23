@@ -44,7 +44,7 @@ function mapFacilityToStore(f) {
     type: 'Pharmacy', rating: f.rating || 4.0, reviews: f.reviewsCount || 0,
     tags: ['Home Delivery', 'Generic Available'],
     deliveryTime: '30 mins', phone: f.phone || '', email: f.email || '',
-    address: f.address || '', distance: f.distance ? `${f.distance} km` : '0.8 km',
+    address: f.address || 'M.G. Road, Jabalpur, MP', distance: f.distance ? `${f.distance} km` : '0.8 km',
     workingHours: f.workingHours || '8:00 AM - 10:00 PM',
     deliveryCharges: 0, freeDeliveryAbove: 0, minOrder: 0,
     pickup: true, deliveryArea: 'Within 3 km',
@@ -55,7 +55,7 @@ function mapFacilityToStore(f) {
     deliveryAvailable: true,
     offers: f.offers || [],
     policies: f.policies || { return: '', cancel: '', rxValidity: '' },
-    city: f.city || '',
+    city: f.city || 'Jabalpur',
   };
 }
 

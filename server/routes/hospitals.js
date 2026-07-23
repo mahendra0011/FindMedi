@@ -3,7 +3,7 @@ import Hospital from '../models/Hospital.js';
 import User from '../models/User.js';
 import Doctor from '../models/Doctor.js';
 import { protect, superadminOnly, hospitalAdminOnly } from '../middleware/auth.js';
-import { validate, registerHospitalSchema, updateHospitalSchema } from '../utils/validate.js';
+import { validate, registerHospitalSchema } from '../utils/validate.js';
 import { auditLog } from '../middleware/audit.js';
 
 const router = express.Router();

@@ -22,7 +22,7 @@ const templateEmail = (template) => ({
   html: renderEmailTemplate(template),
 });
 
-const attachmentFromPdf = (filename, pdfBuffer) => ({
+export const attachmentFromPdf = (filename, pdfBuffer) => ({
   filename,
   content: pdfBuffer.toString('base64'),
   contentType: 'application/pdf',

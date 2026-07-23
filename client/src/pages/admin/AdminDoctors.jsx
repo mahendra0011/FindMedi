@@ -24,7 +24,7 @@ export default function AdminDoctors() {
     setLoading(false);
   };
 
-  useEffect(() => { loadDoctors(); }, [search, loadDoctors]);
+  useEffect(() => { loadDoctors(); }, [search]);
 
   const resetForm = () => { setForm({ name: '', specialization: 'Cardiology', experience: '', phone: '', email: '', qualifications: '', available: true }); setEditId(null); setShowForm(false); };
 

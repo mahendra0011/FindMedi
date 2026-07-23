@@ -41,7 +41,7 @@ export default function AdminTestCatalog() {
     setLoading(false);
   };
 
-  useEffect(() => { loadTests(); }, [deptFilter, catFilter, search, loadTests]);
+  useEffect(() => { loadTests(); }, [deptFilter, catFilter, search]);
 
   const resetForm = () => {
     setForm({

@@ -47,7 +47,7 @@ export default function ClinicNotifications() {
     setLoading(false);
   };
 
-  useEffect(() => { loadNotifications(); }, [filter, loadNotifications]);
+  useEffect(() => { loadNotifications(); }, [filter, user?.name]);
 
   const filtered = notifications.filter(n => {
     if (search) {

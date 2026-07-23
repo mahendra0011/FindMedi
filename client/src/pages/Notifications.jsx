@@ -32,7 +32,7 @@ export default function Notifications() {
     setLoading(false);
   };
 
-  useEffect(() => { loadNotifications(); }, [user, loadNotifications]);
+  useEffect(() => { loadNotifications(); }, [user?._id, user?.id, user?.role]);
 
   const handleMarkRead = async (id) => {
     try { 
