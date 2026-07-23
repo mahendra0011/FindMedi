@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Star, MapPin, Stethoscope, UserRound, CalendarDays, IndianRupee, Award, Users, SlidersHorizontal, X, Building2, Clock, Shield, Syringe, BedDouble, Languages, GraduationCap, CircleDot, ChevronDown, ChevronUp, Ambulance, Eye, Heart, Bone, Baby, Activity, Brain, BadgeCheck, Phone, Mail, ArrowRight, Navigation, Globe, FlaskConical } from 'lucide-react';
+import { Search, Star, MapPin, Stethoscope, UserRound, CalendarDays, IndianRupee, Award, Users, SlidersHorizontal, X, Building2, Clock, Shield, Syringe, BedDouble, Languages, GraduationCap, CircleDot, ChevronDown, ChevronUp, Ambulance, Eye, Heart, Bone, Baby, Activity, Brain, BadgeCheck, Phone, Mail, ArrowRight, Navigation, Globe, FlaskConical, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -11,66 +11,7 @@ import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, Dialog
 import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-
-const mockDoctors = [
-  {
-    _id: 'c1',
-    name: 'Dr. Arjun Tiwari',
-    profile_photo: '',
-    specialization: 'Orthopedics',
-    qualifications: 'MBBS, MS Orthopedics (Safdarjung), DNB',
-    rating: 4.5,
-    reviews_count: 267,
-    experience: '10 years',
-    patients: 2100,
-    languages: ['Hindi', 'English'],
-    consultation_fees: 800,
-    available: true,
-    next_available_slot: '02:00 PM',
-    clinicProfile: {
-      clinic_name: 'Arjun Ortho & Physio Clinic',
-      clinic_address: 'Plot 5, Scheme 78, Vijay Nagar, Jabalpur, MP 482003'
-    }
-  },
-  {
-    _id: 'c2',
-    name: 'Dr. Priya Mehta',
-    profile_photo: '',
-    specialization: 'Dermatology',
-    qualifications: 'MBBS, MD Dermatology',
-    rating: 4.2,
-    reviews_count: 145,
-    experience: '5 years',
-    patients: 890,
-    languages: ['English'],
-    consultation_fees: 600,
-    available: true,
-    next_available_slot: '10:30 AM',
-    clinicProfile: {
-      clinic_name: 'Skin Care Clinic',
-      clinic_address: 'Near MG Road, Jabalpur'
-    }
-  },
-  {
-    _id: 'c3',
-    name: 'Dr. Sunita Rao',
-    profile_photo: '',
-    specialization: 'OBG',
-    qualifications: 'MBBS, MS Obstetrics & Gynaecology',
-    rating: 4.7,
-    reviews_count: 312,
-    experience: '12 years',
-    patients: 3500,
-    languages: ['Hindi', 'English'],
-    consultation_fees: 700,
-    available: true,
-    next_available_slot: '04:00 PM',
-    clinicProfile: {
-      clinic_name: 'Women\'s Health Clinic',
-      clinic_address: 'Scheme 94, Jabalpur'
-    }
-  }
-];
+import { useAuth } from '@/context/AuthContext';
 
 const SPECIALIZATIONS = ['All', 'Cardiology', 'Neurology', 'Orthopedics', 'Pediatrics', 'Dermatology', 'Oncology', 'General Medicine', 'ENT'];
 const ALL_SPECIALTIES = [
@@ -134,6 +75,7 @@ function matchesSpecialty(doc, specialty) {
 
 export default function ClinicDoctors() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const [doctors, setDoctors] = useState([]);
   const [allDoctors, setAllDoctors] = useState([]);
@@ -144,6 +86,57 @@ export default function ClinicDoctors() {
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [bookingType, setBookingType] = useState('Consultation');
   const [bookingNotes, setBookingNotes] = useState('');
+  const [bookingDate, setBookingDate] = useState(new Date().toISOString().split('T')[0]);
+  const [bookingTime, setBookingTime] = useState('09:00 AM - 10:00 AM');
+  const [bookingLoading, setBookingLoading] = useState(false);
+  const [savedIds, setSavedIds] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('fav_doctor_ids') || '[]'); } catch { return []; }
+  });
+  const toggleSavedDoctor = async (docId, e) => {
+    if (e) e.stopPropagation();
+    const nowSaved = !savedIds.includes(docId);
+    const next = nowSaved ? [...savedIds, docId] : savedIds.filter(id => id !== docId);
+    setSavedIds(next);
+    try {
+      if (nowSaved) {
+        await api.dispatch(() => Promise.resolve({}), '/patient/favorites', { method: 'POST', body: JSON.stringify({ targetId: docId, targetType: 'doctor' }) });
+      } else {
+        await api.dispatch(() => Promise.resolve({}), `/patient/favorites/${docId}`, { method: 'DELETE' });
+      }
+      toast.success(nowSaved ? 'Saved' : 'Removed from Saved');
+    } catch {
+      setSavedIds(savedIds);
+      toast.error('Failed to update favorite');
+    }
+  };
+
+  const handleConfirmBooking = async () => {
+    if (!selectedDoctor) return;
+    if (!user) { toast.error('Please login to book an appointment'); navigate('/login'); return; }
+    setBookingLoading(true);
+    try {
+      await api.createAppointment({
+        doctorId: selectedDoctor._id,
+        doctor: selectedDoctor.name,
+        doctorName: selectedDoctor.name,
+        facilityId: selectedDoctor.facilityId?._id || selectedDoctor._id,
+        patient: user.name || 'Patient',
+        patientId: user._id,
+        email: user.email,
+        phone: user.phone || '',
+        date: bookingDate,
+        timeSlot: bookingTime,
+        type: bookingType,
+        notes: bookingNotes,
+        status: 'Scheduled',
+      });
+      setShowBooking(false);
+      toast.success('Appointment booked successfully!');
+    } catch (e) {
+      toast.error(e.response?.data?.message || e.message || 'Failed to book appointment');
+    }
+    setBookingLoading(false);
+  };
 
   const [specFilter, setSpecFilter] = useState(searchParams.get('specialization') || 'All');
   const [clinicFilter, setClinicFilter] = useState(searchParams.get('clinic') || searchParams.get('hospital') || '');
@@ -156,6 +149,7 @@ export default function ClinicDoctors() {
 
   const [sortBy, setSortBy] = useState('relevance');
   const [consultantType, setConsultantType] = useState('');
+  const [loadError, setLoadError] = useState('');
 
   const [qualificationFilter, setQualificationFilter] = useState([]);
   const [languageFilter, setLanguageFilter] = useState([]);
@@ -166,12 +160,13 @@ export default function ClinicDoctors() {
 
 const loadDoctors = async () => {
     setLoading(true);
+    setLoadError('');
     try {
       const params = { doctor_type: 'clinic' };
       if (search) params.search = search;
-      const data = await api.getDoctors(params).catch(() => mockDoctors);
+      const data = await api.getDoctors(params).catch(() => { throw new Error('Failed to load doctors'); });
       setAllDoctors(data || []);
-    } catch (e) { console.error(e); setAllDoctors(mockDoctors); }
+    } catch (e) { setLoadError(e.message || 'Failed to load doctors'); setAllDoctors([]); }
     setLoading(false);
   };
 
@@ -535,6 +530,13 @@ const loadDoctors = async () => {
 
           {loading ? (
             <div className="flex justify-center py-16"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>
+          ) : loadError ? (
+            <div className="text-center py-16">
+              <AlertCircle className="w-16 h-16 text-destructive/50 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-foreground mb-1">Failed to load doctors</h3>
+              <p className="text-muted-foreground mb-4">{loadError}</p>
+              <Button variant="outline" onClick={loadDoctors}>Retry</Button>
+            </div>
           ) : doctors.length === 0 ? (
             <div className="text-center py-16">
               <UserRound className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
@@ -556,9 +558,9 @@ const loadDoctors = async () => {
                     navigate(`/clinic-doctors/${doc._id}`);
                   }}>
                   {/* Save Button — top-left */}
-                  <button onClick={(e) => { e.stopPropagation(); toast.success('Saved'); }}
+                  <button onClick={(e) => toggleSavedDoctor(doc._id, e)}
                     className="absolute top-3 left-3 z-10 w-8 h-8 rounded-xl bg-white/70 dark:bg-black/30 backdrop-blur-sm flex items-center justify-center hover:bg-white dark:hover:bg-black/50 transition-all shadow-sm opacity-0 group-hover:opacity-100">
-                    <Heart className="w-4 h-4 text-muted-foreground hover:text-red-500 transition-colors" />
+                    <Heart className={cn('w-4 h-4 transition-colors', savedIds.includes(doc._id) ? 'text-red-500 fill-current' : 'text-muted-foreground hover:text-red-500')} />
                   </button>
                   {/* Corner Badge — Next Available Slot */}
                   <div className={cn('absolute top-0 right-0 z-10 px-3 py-1.5 rounded-bl-2xl text-[11px] font-semibold border-l border-b shadow-sm transition-all duration-300', doc.available
@@ -695,11 +697,11 @@ const loadDoctors = async () => {
                             </div>
                             <div className="space-y-1.5">
                               <label className="text-xs font-medium text-foreground">Select Date</label>
-                              <Input type="date" className="w-full" defaultValue={new Date().toISOString().split('T')[0]} />
+                              <Input type="date" className="w-full" value={bookingDate} onChange={e => setBookingDate(e.target.value)} />
                             </div>
                             <div className="space-y-1.5">
                               <label className="text-xs font-medium text-foreground">Select Time Slot</label>
-                              <select className="w-full h-9 px-3 rounded-xl border border-border bg-background text-sm">
+                              <select className="w-full h-9 px-3 rounded-xl border border-border bg-background text-sm" value={bookingTime} onChange={e => setBookingTime(e.target.value)}>
                                 <option>09:00 AM - 10:00 AM</option>
                                 <option>10:00 AM - 11:00 AM</option>
                                 <option>11:00 AM - 12:00 PM</option>
@@ -722,7 +724,7 @@ const loadDoctors = async () => {
                           </div>
                           <DialogFooter>
                             <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); setShowBooking(false); }}>Cancel</Button>
-                            <Button size="sm" onClick={(e) => { e.stopPropagation(); setShowBooking(false); toast.success('Appointment booked!'); }}>Confirm Booking</Button>
+                            <Button size="sm" onClick={(e) => { e.stopPropagation(); handleConfirmBooking(); }} disabled={bookingLoading}>{bookingLoading ? 'Booking...' : 'Confirm Booking'}</Button>
                           </DialogFooter>
                         </DialogContent>
                       </Dialog>

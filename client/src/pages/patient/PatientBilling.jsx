@@ -3,9 +3,8 @@ import { motion } from 'framer-motion';
 import { Search, Calendar, Download } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { downloadInvoicePdf, getStoredAuthToken } from '@/lib/api';
+import { api, downloadInvoicePdf } from '@/lib/api';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 const statusColors = { Paid: 'bg-success/10 text-success', Pending: 'bg-warning/10 text-warning', Overdue: 'bg-destructive/10 text-destructive', Partial: 'bg-info/10 text-info' };
 
 export default function PatientBilling() {
@@ -16,14 +15,7 @@ export default function PatientBilling() {
   const loadBilling = async () => {
     setLoading(true);
     try {
-      const token = getStoredAuthToken();
-      const res = await fetch(`${API_URL}/billing`, {
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      const data = await res.json();
+      const data = await api.getBilling();
       if (data.bills) {
         setBills(data.bills);
       }

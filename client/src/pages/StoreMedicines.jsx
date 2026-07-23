@@ -1,41 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Search, ArrowLeft, Store, Star, ShoppingCart, Lock, Plus, Minus, Pill, BadgeCheck, Percent, ChevronRight, FileText, SlidersHorizontal, X, ArrowUpDown, IndianRupee, Tags, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { api } from '@/lib/api';
 import { useCart } from '@/context/CartContext';
 import { toast } from 'sonner';
 
-const MOCK_STORES = [
-  { id:'s1', name:'MediStore Pharmacy', photo:'https://images.unsplash.com/photo-1585435557343-3b092031a831?w=400&h=300&fit=crop', verified:true },
-  { id:'s2', name:'Apollo Pharmacy', photo:'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=400&h=300&fit=crop', verified:true },
-  { id:'s3', name:'City Drug House', photo:'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?w=400&h=300&fit=crop', verified:false },
-];
 
-const MOCK_MEDICINES = [
-  { id:'m1', name:'Paracetamol 500mg', image:'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop', brand:'XYZ Pharma', mrp:45, price:29, discount:35, inStock:true, rx:false, pack:'10 tablets', category:'OTC', storeId:'s1' },
-  { id:'m2', name:'Vitamin C 1000mg', image:'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop', brand:'HealthPlus', mrp:599, price:399, discount:33, inStock:true, rx:false, pack:'60 tablets', category:'Vitamins', storeId:'s1' },
-  { id:'m3', name:'Cough Syrup 100ml', image:'https://images.unsplash.com/photo-1550572017-edd951b55104?w=200&h=200&fit=crop', brand:'MediCare', mrp:120, price:89, discount:26, inStock:true, rx:false, pack:'100ml bottle', category:'OTC', storeId:'s1' },
-  { id:'m4', name:'Amoxicillin 500mg', image:'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop', brand:'BioPharma', mrp:180, price:145, discount:19, inStock:true, rx:true, pack:'15 capsules', category:'Prescription', storeId:'s1' },
-  { id:'m5', name:'Azithromycin 500mg', image:'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop', brand:'PharmaCorp', mrp:250, price:199, discount:20, inStock:false, rx:true, pack:'6 tablets', category:'Prescription', storeId:'s1' },
-  { id:'m6', name:'BP Monitor', image:'https://images.unsplash.com/photo-1631549916768-4119b2e5f926?w=200&h=200&fit=crop', brand:'HealthTech', mrp:2999, price:2499, discount:17, inStock:true, rx:false, pack:'1 unit', category:'Devices', storeId:'s1' },
-  { id:'m7', name:'Baby Diapers M', image:'https://images.unsplash.com/photo-1584820927498-cfe5211fd8bf?w=200&h=200&fit=crop', brand:'BabySoft', mrp:499, price:399, discount:20, inStock:true, rx:false, pack:'30 pieces', category:'Baby Care', storeId:'s1' },
-  { id:'m8', name:'Multivitamin', image:'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop', brand:'NutriFit', mrp:450, price:349, discount:22, inStock:true, rx:false, pack:'30 tablets', category:'Vitamins', storeId:'s1' },
-  { id:'m12', name:'Chyawanprash', image:'https://images.unsplash.com/photo-1550572017-edd951b55104?w=200&h=200&fit=crop', brand:'HerbalLife', mrp:350, price:299, discount:15, inStock:true, rx:false, pack:'500g jar', category:'Ayurvedic', storeId:'s1' },
-  { id:'m16', name:'Protein Powder', image:'https://images.unsplash.com/photo-1550572017-edd951b55104?w=200&h=200&fit=crop', brand:'NutriFit', mrp:1599, price:1299, discount:19, inStock:true, rx:false, pack:'1kg container', category:'Vitamins', storeId:'s1' },
-  { id:'m17', name:'Aspirin 75mg', image:'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop', brand:'XYZ Pharma', mrp:30, price:18, discount:40, inStock:true, rx:false, pack:'14 tablets', category:'OTC', storeId:'s1' },
-  { id:'m18', name:'Dolo 650', image:'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop', brand:'Micro Labs', mrp:55, price:35, discount:36, inStock:true, rx:false, pack:'15 tablets', category:'OTC', storeId:'s1' },
-  { id:'m9', name:'Ibuprofen 400mg', image:'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop', brand:'XYZ Pharma', mrp:65, price:45, discount:31, inStock:true, rx:false, pack:'10 tablets', category:'OTC', storeId:'s2' },
-  { id:'m10', name:'Cetirizine 10mg', image:'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop', brand:'AllerCare', mrp:35, price:24, discount:31, inStock:true, rx:false, pack:'10 tablets', category:'OTC', storeId:'s2' },
-  { id:'m11', name:'Metformin 500mg', image:'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop', brand:'DiabeCare', mrp:90, price:68, discount:24, inStock:true, rx:true, pack:'20 tablets', category:'Prescription', storeId:'s2' },
-  { id:'m13', name:'Glucose Powder', image:'https://images.unsplash.com/photo-1550572017-edd951b55104?w=200&h=200&fit=crop', brand:'Energize', mrp:120, price:89, discount:26, inStock:true, rx:false, pack:'500g pouch', category:'OTC', storeId:'s2' },
-  { id:'m14', name:'Digital Thermometer', image:'https://images.unsplash.com/photo-1631549916768-4119b2e5f926?w=200&h=200&fit=crop', brand:'HealthTech', mrp:299, price:199, discount:33, inStock:true, rx:false, pack:'1 unit', category:'Devices', storeId:'s2' },
-  { id:'m15', name:'Omeprazole 20mg', image:'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop', brand:'GastroCare', mrp:85, price:59, discount:31, inStock:false, rx:false, pack:'10 capsules', category:'OTC', storeId:'s3' },
-  { id:'m19', name:'Betadine Solution', image:'https://images.unsplash.com/photo-1550572017-edd951b55104?w=200&h=200&fit=crop', brand:'Win Medicare', mrp:120, price:89, discount:26, inStock:true, rx:false, pack:'100ml bottle', category:'OTC', storeId:'s3' },
-  { id:'m20', name:'Vitamin D3 60K', image:'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop', brand:'HealthPlus', mrp:199, price:149, discount:25, inStock:true, rx:false, pack:'4 capsules', category:'Vitamins', storeId:'s3' },
-];
 
 const CATEGORIES = ['All', 'Prescription', 'OTC', 'Generic', 'Baby Care', 'Ayurvedic', 'Devices', 'Vitamins'];
 
@@ -56,9 +30,59 @@ const DISCOUNT_RANGES = [
 export default function StoreMedicines() {
   const { storeId } = useParams();
   const navigate = useNavigate();
-  const store = MOCK_STORES.find(s => s.id === storeId) || MOCK_STORES[0];
-  const allMeds = MOCK_MEDICINES.filter(m => m.storeId === storeId);
+  const [store, setStore] = useState(null);
+  const [allMeds, setAllMeds] = useState([]);
+  const [loading, setLoading] = useState(true);
   const { cart, addItem, updateQty, entries } = useCart();
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        const [facilitiesRes, medicinesRes] = await Promise.allSettled([
+          api.getFacilities({ type: 'pharmacy', limit: 50 }),
+          api.getMedicines({ storeId, limit: 200 }),
+        ]);
+        if (facilitiesRes.status === 'fulfilled') {
+          const list = Array.isArray(facilitiesRes.value) ? facilitiesRes.value : facilitiesRes.value?.facilities || [];
+          if (storeId) {
+            const found = list.find(f => f._id === storeId || f.id === storeId);
+            if (found) {
+              setStore({
+                id: found._id || found.id,
+                _id: found._id,
+                name: found.name,
+                photo: found.photo || 'https://images.unsplash.com/photo-1585435557343-3b092031a831?w=400&h=300&fit=crop',
+                verified: found.verified || found.status === 'approved',
+              });
+            }
+          }
+        }
+        if (medicinesRes.status === 'fulfilled') {
+          const list = Array.isArray(medicinesRes.value) ? medicinesRes.value : medicinesRes.value?.medicines || [];
+          if (list.length > 0) {
+            const mapped = list.map(m => ({
+              id: m._id || m.id,
+              _id: m._id,
+              name: m.name,
+              image: m.image || 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop',
+              brand: m.brand || 'Generic',
+              mrp: m.mrp || m.price,
+              price: m.price || m.sellingPrice || 0,
+              discount: m.discount || Math.round((1 - (m.price / (m.mrp || m.price || 1))) * 100) || 0,
+              inStock: m.inStock ?? m.stock > 0,
+              rx: m.prescriptionReq || m.rx || false,
+              pack: m.pack || m.packSize || '1 unit',
+              category: m.category || 'OTC',
+              storeId: m.storeId || m.facilityId || storeId,
+            }));
+            setAllMeds(mapped);
+          }
+        }
+      } catch {} finally { setLoading(false); }
+    };
+    if (storeId) load(); else setLoading(false);
+  }, [storeId]);
   const [search, setSearch] = useState('');
   const [catFilter, setCatFilter] = useState('All');
   const [brandFilter, setBrandFilter] = useState('All');

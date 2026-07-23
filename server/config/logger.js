@@ -2,10 +2,9 @@ import winston from 'winston';
 import fs from 'fs';
 import path from 'path';
 
-try {
-  fs.mkdirSync(path.dirname('logs/combined.log'), { recursive: true });
-} catch (e) {
-  console.warn('Could not create logs directory:', e.message);
+const logDir = path.resolve('logs');
+if (!fs.existsSync(logDir)) {
+  fs.mkdirSync(logDir, { recursive: true });
 }
 
 const logger = winston.createLogger({

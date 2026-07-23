@@ -4,83 +4,89 @@ import { useNavigate } from 'react-router-dom';
 import {
   CalendarDays, FlaskConical, Clock, CheckCircle2, XCircle,
   AlertCircle, Loader2, Search, ChevronRight, Syringe, FileText,
-  Eye, MapPin, Phone, IndianRupee, Activity
+  Eye, MapPin, Phone, IndianRupee, Activity, Stethoscope
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { api } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
 
 const BOOKING_STATUS = {
-  pending: { label: 'Pending', color: 'bg-amber-500/10 text-amber-600 border-amber-500/30', icon: Clock },
-  confirmed: { label: 'Confirmed', color: 'bg-blue-500/10 text-blue-600 border-blue-500/30', icon: CheckCircle2 },
-  sample_collected: { label: 'Sample Collected', color: 'bg-purple-500/10 text-purple-600 border-purple-500/30', icon: Syringe },
-  report_ready: { label: 'Report Ready', color: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30', icon: FileText },
-  completed: { label: 'Completed', color: 'bg-success/10 text-success border-success/30', icon: CheckCircle2 },
-  cancelled: { label: 'Cancelled', color: 'bg-destructive/10 text-destructive border-destructive/30', icon: XCircle },
+  Scheduled: { label: 'Scheduled', color: 'bg-blue-500/10 text-blue-600 border-blue-500/30', icon: Clock },
+  Confirmed: { label: 'Confirmed', color: 'bg-blue-500/10 text-blue-600 border-blue-500/30', icon: CheckCircle2 },
+  'Sample Collected': { label: 'Sample Collected', color: 'bg-purple-500/10 text-purple-600 border-purple-500/30', icon: Syringe },
+  'Report Ready': { label: 'Report Ready', color: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30', icon: FileText },
+  Completed: { label: 'Completed', color: 'bg-success/10 text-success border-success/30', icon: CheckCircle2 },
+  Cancelled: { label: 'Cancelled', color: 'bg-destructive/10 text-destructive border-destructive/30', icon: XCircle },
+  Pending: { label: 'Pending', color: 'bg-amber-500/10 text-amber-600 border-amber-500/30', icon: Clock },
+  Processing: { label: 'Processing', color: 'bg-amber-500/10 text-amber-600 border-amber-500/30', icon: Loader2 },
 };
 
-const STATUS_FLOW = ['pending', 'confirmed', 'sample_collected', 'report_ready', 'completed'];
+const STATUS_FILTERS = ['All', 'Pending', 'Scheduled', 'Confirmed', 'Completed', 'Cancelled'];
 
-const MOCK_BOOKINGS = [
-  {
-    id: 'b1', type: 'test', source: 'SRL Diagnostics', date: '2026-07-15',
-    tests: ['Complete Blood Count (CBC)', 'Lipid Profile', 'Vitamin D Total'],
-    amount: 1397, status: 'report_ready', slot: '7:00 AM - 9:00 AM',
-    address: '123, Health Avenue, New York', phone: '9876543210',
-  },
-  {
-    id: 'b2', type: 'test', source: 'Thyrocare Technologies', date: '2026-07-12',
-    tests: ['Thyroid Profile', 'Blood Glucose (Fasting)'],
-    amount: 548, status: 'completed', slot: '9:00 AM - 12:00 PM',
-    address: '456, Wellness Road, Los Angeles', phone: '9876543211',
-  },
-  {
-    id: 'b3', type: 'appointment', source: 'Dr. Rajesh Kumar - Cardiologist', date: '2026-07-20',
-    tests: [], amount: 500, status: 'confirmed', slot: '10:30 AM',
-    address: 'City Hospital, New York', phone: '9876543210',
-  },
-  {
-    id: 'b4', type: 'test', source: 'Metropolis Healthcare', date: '2026-07-08',
-    tests: ['HbA1c', 'Kidney Function Test'],
-    amount: 748, status: 'sample_collected', slot: '6:00 AM - 8:00 AM',
-    address: '789, Market Street, Chicago', phone: '9876543212',
-  },
-  {
-    id: 'b5', type: 'test', source: 'Apollo Diagnostics', date: '2026-07-18',
-    tests: ['Full Body Checkup (70 parameters)'],
-    amount: 999, status: 'pending', slot: '7:00 AM - 9:00 AM',
-    address: '12, Health Hub, Los Angeles', phone: '9876543213',
-  },
-  {
-    id: 'b6', type: 'test', source: 'SRL Diagnostics', date: '2026-06-28',
-    tests: ['Liver Function Test', 'Urine Routine'],
-    amount: 628, status: 'cancelled', slot: '9:00 AM - 12:00 PM',
-    address: '123, Health Avenue, New York', phone: '9876543210',
-  },
-  {
-    id: 'b7', type: 'appointment', source: 'Dr. Priya Sharma - Dermatologist', date: '2026-07-10',
-    tests: [], amount: 800, status: 'completed', slot: '2:00 PM',
-    address: 'Skin Care Clinic, New York', phone: '9876543215',
-  },
-  {
-    id: 'b8', type: 'test', source: 'Thyrocare Technologies', date: '2026-07-22',
-    tests: ['Vitamin B12', 'Iron Studies', 'CRP Quantitative'],
-    amount: 1347, status: 'pending', slot: '7:00 AM - 9:00 AM',
-    address: '456, Wellness Road, Los Angeles', phone: '9876543211',
-  },
-];
-
-const STATUS_FILTERS = ['All', 'pending', 'confirmed', 'sample_collected', 'report_ready', 'completed', 'cancelled'];
-
-const getStep = (status) => STATUS_FLOW.indexOf(status);
+function normalizeBooking(item, type) {
+  if (type === 'appointment') {
+    return {
+      id: item._id,
+      type: 'appointment',
+      source: item.doctor || item.doctorId?.name || 'Doctor',
+      date: item.date ? item.date.split('T')[0] : '',
+      tests: [],
+      amount: item.fees || item.consultation_fees || 0,
+      status: item.status || 'Scheduled',
+      slot: item.timeSlot || item.time || '',
+      address: item.hospitalId?.name || item.hospitalName || '',
+      phone: item.phone || '',
+      _raw: item,
+    };
+  }
+  return {
+    id: item._id,
+    type: 'test',
+    source: item.facilityId?.name || item.labName || 'Lab',
+    date: item.bookingDate ? item.bookingDate.split('T')[0] : '',
+    tests: item.tests || [],
+    amount: item.totalAmount || item.discountedAmount || 0,
+    status: item.status || 'Pending',
+    slot: item.timeSlot || '',
+    address: item.homeCollectionAddress || '',
+    phone: item.patientPhone || '',
+    _raw: item,
+  };
+}
 
 export default function PatientBookings() {
   const navigate = useNavigate();
-  const [bookings] = useState(MOCK_BOOKINGS);
+  const { user } = useAuth();
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [typeFilter, setTypeFilter] = useState('All');
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        const [appts, labBks] = await Promise.all([
+          api.getMyAppointments(),
+          api.getLabBookings({}),
+        ]);
+        const normalized = [
+          ...(Array.isArray(appts) ? appts : []).map(a => normalizeBooking(a, 'appointment')),
+          ...((labBks?.bookings || [])).map(b => normalizeBooking(b, 'test')),
+        ];
+        setBookings(normalized);
+      } catch (e) {
+        setLoadError('Failed to load bookings');
+      }
+      setLoading(false);
+    };
+    load();
+  }, []);
 
   const filtered = bookings.filter(b => {
     if (statusFilter !== 'All' && b.status !== statusFilter) return false;
@@ -92,8 +98,25 @@ export default function PatientBookings() {
     return true;
   });
 
-  const activeBookings = filtered.filter(b => !['completed', 'cancelled'].includes(b.status));
-  const pastBookings = filtered.filter(b => ['completed', 'cancelled'].includes(b.status));
+  const activeBookings = filtered.filter(b => !['Completed', 'Cancelled'].includes(b.status));
+  const pastBookings = filtered.filter(b => ['Completed', 'Cancelled'].includes(b.status));
+
+  const handleCancel = async (booking) => {
+    try {
+      if (booking.type === 'appointment') {
+        await api.updateAppointment(booking.id, { status: 'Cancelled' });
+      } else {
+        await api.deleteLabBooking(booking.id);
+      }
+      setBookings(prev => prev.map(b => b.id === booking.id ? { ...b, status: 'Cancelled' } : b));
+      toast.success('Booking cancelled');
+    } catch {
+      toast.error('Failed to cancel booking');
+    }
+  };
+
+  if (loading) return <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
+  if (loadError) return <div className="text-center py-16"><AlertCircle className="w-16 h-16 text-destructive/50 mx-auto mb-4" /><h3 className="text-lg font-semibold mb-1">Failed to load bookings</h3><p className="text-muted-foreground mb-4">{loadError}</p><Button variant="outline" onClick={() => window.location.reload()}>Retry</Button></div>;
 
   return (
     <div className="space-y-6">
@@ -126,7 +149,7 @@ export default function PatientBookings() {
                 ? 'bg-primary text-primary-foreground border-primary shadow-md shadow-primary/20'
                 : 'bg-background text-muted-foreground hover:text-foreground border-border/50'
             )}>
-            {s === 'All' ? 'All' : (BOOKING_STATUS[s]?.label || s)}
+            {s === 'All' ? 'All' : s}
           </button>
         ))}
       </div>
@@ -140,7 +163,7 @@ export default function PatientBookings() {
           </h2>
           <div className="space-y-4">
             {activeBookings.map((booking, i) => (
-              <BookingCard key={booking.id} booking={booking} index={i} />
+              <BookingCard key={booking.id} booking={booking} index={i} onCancel={handleCancel} />
             ))}
           </div>
         </div>
@@ -155,13 +178,13 @@ export default function PatientBookings() {
           </h2>
           <div className="space-y-4">
             {pastBookings.map((booking, i) => (
-              <BookingCard key={booking.id} booking={booking} index={i} />
+              <BookingCard key={booking.id} booking={booking} index={i} onCancel={handleCancel} />
             ))}
           </div>
         </div>
       )}
 
-      {filtered.length === 0 && (
+      {!loading && filtered.length === 0 && (
         <div className="text-center py-16 bg-card rounded-2xl border border-border/50">
           <CalendarDays className="w-12 h-12 text-muted-foreground/20 mx-auto mb-3" />
           <h3 className="text-sm font-semibold text-foreground mb-1">No bookings found</h3>
@@ -175,9 +198,15 @@ export default function PatientBookings() {
   );
 }
 
-function BookingCard({ booking, index }) {
+const STATUS_FLOW = ['Pending', 'Confirmed', 'Sample Collected', 'Report Ready', 'Completed'];
+
+function getStep(status) {
+  return STATUS_FLOW.indexOf(status);
+}
+
+function BookingCard({ booking, index, onCancel }) {
   const navigate = useNavigate();
-  const statusInfo = BOOKING_STATUS[booking.status] || BOOKING_STATUS.pending;
+  const statusInfo = BOOKING_STATUS[booking.status] || BOOKING_STATUS.Pending;
   const StatusIcon = statusInfo.icon;
   const currentStep = getStep(booking.status);
 
@@ -220,7 +249,7 @@ function BookingCard({ booking, index }) {
         </div>
 
         {/* Status Timeline */}
-        {booking.status !== 'cancelled' && (
+        {booking.status !== 'Cancelled' && (
           <div className="flex items-center gap-1 mb-4 px-1">
             {STATUS_FLOW.map((step, i) => {
               const stepInfo = BOOKING_STATUS[step];
@@ -262,13 +291,13 @@ function BookingCard({ booking, index }) {
             <span className="font-semibold text-foreground">₹{booking.amount}</span>
           </div>
           <div className="flex gap-2">
-            {booking.status === 'pending' && (
+            {(booking.status === 'Pending' || booking.status === 'Scheduled' || booking.status === 'Confirmed') && (
               <Button variant="ghost" size="sm" className="text-xs h-8 text-destructive hover:text-destructive"
-                onClick={() => toast.success('Booking cancelled')}>
+                onClick={() => onCancel(booking)}>
                 <XCircle className="w-3 h-3 mr-1" /> Cancel
               </Button>
             )}
-            {booking.status === 'report_ready' && (
+            {booking.status === 'Report Ready' && (
               <Button size="sm" className="text-xs h-8 gap-1" onClick={() => navigate('/patient/reports')}>
                 <FileText className="w-3 h-3" /> View Report
               </Button>

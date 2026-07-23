@@ -774,8 +774,8 @@ function TransactionLedgerTab() {
         <div className="flex items-center justify-between">
           <span className="text-sm text-muted-foreground">Page {page} of {totalPages}</span>
           <div className="flex gap-2">
-            <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => { setPage(page - 1); fetchLedger(page - 1); }}>Previous</Button>
-            <Button size="sm" variant="outline" disabled={page >= totalPages} onClick={() => { setPage(page + 1); fetchLedger(page + 1); }}>Next</Button>
+            <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => { const p = page - 1; setPage(p); fetchLedger(p); }}>Previous</Button>
+            <Button size="sm" variant="outline" disabled={page >= totalPages} onClick={() => { const p = page + 1; setPage(p); fetchLedger(p); }}>Next</Button>
           </div>
         </div>
       )}
@@ -891,8 +891,8 @@ function PayoutsTab() {
         <div className="flex justify-between items-center">
           <span className="text-sm text-muted-foreground">Page {page} of {totalPages}</span>
           <div className="flex gap-2">
-            <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => { setPage(page - 1); fetchPayouts(page - 1); }}>Previous</Button>
-            <Button size="sm" variant="outline" disabled={page >= totalPages} onClick={() => { setPage(page + 1); fetchPayouts(page + 1); }}>Next</Button>
+            <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => { const p = page - 1; setPage(p); fetchPayouts(p); }}>Previous</Button>
+            <Button size="sm" variant="outline" disabled={page >= totalPages} onClick={() => { const p = page + 1; setPage(p); fetchPayouts(p); }}>Next</Button>
           </div>
         </div>
       )}

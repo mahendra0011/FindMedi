@@ -740,7 +740,7 @@ const Home = () => {
             <p className="text-muted-foreground mt-4 leading-relaxed">
               Hover over each workflow to bring it alive, then jump straight to the right part of the home screen.
             </p>
-            <Button className="mt-8 gap-2" onClick={() => navigate('/labs')}>
+            <Button className="mt-8 gap-2" onClick={() => navigate('/diagnostic-centers')}>
               View Lab Services <ArrowRight className="w-4 h-4" />
             </Button>
           </motion.div>

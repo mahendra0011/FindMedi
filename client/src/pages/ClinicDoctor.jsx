@@ -93,13 +93,7 @@ export default function ClinicDoctor() {
   const [departmentDoctors, setDepartmentDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const [reviews, setReviews] = useState([
-    { _id: 'demo-1', patientName: 'Rahul Sharma', rating: 5, comment: 'Excellent doctor. Very thorough in examination and explains everything clearly.', date: '2026-06-15' },
-    { _id: 'demo-2', patientName: 'Priya Patel', rating: 4, comment: 'Good experience. The waiting time was a bit long but the consultation was worth it.', date: '2026-06-10' },
-    { _id: 'demo-3', patientName: 'Amit Verma', rating: 5, comment: 'Best specialist in the city. He saved my father\'s life. Forever grateful.', date: '2026-06-05' },
-    { _id: 'demo-4', patientName: 'Sunita Gupta', rating: 4, comment: 'Very caring doctor. The clinic is well-maintained and staff is polite.', date: '2026-05-28' },
-    { _id: 'demo-5', patientName: 'Vikram Singh', rating: 3, comment: 'Decent consultation but the billing process was slow. Needed to visit multiple counters.', date: '2026-05-20' },
-  ]);
+  const [reviews, setReviews] = useState([]);
 
   const [bookingDate, setBookingDate] = useState('');
   const [bookingTime, setBookingTime] = useState('');
@@ -114,7 +108,22 @@ export default function ClinicDoctor() {
   const [reviewComment, setReviewComment] = useState('');
   const [reviewSubmitted, setReviewSubmitted] = useState(false);
 
-  const [saved, setSaved] = useState(false);
+  const [saved, setSaved] = useState(() => localStorage.getItem(`fav_doctor_${id}`) === 'true');
+  const toggleSaved = async () => {
+    const next = !saved;
+    setSaved(next);
+    try {
+      if (next) {
+        await api.dispatch(() => Promise.resolve({}), '/patient/favorites', { method: 'POST', body: JSON.stringify({ targetId: id, targetType: 'doctor', name: doctor?.name }) });
+      } else {
+        await api.dispatch(() => Promise.resolve({}), `/patient/favorites/${id}`, { method: 'DELETE' });
+      }
+      toast.success(next ? 'Saved' : 'Removed from Saved');
+    } catch {
+      setSaved(!next);
+      toast.error('Failed to update favorite');
+    }
+  };
   const [showFullBio, setShowFullBio] = useState(false);
   const [expandedFaq, setExpandedFaq] = useState(null);
 
@@ -395,7 +404,7 @@ export default function ClinicDoctor() {
                   <span className="text-xs">/ visit</span>
                 </span>
                 <div className="flex items-center gap-2 ml-auto">
-                  <button onClick={() => { setSaved(!saved); toast.success(saved ? 'Removed from Saved' : 'Saved'); }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-muted transition-colors text-sm">
+                  <button onClick={toggleSaved} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-muted transition-colors text-sm">
                     <Heart className={cn('w-4 h-4', saved && 'fill-current text-red-500')} />
                     {saved ? 'Saved' : 'Save'}
                   </button>
@@ -1145,7 +1154,7 @@ export default function ClinicDoctor() {
                 <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" asChild>
                   <a href={`mailto:${doctor.email || ''}`}><Mail className="w-4 h-4" /> Email Now</a>
                 </Button>
-                <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => { setSaved(!saved); toast.success(saved ? 'Removed from Saved' : 'Saved'); }}>
+                <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={toggleSaved}>
                   <Heart className={cn('w-4 h-4', saved && 'fill-current text-red-500')} /> {saved ? 'Saved' : 'Save'}
                 </Button>
                 <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => { navigator.clipboard?.writeText(window.location.href); toast.success('Link copied!'); }}>
@@ -1164,7 +1173,7 @@ export default function ClinicDoctor() {
                   <CalendarDays className="w-4 h-4 text-primary" />
                   Book Appointment
                 </h2>
-                <button onClick={() => setSaved(!saved)} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
+                <button onClick={toggleSaved} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
                   {saved
                     ? <BookMarked className="w-4 h-4 text-primary" />
                     : <Bookmark className="w-4 h-4 text-muted-foreground" />

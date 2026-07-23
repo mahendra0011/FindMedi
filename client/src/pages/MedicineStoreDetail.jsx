@@ -21,42 +21,7 @@ import { toast } from 'sonner';
 import ServiceLocationMap from '@/components/maps/ServiceLocationMap';
 import ReviewDialog from '@/components/ReviewDialog';
 
-const MOCK_STORES = [
-  { id:'s1', name:'MediStore Pharmacy', photo:'https://images.unsplash.com/photo-1585435557343-3b092031a831?w=400&h=300&fit=crop', cover:'https://images.unsplash.com/photo-1587351021759-3e566b6af7cc?w=1200&h=400&fit=crop', verified:true, open:true, timing:'8 AM - 10 PM', type:'Pharmacy', rating:4.2, reviews:234, tags:['Home Delivery','Generic Available'], deliveryTime:'25 mins', phone:'0761-3456789', email:'orders@medistore.com', address:'Vijay Nagar, Jabalpur, Madhya Pradesh 482003', distance:'0.8 km', workingHours:'8:00 AM - 10:00 PM', deliveryCharges:0, freeDeliveryAbove:0, minOrder:0, pickup:true, deliveryArea:'Within 3 km', established:2021, licenseNo:'MP-PH-2023-00781', pharmacist:'Mr. Rajesh Kumar', description:'Full-service pharmacy with a wide range of medicines, surgical supplies, and wellness products. Free delivery within 3 km.', deliveryAvailable:true, offers:[{ title:'Flat 20% off on first order', code:'FIRST20', desc:'Use code FIRST20 to get 20% off on your first order.' }, { title:'Combo Deal: Buy 2 Get 10% off', code:'COMBO10', desc:'On all vitamin supplements.' }], policies:{ return:'Medicines can be returned within 7 days if unopened and in original packaging. Prescription medicines cannot be returned once dispensed.', cancel:'Orders can be cancelled within 30 minutes of placing. Full refund will be processed within 3-5 business days.', rxValidity:'Prescriptions issued within the last 6 months are accepted.' }, city:'Jabalpur' },
-  { id:'s2', name:'Apollo Pharmacy', photo:'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=400&h=300&fit=crop', cover:'https://images.unsplash.com/photo-1587351021759-3e566b6af7cc?w=1200&h=400&fit=crop', verified:true, open:true, timing:'6 AM - 10 PM', type:'Pharmacy', rating:4.8, reviews:210, tags:['24x7','Home Delivery','Generic Available'], deliveryTime:'20 mins', phone:'9876543213', email:'care@apollopharm.com', address:'Civil Lines, Jabalpur, Madhya Pradesh 482001', distance:'1.2 km', workingHours:'6:00 AM - 10:00 PM', deliveryCharges:0, freeDeliveryAbove:0, minOrder:0, pickup:true, deliveryArea:'Within 5 km', established:2017, licenseNo:'MP-PH-2022-00512', pharmacist:'Mrs. Sunita Patel', description:'Apollo Pharmacy is a trusted pharmacy chain offering genuine medicines at affordable prices with fast home delivery.', deliveryAvailable:true, offers:[{ title:'Free delivery on all orders', code:'', desc:'Auto-applied at checkout' }], policies:{ return:'Unopened products can be returned within 3 days. No returns on cold storage items.', cancel:'Free cancellation within 15 minutes of ordering.', rxValidity:'Prescriptions within 3 months are accepted.' }, city:'Jabalpur' },
-  { id:'s3', name:'City Drug House', photo:'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?w=400&h=300&fit=crop', cover:'https://images.unsplash.com/photo-1587351021759-3e566b6af7cc?w=1200&h=400&fit=crop', verified:false, open:true, timing:'9 AM - 9 PM', type:'Chain Pharmacy', rating:4.0, reviews:45, tags:['24x7'], deliveryTime:'40 mins', phone:'9876543212', email:'citydrug@email.com', address:'Napier Town, Jabalpur, Madhya Pradesh 482001', distance:'2.5 km', workingHours:'9:00 AM - 9:00 PM', deliveryCharges:25, freeDeliveryAbove:300, minOrder:100, pickup:true, deliveryArea:'Within 4 km', established:2010, licenseNo:'MP-PH-2020-00345', pharmacist:'Mr. Amit Singh', description:'City Drug House - Serving Jabalpur since 2010.', deliveryAvailable:true, offers:[], policies:{ return:'7-day return on unopened items. Prescription items non-returnable.', cancel:'Cancellation accepted within 1 hour.', rxValidity:'Prescriptions within 6 months accepted.' }, city:'Jabalpur' },
-];
 
-const REVIEWS_DATA = [
-  { id:'r1', user:'Rahul M.', rating:5, comment:'Very fast delivery! Medicines were properly packed and genuine. Highly recommend.', date:'2 days ago' },
-  { id:'r2', user:'Priya S.', rating:4, comment:'Good service. Got my order in 20 mins.', date:'1 week ago' },
-  { id:'r3', user:'Amit K.', rating:5, comment:'Excellent pharmacy. Pharmacist explained dosage very clearly.', date:'2 weeks ago' },
-  { id:'r4', user:'Neha G.', rating:3, comment:'Delivery was late by 10 mins. Otherwise ok.', date:'3 weeks ago' },
-  { id:'r5', user:'Vikram J.', rating:4, comment:'Good stock availability. Got all medicines in one place.', date:'1 month ago' },
-];
-
-const MOCK_MEDICINES = [
-  { id:'m1', name:'Paracetamol 500mg', image:'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop', brand:'XYZ Pharma', mrp:45, price:29, discount:35, inStock:true, rx:false, pack:'10 tablets', category:'OTC', storeId:'s1' },
-  { id:'m2', name:'Vitamin C 1000mg', image:'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop', brand:'HealthPlus', mrp:599, price:399, discount:33, inStock:true, rx:false, pack:'60 tablets', category:'Vitamins', storeId:'s1' },
-  { id:'m3', name:'Cough Syrup 100ml', image:'https://images.unsplash.com/photo-1550572017-edd951b55104?w=200&h=200&fit=crop', brand:'MediCare', mrp:120, price:89, discount:26, inStock:true, rx:false, pack:'100ml bottle', category:'OTC', storeId:'s1' },
-  { id:'m4', name:'Amoxicillin 500mg', image:'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop', brand:'BioPharma', mrp:180, price:145, discount:19, inStock:true, rx:true, pack:'15 capsules', category:'Prescription', storeId:'s1' },
-  { id:'m5', name:'Azithromycin 500mg', image:'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop', brand:'PharmaCorp', mrp:250, price:199, discount:20, inStock:false, rx:true, pack:'6 tablets', category:'Prescription', storeId:'s1' },
-  { id:'m6', name:'BP Monitor', image:'https://images.unsplash.com/photo-1631549916768-4119b2e5f926?w=200&h=200&fit=crop', brand:'HealthTech', mrp:2999, price:2499, discount:17, inStock:true, rx:false, pack:'1 unit', category:'Devices', storeId:'s1' },
-  { id:'m7', name:'Baby Diapers M', image:'https://images.unsplash.com/photo-1584820927498-cfe5211fd8bf?w=200&h=200&fit=crop', brand:'BabySoft', mrp:499, price:399, discount:20, inStock:true, rx:false, pack:'30 pieces', category:'Baby Care', storeId:'s1' },
-  { id:'m8', name:'Multivitamin', image:'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop', brand:'NutriFit', mrp:450, price:349, discount:22, inStock:true, rx:false, pack:'30 tablets', category:'Vitamins', storeId:'s1' },
-  { id:'m12', name:'Chyawanprash', image:'https://images.unsplash.com/photo-1550572017-edd951b55104?w=200&h=200&fit=crop', brand:'HerbalLife', mrp:350, price:299, discount:15, inStock:true, rx:false, pack:'500g jar', category:'Ayurvedic', storeId:'s1' },
-  { id:'m16', name:'Protein Powder', image:'https://images.unsplash.com/photo-1550572017-edd951b55104?w=200&h=200&fit=crop', brand:'NutriFit', mrp:1599, price:1299, discount:19, inStock:true, rx:false, pack:'1kg container', category:'Vitamins', storeId:'s1' },
-  { id:'m17', name:'Aspirin 75mg', image:'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop', brand:'XYZ Pharma', mrp:30, price:18, discount:40, inStock:true, rx:false, pack:'14 tablets', category:'OTC', storeId:'s1' },
-  { id:'m18', name:'Dolo 650', image:'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop', brand:'Micro Labs', mrp:55, price:35, discount:36, inStock:true, rx:false, pack:'15 tablets', category:'OTC', storeId:'s1' },
-  { id:'m9', name:'Ibuprofen 400mg', image:'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop', brand:'XYZ Pharma', mrp:65, price:45, discount:31, inStock:true, rx:false, pack:'10 tablets', category:'OTC', storeId:'s2' },
-  { id:'m10', name:'Cetirizine 10mg', image:'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop', brand:'AllerCare', mrp:35, price:24, discount:31, inStock:true, rx:false, pack:'10 tablets', category:'OTC', storeId:'s2' },
-  { id:'m11', name:'Metformin 500mg', image:'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop', brand:'DiabeCare', mrp:90, price:68, discount:24, inStock:true, rx:true, pack:'20 tablets', category:'Prescription', storeId:'s2' },
-  { id:'m13', name:'Glucose Powder', image:'https://images.unsplash.com/photo-1550572017-edd951b55104?w=200&h=200&fit=crop', brand:'Energize', mrp:120, price:89, discount:26, inStock:true, rx:false, pack:'500g pouch', category:'OTC', storeId:'s2' },
-  { id:'m14', name:'Digital Thermometer', image:'https://images.unsplash.com/photo-1631549916768-4119b2e5f926?w=200&h=200&fit=crop', brand:'HealthTech', mrp:299, price:199, discount:33, inStock:true, rx:false, pack:'1 unit', category:'Devices', storeId:'s2' },
-  { id:'m15', name:'Omeprazole 20mg', image:'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop', brand:'GastroCare', mrp:85, price:59, discount:31, inStock:false, rx:false, pack:'10 capsules', category:'OTC', storeId:'s3' },
-  { id:'m19', name:'Betadine Solution', image:'https://images.unsplash.com/photo-1550572017-edd951b55104?w=200&h=200&fit=crop', brand:'Win Medicare', mrp:120, price:89, discount:26, inStock:true, rx:false, pack:'100ml bottle', category:'OTC', storeId:'s3' },
-  { id:'m20', name:'Vitamin D3 60K', image:'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop', brand:'HealthPlus', mrp:199, price:149, discount:25, inStock:true, rx:false, pack:'4 capsules', category:'Vitamins', storeId:'s3' },
-];
 
 const CATEGORIES = ['All', 'Prescription', 'OTC', 'Generic', 'Baby Care', 'Ayurvedic', 'Devices', 'Vitamins'];
 
@@ -111,6 +76,22 @@ export default function MedicineStoreDetail() {
   const [medSearch, setMedSearch] = useState('');
   const [catFilter, setCatFilter] = useState('All');
   const [expandedFaq, setExpandedFaq] = useState(null);
+  const [isFavorited, setIsFavorited] = useState(() => localStorage.getItem(`fav_store_${storeId}`) === 'true');
+  const toggleFavorite = async () => {
+    const next = !isFavorited;
+    setIsFavorited(next);
+    try {
+      if (next) {
+        await api.dispatch(() => Promise.resolve({}), '/patient/favorites', { method: 'POST', body: JSON.stringify({ targetId: storeId, targetType: 'pharmacy', name: store?.name }) });
+      } else {
+        await api.dispatch(() => Promise.resolve({}), `/patient/favorites/${storeId}`, { method: 'DELETE' });
+      }
+      toast.success(next ? 'Saved' : 'Removed from Saved');
+    } catch {
+      setIsFavorited(!next);
+      toast.error('Failed to update favorite');
+    }
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -135,12 +116,9 @@ export default function MedicineStoreDetail() {
           const pharm = await api.getPharmacies();
           const pList = Array.isArray(pharm) ? pharm : (pharm.pharmacies || []);
           setSuggestedStores(pList.map(mapFacilityToStore));
-        } catch { setSuggestedStores(MOCK_STORES); }
+        } catch {}
       } catch {
-        const fallback = MOCK_STORES.find(s => s.id === storeId) || MOCK_STORES[0];
-        setStore(fallback);
-        setSuggestedStores(MOCK_STORES);
-        if (fallback) setAllMeds(MOCK_MEDICINES.filter(m => m.storeId === storeId));
+        setStore(null);
       }
       setLoading(false);
     };
@@ -263,8 +241,8 @@ export default function MedicineStoreDetail() {
                 <Badge className="bg-primary/90 text-white border-0 text-xs px-3 py-1.5 rounded-full shadow-lg">{store.type}</Badge>
               </div>
               <div className="absolute top-4 right-4 flex gap-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button className="w-9 h-9 rounded-xl bg-black/30 backdrop-blur-sm text-white flex items-center justify-center hover:bg-black/50 transition-all hover:scale-105" onClick={() => toast.success('Bookmarked')}>
-                  <Bookmark className="w-4 h-4" />
+                <button className="w-9 h-9 rounded-xl bg-black/30 backdrop-blur-sm text-white flex items-center justify-center hover:bg-black/50 transition-all hover:scale-105" onClick={toggleFavorite}>
+                  <Bookmark className={cn('w-4 h-4', isFavorited && 'fill-current')} />
                 </button>
                 <button className="w-9 h-9 rounded-xl bg-black/30 backdrop-blur-sm text-white flex items-center justify-center hover:bg-black/50 transition-all hover:scale-105" onClick={() => { navigator.clipboard?.writeText(window.location.href); toast.success('Link copied!'); }}>
                   <Share2 className="w-4 h-4" />
@@ -887,8 +865,8 @@ export default function MedicineStoreDetail() {
                     <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" asChild>
                       <a href={`mailto:${store.email || ''}`}><Mail className="w-4 h-4" /> Email Now</a>
                     </Button>
-                    <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => toast.success('Store saved to favorites!')}>
-                      <Bookmark className="w-4 h-4" /> Save
+                    <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={toggleFavorite}>
+                      <Bookmark className={cn('w-4 h-4', isFavorited && 'fill-current text-primary')} /> {isFavorited ? 'Saved' : 'Save'}
                     </Button>
                     <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => { navigator.clipboard?.writeText(window.location.href); toast.success('Link copied!'); }}>
                       <Share2 className="w-4 h-4" /> Share Profile

@@ -46,33 +46,7 @@ function urgencyLevel(iso) {
   return null;
 }
 
-// ─── Mock fallback data ────────────────────────────────────────────────────────
-const MOCK_QUEUE = [
-  {
-    _id: 'bk1', status: 'Pending', submittedAt: new Date(Date.now() - 7 * 60000).toISOString(),
-    patientName: 'Ananya Sharma', bookingId: 'BK-20240701', testNames: ['CBC', 'LFT'],
-    collectionDate: '2024-07-02', slot: '10:00 AM', prescriptionUrl: null,
-    doctorName: 'Dr. M. Mehta', notes: '',
-  },
-  {
-    _id: 'bk2', status: 'Pending', submittedAt: new Date(Date.now() - 22 * 60000).toISOString(),
-    patientName: 'Rahul Verma', bookingId: 'BK-20240702', testNames: ['Thyroid Profile'],
-    collectionDate: '2024-07-02', slot: '11:30 AM', prescriptionUrl: null,
-    doctorName: 'Dr. S. Gupta', notes: '',
-  },
-  {
-    _id: 'bk3', status: 'Verified', submittedAt: new Date(Date.now() - 45 * 60000).toISOString(),
-    patientName: 'Priya Singh', bookingId: 'BK-20240703', testNames: ['HbA1c', 'Lipid Profile'],
-    collectionDate: '2024-07-01', slot: '09:00 AM', prescriptionUrl: null,
-    doctorName: 'Dr. A. Kumar', notes: 'Diabetic follow-up',
-  },
-  {
-    _id: 'bk4', status: 'Rejected', submittedAt: new Date(Date.now() - 90 * 60000).toISOString(),
-    patientName: 'Suresh Patel', bookingId: 'BK-20240704', testNames: ['Urine Culture'],
-    collectionDate: '2024-07-01', slot: '02:00 PM', prescriptionUrl: null,
-    doctorName: 'Dr. N. Joshi', notes: 'Blurry image',
-  },
-];
+
 
 export default function LabPrescriptionQueue() {
   const [queue,        setQueue]        = useState([]);
@@ -90,10 +64,9 @@ export default function LabPrescriptionQueue() {
     setLoading(true);
     try {
       const res = await api.getLabBookings({});
-      const data = (res.bookings || []);
-      setQueue(data.length > 0 ? data : MOCK_QUEUE);
+      setQueue(res.bookings || []);
     } catch {
-      setQueue(MOCK_QUEUE);
+      setQueue([]);
     }
     setLoading(false);
   }, []);

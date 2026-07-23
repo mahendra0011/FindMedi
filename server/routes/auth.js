@@ -31,6 +31,7 @@ import {
 } from '../utils/validate.js';
 import { auditLog } from '../middleware/audit.js';
 import logger from '../config/logger.js';
+import { notifyUsers } from '../services/socketService.js';
 
 const router = express.Router();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -180,12 +181,13 @@ const notifyAdmins = async ({ title, message }) => {
   const admins = await User.find({ role: 'admin', status: 'active' }).select('_id');
   if (!admins.length) return;
 
-  await Notification.insertMany(admins.map(admin => ({
+  const notifs = await Notification.insertMany(admins.map(admin => ({
     title,
     message,
     type: 'system',
     userId: admin._id.toString(),
   })));
+  notifs.forEach(n => notifyUser(n.userId, n));
 };
 
 const sendVerificationOtp = (user) => createAndSendOTP({

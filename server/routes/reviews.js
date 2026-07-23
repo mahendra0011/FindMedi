@@ -22,6 +22,20 @@ router.post('/', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
+router.put('/:id/reply', protect, async (req, res) => {
+  try {
+    const { reply } = req.body;
+    if (!reply) return res.status(400).json({ message: 'Reply text is required' });
+    const review = await Review.findByIdAndUpdate(
+      req.params.id,
+      { reply, repliedAt: new Date() },
+      { new: true }
+    );
+    if (!review) return res.status(404).json({ message: 'Review not found' });
+    res.json(review);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
 router.delete('/:id', protect, async (req, res) => {
   try {
     const review = await Review.findById(req.params.id);

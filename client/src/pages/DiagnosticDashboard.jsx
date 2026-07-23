@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Beaker, Search, Plus, Clock, CheckCircle, AlertTriangle, X, Package, AlertCircle,
@@ -40,45 +41,6 @@ const CATEGORIES = ['Blood Test', 'Urine/Stool', 'Hormone', 'Vitamin', 'Cardiac 
 const DEPARTMENTS = ['Pathology', 'Radiology', 'Cardiology', 'Health Packages'];
 const REPORT_TIMES = ['30 mins', '1 hr', '2 hrs', '6 hrs', '12 hrs', '24 hrs', '48 hrs', '72 hrs'];
 
-let mockBookings = [
-  { _id: 'b1', bookingId: 'BK-2026-0001', patientName: 'Ravi Sharma', patientPhone: '9876543210', tests: ['CBC', 'Lipid Profile'], totalAmount: 1800, status: 'Confirmed', bookingDate: new Date().toISOString(), timeSlot: '9:30 AM', visitType: 'Walk-in', paymentStatus: 'Paid' },
-  { _id: 'b2', bookingId: 'BK-2026-0002', patientName: 'Priya Patel', patientPhone: '9876543211', tests: ['Thyroid', 'Blood Sugar'], totalAmount: 1200, status: 'Pending', bookingDate: new Date().toISOString(), timeSlot: '10:00 AM', visitType: 'Home Collection', homeCollectionAddress: '456 Park Ave', paymentStatus: 'Unpaid' },
-  { _id: 'b3', bookingId: 'BK-2026-0003', patientName: 'Amit Verma', patientPhone: '9876543212', tests: ['ECG', 'X-Ray Chest'], totalAmount: 2500, status: 'Completed', bookingDate: new Date().toISOString(), timeSlot: '11:30 AM', visitType: 'Walk-in', paymentStatus: 'Paid' },
-  { _id: 'b4', bookingId: 'BK-2026-0004', patientName: 'Sunita Gupta', patientPhone: '9876543213', tests: ['Urine Routine', 'Liver Function'], totalAmount: 2200, status: 'Confirmed', bookingDate: new Date(Date.now() + 86400000).toISOString(), timeSlot: '2:00 PM', visitType: 'Appointment', paymentStatus: 'Partially Paid' },
-  { _id: 'b5', bookingId: 'BK-2026-0005', patientName: 'Vikas Yadav', patientPhone: '9876543214', tests: ['MRI Brain', 'CT Abdomen'], totalAmount: 15000, status: 'Pending', bookingDate: new Date(Date.now() + 2 * 86400000).toISOString(), timeSlot: '9:00 AM', visitType: 'Walk-in', paymentStatus: 'Unpaid' },
-  { _id: 'b6', bookingId: 'BK-2026-0006', patientName: 'Neha Kapoor', patientPhone: '9876543215', tests: ['Complete Blood Count'], totalAmount: 299, status: 'Cancelled', bookingDate: new Date(Date.now() - 86400000).toISOString(), timeSlot: '3:00 PM', visitType: 'Home Collection', paymentStatus: 'Refunded' },
-];
-
-let mockEquipment = [
-  { _id: 'e1', name: 'Siemens MRI 3T', type: 'MRI', model: 'Magnetom Vida', serialNumber: 'MRI-001', manufacturer: 'Siemens', installationDate: '2024-01-15', nextMaintenanceDate: new Date(Date.now() + 45 * 86400000).toISOString().split('T')[0], status: 'Operational', location: 'Room 101, Ground Floor' },
-  { _id: 'e2', name: 'GE CT Scanner', type: 'CT Scan', model: 'Revolution EVO', serialNumber: 'CT-002', manufacturer: 'GE Healthcare', installationDate: '2024-03-20', nextMaintenanceDate: new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0], status: 'Operational', location: 'Room 102, Ground Floor' },
-  { _id: 'e3', name: 'Philips X-Ray', type: 'X-Ray', model: 'DigitalDiagnost', serialNumber: 'XR-003', manufacturer: 'Philips', installationDate: '2024-06-10', nextMaintenanceDate: new Date(Date.now() - 5 * 86400000).toISOString().split('T')[0], status: 'Under Maintenance', location: 'Room 201, First Floor' },
-  { _id: 'e4', name: 'Samsung Ultrasound', type: 'Ultrasound', model: 'RS85 Prestige', serialNumber: 'US-004', manufacturer: 'Samsung', installationDate: '2024-09-01', nextMaintenanceDate: new Date(Date.now() + 60 * 86400000).toISOString().split('T')[0], status: 'Operational', location: 'Room 202, First Floor' },
-  { _id: 'e5', name: 'Schiller ECG', type: 'ECG', model: 'Cardiovit AT-102', serialNumber: 'ECG-005', manufacturer: 'Schiller', installationDate: '2024-11-05', nextMaintenanceDate: new Date(Date.now() + 90 * 86400000).toISOString().split('T')[0], status: 'Out of Service', location: 'Room 203, First Floor' },
-];
-
-let mockPackages = [
-  { _id: 'hp1', name: 'Basic Health Checkup', category: 'Basic', testNames: ['CBC', 'Blood Sugar', 'Urine Routine'], originalPrice: 1500, packagePrice: 799, popular: true, homeCollectionAvailable: true, reportTime: '12-24 hrs', isActive: true },
-  { _id: 'hp2', name: 'Comprehensive Wellness', category: 'Comprehensive', testNames: ['CBC', 'Lipid Profile', 'LFT', 'KFT', 'Thyroid', 'Blood Sugar', 'Urine Routine'], originalPrice: 3500, packagePrice: 1999, popular: true, homeCollectionAvailable: true, reportTime: '24-48 hrs', isActive: true },
-  { _id: 'hp3', name: 'Cardiac Risk Assessment', category: 'Cardiac', testNames: ['ECG', 'Lipid Profile', 'Troponin I', 'CK-MB', 'Blood Sugar'], originalPrice: 2800, packagePrice: 1499, popular: false, homeCollectionAvailable: false, reportTime: '12-24 hrs', isActive: true },
-  { _id: 'hp4', name: 'Diabetic Care Package', category: 'Diabetic', testNames: ['Blood Sugar Fasting', 'HbA1c', 'Lipid Profile', 'KFT', 'Urine Microalbumin'], originalPrice: 2200, packagePrice: 1299, popular: false, homeCollectionAvailable: true, reportTime: '12-24 hrs', isActive: true },
-];
-
-let mockLabStaff = [
-  { _id: 'ls1', name: 'Dr. Ananya Gupta', role: 'Pathologist', email: 'ananya@lab.com', phone: '9876540101', licenseNumber: 'MD-PAT-001', experience: '10 years', isActive: true, joinedAt: '2023-01-15' },
-  { _id: 'ls2', name: 'Rahul Verma', role: 'Lab Technician', email: 'rahul@lab.com', phone: '9876540102', licenseNumber: 'MLT-001', experience: '5 years', isActive: true, joinedAt: '2024-03-01' },
-  { _id: 'ls3', name: 'Priya Singh', role: 'Phlebotomist', email: 'priya@lab.com', phone: '9876540103', licenseNumber: '', experience: '3 years', isActive: true, joinedAt: '2024-06-10' },
-  { _id: 'ls4', name: 'Suresh Kumar', role: 'Radiologist', email: 'suresh@lab.com', phone: '9876540104', licenseNumber: 'MD-RAD-002', experience: '8 years', isActive: false, joinedAt: '2022-11-20' },
-  { _id: 'ls5', name: 'Meena Joshi', role: 'Lab Receptionist', email: 'meena@lab.com', phone: '9876540105', licenseNumber: '', experience: '2 years', isActive: true, joinedAt: '2024-09-05' },
-];
-
-let mockReviews = [
-  { _id: 'lr1', patientName: 'Ravi Sharma', rating: 5, comment: 'Fast and accurate results. Highly recommended.', date: new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0] },
-  { _id: 'lr2', patientName: 'Anita Desai', rating: 4, comment: 'Good service but waiting time could be reduced.', date: new Date(Date.now() - 5 * 86400000).toISOString().split('T')[0] },
-  { _id: 'lr3', patientName: 'Vijay Kumar', rating: 5, comment: 'Home collection was very convenient. Technician was professional.', date: new Date(Date.now() - 10 * 86400000).toISOString().split('T')[0] },
-  { _id: 'lr4', patientName: 'Deepa Nair', rating: 3, comment: 'Reports were delayed by a day. Need to improve turnaround time.', date: new Date(Date.now() - 15 * 86400000).toISOString().split('T')[0] },
-];
-
 const TABS = [
   { id: 'overview', label: 'Overview', icon: BarChart3 },
   { id: 'catalog', label: 'Test Catalog', icon: FlaskConical },
@@ -97,42 +59,33 @@ const TABS = [
 ];
 
 export default function DiagnosticDashboard() {
+  const qc = useQueryClient();
   const [tab, setTab] = useState('overview');
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
   const [toast, setToast] = useState(null);
-  const [stats, setStats] = useState({ total: 0, pending: 0, processing: 0, completed: 0, critical: 0, totalBookings: 0, todayBookings: 0, revenue: 0 });
 
   // Orders
-  const [orders, setOrders] = useState([]);
   const [orderFilter, setOrderFilter] = useState('All');
 
   // Tests
-  const [tests, setTests] = useState([]);
   const [testForm, setTestForm] = useState({ name: '', category: 'Blood Test', department: 'Pathology', price: '', mrp: '', reportTime: '24 hrs', prescriptionReq: false, homeCollection: false, homeCollectionFee: '50', popular: false, nablAccredited: false, description: '', preparation: '' });
   const [editTestId, setEditTestId] = useState(null);
 
   // Bookings
-  const [bookings, setBookings] = useState(mockBookings);
   const [bookingFilter, setBookingFilter] = useState('All');
 
   // Equipment
-  const [equipment, setEquipment] = useState(mockEquipment);
   const [equipForm, setEquipForm] = useState({ name: '', type: 'MRI', model: '', serialNumber: '', manufacturer: '', installationDate: '', nextMaintenanceDate: '', status: 'Operational', location: '', notes: '' });
   const [editEquipId, setEditEquipId] = useState(null);
 
   // Packages
-  const [packages, setPackages] = useState(mockPackages);
   const [pkgForm, setPkgForm] = useState({ name: '', category: 'Basic', description: '', testNames: '', originalPrice: '', packagePrice: '', popular: false, homeCollectionAvailable: false, reportTime: '24-48 hrs' });
   const [editPkgId, setEditPkgId] = useState(null);
 
   // Staff
-  const [staffList, setStaffList] = useState(mockLabStaff);
   const [newStaff, setNewStaff] = useState({ name: '', role: 'Lab Technician', email: '', phone: '', licenseNumber: '', experience: '' });
-
-  // Reviews
-  const [reviews, setReviews] = useState(mockReviews);
 
   // Prescription Queue
   const [rxQueue, setRxQueue] = useState([]);
@@ -149,27 +102,61 @@ export default function DiagnosticDashboard() {
 
   const showToast = (msg, type = 'success') => { setToast({ msg, type }); setTimeout(() => setToast(null), 3000); };
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const [s, o, t, b, e, p] = await Promise.all([
-          labApi.getStats(),
-          labApi.getOrders({}).catch(() => ({ orders: [] })),
-          labApi.getTests({}).catch(() => []),
-          labApi.getBookings({}).catch(() => ({ bookings: [] })),
-          labApi.getEquipment({}).catch(() => ({ equipment: [] })),
-          labApi.getPackages({}).catch(() => ({ packages: [] })),
-        ]);
-        setStats(s);
-        setOrders(o.orders || []);
-        setTests(t || []);
-        setBookings(b.bookings || mockBookings);
-        setEquipment(e.equipment || mockEquipment);
-        setPackages(p.packages || mockPackages);
-      } catch (e) { console.error(e); }
-    };
-    load();
-  }, []);
+  // Data queries
+  const { data: stats } = useQuery({ queryKey: ['lab-stats'], queryFn: labApi.getStats });
+  const { data: ordersData } = useQuery({ queryKey: ['lab-orders'], queryFn: () => labApi.getOrders({}) });
+  const { data: testsData } = useQuery({ queryKey: ['lab-tests'], queryFn: () => labApi.getTests({}) });
+  const { data: bookingsData } = useQuery({ queryKey: ['lab-bookings'], queryFn: () => labApi.getBookings({}) });
+  const { data: equipmentData } = useQuery({ queryKey: ['lab-equipment'], queryFn: () => labApi.getEquipment({}) });
+  const { data: packagesData } = useQuery({ queryKey: ['lab-packages'], queryFn: () => labApi.getPackages({}) });
+  const { data: staffData } = useQuery({ queryKey: ['lab-staff'], queryFn: () => api.getStaff({}).catch(() => []) });
+  const { data: reviewsData } = useQuery({ queryKey: ['lab-reviews'], queryFn: () => api.getReviews({}).catch(() => []) });
+
+  const orders = ordersData?.orders || [];
+  const tests = testsData || [];
+  const bookings = bookingsData?.bookings || [];
+  const equipment = equipmentData?.equipment || [];
+  const packages = packagesData?.packages || [];
+  const staffList = staffData || [];
+  const reviews = reviewsData || [];
+
+  // Mutations
+  const updateBookingMut = useMutation({
+    mutationFn: ({ id, ...b }) => labApi.updateBooking(id, b),
+    onSuccess: () => qc.invalidateQueries(['lab-bookings', 'lab-stats']),
+  });
+  const createEquipmentMut = useMutation({
+    mutationFn: (b) => labApi.createEquipment(b),
+    onSuccess: () => { qc.invalidateQueries(['lab-equipment']); setShowModal(null); },
+  });
+  const updateEquipmentMut = useMutation({
+    mutationFn: ({ id, ...b }) => labApi.updateEquipment(id, b),
+    onSuccess: () => { qc.invalidateQueries(['lab-equipment']); setShowModal(null); },
+  });
+  const createPackageMut = useMutation({
+    mutationFn: (b) => labApi.createPackage(b),
+    onSuccess: () => { qc.invalidateQueries(['lab-packages']); setShowModal(null); },
+  });
+  const updatePackageMut = useMutation({
+    mutationFn: ({ id, ...b }) => labApi.updatePackage(id, b),
+    onSuccess: () => { qc.invalidateQueries(['lab-packages']); setShowModal(null); },
+  });
+  const createStaffMut = useMutation({
+    mutationFn: (b) => api.createStaff(b),
+    onSuccess: () => { qc.invalidateQueries(['lab-staff']); setShowModal(null); },
+  });
+  const updateStaffMut = useMutation({
+    mutationFn: ({ id, ...b }) => api.updateStaff(id, b),
+    onSuccess: () => qc.invalidateQueries(['lab-staff']),
+  });
+  const createTestMut = useMutation({
+    mutationFn: (b) => api.createTest(b),
+    onSuccess: () => { qc.invalidateQueries(['lab-tests']); setShowModal(null); },
+  });
+  const updateTestMut = useMutation({
+    mutationFn: ({ id, ...b }) => api.updateTest(id, b),
+    onSuccess: () => { qc.invalidateQueries(['lab-tests']); setShowModal(null); },
+  });
 
   const filteredOrders = useMemo(() => {
     if (orderFilter === 'All') return orders;
@@ -326,13 +313,7 @@ export default function DiagnosticDashboard() {
                 <div className="relative flex-1 min-w-[200px]"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" /><Input placeholder="Search tests..." className="pl-10" value={search} onChange={e => setSearch(e.target.value)} /></div>
               </div>
               <div className="space-y-3">
-                {(tests.length ? tests : [
-                  { _id: 't1', name: 'Complete Blood Count (CBC)', category: 'Blood Test', department: 'Pathology', price: 299, mrp: 499, reportTime: '6 hrs', popular: true, nablAccredited: true, prescriptionReq: false, homeCollection: true, description: 'Measures overall health and detects disorders.' },
-                  { _id: 't2', name: 'Lipid Profile', category: 'Blood Test', department: 'Pathology', price: 399, mrp: 699, reportTime: '12 hrs', popular: true, nablAccredited: true, homeCollection: true, prescriptionReq: false, description: 'Measures cholesterol levels.' },
-                  { _id: 't3', name: 'Thyroid Profile', category: 'Hormone', department: 'Pathology', price: 449, mrp: 799, reportTime: '24 hrs', nablAccredited: true, homeCollection: true, prescriptionReq: false, description: 'Evaluates thyroid function.' },
-                  { _id: 't4', name: 'Blood Sugar (Fasting & PP)', category: 'Blood Test', department: 'Pathology', price: 199, mrp: 349, reportTime: '6 hrs', popular: true, homeCollection: true, prescriptionReq: false, description: 'Screens for diabetes.' },
-                  { _id: 't5', name: 'ECG / Electrocardiogram', category: 'Cardiac Basic', department: 'Cardiology', price: 299, mrp: 499, reportTime: '30 mins', prescriptionReq: true, homeCollection: false, popular: false, description: 'Records heart electrical signals.' },
-                ]).filter(t => !search || t.name?.toLowerCase().includes(search.toLowerCase())).map(test => (
+                {tests.filter(t => !search || t.name?.toLowerCase().includes(search.toLowerCase())).map(test => (
                   <div key={test._id} className="bg-card rounded-xl border p-4">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
@@ -393,10 +374,10 @@ export default function DiagnosticDashboard() {
                     {b.homeCollectionAddress && <p className="text-xs text-muted-foreground"><MapPin className="w-3 h-3 inline mr-1" />{b.homeCollectionAddress}</p>}
                     <div className="flex gap-2 mt-3 pt-3 border-t">
                       {b.status === 'Pending' && <>
-                        <Button size="sm" onClick={() => { setBookings(bs => bs.map(bk => bk._id === b._id ? { ...bk, status: 'Confirmed' } : bk)); showToast('Booking confirmed'); }}><Check className="w-3 h-3 mr-1" /> Accept</Button>
-                        <Button size="sm" variant="outline" className="text-destructive" onClick={() => { setBookings(bs => bs.map(bk => bk._id === b._id ? { ...bk, status: 'Cancelled' } : bk)); showToast('Booking cancelled'); }}><X className="w-3 h-3 mr-1" /> Reject</Button>
+                        <Button size="sm" onClick={() => { updateBookingMut.mutate({ id: b._id, status: 'Confirmed' }); showToast('Booking confirmed'); }}><Check className="w-3 h-3 mr-1" /> Accept</Button>
+                        <Button size="sm" variant="outline" className="text-destructive" onClick={() => { updateBookingMut.mutate({ id: b._id, status: 'Cancelled' }); showToast('Booking cancelled'); }}><X className="w-3 h-3 mr-1" /> Reject</Button>
                       </>}
-                      {b.status === 'Confirmed' && <Button size="sm" variant="outline" onClick={() => { setBookings(bs => bs.map(bk => bk._id === b._id ? { ...bk, status: 'Completed' } : bk)); showToast('Marked completed'); }}><Check className="w-3 h-3 mr-1" /> Mark Complete</Button>}
+                      {b.status === 'Confirmed' && <Button size="sm" variant="outline" onClick={() => { updateBookingMut.mutate({ id: b._id, status: 'Completed' }); showToast('Marked completed'); }}><Check className="w-3 h-3 mr-1" /> Mark Complete</Button>}
                     </div>
                   </div>
                 ))}
@@ -411,31 +392,27 @@ export default function DiagnosticDashboard() {
               <SectionHeader title="Prescription Verification Queue" subtitle="Verify uploaded prescriptions and approve/reject test requests"
                 action={<Button size="sm" variant="outline" onClick={() => showToast('Auto-fallback triggered: Rx forwarded to next available center')}><Send className="w-4 h-4 mr-1" /> Trigger Fallback</Button>} />
               <div className="space-y-3">
-                {[
-                  { _id: 'rx1', bookingId: 'BK-2026-0002', patientName: 'Priya Patel', tests: ['Thyroid', 'Blood Sugar'], uploadedRx: 'rx_thyroid_001.pdf', status: 'Pending', uploadedAt: new Date(Date.now() - 86400000).toISOString() },
-                  { _id: 'rx2', bookingId: 'BK-2026-0007', patientName: 'Rohit Singh', tests: ['ECG', 'Lipid Profile'], uploadedRx: 'rx_cardiac_002.pdf', status: 'Verified', uploadedAt: new Date(Date.now() - 3 * 86400000).toISOString() },
-                  { _id: 'rx3', bookingId: 'BK-2026-0008', patientName: 'Kavita Jain', tests: ['MRI Brain'], uploadedRx: 'rx_mri_003.pdf', status: 'Rejected', uploadedAt: new Date(Date.now() - 5 * 86400000).toISOString() },
-                ].map(rx => (
+                {orders.filter(o => o.status === 'Processing' || o.status === 'Under Verification').map(rx => (
                   <div key={rx._id} className="bg-card rounded-xl border p-4">
                     <div className="flex items-start justify-between mb-3">
                       <div>
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="font-semibold">{rx.bookingId}</span>
-                          <StatusBadge status={rx.status} mapping={{ Pending: 'bg-warning/10 text-warning', Verified: 'bg-success/10 text-success', Rejected: 'bg-destructive/10 text-destructive' }} />
+                          <span className="font-semibold">{rx.orderId || rx._id}</span>
+                          <StatusBadge status={rx.status} mapping={{ Pending: 'bg-warning/10 text-warning', Processing: 'bg-info/10 text-info', Verified: 'bg-success/10 text-success', 'Under Verification': 'bg-warning/10 text-warning', Rejected: 'bg-destructive/10 text-destructive' }} />
                         </div>
                         <p className="text-sm font-medium">{rx.patientName}</p>
-                        <p className="text-xs text-muted-foreground">{(rx.tests || []).join(', ')} Â· Uploaded {new Date(rx.uploadedAt).toLocaleDateString()}</p>
+                        <p className="text-xs text-muted-foreground">{(rx.tests || []).map(t => t.testName || t).join(', ')}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Button size="sm" variant="outline" onClick={() => showToast('Viewing prescription PDF')}><Eye className="w-3 h-3 mr-1" /> View Rx</Button>
-                      {rx.status === 'Pending' && <>
+                      {rx.status === 'Processing' && <>
                         <Button size="sm" onClick={() => { showToast('Prescription verified, tests approved'); }}><Check className="w-3 h-3 mr-1" /> Approve</Button>
                         <Button size="sm" variant="outline" className="text-destructive" onClick={() => { showToast('Prescription rejected, auto-fallback initiated'); }}><X className="w-3 h-3 mr-1" /> Reject & Fallback</Button>
                       </>}
                     </div>
                   </div>
                 ))}
+                {orders.filter(o => o.status === 'Processing' || o.status === 'Under Verification').length === 0 && <div className="text-center py-20"><ClipboardList className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" /><p className="text-muted-foreground">No prescriptions waiting for verification</p></div>}
               </div>
             </>
           )}
@@ -583,7 +560,7 @@ export default function DiagnosticDashboard() {
                       <p className="text-xs">Exp: {s.experience} Â· Joined {s.joinedAt}</p>
                     </div>
                     <div className="flex gap-2 mt-3 pt-3 border-t">
-                      <Button size="sm" variant="outline" onClick={() => { setStaffList(sl => sl.map(st => st._id === s._id ? { ...st, isActive: !st.isActive } : st)); showToast(`Staff ${s.isActive ? 'deactivated' : 'activated'}`); }}>{s.isActive ? 'Deactivate' : 'Activate'}</Button>
+                      <Button size="sm" variant="outline" onClick={() => { updateStaffMut.mutate({ id: s._id, isActive: !s.isActive }); showToast(`Staff ${s.isActive ? 'deactivated' : 'activated'}`); }}>{s.isActive ? 'Deactivate' : 'Activate'}</Button>
                     </div>
                   </div>
                 ))}
@@ -803,7 +780,7 @@ export default function DiagnosticDashboard() {
               ))}
             </div>
             <div><label className="text-sm font-medium mb-1 block">Description</label><textarea value={testForm.description} onChange={e => setTestForm({ ...testForm, description: e.target.value })} rows={2} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm resize-none" /></div>
-            <Button className="w-full" onClick={() => { showToast(editTestId ? 'Test updated' : 'Test added'); setShowModal(null); }} disabled={!testForm.name || !testForm.price}>{editTestId ? 'Update Test' : 'Add Test'}</Button>
+            <Button className="w-full" onClick={() => { if (editTestId) { updateTestMut.mutate({ id: editTestId, ...testForm }); } else { createTestMut.mutate(testForm); } showToast(editTestId ? 'Test updated' : 'Test added'); }} disabled={(editTestId ? updateTestMut.isPending : createTestMut.isPending) || !testForm.name || !testForm.price}>{editTestId ? 'Update Test' : 'Add Test'}</Button>
           </div>
         </Modal>
       )}
@@ -836,7 +813,7 @@ export default function DiagnosticDashboard() {
             <div><label className="text-sm font-medium mb-1 block">Type</label><select value={equipForm.type} onChange={e => setEquipForm({ ...equipForm, type: e.target.value })} className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm">{['MRI', 'CT Scan', 'X-Ray', 'Ultrasound', 'ECG', 'EEG', 'Mammography', 'DEXA', 'PET Scan', 'Lab Analyzer', 'Centrifuge', 'Microscope', 'Other'].map(t => <option key={t} value={t}>{t}</option>)}</select></div>
             <div><label className="text-sm font-medium mb-1 block">Status</label><select value={equipForm.status} onChange={e => setEquipForm({ ...equipForm, status: e.target.value })} className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm">{['Operational', 'Under Maintenance', 'Out of Service', 'Retired'].map(s => <option key={s} value={s}>{s}</option>)}</select></div>
           </div>
-          <Button className="w-full mt-6" onClick={() => { showToast(editEquipId ? 'Equipment updated' : 'Equipment added'); setShowModal(null); }} disabled={!equipForm.name}>{editEquipId ? 'Update Equipment' : 'Add Equipment'}</Button>
+          <Button className="w-full mt-6" onClick={() => { if (editEquipId) { updateEquipmentMut.mutate({ id: editEquipId, ...equipForm }); } else { createEquipmentMut.mutate(equipForm); } showToast(editEquipId ? 'Equipment updated' : 'Equipment added'); }} disabled={(editEquipId ? updateEquipmentMut.isPending : createEquipmentMut.isPending) || !equipForm.name}>{editEquipId ? 'Update Equipment' : 'Add Equipment'}</Button>
         </Modal>
       )}
 
@@ -858,7 +835,7 @@ export default function DiagnosticDashboard() {
               <label className="flex items-center gap-2 cursor-pointer p-3 rounded-xl border"><input type="checkbox" checked={pkgForm.popular} onChange={e => setPkgForm({ ...pkgForm, popular: e.target.checked })} className="rounded" /> Popular</label>
               <label className="flex items-center gap-2 cursor-pointer p-3 rounded-xl border"><input type="checkbox" checked={pkgForm.homeCollectionAvailable} onChange={e => setPkgForm({ ...pkgForm, homeCollectionAvailable: e.target.checked })} className="rounded" /> Home Collection</label>
             </div>
-            <Button className="w-full" onClick={() => { showToast(editPkgId ? 'Package updated' : 'Package created'); setShowModal(null); }} disabled={!pkgForm.name || !pkgForm.packagePrice}>{editPkgId ? 'Update Package' : 'Create Package'}</Button>
+            <Button className="w-full" onClick={() => { const payload = { ...pkgForm, testNames: pkgForm.testNames.split(',').map(s => s.trim()).filter(Boolean) }; if (editPkgId) { updatePackageMut.mutate({ id: editPkgId, ...payload }); } else { createPackageMut.mutate(payload); } showToast(editPkgId ? 'Package updated' : 'Package created'); }} disabled={(editPkgId ? updatePackageMut.isPending : createPackageMut.isPending) || !pkgForm.name || !pkgForm.packagePrice}>{editPkgId ? 'Update Package' : 'Create Package'}</Button>
           </div>
         </Modal>
       )}
@@ -872,7 +849,7 @@ export default function DiagnosticDashboard() {
             ))}
             <div><label className="text-sm font-medium mb-1 block">Role</label><select value={newStaff.role} onChange={e => setNewStaff({ ...newStaff, role: e.target.value })} className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm">{['Pathologist', 'Radiologist', 'Lab Technician', 'Phlebotomist', 'Lab Receptionist', 'Lab Manager'].map(r => <option key={r} value={r}>{r}</option>)}</select></div>
           </div>
-          <Button className="w-full mt-6" onClick={() => { setStaffList(sl => [...sl, { ...newStaff, _id: `ls${Date.now()}`, isActive: true, joinedAt: new Date().toISOString().split('T')[0] }]); showToast('Staff added'); setShowModal(null); }} disabled={!newStaff.name}>Add Staff</Button>
+          <Button className="w-full mt-6" onClick={() => { createStaffMut.mutate(newStaff); showToast('Staff added'); }} disabled={createStaffMut.isPending || !newStaff.name}>Add Staff</Button>
         </Modal>
       )}
 

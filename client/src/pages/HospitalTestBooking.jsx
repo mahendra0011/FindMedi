@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
 
 const DEPARTMENTS = [
   { id:'all', name:'All Departments', icon:FlaskConical, color:'from-primary/20 to-primary/5', textColor:'text-primary', hoverColor:'hover:border-primary/40' },
@@ -54,7 +55,9 @@ export default function HospitalTestBooking() {
   const [paymentMethod, setPaymentMethod] = useState('upi');
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
   const [bookingId, setBookingId] = useState('');
+  const [bookingLoading, setBookingLoading] = useState(false);
   const [hospital, setHospital] = useState(null);
+  const { user } = useAuth();
   const [tests, setTests] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -157,12 +160,33 @@ export default function HospitalTestBooking() {
   const nextStep = () => setBookingStep(p => Math.min(p + 1, 6));
   const prevStep = () => setBookingStep(p => Math.max(p - 1, 1));
 
-  const confirmBooking = () => {
-    const id = 'MED' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).substring(2, 5).toUpperCase();
-    setBookingId(id);
-    setBookingConfirmed(true);
-    setBookingStep(6);
-    toast.success('Booking confirmed!');
+  const confirmBooking = async () => {
+    if (!user) { toast.error('Please login to book'); navigate('/login'); return; }
+    setBookingLoading(true);
+    try {
+      const res = await api.createLabBooking({
+        facilityId: activeId,
+        patientId: user._id,
+        patientName: user.name,
+        email: user.email,
+        phone: user.phone || '',
+        tests: cartItems.map(t => ({ testId: t.id, testName: t.name, price: t.price, qty: t.qty })),
+        total: cartTotal,
+        collectionMode,
+        date: selectedDate,
+        slot: selectedSlot,
+        paymentMethod,
+        status: 'Confirmed',
+      });
+      const newId = res?.booking?._id || res?._id || 'MED' + Date.now().toString(36).toUpperCase();
+      setBookingId(newId);
+      setBookingConfirmed(true);
+      setBookingStep(6);
+      toast.success('Booking confirmed!');
+    } catch (e) {
+      toast.error(e.response?.data?.message || e.message || 'Failed to confirm booking');
+    }
+    setBookingLoading(false);
   };
 
   const closeComplete = () => {

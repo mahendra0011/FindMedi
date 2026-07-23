@@ -12,6 +12,8 @@ import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { useCart } from '@/context/CartContext';
 import { FLOW_TYPE, TRACKING_STAGES } from '@/hooks/useBookingFlow';
+import { api } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 
 // ─── Icon map (string key → Lucide component) ─────────────────────────────────
@@ -20,15 +22,7 @@ const ICON_MAP = {
   Activity, FileText, Calendar, Bell, User, Microscope,
 };
 
-// ─── Mock entity data per type ─────────────────────────────────────────────────
-const MOCK_STORES = [
-  { id: 's1', name: 'MedPlus Pharmacy',    photo: 'https://images.unsplash.com/photo-1585435557343-3b092031a831?w=200&h=200&fit=crop', verified: true,  phone: '9876543210', type: 'pharmacy' },
-  { id: 's2', name: 'HealthFirst Medicals', photo: 'https://images.unsplash.com/photo-1631217868264-e5b90bb7e133?w=200&h=200&fit=crop', verified: true,  phone: '9876543211', type: 'pharmacy' },
-  { id: 's3', name: 'City Drug House',      photo: 'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?w=200&h=200&fit=crop', verified: false, phone: '9876543212', type: 'pharmacy' },
-  { id: 'l1', name: 'Apollo Diagnostics',  photo: 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=200&h=200&fit=crop', verified: true,  phone: '9876543213', type: 'lab' },
-  { id: 'l2', name: 'Thyrocare Labs',       photo: 'https://images.unsplash.com/photo-1581093458791-9d42cc0a0483?w=200&h=200&fit=crop', verified: true,  phone: '9876543214', type: 'lab' },
-  { id: 'c1', name: 'HealthCare Clinic',   photo: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=200&h=200&fit=crop', verified: true,  phone: '9876543215', type: 'clinic' },
-];
+
 
 // ─── Type-specific display metadata ──────────────────────────────────────────
 const FLOW_META = {
@@ -67,6 +61,7 @@ export default function OrderTracking() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { addItem } = useCart();
+  const { user } = useAuth();
 
   const hasRx   = searchParams.get('rx')      === 'true';
   const storeId = searchParams.get('storeId') || 's1';
@@ -75,6 +70,39 @@ export default function OrderTracking() {
   // Normalise type — fall back to medicine if unknown
   const flowType = Object.values(FLOW_TYPE).includes(rawType) ? rawType : FLOW_TYPE.MEDICINE;
   const meta     = FLOW_META[flowType];
+
+  const [orderData, setOrderData] = useState(null);
+  const [loadingOrder, setLoadingOrder] = useState(true);
+
+  useEffect(() => {
+    if (!orderId) { setLoadingOrder(false); return; }
+    const load = async () => {
+      try {
+        const res = await api.getOrder(orderId);
+        const ord = res?.order || res;
+        if (ord) setOrderData(ord);
+      } catch (e) { console.error('Failed to load order:', e); } finally { setLoadingOrder(false); }
+    };
+    load();
+  }, [orderId]);
+
+  const [storeNameMap, setStoreNameMap] = useState({});
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await api.getFacilities({ type: 'pharmacy' });
+        const list = Array.isArray(res) ? res : res?.facilities || [];
+        const map = {};
+        list.forEach(f => { map[f._id] = f.name; map[f.id] = f.name; });
+        if (storeId) {
+          const found = list.find(f => f._id === storeId || f.id === storeId);
+          if (found) map[storeId] = found.name;
+        }
+        setStoreNameMap(map);
+      } catch (e) { console.error('Failed to load facilities:', e); }
+    };
+    load();
+  }, [storeId]);
 
   // Build the stage list for this flow + rx combination
   const STAGES = TRACKING_STAGES[flowType](hasRx).map((s, i) => {
@@ -87,13 +115,15 @@ export default function OrderTracking() {
     };
   });
 
-  const store   = MOCK_STORES.find(s => s.id === storeId) || MOCK_STORES[0];
+  const storeName = storeNameMap[storeId] || orderData?.storeName || 'Store';
+  const store = { id: storeId, name: storeName, photo: '', verified: true, phone: orderData?.phone || '', type: 'pharmacy' };
 
   const [currentStage,    setCurrentStage]    = useState(0);
   const [showActions,     setShowActions]     = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
-  const [reviewRating,    setReviewRating]    = useState(0);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState('');
   const [showReturnModal, setShowReturnModal] = useState(false);
   const [returnReason,    setReturnReason]    = useState('');
   const [showReportModal, setShowReportModal] = useState(false);
@@ -114,31 +144,48 @@ export default function OrderTracking() {
   const isDone     = currentStage >= STAGES.length - 1;
   const doneLabel  = meta.doneLabel;
 
-  const handleReorder = () => {
-    const sampleItems = [
-      { id: 'm1', name: 'Paracetamol 500mg', image: '', brand: 'XYZ Pharma', mrp: 45, price: 29, discount: 35, inStock: true, rx: false, pack: '10 tablets', category: 'OTC' },
-      { id: 'm2', name: 'Vitamin C 1000mg',  image: '', brand: 'HealthPlus', mrp: 599, price: 399, discount: 33, inStock: true, rx: false, pack: '60 tablets', category: 'Vitamins' },
-    ];
-    sampleItems.forEach(item => addItem(item, 's1'));
-    toast.success('Previous order items added to cart');
-    navigate('/cart');
+  const handleReorder = async () => {
+    if (!orderId) { toast.error('No order to reorder'); return; }
+    try {
+      const res = await api.getOrder(orderId);
+      const ord = res?.order || res;
+      if (ord?.items) {
+        ord.items.forEach(item => addItem(item, ord.facilityId || ord.storeId || storeId));
+        toast.success('Previous order items added to cart');
+        navigate('/cart');
+      } else {
+        toast.error('Could not load order items');
+      }
+    } catch {
+      toast.error('Failed to load order');
+    }
   };
 
-  const handleCancelOrder = () => {
+  const handleCancelOrder = async () => {
     setShowCancelConfirm(false);
-    toast.success('Order cancelled. Refund will be processed within 3-5 business days.');
+    try {
+      if (orderId) await api.updatePharmacyOrder(orderId, { status: 'Cancelled' });
+      toast.success('Order cancelled. Refund will be processed within 3-5 business days.');
+    } catch (e) { console.error('Cancel order failed:', e); toast.error('Failed to cancel order. Please try again.'); }
   };
 
-  const handleSubmitReview = () => {
+  const handleSubmitReview = async () => {
     if (reviewRating === 0) { toast.error('Please select a rating'); return; }
-    toast.success(`Thank you! Your ${reviewRating}-star review has been submitted.`);
+    try {
+      await api.createReview({ rating: reviewRating, comment: reviewComment || '', targetId: storeId, targetType: 'pharmacy' });
+      toast.success(`Thank you! Your ${reviewRating}-star review has been submitted.`);
+    } catch (e) { console.error('Submit review failed:', e); toast.error('Failed to submit review. Please try again.'); }
     setShowReviewModal(false);
     setReviewRating(0);
+    setReviewComment('');
   };
 
-  const handleSubmitReturn = () => {
+  const handleSubmitReturn = async () => {
     if (!returnReason) { toast.error('Please select a return reason'); return; }
-    toast.success(`Return request submitted. We'll contact you within 24 hours.`);
+    try {
+      await api.createPharmacyReturn({ orderId, reason: returnReason, status: 'Requested' });
+      toast.success(`Return request submitted. We'll contact you within 24 hours.`);
+    } catch (e) { console.error('Return request failed:', e); toast.error('Failed to submit return request. Please try again.'); }
     setShowReturnModal(false);
     setReturnReason('');
   };
@@ -294,7 +341,7 @@ export default function OrderTracking() {
               <MapPin className="w-5 h-5 text-primary mt-0.5 shrink-0" />
               <div>
                 <h4 className="font-semibold text-sm text-foreground">Delivery Address</h4>
-                <p className="text-sm text-muted-foreground mt-1">123, Health Avenue, Block C, Downtown, New York, NY 10001</p>
+                <p className="text-sm text-muted-foreground mt-1">{orderData?.deliveryAddress || '123, Health Avenue, Block C, Downtown, New York, NY 10001'}</p>
               </div>
             </div>
             <Separator className="mb-4" />
@@ -302,7 +349,7 @@ export default function OrderTracking() {
               <Truck className="w-5 h-5 text-primary mt-0.5 shrink-0" />
               <div>
                 <h4 className="font-semibold text-sm text-foreground">Delivery Partner</h4>
-                <p className="text-sm text-muted-foreground mt-1">MediCore Logistics · Partner ID: MC-9876</p>
+                <p className="text-sm text-muted-foreground mt-1">{orderData?.deliveryPartner || 'MediCore Logistics'} {orderData?.deliveryPartnerId ? `· Partner ID: ${orderData.deliveryPartnerId}` : ''}</p>
               </div>
             </div>
           </div>
@@ -315,9 +362,11 @@ export default function OrderTracking() {
               <div>
                 <h4 className="font-semibold text-sm text-foreground">Collection Address</h4>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {searchParams.get('collectionMode') === 'home'
-                    ? '123, Health Avenue, Block C (Home Collection)'
-                    : `${store.name} — Walk-in Collection`}
+                  {orderData?.collectionAddress
+                    ? orderData.collectionAddress
+                    : searchParams.get('collectionMode') === 'home'
+                      ? `${orderData?.deliveryAddress || '123, Health Avenue, Block C'} (Home Collection)`
+                      : `${store.name} — Walk-in Collection`}
                 </p>
               </div>
             </div>
@@ -326,7 +375,7 @@ export default function OrderTracking() {
               <Calendar className="w-5 h-5 text-primary mt-0.5 shrink-0" />
               <div>
                 <h4 className="font-semibold text-sm text-foreground">Appointment Slot</h4>
-                <p className="text-sm text-muted-foreground mt-1">Today · 10:00 AM – 11:00 AM</p>
+                <p className="text-sm text-muted-foreground mt-1">{orderData?.appointmentSlot || 'Today · 10:00 AM – 11:00 AM'}</p>
               </div>
             </div>
           </div>
@@ -338,7 +387,7 @@ export default function OrderTracking() {
               <User className="w-5 h-5 text-primary mt-0.5 shrink-0" />
               <div>
                 <h4 className="font-semibold text-sm text-foreground">Doctor</h4>
-                <p className="text-sm text-muted-foreground mt-1">Dr. Sarah Mitchell · Cardiologist</p>
+                <p className="text-sm text-muted-foreground mt-1">{orderData?.doctorName || 'Dr. Sarah Mitchell'} {orderData?.doctorSpecialty ? `· ${orderData.doctorSpecialty}` : ''}</p>
               </div>
             </div>
             <Separator />
@@ -346,7 +395,7 @@ export default function OrderTracking() {
               <Calendar className="w-5 h-5 text-primary mt-0.5 shrink-0" />
               <div>
                 <h4 className="font-semibold text-sm text-foreground">Appointment Time</h4>
-                <p className="text-sm text-muted-foreground mt-1">Today · 02:30 PM – 03:00 PM</p>
+                <p className="text-sm text-muted-foreground mt-1">{orderData?.appointmentTime || 'Today · 02:30 PM – 03:00 PM'}</p>
               </div>
             </div>
             <Separator />
@@ -354,7 +403,7 @@ export default function OrderTracking() {
               <MapPin className="w-5 h-5 text-primary mt-0.5 shrink-0" />
               <div>
                 <h4 className="font-semibold text-sm text-foreground">Clinic</h4>
-                <p className="text-sm text-muted-foreground mt-1">{store.name}</p>
+                <p className="text-sm text-muted-foreground mt-1">{orderData?.clinicName || store.name}</p>
               </div>
             </div>
           </div>

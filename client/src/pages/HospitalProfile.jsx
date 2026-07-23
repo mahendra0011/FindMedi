@@ -27,6 +27,7 @@ const ChevronRightIcon = ChevronRight;
 import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { useAuth } from '@/context/AuthContext';
 import ReviewDialog from '@/components/ReviewDialog';
 
 // â”€â”€â”€ Animation Variants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -86,13 +87,7 @@ export default function HospitalProfile() {
   const [searchParams] = useSearchParams();
   const [hospital, setHospital] = useState(null);
   const [doctors, setDoctors] = useState([]);
-  const [reviews, setReviews] = useState([
-    { _id: 'demo-1', patientName: 'Rahul Sharma', rating: 5, comment: 'Excellent hospital with great doctors. The staff was very cooperative and the facilities are world-class.', date: '2026-06-15' },
-    { _id: 'demo-2', patientName: 'Priya Patel', rating: 4, comment: 'Good experience overall. Clean rooms and well-maintained equipment. OPD wait time could be better.', date: '2026-06-10' },
-    { _id: 'demo-3', patientName: 'Amit Verma', rating: 5, comment: 'Best cardiology department in the city. Dr. Sharma is a lifesaver!', date: '2026-06-05' },
-    { _id: 'demo-4', patientName: 'Sunita Gupta', rating: 4, comment: 'Had a surgery here. The nursing staff was attentive and the facilities are modern. Would recommend.', date: '2026-05-28' },
-    { _id: 'demo-5', patientName: 'Vikram Singh', rating: 3, comment: 'Decent hospital but the billing process was slow. Needed to visit multiple counters.', date: '2026-05-20' },
-  ]);
+  const [reviews, setReviews] = useState([]);
   const [docSearch, setDocSearch] = useState('');
   const [docSpecFilter, setDocSpecFilter] = useState('All');
   const [doctorSectionTab, setDoctorSectionTab] = useState('doctors');
@@ -107,7 +102,22 @@ export default function HospitalProfile() {
   const [showFullDesc, setShowFullDesc] = useState(false);
   const [activePhoto, setActivePhoto] = useState(0);
   const [suggestedHospitals, setSuggestedHospitals] = useState([]);
-  const [isFavorited, setIsFavorited] = useState(false);
+  const [isFavorited, setIsFavorited] = useState(() => localStorage.getItem(`fav_hospital_${id}`) === 'true');
+  const toggleFavorite = async () => {
+    const next = !isFavorited;
+    setIsFavorited(next);
+    try {
+      if (next) {
+        await api.dispatch(() => Promise.resolve({}), '/patient/favorites', { method: 'POST', body: JSON.stringify({ targetId: id, targetType: 'hospital', name: hospital?.name }) });
+      } else {
+        await api.dispatch(() => Promise.resolve({}), `/patient/favorites/${id}`, { method: 'DELETE' });
+      }
+      toast.success(next ? 'Saved' : 'Removed from Saved');
+    } catch {
+      setIsFavorited(!next);
+      toast.error('Failed to update favorite');
+    }
+  };
   const [testSearch, setTestSearch] = useState('');
   const [testDeptFilter, setTestDeptFilter] = useState('All');
   const [testRxFilter, setTestRxFilter] = useState('all');
@@ -233,6 +243,36 @@ export default function HospitalProfile() {
   const [bookingType, setBookingType] = useState('Consultation');
   const [bookingNotes, setBookingNotes] = useState('');
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
+  const [bookingLoading, setBookingLoading] = useState(false);
+  const { user } = useAuth();
+
+  const handleConfirmBooking = async () => {
+    const doc = selectedDoctorForBooking;
+    if (!doc) return;
+    if (!user) { toast.error('Please login to book an appointment'); navigate('/login'); return; }
+    setBookingLoading(true);
+    try {
+      await api.createAppointment({
+        doctorId: doc._id,
+        doctor: doc.name,
+        doctorName: doc.name,
+        hospitalId: id || doc.hospitalId,
+        patient: user.name || 'Patient',
+        patientId: user._id,
+        email: user.email,
+        phone: user.phone || '',
+        date: bookingDate,
+        timeSlot: bookingTime,
+        type: bookingType,
+        notes: bookingNotes,
+        status: 'Scheduled',
+      });
+      setBookingConfirmed(true);
+    } catch (e) {
+      toast.error(e.response?.data?.message || e.message || 'Failed to book appointment');
+    }
+    setBookingLoading(false);
+  };
 
   const [showTestBooking, setShowTestBooking] = useState(false);
   const [testBookingStep, setTestBookingStep] = useState(1);
@@ -442,7 +482,7 @@ export default function HospitalProfile() {
                 </div>
               )}
               <div className="absolute top-4 right-4 flex gap-2 z-10">
-                <button onClick={() => { setIsFavorited(!isFavorited); toast.success(isFavorited ? 'Removed from Saved' : 'Saved'); }}
+                <button onClick={toggleFavorite}
                   className={cn('w-9 h-9 rounded-xl backdrop-blur-sm flex items-center justify-center transition-all hover:scale-105', isFavorited ? 'bg-red-500 text-white' : 'bg-black/30 text-white hover:bg-black/50')}>
                   <Heart className={cn('w-4 h-4', isFavorited && 'fill-current')} />
                 </button>
@@ -529,7 +569,7 @@ export default function HospitalProfile() {
                     <Phone className="w-4 h-4" /> Call Now
                   </Button>
                 </a>
-                <button onClick={() => { setIsFavorited(!isFavorited); toast.success(isFavorited ? 'Removed from Saved' : 'Saved'); }}
+                <button onClick={toggleFavorite}
                   className={cn('w-11 h-11 rounded-xl border transition-all flex items-center justify-center shrink-0', isFavorited ? 'bg-red-500/10 text-red-500 border-red-200' : 'border-border/60 text-muted-foreground hover:text-red-500 hover:border-red-200 hover:bg-red-500/5')}>
                   <Heart className={cn('w-5 h-5', isFavorited && 'fill-current')} />
                 </button>
@@ -1481,7 +1521,7 @@ export default function HospitalProfile() {
                   <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" asChild>
                     <a href={`mailto:${hospital.email || ''}`}><Mail className="w-4 h-4" /> Email Now</a>
                   </Button>
-                  <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={() => { setIsFavorited(!isFavorited); toast.success(isFavorited ? 'Removed from Saved' : 'Saved'); }}>
+                  <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={toggleFavorite}>
                     <Heart className={cn('w-4 h-4', isFavorited && 'fill-current text-red-500')} /> {isFavorited ? 'Saved' : 'Save'}
                   </Button>
                   <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={handleShare}>
@@ -1730,7 +1770,7 @@ export default function HospitalProfile() {
                </div>
                <DialogFooter>
                  <Button variant="outline" size="sm" onClick={() => { setShowBookingModal(false); setSelectedDoctorForBooking(null); setBookingDate(''); setBookingTime(''); setBookingType('Consultation'); setBookingNotes(''); }}>Cancel</Button>
-                 <Button size="sm" disabled={!bookingDate || !bookingTime} onClick={() => setBookingConfirmed(true)}>Confirm Booking</Button>
+                  <Button size="sm" disabled={!bookingDate || !bookingTime || bookingLoading} onClick={handleConfirmBooking}>{bookingLoading ? 'Booking...' : 'Confirm Booking'}</Button>
                </DialogFooter>
              </>
            ) : (

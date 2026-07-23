@@ -8,6 +8,7 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.join(__dirname, '.env') });
 
 import express from 'express';
+import http from 'http';
 import cors from 'cors';
 import mongoose from 'mongoose';
 import helmet from 'helmet';
@@ -19,6 +20,7 @@ import logger from './config/logger.js';
 import { configureMongoDns } from './config/mongoDns.js';
 import { validateEnv, printEnvStatus } from './config/envValidator.js';
 import { errorHandler, notFound } from './middleware/errorHandler.js';
+import { initSocket } from './services/socketService.js';
 
 const app = express();
 configureMongoDns();
@@ -100,7 +102,7 @@ let MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/medicore';
 
 // Check if URI contains placeholders and warn
 if (MONGO_URI.includes('<username>') || MONGO_URI.includes('<password>')) {
-  console.warn('⚠️  MONGO_URI appears to contain placeholders. Please set your actual MongoDB Atlas connection string.');
+  logger.warn('⚠️  MONGO_URI appears to contain placeholders. Please set your actual MongoDB Atlas connection string.');
 }
 
 // Parse URI to ensure database name is present
@@ -112,7 +114,7 @@ if (MONGO_URI.startsWith('mongodb')) {
       MONGO_URI = url.toString();
     }
   } catch (e) {
-    console.warn('⚠️ Could not parse MONGO_URI, using as-is');
+    logger.warn('⚠️ Could not parse MONGO_URI, using as-is');
   }
 }
 
@@ -192,6 +194,7 @@ import systemSettingRoutes from './routes/systemSettings.js';
 import commissionRoutes from './routes/commission.js';
 import disputeRoutes from './routes/disputes.js';
 import supportTicketRoutes from './routes/supportTickets.js';
+import leaveRequestRoutes from './routes/leaveRequests.js';
 import categoryRoutes from './routes/categories.js';
 import licenseRoutes from './routes/licenses.js';
 import announcementRoutes from './routes/announcements.js';
@@ -241,6 +244,7 @@ app.use('/api/system-settings', systemSettingRoutes);
 app.use('/api/commission', commissionRoutes);
 app.use('/api/disputes', disputeRoutes);
 app.use('/api/support-tickets', supportTicketRoutes);
+app.use('/api/leave-requests', leaveRequestRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/licenses', licenseRoutes);
 app.use('/api/announcements', announcementRoutes);
@@ -268,47 +272,49 @@ const mongooseOptions = {
   bufferCommands: false
 };
 
-console.log('🔄 Attempting MongoDB connection...');
+logger.info('🔄 Attempting MongoDB connection...');
 logger.info('   URI: ' + redactMongoUri(MONGO_URI));
+
+const server = http.createServer(app);
+initSocket(server);
 
 mongoose.connect(MONGO_URI, mongooseOptions)
   .then(() => {
-    console.log('✅ MongoDB connected successfully');
-    app.listen(PORT, () => {
+    logger.info('✅ MongoDB connected successfully');
+    server.listen(PORT, () => {
       const serverUrl = `http://localhost:${PORT}`;
-      console.log(`🚀 Server running on ${serverUrl}`);
-      console.log(`📡 Health check: ${serverUrl}/api/health`);
+      logger.info(`🚀 Server running on ${serverUrl}`);
+      logger.info(`📡 Health check: ${serverUrl}/api/health`);
     });
   })
   .catch(err => {
-    console.error('❌ MongoDB connection error:', err.message);
-    console.error('   Error code:', err.code);
-    console.error('   Error name:', err.name);
-    console.error('   Full URI used (redacted):', redactMongoUri(MONGO_URI));
-    // Log stack trace in development only
+    logger.error('❌ MongoDB connection error: ' + err.message);
+    logger.error('   Error code: ' + err.code);
+    logger.error('   Error name: ' + err.name);
+    logger.error('   Full URI used (redacted): ' + redactMongoUri(MONGO_URI));
     if (process.env.NODE_ENV !== 'production') {
-      console.error('   Stack trace:', err.stack);
+      logger.error('   Stack trace: ' + err.stack);
     }
     process.exit(1);
   });
 
 // Handle connection events for better debugging
 mongoose.connection.on('connected', () => {
-  console.log('✅ Mongoose connected to MongoDB');
+  logger.info('✅ Mongoose connected to MongoDB');
 });
 
 mongoose.connection.on('error', (err) => {
-  console.error('❌ Mongoose connection error:', err);
+  logger.error('❌ Mongoose connection error: ' + err);
 });
 
 mongoose.connection.on('disconnected', () => {
-  console.warn('⚠️ Mongoose disconnected');
+  logger.warn('⚠️ Mongoose disconnected');
 });
 
 // Graceful shutdown
 process.on('SIGINT', async () => {
   await mongoose.connection.close();
-  console.log('📦 MongoDB connection closed');
+  logger.info('📦 MongoDB connection closed');
   process.exit(0);
 });
 // 13
