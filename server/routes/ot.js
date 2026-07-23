@@ -3,7 +3,7 @@ import { z } from 'zod';
 import OperationTheatre from '../models/OperationTheatre.js';
 import Notification from '../models/Notification.js';
 import User from '../models/User.js';
-import { protect } from '../middleware/auth.js';
+import { protect, adminOnly } from '../middleware/auth.js';
 import { validate, createSurgerySchema } from '../utils/validate.js';
 
 const otCompleteSchema = z.object({ findings: z.string().optional(), procedure: z.string().optional(), complications: z.string().optional(), postOpInstructions: z.string().optional(), instrumentsAfter: z.number().optional(), spongesAfter: z.number().optional() });
@@ -19,7 +19,7 @@ const generateOTId = async () => {
   return `OT-${new Date().getFullYear()}-${String(count + 1).padStart(5, '0')}`;
 };
 
-router.post('/surgeries', protect, validate(createSurgerySchema), async (req, res) => {
+router.post('/surgeries', protect, adminOnly, validate(createSurgerySchema), async (req, res) => {
   try {
     const { patientId, patientName, surgeryName, surgeryType, anaesthesiaType, assistants, otNumber, scheduledDate } = req.body;
     if (!patientId || !surgeryName) return res.status(400).json({ message: 'Patient and surgery required' });

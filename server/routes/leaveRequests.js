@@ -1,7 +1,7 @@
 import express from 'express';
 import LeaveRequest from '../models/LeaveRequest.js';
 import Doctor from '../models/Doctor.js';
-import { protect } from '../middleware/auth.js';
+import { protect, adminOnly } from '../middleware/auth.js';
 import { validate, createLeaveRequestSchema, updateLeaveStatusSchema } from '../utils/validate.js';
 import logger from '../config/logger.js';
 
@@ -72,7 +72,7 @@ router.post('/', protect, validate(createLeaveRequestSchema), async (req, res) =
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/:id/status', protect, validate(updateLeaveStatusSchema), async (req, res) => {
+router.put('/:id/status', protect, adminOnly, validate(updateLeaveStatusSchema), async (req, res) => {
   try {
     const { status, adminNotes } = req.body;
     const leave = await LeaveRequest.findByIdAndUpdate(

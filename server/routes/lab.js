@@ -7,7 +7,7 @@ import HealthPackage from '../models/HealthPackage.js';
 import Test from '../models/Test.js';
 import User from '../models/User.js';
 import Notification from '../models/Notification.js';
-import { protect } from '../middleware/auth.js';
+import { protect, adminOnly } from '../middleware/auth.js';
 import { validate, createLabOrderSchema } from '../utils/validate.js';
 
 const labRegisterSampleSchema = z.object({ testIndex: z.number().int().nonnegative(), sampleType: z.string().optional() });
@@ -63,8 +63,16 @@ router.get('/orders', protect, async (req, res) => {
   try {
     const { status, priority, patientId, doctorId, search } = req.query;
     const filter = {};
-    if (req.user.role === 'doctor') filter.doctorId = req.user._id;
-    if (req.user.role === 'patient') filter.patientId = req.user._id;
+    if (req.user.role === 'patient') {
+      filter.patientId = req.user._id;
+    } else if (patientId) {
+      filter.patientId = patientId;
+    }
+    if (req.user.role === 'doctor') {
+      filter.doctorId = req.user._id;
+    } else if (doctorId) {
+      filter.doctorId = doctorId;
+    }
     if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
     if ((req.user.facilityId || req.user.hospitalId) && req.user.role !== 'superadmin') filter.facilityId = req.user.facilityId || req.user.hospitalId;
 
@@ -82,8 +90,6 @@ router.get('/orders', protect, async (req, res) => {
 
     // Handle priority filter
     if (priority && priority !== 'All') filter.priority = priority;
-    if (patientId) filter.patientId = patientId;
-    if (doctorId) filter.doctorId = doctorId;
     if (search) {
       filter.$or = [
         { orderId: new RegExp(search, 'i') }, { patientName: new RegExp(search, 'i') },
@@ -148,7 +154,7 @@ router.put('/orders/:id/collect-sample', protect, validate(labCollectSampleSchem
 });
 
 // ─── Lab Technician: Enter Results ─────────────────────────────────────────
-router.put('/orders/:id/enter-result', protect, validate(labEnterResultSchema), async (req, res) => {
+router.put('/orders/:id/enter-result', protect, adminOnly, validate(labEnterResultSchema), async (req, res) => {
   try {
     const order = await LabOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
@@ -184,7 +190,7 @@ router.put('/orders/:id/enter-result', protect, validate(labEnterResultSchema), 
 });
 
 // ─── Pathologist: Verify Results ───────────────────────────────────────────
-router.put('/orders/:id/verify', protect, validate(labVerifySchema), async (req, res) => {
+router.put('/orders/:id/verify', protect, adminOnly, validate(labVerifySchema), async (req, res) => {
   try {
     const order = await LabOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
@@ -292,19 +298,29 @@ router.post('/bookings', protect, validate(labBookingSchema), async (req, res) =
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/bookings/:id', protect, validate(labBookingSchema), async (req, res) => {
+router.put('/bookings/:id', protect, adminOnly, validate(labBookingSchema), async (req, res) => {
   try {
     const booking = await LabBooking.findById(req.params.id);
     if (!booking) return res.status(404).json({ message: 'Booking not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && booking.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     Object.assign(booking, req.body);
     await booking.save();
     res.json(booking);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.delete('/bookings/:id', protect, async (req, res) => {
-  try { await LabBooking.findByIdAndDelete(req.params.id); res.json({ message: 'Deleted' }); }
-  catch (err) { res.status(500).json({ message: err.message }); }
+router.delete('/bookings/:id', protect, adminOnly, async (req, res) => {
+  try {
+    const booking = await LabBooking.findById(req.params.id);
+    if (!booking) return res.status(404).json({ message: 'Booking not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && booking.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    await LabBooking.findByIdAndDelete(req.params.id);
+    res.json({ message: 'Deleted' });
+  } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
 // ─── Equipment ─────────────────────────────────────────────────────────────
@@ -325,19 +341,29 @@ router.post('/equipment', protect, validate(labEquipmentSchema), async (req, res
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/equipment/:id', protect, validate(labEquipmentSchema), async (req, res) => {
+router.put('/equipment/:id', protect, adminOnly, validate(labEquipmentSchema), async (req, res) => {
   try {
     const item = await Equipment.findById(req.params.id);
     if (!item) return res.status(404).json({ message: 'Equipment not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && item.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     Object.assign(item, req.body);
     await item.save();
     res.json(item);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.delete('/equipment/:id', protect, async (req, res) => {
-  try { await Equipment.findByIdAndDelete(req.params.id); res.json({ message: 'Deleted' }); }
-  catch (err) { res.status(500).json({ message: err.message }); }
+router.delete('/equipment/:id', protect, adminOnly, async (req, res) => {
+  try {
+    const item = await Equipment.findById(req.params.id);
+    if (!item) return res.status(404).json({ message: 'Equipment not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && item.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    await Equipment.findByIdAndDelete(req.params.id);
+    res.json({ message: 'Deleted' });
+  } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
 // ─── Health Packages (public endpoint for browsing) ───────────────────────
@@ -370,19 +396,29 @@ router.post('/packages', protect, validate(labPackageSchema), async (req, res) =
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/packages/:id', protect, validate(labPackageSchema), async (req, res) => {
+router.put('/packages/:id', protect, adminOnly, validate(labPackageSchema), async (req, res) => {
   try {
     const pkg = await HealthPackage.findById(req.params.id);
     if (!pkg) return res.status(404).json({ message: 'Package not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && pkg.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     Object.assign(pkg, req.body);
     await pkg.save();
     res.json(pkg);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.delete('/packages/:id', protect, async (req, res) => {
-  try { await HealthPackage.findByIdAndDelete(req.params.id); res.json({ message: 'Deleted' }); }
-  catch (err) { res.status(500).json({ message: err.message }); }
+router.delete('/packages/:id', protect, adminOnly, async (req, res) => {
+  try {
+    const pkg = await HealthPackage.findById(req.params.id);
+    if (!pkg) return res.status(404).json({ message: 'Package not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && pkg.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    await HealthPackage.findByIdAndDelete(req.params.id);
+    res.json({ message: 'Deleted' });
+  } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
 export default router;

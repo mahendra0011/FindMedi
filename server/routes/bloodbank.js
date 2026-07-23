@@ -1,7 +1,7 @@
 import express from 'express';
 import { z } from 'zod';
 import { BloodUnit, BloodRequest } from '../models/BloodBank.js';
-import { protect } from '../middleware/auth.js';
+import { protect, adminOnly } from '../middleware/auth.js';
 import { validate, createBloodUnitSchema, createBloodRequestSchema } from '../utils/validate.js';
 
 const bloodIssueSchema = z.object({ unitIds: z.array(z.string()).optional() });
@@ -27,7 +27,7 @@ router.get('/units', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/units', protect, validate(createBloodUnitSchema), async (req, res) => {
+router.post('/units', protect, adminOnly, validate(createBloodUnitSchema), async (req, res) => {
   try {
     const unitId = await genUnitId();
     const unit = await BloodUnit.create({ ...req.body, unitId, hospitalId: req.user.hospitalId || undefined });
@@ -57,7 +57,7 @@ router.get('/requests', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.put('/requests/:id/issue', protect, validate(bloodIssueSchema), async (req, res) => {
+router.put('/requests/:id/issue', protect, adminOnly, validate(bloodIssueSchema), async (req, res) => {
   try {
     const { unitIds } = req.body;
     const request = await BloodRequest.findById(req.params.id);
@@ -75,7 +75,7 @@ router.put('/requests/:id/issue', protect, validate(bloodIssueSchema), async (re
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/requests/:id/transfuse', protect, validate(bloodTransfuseSchema), async (req, res) => {
+router.put('/requests/:id/transfuse', protect, adminOnly, validate(bloodTransfuseSchema), async (req, res) => {
   try {
     const request = await BloodRequest.findById(req.params.id);
     if (!request) return res.status(404).json({ message: 'Request not found' });
@@ -92,7 +92,7 @@ router.put('/requests/:id/transfuse', protect, validate(bloodTransfuseSchema), a
 });
 
 // ─── Start Transfusion ──────────────────────────────────────────────────────
-router.put('/requests/:id/start-transfusion', protect, validate(bloodStartTransfusionSchema), async (req, res) => {
+router.put('/requests/:id/start-transfusion', protect, adminOnly, validate(bloodStartTransfusionSchema), async (req, res) => {
   try {
     const request = await BloodRequest.findById(req.params.id);
     if (!request) return res.status(404).json({ message: 'Request not found' });
@@ -113,7 +113,7 @@ router.put('/requests/:id/start-transfusion', protect, validate(bloodStartTransf
 });
 
 // ─── Report Transfusion Reaction ─────────────────────────────────────────────
-router.put('/requests/:id/reaction', protect, validate(bloodReactionSchema), async (req, res) => {
+router.put('/requests/:id/reaction', protect, adminOnly, validate(bloodReactionSchema), async (req, res) => {
   try {
     const request = await BloodRequest.findById(req.params.id);
     if (!request) return res.status(404).json({ message: 'Request not found' });
@@ -134,7 +134,7 @@ router.put('/requests/:id/reaction', protect, validate(bloodReactionSchema), asy
 });
 
 // ─── Crossmatch Blood ───────────────────────────────────────────────────────
-router.put('/requests/:id/crossmatch', protect, validate(bloodCrossmatchSchema), async (req, res) => {
+router.put('/requests/:id/crossmatch', protect, adminOnly, validate(bloodCrossmatchSchema), async (req, res) => {
   try {
     const request = await BloodRequest.findById(req.params.id);
     if (!request) return res.status(404).json({ message: 'Request not found' });

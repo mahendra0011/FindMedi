@@ -3,7 +3,7 @@ import { z } from 'zod';
 import Staff from '../models/Staff.js';
 import Billing from '../models/Billing.js';
 import Notification from '../models/Notification.js';
-import { protect } from '../middleware/auth.js';
+import { protect, adminOnly } from '../middleware/auth.js';
 import { validate, createStaffSchema, updateStaffSchema } from '../utils/validate.js';
 
 const attendanceSchema = z.object({ staffId: z.string().min(1), date: z.string().optional(), status: z.string().optional() });
@@ -16,7 +16,7 @@ const router = express.Router();
 
 const genId = async () => { const c = await Staff.countDocuments(); return `EMP-${new Date().getFullYear()}-${String(c+1).padStart(5,'0')}`; };
 
-router.post('/', protect, validate(createStaffSchema), async (req, res) => {
+router.post('/', protect, adminOnly, validate(createStaffSchema), async (req, res) => {
   try {
     const { name, role, department } = req.body;
     if (!name || !role) return res.status(400).json({ message: 'Name and role required' });
@@ -49,7 +49,7 @@ router.get('/:id', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.put('/:id', protect, validate(updateStaffSchema), async (req, res) => {
+router.put('/:id', protect, adminOnly, validate(updateStaffSchema), async (req, res) => {
   try {
     const filter = { _id: req.params.id };
     if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
@@ -72,7 +72,7 @@ router.get('/stats', protect, async (req, res) => {
 });
 
 // ─── Attendance ───────────────────────────────────────────────────────────────
-router.post('/attendance', protect, validate(attendanceSchema), async (req, res) => {
+router.post('/attendance', protect, adminOnly, validate(attendanceSchema), async (req, res) => {
   try {
     const { staffId, date, status } = req.body;
     const staff = await Staff.findById(staffId);
@@ -96,7 +96,7 @@ router.post('/attendance', protect, validate(attendanceSchema), async (req, res)
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.post('/attendance/bulk', protect, validate(bulkAttendanceSchema), async (req, res) => {
+router.post('/attendance/bulk', protect, adminOnly, validate(bulkAttendanceSchema), async (req, res) => {
   try {
     const { date, attendance } = req.body; // attendance: [{ staffId, status }]
     if (!date || !attendance?.length) {
@@ -150,7 +150,7 @@ router.get('/attendance', protect, async (req, res) => {
 });
 
 // ─── Shift Scheduling ─────────────────────────────────────────────────────────
-router.post('/shifts', protect, validate(shiftSchema), async (req, res) => {
+router.post('/shifts', protect, adminOnly, validate(shiftSchema), async (req, res) => {
   try {
     const { staffId, date, shift, startTime, endTime } = req.body;
     const staff = await Staff.findById(staffId);
@@ -177,7 +177,7 @@ router.get('/shifts', protect, async (req, res) => {
 });
 
 // ─── Payroll Calculation ──────────────────────────────────────────────────────
-router.post('/payroll/calculate', protect, validate(payrollSchema), async (req, res) => {
+router.post('/payroll/calculate', protect, adminOnly, validate(payrollSchema), async (req, res) => {
   try {
     const { staffId, month, year, overtimeHours, overtimeRate } = req.body;
     const staff = await Staff.findById(staffId);
@@ -233,7 +233,7 @@ router.get('/payroll/history', protect, async (req, res) => {
 });
 
 // ─── Overtime Tracking ────────────────────────────────────────────────────────
-router.post('/overtime', protect, validate(overtimeSchema), async (req, res) => {
+router.post('/overtime', protect, adminOnly, validate(overtimeSchema), async (req, res) => {
   try {
     const { staffId, date, hours, reason } = req.body;
     const staff = await Staff.findById(staffId);

@@ -3,7 +3,7 @@ import { z } from 'zod';
 import Radiology from '../models/Radiology.js';
 import Notification from '../models/Notification.js';
 import User from '../models/User.js';
-import { protect } from '../middleware/auth.js';
+import { protect, adminOnly } from '../middleware/auth.js';
 import { validate, createRadiologyOrderSchema } from '../utils/validate.js';
 
 const radScheduleSchema = z.object({ scheduledAt: z.string().optional() });
@@ -18,7 +18,7 @@ const generateOrderId = async () => {
 };
 
 // ─── Create Radiology Order ────────────────────────────────────────────────
-router.post('/orders', protect, validate(createRadiologyOrderSchema), async (req, res) => {
+router.post('/orders', protect, adminOnly, validate(createRadiologyOrderSchema), async (req, res) => {
   try {
     const { patientId, patientName, modality, bodyPart, clinicalHistory, priority } = req.body;
     if (!patientId || !modality || !bodyPart) {
@@ -125,7 +125,7 @@ router.put('/orders/:id/complete', protect, validate(radCompleteSchema), async (
 });
 
 // ─── Submit Report (Radiologist) ──────────────────────────────────────────
-router.put('/orders/:id/report', protect, validate(radReportSchema), async (req, res) => {
+router.put('/orders/:id/report', protect, adminOnly, validate(radReportSchema), async (req, res) => {
   try {
     const { findings, impression, recommendation, reportUrl } = req.body;
     const order = await Radiology.findById(req.params.id);

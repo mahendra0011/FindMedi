@@ -5,7 +5,7 @@ import Bed from '../models/Bed.js';
 import Notification from '../models/Notification.js';
 import User from '../models/User.js';
 import Doctor from '../models/Doctor.js';
-import { protect } from '../middleware/auth.js';
+import { protect, adminOnly } from '../middleware/auth.js';
 import { validate, createEmergencySchema } from '../utils/validate.js';
 import logger from '../config/logger.js';
 
@@ -77,7 +77,7 @@ router.post('/', protect, validate(createEmergencySchema), async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/:id/assign', protect, async (req, res) => {
+router.put('/:id/assign', protect, adminOnly, async (req, res) => {
   try {
     const { doctorId, doctorName } = req.body;
 
@@ -127,7 +127,7 @@ router.put('/:id/assign', protect, async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/:id/status', protect, async (req, res) => {
+router.put('/:id/status', protect, adminOnly, async (req, res) => {
   try {
     const { status } = req.body;
     
@@ -152,7 +152,7 @@ router.put('/:id/status', protect, async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.post('/:id/notes', protect, async (req, res) => {
+router.post('/:id/notes', protect, adminOnly, async (req, res) => {
   try {
     const { text } = req.body;
     
@@ -199,7 +199,7 @@ router.get('/stats', protect, async (req, res) => {
 });
 
 // ─── Emergency to IPD Transfer ─────────────────────────────────────────────
-router.post('/:id/transfer-to-ipd', protect, async (req, res) => {
+router.post('/:id/transfer-to-ipd', protect, adminOnly, async (req, res) => {
   try {
     const { ward, admissionNotes } = req.body;
     

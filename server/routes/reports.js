@@ -13,7 +13,7 @@ import OperationTheatre from '../models/OperationTheatre.js';
 import Staff from '../models/Staff.js';
 import Patient from '../models/Patient.js';
 import Doctor from '../models/Doctor.js';
-import { protect } from '../middleware/auth.js';
+import { protect, adminOnly } from '../middleware/auth.js';
 import { validate } from '../utils/validate.js';
 import { parseExcelFile, exportToExcel, exportToCSV, validatePatientData, validateDoctorData, validateBillingData, formatPatientsForExport, formatDoctorsForExport, formatBillingForExport, formatAppointmentsForExport } from '../utils/excelUtils.js';
 import { generatePrescriptionPDF, generateLabReportPDF, generateDischargeSummaryPDF } from '../services/pdfService.js';
@@ -354,7 +354,7 @@ router.get('/types/list', protect, async (req, res) => {
 // Import / Export routes
 // ──────────────────────────────────────────────
 
-router.get('/export/:type', protect, async (req, res) => {
+router.get('/export/:type', protect, adminOnly, async (req, res) => {
   try {
     const { type } = req.params;
     const format = req.query.format || 'excel';
@@ -396,7 +396,7 @@ router.get('/export/:type', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/import/:type', protect, upload.single('file'), async (req, res) => {
+router.post('/import/:type', protect, adminOnly, upload.single('file'), async (req, res) => {
   try {
     const { type } = req.params;
     if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
@@ -458,7 +458,7 @@ router.post('/import/:type', protect, upload.single('file'), async (req, res) =>
 // PDF Generation routes
 // ──────────────────────────────────────────────
 
-router.post('/generate-prescription', protect, async (req, res) => {
+router.post('/generate-prescription', protect, adminOnly, async (req, res) => {
   try {
     const pdfBuffer = await generatePrescriptionPDF(req.body);
     res.setHeader('Content-Type', 'application/pdf');
@@ -467,7 +467,7 @@ router.post('/generate-prescription', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/generate-lab-report', protect, async (req, res) => {
+router.post('/generate-lab-report', protect, adminOnly, async (req, res) => {
   try {
     const pdfBuffer = await generateLabReportPDF(req.body);
     res.setHeader('Content-Type', 'application/pdf');
@@ -476,7 +476,7 @@ router.post('/generate-lab-report', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/generate-discharge-summary', protect, async (req, res) => {
+router.post('/generate-discharge-summary', protect, adminOnly, async (req, res) => {
   try {
     const pdfBuffer = await generateDischargeSummaryPDF(req.body);
     res.setHeader('Content-Type', 'application/pdf');
@@ -489,7 +489,7 @@ router.post('/generate-discharge-summary', protect, async (req, res) => {
 // Email routes
 // ──────────────────────────────────────────────
 
-router.post('/email/prescription', protect, async (req, res) => {
+router.post('/email/prescription', protect, adminOnly, async (req, res) => {
   try {
     const { patient, prescription: data } = req.body;
     if (!patient?.email) return res.status(400).json({ message: 'Patient email is required' });
@@ -508,7 +508,7 @@ router.post('/email/prescription', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 });
 
-router.post('/email/lab-result', protect, async (req, res) => {
+router.post('/email/lab-result', protect, adminOnly, async (req, res) => {
   try {
     const { patient, report: data } = req.body;
     if (!patient?.email) return res.status(400).json({ message: 'Patient email is required' });
@@ -527,7 +527,7 @@ router.post('/email/lab-result', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 });
 
-router.post('/email/discharge-summary', protect, async (req, res) => {
+router.post('/email/discharge-summary', protect, adminOnly, async (req, res) => {
   try {
     const { patient, summary: data } = req.body;
     if (!patient?.email) return res.status(400).json({ message: 'Patient email is required' });

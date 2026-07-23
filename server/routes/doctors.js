@@ -199,7 +199,7 @@ router.post('/', protect, validate(createDoctorSchema), async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/:id', protect, validate(updateDoctorSchema), async (req, res) => {
+router.put('/:id', protect, adminOnly, validate(updateDoctorSchema), async (req, res) => {
   try {
     const doctor = await Doctor.findById(req.params.id);
     if (!doctor) return res.status(404).json({ message: 'Doctor not found' });
@@ -213,7 +213,7 @@ router.put('/:id', protect, validate(updateDoctorSchema), async (req, res) => {
 
 const clinicProfileSchema = z.object({ clinicProfile: z.object({}).passthrough() });
 
-router.put('/:id/clinic-profile', protect, validate(clinicProfileSchema), async (req, res) => {
+router.put('/:id/clinic-profile', protect, adminOnly, validate(clinicProfileSchema), async (req, res) => {
   try {
     const doctor = await Doctor.findById(req.params.id);
     if (!doctor) return res.status(404).json({ message: 'Doctor not found' });

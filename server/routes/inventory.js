@@ -4,7 +4,7 @@ import Inventory from '../models/Inventory.js';
 import Supplier from '../models/Supplier.js';
 import PurchaseOrder from '../models/PurchaseOrder.js';
 import Notification from '../models/Notification.js';
-import { protect } from '../middleware/auth.js';
+import { protect, adminOnly } from '../middleware/auth.js';
 import { validate, createInventoryItemSchema, updateInventoryItemSchema, createSupplierSchema, createPurchaseOrderSchema } from '../utils/validate.js';
 
 const stockUpdateSchema = z.object({ quantity: z.number(), type: z.enum(['add', 'deduct', 'adjust']), reference: z.string().optional(), notes: z.string().optional() });
@@ -21,7 +21,7 @@ const generatePONumber = async () => {
 };
 
 // Inventory Items
-router.post('/items', protect, validate(createInventoryItemSchema), async (req, res) => {
+router.post('/items', protect, adminOnly, validate(createInventoryItemSchema), async (req, res) => {
   try {
     const item = await Inventory.create({ ...req.body, hospitalId: req.user.hospitalId || undefined });
     res.status(201).json(item);
@@ -62,7 +62,7 @@ router.put('/items/:id', protect, validate(updateInventoryItemSchema), async (re
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/items/:id/stock', protect, validate(stockUpdateSchema), async (req, res) => {
+router.put('/items/:id/stock', protect, adminOnly, validate(stockUpdateSchema), async (req, res) => {
   try {
     const { quantity, type, reference, notes } = req.body;
     const item = await Inventory.findById(req.params.id);
@@ -121,7 +121,7 @@ router.get('/stats', protect, async (req, res) => {
 });
 
 // Suppliers
-router.post('/suppliers', protect, validate(createSupplierSchema), async (req, res) => {
+router.post('/suppliers', protect, adminOnly, validate(createSupplierSchema), async (req, res) => {
   try {
     const supplier = await Supplier.create({ ...req.body, hospitalId: req.user.hospitalId || undefined });
     res.status(201).json(supplier);
@@ -166,7 +166,7 @@ router.get('/suppliers/:id', protect, async (req, res) => {
 });
 
 // Purchase Orders
-router.post('/purchase-orders', protect, validate(createPurchaseOrderSchema), async (req, res) => {
+router.post('/purchase-orders', protect, adminOnly, validate(createPurchaseOrderSchema), async (req, res) => {
   try {
     const { supplierId, supplierName, items, expectedDelivery, notes, taxRate } = req.body;
     const poNumber = await generatePONumber();
@@ -233,7 +233,7 @@ router.get('/purchase-orders/:id', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.put('/purchase-orders/:id/status', protect, validate(poStatusSchema), async (req, res) => {
+router.put('/purchase-orders/:id/status', protect, adminOnly, validate(poStatusSchema), async (req, res) => {
   try {
     const { status, approvedBy } = req.body;
     const po = await PurchaseOrder.findById(req.params.id);
@@ -248,7 +248,7 @@ router.put('/purchase-orders/:id/status', protect, validate(poStatusSchema), asy
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/purchase-orders/:id/receive', protect, validate(poReceiveSchema), async (req, res) => {
+router.put('/purchase-orders/:id/receive', protect, adminOnly, validate(poReceiveSchema), async (req, res) => {
   try {
     const { receivedNotes } = req.body;
     const po = await PurchaseOrder.findById(req.params.id);

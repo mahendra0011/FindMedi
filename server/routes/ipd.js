@@ -3,7 +3,7 @@ import { z } from 'zod';
 import Bed from '../models/Bed.js';
 import Admission from '../models/Admission.js';
 import Notification from '../models/Notification.js';
-import { protect } from '../middleware/auth.js';
+import { protect, adminOnly } from '../middleware/auth.js';
 import { validate, createAdmissionSchema } from '../utils/validate.js';
 
 const ipdBedSchema = z.object({}).passthrough();
@@ -30,7 +30,7 @@ router.get('/beds', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/beds', protect, validate(ipdBedSchema), async (req, res) => {
+router.post('/beds', protect, adminOnly, validate(ipdBedSchema), async (req, res) => {
   try {
     const bed = await Bed.create({ ...req.body, hospitalId: req.user.hospitalId || undefined });
     res.status(201).json(bed);
@@ -51,7 +51,7 @@ router.put('/beds/:id', protect, validate(ipdBedSchema), async (req, res) => {
 });
 
 // ─── Admission ─────────────────────────────────────────────────────────────
-router.post('/admissions', protect, validate(createAdmissionSchema), async (req, res) => {
+router.post('/admissions', protect, adminOnly, validate(createAdmissionSchema), async (req, res) => {
   try {
     const { patientId, patientName, bedId, primaryDiagnosis, source, attendantName, attendantPhone, estimatedStay, admissionNotes, priority } = req.body;
     if (!patientId) return res.status(400).json({ message: 'Patient required' });
@@ -108,7 +108,11 @@ router.get('/admissions', protect, async (req, res) => {
     const filter = {};
     if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
     if (status && status !== 'All') filter.status = status;
-    if (patientId) filter.patientId = patientId;
+    if (req.user.role === 'patient') {
+      filter.patientId = req.user._id;
+    } else if (patientId) {
+      filter.patientId = patientId;
+    }
     if (search) {
       filter.$or = [
         { admissionId: new RegExp(search, 'i') },
@@ -133,7 +137,7 @@ router.get('/admissions/:id', protect, async (req, res) => {
 });
 
 // ─── Discharge ─────────────────────────────────────────────────────────────
-router.put('/admissions/:id/discharge', protect, validate(ipdDischargeSchema), async (req, res) => {
+router.put('/admissions/:id/discharge', protect, adminOnly, validate(ipdDischargeSchema), async (req, res) => {
   try {
     const { dischargeSummary, isInfectionCase } = req.body;
     const admission = await Admission.findById(req.params.id);
@@ -239,7 +243,7 @@ router.post('/admissions/:id/nursing-notes', protect, validate(ipdClinicalSchema
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.post('/admissions/:id/doctor-notes', protect, validate(ipdClinicalSchema), async (req, res) => {
+router.post('/admissions/:id/doctor-notes', protect, adminOnly, validate(ipdClinicalSchema), async (req, res) => {
   try {
     const admission = await Admission.findById(req.params.id);
     if (!admission) return res.status(404).json({ message: 'Not found' });

@@ -4,7 +4,7 @@ import Housekeeping from '../models/Housekeeping.js';
 import Admission from '../models/Admission.js';
 import Bed from '../models/Bed.js';
 import Notification from '../models/Notification.js';
-import { protect } from '../middleware/auth.js';
+import { protect, adminOnly } from '../middleware/auth.js';
 import { validate, createHousekeepingSchema } from '../utils/validate.js';
 
 const hkAutoCreateSchema = z.object({ admissionId: z.string().min(1), bedNumber: z.string().min(1), ward: z.string().optional(), room: z.string().optional(), isInfectionCase: z.boolean().optional() });
@@ -17,7 +17,7 @@ const router = express.Router();
 const genId = async () => { const c = await Housekeeping.countDocuments(); return `HSK-${new Date().getFullYear()}-${String(c+1).padStart(5,'0')}`; };
 
 // Auto-create housekeeping task when patient is discharged
-router.post('/auto-create-on-discharge', protect, validate(hkAutoCreateSchema), async (req, res) => {
+router.post('/auto-create-on-discharge', protect, adminOnly, validate(hkAutoCreateSchema), async (req, res) => {
   try {
     const { admissionId, bedNumber, ward, room, isInfectionCase } = req.body;
     if (!admissionId || !bedNumber) {
@@ -66,7 +66,7 @@ router.post('/auto-create-on-discharge', protect, validate(hkAutoCreateSchema), 
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.post('/tasks', protect, validate(createHousekeepingSchema), async (req, res) => {
+router.post('/tasks', protect, adminOnly, validate(createHousekeepingSchema), async (req, res) => {
   try {
     const { room, bedNumber, ward, type, priority, checklist } = req.body;
     if (!room || !type) return res.status(400).json({ message: 'Room and type required' });

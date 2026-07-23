@@ -244,6 +244,9 @@ router.post('/:id/pay', protect, async (req, res) => {
   try {
     const bill = await Billing.findById(req.params.id);
     if (!bill) return res.status(404).json({ message: 'Invoice not found' });
+    if (req.user.role === 'patient' && bill.patientId?.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to pay this bill' });
+    }
     if (req.user.hospitalId && bill.hospitalId && bill.hospitalId.toString() !== req.user.hospitalId.toString()) {
       return res.status(403).json({ message: 'Not authorized to modify this invoice' });
     }
@@ -282,6 +285,9 @@ router.put('/:id', protect, async (req, res) => {
   try {
     const oldBill = await Billing.findById(req.params.id);
     if (!oldBill) return res.status(404).json({ message: 'Invoice not found' });
+    if (req.user.role === 'patient' && oldBill.patientId?.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to modify this invoice' });
+    }
     if (req.user.hospitalId && oldBill.hospitalId && oldBill.hospitalId.toString() !== req.user.hospitalId.toString()) {
       return res.status(403).json({ message: 'Not authorized to modify this invoice' });
     }
@@ -308,6 +314,9 @@ router.delete('/:id', protect, async (req, res) => {
   try {
     const bill = await Billing.findById(req.params.id);
     if (!bill) return res.status(404).json({ message: 'Invoice not found' });
+    if (req.user.role === 'patient' && bill.patientId?.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to delete this invoice' });
+    }
     if (req.user.hospitalId && bill.hospitalId && bill.hospitalId.toString() !== req.user.hospitalId.toString()) {
       return res.status(403).json({ message: 'Not authorized to delete this invoice' });
     }

@@ -2,7 +2,7 @@ import express from 'express';
 import Announcement from '../models/Announcement.js';
 import Notification from '../models/Notification.js';
 import User from '../models/User.js';
-import { protect } from '../middleware/auth.js';
+import { protect, adminOnly } from '../middleware/auth.js';
 import { validate, createAnnouncementSchema } from '../utils/validate.js';
 
 const router = express.Router();
@@ -16,7 +16,7 @@ router.get('/', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/', protect, validate(createAnnouncementSchema), async (req, res) => {
+router.post('/', protect, adminOnly, validate(createAnnouncementSchema), async (req, res) => {
   try {
     const { title, message, priority, targetRoles } = req.body;
     const announcement = await Announcement.create({

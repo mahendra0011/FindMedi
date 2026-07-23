@@ -2,7 +2,7 @@ import express from 'express';
 import { z } from 'zod';
 import Insurance from '../models/Insurance.js';
 import Notification from '../models/Notification.js';
-import { protect } from '../middleware/auth.js';
+import { protect, adminOnly } from '../middleware/auth.js';
 import { validate, createInsuranceSchema } from '../utils/validate.js';
 
 const updateInsuranceSchema = z.object({}).passthrough();
@@ -67,6 +67,9 @@ router.get('/:id', protect, async (req, res) => {
   try {
     const claim = await Insurance.findById(req.params.id).populate('patientId', 'name email phone');
     if (!claim) return res.status(404).json({ message: 'Claim not found' });
+    if (req.user.role === 'patient' && claim.patientId?.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     if (req.user.hospitalId && req.user.role !== 'superadmin' && claim.hospitalId?.toString() !== req.user.hospitalId.toString()) {
       return res.status(403).json({ message: 'Access denied' });
     }
@@ -79,6 +82,9 @@ router.put('/:id', protect, validate(updateInsuranceSchema), async (req, res) =>
   try {
     const claim = await Insurance.findById(req.params.id);
     if (!claim) return res.status(404).json({ message: 'Claim not found' });
+    if (req.user.role === 'patient' && claim.patientId?.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     if (req.user.hospitalId && req.user.role !== 'superadmin' && claim.hospitalId?.toString() !== req.user.hospitalId.toString()) {
       return res.status(403).json({ message: 'Access denied' });
     }
@@ -89,7 +95,7 @@ router.put('/:id', protect, validate(updateInsuranceSchema), async (req, res) =>
 });
 
 // ─── Pre-Authorization ─────────────────────────────────────────────────────
-router.put('/:id/pre-auth', protect, validate(preAuthSchema), async (req, res) => {
+router.put('/:id/pre-auth', protect, adminOnly, validate(preAuthSchema), async (req, res) => {
   try {
     const { preAuthStatus, preAuthAmount, preAuthExpiry } = req.body;
     const claim = await Insurance.findById(req.params.id);
@@ -113,7 +119,7 @@ router.put('/:id/pre-auth', protect, validate(preAuthSchema), async (req, res) =
 });
 
 // ─── File Claim ────────────────────────────────────────────────────────────
-router.put('/:id/file-claim', protect, validate(fileClaimSchema), async (req, res) => {
+router.put('/:id/file-claim', protect, adminOnly, validate(fileClaimSchema), async (req, res) => {
   try {
     const { claimAmount } = req.body;
     const claim = await Insurance.findById(req.params.id);
@@ -130,7 +136,7 @@ router.put('/:id/file-claim', protect, validate(fileClaimSchema), async (req, re
 });
 
 // ─── Settle Claim ──────────────────────────────────────────────────────────
-router.put('/:id/settle', protect, validate(settleClaimSchema), async (req, res) => {
+router.put('/:id/settle', protect, adminOnly, validate(settleClaimSchema), async (req, res) => {
   try {
     const { approvedAmount } = req.body;
     const claim = await Insurance.findById(req.params.id);
