@@ -59,7 +59,7 @@ function UserManagementTab() {
     setLoading(false);
   };
 
-  useEffect(() => { loadUsers(); }, [search, roleFilter]);
+  useEffect(() => { loadUsers(); }, [search, roleFilter, loadUsers]);
 
   const handleDelete = async (id) => {
     if (!confirm('Permanently delete this user?')) return;
@@ -199,8 +199,8 @@ function AuditLogsTab() {
     } catch (e) { console.error(e); }
   };
 
-  useEffect(() => { fetchLogs(1); }, [actionFilter]);
-  useEffect(() => { fetchStats(); }, []);
+  useEffect(() => { fetchLogs(1); }, [actionFilter, fetchLogs]);
+  useEffect(() => { fetchStats(); }, [fetchStats]);
 
   const handleSearch = () => { fetchLogs(1); };
 
@@ -314,7 +314,7 @@ function ContentModerationTab() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchReviews(); }, [filter]);
+  useEffect(() => { fetchReviews(); }, [filter, fetchReviews]);
 
   const handleFlag = async (id, reason = '') => {
     try { await api.flagReview(id, { reason }); fetchReviews(); } catch (e) { console.error(e); }
@@ -554,7 +554,7 @@ function CommissionConfigTab() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchConfigs(); }, []);
+  useEffect(() => { fetchConfigs(); }, [fetchConfigs]);
 
   const handleSave = async (id) => {
     try {
@@ -697,7 +697,7 @@ function TransactionLedgerTab() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchLedger(1); }, [sourceFilter]);
+  useEffect(() => { fetchLedger(1); }, [sourceFilter, fetchLedger]);
 
   return (
     <div className="space-y-5">
@@ -802,7 +802,7 @@ function PayoutsTab() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchPayouts(1); }, []);
+  useEffect(() => { fetchPayouts(1); }, [fetchPayouts]);
 
   const handleMarkPaid = async (id) => {
     try {
@@ -915,7 +915,7 @@ function SystemSettingsTab() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchSettings(); }, []);
+  useEffect(() => { fetchSettings(); }, [fetchSettings]);
 
   const handleSave = async (key) => {
     try {
@@ -992,7 +992,7 @@ function DisputesTab() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [load]);
 
   const filtered = filter === 'All' ? disputes : disputes.filter(d => d.status === filter);
 
@@ -1412,7 +1412,7 @@ function LicensesTab() {
 }
 
 export default function SuperAdminDashboard() {
-  const { user } = useAuth();
+  useAuth();
   const [activeTab, setActiveTab] = useState('pending');
   const [pendingHospitals, setPendingHospitals] = useState([]);
   const [allHospitals, setAllHospitals] = useState([]);

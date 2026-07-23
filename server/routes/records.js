@@ -6,6 +6,7 @@ import Doctor from '../models/Doctor.js';
 import { protect } from '../middleware/auth.js';
 import { validate, createRecordSchema } from '../utils/validate.js';
 import { generatePrescriptionPDF } from '../services/pdfService.js';
+import { auditLog } from '../middleware/audit.js';
 
 const router = express.Router();
 
@@ -102,23 +103,25 @@ router.post('/', protect, validate(createRecordSchema), async (req, res) => {
       }
     }
     
-    const record = await Record.create({
-      patient: patient || req.user.name,
-      patientId: finalPatientId,
-      doctor: doctorName,
-      doctorId: doctorId,
-      appointmentId: appointmentId || null,
-      hospitalId: req.body.hospitalId || req.user.hospitalId || undefined,
-      date: new Date().toISOString().split('T')[0],
-      diagnosis: diagnosis || '',
-      prescription: prescription || '',
-      type: type || 'Diagnosis',
-      notes: notes || '',
-      data: data || {},
-      attachments: attachments || []
-    });
-    
-    await record.populate('doctorId', 'name specialization');
+const record = await Record.create({
+       patient: patient || req.user.name,
+       patientId: finalPatientId,
+       doctor: doctorName,
+       doctorId: doctorId,
+       appointmentId: appointmentId || null,
+       hospitalId: req.body.hospitalId || req.user.hospitalId || undefined,
+       date: new Date().toISOString().split('T')[0],
+       diagnosis: diagnosis || '',
+       prescription: prescription || '',
+       type: type || 'Diagnosis',
+       notes: notes || '',
+       data: data || {},
+       attachments: attachments || []
+     });
+     
+     await auditLog('create_record', req.user._id, { recordId: record._id, ip: req.ip, userAgent: req.get('user-agent') });
+     
+     await record.populate('doctorId', 'name specialization');
     
     if (finalPatientId) {
       await createNotification(finalPatientId.toString(), 'New Medical Record', `Dr. ${doctorName} has generated your ${type || 'record'}`, 'records');
@@ -149,9 +152,10 @@ router.put('/:id', protect, async (req, res) => {
     if (req.user.role === 'patient' && existing.patientId?.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: 'Not authorized to modify this record' });
     }
-    const r = await Record.findByIdAndUpdate(req.params.id, req.body, { new: true })
-      .populate('doctorId', 'name specialization');
-    res.json(r);
+const r = await Record.findByIdAndUpdate(req.params.id, req.body, { new: true })
+       .populate('doctorId', 'name specialization');
+     await auditLog('update_record', req.user._id, { recordId: req.params.id, ip: req.ip, userAgent: req.get('user-agent') });
+     res.json(r);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
@@ -198,6 +202,7 @@ router.delete('/:id', protect, async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to delete this record' });
     }
     await Record.findByIdAndDelete(req.params.id);
+    await auditLog('delete_record', req.user._id, { recordId: req.params.id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json({ message: 'Record removed' });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });

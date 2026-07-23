@@ -90,7 +90,7 @@ export default function DiagnosticCenters() {
       setLoading(false);
     };
     load();
-  }, []);
+  }, [enrichFacility]);
 
   const [activeCategory, setActiveCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -115,12 +115,10 @@ export default function ClinicDetail() {
   const [tests, setTests] = useState([]);
   const [testDeptFilter, setTestDeptFilter] = useState('All');
   const [testSearch, setTestSearch] = useState('');
-  const [priceRange, setPriceRange] = useState('all');
   const [testRxFilter, setTestRxFilter] = useState('all');
   const [testHomeFilter, setTestHomeFilter] = useState('all');
   const [testSort, setTestSort] = useState('popularity');
   const [testCart, setTestCart] = useState({});
-  const [suggestedClinics, setSuggestedClinics] = useState([]);
   const [showBooking, setShowBooking] = useState(false);
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
   const [bookingDate, setBookingDate] = useState('');
@@ -285,7 +283,7 @@ export default function ClinicDetail() {
             const r = await api.getReviews({ doctorId: loadedDoctors[0]._id });
             const revs = Array.isArray(r) ? r : r?.reviews || [];
             if (revs.length > 0) setReviews(revs);
-          } catch {}
+          } catch (e) { console.error(e); }
         } else {
           setReviews([]);
         }
@@ -1219,7 +1217,7 @@ export default function ClinicDetail() {
         )}
 
         {/* ═══════════ SUGGESTED CLINICS SECTION ═══════════ */}
-        {suggestedClinics.length > 0 && (
+        {SUGGESTED_CLINICS.length > 0 && (
           <div className="max-w-7xl mx-auto mt-14 mb-20">
             <motion.div variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true }}>
               <div className="flex items-center gap-3 mb-5">
@@ -1228,7 +1226,7 @@ export default function ClinicDetail() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {suggestedClinics.slice(0, 6).map((c) => (
+                {SUGGESTED_CLINICS.slice(0, 6).map((c) => (
                   <ClinicCard key={c._id} clinic={c} />
                 ))}
               </div>

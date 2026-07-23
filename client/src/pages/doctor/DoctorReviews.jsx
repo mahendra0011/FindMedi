@@ -33,7 +33,7 @@ export default function DoctorReviews() {
       setReplyingId(null);
       setReplyText(prev => ({ ...prev, [reviewId]: '' }));
       toast.success('Reply posted');
-    } catch (e) {
+    } catch {
       toast.error('Failed to post reply');
     }
   };

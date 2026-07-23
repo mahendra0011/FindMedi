@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { motion, useScroll } from "framer-motion";
 import { Activity, ArrowRight, Stethoscope, UserRound, CalendarDays, FileText, CreditCard, Shield, Clock, HeartPulse, ChevronRight, Zap, BarChart3, FileUp, Download, Mail, Image, Users, Bell, Laptop, Database, Cloud, Star, Quote, Play, CheckCircle, Phone, Search, MapPin, Award, Heart, Baby, Brain, Bone, Eye, Microscope, Syringe, Ambulance, Check, Circle, Send, Droplets, TestTube, Thermometer, Sparkles, Building2, CalendarCheck, TrendingUp, BadgeCheck, Video, FileCheck, Wallet, Lock, CircleDollarSign, Truck, Moon, Sun, UtensilsCrossed, Scissors, Droplet, Dna, Smile, ClipboardList, Package, Sofa, PieChart, BedDouble, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -150,15 +150,11 @@ const doctors = [
   { name: "Dr. Andrew Williams", specialty: "Gastroenterologist", available: true, rating: 4.9, patients: 580, doctor_type: "clinic" },
 ];
 
-const isDocumentDark = () => (
-  typeof document !== 'undefined' && document.documentElement.classList.contains('dark')
-);
-
 const getSelectedCity = () => localStorage.getItem('mediCore_city') || '';
 
 const Home = () => {
   const navigate = useNavigate();
-  const { user, updateUser } = useAuth();
+  const { user } = useAuth();
   const [doctorsList, setDoctorsList] = useState([]);
   const [counters, setCounters] = useState(statsData.map(() => 0));
   const [countersVisible, setCountersVisible] = useState(false);
@@ -170,7 +166,7 @@ const Home = () => {
       try {
         const data = await api.getDoctors({ available: 'true' });
         setDoctorsList(data?.slice(0, 6) || doctors.slice(0, 6));
-      } catch (e) {
+      } catch {
         setDoctorsList(doctors.slice(0, 6));
       }
     };
@@ -208,21 +204,15 @@ const Home = () => {
 
     if (statsRef.current) observer.observe(statsRef.current);
     return () => observer.disconnect();
-  }, [countersVisible]);
+  }, [countersVisible, counters]);
 
-  const { scrollY } = useScroll();
-  const heroY = useTransform(scrollY, [0, 500], [0, 150]);
+  useScroll();
   const dashboardLabel = user?.role === 'admin'
     ? 'Admin Dashboard'
     : user?.role === 'doctor'
       ? 'Doctor Dashboard'
       : 'User Dashboard';
-  const primaryActionLabel = user ? dashboardLabel : 'Book Appointment';
   const primaryActionPath = user ? '/dashboard' : '/signup';
-
-  const scrollToSection = (id) => {
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
 
   const handleCtaPointerMove = (event) => {
     const rect = event.currentTarget.getBoundingClientRect();

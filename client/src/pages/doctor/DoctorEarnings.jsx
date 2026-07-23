@@ -223,7 +223,7 @@ export default function DoctorEarnings() {
             <BarChart3 className="w-5 h-5 text-primary" /> Monthly Breakdown
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {months.map(([month, data], i) => (
+            {months.map(([month, data], _i) => (
               <div key={month} className="p-4 bg-muted/30 rounded-xl">
                 <p className="font-medium text-foreground mb-3">{month}</p>
                 <div className="space-y-2">

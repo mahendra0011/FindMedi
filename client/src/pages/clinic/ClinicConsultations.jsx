@@ -41,7 +41,7 @@ export default function ClinicConsultations() {
     setLoading(false);
   };
 
-  useEffect(() => { loadRecords(); }, [user?.name]);
+  useEffect(() => { loadRecords(); }, [user?.name, loadRecords]);
 
   const filtered = records.filter(r => {
     const m = !search || r.patient?.toLowerCase().includes(search.toLowerCase()) || r.diagnosis?.toLowerCase().includes(search.toLowerCase());

@@ -52,7 +52,7 @@ export default function DoctorPatients() {
     setLoading(false);
   };
 
-  useEffect(() => { loadData(); }, [user?.name]);
+  useEffect(() => { loadData(); }, [user?.name, loadData]);
 
   // Get unique patients
   const uniquePatients = [...new Map(appointments.map(a => [a.patient, a])).values()];

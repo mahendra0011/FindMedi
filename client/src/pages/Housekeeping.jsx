@@ -10,8 +10,8 @@ const hkApi = {
   createTask: (b) => api.createHousekeepingTask(b),
   completeTask: (id, b) => api.completeHousekeepingTask(id, b),
   verifyTask: (id, b) => api.verifyHousekeepingTask(id, b),
-  autoCreateOnDischarge: async (id, b) => { try { return await api.autoCreateHousekeepingOnDischarge({ id, ...b }); } catch (e) { return {}; } },
-  getStats: async () => { try { return await api.getHousekeepingStats(); } catch (e) { return { pending: 0, inProgress: 0, completed: 0, total: 0 }; } },
+  autoCreateOnDischarge: async (id, b) => { try { return await api.autoCreateHousekeepingOnDischarge({ id, ...b }); } catch { return {}; } },
+  getStats: async () => { try { return await api.getHousekeepingStats(); } catch { return { pending: 0, inProgress: 0, completed: 0, total: 0 }; } },
 };
 
 const statusColors = {
@@ -38,9 +38,7 @@ export default function Housekeeping() {
   const [statusFilter, setStatusFilter] = useState('All');
   const [expandedId, setExpandedId] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
-  const [showChecklist, setShowChecklist] = useState(null);
   const [checklist, setChecklist] = useState({});
-  const [showVerify, setShowVerify] = useState(null);
   const [verifyData, setVerifyData] = useState({ rating: 'Good', comments: '', issuesFound: '' });
   const [newTask, setNewTask] = useState({ room: '', bedNumber: '', ward: '', type: 'Routine Cleaning', priority: 'Routine', assignedTo: '', notes: '', isInfectionCase: false });
 
@@ -50,10 +48,12 @@ export default function Housekeeping() {
 
   const createMut = useMutation({ mutationFn: hkApi.createTask, onSuccess: () => { qc.invalidateQueries(['hk']); setShowCreate(false); } });
   const completeMut = useMutation({ mutationFn: ({ id, ...b }) => hkApi.completeTask(id, b), onSuccess: () => qc.invalidateQueries(['hk']) });
+  const [_showVerify, setShowVerify] = useState(null);
+  const [_showChecklist, setShowChecklist] = useState(null);
   const verifyMut = useMutation({ mutationFn: ({ id, ...b }) => hkApi.verifyTask(id, b), onSuccess: () => { qc.invalidateQueries(['hk']); setShowVerify(null); } });
   const autoCreateMut = useMutation({ mutationFn: hkApi.autoCreateOnDischarge, onSuccess: () => qc.invalidateQueries(['hk']) });
 
-  const renderChecklist = (task) => (
+  const _renderChecklist = (task) => (
     <div className="bg-muted/20 rounded-lg p-3">
       <p className="text-xs font-semibold mb-2">Cleaning Checklist</p>
       {task.isInfectionCase && (

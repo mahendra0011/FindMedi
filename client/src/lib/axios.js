@@ -5,7 +5,7 @@ const BASE = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 /** Get stored auth token (same order as login) */
 function getStoredAuthToken() {
   if (typeof localStorage === 'undefined') return null;
-  return localStorage.getItem('hms_token') || localStorage.getItem('token');
+  return localStorage.getItem('_secure_hms_token') || localStorage.getItem('hms_token') || localStorage.getItem('token');
 }
 
 /** Axios instance with base URL, timeout, and auto token injection */
@@ -41,6 +41,7 @@ apiClient.interceptors.response.use(
 
       // Auto-logout on 401 (token expired / invalid)
       if (status === 401) {
+        localStorage.removeItem('_secure_hms_token');
         localStorage.removeItem('hms_token');
         localStorage.removeItem('token');
       }

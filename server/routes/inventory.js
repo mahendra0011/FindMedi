@@ -6,6 +6,7 @@ import PurchaseOrder from '../models/PurchaseOrder.js';
 import Notification from '../models/Notification.js';
 import { protect, adminOnly } from '../middleware/auth.js';
 import { validate, createInventoryItemSchema, updateInventoryItemSchema, createSupplierSchema, createPurchaseOrderSchema } from '../utils/validate.js';
+import { auditLog } from '../middleware/audit.js';
 
 const stockUpdateSchema = z.object({ quantity: z.number(), type: z.enum(['add', 'deduct', 'adjust']), reference: z.string().optional(), notes: z.string().optional() });
 const updateSupplierSchema = z.object({}).passthrough();
@@ -24,6 +25,7 @@ const generatePONumber = async () => {
 router.post('/items', protect, adminOnly, validate(createInventoryItemSchema), async (req, res) => {
   try {
     const item = await Inventory.create({ ...req.body, hospitalId: req.user.hospitalId || undefined });
+    await auditLog('create_inventory_item', req.user._id, { recordId: item._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.status(201).json(item);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -58,6 +60,7 @@ router.put('/items/:id', protect, validate(updateInventoryItemSchema), async (re
     }
     Object.assign(item, req.body);
     await item.save();
+    await auditLog('update_inventory_item', req.user._id, { recordId: item._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json(item);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -71,10 +74,10 @@ router.put('/items/:id/stock', protect, adminOnly, validate(stockUpdateSchema), 
       return res.status(403).json({ message: 'Access denied' });
     }
       
-    if (type === 'add') item.currentStock += quantity;
+if (type === 'add') item.currentStock += quantity;
     else if (type === 'deduct') item.currentStock = Math.max(0, item.currentStock - quantity);
     else if (type === 'adjust') item.currentStock = quantity;
-      
+
     item.transactionHistory.push({
       type: type === 'add' ? 'Purchase' : (type === 'deduct' ? 'Issue' : 'Adjustment'),
       quantity,
@@ -84,6 +87,7 @@ router.put('/items/:id/stock', protect, adminOnly, validate(stockUpdateSchema), 
     });
     
     await item.save();
+    await auditLog('update_inventory_stock', req.user._id, { recordId: item._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json(item);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -124,6 +128,7 @@ router.get('/stats', protect, async (req, res) => {
 router.post('/suppliers', protect, adminOnly, validate(createSupplierSchema), async (req, res) => {
   try {
     const supplier = await Supplier.create({ ...req.body, hospitalId: req.user.hospitalId || undefined });
+    await auditLog('create_supplier', req.user._id, { recordId: supplier._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.status(201).json(supplier);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -150,6 +155,7 @@ router.put('/suppliers/:id', protect, validate(updateSupplierSchema), async (req
     }
     Object.assign(supplier, req.body);
     await supplier.save();
+    await auditLog('update_supplier', req.user._id, { recordId: supplier._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json(supplier);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -195,6 +201,7 @@ router.post('/purchase-orders', protect, adminOnly, validate(createPurchaseOrder
       notes: notes || '',
       createdBy: req.user._id,
     });
+    await auditLog('create_purchase_order', req.user._id, { recordId: po._id, ip: req.ip, userAgent: req.get('user-agent') });
 
     res.status(201).json(po);
   } catch (err) { res.status(400).json({ message: err.message }); }
@@ -244,6 +251,7 @@ router.put('/purchase-orders/:id/status', protect, adminOnly, validate(poStatusS
     po.status = status;
     if (approvedBy) po.approvedBy = req.user._id;
     await po.save();
+    await auditLog('update_purchase_order_status', req.user._id, { recordId: po._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json(po);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -257,9 +265,9 @@ router.put('/purchase-orders/:id/receive', protect, adminOnly, validate(poReceiv
       return res.status(403).json({ message: 'Access denied' });
     }
     
-    po.status = 'Received';
+po.status = 'Received';
     po.receivedDate = new Date();
-    
+
     // Update inventory stocks
     for (const item of po.items) {
       if (item.inventoryItemId) {
@@ -279,6 +287,7 @@ router.put('/purchase-orders/:id/receive', protect, adminOnly, validate(poReceiv
     }
 
     await po.save();
+    await auditLog('receive_purchase_order', req.user._id, { recordId: po._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json(po);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -291,6 +300,7 @@ router.delete('/purchase-orders/:id', protect, async (req, res) => {
       return res.status(403).json({ message: 'Access denied' });
     }
     await PurchaseOrder.findByIdAndDelete(req.params.id);
+    await auditLog('delete_purchase_order', req.user._id, { recordId: req.params.id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json({ message: 'Purchase order deleted' });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });

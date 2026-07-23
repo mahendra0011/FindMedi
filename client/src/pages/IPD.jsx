@@ -53,7 +53,6 @@ export default function IPD() {
   const [newIO, setNewIO] = useState({ inputType: 'Oral', inputAmount: '', outputType: 'Urine', outputAmount: '' });
   const [newNursingNote, setNewNursingNote] = useState({ shift: 'Morning', subjective: '', objective: '', assessment: '', plan: '' });
   const [newDoctorNote, setNewDoctorNote] = useState({ subjective: '', objective: '', assessment: '', plan: '' });
-  const [newWound, setNewWound] = useState({ woundType: '', location: '', dressingType: '', findings: '' });
   const [dischargeForm, setDischargeForm] = useState({ summary: '', medicines: '', followUpDate: '', instructions: '' });
 
   const { data: bedsData } = useQuery({ queryKey: ['beds', wardFilter], queryFn: () => ipdApi.getBeds({ ward: wardFilter }) });
@@ -71,7 +70,7 @@ export default function IPD() {
   const ioMut = useMutation({ mutationFn: ({ id, ...b }) => ipdApi.addIO(id, b), onSuccess: () => qc.invalidateQueries(['admissions']) });
   const nursingNoteMut = useMutation({ mutationFn: ({ id, ...b }) => ipdApi.addNursingNote(id, b), onSuccess: () => qc.invalidateQueries(['admissions']) });
   const doctorNoteMut = useMutation({ mutationFn: ({ id, ...b }) => ipdApi.addDoctorNote(id, b), onSuccess: () => qc.invalidateQueries(['admissions']) });
-  const woundMut = useMutation({ mutationFn: ({ id, ...b }) => ipdApi.addWoundCare(id, b), onSuccess: () => qc.invalidateQueries(['admissions']) });
+  
 
   const renderAdmissionDetails = (adm) => {
     if (!adm) return null;

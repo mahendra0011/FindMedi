@@ -46,7 +46,6 @@ const medicineStatusBadge = (isDispensed) => (
 
 export default function PharmacyPrescriptionQueue() {
   const [queue, setQueue] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('All');
   const [selectedRx, setSelectedRx] = useState(null);
@@ -54,12 +53,10 @@ export default function PharmacyPrescriptionQueue() {
   const [successMsg, setSuccessMsg] = useState('');
 
   const load = async () => {
-    setLoading(true);
     try {
       const res = await api.getPharmacyPrescriptions({});
       setQueue(res.prescriptions || []);
     } catch (e) { console.error(e); }
-    setLoading(false);
   };
 
   useEffect(() => { load(); }, []);
@@ -175,7 +172,6 @@ export default function PharmacyPrescriptionQueue() {
           {filtered.map((rx, i) => {
             const dispensed = rx.medicines?.filter(m => m.isDispensed).length || 0;
             const total = rx.medicines?.length || 0;
-            const colors = statusColors[rx.status] || statusColors.Active;
             return (
               <motion.div key={rx._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
                 className="bg-card rounded-2xl border border-border/60 p-5 hover:shadow-lg transition-all">

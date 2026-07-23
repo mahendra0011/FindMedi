@@ -13,14 +13,13 @@ const invApi = {
   createPR: (b) => api.createInventoryPR(b),
   createPO: (b) => api.createInventoryPO(b),
   receiveGRN: (id, b) => api.receiveInventoryGRN(id, b),
-  getStats: async () => { try { return await api.getInventoryStats(); } catch (e) { return { total: 0, lowStock: 0, expiring: 0, deadStock: 0 }; } },
+  getStats: async () => { try { return await api.getInventoryStats(); } catch { return { total: 0, lowStock: 0, expiring: 0, deadStock: 0 }; } },
 };
 
 export default function Inventory() {
   const qc = useQueryClient();
   const [search, setSearch] = useState('');
   const [tab, setTab] = useState('items');
-  const [expandedId, setExpandedId] = useState(null);
   const [showAdd, setShowAdd] = useState(false);
   const [showIssue, setShowIssue] = useState(null);
   const [issueData, setIssueData] = useState({ department: '', quantity: '1', issuedTo: '', purpose: '' });
@@ -28,8 +27,6 @@ export default function Inventory() {
   const [prData, setPrData] = useState({ itemName: '', quantity: '1', urgency: 'Routine', reason: '' });
   const [showPO, setShowPO] = useState(false);
   const [poData, setPoData] = useState({ supplier: '', itemName: '', quantity: '1', unitPrice: '', expectedDate: '' });
-  const [showGRN, setShowGRN] = useState(null);
-  const [grnData, setGrnData] = useState({ receivedQty: '0', condition: 'Good', batchNo: '', expiryDate: '' });
   const [newItem, setNewItem] = useState({ itemName: '', category: 'Consumable', unit: 'Pieces', currentStock: '0', minStockLevel: '10', unitPrice: '', supplier: '', location: '' });
 
   const { data } = useQuery({ queryKey: ['inventory', search], queryFn: () => invApi.getItems({ search }) });
@@ -41,7 +38,7 @@ export default function Inventory() {
   const issueMut = useMutation({ mutationFn: ({ id, ...b }) => invApi.issueItem(id, b), onSuccess: () => { qc.invalidateQueries(['inventory']); setShowIssue(null); } });
   const prMut = useMutation({ mutationFn: invApi.createPR, onSuccess: () => { qc.invalidateQueries(['inventory']); setShowPR(false); } });
   const poMut = useMutation({ mutationFn: invApi.createPO, onSuccess: () => { qc.invalidateQueries(['inventory']); setShowPO(false); } });
-  const grnMut = useMutation({ mutationFn: ({ id, ...b }) => invApi.receiveGRN(id, b), onSuccess: () => { qc.invalidateQueries(['inventory']); setShowGRN(null); } });
+  useMutation({ mutationFn: ({ id, ...b }) => invApi.receiveGRN(id, b), onSuccess: () => { qc.invalidateQueries(['inventory']); } });
 
   const isLowStock = (item) => item.currentStock <= item.minStockLevel;
   const isExpiring = (item) => item.expiryDate && new Date(item.expiryDate) < new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);

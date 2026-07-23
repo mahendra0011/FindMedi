@@ -6,11 +6,6 @@ import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 
 const DEPARTMENTS = ['Pathology', 'Radiology', 'Cardiology', 'Health Packages'];
-const getCategoryColor = (cat) => {
-  const map = { pathology: '#ef4444', radiology: '#3b82f6', cardiology: '#10b981', neurology: '#8b5cf6', default: '#6b7280' }
-  return map[cat?.toLowerCase()] || map.default
-}
-
 const CATEGORIES = ['Blood Test', 'Urine/Stool', 'Hormone', 'Vitamin', 'Cardiac Basic', 'Basic Imaging', 'Advanced Imaging', 'Health Package', 'Other'];
 const REPORT_TIMES = ['30 mins', '1 hr', '2 hrs', '6 hrs', '12 hrs', '24 hrs', '48 hrs', '72 hrs'];
 
@@ -46,7 +41,7 @@ export default function AdminTestCatalog() {
     setLoading(false);
   };
 
-  useEffect(() => { loadTests(); }, [deptFilter, catFilter, search]);
+  useEffect(() => { loadTests(); }, [deptFilter, catFilter, search, loadTests]);
 
   const resetForm = () => {
     setForm({

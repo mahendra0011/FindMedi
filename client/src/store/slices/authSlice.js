@@ -1,6 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { api } from '@/lib/api';
 import { mergeSettings, readStoredSettings } from '@/lib/settings';
+import { secureSetItem, secureGetItem, secureRemoveItem } from '@/lib/security';
 
 const initialState = {
   user: null,
@@ -44,7 +45,7 @@ export const selectUserSettings = (state) => state.auth.user?.settings;
 // Async thunk: initialize auth from stored token
 export const initializeAuth = () => async (dispatch) => {
   try {
-    const token = localStorage.getItem('hms_token');
+    const token = await secureGetItem('hms_token');
     if (!token) {
       dispatch(setUser(null));
       dispatch(setLoading(false));
@@ -57,9 +58,9 @@ export const initializeAuth = () => async (dispatch) => {
       settings: mergeSettings(readStoredSettings(), user.settings),
     };
     dispatch(setUser(mergedUser));
-  } catch (error) {
-    localStorage.removeItem('hms_token');
-    localStorage.removeItem('token');
+  } catch {
+    secureRemoveItem('hms_token');
+    secureRemoveItem('token');
     dispatch(setUser(null));
     dispatch(setLoading(false));
   }
@@ -70,8 +71,8 @@ export const loginUser = (credentials) => async (dispatch) => {
   dispatch(setLoading(true));
   try {
     const data = await api.login(credentials);
-    localStorage.removeItem('token');
-    localStorage.setItem('hms_token', data.token);
+    secureRemoveItem('token');
+    await secureSetItem('hms_token', data.token);
 
     const mergedUser = {
       ...data.user,
@@ -90,8 +91,8 @@ export const registerUser = (body) => async (dispatch) => {
   dispatch(setLoading(true));
   try {
     const data = await api.register(body);
-    localStorage.removeItem('token');
-    localStorage.setItem('hms_token', data.token);
+    secureRemoveItem('token');
+    await secureSetItem('hms_token', data.token);
 
     const mergedUser = {
       ...data.user,
@@ -107,8 +108,8 @@ export const registerUser = (body) => async (dispatch) => {
 
 // Async thunk: logout
 export const logoutUser = () => (dispatch) => {
-  localStorage.removeItem('hms_token');
-  localStorage.removeItem('token');
+  secureRemoveItem('hms_token');
+  secureRemoveItem('token');
   dispatch(logout());
 };
 

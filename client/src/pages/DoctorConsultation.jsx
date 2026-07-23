@@ -35,7 +35,7 @@ const consultationApi = {
       return {};
     }
   },
-  updateToken: async (id, b) => {
+  updateToken: async (id, _b) => {
     try {
       return await api.startTokenConsultation(id);
     } catch {
@@ -128,11 +128,6 @@ export default function DoctorConsultation() {
     },
   });
 
-  const completeTokenMut = useMutation({
-    mutationFn: consultationApi.completeToken,
-    onSuccess: () => qc.invalidateQueries(['consultation-tokens', 'consultation-stats']),
-  });
-
   const startConsultation = (token) => {
     setSelectedPatient(token);
     setConsultForm({
@@ -151,7 +146,7 @@ export default function DoctorConsultation() {
     try {
       const data = await consultationApi.getRecords({ search: patientName });
       setPatientHistory(data?.records || []);
-    } catch (e) {
+    } catch {
       setPatientHistory([]);
     }
   };

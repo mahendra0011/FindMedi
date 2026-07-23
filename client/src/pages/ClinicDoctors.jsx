@@ -170,7 +170,7 @@ const loadDoctors = async () => {
     setLoading(false);
   };
 
-  useEffect(() => { loadDoctors(); }, [search, specFilter]);
+  useEffect(() => { loadDoctors(); }, [search, specFilter, loadDoctors]);
 
   const insuranceProviders = useMemo(() => {
     const providers = new Set();
@@ -546,7 +546,7 @@ const loadDoctors = async () => {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {doctors.map((doc, i) => {
-                const initials = doc.name?.split(' ').map(n=>n?.[0]).join('').slice(0,2) || 'DR';
+                
                 const clinicName = getClinicName(doc);
                 const area = getClinicAddress(doc);
                 const dist = doc.distance || '0.8';

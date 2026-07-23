@@ -7,8 +7,6 @@ import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
 
 const statusColors = { Scheduled: 'bg-info/10 text-info', Completed: 'bg-success/10 text-success', Cancelled: 'bg-destructive/10 text-destructive' };
-const modalities = ['MRI', 'CT Scan', 'X-Ray', 'Ultrasound', 'Echo', 'ECG', 'Mammography'];
-
 const defaultAppts = [
   { _id: 'a1', patient: 'Ravi Kumar', modality: 'MRI Brain', date: new Date().toISOString().split('T')[0], time: '09:00 AM', status: 'Scheduled', notes: 'Contrast required' },
   { _id: 'a2', patient: 'Priya Sharma', modality: 'CT Abdomen', date: new Date().toISOString().split('T')[0], time: '11:00 AM', status: 'Completed', notes: '' },

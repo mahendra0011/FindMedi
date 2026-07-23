@@ -6,6 +6,7 @@ import User from '../models/User.js';
 import Billing from '../models/Billing.js';
 import { protect, adminOnly } from '../middleware/auth.js';
 import { validate, createDietOrderSchema } from '../utils/validate.js';
+import { auditLog } from '../middleware/audit.js';
 
 const dietDeliverMealSchema = z.object({ mealType: z.string().optional(), items: z.any().optional() });
 const dietConfirmMealSchema = z.object({ mealIndex: z.number().int().nonnegative(), feedback: z.string().optional(), feedbackNote: z.string().optional() });
@@ -23,15 +24,16 @@ router.post('/orders', protect, adminOnly, validate(createDietOrderSchema), asyn
     const { patientId, patientName, admissionId, ward, bedNumber, dietType, mealTimes, instructions, allergies } = req.body;
     if (!patientId || !dietType) return res.status(400).json({ message: 'Patient and diet type required' });
     const orderId = await generateOrderId();
-    const order = await DietOrder.create({
-      orderId, patientId, patientName, admissionId, ward, bedNumber,
-      doctorId: req.user._id, doctorName: req.user.name,
-      hospitalId: req.user.hospitalId || undefined,
-      dietType, mealTimes: mealTimes || ['Breakfast', 'Lunch', 'Dinner'],
-      instructions: instructions || '', allergies: allergies || '',
-      createdBy: req.user._id,
-    });
-    // Notify kitchen and dietitian
+const order = await DietOrder.create({
+       orderId, patientId, patientName, admissionId, ward, bedNumber,
+       doctorId: req.user._id, doctorName: req.user.name,
+       hospitalId: req.user.hospitalId || undefined,
+       dietType, mealTimes: mealTimes || ['Breakfast', 'Lunch', 'Dinner'],
+       instructions: instructions || '', allergies: allergies || '',
+       createdBy: req.user._id,
+     });
+     await auditLog('create_diet_order', req.user._id, { recordId: order._id, ip: req.ip, userAgent: req.get('user-agent') });
+     // Notify kitchen and dietitian
     const kitchenStaff = await User.find({ role: { $in: ['admin', 'dietitian'] }, status: 'active' }).select('_id');
     await Notification.insertMany(kitchenStaff.map(s => ({
       title: 'New Diet Order', message: `${dietType} diet for ${patientName} (${ward || 'N/A'})`,
@@ -73,14 +75,15 @@ router.put('/orders/:id/deliver-meal', protect, validate(dietDeliverMealSchema),
       deliveredAt: new Date(), deliveredBy: req.user.name,
     };
     
-    if (mealIndex >= 0) {
-      order.meals[mealIndex] = { ...order.meals[mealIndex], ...mealData };
-    } else {
-      order.meals.push(mealData);
-    }
-    
-    await order.save();
-    res.json(order);
+if (mealIndex >= 0) {
+       order.meals[mealIndex] = { ...order.meals[mealIndex], ...mealData };
+     } else {
+       order.meals.push(mealData);
+     }
+     
+     await order.save();
+     await auditLog('deliver_meal', req.user._id, { recordId: order._id, ip: req.ip, userAgent: req.get('user-agent') });
+     res.json(order);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
@@ -100,6 +103,7 @@ router.put('/orders/:id/confirm-meal', protect, validate(dietConfirmMealSchema),
     if (feedback) meal.patientFeedback = feedback;
     if (feedbackNote) meal.feedbackNote = feedbackNote;
     await order.save();
+     await auditLog('confirm_meal', req.user._id, { recordId: order._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json(order);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -121,6 +125,7 @@ router.put('/orders/:id/review', protect, async (req, res) => {
       order.patientFeedbackAt = new Date();
     }
     await order.save();
+     await auditLog('review_diet_order', req.user._id, { recordId: order._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json(order);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -135,6 +140,7 @@ router.put('/orders/:id/notify', protect, async (req, res) => {
     }
     order.kitchenNotifiedAt = new Date();
     await order.save();
+    await auditLog('notify_kitchen', req.user._id, { recordId: order._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json(order);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -150,6 +156,7 @@ router.put('/orders/:id/feedback', protect, async (req, res) => {
     order.patientFeedback = req.body.feedback;
     order.patientFeedbackAt = new Date();
     await order.save();
+    await auditLog('add_patient_feedback', req.user._id, { recordId: order._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json(order);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -186,6 +193,7 @@ router.post('/orders/:id/create-billing', protect, adminOnly, validate(dietBilli
       date: new Date().toISOString().split('T')[0],
       dietOrderId: order._id,
     });
+    await auditLog('create_diet_billing', req.user._id, { recordId: billing._id, ip: req.ip, userAgent: req.get('user-agent') });
     
     res.status(201).json(billing);
   } catch (err) { res.status(400).json({ message: err.message }); }

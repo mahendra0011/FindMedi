@@ -2,6 +2,7 @@ import express from 'express';
 import Patient from '../models/Patient.js';
 import { protect } from '../middleware/auth.js';
 import { validate, createPatientSchema, updatePatientSchema } from '../utils/validate.js';
+import { auditLog } from '../middleware/audit.js';
 
 const router = express.Router();
 
@@ -45,6 +46,7 @@ router.post('/', protect, validate(createPatientSchema), async (req, res) => {
   try {
     const targetHospitalId = req.body.hospitalId || req.user.hospitalId || undefined;
     const p = await Patient.create({ ...req.body, hospitalId: targetHospitalId });
+    await auditLog('create_patient', req.user._id, { recordId: p._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.status(201).json(p);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -61,6 +63,7 @@ router.put('/:id', protect, validate(updatePatientSchema), async (req, res) => {
     }
     Object.assign(p, req.body);
     await p.save();
+    await auditLog('update_patient', req.user._id, { recordId: p._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json(p);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -76,6 +79,7 @@ router.delete('/:id', protect, async (req, res) => {
       return res.status(403).json({ message: 'Access denied' });
     }
     await Patient.findByIdAndDelete(req.params.id);
+    await auditLog('delete_patient', req.user._id, { recordId: req.params.id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json({ message: 'Patient removed' });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });

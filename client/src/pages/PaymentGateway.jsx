@@ -36,7 +36,7 @@ export default function PaymentGateway() {
   const [copied, setCopied] = useState(false);
   const [saveCard, setSaveCard] = useState(false);
   const [agreed, setAgreed] = useState(false);
-  const [paying, setPaying] = useState(false);
+  const [_paying, setPaying] = useState(false);
   const [storeNames, setStoreNames] = useState({});
   const { user } = useAuth();
 
@@ -55,10 +55,10 @@ export default function PaymentGateway() {
           }
         });
         setStoreNames(map);
-      } catch {}
+      } catch { /* empty */ }
     };
     load();
-  }, []);
+  }, [storeIds]);
 
   const getStoreName = (sid) => storeNames[sid] || sid;
 
@@ -80,7 +80,7 @@ export default function PaymentGateway() {
         status: 'Completed',
       });
       setStep('success');
-    } catch (e) {
+    } catch {
       setStep('failed');
     }
     setPaying(false);

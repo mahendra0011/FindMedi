@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Search, Truck, Phone, Mail, Star, Clock, BadgeCheck, Store, ShoppingCart, Zap, Home, Pill, Eye, ArrowRight, MapPin, ZapOff, SlidersHorizontal, X, ArrowUpDown, IndianRupee, Filter } from 'lucide-react';
@@ -27,7 +27,6 @@ export default function BuyMedicine() {
   const navigate = useNavigate();
   const selectedCity = localStorage.getItem('mediCore_city') || '';
   const [allStores, setAllStores] = useState([]);
-  const [loadingStores, setLoadingStores] = useState(true);
 
   useEffect(() => {
     const load = async () => {
@@ -56,7 +55,7 @@ export default function BuyMedicine() {
           }));
           setAllStores(mapped);
         }
-      } catch {} finally { setLoadingStores(false); }
+      } catch (e) { console.error(e); }
     };
     load();
   }, []);
@@ -127,7 +126,7 @@ export default function BuyMedicine() {
     else if (sortBy === 'nearest') result.sort((a, b) => parseMinutes(a.deliveryTime) - parseMinutes(b.deliveryTime));
 
     return result;
-  }, [selectedCity, search, openNow, filter24x7, homeDelivery, genericOnly, quickRating, sortBy, storeType, locality, deliveryTimeRange, deliveryChargeFilter, freeDeliveryAboveFilter, minReviews, ratingMin, hasPhone, hasEmail]);
+  }, [allStores, selectedCity, search, openNow, filter24x7, homeDelivery, genericOnly, quickRating, sortBy, storeType, locality, deliveryTimeRange, deliveryChargeFilter, freeDeliveryAboveFilter, minReviews, ratingMin, hasPhone, hasEmail]);
 
   const renderStars = (rating) => (
     <div className="flex items-center gap-0.5">

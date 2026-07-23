@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Search, Download, Clock, X, FileText, TrendingUp, Users, Activity, BarChart3, Calendar, Filter, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -47,7 +46,7 @@ export default function Reports() {
     try {
       const res = await reportsApi.getReport(type, { ...dateRange, department });
       setReportData(res);
-    } catch (e) {
+    } catch {
       setReportData({ data: [], summary: {} });
     } finally {
       setLoading(false);

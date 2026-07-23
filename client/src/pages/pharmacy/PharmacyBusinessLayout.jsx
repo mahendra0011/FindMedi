@@ -1,6 +1,5 @@
 import { useRef, useEffect, useState } from 'react';
 import { Link, useLocation, Outlet } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import {
   LayoutDashboard, Pill, Package, ShoppingCart, Users,
   Tag, RefreshCw, Settings, ChevronLeft, ChevronRight,

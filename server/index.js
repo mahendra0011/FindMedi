@@ -41,14 +41,29 @@ app.use(helmet({
 // MongoDB injection protection
 app.use(mongoSanitize());
 
-// XSS protection
+// XSS protection - recursive sanitization for nested objects
+function sanitizeValue(value) {
+  if (typeof value === 'string') return xss(value);
+  if (Array.isArray(value)) return value.map(sanitizeValue);
+  if (value && typeof value === 'object') {
+    const sanitized = {};
+    for (const [k, v] of Object.entries(value)) {
+      sanitized[k] = sanitizeValue(v);
+    }
+    return sanitized;
+  }
+  return value;
+}
+
 app.use((req, res, next) => {
   if (req.body) {
-    Object.keys(req.body).forEach(key => {
-      if (typeof req.body[key] === 'string') {
-        req.body[key] = xss(req.body[key]);
-      }
-    });
+    req.body = sanitizeValue(req.body);
+  }
+  if (req.query) {
+    req.query = sanitizeValue(req.query);
+  }
+  if (req.params) {
+    req.params = sanitizeValue(req.params);
   }
   next();
 });
@@ -91,6 +106,15 @@ app.use('/api/auth/register', authLimiter);
 app.use('/api/auth/resend-otp', otpLimiter);
 app.use('/api/auth/forgot-password', forgotPasswordLimiter);
 
+if (process.env.NODE_ENV === 'production' && !process.env.REDIS_URL) {
+  logger.warn('Rate limiting is using in-memory store. Set REDIS_URL for shared rate limiting across multiple instances.');
+}
+
+// CSRF protection placeholder - enable when using cookie-based auth
+if (process.env.NODE_ENV === 'production' && process.env.USE_CSRF === 'true') {
+  logger.warn('CSRF protection is not yet implemented. Enable when transitioning to cookie-based sessions.');
+}
+
 // Environment validation
 validateEnv();
 printEnvStatus();
@@ -127,25 +151,30 @@ const corsOptions = {
 
 // In production, restrict origins. In development, allow all.
 if (process.env.NODE_ENV === 'production') {
-  const allowedOrigins = [];
-  if (process.env.CLIENT_URL) {
-    allowedOrigins.push(process.env.CLIENT_URL);
+  const allowedOrigins = [
+    'https://medicore.example.com',
+    ...(process.env.CLIENT_URL ? [process.env.CLIENT_URL] : []),
+    ...(process.env.CORS_ORIGIN ? [process.env.CORS_ORIGIN] : []),
+  ].filter(Boolean);
+  if (allowedOrigins.length === 0) {
+    logger.error('CORS: No allowed origins configured for production. Set CLIENT_URL or CORS_ORIGIN env vars.');
   }
-  // Add production frontend URL from env or fallback
-  if (process.env.CORS_ORIGIN) {
-    allowedOrigins.push(process.env.CORS_ORIGIN);
-  }
-  // Configure CORS_ORIGIN or CLIENT_URL in your environment variables for production
-  corsOptions.origin = allowedOrigins.filter(Boolean);
+  corsOptions.origin = allowedOrigins;
 } else {
   corsOptions.origin = true; // Allow all in development
 }
 
 app.use(cors(corsOptions));
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
-app.use('/public/uploads', express.static(path.join(__dirname, 'public/uploads')));
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '5mb' }));
+// Serve uploaded files with filename-based access control
+app.use('/uploads', (req, res, next) => {
+  // Authenticated access only for medical files
+  if (req.path.match(/\.(pdf|dcm|dicom|jpg|jpeg|png|gif)$/i) && !req.headers.authorization) {
+    return res.status(401).json({ message: 'Authentication required for medical file access' });
+  }
+  next();
+}, express.static(path.join(__dirname, 'public/uploads')));
 
 // Import routes
 import authRoutes from './routes/auth.js';
@@ -263,12 +292,10 @@ app.use(errorHandler);
 // Connect & start
 const PORT = process.env.PORT || 5001;
 const mongooseOptions = {
-  // New URL parser and unified topology
-  maxPoolSize: 10, // Maximum number of sockets in the pool
-  serverSelectionTimeoutMS: 30000, // Keep trying to connect for 30 seconds
-  socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
-  family: 4, // Use IPv4, skip trying IPv6
-  // Fail fast if not connected, don't buffer commands
+  maxPoolSize: 10,
+  serverSelectionTimeoutMS: 30000,
+  socketTimeoutMS: 45000,
+  family: 4,
   bufferCommands: false
 };
 
@@ -278,43 +305,45 @@ logger.info('   URI: ' + redactMongoUri(MONGO_URI));
 const server = http.createServer(app);
 initSocket(server);
 
-mongoose.connect(MONGO_URI, mongooseOptions)
-  .then(() => {
-    logger.info('✅ MongoDB connected successfully');
-    server.listen(PORT, () => {
-      const serverUrl = `http://localhost:${PORT}`;
-      logger.info(`🚀 Server running on ${serverUrl}`);
-      logger.info(`📡 Health check: ${serverUrl}/api/health`);
+if (process.env.NODE_ENV !== 'test') {
+  mongoose.connect(MONGO_URI, mongooseOptions)
+    .then(() => {
+      logger.info('✅ MongoDB connected successfully');
+      server.listen(PORT, () => {
+        const serverUrl = `http://localhost:${PORT}`;
+        logger.info(`🚀 Server running on ${serverUrl}`);
+        logger.info(`📡 Health check: ${serverUrl}/api/health`);
+      });
+    })
+    .catch(err => {
+      logger.error('❌ MongoDB connection error: ' + err.message);
+      logger.error('   Error code: ' + err.code);
+      logger.error('   Error name: ' + err.name);
+      logger.error('   Full URI used (redacted): ' + redactMongoUri(MONGO_URI));
+      if (process.env.NODE_ENV !== 'production') {
+        logger.error('   Stack trace: ' + err.stack);
+      }
+      process.exit(1);
     });
-  })
-  .catch(err => {
-    logger.error('❌ MongoDB connection error: ' + err.message);
-    logger.error('   Error code: ' + err.code);
-    logger.error('   Error name: ' + err.name);
-    logger.error('   Full URI used (redacted): ' + redactMongoUri(MONGO_URI));
-    if (process.env.NODE_ENV !== 'production') {
-      logger.error('   Stack trace: ' + err.stack);
-    }
-    process.exit(1);
+
+  mongoose.connection.on('connected', () => {
+    logger.info('✅ Mongoose connected to MongoDB');
   });
 
-// Handle connection events for better debugging
-mongoose.connection.on('connected', () => {
-  logger.info('✅ Mongoose connected to MongoDB');
-});
+  mongoose.connection.on('error', (err) => {
+    logger.error('❌ Mongoose connection error: ' + err);
+  });
 
-mongoose.connection.on('error', (err) => {
-  logger.error('❌ Mongoose connection error: ' + err);
-});
+  mongoose.connection.on('disconnected', () => {
+    logger.warn('⚠️ Mongoose disconnected');
+  });
 
-mongoose.connection.on('disconnected', () => {
-  logger.warn('⚠️ Mongoose disconnected');
-});
+  // Graceful shutdown
+  process.on('SIGINT', async () => {
+    await mongoose.connection.close();
+    logger.info('📦 MongoDB connection closed');
+    process.exit(0);
+  });
+}
 
-// Graceful shutdown
-process.on('SIGINT', async () => {
-  await mongoose.connection.close();
-  logger.info('📦 MongoDB connection closed');
-  process.exit(0);
-});
-// 13
+export default app;

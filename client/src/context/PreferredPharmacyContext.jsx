@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useReducer } from 'react';
+import { createContext, useCallback, useContext, useEffect, useReducer, useState } from 'react';
 import { api } from '@/lib/api';
 
 const STORAGE_KEY = 'mediCore_preferred_pharmacies';
@@ -50,8 +50,11 @@ const PreferredPharmacyContext = createContext(null);
 export function PreferredPharmacyProvider({ children }) {
   const [state, dispatch] = useReducer(prefsReducer, initialState);
 
+  const [error, setError] = useState(null);
+
   const loadFromBackend = useCallback(async () => {
     try {
+      setError(null);
       const res = await api.getPreferredPharmacies();
       if (res?.pharmacies?.length) {
         const mapped = res.pharmacies.map(p => ({ id: p._id, _id: p._id, name: p.name, priority: p.priority, facilityId: p.pharmacyId }));
@@ -59,8 +62,10 @@ export function PreferredPharmacyProvider({ children }) {
         localStorage.setItem(STORAGE_KEY, JSON.stringify({ pharmacies: mapped, autoRetryEnabled: false }));
         return true;
       }
-    } catch { /* fall through to localStorage */ }
-    return false;
+    } catch {
+      setError('Failed to load preferred pharmacies');
+      return false;
+    }
   }, []);
 
   useEffect(() => {
@@ -126,6 +131,7 @@ export function PreferredPharmacyProvider({ children }) {
       pharmacies: state.pharmacies,
       autoRetryEnabled: state.autoRetryEnabled,
       initialized: state.initialized,
+      error,
       addPharmacy,
       removePharmacy,
       reorderPharmacies,

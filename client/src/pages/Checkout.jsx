@@ -59,7 +59,7 @@ const STEPS = [
 
 export default function Checkout() {
   const navigate = useNavigate();
-  const { entries, stores, totalItems, addItem, removeItem, clearCart } = useCart();
+  const { entries, stores, addItem, removeItem, clearCart } = useCart();
   const fileInputRef = useRef(null);
   const { user } = useAuth();
   const autoRetry = useAutoRetry();
@@ -87,10 +87,6 @@ export default function Checkout() {
   const [savedPrescriptions, setSavedPrescriptions] = useState(() => {
     try { return JSON.parse(localStorage.getItem(SAVED_PRESCRIPTIONS_KEY)) || []; } catch { return []; }
   });
-  // Unified Rx outcome after verification + auto-retry
-  const [rxVerifiedGlobally, setRxVerifiedGlobally] = useState(false);
-  const [showRxReuploadPrompt, setShowRxReuploadPrompt] = useState(false);
-
   const [confirmDialog, setConfirmDialog] = useState(null);
   const [rxConfirmed, setRxConfirmed] = useState(false);
 
@@ -107,7 +103,7 @@ export default function Checkout() {
           map[id] = { id, name: f.name || f.storeName, deliveryCharges: f.deliveryCharges || 20, freeDeliveryAbove: f.freeDeliveryAbove || 200 };
         });
         setStoreMap(map);
-      } catch {}
+      } catch (e) { console.error(e); }
     };
     load();
   }, []);
@@ -338,7 +334,21 @@ export default function Checkout() {
                   <Input placeholder="City" className="text-sm rounded-lg" value={newAddress.city} onChange={e => setNewAddress(p => ({ ...p, city: e.target.value }))} />
                   <Input placeholder="Pincode" className="text-sm rounded-lg" value={newAddress.pincode} onChange={e => setNewAddress(p => ({ ...p, pincode: e.target.value }))} />
                 </div>
-                <Button size="sm" className="rounded-lg w-full" onClick={() => { if (!newAddress.full || !newAddress.city) { toast.error('Please fill all fields'); return; } const newId = `a${Date.now()}`; const updated = [...addressList, { id:newId, label:'Other', address:`${newAddress.full}, ${newAddress.city}, ${newAddress.pincode}`, type:'other', default:false }]; setAddressList(updated); setAddress(newId); setShowNewAddress(false); setNewAddress({ full:'', city:'', pincode:'' }); setAddressVersion(v => v + 1); toast.success('New address saved'); }}>Save Address</Button>
+                <Button size="sm" className="rounded-lg w-full" onClick={async () => {
+                 if (!newAddress.full || !newAddress.city) { toast.error('Please fill all fields'); return; }
+                 const newId = `a${Date.now()}`;
+                 const updated = [...addressList, { id:newId, label:'Other', address:`${newAddress.full}, ${newAddress.city}, ${newAddress.pincode}`, type:'other', default:false }];
+                 setAddressList(updated);
+                 setAddress(newId);
+                 setShowNewAddress(false);
+                 setNewAddress({ full:'', city:'', pincode:'' });
+                 setAddressVersion(v => v + 1);
+                 try {
+                   await api.dispatch(null, '/patient/addresses', { method:'POST', body: JSON.stringify({ address: `${newAddress.full}, ${newAddress.city}, ${newAddress.pincode}`, label: 'Other' }) });
+                 } catch (e) {
+                   console.error('Failed to save address:', e);
+                 }
+                 toast.success('New address saved'); }}>Save Address</Button>
               </div>
             )}
           </div>

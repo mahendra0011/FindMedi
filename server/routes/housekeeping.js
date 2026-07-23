@@ -6,6 +6,7 @@ import Bed from '../models/Bed.js';
 import Notification from '../models/Notification.js';
 import { protect, adminOnly } from '../middleware/auth.js';
 import { validate, createHousekeepingSchema } from '../utils/validate.js';
+import { auditLog } from '../middleware/audit.js';
 
 const hkAutoCreateSchema = z.object({ admissionId: z.string().min(1), bedNumber: z.string().min(1), ward: z.string().optional(), room: z.string().optional(), isInfectionCase: z.boolean().optional() });
 const hkAssignSchema = z.object({ assignedTo: z.string().optional(), assignedById: z.string().optional() });
@@ -27,7 +28,7 @@ router.post('/auto-create-on-discharge', protect, adminOnly, validate(hkAutoCrea
     const taskId = await genId();
     const taskType = isInfectionCase ? 'Terminal Cleaning (Infection)' : 'Routine Cleaning';
     
-    const task = await Housekeeping.create({
+const task = await Housekeeping.create({
       taskId,
       admissionId,
       bedNumber,
@@ -53,6 +54,7 @@ router.post('/auto-create-on-discharge', protect, adminOnly, validate(hkAutoCrea
       createdBy: req.user._id,
     });
 
+    await auditLog('create_housekeeping_task', req.user._id, { recordId: task._id, ip: req.ip, userAgent: req.get('user-agent') });
     // Notify housekeeping staff
     const housekeepingStaff = await Notification.insertMany([{
       title: 'New Housekeeping Task',
@@ -71,17 +73,18 @@ router.post('/tasks', protect, adminOnly, validate(createHousekeepingSchema), as
     const { room, bedNumber, ward, type, priority, checklist } = req.body;
     if (!room || !type) return res.status(400).json({ message: 'Room and type required' });
     const taskId = await genId();
-    const task = await Housekeeping.create({
-      taskId, 
-      room, 
-      bedNumber, 
-      ward, 
-      type, 
+const task = await Housekeeping.create({
+      taskId,
+      room,
+      bedNumber,
+      ward,
+      type,
       priority: priority || 'Normal',
       checklist: checklist || {},
       hospitalId: req.user.hospitalId || undefined,
-      createdBy: req.user._id 
+      createdBy: req.user._id
     });
+    await auditLog('create_housekeeping_task', req.user._id, { recordId: task._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.status(201).json(task);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -131,6 +134,7 @@ router.put('/tasks/:id/assign', protect, validate(hkAssignSchema), async (req, r
     task.status = 'In Progress';
     task.startedAt = new Date();
     await task.save();
+     await auditLog('assign_housekeeping_task', req.user._id, { recordId: task._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json(task);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -159,6 +163,7 @@ router.put('/tasks/:id/complete', protect, validate(hkCompleteSchema), async (re
     if (photo) task.photo = photo;
     if (checklist) task.checklist = { ...task.checklist, ...checklist };
     await task.save();
+     await auditLog('complete_housekeeping_task', req.user._id, { recordId: task._id, ip: req.ip, userAgent: req.get('user-agent') });
     
     res.json(task);
   } catch (err) { res.status(400).json({ message: err.message }); }
@@ -172,10 +177,11 @@ router.put('/tasks/:id/verify', protect, async (req, res) => {
       return res.status(403).json({ message: 'Access denied' });
     }
     
-    task.status = 'Verified';
+task.status = 'Verified';
     task.verifiedBy = req.user.name;
     task.verifiedAt = new Date();
     await task.save();
+     await auditLog('verify_housekeeping_task', req.user._id, { recordId: task._id, ip: req.ip, userAgent: req.get('user-agent') });
     
     // Update bed status to available if it was a discharge cleaning
     if (task.bedNumber && task.type.includes('Cleaning')) {
@@ -200,6 +206,7 @@ router.put('/tasks/:id/checklist', protect, validate(hkChecklistSchema), async (
     
     task.checklist = { ...task.checklist, ...checklist };
     await task.save();
+    await auditLog('update_housekeeping_checklist', req.user._id, { recordId: task._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json(task);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });

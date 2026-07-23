@@ -7,8 +7,8 @@ import { api } from '@/lib/api';
 
 const empty = { name: '', age: '', gender: 'Male', phone: '', address: '', bloodGroup: '', uhid: '' };
 const tokenApi = {
-  getAll: async (p) => { try { return await api.getTokens(p); } catch (e) { return { tokens: [] }; } },
-  generate: async (b) => { try { return await api.generateToken(b); } catch (e) { return null; } },
+  getAll: async (p) => { try { return await api.getTokens(p); } catch { return { tokens: [] }; } },
+  generate: async (b) => { try { return await api.generateToken(b); } catch { return null; } },
 };
 
 export default function OPDRegistration() {
@@ -19,7 +19,7 @@ export default function OPDRegistration() {
 
   const { data: patients = [] } = useQuery({
     queryKey: ['opd-patients', search],
-    queryFn: async () => { try { const res = await api.getPatients({ search }); return res.patients || res; } catch (e) { return []; } },
+    queryFn: async () => { try { const res = await api.getPatients({ search }); return res.patients || res; } catch { return []; } },
   });
 
   const { data: tokensData } = useQuery({
@@ -38,7 +38,7 @@ export default function OPDRegistration() {
     onSuccess: () => qc.invalidateQueries(['opd-tokens']),
   });
 
-  const printCard = (patient) => {
+  const printCard = (_patient) => {
     window.print();
   };
 

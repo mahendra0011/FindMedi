@@ -11,7 +11,6 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
-import { useAuth } from '@/context/AuthContext';
 
 const BOOKING_STATUS = {
   Scheduled: { label: 'Scheduled', color: 'bg-blue-500/10 text-blue-600 border-blue-500/30', icon: Clock },
@@ -59,7 +58,6 @@ function normalizeBooking(item, type) {
 
 export default function PatientBookings() {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
@@ -80,7 +78,7 @@ export default function PatientBookings() {
           ...((labBks?.bookings || [])).map(b => normalizeBooking(b, 'test')),
         ];
         setBookings(normalized);
-      } catch (e) {
+      } catch {
         setLoadError('Failed to load bookings');
       }
       setLoading(false);

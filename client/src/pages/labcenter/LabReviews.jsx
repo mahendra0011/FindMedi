@@ -9,12 +9,10 @@ import { toast } from 'sonner';
 export default function LabReviews() {
   const { user } = useAuth();
   const [reviews, setReviews] = useState([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchReviews = async () => {
       try {
-        setLoading(true);
         const hospitalId = user?.facilityId || user?.hospitalId || user?._id;
         const data = await api.getReviews({ hospitalId });
         setReviews(data?.length > 0 ? data : []);
@@ -22,8 +20,6 @@ export default function LabReviews() {
         console.error(error);
         setReviews([]);
         toast.error('Failed to load reviews');
-      } finally {
-        setLoading(false);
       }
     };
     fetchReviews();

@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
-import { toast } from 'sonner';
+
 
 export default function OrderConfirmation() {
   const navigate = useNavigate();
@@ -17,12 +17,11 @@ export default function OrderConfirmation() {
   const storeIds  = searchParams.get('stores')?.split(',') || [];
   const hasRx     = searchParams.get('rx') === 'true';
   const flowType  = searchParams.get('type') || 'medicine';
-  const { entries, stores, clearCart } = useCart();
+  const { entries, stores } = useCart();
   const { user } = useAuth();
-  const [countdown, setCountdown] = useState(30);
-  const [confirmed, setConfirmed] = useState(false);
-  const [snapshotStores, setSnapshotStores] = useState(null);
-  const [snapshotTotal, setSnapshotTotal] = useState(0);
+  const [snapshotStores] = useState(null);
+  const [snapshotTotal] = useState(0);
+  const [countdown] = useState(30);
   const [storeNames, setStoreNames] = useState({});
 
   const getStore = (storeId) => {
@@ -45,21 +44,14 @@ export default function OrderConfirmation() {
             }
           });
           setStoreNames(map);
-        } catch {}
+        } catch { /* empty */ }
       }
     };
     load();
-  }, []);
+  }, [storeIds]);
 
   const displayStores = snapshotStores ?? stores;
   const displayTotal = snapshotStores !== null ? snapshotTotal : entries.reduce((s, e) => s + e.item.price * e.qty, 0);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCountdown(p => { if (p <= 1) { clearInterval(timer); return 0; } return p - 1; });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50/50 to-background dark:from-emerald-950/10 dark:to-background">

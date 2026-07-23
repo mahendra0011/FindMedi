@@ -67,7 +67,7 @@ export function useAutoRetry() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pharmacies, autoRetryEnabled]);
 
-  const handleAccept = useCallback((storeIndex, store, orderContext) => {
+  const handleAccept = useCallback((storeIndex, store, _orderContext) => {
     if (!isRunningRef.current) return;
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
 

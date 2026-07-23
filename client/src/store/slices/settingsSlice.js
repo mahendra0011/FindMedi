@@ -31,7 +31,7 @@ const settingsSlice = createSlice({
         state[key] = value;
       }
     },
-    resetSettings: (state) => {
+    resetSettings: (_state) => {
       return { ...DEFAULT_SETTINGS };
     },
     loadSettings: (state, action) => {

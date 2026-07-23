@@ -19,7 +19,6 @@ export default function ClinicPatients() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedPatient, setSelectedPatient] = useState(null);
-  const [viewMode, setViewMode] = useState('list');
   const [expanded, setExpanded] = useState(null);
   const [diagnosis, setDiagnosis] = useState('');
   const [prescription, setPrescription] = useState('');
@@ -37,7 +36,7 @@ export default function ClinicPatients() {
     setLoading(false);
   };
 
-  useEffect(() => { loadData(); }, [user?.name]);
+  useEffect(() => { loadData(); }, [user?.name, loadData]);
 
   const uniquePatients = [...new Map(appointments.map(a => [a.patient, a])).values()];
   const filteredPatients = uniquePatients.filter(p => !search || p.patient?.toLowerCase().includes(search.toLowerCase()));

@@ -363,7 +363,7 @@ export function MapMarker({
       marker.remove();
       markerRef.current = null;
     };
-  }, [map, isLoaded, draggable, markerPosition?.[0], markerPosition?.[1]]);
+  }, [map, isLoaded, draggable, markerPosition?.[0], markerPosition?.[1], onDragStart, onDrag, onDragEnd, markerOptions]);
 
   React.useEffect(() => {
     if (markerPosition) markerRef.current?.setLngLat(markerPosition);
@@ -490,7 +490,7 @@ export function MapPopup({
       popupRef.current = null;
       contentRef.current = null;
     };
-  }, [map, isLoaded, popupPosition?.[0], popupPosition?.[1]]);
+  }, [map, isLoaded, popupPosition?.[0], popupPosition?.[1], closeButton, closeOnClick, focusAfterOpen, className, popupOptions, onClose]);
 
   React.useEffect(() => {
     if (popupPosition) popupRef.current?.setLngLat(popupPosition);

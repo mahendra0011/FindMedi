@@ -27,7 +27,7 @@ export default function PatientReviews() {
     setLoading(false);
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadData(); }, [loadData]);
 
   const handleSubmit = async () => {
     if (!selectedDoctor || !rating) return;

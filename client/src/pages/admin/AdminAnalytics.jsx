@@ -1,6 +1,4 @@
-import { motion } from 'framer-motion';
 import { BarChart3, TrendingUp, Users, Stethoscope, CalendarDays, IndianRupee, Activity } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { useApiQuery } from '@/hooks/useApiQuery';
 import StatCard from '@/components/StatCard';
@@ -9,7 +7,6 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
 
 export default function AdminAnalytics() {
-  const { user } = useAuth();
   const { data: stats, isLoading: statsLoading } = useApiQuery(['admin', 'stats'], () => api.dashboardStats());
   const { data: users = [], isLoading: usersLoading } = useApiQuery(['admin', 'users'], () => api.getUsers());
 

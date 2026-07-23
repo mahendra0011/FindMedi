@@ -45,6 +45,31 @@ const findPatientByName = async (name) => {
   return patient;
 };
 
+const COUPONS = [
+  { code: 'WELCOME10', discount: 10, type: 'percent', minAmount: 0, maxDiscount: 500, active: true },
+  { code: 'SAVE500', discount: 500, type: 'fixed', minAmount: 2000, maxDiscount: null, active: true },
+];
+
+router.post('/validate-coupon', protect, async (req, res) => {
+  try {
+    const { code, amount } = req.body;
+    const coupon = COUPONS.find(c => c.code === code && c.active);
+    if (!coupon) {
+      return res.json({ valid: false, message: 'Invalid or expired coupon code' });
+    }
+    if (amount < coupon.minAmount) {
+      return res.json({ valid: false, message: `Minimum amount for this coupon is ${coupon.minAmount}` });
+    }
+    let discount = coupon.type === 'percent' ? (amount * coupon.discount / 100) : coupon.discount;
+    if (coupon.maxDiscount && discount > coupon.maxDiscount) {
+      discount = coupon.maxDiscount;
+    }
+    res.json({ valid: true, discount, message: 'Coupon applied successfully' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // Get available lab services
 router.get('/services', protect, async (req, res) => {
   res.json(LAB_SERVICES);

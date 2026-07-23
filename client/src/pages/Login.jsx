@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useNavigate, Navigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Activity, ArrowRight, Shield, Stethoscope, UserRound, Building2, Hospital, Microscope, Pill, Heart } from 'lucide-react';
@@ -35,8 +35,6 @@ export default function Login() {
     setPassword('');
     setError('');
   };
-
-  const googleBtnRef = useRef(null);
 
   const handleGoogleCredential = async (credential) => {
     setError('');

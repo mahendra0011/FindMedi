@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -33,8 +33,6 @@ const patientApi = {
 };
 
 
-
-const getInitials = (name) => name ? name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : '?'
 
 const tabs = [
   { id: 'overview', label: 'Home', icon: LayoutDashboard },
@@ -88,13 +86,10 @@ export default function PatientDashboard() {
   const { user } = useAuth();
   const { pharmacies: prefPharmacies, removePharmacy } = usePreferredPharmacies();
   const [tab, setTab] = useState('overview');
-  const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(null);
   const [toast, setToast] = useState(null);
   const [appointments, setAppointments] = useState([]);
-  const [records, setRecords] = useState([]);
   const [bills, setBills] = useState([]);
-  const [doctors, setDoctors] = useState([]);
 
   const [family, setFamily] = useState([]);
   const [newFamily, setNewFamily] = useState({ name: '', relation: 'Spouse', gender: 'Male', phone: '', bloodGroup: '' });
@@ -106,9 +101,9 @@ export default function PatientDashboard() {
   const [prescriptions, setPrescriptions] = useState([]);
   const [testBookings, setTestBookings] = useState([]);
   const [reports, setReports] = useState([]);
-  const [paymentMethods, setPaymentMethods] = useState([]);
+  const [paymentMethods] = useState([]);
   const [notifs, setNotifs] = useState([]);
-  const [reviews, setReviews] = useState([]);
+  const [reviews] = useState([]);
   const [profileForm, setProfileForm] = useState({ name: user?.name || '', email: user?.email || '', phone: user?.phone || '', address: user?.address || '', gender: user?.gender || '', dateOfBirth: user?.dateOfBirth ? user.dateOfBirth.split('T')[0] : '', bloodGroup: user?.bloodGroup || '', allergies: user?.allergies?.map(a => a.allergen).join(', ') || '' });
   const [bookingFilter, setBookingFilter] = useState('All');
 
@@ -117,16 +112,13 @@ export default function PatientDashboard() {
   useEffect(() => {
     const load = async () => {
       try {
-        const [a, r, b, d] = await Promise.all([
+        const [a, r, b] = await Promise.all([
           api.getAppointments(),
           api.getRecords(),
           api.getBilling(),
-          api.getDoctors({ available: 'true' }),
         ]);
         setAppointments(a?.slice(0, 8) || []);
-        setRecords(r?.records || r || []);
         setBills(b?.bills || b || []);
-        setDoctors(d?.slice(0, 4) || []);
         const [f, addr, fav, phOrders, rx, n, lb] = await Promise.all([
           patientApi.getFamily().catch(() => ({ members: [] })),
           patientApi.getAddresses().catch(() => ({ addresses: [] })),
@@ -233,7 +225,7 @@ export default function PatientDashboard() {
                   { icon: <FileText />, label: 'Reports Ready', value: readyReports, color: 'text-primary', bg: 'bg-primary/10' },
                   { icon: <AlertTriangle />, label: 'Pending Bills', value: pendingBills, color: 'text-destructive', bg: 'bg-destructive/10' },
                   { icon: <Bell />, label: 'Notifications', value: unreadNotifs, color: 'text-warning', bg: 'bg-warning/10' },
-                ].map((s, i) => renderStatCard(s.icon, s.label, s.value, s.color, s.bg))}
+                ].map((s, _i) => renderStatCard(s.icon, s.label, s.value, s.color, s.bg))}
               </div>
 
               <div className="grid md:grid-cols-2 gap-6">

@@ -26,7 +26,6 @@ const leaveTypes = [
 export default function DoctorLeaveRequests() {
   const { user } = useAuth();
   const [leaves, setLeaves] = useState([]);
-  const [doctor, setDoctor] = useState(null);
   const [balance, setBalance] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -40,19 +39,14 @@ export default function DoctorLeaveRequests() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [doctors, leavesRes] = await Promise.all([
-        api.getDoctors(),
-        api.getLeaveRequests(),
-      ]);
-      const myDoc = doctors.find(d => d.email === user?.email) || doctors.find(d => d.name?.includes(user?.name)) || null;
-      if (myDoc) setDoctor(myDoc);
+      const leavesRes = await api.getLeaveRequests();
       setLeaves(leavesRes?.leaves || []);
       setBalance(leavesRes?.balance || null);
     } catch (e) { console.error(e); }
     setLoading(false);
   };
 
-  useEffect(() => { loadData(); }, [user?.email, user?.name]);
+  useEffect(() => { loadData(); }, [user?.email, user?.name, loadData]);
 
   const handleSubmit = async () => {
     if (!startDate || !endDate || !reason) return;
@@ -68,7 +62,7 @@ export default function DoctorLeaveRequests() {
       setEndDate('');
       setReason('');
       toast.success('Leave request submitted');
-    } catch (e) {
+    } catch {
       toast.error('Failed to submit leave request');
     }
     setSubmitting(false);

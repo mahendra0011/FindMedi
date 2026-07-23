@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import { Users, Search, Trash2, Shield, Stethoscope, UserRound, Ban, CheckCircle, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,7 +22,7 @@ export default function AdminUsers() {
     setLoading(false);
   };
 
-  useEffect(() => { loadUsers(); }, [search, roleFilter]);
+  useEffect(() => { loadUsers(); }, [search, roleFilter, loadUsers]);
 
   const handleDelete = async (id) => {
     try { await api.deleteUser(id); loadUsers(); } catch (e) { console.error(e); }

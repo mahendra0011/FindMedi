@@ -23,7 +23,7 @@ export default function PharmacyReturns() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [search]);
+  useEffect(() => { load(); }, [search, load]);
 
   const updateStatus = async (id, status) => {
     try { await api.updatePharmacyReturn(id, { status }); toast.success(`Return ${status}`); load(); }

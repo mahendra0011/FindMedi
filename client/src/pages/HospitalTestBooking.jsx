@@ -53,13 +53,13 @@ export default function HospitalTestBooking() {
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedSlot, setSelectedSlot] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('upi');
-  const [bookingConfirmed, setBookingConfirmed] = useState(false);
   const [bookingId, setBookingId] = useState('');
-  const [bookingLoading, setBookingLoading] = useState(false);
   const [hospital, setHospital] = useState(null);
   const { user } = useAuth();
   const [tests, setTests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [_bookingConfirmed, setBookingConfirmed] = useState(false);
+  const [_bookingLoading, setBookingLoading] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);

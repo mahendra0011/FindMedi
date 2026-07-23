@@ -35,7 +35,6 @@ export default function BloodBank() {
   const qc = useQueryClient();
   const [tab, setTab] = useState('inventory');
   const [search, setSearch] = useState('');
-  const [expandedId, setExpandedId] = useState(null);
   const [showAdd, setShowAdd] = useState(false);
   const [showCrossMatch, setShowCrossMatch] = useState(null);
   const [crossMatchData, setCrossMatchData] = useState({ patientGroup: '', donorUnitId: '', compatibility: 'Compatible', crossMatchResult: 'Compatible', technician: '' });

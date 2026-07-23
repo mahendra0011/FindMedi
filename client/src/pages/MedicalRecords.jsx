@@ -19,7 +19,6 @@ export default function MedicalRecords() {
   const qc = useQueryClient();
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
-  const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [expandedDoctor, setExpandedDoctor] = useState(null);
 
   const { data, isLoading } = useQuery({
@@ -101,7 +100,7 @@ export default function MedicalRecords() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {doctorList.map((group, i) => {
+          {doctorList.map((group, _i) => {
             const counts = getCategoryCounts(group.records);
             const isExpanded = expandedDoctor === group.doctor;
             return (

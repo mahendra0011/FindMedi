@@ -7,13 +7,6 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 
-const typeColors = {
-  Prescription: 'bg-success/10 text-success',
-  'Lab Report': 'bg-warning/10 text-warning',
-  Diagnosis: 'bg-primary/10 text-primary',
-  discharge_summary: 'bg-info/10 text-info',
-};
-
 const initialPrescription = {
   patientName: '', age: '', gender: '', phone: '', email: '', address: '',
   chiefComplaints: '', diagnosis: '',
@@ -26,7 +19,6 @@ export default function DoctorPrescriptions() {
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [typeFilter, setTypeFilter] = useState('All');
   const [showForm, setShowForm] = useState(false);
   const [expanded, setExpanded] = useState(null);
   const [form, setForm] = useState(initialPrescription);
@@ -45,7 +37,7 @@ export default function DoctorPrescriptions() {
     setLoading(false);
   };
 
-  useEffect(() => { loadRecords(); }, [user?.name]);
+  useEffect(() => { loadRecords(); }, [user?.name, loadRecords]);
 
   const filtered = records.filter(r =>
     !search || r.patient?.toLowerCase().includes(search.toLowerCase()) ||

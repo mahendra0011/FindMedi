@@ -7,7 +7,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 
@@ -21,7 +20,6 @@ const priorityStyles = {
 const priorityIcons = { urgent: AlertCircle, high: AlertTriangle, normal: Info, low: Info };
 
 export default function AdminAnnouncements() {
-  const { user } = useAuth();
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
