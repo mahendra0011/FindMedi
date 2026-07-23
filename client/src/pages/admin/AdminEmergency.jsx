@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { AlertTriangle, Users, Clock, Activity, Phone, UserPlus, ChevronRight } from 'lucide-react';
+import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -39,7 +40,7 @@ export default function AdminEmergency() {
       const [em, doc] = await Promise.all([api.getEmergencies({ status: 'All' }), api.getDoctors()]);
       setEmergencies(em || []);
       setDoctors(doc || []);
-    } catch (e) { console.error('Load error:', e); }
+    } catch { toast.error('Failed to load emergency data'); }
     setLoading(false);
   };
 
@@ -48,7 +49,7 @@ export default function AdminEmergency() {
       await api.assignEmergencyDoctor(caseId, doctorId, doctorName);
       loadData();
       setAssignModal(null);
-    } catch (e) { console.error(e); }
+    } catch { toast.error('Failed to assign doctor'); }
   };
 
   const filteredCases = emergencies.filter(em => {

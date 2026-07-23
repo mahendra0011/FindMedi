@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Navigate, Link, useLocation } from 'react-router-dom';
+import { useNavigate, Navigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Activity, ArrowRight, Shield, Stethoscope, UserRound, Microscope } from 'lucide-react';
+import { Activity, ArrowRight, Shield, Stethoscope, UserRound, Microscope, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
@@ -16,7 +16,6 @@ const roles = [
 export default function Signup() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  useLocation();
   const [role, setRole] = useState('patient');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -25,6 +24,19 @@ export default function Signup() {
   const [phone, setPhone] = useState('');
   const [gender, setGender] = useState('Male');
   const [dateOfBirth, setDateOfBirth] = useState('');
+  const passwordStrength = (() => {
+    if (!password) return { score: 0, label: '', color: 'bg-border' };
+    let score = 0;
+    if (password.length >= 8) score += 1;
+    if (password.length >= 12) score += 1;
+    if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score += 1;
+    if (/\d/.test(password)) score += 1;
+    if (/[^a-zA-Z0-9]/.test(password)) score += 1;
+    const labels = ['', 'Weak', 'Fair', 'Good', 'Strong', 'Very Strong'];
+    const colors = ['', 'bg-red-500', 'bg-orange-500', 'bg-yellow-500', 'bg-lime-500', 'bg-green-500'];
+    return { score, label: labels[score], color: colors[score] };
+  })();
+
   const [specialization, setSpecialization] = useState('');
   const [experience, setExperience] = useState('');
   const [qualification, setQualification] = useState('');
@@ -33,6 +45,9 @@ export default function Signup() {
   const [technicianRole, setTechnicianRole] = useState('');
   const [technicianExperience, setTechnicianExperience] = useState('');
   const [technicianQualification, setTechnicianQualification] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -59,8 +74,8 @@ export default function Signup() {
       setError('Passwords do not match');
       return;
     }
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters');
       return;
     }
     if (!phone || !gender || !dateOfBirth) {
@@ -75,11 +90,8 @@ export default function Signup() {
         ...(role === 'doctor' ? { specialization, experience, qualification, licenseNumber, consultationFee: consultationFee ? Number(consultationFee) : undefined } : {}),
         ...(role === 'technician' ? { specialization: technicianRole, experience: technicianExperience, qualification: technicianQualification } : {}),
       });
-      // Store credentials for auto-login after OTP
-      localStorage.setItem('temp_password', password);
-      localStorage.setItem('temp_role', role);
       // Navigate to OTP verification page
-      const params = new URLSearchParams({ email });
+      const params = new URLSearchParams({ email, role });
       if (data?.emailDeliveryFailed || data?.otpWarning) params.set('delivery', 'failed');
       if (data?.sentTo) params.set('sentTo', data.sentTo);
       navigate(`/verify-otp?${params.toString()}`);
@@ -103,14 +115,7 @@ export default function Signup() {
           <p className="text-sidebar-foreground/70 text-lg leading-relaxed mb-10">
             Create your account and start managing healthcare efficiently. Choose your role to get started.
           </p>
-          <div className="grid grid-cols-3 gap-4 text-center">
-            {[['1,247', 'Patients'], ['48', 'Doctors'], ['99.9%', 'Uptime']].map(([val, lbl]) => (
-              <div key={lbl} className="bg-sidebar-accent/50 rounded-xl p-3">
-                <p className="font-heading text-xl font-bold text-sidebar-primary-foreground">{val}</p>
-                <p className="text-xs text-sidebar-foreground/60">{lbl}</p>
-              </div>
-            ))}
-          </div>
+
         </motion.div>
       </div>
 
@@ -219,14 +224,40 @@ export default function Signup() {
             )}
             <div>
               <label className="text-sm font-medium text-foreground mb-1.5 block">Password</label>
-              <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Create a password" required />
+              <div className="relative">
+                <Input type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="Create a password" required className="pr-10" />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              {password && (
+                <div className="mt-2 space-y-1">
+                  <div className="flex gap-1">
+                    {[1,2,3,4,5].map(i => (
+                      <div key={i} className={`h-1.5 flex-1 rounded-full ${i <= passwordStrength.score ? passwordStrength.color : 'bg-border'}`} />
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground">{passwordStrength.label}</p>
+                </div>
+              )}
             </div>
             <div>
               <label className="text-sm font-medium text-foreground mb-1.5 block">Confirm Password</label>
-              <Input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Confirm your password" required />
+              <div className="relative">
+                <Input type={showConfirm ? 'text' : 'password'} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Confirm your password" required className="pr-10" />
+                <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                  {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
+            <label className="flex items-start gap-3 p-3 bg-muted/20 rounded-xl border border-border/40 cursor-pointer">
+              <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} className="mt-0.5 w-4 h-4 rounded border-border accent-primary" />
+              <div>
+                <p className="text-sm font-medium text-foreground">I agree to the <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link> and <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link></p>
+              </div>
+            </label>
             {error && <p className="text-sm text-destructive bg-destructive/10 px-3 py-2 rounded-lg">{error}</p>}
-            <Button type="submit" className="w-full gap-2" size="lg" disabled={loading}>
+            <Button type="submit" className="w-full gap-2" size="lg" disabled={loading || !agreed}>
               {loading ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
               {loading ? 'Creating Account...' : 'Create Account'}
               {!loading && <ArrowRight className="w-4 h-4" />}
@@ -241,4 +272,4 @@ export default function Signup() {
       </div>
     </div>
   );
-}// 7
+}

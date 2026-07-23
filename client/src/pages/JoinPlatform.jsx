@@ -5,7 +5,7 @@ import {
    Building2, Stethoscope, Microscope, Pill, ArrowLeft, ArrowRight,
    Check, ChevronRight, User, Mail, Phone, MapPin, Clock, FileText,
    Plus, X, Users, Star, Award, CalendarDays, BadgeCheck, Loader2,
-   Shield, Heart, Eye, Activity, Lock, Globe, Image, UserRound
+   Shield, Heart, Eye, EyeOff, Activity, Lock, Globe, Image, UserRound
  } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -73,7 +73,27 @@ export default function JoinPlatform() {
     cardiologistName: '', cardiologistQualification: '',
     technicianName: '', technicianRole: '', technicianQualification: '', technicianExperience: '',
   });
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [addingInsurance, setAddingInsurance] = useState(false);
+  const [newInsurance, setNewInsurance] = useState('');
+  const [addingAccreditation, setAddingAccreditation] = useState(false);
+  const [newAccreditation, setNewAccreditation] = useState('');
   const [agreed, setAgreed] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  const passwordStrength = (() => {
+    const pw = account.password;
+    if (!pw) return { score: 0, label: '', color: 'bg-border' };
+    let score = 0;
+    if (pw.length >= 8) score += 1;
+    if (pw.length >= 12) score += 1;
+    if (/[a-z]/.test(pw) && /[A-Z]/.test(pw)) score += 1;
+    if (/\d/.test(pw)) score += 1;
+    if (/[^a-zA-Z0-9]/.test(pw)) score += 1;
+    const labels = ['', 'Weak', 'Fair', 'Good', 'Strong', 'Very Strong'];
+    const colors = ['', 'bg-red-500', 'bg-orange-500', 'bg-yellow-500', 'bg-lime-500', 'bg-green-500'];
+    return { score, label: labels[score], color: colors[score] };
+  })();
 
   const updateAccount = (f) => (e) => setAccount(p => ({ ...p, [f]: e.target.value }));
   const updateFacility = (f) => (e) => setFacility(p => ({ ...p, [f]: e.target.value }));
@@ -84,12 +104,12 @@ export default function JoinPlatform() {
   const addDoctor = () => setDoctors(p => [...p, emptyDoctor()]);
   const removeDoctor = (i) => setDoctors(p => p.filter((_, idx) => idx !== i));
   const updateAmenity = (key) => (checked) => setFacility(p => ({ ...p, amenities: { ...p.amenities, [key]: checked } }));
-  const addInsurance = () => { const v = prompt('Enter insurance provider name:'); if (v) setFacility(p => ({ ...p, insurance: [...p.insurance, v.trim()] })); };
-  const addAccreditation = () => { const v = prompt('Enter accreditation (e.g. NABH, NABL, ISO):'); if (v) setFacility(p => ({ ...p, accreditations: [...p.accreditations, v.trim().toUpperCase()] })); };
+  const addInsurance = () => { if (newInsurance.trim()) { setFacility(p => ({ ...p, insurance: [...p.insurance, newInsurance.trim()] })); setNewInsurance(''); setAddingInsurance(false); } };
+  const addAccreditation = () => { if (newAccreditation.trim()) { setFacility(p => ({ ...p, accreditations: [...p.accreditations, newAccreditation.trim().toUpperCase()] })); setNewAccreditation(''); setAddingAccreditation(false); } };
 
   const canProceed = () => {
     if (step === 1) return !!type;
-    if (step === 2) return account.name?.length >= 2 && account.email?.includes('@') && account.phone?.length >= 10 && account.password?.length >= 6;
+    if (step === 2) return account.name?.length >= 2 && account.email?.includes('@') && account.phone?.length >= 10 && account.password?.length >= 8 && account.password === confirmPassword;
     if (step === 3) return facility.name && facility.address && facility.city;
     if (step === 4 || step === 4.5) return true;
     if (step === 5) return agreed;
@@ -307,9 +327,33 @@ export default function JoinPlatform() {
                   <label className="text-sm font-medium text-foreground mb-1.5 block">Password <span className="text-red-500">*</span></label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input type="password" value={account.password} onChange={updateAccount('password')} placeholder="Min 6 characters" className="pl-10" />
+                    <Input type={showPassword ? 'text' : 'password'} value={account.password} onChange={updateAccount('password')} placeholder="Min 8 characters" className="pl-10 pr-10" />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
                   </div>
+                  {account.password && (
+                    <div className="mt-2 space-y-1">
+                      <div className="flex gap-1">
+                        {[1,2,3,4,5].map(i => (
+                          <div key={i} className={`h-1.5 flex-1 rounded-full ${i <= passwordStrength.score ? passwordStrength.color : 'bg-border'}`} />
+                        ))}
+                      </div>
+                      <p className="text-xs text-muted-foreground">{passwordStrength.label}</p>
+                    </div>
+                  )}
                   <p className="text-xs text-muted-foreground mt-1">Use this password to login to your dashboard after approval</p>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-1.5 block">Confirm Password <span className="text-red-500">*</span></label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input type={showPassword ? 'text' : 'password'} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Re-enter password" className={`pl-10 ${confirmPassword && account.password !== confirmPassword ? 'border-destructive' : ''}`} />
+                  </div>
+                  {confirmPassword && account.password !== confirmPassword && (
+                    <p className="text-xs text-destructive mt-1">Passwords do not match</p>
+                  )}
                 </div>
               </div>
               {navButtons(false)}
@@ -460,7 +504,15 @@ export default function JoinPlatform() {
                           </span>
                         ))}
                       </div>
-                      <Button variant="outline" size="sm" onClick={addInsurance} className="text-xs h-7"><Plus className="w-3 h-3 mr-1" /> Add Insurance</Button>
+                      {addingInsurance ? (
+                        <div className="flex items-center gap-2">
+                          <Input value={newInsurance} onChange={e => setNewInsurance(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') addInsurance(); if (e.key === 'Escape') { setAddingInsurance(false); setNewInsurance(''); } }} placeholder="Enter insurance provider name" className="h-8 text-xs flex-1" autoFocus />
+                          <Button size="sm" onClick={addInsurance} className="h-8 text-xs"><Check className="w-3 h-3" /></Button>
+                          <Button variant="ghost" size="sm" onClick={() => { setAddingInsurance(false); setNewInsurance(''); }} className="h-8 text-xs text-muted-foreground"><X className="w-3 h-3" /></Button>
+                        </div>
+                      ) : (
+                        <Button variant="outline" size="sm" onClick={() => setAddingInsurance(true)} className="text-xs h-7"><Plus className="w-3 h-3 mr-1" /> Add Insurance</Button>
+                      )}
                     </div>
 
                     <div>
@@ -473,7 +525,15 @@ export default function JoinPlatform() {
                           </span>
                         ))}
                       </div>
-                      <Button variant="outline" size="sm" onClick={addAccreditation} className="text-xs h-7"><Plus className="w-3 h-3 mr-1" /> Add Accreditation</Button>
+                      {addingAccreditation ? (
+                        <div className="flex items-center gap-2">
+                          <Input value={newAccreditation} onChange={e => setNewAccreditation(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') addAccreditation(); if (e.key === 'Escape') { setAddingAccreditation(false); setNewAccreditation(''); } }} placeholder="Enter accreditation (e.g. NABH, NABL, ISO)" className="h-8 text-xs flex-1" autoFocus />
+                          <Button size="sm" onClick={addAccreditation} className="h-8 text-xs"><Check className="w-3 h-3" /></Button>
+                          <Button variant="ghost" size="sm" onClick={() => { setAddingAccreditation(false); setNewAccreditation(''); }} className="h-8 text-xs text-muted-foreground"><X className="w-3 h-3" /></Button>
+                        </div>
+                      ) : (
+                        <Button variant="outline" size="sm" onClick={() => setAddingAccreditation(true)} className="text-xs h-7"><Plus className="w-3 h-3 mr-1" /> Add Accreditation</Button>
+                      )}
                     </div>
 
                     <div>
@@ -681,7 +741,7 @@ export default function JoinPlatform() {
                   <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} className="mt-0.5 w-4 h-4 rounded border-border accent-primary" />
                   <div>
                     <p className="text-sm font-medium text-foreground">I confirm that all provided information is accurate</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">By submitting, you agree to MediCore's terms of service and privacy policy. Your registration will be reviewed by our team.</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">By submitting, you agree to MediCore's <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link> and <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>. Your registration will be reviewed by our team.</p>
                   </div>
                 </label>
               </div>

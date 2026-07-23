@@ -104,7 +104,7 @@ export default function PatientBookings() {
       if (booking.type === 'appointment') {
         await api.updateAppointment(booking.id, { status: 'Cancelled' });
       } else {
-        await api.deleteLabBooking(booking.id);
+        await api.updateLabBooking(booking.id, { status: 'Cancelled' });
       }
       setBookings(prev => prev.map(b => b.id === booking.id ? { ...b, status: 'Cancelled' } : b));
       toast.success('Booking cancelled');
@@ -301,7 +301,7 @@ function BookingCard({ booking, index, onCancel }) {
               </Button>
             )}
             <Button variant="outline" size="sm" className="text-xs h-8 gap-1"
-              onClick={() => window.open(`tel:${booking.phone}`)}>
+              onClick={() => { window.location.href = `tel:${booking.phone}`; }}>
               <Phone className="w-3 h-3" /> Contact
             </Button>
           </div>

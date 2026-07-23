@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
   Shield, Building2, Building, CheckCircle, XCircle, AlertTriangle,
@@ -50,28 +50,36 @@ function UserManagementTab() {
   const [roleFilter, setRoleFilter] = useState('All');
   const [loading, setLoading] = useState(true);
 
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     setLoading(true);
     try {
       const data = await api.getUsers({ search, role: roleFilter });
       setUsers(data);
-    } catch (e) { console.error(e); }
+    } catch { toast.error('Failed to load users'); }
     setLoading(false);
-  };
+  }, [search, roleFilter]);
 
   useEffect(() => { loadUsers(); }, [search, roleFilter]);
 
   const handleDelete = async (id) => {
     if (!confirm('Permanently delete this user?')) return;
-    try { await api.deleteUser(id); loadUsers(); } catch (e) { console.error(e); }
+    try { await api.deleteUser(id); loadUsers(); } catch { toast.error('Failed to delete user'); }
   };
 
   const handleBlock = async (id) => {
-    try { await api.blockUser(id); loadUsers(); } catch (e) { console.error(e); }
+    try { await api.blockUser(id); loadUsers(); } catch { toast.error('Failed to update user status'); }
   };
 
-  const roleColors = { admin: 'bg-primary/10 text-primary', doctor: 'bg-info/10 text-info', patient: 'bg-success/10 text-success' };
-  const roleIcons = { admin: Shield, doctor: Stethoscope, patient: UserRound };
+  const roleColors = {
+    superadmin: 'bg-destructive/10 text-destructive',
+    admin: 'bg-primary/10 text-primary',
+    doctor: 'bg-info/10 text-info',
+    clinic_doctor: 'bg-info/10 text-info',
+    patient: 'bg-success/10 text-success',
+    lab_owner: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+    pharmacy_owner: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+  };
+  const roleIcons = { superadmin: Shield, admin: Shield, doctor: Stethoscope, clinic_doctor: Stethoscope, patient: UserRound, lab_owner: Activity, pharmacy_owner: Activity };
 
   return (
     <div className="space-y-5">
@@ -81,7 +89,7 @@ function UserManagementTab() {
           <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search users..." className="pl-10" />
         </div>
         <div className="flex gap-2">
-          {['All', 'admin', 'doctor', 'patient'].map(r => (
+          {['All', 'superadmin', 'admin', 'doctor', 'clinic_doctor', 'patient', 'lab_owner', 'pharmacy_owner'].map(r => (
             <button key={r} onClick={() => setRoleFilter(r)}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors capitalize ${roleFilter === r ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>
               {r}
@@ -125,7 +133,7 @@ function UserManagementTab() {
               {users.map(u => {
                 const RoleIcon = roleIcons[u.role] || UserRound;
                 return (
-                  <tr key={u.id} className="border-b last:border-0 hover:bg-muted/30">
+                  <tr key={u._id} className="border-b last:border-0 hover:bg-muted/30">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary text-sm font-bold">
@@ -147,11 +155,11 @@ function UserManagementTab() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center gap-2 justify-end">
-                        <Button variant="outline" size="sm" className="gap-1" onClick={() => handleBlock(u.id)}>
+                        <Button variant="outline" size="sm" className="gap-1" onClick={() => handleBlock(u._id)}>
                           {u.status === 'blocked' ? <CheckCircle className="w-3.5 h-3.5" /> : <Ban className="w-3.5 h-3.5" />}
                           {u.status === 'blocked' ? 'Unblock' : 'Block'}
                         </Button>
-                        <Button variant="outline" size="sm" className="gap-1 text-destructive" onClick={() => handleDelete(u.id)}>
+                        <Button variant="outline" size="sm" className="gap-1 text-destructive" onClick={() => handleDelete(u._id)}>
                           <Trash2 className="w-3.5 h-3.5" />
                         </Button>
                       </div>
@@ -177,7 +185,7 @@ function AuditLogsTab() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchLogs = async (p = page) => {
+  const fetchLogs = useCallback(async (p = page) => {
     setLoading(true);
     try {
       const params = { page: p, limit: 30 };
@@ -188,19 +196,19 @@ function AuditLogsTab() {
       setTotal(data.total || 0);
       setPage(data.page || 1);
       setTotalPages(data.totalPages || 1);
-    } catch (e) { console.error(e); }
+    } catch { toast.error('Failed to load audit logs'); }
     setLoading(false);
-  };
+  }, [page, actionFilter, search]);
 
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       const data = await api.getAuditLogStats();
       setStats(data);
-    } catch (e) { console.error(e); }
-  };
+    } catch { toast.error('Failed to load audit stats'); }
+  }, []);
 
-  useEffect(() => { fetchLogs(1); }, [actionFilter, fetchLogs]);
-  useEffect(() => { fetchStats(); }, [fetchStats]);
+  useEffect(() => { fetchLogs(1); }, [actionFilter]);
+  useEffect(() => { fetchStats(); }, []);
 
   const handleSearch = () => { fetchLogs(1); };
 
@@ -304,29 +312,29 @@ function ContentModerationTab() {
   const [filter, setFilter] = useState('all');
   const [loading, setLoading] = useState(true);
 
-  const fetchReviews = async () => {
+  const fetchReviews = useCallback(async () => {
     setLoading(true);
     try {
       const params = filter === 'flagged' ? { flagged: 'true' } : {};
       const data = await api.getFlaggedReviews(params);
       setReviews(data || []);
-    } catch (e) { console.error(e); }
+    } catch { toast.error('Failed to load reviews'); }
     setLoading(false);
-  };
+  }, [filter]);
 
-  useEffect(() => { fetchReviews(); }, [filter, fetchReviews]);
+  useEffect(() => { fetchReviews(); }, [filter]);
 
   const handleFlag = async (id, reason = '') => {
-    try { await api.flagReview(id, { reason }); fetchReviews(); } catch (e) { console.error(e); }
+    try { await api.flagReview(id, { reason }); fetchReviews(); } catch { toast.error('Failed to flag review'); }
   };
 
   const handleUnflag = async (id) => {
-    try { await api.unflagReview(id); fetchReviews(); } catch (e) { console.error(e); }
+    try { await api.unflagReview(id); fetchReviews(); } catch { toast.error('Failed to unflag review'); }
   };
 
   const handleDelete = async (id) => {
     if (!confirm('Delete this review permanently?')) return;
-    try { await api.deleteReview(id); fetchReviews(); } catch (e) { console.error(e); }
+    try { await api.deleteReview(id); fetchReviews(); } catch { toast.error('Failed to delete review'); }
   };
 
   return (
@@ -435,7 +443,7 @@ function RevenueOverview() {
           api.getCommissionStats().catch(() => null),
         ]);
         setStats({ ...(dashboardData.stats || dashboardData), commission: commissionData });
-      } catch (e) { console.error(e); }
+      } catch { toast.error('Failed to load revenue overview'); }
       setLoading(false);
     };
     load();
@@ -544,17 +552,17 @@ function CommissionConfigTab() {
   const [editFields, setEditFields] = useState({});
   const [loading, setLoading] = useState(true);
 
-  const fetchConfigs = async () => {
+  const fetchConfigs = useCallback(async () => {
     setLoading(true);
     try {
       const data = await api.getCommissionConfigs();
       setConfigs(data.configs || []);
       setStats(data.stats || null);
-    } catch (e) { console.error(e); }
+    } catch { toast.error('Failed to load commission configs'); }
     setLoading(false);
-  };
+  }, []);
 
-  useEffect(() => { fetchConfigs(); }, [fetchConfigs]);
+  useEffect(() => { fetchConfigs(); }, []);
 
   const handleSave = async (id) => {
     try {
@@ -683,7 +691,7 @@ function TransactionLedgerTab() {
   const [sourceFilter, setSourceFilter] = useState('');
   const [loading, setLoading] = useState(true);
 
-  const fetchLedger = async (p = page) => {
+  const fetchLedger = useCallback(async (p = page) => {
     setLoading(true);
     try {
       const params = { page: p, limit: 30 };
@@ -693,11 +701,11 @@ function TransactionLedgerTab() {
       setTotals(data.totals || {});
       setPage(data.page || 1);
       setTotalPages(data.totalPages || 1);
-    } catch (e) { console.error(e); }
+    } catch { toast.error('Failed to load transaction ledger'); }
     setLoading(false);
-  };
+  }, [page, sourceFilter]);
 
-  useEffect(() => { fetchLedger(1); }, [sourceFilter, fetchLedger]);
+  useEffect(() => { fetchLedger(1); }, [sourceFilter]);
 
   return (
     <div className="space-y-5">
@@ -790,7 +798,7 @@ function PayoutsTab() {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
 
-  const fetchPayouts = async (p = page) => {
+  const fetchPayouts = useCallback(async (p = page) => {
     setLoading(true);
     try {
       const data = await api.getPayouts({ page: p, limit: 30 });
@@ -798,11 +806,11 @@ function PayoutsTab() {
       setPayoutStats(data.stats || []);
       setPage(data.page || 1);
       setTotalPages(data.totalPages || 1);
-    } catch (e) { console.error(e); }
+    } catch { toast.error('Failed to load payouts'); }
     setLoading(false);
-  };
+  }, [page]);
 
-  useEffect(() => { fetchPayouts(1); }, [fetchPayouts]);
+  useEffect(() => { fetchPayouts(1); }, []);
 
   const handleMarkPaid = async (id) => {
     try {
@@ -906,16 +914,16 @@ function SystemSettingsTab() {
   const [editValue, setEditValue] = useState('');
   const [loading, setLoading] = useState(true);
 
-  const fetchSettings = async () => {
+  const fetchSettings = useCallback(async () => {
     setLoading(true);
     try {
       const data = await api.getSystemSettings();
       setSettings(data);
-    } catch (e) { console.error(e); }
+    } catch { toast.error('Failed to load system settings'); }
     setLoading(false);
-  };
+  }, []);
 
-  useEffect(() => { fetchSettings(); }, [fetchSettings]);
+  useEffect(() => { fetchSettings(); }, []);
 
   const handleSave = async (key) => {
     try {
@@ -982,17 +990,17 @@ function DisputesTab() {
   const [selected, setSelected] = useState(null);
   const [resolution, setResolution] = useState('');
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const [res, s] = await Promise.all([api.getDisputes({}), api.getDisputeStats()]);
       setDisputes(res.disputes || []);
       setStats(s);
-    } catch (e) { console.error(e); }
+    } catch { toast.error('Failed to load disputes'); }
     setLoading(false);
-  };
+  }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(); }, []);
 
   const filtered = filter === 'All' ? disputes : disputes.filter(d => d.status === filter);
 
@@ -1104,15 +1112,15 @@ function SupportTicketsTab() {
   const [selected, setSelected] = useState(null);
   const [reply, setReply] = useState('');
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const [res, s] = await Promise.all([api.getSupportTickets({}), api.getTicketStats()]);
       setTickets(res.tickets || []);
       setStats(s);
-    } catch (e) { console.error(e); }
+    } catch { toast.error('Failed to load support tickets'); }
     setLoading(false);
-  };
+  }, []);
 
   useEffect(() => { load(); }, []);
 
@@ -1232,14 +1240,14 @@ function CategoriesTab() {
   const [form, setForm] = useState({ name: '', type: 'test', description: '', displayOrder: 0 });
   const [editId, setEditId] = useState(null);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const res = await api.getCategories({ type: typeFilter });
       setCategories(res.categories || []);
-    } catch (e) { console.error(e); }
+    } catch { toast.error('Failed to load categories'); }
     setLoading(false);
-  };
+  }, [typeFilter]);
 
   useEffect(() => { load(); }, [typeFilter]);
 
@@ -1252,7 +1260,7 @@ function CategoriesTab() {
       setForm({ name: '', type: typeFilter, description: '', displayOrder: 0 });
       setEditId(null);
       load();
-    } catch (e) { console.error(e); }
+    } catch { toast.error(editId ? 'Failed to update category' : 'Failed to create category'); }
   };
 
   const handleEdit = (cat) => {
@@ -1332,15 +1340,15 @@ function LicensesTab() {
   const [filter, setFilter] = useState('All');
   const [stats, setStats] = useState(null);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const [res, s] = await Promise.all([api.getLicenses({}), api.getLicenseStats()]);
       setLicenses(res.licenses || []);
       setStats(s);
-    } catch (e) { console.error(e); }
+    } catch { toast.error('Failed to load licenses'); }
     setLoading(false);
-  };
+  }, []);
 
   useEffect(() => { load(); }, []);
 

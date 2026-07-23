@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Activity, TestTube, Heart, Droplets, Thermometer, Calendar, CheckCircle, Loader2, IndianRupee } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -84,11 +84,7 @@ export default function PatientServices() {
   const [booking, setBooking] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  useEffect(() => {
-    if (user) loadServices();
-  }, [user?.id, user?._id, user?.name, loadServices]);
-
-  const loadServices = async () => {
+  const loadServices = useCallback(async () => {
     setLoading(true);
     try {
       const [data, billingData] = await Promise.all([
@@ -100,7 +96,11 @@ export default function PatientServices() {
       setBookedServices(buildLabBookings(bills, data || [], user));
     } catch (e) { console.error(e); }
     setLoading(false);
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (user) loadServices();
+  }, [user, loadServices]);
 
   const toggleService = (service) => {
     setSelectedServices(prev => {

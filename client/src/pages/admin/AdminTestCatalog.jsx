@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Search, Trash2, Edit, Save, X, FlaskConical, Home, Eye, Lock, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
 
 const DEPARTMENTS = ['Pathology', 'Radiology', 'Cardiology', 'Health Packages'];
@@ -24,7 +25,7 @@ export default function AdminTestCatalog() {
     homeCollectionFee: '', popular: false, nablAccredited: false, description: '', preparation: '',
   });
 
-  const loadTests = async () => {
+  const loadTests = useCallback(async () => {
     setLoading(true);
     try {
       const params = {};
@@ -37,9 +38,9 @@ export default function AdminTestCatalog() {
       ]);
       setTests(data);
       setStats(statsData);
-    } catch (e) { console.error(e); }
+    } catch { toast.error('Failed to load tests'); }
     setLoading(false);
-  };
+  }, [deptFilter, catFilter, search]);
 
   useEffect(() => { loadTests(); }, [deptFilter, catFilter, search]);
 
@@ -68,7 +69,7 @@ export default function AdminTestCatalog() {
       }
       resetForm();
       loadTests();
-    } catch (e) { console.error(e); }
+    } catch { toast.error(editId ? 'Failed to update test' : 'Failed to create test'); }
   };
 
   const handleEdit = (test) => {
@@ -88,7 +89,8 @@ export default function AdminTestCatalog() {
   };
 
   const handleDelete = async (id) => {
-    try { await api.deleteTest(id); loadTests(); } catch (e) { console.error(e); }
+    if (!confirm('Permanently delete this test?')) return;
+    try { await api.deleteTest(id); loadTests(); } catch { toast.error('Failed to delete test'); }
   };
 
   const calcDiscount = (mrp, price) => {

@@ -24,13 +24,13 @@ export default function PatientAppointments() {
   const loadAppointments = async () => {
     setLoading(true);
     try {
-      const data = await api.getAppointments({ patient: user?.name, status: filter });
+      const data = await api.getAppointments({ patientId: user?._id, status: filter });
       setAppointments(data);
     } catch (e) { console.error(e); }
     setLoading(false);
   };
 
-  useEffect(() => { loadAppointments(); }, [filter]);
+  useEffect(() => { loadAppointments(); }, [filter, user?._id]);
 
   const handleCancel = async (id) => {
     try {

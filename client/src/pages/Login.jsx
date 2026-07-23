@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Navigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Activity, ArrowRight, Shield, Stethoscope, UserRound, Building2, Hospital, Microscope, Pill, Heart } from 'lucide-react';
+import { Activity, ArrowRight, Shield, Stethoscope, UserRound, Building2, Hospital, Microscope, Pill, Heart, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
@@ -23,6 +23,7 @@ export default function Login() {
   const [role, setRole] = useState('admin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -57,10 +58,16 @@ export default function Login() {
     }
   };
 
+  const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
   const handleGoogleLogin = () => {
+    if (!GOOGLE_CLIENT_ID) {
+      setError('Google Sign-In is not configured. Contact the administrator.');
+      return;
+    }
     if (window.google?.accounts?.id) {
       window.google.accounts.id.initialize({
-        client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || 'your_google_client_id_here',
+        client_id: GOOGLE_CLIENT_ID,
         callback: (response) => handleGoogleCredential(response.credential),
       });
       window.google.accounts.id.prompt();
@@ -78,14 +85,11 @@ export default function Login() {
       navigate('/dashboard');
     } catch (err) {
       if (err.requiresVerification || err.message?.toLowerCase().includes('verify your email')) {
-        // Store credentials for auto-login after OTP verification
-        localStorage.setItem('temp_password', password);
-        localStorage.setItem('temp_role', role);
         const params = new URLSearchParams({ email });
         if (err.otpError || err.emailDeliveryFailed) params.set('delivery', 'failed');
         navigate(`/verify-otp?${params.toString()}`);
       } else if (err.approvalPending || err.approvalRejected) {
-        navigate(`/pending-approval?email=${encodeURIComponent(email)}&status=${err.approvalRejected ? 'rejected' : 'pending'}`);
+        navigate(`/pending-approval?email=${encodeURIComponent(email)}&role=${encodeURIComponent(role)}&status=${err.approvalRejected ? 'rejected' : 'pending'}`);
       } else {
         setError(err.message || 'Login failed');
       }
@@ -107,14 +111,7 @@ export default function Login() {
           <p className="text-sidebar-foreground/70 text-lg leading-relaxed mb-10">
             Complete hospital management solution. Manage patients, doctors, appointments, and billing — all in one place.
           </p>
-          <div className="grid grid-cols-3 gap-4 text-center">
-            {[['1,247', 'Patients'], ['48', 'Doctors'], ['99.9%', 'Uptime']].map(([val, lbl]) => (
-              <div key={lbl} className="bg-sidebar-accent/50 rounded-xl p-3">
-                <p className="font-heading text-xl font-bold text-sidebar-primary-foreground">{val}</p>
-                <p className="text-xs text-sidebar-foreground/60">{lbl}</p>
-              </div>
-            ))}
-          </div>
+
         </motion.div>
       </div>
 
@@ -163,7 +160,12 @@ export default function Login() {
             </div>
             <div>
               <label className="text-sm font-medium text-foreground mb-1 block">Password</label>
-              <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter your password" required className="h-10" />
+              <div className="relative">
+                <Input type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter your password" required className="h-10 pr-10" />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
             <div className="text-right -mt-1">
               <Link to="/forgot-password" className="text-xs text-primary font-medium hover:underline">Forgot password?</Link>

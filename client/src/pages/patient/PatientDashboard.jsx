@@ -16,6 +16,8 @@ import { useAuth } from '@/context/AuthContext';
 import { usePreferredPharmacies } from '@/context/PreferredPharmacyContext';
 import { api } from '@/lib/api';
 
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+
 function patientRequest(path, opts = {}) {
   return api.dispatch(null, path, opts);
 }
@@ -104,7 +106,8 @@ export default function PatientDashboard() {
   const [paymentMethods] = useState([]);
   const [notifs, setNotifs] = useState([]);
   const [reviews] = useState([]);
-  const [profileForm, setProfileForm] = useState({ name: user?.name || '', email: user?.email || '', phone: user?.phone || '', address: user?.address || '', gender: user?.gender || '', dateOfBirth: user?.dateOfBirth ? user.dateOfBirth.split('T')[0] : '', bloodGroup: user?.bloodGroup || '', allergies: user?.allergies?.map(a => a.allergen).join(', ') || '' });
+  const formatDate = (d) => { if (!d) return ''; try { return d.includes('T') ? d.split('T')[0] : d.slice(0, 10); } catch { return ''; } };
+  const [profileForm, setProfileForm] = useState({ name: user?.name || '', email: user?.email || '', phone: user?.phone || '', address: user?.address || '', gender: user?.gender || '', dateOfBirth: formatDate(user?.dateOfBirth), bloodGroup: user?.bloodGroup || '', allergies: user?.allergies?.map(a => a.allergen).join(', ') || '' });
   const [bookingFilter, setBookingFilter] = useState('All');
 
   const showToast = (msg, type = 'success') => { setToast({ msg, type }); setTimeout(() => setToast(null), 3000); };
@@ -373,7 +376,7 @@ export default function PatientDashboard() {
                   </div>
                   <div className="flex gap-2 mt-3 pt-3 border-t">
                     <Button size="sm" variant="outline" onClick={() => { localStorage.setItem('saved_prescription_' + rx._id, JSON.stringify(rx)); showToast('Saved for later use'); }}><Bookmark className="w-3 h-3 mr-1" /> Save for Reuse</Button>
-                    <Button size="sm" variant="outline" onClick={() => { const base = import.meta.env.VITE_API_URL || 'http://localhost:5001/api'; window.open(base + '/records/' + rx._id + '/prescription-pdf', '_blank'); }}><Download className="w-3 h-3 mr-1" /> Download</Button>
+                    <Button size="sm" variant="outline" onClick={() => { window.open(API_BASE + '/records/' + rx._id + '/prescription-pdf', '_blank'); }}><Download className="w-3 h-3 mr-1" /> Download</Button>
                   </div>
                 </div>
               ))}
@@ -396,7 +399,7 @@ export default function PatientDashboard() {
                     </div>
                     <StatusBadge status={r.status} />
                   </div>
-                  {r.status === 'Ready' && <div className="flex gap-2 mt-3 pt-3 border-t"><Button size="sm" onClick={() => navigate('/patient/reports')}><Eye className="w-3 h-3 mr-1" /> View</Button><Button size="sm" variant="outline" onClick={async () => { try { const base = import.meta.env.VITE_API_URL || 'http://localhost:5001/api'; const resp = await api.getRecords({ patient: r._id }); window.open(base + '/records/' + (resp?.records?.[0]?._id || r._id) + '/prescription-pdf', '_blank'); } catch { showToast('Download available from reports page', 'error'); } }}><Download className="w-3 h-3 mr-1" /> Download PDF</Button></div>}
+                  {r.status === 'Ready' && <div className="flex gap-2 mt-3 pt-3 border-t"><Button size="sm" onClick={() => navigate('/patient/reports')}><Eye className="w-3 h-3 mr-1" /> View</Button><Button size="sm" variant="outline" onClick={async () => { try { const resp = await api.getRecords({ patient: r._id }); window.open(API_BASE + '/records/' + (resp?.records?.[0]?._id || r._id) + '/prescription-pdf', '_blank'); } catch { showToast('Download available from reports page', 'error'); } }}><Download className="w-3 h-3 mr-1" /> Download PDF</Button></div>}
                 </div>
               ))}
               {reports.length === 0 && <div className="text-center py-20"><FileText className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" /><p className="text-muted-foreground">No reports yet</p></div>}
