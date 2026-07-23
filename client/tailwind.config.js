@@ -100,5 +100,11 @@ export default {
       },
     },
   },
+  safelist: [
+    'text-info', 'text-destructive', 'text-success', 'text-warning',
+    'bg-info', 'bg-destructive', 'bg-success', 'bg-warning',
+    'bg-info/10', 'bg-destructive/10', 'bg-success/10', 'bg-warning/10',
+    'border-info', 'border-destructive', 'border-success', 'border-warning',
+  ],
   plugins: [require("tailwindcss-animate")],
 };

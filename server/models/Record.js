@@ -9,7 +9,7 @@ const recordSchema = new mongoose.Schema({
   date: { type: String, required: true },
   diagnosis: { type: String, default: '' },
   prescription: { type: String, default: '' },
-  type: { type: String, enum: ['Diagnosis', 'Prescription', 'Lab Report', 'Imaging', 'Discharge Summary', 'prescription', 'lab_report', 'discharge_summary', 'bill_invoice', 'payment_invoice'], default: 'Diagnosis' },
+  type: { type: String, enum: ['diagnosis', 'prescription', 'lab_report', 'imaging', 'discharge_summary', 'bill_invoice', 'payment_invoice'], default: 'diagnosis', set: v => typeof v === 'string' ? v.toLowerCase().replace(/\s+/g, '_') : v },
   notes: { type: String, default: '' },
 
   // Vitals
@@ -49,4 +49,3 @@ const recordSchema = new mongoose.Schema({
 });
 
 export default mongoose.model('Record', recordSchema);
-// 18

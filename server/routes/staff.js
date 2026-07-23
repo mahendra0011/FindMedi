@@ -14,13 +14,13 @@ const overtimeSchema = z.object({ staffId: z.string().min(1), date: z.string().o
 
 const router = express.Router();
 
-const genId = async () => { const c = await Staff.countDocuments(); return `EMP-${new Date().getFullYear()}-${String(c+1).padStart(5,'0')}`; };
+const genId = () => `EMP-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 
 router.post('/', protect, adminOnly, validate(createStaffSchema), async (req, res) => {
   try {
     const { name, role, department } = req.body;
     if (!name || !role) return res.status(400).json({ message: 'Name and role required' });
-    const employeeId = await genId();
+    const employeeId = genId();
     const targetHospId = req.body.hospitalId || req.user.hospitalId || undefined;
     const staff = await Staff.create({ employeeId, name, role, department, joinDate: new Date(), hospitalId: targetHospId, createdBy: req.user._id });
     res.status(201).json(staff);

@@ -21,8 +21,7 @@ const supplierSchema = new mongoose.Schema({
 
 supplierSchema.pre('save', async function (next) {
   if (!this.supplierId) {
-    const count = await mongoose.models.Supplier?.countDocuments({}) || 0;
-    this.supplierId = `SUP-${String(count + 1).padStart(5, '0')}`;
+    this.supplierId = `SUP-${Date.now().toString(36).slice(-6).toUpperCase()}${Math.floor(Math.random() * 36).toString(36).toUpperCase()}`;
   }
   next();
 });

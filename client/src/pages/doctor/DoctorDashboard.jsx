@@ -121,7 +121,7 @@ export default function DoctorDashboard() {
               <DollarSign className="w-5 h-5 text-warning" />
             </div>
           </div>
-          <p className="font-heading text-2xl font-bold text-foreground">Rs {totalEarned.toLocaleString()}</p>
+          <p className="font-heading text-2xl font-bold text-foreground">₹{totalEarned.toLocaleString()}</p>
           <p className="text-sm text-muted-foreground">Total Earned</p>
         </motion.div>
       </div>
@@ -255,12 +255,12 @@ export default function DoctorDashboard() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-gradient-to-br from-success/10 to-success/5 rounded-2xl border border-success/20 p-4 text-center">
           <DollarSign className="w-6 h-6 mx-auto text-success mb-1" />
-          <p className="font-bold text-lg text-success">Rs {totalEarned.toLocaleString()}</p>
+          <p className="font-bold text-lg text-success">₹{totalEarned.toLocaleString()}</p>
           <p className="text-xs text-muted-foreground">Earned</p>
         </div>
         <div className="bg-gradient-to-br from-warning/10 to-warning/5 rounded-2xl border border-warning/20 p-4 text-center">
           <AlertCircle className="w-6 h-6 mx-auto text-warning mb-1" />
-          <p className="font-bold text-lg text-warning">Rs {pendingPayment.toLocaleString()}</p>
+          <p className="font-bold text-lg text-warning">₹{pendingPayment.toLocaleString()}</p>
           <p className="text-xs text-muted-foreground">Pending Payment</p>
         </div>
         <div className="bg-gradient-to-br from-info/10 to-info/5 rounded-2xl border border-info/20 p-4 text-center">

@@ -15,7 +15,7 @@ const hkChecklistSchema = z.object({ checklist: z.any() });
 
 const router = express.Router();
 
-const genId = async () => { const c = await Housekeeping.countDocuments(); return `HSK-${new Date().getFullYear()}-${String(c+1).padStart(5,'0')}`; };
+const genId = () => `HSK-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 
 // Auto-create housekeeping task when patient is discharged
 router.post('/auto-create-on-discharge', protect, adminOnly, validate(hkAutoCreateSchema), async (req, res) => {
@@ -25,7 +25,7 @@ router.post('/auto-create-on-discharge', protect, adminOnly, validate(hkAutoCrea
       return res.status(400).json({ message: 'Admission ID and bed number required' });
     }
 
-    const taskId = await genId();
+    const taskId = genId();
     const taskType = isInfectionCase ? 'Terminal Cleaning (Infection)' : 'Routine Cleaning';
     
 const task = await Housekeeping.create({
@@ -72,7 +72,7 @@ router.post('/tasks', protect, adminOnly, validate(createHousekeepingSchema), as
   try {
     const { room, bedNumber, ward, type, priority, checklist } = req.body;
     if (!room || !type) return res.status(400).json({ message: 'Room and type required' });
-    const taskId = await genId();
+    const taskId = genId();
 const task = await Housekeeping.create({
       taskId,
       room,

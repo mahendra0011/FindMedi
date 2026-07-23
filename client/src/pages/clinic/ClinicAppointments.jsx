@@ -54,7 +54,7 @@ export default function ClinicAppointments() {
       });
       await api.createNotification({
         title: 'New Invoice',
-        message: `Invoice of Rs ${billAmount} generated for ${apt.patient}`,
+        message: `Invoice of ₹${billAmount} generated for ${apt.patient}`,
         type: 'payment',
         userId: apt.patientId || apt.patient,
       });

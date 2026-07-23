@@ -155,7 +155,7 @@ export default function ClinicTests() {
                     </div>
                     <div>
                       <h3 className="font-heading font-semibold text-foreground">{test.name}</h3>
-                      <p className="text-lg font-bold text-primary mt-1">Rs {test.price}</p>
+                      <p className="text-lg font-bold text-primary mt-1">₹{test.price}</p>
                     </div>
                   </div>
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

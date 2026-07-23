@@ -17,8 +17,7 @@ const router = express.Router();
 
 // Generate PO Number
 const generatePONumber = async () => {
-  const count = await PurchaseOrder.countDocuments();
-  return `PO-${new Date().getFullYear()}-${String(count + 1).padStart(5, '0')}`;
+  return `PO-${new Date().getFullYear()}-${Date.now().toString(36).slice(-6).toUpperCase()}${Math.floor(Math.random() * 36).toString(36).toUpperCase()}`;
 };
 
 // Inventory Items

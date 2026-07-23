@@ -358,7 +358,7 @@ export default function HospitalDoctor() {
                 )}
                 <span className="flex items-center gap-1.5">
                   <IndianRupee className="w-4 h-4 text-success shrink-0" />
-                  <span className="text-success font-semibold">Rs {doctor.consultation_fees || doctor.fees || 0}</span>
+                  <span className="text-success font-semibold">₹{doctor.consultation_fees || doctor.fees || 0}</span>
                   <span className="text-xs">/ visit</span>
                 </span>
                 <div className="flex items-center gap-2 ml-auto">
@@ -844,7 +844,7 @@ export default function HospitalDoctor() {
                     </div>
                     <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-muted/30 border border-border/60">
                       <span className="text-sm text-muted-foreground">Consultation Fee</span>
-                      <span className="text-sm font-semibold text-success">Rs {doctor.consultation_fees || doctor.fees || 0}</span>
+                      <span className="text-sm font-semibold text-success">₹{doctor.consultation_fees || doctor.fees || 0}</span>
                     </div>
                     {doctor.hospitalId?.insuranceAccepted?.length > 0 && (
                       <div className="px-4 py-3 rounded-xl bg-muted/30 border border-border/60">
@@ -1097,7 +1097,7 @@ export default function HospitalDoctor() {
               {/* Fee Display */}
               <div className="flex items-center justify-between p-2.5 rounded-xl bg-muted/30 border border-border/60 mb-2">
                 <span className="text-xs text-muted-foreground">Consultation Fee</span>
-                <span className="font-bold text-base text-foreground">Rs {doctor.consultation_fees || doctor.fees || 0}</span>
+                <span className="font-bold text-base text-foreground">₹{doctor.consultation_fees || doctor.fees || 0}</span>
               </div>
 
               {/* Walk-in Accepted */}
@@ -1140,7 +1140,7 @@ export default function HospitalDoctor() {
                     <p><span className="text-foreground font-medium">Date:</span> {bookingDetails.date}</p>
                     <p><span className="text-foreground font-medium">Time:</span> {bookingDetails.time}</p>
                     <p><span className="text-foreground font-medium">Type:</span> {bookingDetails.type}</p>
-                    <p><span className="text-foreground font-medium">Fees:</span> Rs {bookingDetails.fees}</p>
+                    <p><span className="text-foreground font-medium">Fees:</span> ₹{bookingDetails.fees}</p>
                   </div>
                   <Button className="w-full rounded-xl" onClick={() => navigate(user ? '/patient/appointments' : '/login')}>
                     View My Appointments

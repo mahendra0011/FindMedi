@@ -78,7 +78,7 @@ export default function LabCenterDashboard() {
               <DollarSign className="w-5 h-5 text-primary" />
             </div>
           </div>
-          <p className="font-heading text-2xl font-bold text-foreground">Rs {totalEarned.toLocaleString()}</p>
+          <p className="font-heading text-2xl font-bold text-foreground">₹{totalEarned.toLocaleString()}</p>
           <p className="text-sm text-muted-foreground">Revenue Today</p>
         </motion.div>
 
@@ -193,7 +193,7 @@ export default function LabCenterDashboard() {
         </Link>
         <motion.div whileHover={{ scale: 1.03 }} className="bg-gradient-to-br from-info/10 to-info/5 rounded-2xl border border-info/20 p-4 text-center cursor-pointer">
           <TrendingUp className="w-6 h-6 mx-auto text-info mb-1" />
-          <p className="font-semibold text-sm text-foreground">Rs {totalEarned.toLocaleString()}</p>
+          <p className="font-semibold text-sm text-foreground">₹{totalEarned.toLocaleString()}</p>
           <p className="text-xs text-muted-foreground">Total Revenue</p>
         </motion.div>
       </div>

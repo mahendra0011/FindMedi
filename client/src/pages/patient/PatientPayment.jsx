@@ -63,8 +63,8 @@ export default function PatientPayment() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <StatCard title="Total Paid" value={`Rs ${totalPaid.toLocaleString()}`} icon={CheckCircle} change="Successful payments" />
-        <StatCard title="Pending" value={`Rs ${pendingAmount.toLocaleString()}`} icon={Clock} change="Outstanding bills" />
+        <StatCard title="Total Paid" value={`₹${totalPaid.toLocaleString()}`} icon={CheckCircle} change="Successful payments" />
+        <StatCard title="Pending" value={`₹${pendingAmount.toLocaleString()}`} icon={Clock} change="Outstanding bills" />
         <StatCard title="Transactions" value={payments.length} icon={History} change="All time" />
       </div>
 
@@ -87,7 +87,7 @@ export default function PatientPayment() {
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <p className="text-xs text-muted-foreground">Amount Due</p>
-                    <p className="font-heading text-xl font-bold text-foreground">Rs {bill.amount - bill.paid}</p>
+                    <p className="font-heading text-xl font-bold text-foreground">₹{bill.amount - bill.paid}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-xs text-muted-foreground">Due Date</p>
@@ -128,7 +128,7 @@ export default function PatientPayment() {
                     <tr key={pay._id} className="border-b border-border/30 hover:bg-muted/30">
                       <td className="px-4 py-3 text-sm font-mono">{pay.transaction_id}</td>
                       <td className="px-4 py-3 text-sm">{pay.invoice_id || '-'}</td>
-                      <td className="px-4 py-3 text-sm font-semibold">Rs {pay.amount}</td>
+                      <td className="px-4 py-3 text-sm font-semibold">₹{pay.amount}</td>
                       <td className="px-4 py-3 text-sm flex items-center gap-1">{(() => { const Icon = methodIcons[pay.method] || CreditCard; return <Icon className="w-3.5 h-3.5" />; })()} {pay.method}</td>
                       <td className="px-4 py-3">
                         <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${statusColors[pay.status]}`}>{pay.status}</span>
@@ -151,7 +151,7 @@ export default function PatientPayment() {
               <div className="text-center py-8">
                 <CheckCircle className="w-16 h-16 text-success mx-auto mb-4" />
                 <h3 className="font-heading text-xl font-bold text-foreground mb-2">Payment Successful!</h3>
-                <p className="text-muted-foreground">Your payment of Rs {payingBill.amount - payingBill.paid} has been processed.</p>
+                <p className="text-muted-foreground">Your payment of ₹{payingBill.amount - payingBill.paid} has been processed.</p>
               </div>
             ) : (
               <>
@@ -159,7 +159,7 @@ export default function PatientPayment() {
                 <div className="space-y-4">
                   <div className="bg-muted/50 rounded-xl p-4">
                     <p className="text-sm text-muted-foreground">Invoice: {payingBill.invoiceId}</p>
-                    <p className="font-heading text-2xl font-bold text-foreground">Rs {payingBill.amount - payingBill.paid}</p>
+                    <p className="font-heading text-2xl font-bold text-foreground">₹{payingBill.amount - payingBill.paid}</p>
                     <p className="text-sm text-muted-foreground">{payingBill.service}</p>
                   </div>
                   <div>
@@ -177,7 +177,7 @@ export default function PatientPayment() {
                 <div className="flex gap-3 mt-6">
                   <Button variant="outline" className="flex-1" onClick={() => setPayingBill(null)}>Cancel</Button>
                   <Button className="flex-1 gap-2" onClick={() => handlePay(payingBill)}>
-                    <IndianRupee className="w-4 h-4" /> Pay Rs {payingBill.amount - payingBill.paid}
+                    <IndianRupee className="w-4 h-4" /> Pay ₹{payingBill.amount - payingBill.paid}
                   </Button>
                 </div>
               </>

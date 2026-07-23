@@ -49,14 +49,14 @@ const statsData = [
 ];
 
 const services = [
-  { icon: Thermometer, name: "Blood Pressure Check", price: "Rs 100" },
-  { icon: Droplets, name: "Blood Sugar Test", price: "Rs 150" },
-  { icon: TestTube, name: "Full Blood Count", price: "Rs 300" },
-  { icon: Image, name: "X-Ray Scan", price: "Rs 500" },
-  { icon: HeartPulse, name: "ECG Test", price: "Rs 400" },
-  { icon: Microscope, name: "Thyroid Panel", price: "Rs 500" },
-  { icon: Video, name: "Teleconsultation", price: "Rs 300" },
-  { icon: Syringe, name: "Vaccination", price: "Rs 250" },
+  { icon: Thermometer, name: "Blood Pressure Check", price: "₹100" },
+  { icon: Droplets, name: "Blood Sugar Test", price: "₹150" },
+  { icon: TestTube, name: "Full Blood Count", price: "₹300" },
+  { icon: Image, name: "X-Ray Scan", price: "₹500" },
+  { icon: HeartPulse, name: "ECG Test", price: "₹400" },
+  { icon: Microscope, name: "Thyroid Panel", price: "₹500" },
+  { icon: Video, name: "Teleconsultation", price: "₹300" },
+  { icon: Syringe, name: "Vaccination", price: "₹250" },
 ];
 
 const specialties = [

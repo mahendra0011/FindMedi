@@ -358,6 +358,7 @@ const App = () => (
                      <Route path="/clinic/:clinicId" element={<PublicLayout><ClinicDetail /></PublicLayout>} />
                      <Route path="/book-test/:entityId" element={<PublicLayout><HospitalTestBooking /></PublicLayout>} />
                      <Route path="/diagnostic-centers" element={<PublicLayout><DiagnosticCenters /></PublicLayout>} />
+                     <Route path="/labs" element={<Navigate to="/diagnostic-centers" replace />} />
                      <Route path="/all-tests" element={<PublicLayout><AllTests /></PublicLayout>} />
                       <Route path="/lab/:clinicId" element={<PublicLayout><DiagnosticCenterDetail /></PublicLayout>} />
                        <Route path="/lab/:clinicId/details" element={<PublicLayout><DiagnosticCenterDetail /></PublicLayout>} />
@@ -524,4 +525,4 @@ const App = () => (
   </QueryClientProvider>
 );
 
-export default App;// 0
+export default App;

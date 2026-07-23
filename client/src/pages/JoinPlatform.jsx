@@ -66,7 +66,7 @@ export default function JoinPlatform() {
     },
   });
   const [doctors, setDoctors] = useState([emptyDoctor()]);
-  const [services] = useState([]);
+  
   const [specialist, setSpecialist] = useState({
     pathologistName: '', pathologistQualification: '',
     radiologistName: '', radiologistQualification: '',
@@ -107,12 +107,14 @@ export default function JoinPlatform() {
   const addInsurance = () => { if (newInsurance.trim()) { setFacility(p => ({ ...p, insurance: [...p.insurance, newInsurance.trim()] })); setNewInsurance(''); setAddingInsurance(false); } };
   const addAccreditation = () => { if (newAccreditation.trim()) { setFacility(p => ({ ...p, accreditations: [...p.accreditations, newAccreditation.trim().toUpperCase()] })); setNewAccreditation(''); setAddingAccreditation(false); } };
 
+  const steps = getSteps(type);
+  const maxStep = steps.length;
+
   const canProceed = () => {
     if (step === 1) return !!type;
     if (step === 2) return account.name?.length >= 2 && account.email?.includes('@') && account.phone?.length >= 10 && account.password?.length >= 8 && account.password === confirmPassword;
     if (step === 3) return facility.name && facility.address && facility.city;
-    if (step === 4 || step === 4.5) return true;
-    if (step === 5) return agreed;
+    if (step === maxStep) return agreed;
     return true;
   };
 
@@ -126,7 +128,6 @@ export default function JoinPlatform() {
           ...facility,
           established: facility.established ? Number(facility.established) : facility.established,
         },
-        services,
         specialist: type === 'diagnostic' ? specialist : undefined,
       };
       if (type === 'hospital' || type === 'clinic') payload.doctors = doctors.filter(d => d.name && d.specialization);
@@ -160,9 +161,6 @@ export default function JoinPlatform() {
       </div>
     );
   }
-
-  const steps = getSteps(type);
-  const maxStep = steps.length;
 
   const renderStepIndicator = () => (
     <div className="flex items-center justify-center gap-0 mb-8">
@@ -549,7 +547,7 @@ export default function JoinPlatform() {
               </div>
               {navButtons()}
               <div className="flex justify-end mt-4">
-                <Button onClick={() => setStep(type === 'hospital' || type === 'clinic' ? 4 : maxStep)} disabled={!canProceed()} className="gap-2 rounded-xl shadow-lg shadow-primary/20">
+                <Button onClick={() => setStep(4)} disabled={!canProceed()} className="gap-2 rounded-xl shadow-lg shadow-primary/20">
                   Continue <ArrowRight className="w-4 h-4" />
                 </Button>
               </div>
@@ -635,16 +633,16 @@ export default function JoinPlatform() {
 
               {navButtons()}
               <div className="flex justify-end mt-4">
-<Button onClick={() => setStep(type === 'diagnostic' ? 4.5 : 5)} disabled={!canProceed()} className="gap-2 rounded-xl shadow-lg shadow-primary/20">
+ <Button onClick={() => setStep(maxStep)} disabled={!canProceed()} className="gap-2 rounded-xl shadow-lg shadow-primary/20">
                    Continue <ArrowRight className="w-4 h-4" />
                  </Button>
                </div>
              </motion.div>
            )}
 
-           {/* Step 4.5: Specialist Details — only for diagnostic */}
-           {step === 4.5 && type === 'diagnostic' && (
-             <motion.div key="s4.5" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+           {/* Step 4: Specialist Details — only for diagnostic */}
+           {step === 4 && type === 'diagnostic' && (
+             <motion.div key="s4" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
                {stepHeader('Specialist Details', 'Add key personnel for your diagnostic center')}
                <div className="bg-card rounded-2xl border border-border/50 p-5 space-y-4">
                  <p className="text-xs font-semibold text-muted-foreground mb-2">Pathologist</p>
@@ -675,15 +673,15 @@ export default function JoinPlatform() {
                </div>
                {navButtons()}
                <div className="flex justify-end mt-4">
-                 <Button onClick={() => setStep(5)} disabled={!canProceed()} className="gap-2 rounded-xl shadow-lg shadow-primary/20">
-                   Review & Submit <ArrowRight className="w-4 h-4" />
-                 </Button>
+                <Button onClick={() => setStep(maxStep)} disabled={!canProceed()} className="gap-2 rounded-xl shadow-lg shadow-primary/20">
+                  Review & Submit <ArrowRight className="w-4 h-4" />
+                </Button>
                </div>
              </motion.div>
            )}
 
            {/* Step 5: Review & Submit */}
-          {step === 5 && (
+           {step === maxStep && (
             <motion.div key="s5" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
               {stepHeader('Review & Submit', 'Please verify all details before submitting')}
 

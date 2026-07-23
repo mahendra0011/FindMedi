@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { RefreshCw, Search, BadgeCheck, XCircle } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { RefreshCw, Search, BadgeCheck, XCircle, IndianRupee } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -16,14 +16,14 @@ export default function PharmacyReturns() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try { const res = await api.getPharmacyReturns({ search }); setReturns(res.returns || []); }
-    catch (e) { console.error(e); }
+    catch (e) { toast.error(e.message); }
     setLoading(false);
-  };
+  }, [search]);
 
-  useEffect(() => { load(); }, [search, load]);
+  useEffect(() => { load(); }, [load]);
 
   const updateStatus = async (id, status) => {
     try { await api.updatePharmacyReturn(id, { status }); toast.success(`Return ${status}`); load(); }
@@ -64,6 +64,9 @@ export default function PharmacyReturns() {
                       <Button variant="ghost" size="sm" className="h-8 text-xs text-success" onClick={() => updateStatus(r._id, 'Approved')}><BadgeCheck className="w-4 h-4 mr-1" />Approve</Button>
                       <Button variant="ghost" size="sm" className="h-8 text-xs text-destructive" onClick={() => updateStatus(r._id, 'Rejected')}><XCircle className="w-4 h-4 mr-1" />Reject</Button>
                     </div>
+                  )}
+                  {r.status === 'Approved' && (
+                    <Button variant="ghost" size="sm" className="h-8 text-xs text-info" onClick={() => updateStatus(r._id, 'Refunded')}><IndianRupee className="w-4 h-4 mr-1" />Refund</Button>
                   )}
                 </td>
               </tr>

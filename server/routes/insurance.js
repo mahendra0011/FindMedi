@@ -12,10 +12,7 @@ const settleClaimSchema = z.object({ approvedAmount: z.number().optional() });
 
 const router = express.Router();
 
-const generateClaimId = async () => {
-  const count = await Insurance.countDocuments();
-  return `CLM-${new Date().getFullYear()}-${String(count + 1).padStart(5, '0')}`;
-};
+const generateClaimId = () => `CLM-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 
 // ─── Create Insurance Claim ────────────────────────────────────────────────
 router.post('/', protect, validate(createInsuranceSchema), async (req, res) => {
@@ -24,7 +21,7 @@ router.post('/', protect, validate(createInsuranceSchema), async (req, res) => {
     if (!patientId || !insuranceProvider || !policyNumber) {
       return res.status(400).json({ message: 'Patient, provider, and policy number required' });
     }
-    const claimId = await generateClaimId();
+    const claimId = generateClaimId();
     const claim = await Insurance.create({
       claimId, patientId, patientName, admissionId,
       insuranceProvider, policyNumber, insuranceId: insuranceId || '',

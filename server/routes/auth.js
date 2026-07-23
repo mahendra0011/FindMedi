@@ -7,6 +7,8 @@ import { fileURLToPath } from 'url';
 import User from '../models/User.js';
 import RefreshToken from '../models/RefreshToken.js';
 import Doctor from '../models/Doctor.js';
+import Facility from '../models/Facility.js';
+import Hospital from '../models/Hospital.js';
 import Patient from '../models/Patient.js';
 import Notification from '../models/Notification.js';
 import { protect } from '../middleware/auth.js';
@@ -146,9 +148,19 @@ const getDoctorProfile = (user) => Doctor.findOne({
 
 const userResponse = async (user) => {
   const doctorProfile = user.role === 'doctor' ? await getDoctorProfile(user) : null;
-  const doctorApproved = user.role !== 'doctor'
-    ? true
-    : Boolean(doctorProfile?.approved || user.approvalStatus === 'approved');
+  let entityApproved = true;
+  if (user.role === 'doctor') {
+    entityApproved = Boolean(doctorProfile?.approved || user.approvalStatus === 'approved');
+  } else if (user.role === 'clinic_doctor' || user.role === 'lab_owner' || user.role === 'pharmacy_owner') {
+    const facility = user.facilityId ? await Facility.findById(user.facilityId).select('status') : null;
+    entityApproved = facility?.status === 'approved';
+  } else if (user.role === 'admin' && user.hospitalId) {
+    const hospital = await Hospital.findById(user.hospitalId).select('status');
+    entityApproved = hospital?.status === 'approved';
+  }
+  const approval = user.role === 'doctor'
+    ? (doctorProfile?.approved ? 'approved' : user.approvalStatus || 'pending')
+    : entityApproved ? 'approved' : user.approvalStatus || 'pending';
 
   return {
     id: user._id,
@@ -167,10 +179,8 @@ const userResponse = async (user) => {
     consultationFee: user.consultationFee,
     isVerified: user.isVerified,
     status: user.status,
-    approvalStatus: user.role === 'doctor'
-      ? (doctorProfile?.approved ? 'approved' : user.approvalStatus || 'pending')
-      : 'not_required',
-    doctorApproved,
+    approvalStatus: approval,
+    doctorApproved: entityApproved,
     doctorProfileId: doctorProfile?._id,
     hospitalId: user.hospitalId || null,
     settings: user.settings || {},
@@ -447,7 +457,7 @@ router.post('/login', validate(loginSchema), async (req, res) => {
     }
 
     const lowerEmail = email.toLowerCase();
-    const user = await User.findOne({ email: lowerEmail });
+    const user = await User.findOne({ email: lowerEmail }).select('+password');
 
     if (!user || !(await user.comparePassword(password))) {
       return res.status(401).json({ message: 'Invalid credentials' });
@@ -459,6 +469,10 @@ router.post('/login', validate(loginSchema), async (req, res) => {
 
     if (user.status === 'blocked') {
       return res.status(403).json({ message: 'Your account has been blocked. Contact administrator.', blocked: true });
+    }
+
+    if (user.status === 'inactive') {
+      return res.status(403).json({ message: 'Your account is pending activation.', inactive: true });
     }
 
     if (!user.isVerified) {
@@ -483,27 +497,62 @@ router.post('/login', validate(loginSchema), async (req, res) => {
       });
     }
 
-    if (user.role === 'doctor') {
-      const doctorProfile = await getDoctorProfile(user);
-      if (user.approvalStatus === 'rejected') {
-        return res.status(403).json({
-          message: 'Your doctor account was not approved. Contact administrator.',
-          approvalRejected: true,
-          email: user.email,
-        });
+    const requiresApproval = ['doctor', 'clinic_doctor', 'lab_owner', 'pharmacy_owner'];
+    if (requiresApproval.includes(user.role)) {
+      if (user.role === 'doctor') {
+        const doctorProfile = await getDoctorProfile(user);
+        if (user.approvalStatus === 'rejected') {
+          return res.status(403).json({
+            message: 'Your doctor account was not approved. Contact administrator.',
+            approvalRejected: true,
+            email: user.email,
+          });
+        }
+        if (!doctorProfile?.approved && user.approvalStatus !== 'approved') {
+          return res.status(403).json({
+            message: 'Your account is pending admin approval.',
+            approvalPending: true,
+            email: user.email,
+          });
+        }
+        if (user.approvalStatus !== 'approved') {
+          user.approvalStatus = 'approved';
+          await user.save();
+        }
+      } else {
+        const facility = user.facilityId ? await Facility.findById(user.facilityId).select('status') : null;
+        if (facility?.status === 'rejected') {
+          return res.status(403).json({
+            message: 'Your facility registration was not approved. Contact administrator.',
+            approvalRejected: true,
+            email: user.email,
+          });
+        }
+        if (facility?.status === 'pending' || !facility) {
+          return res.status(403).json({
+            message: 'Your facility registration is pending admin approval.',
+            approvalPending: true,
+            email: user.email,
+          });
+        }
       }
+    }
 
-      if (!doctorProfile?.approved && user.approvalStatus !== 'approved') {
+    if (user.role === 'admin' && user.hospitalId) {
+      const hospital = await Hospital.findById(user.hospitalId).select('status');
+      if (hospital?.status === 'pending') {
         return res.status(403).json({
-          message: 'Your account is pending admin approval.',
+          message: 'Your hospital registration is pending admin approval.',
           approvalPending: true,
           email: user.email,
         });
       }
-
-      if (user.approvalStatus !== 'approved') {
-        user.approvalStatus = 'approved';
-        await user.save();
+      if (hospital?.status === 'rejected') {
+        return res.status(403).json({
+          message: 'Your hospital registration was rejected. Contact administrator.',
+          approvalRejected: true,
+          email: user.email,
+        });
       }
     }
 
@@ -702,7 +751,7 @@ router.put('/change-password', protect, validate(changePasswordSchema), async (r
   try {
     const { currentPassword, newPassword } = req.body;
 
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user.id).select('+password');
     if (!user || !(await user.comparePassword(currentPassword))) {
       return res.status(400).json({ message: 'Current password is incorrect' });
     }
@@ -743,7 +792,7 @@ router.post('/avatar', protect, handleAvatarUpload, async (req, res) => {
         'medicore/avatars'
       );
     } catch (error) {
-      console.warn('Avatar Cloudinary upload failed, using local storage:', error.message);
+      logger.warn('Avatar Cloudinary upload failed, using local storage:', error.message);
       uploaded = await saveAvatarLocally(req.file, req);
     }
 
@@ -890,4 +939,3 @@ router.post('/refresh', async (req, res) => {
 });
 
 export default router;
-// 21

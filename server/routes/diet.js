@@ -14,16 +14,13 @@ const dietBillingSchema = z.object({ amount: z.number().optional(), description:
 
 const router = express.Router();
 
-const generateOrderId = async () => {
-  const count = await DietOrder.countDocuments();
-  return `DIET-${new Date().getFullYear()}-${String(count + 1).padStart(5, '0')}`;
-};
+const generateOrderId = () => `DIET-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 
 router.post('/orders', protect, adminOnly, validate(createDietOrderSchema), async (req, res) => {
   try {
     const { patientId, patientName, admissionId, ward, bedNumber, dietType, mealTimes, instructions, allergies } = req.body;
     if (!patientId || !dietType) return res.status(400).json({ message: 'Patient and diet type required' });
-    const orderId = await generateOrderId();
+    const orderId = generateOrderId();
 const order = await DietOrder.create({
        orderId, patientId, patientName, admissionId, ward, bedNumber,
        doctorId: req.user.doctorProfileId || req.user._id, doctorName: req.user.name,
@@ -178,7 +175,7 @@ router.post('/orders/:id/create-billing', protect, adminOnly, validate(dietBilli
       return res.status(400).json({ message: 'Billing already created for this order' });
     }
     
-    const invoiceId = `INV-${new Date().getFullYear()}-${String(await Billing.countDocuments() + 1).padStart(5, '0')}`;
+    const invoiceId = `INV-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
     
     const billing = await Billing.create({
       invoiceId,

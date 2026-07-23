@@ -235,4 +235,4 @@ export default function Lab() {
       )}
     </div>
   );
-}// 36
+}

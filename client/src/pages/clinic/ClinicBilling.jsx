@@ -74,15 +74,15 @@ export default function ClinicBilling() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <motion.div whileHover={{ scale: 1.02 }} className="bg-gradient-to-br from-success/20 to-success/5 rounded-2xl border border-success/20 p-6">
           <p className="text-sm text-muted-foreground">Total Collected</p>
-          <p className="font-heading text-3xl font-bold text-success">Rs {totalPaid.toLocaleString()}</p>
+          <p className="font-heading text-3xl font-bold text-success">₹{totalPaid.toLocaleString()}</p>
         </motion.div>
         <motion.div whileHover={{ scale: 1.02 }} className="bg-gradient-to-br from-primary/20 to-primary/5 rounded-2xl border border-primary/20 p-6">
           <p className="text-sm text-muted-foreground">Total Billed</p>
-          <p className="font-heading text-3xl font-bold text-foreground">Rs {totalBilled.toLocaleString()}</p>
+          <p className="font-heading text-3xl font-bold text-foreground">₹{totalBilled.toLocaleString()}</p>
         </motion.div>
         <motion.div whileHover={{ scale: 1.02 }} className="bg-gradient-to-br from-warning/20 to-warning/5 rounded-2xl border border-warning/20 p-6">
           <p className="text-sm text-muted-foreground">Pending</p>
-          <p className="font-heading text-3xl font-bold text-warning">Rs {pendingAmount.toLocaleString()}</p>
+          <p className="font-heading text-3xl font-bold text-warning">₹{pendingAmount.toLocaleString()}</p>
         </motion.div>
       </div>
 
@@ -127,8 +127,8 @@ export default function ClinicBilling() {
                     <td className="px-4 py-3 text-sm font-medium">{bill.patient}</td>
                     <td className="px-4 py-3 text-sm text-muted-foreground">{bill.service}</td>
                     <td className="px-4 py-3 text-sm text-muted-foreground">{bill.date}</td>
-                    <td className="px-4 py-3 text-sm font-semibold text-right">Rs {bill.amount}</td>
-                    <td className="px-4 py-3 text-sm font-semibold text-success text-right">Rs {bill.paid || 0}</td>
+                    <td className="px-4 py-3 text-sm font-semibold text-right">₹{bill.amount}</td>
+                    <td className="px-4 py-3 text-sm font-semibold text-success text-right">₹{bill.paid || 0}</td>
                     <td className="px-4 py-3 text-center"><Badge className={statusColors[bill.status] || 'bg-muted'}>{bill.status}</Badge></td>
                     <td className="px-4 py-3 text-right">
                       <Button size="sm" variant="outline" onClick={async () => { try { await downloadInvoicePdf(bill._id, `invoice-${bill.invoiceId || 'download'}.pdf`); } catch (e) { toast.error(e.message || 'Unable to download invoice'); } }} className="gap-1">

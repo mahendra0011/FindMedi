@@ -87,7 +87,7 @@ export default function LabReportsAnalytics() {
         </motion.div>
         <motion.div whileHover={{ scale: 1.02 }} className="bg-gradient-to-br from-success/20 to-success/5 rounded-2xl border border-success/20 p-5">
           <IndianRupee className="w-8 h-8 text-success mb-2" />
-          <p className="text-3xl font-bold text-success">Rs {analytics.totalRevenue.toLocaleString()}</p>
+          <p className="text-3xl font-bold text-success">₹{analytics.totalRevenue.toLocaleString()}</p>
           <p className="text-xs text-muted-foreground">Total Revenue</p>
         </motion.div>
       </div>
@@ -102,7 +102,7 @@ export default function LabReportsAnalytics() {
           <div className="flex items-end gap-2 h-48">
             {analytics.monthlyRevenue.map((m, i) => (
               <div key={m.month} className="flex-1 flex flex-col items-center gap-1 h-full justify-end">
-                <span className="text-xs text-muted-foreground font-mono">Rs {(m.revenue / 1000).toFixed(0)}k</span>
+                <span className="text-xs text-muted-foreground font-mono">₹{(m.revenue / 1000).toFixed(0)}k</span>
                 <motion.div
                   initial={{ height: 0 }}
                   animate={{ height: `${(m.revenue / maxRev) * 100}%` }}
@@ -138,7 +138,7 @@ export default function LabReportsAnalytics() {
                     </div>
                     <div className="flex justify-between text-xs text-muted-foreground mt-0.5">
                       <span>{test.count} tests</span>
-                      <span>Rs {test.revenue.toLocaleString()}</span>
+                      <span>₹{test.revenue.toLocaleString()}</span>
                     </div>
                   </div>
                 </div>

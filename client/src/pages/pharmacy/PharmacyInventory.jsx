@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Search, Plus, Pill, Edit2, Trash2, AlertTriangle, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,14 +14,14 @@ export default function PharmacyInventory() {
   const [editItem, setEditItem] = useState(null);
   const [form, setForm] = useState({ name:'', genericName:'', manufacturer:'', category:'', price:'', currentStock:'', reorderLevel:'', expiryDate:'' });
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try { const res = await api.getPharmacyMedicines({ search }); setMedicines(res.medicines || []); }
-    catch (e) { console.error(e); }
+    catch (e) { toast.error(e.message); }
     setLoading(false);
-  };
+  }, [search]);
 
-  useEffect(() => { load(); }, [search, load]);
+  useEffect(() => { load(); }, [load]);
 
   const openAdd = () => { setEditItem(null); setForm({ name:'', genericName:'', manufacturer:'', category:'', price:'', currentStock:'', reorderLevel:'', expiryDate:'' }); setShowModal(true); };
   const openEdit = (m) => { setEditItem(m); setForm({ name:m.name, genericName:m.genericName||'', manufacturer:m.manufacturer||'', category:m.category||'', price:m.price||'', currentStock:m.currentStock||'', reorderLevel:m.reorderLevel||'', expiryDate:m.expiryDate?.split('T')[0]||'' }); setShowModal(true); };
@@ -78,12 +78,13 @@ export default function PharmacyInventory() {
                   <div className="flex items-center gap-2">
                     <Pill className="w-4 h-4 text-primary shrink-0" />
                     <span className="font-medium text-foreground">{m.name}</span>
+                    {m.expiryDate && new Date(m.expiryDate) <= new Date(Date.now() + 90 * 86400000) && <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-amber-400 text-amber-600"><AlertTriangle className="w-3 h-3 mr-0.5" />Expiring</Badge>}
                     {(m.currentStock ?? 0) <= (m.reorderLevel ?? 0) && <Badge variant="destructive" className="text-[10px] px-1.5 py-0"><AlertTriangle className="w-3 h-3" /></Badge>}
                   </div>
                 </td>
                 <td className="py-3 px-4 text-muted-foreground">{m.genericName || '—'}</td>
                 <td className="py-3 px-4 text-muted-foreground hidden md:table-cell">{m.manufacturer || '—'}</td>
-                <td className="py-3 px-4 text-right font-medium text-foreground">Rs {m.price || 0}</td>
+                <td className="py-3 px-4 text-right font-medium text-foreground">₹{m.price || 0}</td>
                 <td className="py-3 px-4 text-right">
                   <span className={m.currentStock <= m.reorderLevel ? 'text-destructive font-semibold' : 'text-foreground'}>{m.currentStock ?? 0}</span>
                   <span className="text-xs text-muted-foreground ml-1">/ {m.reorderLevel ?? 0}</span>

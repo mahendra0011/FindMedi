@@ -106,9 +106,9 @@ router.post('/register', validate(platformRegisterSchema), async (req, res) => {
         role: 'admin',
         phone: account.phone,
         hospitalId: entity._id,
-        isVerified: true,
-        status: 'active',
-approvalStatus: 'not_required',
+        isVerified: false,
+        status: 'inactive',
+      approvalStatus: 'pending',
        });
      } else {
        entity = await Facility.create({
@@ -164,9 +164,9 @@ approvalStatus: 'not_required',
         phone: account.phone,
         facilityId: entity._id,
         facilityType: type,
-        isVerified: true,
-        status: 'active',
-        approvalStatus: 'not_required',
+        isVerified: false,
+        status: 'inactive',
+      approvalStatus: 'pending',
       });
     }
 
@@ -192,9 +192,7 @@ approvalStatus: 'not_required',
           status: 'active',
           approvalStatus: 'approved',
         });
-        // Hash the password after creation (pre-save hook won't run since password is set initially)
-        docUser.password = await bcrypt.hash(tempPassword, 10);
-        await docUser.save();
+        // Password already hashed by pre('save') hook during create()
         await Doctor.create({
           userId: docUser._id,
           name: doc.name,

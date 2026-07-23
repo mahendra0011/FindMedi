@@ -15,8 +15,7 @@ const otInstrumentsSchema = z.object({ instrumentsBefore: z.number().optional(),
 const router = express.Router();
 
 const generateOTId = async () => {
-  const count = await OperationTheatre.countDocuments();
-  return `OT-${new Date().getFullYear()}-${String(count + 1).padStart(5, '0')}`;
+  return `OT-${new Date().getFullYear()}-${Date.now().toString(36).slice(-6).toUpperCase()}${Math.floor(Math.random() * 36).toString(36).toUpperCase()}`;
 };
 
 router.post('/surgeries', protect, adminOnly, validate(createSurgerySchema), async (req, res) => {

@@ -83,7 +83,7 @@ export default function PharmacyBusinessDashboard() {
         />
         <StatCard
           title="Today's Revenue"
-          value={`Rs ${(stats?.revenue ?? 0).toLocaleString()}`}
+          value={`₹${(stats?.revenue ?? 0).toLocaleString()}`}
           change="+15% vs yesterday"
           changeType="positive"
           icon={DollarSign}
@@ -139,7 +139,7 @@ export default function PharmacyBusinessDashboard() {
                         <span className="text-muted-foreground">{order.patientName || order.customer || '—'}</span>
                       </div>
                     </td>
-                    <td className="py-3 px-2 text-right font-medium text-card-foreground">Rs {(order.total || order.amount || 0).toLocaleString()}</td>
+                    <td className="py-3 px-2 text-right font-medium text-card-foreground">₹{(order.total || order.amount || 0).toLocaleString()}</td>
                     <td className="py-3 px-2 text-right">
                       <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusColors[order.status] || 'bg-muted text-muted-foreground'}`}>
                         {order.status}

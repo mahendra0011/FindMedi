@@ -54,7 +54,7 @@ export default function PharmacyOffers() {
                 <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center"><Tag className="w-5 h-5 text-primary" /></div>
                 <div>
                   <p className="font-semibold text-foreground">{o.title}</p>
-                  <Badge variant={o.discountType === 'percentage' ? 'default' : 'secondary'} className="text-[10px]">{o.discountType === 'percentage' ? `${o.discountValue}% OFF` : `Rs ${o.discountValue} OFF`}</Badge>
+                  <Badge variant={o.discountType === 'percentage' ? 'default' : 'secondary'} className="text-[10px]">{o.discountType === 'percentage' ? `${o.discountValue}% OFF` : `₹${o.discountValue} OFF`}</Badge>
                 </div>
               </div>
               <div className="flex gap-1">
@@ -64,7 +64,7 @@ export default function PharmacyOffers() {
             </div>
             {o.description && <p className="text-xs text-muted-foreground mt-2">{o.description}</p>}
             <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
-              {o.minPurchase > 0 && <span>Min: Rs {o.minPurchase}</span>}
+              {o.minPurchase > 0 && <span>Min: ₹{o.minPurchase}</span>}
               {o.validUntil && <span>Valid till: {new Date(o.validUntil).toLocaleDateString()}</span>}
             </div>
           </div>

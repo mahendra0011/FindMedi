@@ -146,7 +146,7 @@ export default function AdminLeaveRequests() {
                       <Button size="sm" variant="default" className="gap-1 flex-1" onClick={() => handleStatus(lv._id, 'Approved')}>
                         <CheckCircle className="w-3.5 h-3.5" /> Approve
                       </Button>
-                      <Button size="sm" variant="destructive" className="gap-1 flex-1" onClick={() => handleStatus(lv._id, 'Rejected')}>
+                      <Button size="sm" variant="destructive" className="gap-1 flex-1" onClick={() => { if (confirm('Reject this leave request?')) handleStatus(lv._id, 'Rejected'); }}>
                         <XCircle className="w-3.5 h-3.5" /> Reject
                       </Button>
                     </div>

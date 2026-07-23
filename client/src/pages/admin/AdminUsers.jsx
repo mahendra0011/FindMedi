@@ -38,7 +38,8 @@ export default function AdminUsers() {
     try { await api.deleteUser(id); loadUsers(); } catch { toast.error('Failed to delete user'); }
   };
 
-  const handleBlock = async (id) => {
+  const handleBlock = async (id, currentlyBlocked) => {
+    if (!confirm(currentlyBlocked ? 'Unblock this user?' : 'Block this user?')) return;
     try { await api.blockUser(id); loadUsers(); } catch { toast.error('Failed to update user status'); }
   };
 
@@ -125,7 +126,7 @@ export default function AdminUsers() {
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center gap-2 justify-end">
-                          <Button variant="outline" size="sm" className="gap-1" onClick={() => handleBlock(u._id)}>
+                          <Button variant="outline" size="sm" className="gap-1" onClick={() => handleBlock(u._id, u.status === 'blocked')}>
                             {u.status === 'blocked' ? <CheckCircle className="w-3.5 h-3.5" /> : <Ban className="w-3.5 h-3.5" />}
                             {u.status === 'blocked' ? 'Unblock' : 'Block'}
                           </Button>

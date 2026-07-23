@@ -87,7 +87,7 @@ export default function ClinicDashboard() {
               <DollarSign className="w-5 h-5 text-primary" />
             </div>
           </div>
-          <p className="font-heading text-2xl font-bold text-foreground">Rs {todayRevenue.toLocaleString()}</p>
+          <p className="font-heading text-2xl font-bold text-foreground">₹{todayRevenue.toLocaleString()}</p>
           <p className="text-sm text-muted-foreground">Today's Revenue</p>
         </motion.div>
         <motion.div whileHover={{ scale: 1.02 }} className="bg-card rounded-2xl border border-border/60 p-5">
@@ -96,7 +96,7 @@ export default function ClinicDashboard() {
               <TrendingUp className="w-5 h-5 text-warning" />
             </div>
           </div>
-          <p className="font-heading text-2xl font-bold text-foreground">Rs {totalEarned.toLocaleString()}</p>
+          <p className="font-heading text-2xl font-bold text-foreground">₹{totalEarned.toLocaleString()}</p>
           <p className="text-sm text-muted-foreground">Total Earned</p>
         </motion.div>
       </div>
@@ -177,7 +177,7 @@ export default function ClinicDashboard() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-gradient-to-br from-success/10 to-success/5 rounded-2xl border border-success/20 p-4 text-center">
           <DollarSign className="w-6 h-6 mx-auto text-success mb-1" />
-          <p className="font-bold text-lg text-success">Rs {totalEarned.toLocaleString()}</p>
+          <p className="font-bold text-lg text-success">₹{totalEarned.toLocaleString()}</p>
           <p className="text-xs text-muted-foreground">Total Revenue</p>
         </div>
         <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-2xl border border-primary/20 p-4 text-center">

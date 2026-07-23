@@ -214,8 +214,7 @@ router.post('/:id/transfer-to-ipd', protect, adminOnly, async (req, res) => {
     }
 
     // Generate admission ID
-    const count = await Admission.countDocuments();
-    const admissionId = `IPD-${new Date().getFullYear()}-${String(count + 1).padStart(5, '0')}`;
+    const admissionId = `IPD-${new Date().getFullYear()}-${Date.now().toString(36).slice(-6).toUpperCase()}${Math.floor(Math.random() * 36).toString(36).toUpperCase()}`;
 
     // Find appropriate bed based on severity
     let bed = await Bed.findOne({
@@ -315,4 +314,4 @@ router.post('/beds/transfer/:id', protect, async (req, res) => {
 });
 
 export default router;
-// 23
+

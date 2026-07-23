@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true, lowercase: true, index: true },
-  password: { type: String, required: true },
+  password: { type: String, required: true, select: false },
   role: { type: String, enum: ['superadmin', 'admin', 'doctor', 'clinic_doctor', 'patient', 'lab_owner', 'lab_receptionist', 'lab_technician', 'pathologist', 'pharmacy_owner', 'pharmacist', 'nurse', 'radiologist', 'dietitian', 'physiotherapist', 'counselor', 'accountant', 'security', 'technician', 'helper'], default: 'patient', index: true },
   hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
   facilityId: { type: mongoose.Schema.Types.ObjectId, ref: 'Facility', index: true },
@@ -77,8 +77,7 @@ userSchema.pre('save', async function (next) {
 
 userSchema.pre('save', async function (next) {
   if (!this.uhid && this.role === 'patient') {
-    const count = await mongoose.models.User?.countDocuments({ role: 'patient' }) || 0;
-    this.uhid = `UHID${new Date().getFullYear()}${String(count + 1).padStart(7, '0')}`;
+    this.uhid = `UHID${Date.now()}${Math.floor(Math.random() * 1000)}`;
   }
   next();
 });
@@ -88,4 +87,4 @@ userSchema.methods.comparePassword = function (plain) {
 };
 
 export default mongoose.model('User', userSchema);
-// 19
+

@@ -15,13 +15,13 @@ const mhBillingSchema = z.object({ amount: z.number().optional(), description: z
 
 const router = express.Router();
 
-const genId = async () => { const c = await MentalHealth.countDocuments(); return `MH-${new Date().getFullYear()}-${String(c+1).padStart(5,'0')}`; };
+const genId = () => `MH-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 
 router.post('/referrals', protect, validate(createMentalHealthReferralSchema), async (req, res) => {
   try {
     const { patientId, patientName, referralSource, referrerName } = req.body;
     if (!patientId) return res.status(400).json({ message: 'Patient required' });
-    const referralId = await genId();
+    const referralId = genId();
     const r = await MentalHealth.create({ referralId, patientId, patientName, referralSource: referralSource || 'Doctor', referrerName: referrerName || req.user.name, hospitalId: req.user.hospitalId || undefined, createdBy: req.user._id });
     res.status(201).json(r);
   } catch (err) { res.status(400).json({ message: err.message }); }
@@ -146,7 +146,7 @@ router.post('/referrals/:id/create-billing', protect, adminOnly, validate(mhBill
     
     const { amount, description, sessionType } = req.body;
     
-    const invoiceId = `INV-${new Date().getFullYear()}-${String(await Billing.countDocuments() + 1).padStart(5, '0')}`;
+    const invoiceId = `INV-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
     
     const billing = await Billing.create({
       invoiceId,

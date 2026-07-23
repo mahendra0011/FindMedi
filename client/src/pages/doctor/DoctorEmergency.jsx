@@ -3,9 +3,11 @@ import { motion } from 'framer-motion';
 import { AlertTriangle, User, Clock, MessageSquare, CheckCircle, XCircle, Activity, Phone } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 const severityColors = {
   Critical: { bg: 'bg-red-500/10', text: 'text-red-600', border: 'border-red-500' },
@@ -29,29 +31,32 @@ export default function DoctorEmergency() {
     try {
       const list = await api.getEmergencies({ status: 'All' });
       setEmergencies(list || []);
-    } catch (e) { console.error(e); }
+    } catch (e) { toast.error(e.message); }
     setLoading(false);
   };
 
   const handleAccept = async (id) => {
     try {
-      await api.assignEmergencyDoctor(id, user?._id || 'doc1', user?.name || 'Doctor');
+      await api.assignEmergencyDoctor(id, user?._id, user?.name);
+      toast.success('Emergency case accepted');
       loadEmergencies();
-    } catch (e) { console.error(e); }
+    } catch (e) { toast.error(e.message); }
   };
 
   const handleReject = async (id) => {
     try {
       await api.updateEmergencyStatus(id, 'Rejected');
+      toast.success('Emergency case rejected');
       loadEmergencies();
-    } catch (e) { console.error(e); }
+    } catch (e) { toast.error(e.message); }
   };
 
   const handleStatusChange = async (id, status) => {
     try {
       await api.updateEmergencyStatus(id, status);
+      toast.success(`Status updated to ${status}`);
       loadEmergencies();
-    } catch (e) { console.error(e); }
+    } catch (e) { toast.error(e.message); }
   };
 
   const handleAddNote = async () => {
@@ -59,8 +64,9 @@ export default function DoctorEmergency() {
     try {
       await api.addEmergencyNote(selectedCase._id, noteText);
       setNoteText('');
+      toast.success('Note added');
       loadEmergencies();
-    } catch (e) { console.error(e); }
+    } catch (e) { toast.error(e.message); }
   };
 
   const pendingCases = emergencies.filter(e => e.status === 'Pending');

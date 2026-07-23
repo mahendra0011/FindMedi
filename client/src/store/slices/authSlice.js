@@ -91,14 +91,27 @@ export const registerUser = (body) => async (dispatch) => {
   dispatch(setLoading(true));
   try {
     const data = await api.register(body);
+
+    // If OTP verification is required, don't auto-login
+    if (data.requiresVerification) {
+      dispatch(setLoading(false));
+      return { ...data, requiresVerification: true };
+    }
+
     secureRemoveItem('token');
-    await secureSetItem('hms_token', data.token);
+    if (data.token) {
+      await secureSetItem('hms_token', data.token);
+    }
 
     const mergedUser = {
       ...data.user,
       settings: mergeSettings(readStoredSettings(), data.user?.settings),
     };
-    dispatch(setUser(mergedUser));
+    if (data.token) {
+      dispatch(setUser(mergedUser));
+    } else {
+      dispatch(setLoading(false));
+    }
     return mergedUser;
   } catch (error) {
     dispatch(setLoading(false));

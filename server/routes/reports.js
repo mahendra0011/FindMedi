@@ -31,7 +31,7 @@ const reportGenerateSchema = z.object({
 
 const router = express.Router();
 
-const genId = async () => { const c = await Report.countDocuments(); return `RPT-${new Date().getFullYear()}-${String(c+1).padStart(5,'0')}`; };
+const genId = () => `RPT-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 
 // Generate actual report data based on type
 const generateReportData = async (reportType, dateFrom, dateTo, department, hospitalId) => {
@@ -278,7 +278,7 @@ router.post('/generate', protect, validate(reportGenerateSchema), async (req, re
       return res.status(400).json({ message: 'Report type is required' });
     }
 
-    const reportId = await genId();
+    const reportId = genId();
     const { data, summary } = await generateReportData(reportType, dateFrom, dateTo, department, req.user.hospitalId);
     
     const report = await Report.create({
@@ -332,6 +332,7 @@ router.get('/:id', protect, async (req, res) => {
 
 router.get('/types/list', protect, async (req, res) => {
   try {
+    // TODO: move reportTypes to DB-backed admin-managed config
     const reportTypes = [
       { id: 'Bed Occupancy', name: 'Bed Occupancy Report', category: 'Administrative' },
       { id: 'Financial Summary', name: 'Financial Summary', category: 'Financial' },

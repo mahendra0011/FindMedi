@@ -91,8 +91,8 @@ export default function LabTestCatalog() {
                 </div>
                 <div className="flex items-center justify-between mt-4">
                   <div>
-                    <p className="text-lg font-bold text-foreground">Rs {test.price}</p>
-                    {test.discount > 0 && <p className="text-xs text-success">{test.discount}% off • Rs {test.price - (test.price * test.discount / 100)}</p>}
+                    <p className="text-lg font-bold text-foreground">₹{test.price}</p>
+                    {test.discount > 0 && <p className="text-xs text-success">{test.discount}% off • ₹{test.price - (test.price * test.discount / 100)}</p>}
                   </div>
                   <div className="text-right text-xs text-muted-foreground">
                     <p>{test.reportTime || 'N/A'}</p>

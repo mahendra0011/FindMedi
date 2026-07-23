@@ -5,22 +5,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
+import { toast } from 'sonner';
 
 const statusColors = { Pending: 'bg-warning/10 text-warning', Confirmed: 'bg-success/10 text-success', Completed: 'bg-primary/10 text-primary', Cancelled: 'bg-destructive/10 text-destructive' };
 const filters = ['All', 'Pending', 'Confirmed', 'Completed', 'Cancelled'];
 
-const defaultBookings = [
-  { _id: 'b1', patient: 'Ravi Kumar', phone: '+91 98765 43210', email: 'ravi@email.com', tests: ['Complete Blood Count', 'Lipid Profile'], date: new Date().toISOString().split('T')[0], time: '09:00 AM', status: 'Pending', type: 'Home Collection' },
-  { _id: 'b2', patient: 'Priya Sharma', phone: '+91 87654 32109', email: 'priya@email.com', tests: ['X-Ray Chest PA View'], date: new Date().toISOString().split('T')[0], time: '10:30 AM', status: 'Confirmed', type: 'Walk-in' },
-  { _id: 'b3', patient: 'Amit Patel', phone: '+91 76543 21098', email: 'amit@email.com', tests: ['Thyroid Panel', 'Blood Sugar'], date: new Date().toISOString().split('T')[0], time: '02:00 PM', status: 'Completed', type: 'Home Collection' },
-  { _id: 'b4', patient: 'Sneha Reddy', phone: '+91 65432 10987', email: 'sneha@email.com', tests: ['MRI Brain'], date: new Date().toISOString().split('T')[0], time: '11:00 AM', status: 'Pending', type: 'Walk-in' },
-  { _id: 'b5', patient: 'Vikram Singh', phone: '+91 54321 09876', email: 'vikram@email.com', tests: ['ECG', 'Lipid Profile'], date: new Date(Date.now() + 86400000).toISOString().split('T')[0], time: '09:30 AM', status: 'Confirmed', type: 'Home Collection' },
-];
-
 const timeSlots = ['09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM', '02:00 PM', '02:30 PM', '03:00 PM', '03:30 PM', '04:00 PM'];
 
 export default function LabBookingManagement() {
-  const [bookings, setBookings] = useState(defaultBookings);
+  const [bookings, setBookings] = useState([]);
   const [filter, setFilter] = useState('All');
   const [search, setSearch] = useState('');
   const [expanded, setExpanded] = useState(null);
@@ -28,8 +21,8 @@ export default function LabBookingManagement() {
 
   useEffect(() => {
     api.getLabBookings({}).then(res => {
-      if (res.bookings && res.bookings.length > 0) setBookings(res.bookings);
-    }).catch(console.error).finally(() => setLoading(false));
+      setBookings(res.bookings || []);
+    }).catch(e => { toast.error('Failed to load bookings'); console.error(e); }).finally(() => setLoading(false));
   }, []);
 
   const filtered = bookings.filter(b => {
@@ -38,9 +31,13 @@ export default function LabBookingManagement() {
     return ms && mf;
   });
 
-  const handleStatus = (id, status) => {
-    setBookings(prev => prev.map(b => b._id === id ? { ...b, status } : b));
-    api.updateLabBooking(id, { status }).catch(console.error);
+  const handleStatus = async (id, status, slot) => {
+    const prev = bookings;
+    setBookings(prev => prev.map(b => b._id === id ? { ...b, status, ...(slot ? { timeSlot: slot } : {}) } : b));
+    try {
+      await api.updateLabBooking(id, { status, ...(slot ? { timeSlot: slot } : {}) });
+      toast.success(`Booking ${status}`);
+    } catch (e) { setBookings(prev); toast.error('Failed to update booking'); }
   };
 
   if (loading) return (
@@ -127,7 +124,7 @@ export default function LabBookingManagement() {
                           <p className="text-xs text-muted-foreground mb-2">Assign Time Slot</p>
                           <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5">
                             {timeSlots.map(s => (
-                              <button key={s} onClick={() => handleStatus(b._id, 'Completed')}
+                              <button key={s} onClick={() => handleStatus(b._id, 'Completed', s)}
                                 className="px-2 py-1 rounded text-xs font-medium bg-muted text-muted-foreground hover:bg-primary hover:text-primary-foreground transition-colors">{s}</button>
                             ))}
                           </div>

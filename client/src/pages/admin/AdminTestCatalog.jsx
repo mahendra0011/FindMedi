@@ -79,7 +79,7 @@ export default function AdminTestCatalog() {
       reportTime: test.reportTime || '24 hrs',
       prescriptionReq: test.prescriptionReq || false,
       homeCollection: test.homeCollection || false,
-      homeCollectionFee: test.homeCollectionFee?.toString() || '50',
+      homeCollectionFee: test.homeCollectionFee != null ? test.homeCollectionFee.toString() : '',
       popular: test.popular || false,
       nablAccredited: test.nablAccredited || false,
       description: test.description || '', preparation: test.preparation || '',

@@ -177,4 +177,4 @@ export default function DoctorSetup() {
       </motion.div>
     </div>
   );
-}// 31
+}

@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
+import { toast } from 'sonner';
 
 const typeIcons = {
   Prescription: { icon: Pill, color: 'text-success', bg: 'bg-success/10' },
@@ -44,7 +45,7 @@ export default function DoctorConsultations() {
       setRecords(recordsArray.filter(r => 
         r.doctor?.toLowerCase().includes(user?.name?.toLowerCase())
       ));
-    } catch (e) { console.error(e); }
+    } catch (e) { toast.error(e.message); }
     setLoading(false);
   };
 
@@ -65,7 +66,7 @@ export default function DoctorConsultations() {
       a.download = `prescription-${recordId.slice(-8)}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
-    } catch (e) { console.error(e); }
+    } catch (e) { toast.error(e.message); }
   };
 
   const filteredRecords = records.filter(r => {
@@ -102,7 +103,7 @@ export default function DoctorConsultations() {
       setDiagnosis(''); setPrescription(''); setNotes('');
       setChiefComplaints(''); setAdvice(''); setFollowUp('');
       loadRecords();
-    } catch (e) { console.error(e); }
+    } catch (e) { toast.error(e.message); }
   };
 
   const resetForm = () => {

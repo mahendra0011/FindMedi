@@ -18,8 +18,6 @@ router.get('/', protect, async (req, res) => {
         { disease: new RegExp(search, 'i') },
         { doctor: new RegExp(search, 'i') },
         { uhid: new RegExp(search, 'i') },
-        { phone: new RegExp(search, 'i') },
-        { email: new RegExp(search, 'i') },
       ];
     }
     if (status) filter.status = status;
@@ -117,4 +115,4 @@ router.get('/:id/card', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-export default router;// 24
+export default router;

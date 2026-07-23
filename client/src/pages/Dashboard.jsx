@@ -61,7 +61,7 @@ export default function Dashboard() {
         <StatCard title="Total Patients" value={stats?.totalPatients?.toLocaleString() ?? '—'} change="+12% from last month" changeType="positive" icon={UserRound} />
         <StatCard title="Active Doctors" value={stats?.totalDoctors ?? '—'} change="+3 new this month" changeType="positive" icon={Stethoscope} iconColor="text-info" iconBg="bg-info/10" />
         <StatCard title="Appointments Today" value={stats?.todayAppointments ?? '—'} change="5 pending" changeType="neutral" icon={CalendarDays} iconColor="text-warning" iconBg="bg-warning/10" />
-        <StatCard title="Revenue (MTD)" value={`Rs ${(stats?.revenue ?? 0).toLocaleString()}`} change="+18% from last month" changeType="positive" icon={CreditCard} iconColor="text-success" iconBg="bg-success/10" />
+        <StatCard title="Revenue (MTD)" value={`₹${(stats?.revenue ?? 0).toLocaleString()}`} change="+18% from last month" changeType="positive" icon={CreditCard} iconColor="text-success" iconBg="bg-success/10" />
       </div>
 
       {/* Charts Row */}
@@ -91,8 +91,8 @@ export default function Dashboard() {
             <LineChart data={revenueData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(200,20%,90%)" />
               <XAxis dataKey="month" stroke="hsl(210,12%,50%)" fontSize={12} />
-              <YAxis stroke="hsl(210,12%,50%)" fontSize={12} tickFormatter={v => `Rs ${(v/1000).toFixed(0)}k`} />
-              <Tooltip contentStyle={tooltipStyle} formatter={v => [`Rs ${v.toLocaleString()}`, 'Revenue']} />
+              <YAxis stroke="hsl(210,12%,50%)" fontSize={12} tickFormatter={v => `₹${(v/1000).toFixed(0)}k`} />
+              <Tooltip contentStyle={tooltipStyle} formatter={v => [`₹${v.toLocaleString()}`, 'Revenue']} />
               <Line type="monotone" dataKey="revenue" stroke="hsl(174,62%,38%)" strokeWidth={3} dot={{ fill:'hsl(174,62%,38%)',r:5 }} />
             </LineChart>
           </ResponsiveContainer>
@@ -153,4 +153,4 @@ export default function Dashboard() {
       </div>
     </div>
   );
-}// 4
+}

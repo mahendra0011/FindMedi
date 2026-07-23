@@ -13,8 +13,7 @@ const radReportSchema = z.object({ findings: z.string().optional(), impression: 
 const router = express.Router();
 
 const generateOrderId = async () => {
-  const count = await Radiology.countDocuments();
-  return `RAD-${new Date().getFullYear()}-${String(count + 1).padStart(5, '0')}`;
+  return `RAD-${new Date().getFullYear()}-${Date.now().toString(36).slice(-6).toUpperCase()}${Math.floor(Math.random() * 36).toString(36).toUpperCase()}`;
 };
 
 // ─── Create Radiology Order ────────────────────────────────────────────────

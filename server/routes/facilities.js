@@ -146,7 +146,7 @@ router.put('/:id/approve', protect, superadminOnly, async (req, res) => {
   try {
     const facility = await Facility.findByIdAndUpdate(req.params.id, { status: 'approved' }, { new: true });
     if (!facility) return res.status(404).json({ message: 'Facility not found' });
-    await User.updateMany({ facilityId: req.params.id }, { isVerified: true });
+    await User.updateMany({ facilityId: req.params.id }, { status: 'active', isVerified: true });
     await auditLog('approve_facility', req.user._id, { facilityId: facility._id, type: facility.type, name: facility.name });
     res.json({ message: `${facility.type} approved`, facility });
   } catch (err) { res.status(500).json({ message: err.message }); }
