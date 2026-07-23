@@ -23,38 +23,14 @@ export default function ClinicManagement() {
       setLoading(true);
       try {
         const res = await api.getClinicProfile();
-        const profile = res?.profile || res || null;
-        if (profile) {
-          setClinicProfile({ ...profile, _id: profile._id || 'clinic_1' });
+        const fac = res?.facility || null;
+        if (fac) {
+          setClinicProfile({ ...fac, _id: fac._id || 'clinic_1' });
         } else {
-          setClinicProfile({
-            _id: 'clinic_1',
-            name: `${user?.name}'s Clinic`,
-            address: '123 Main Street',
-            city: 'New York',
-            phone: '+1 234 567 890',
-            email: user?.email || '',
-            timings: { weekday: '09:00 - 17:00', weekend: '10:00 - 14:00' },
-            photos: [],
-            facilities: ['Free WiFi', 'Parking', 'Pharmacy'],
-            description: 'General medical clinic',
-            status: 'active',
-          });
+          setClinicProfile(null);
         }
       } catch {
-        setClinicProfile({
-          _id: 'clinic_1',
-          name: `${user?.name}'s Clinic`,
-          address: '123 Main Street',
-          city: 'New York',
-          phone: '+1 234 567 890',
-          email: user?.email || '',
-          timings: { weekday: '09:00 - 17:00', weekend: '10:00 - 14:00' },
-          photos: [],
-          facilities: ['Free WiFi', 'Parking', 'Pharmacy'],
-          description: 'General medical clinic',
-          status: 'active',
-        });
+        setClinicProfile(null);
       }
       setLoading(false);
     };
@@ -64,8 +40,15 @@ export default function ClinicManagement() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await api.updateClinicProfile(form);
-      setClinicProfile(prev => ({ ...prev, ...form }));
+      const payload = {
+        name: form.name,
+        address: form.address,
+        city: form.city,
+        phone: form.phone,
+        description: form.description,
+      };
+      await api.updateClinicProfile(payload);
+      setClinicProfile(prev => ({ ...prev, ...payload }));
       setShowForm(false);
       setSaved(true);
       toast.success('Clinic settings updated successfully');

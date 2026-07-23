@@ -26,6 +26,13 @@ const doctorSchema = new mongoose.Schema({
     }
   },
   leaves: { type: [String], default: [] },
+  leaveBalance: {
+    sick: { type: Number, default: 12 },
+    casual: { type: Number, default: 15 },
+    earned: { type: Number, default: 20 },
+    personal: { type: Number, default: 10 },
+    maternity: { type: Number, default: 90 },
+  },
   approved: { type: Boolean, default: false },
   user_id: { type: String, default: '' },
   hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },

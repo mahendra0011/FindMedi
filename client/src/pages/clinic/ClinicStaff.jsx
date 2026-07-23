@@ -39,7 +39,7 @@ export default function ClinicStaff() {
     try {
       if (editing) {
         const updated = { name, email, phone, role };
-        await api.createClinicStaff(updated);
+        await api.updateClinicStaff(editing._id, updated);
         setStaff(staff.map(s => s._id === editing._id ? { ...s, ...updated } : s));
         toast.success('Staff updated');
       } else {

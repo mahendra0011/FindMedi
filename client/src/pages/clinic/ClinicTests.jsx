@@ -61,13 +61,14 @@ export default function ClinicTests() {
     if (!name || !price) return;
     setSaving(true);
     try {
+      const testData = { name, price: Number(price), mrp: Number(price), category };
       if (editTest) {
-        const updated = await api.updateTest(editTest._id, { name, price: Number(price), category });
-        setTests(prev => prev.map(t => t._id === editTest._id ? { ...t, name, price: Number(price), category } : t));
+        const updated = await api.updateTest(editTest._id, testData);
+        setTests(prev => prev.map(t => t._id === editTest._id ? { ...t, ...testData } : t));
         toast.success('Test updated');
       } else {
-        const res = await api.createTest({ name, price: Number(price), category });
-        const newTest = res?.test || res || { _id: `ct_${Date.now()}`, name, price: Number(price), category };
+        const res = await api.createTest(testData);
+        const newTest = res || { _id: `ct_${Date.now()}`, ...testData };
         setTests(prev => [newTest, ...prev]);
         toast.success('Test added');
       }

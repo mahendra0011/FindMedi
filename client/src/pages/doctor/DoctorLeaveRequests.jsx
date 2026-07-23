@@ -27,6 +27,7 @@ export default function DoctorLeaveRequests() {
   const { user } = useAuth();
   const [leaves, setLeaves] = useState([]);
   const [doctor, setDoctor] = useState(null);
+  const [balance, setBalance] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -46,6 +47,7 @@ export default function DoctorLeaveRequests() {
       const myDoc = doctors.find(d => d.email === user?.email) || doctors.find(d => d.name?.includes(user?.name)) || null;
       if (myDoc) setDoctor(myDoc);
       setLeaves(leavesRes?.leaves || []);
+      setBalance(leavesRes?.balance || null);
     } catch (e) { console.error(e); }
     setLoading(false);
   };
@@ -111,25 +113,24 @@ export default function DoctorLeaveRequests() {
       </div>
 
       {/* Leave Balance Info */}
-      {doctor && (
+      {balance && (
         <div className="bg-gradient-to-r from-primary/5 to-primary/10 rounded-2xl border border-primary/20 p-5">
           <h3 className="font-heading font-semibold text-foreground mb-3">Leave Balance</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
-            <div className="bg-card rounded-lg p-3 text-center border border-border/40">
-              <p className="text-lg font-bold text-primary">12</p>
-              <p className="text-xs text-muted-foreground">Sick Leave</p>
-            </div>
-            <div className="bg-card rounded-lg p-3 text-center border border-border/40">
-              <p className="text-lg font-bold text-primary">15</p>
-              <p className="text-xs text-muted-foreground">Casual Leave</p>
-            </div>
-            <div className="bg-card rounded-lg p-3 text-center border border-border/40">
-              <p className="text-lg font-bold text-primary">20</p>
-              <p className="text-xs text-muted-foreground">Earned Leave</p>
-            </div>
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-sm">
+            {Object.entries(balance).filter(([k]) => k !== 'maternity').map(([key, val]) => {
+              const remaining = val.total - val.used;
+              const labels = { sick: 'Sick Leave', casual: 'Casual Leave', earned: 'Earned Leave', personal: 'Personal Leave' };
+              return (
+                <div key={key} className="bg-card rounded-lg p-3 text-center border border-border/40">
+                  <p className={`text-lg font-bold ${remaining > 0 ? 'text-primary' : 'text-destructive'}`}>{remaining}</p>
+                  <p className="text-xs text-muted-foreground">{labels[key] || key}</p>
+                  <p className="text-[10px] text-muted-foreground/60">{val.used} used of {val.total}</p>
+                </div>
+              );
+            })}
             <div className="bg-card rounded-lg p-3 text-center border border-border/40">
               <p className="text-lg font-bold text-primary">{leaves.length}</p>
-              <p className="text-xs text-muted-foreground">Used Total</p>
+              <p className="text-xs text-muted-foreground">Total Applied</p>
             </div>
           </div>
         </div>

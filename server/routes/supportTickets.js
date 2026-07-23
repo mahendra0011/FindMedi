@@ -1,6 +1,7 @@
 import express from 'express';
 import SupportTicket from '../models/SupportTicket.js';
 import { protect, superadminOnly } from '../middleware/auth.js';
+import { validate, createSupportTicketSchema } from '../utils/validate.js';
 
 const router = express.Router();
 
@@ -9,10 +10,9 @@ const generateTicketId = async () => {
   return `TKT-${String(count + 1).padStart(4, '0')}`;
 };
 
-router.post('/', protect, async (req, res) => {
+router.post('/', protect, validate(createSupportTicketSchema), async (req, res) => {
   try {
-    const { subject, message } = req.body;
-    if (!subject || !message) return res.status(400).json({ message: 'Subject and message are required' });
+    const { subject, message, category, priority } = req.body;
     const ticketId = await generateTicketId();
     const ticket = await SupportTicket.create({
       ticketId,
@@ -20,6 +20,8 @@ router.post('/', protect, async (req, res) => {
       raisedByName: req.user.name,
       subject,
       description: message,
+      category,
+      priority,
       status: 'Open',
     });
     res.status(201).json(ticket);

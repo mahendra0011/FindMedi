@@ -4,6 +4,7 @@ import Notification from '../models/Notification.js';
 import User from '../models/User.js';
 import Doctor from '../models/Doctor.js';
 import { protect } from '../middleware/auth.js';
+import { validate, createRecordSchema } from '../utils/validate.js';
 import { generatePrescriptionPDF } from '../services/pdfService.js';
 
 const router = express.Router();
@@ -74,7 +75,7 @@ router.get('/patient/:patientId', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/', protect, async (req, res) => {
+router.post('/', protect, validate(createRecordSchema), async (req, res) => {
   try {
     const { patientId, patient, diagnosis, prescription, type, notes, data, appointmentId, attachments } = req.body;
     

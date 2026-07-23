@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   AlertCircle,
@@ -14,10 +14,17 @@ import {
   Stethoscope,
   User,
   Pill,
+  Smartphone,
+  KeyRound,
+  Copy,
+  Check,
+  QrCode,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { applyUserSettings, t } from '@/lib/settings';
@@ -108,6 +115,164 @@ function Notice({ notice }) {
     <div className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium ${cls}`}>
       <Icon className="w-4 h-4" />
       {notice.text}
+    </div>
+  );
+}
+
+function TwoFactorSection() {
+  const { user } = useAuth();
+  const [step, setStep] = useState('idle');
+  const [secret, setSecret] = useState('');
+  const [otpAuthUrl, setOtpAuthUrl] = useState('');
+  const [code, setCode] = useState('');
+  const [backupCodes, setBackupCodes] = useState([]);
+  const [disablePassword, setDisablePassword] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  const { data: status, refetch: refetchStatus } = useQuery({
+    queryKey: ['2fa-status'],
+    queryFn: () => api.get2FAStatus(),
+    enabled: !!user,
+  });
+
+  const isEnabled = status?.enabled || false;
+
+  const setupMut = useMutation({
+    mutationFn: () => api.setup2FA(),
+    onSuccess: (data) => {
+      setSecret(data.secret);
+      setOtpAuthUrl(data.otpAuthUrl);
+      setStep('verify');
+    },
+    onError: (err) => toast.error(err.message || 'Failed to setup 2FA'),
+  });
+
+  const verifyMut = useMutation({
+    mutationFn: () => api.verify2FA({ token: code }),
+    onSuccess: (data) => {
+      setBackupCodes(data.backupCodes || []);
+      setStep('backup-codes');
+      refetchStatus();
+    },
+    onError: (err) => toast.error(err.message || 'Invalid code'),
+  });
+
+  const disableMut = useMutation({
+    mutationFn: () => api.disable2FA({ password: disablePassword }),
+    onSuccess: () => {
+      setDisablePassword('');
+      setStep('idle');
+      refetchStatus();
+      toast.success('2FA disabled successfully');
+    },
+    onError: (err) => toast.error(err.message || 'Failed to disable 2FA'),
+  });
+
+  const handleCopyCodes = useCallback(() => {
+    navigator.clipboard?.writeText(backupCodes.join('\n'));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }, [backupCodes]);
+
+  if (!isEnabled && step === 'idle') {
+    return (
+      <div className="bg-card rounded-xl border p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-foreground">Two-Factor Authentication</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Add an extra layer of security to your account</p>
+          </div>
+          <Button size="sm" onClick={() => setupMut.mutate()} disabled={setupMut.isPending}>
+            <Smartphone className="w-3.5 h-3.5 mr-1.5" />
+            {setupMut.isPending ? 'Setting up...' : 'Enable 2FA'}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (step === 'verify') {
+    return (
+      <div className="bg-card rounded-xl border p-4 space-y-3">
+        <p className="text-sm font-medium text-foreground">Scan QR Code</p>
+        <p className="text-xs text-muted-foreground">Scan this code with your authenticator app (Google Authenticator, Authy, etc.)</p>
+        {otpAuthUrl && (
+          <div className="flex justify-center py-2">
+            <QrCode className="w-32 h-32 text-primary" />
+          </div>
+        )}
+        <div className="flex items-center gap-2 bg-muted/50 rounded-lg px-3 py-2">
+          <code className="text-xs flex-1 break-all font-mono">{secret}</code>
+          <Button variant="ghost" size="sm" onClick={() => { navigator.clipboard?.writeText(secret); toast.success('Secret copied'); }}>
+            <Copy className="w-3.5 h-3.5" />
+          </Button>
+        </div>
+        <div className="flex gap-2">
+          <Input value={code} onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="Enter 6-digit code" className="text-center text-lg tracking-widest" maxLength={6} />
+          <Button onClick={() => verifyMut.mutate()} disabled={code.length !== 6 || verifyMut.isPending}>
+            {verifyMut.isPending ? 'Verifying...' : 'Verify'}
+          </Button>
+        </div>
+        <Button variant="ghost" size="sm" onClick={() => { setStep('idle'); setSecret(''); setOtpAuthUrl(''); }}>
+          Cancel
+        </Button>
+      </div>
+    );
+  }
+
+  if (step === 'backup-codes') {
+    return (
+      <div className="bg-card rounded-xl border p-4 space-y-3">
+        <p className="text-sm font-medium text-foreground">Backup Codes</p>
+        <p className="text-xs text-muted-foreground">Save these one-time backup codes in a secure place. You won't be able to see them again.</p>
+        <div className="bg-muted/50 rounded-lg p-3 font-mono text-sm space-y-1">
+          {backupCodes.map((code, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <KeyRound className="w-3 h-3 text-muted-foreground" />
+              <span>{code}</span>
+            </div>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={handleCopyCodes} className="gap-1">
+            {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+            {copied ? 'Copied!' : 'Copy Codes'}
+          </Button>
+          <Button size="sm" onClick={() => { setStep('idle'); setBackupCodes([]); toast.success('2FA enabled successfully'); }}>
+            Done
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-card rounded-xl border p-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-foreground">Two-Factor Authentication</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Your account is protected with 2FA</p>
+        </div>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-1 text-destructive">
+              Disable
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Disable Two-Factor Authentication</DialogTitle>
+              <DialogDescription>Enter your password to disable 2FA.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 py-2">
+              <Input type="password" value={disablePassword} onChange={e => setDisablePassword(e.target.value)} placeholder="Enter your password" />
+              <Button className="w-full" variant="destructive" onClick={() => disableMut.mutate()} disabled={!disablePassword || disableMut.isPending}>
+                {disableMut.isPending ? 'Disabling...' : 'Disable 2FA'}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
     </div>
   );
 }
@@ -400,13 +565,8 @@ export default function Settings() {
                   <Input type="password" value={password.confirmPassword} onChange={(event) => setPassword((current) => ({ ...current, confirmPassword: event.target.value }))} placeholder="Confirm new password" />
                 </Field>
               </div>
-              <div className="mt-5 space-y-1 max-w-2xl">
-                <ToggleRow
-                  title={tr('settings.twoFactor')}
-                  description={tr('settings.twoFactorDesc')}
-                  checked={settings.twoFactorEnabled}
-                  onChange={(checked) => saveSetting('twoFactorEnabled', checked)}
-                />
+              <div className="mt-5 space-y-3 max-w-2xl">
+                <TwoFactorSection />
               </div>
               <div className="flex flex-wrap gap-3 mt-5">
                 <Button onClick={savePassword} disabled={passwordMut.isPending} className="gap-2">

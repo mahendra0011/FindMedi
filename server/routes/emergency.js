@@ -6,6 +6,7 @@ import Notification from '../models/Notification.js';
 import User from '../models/User.js';
 import Doctor from '../models/Doctor.js';
 import { protect } from '../middleware/auth.js';
+import { validate, createEmergencySchema } from '../utils/validate.js';
 import logger from '../config/logger.js';
 
 const router = express.Router();
@@ -50,7 +51,7 @@ router.get('/', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/', protect, async (req, res) => {
+router.post('/', protect, validate(createEmergencySchema), async (req, res) => {
   try {
     const { patientName, patientId, age, gender, phone, condition, severity } = req.body;
     

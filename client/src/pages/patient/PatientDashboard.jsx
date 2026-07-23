@@ -438,7 +438,7 @@ export default function PatientDashboard() {
                     </div>
                     <StatusBadge status={r.status} />
                   </div>
-                  {r.status === 'Ready' && <div className="flex gap-2 mt-3 pt-3 border-t"><Button size="sm" onClick={() => showToast('Opening report')}><Eye className="w-3 h-3 mr-1" /> View</Button><Button size="sm" variant="outline"><Download className="w-3 h-3 mr-1" /> Download PDF</Button></div>}
+                  {r.status === 'Ready' && <div className="flex gap-2 mt-3 pt-3 border-t"><Button size="sm" onClick={() => showToast('Opening report')}><Eye className="w-3 h-3 mr-1" /> View</Button><Button size="sm" variant="outline" onClick={() => showToast('Downloading PDF')}><Download className="w-3 h-3 mr-1" /> Download PDF</Button></div>}
                 </div>
               ))}
               {reports.length === 0 && <div className="text-center py-20"><FileText className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" /><p className="text-muted-foreground">No reports yet</p></div>}
@@ -505,7 +505,7 @@ export default function PatientDashboard() {
                       <div><p className="font-medium">{f.refName}</p><p className="text-xs text-muted-foreground capitalize">{f.refType}{f.notes ? ` · ${f.notes}` : ''}</p></div>
                     </div>
                     <div className="flex gap-2">
-                      <Button size="sm" variant="outline" className="flex-1"><ExternalLink className="w-3 h-3 mr-1" /> View</Button>
+                      <Button size="sm" variant="outline" className="flex-1" onClick={() => showToast('Opening ' + f.refName)}><ExternalLink className="w-3 h-3 mr-1" /> View</Button>
                       <Button size="sm" variant="outline" className="text-destructive" onClick={() => { setFavorites(fs => fs.filter(ff => ff._id !== f._id)); showToast('Removed from favorites'); }}><Trash2 className="w-3 h-3" /></Button>
                     </div>
                   </div>
