@@ -30,7 +30,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import ReviewDialog from '@/components/ReviewDialog';
 
-// â”€â”€â”€ Animation Variants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Animation Variants ────────────────────────────────────────────────────
 const stagger = {
   hidden: { opacity: 0 },
   show: { opacity: 1, transition: { staggerChildren: 0.06, delayChildren: 0.1 } }
@@ -54,7 +54,7 @@ const EXPERIENCE_RANGES = [
   { label: '10+ years', min: 10, max: 999 },
 ];
 
-// â”€â”€â”€ Specialty Theme Colors â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Specialty Theme Colors ────────────────────────────────────────────────
 const SPEC_THEME = {
   Cardiology:        { bg: 'bg-red-50 dark:bg-red-500/10', text: 'text-red-600',     border: 'border-red-200 dark:border-red-800', icon: Heart },
   Neurology:         { bg: 'bg-purple-50 dark:bg-purple-500/10', text: 'text-purple-600',  border: 'border-purple-200 dark:border-purple-800', icon: Brain },
@@ -193,12 +193,12 @@ export default function HospitalProfile() {
     })();
   }, [id]);
 
-  // â”€â”€â”€ Derived Data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Derived Data ──────────────────────────────────────────────────────────
   const establishedYear = hospital?.establishedYear ||
     (hospital?.createdAt ? new Date(hospital.createdAt).getFullYear() : null);
   const expYears = establishedYear ? new Date().getFullYear() - establishedYear : null;
   const tagline = hospital?.hospitalType
-    ? `${hospital.hospitalType}${establishedYear ? `  â€¢  Est. ${establishedYear}` : ''}`
+    ? `${hospital.hospitalType}${establishedYear ? `  •  Est. ${establishedYear}` : ''}`
     : '';
   const totalDepts = hospital?.specialties?.length || 0;
 
@@ -207,11 +207,11 @@ export default function HospitalProfile() {
     const day = new Date().getDay();
     const wh = hospital?.workingHours || {};
     if (day === 0 && (wh.sunday || '').toLowerCase().includes('closed')) {
-      if (hospital?.emergency24x7) return { isOpen: true, label: 'Emergency 24/7 â€¢ OPD Closed', dot: 'bg-amber-500', bg: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 border-amber-200 dark:border-amber-800' };
+      if (hospital?.emergency24x7) return { isOpen: true, label: 'Emergency 24/7 • OPD Closed', dot: 'bg-amber-500', bg: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 border-amber-200 dark:border-amber-800' };
       return { isOpen: false, label: 'Closed', dot: 'bg-red-500', bg: 'bg-red-50 dark:bg-red-500/10 text-red-600 border-red-200 dark:border-red-800' };
     }
     if (hospital?.emergency24x7) return { isOpen: true, label: 'Emergency 24/7', dot: 'bg-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 border-emerald-200 dark:border-emerald-800' };
-    if (h >= 7 && h < 22) return { isOpen: true, label: `Open â€¢ Closes 10 PM`, dot: 'bg-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 border-emerald-200 dark:border-emerald-800' };
+    if (h >= 7 && h < 22) return { isOpen: true, label: `Open • Closes 10 PM`, dot: 'bg-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 border-emerald-200 dark:border-emerald-800' };
     return { isOpen: false, label: 'Closed', dot: 'bg-red-500', bg: 'bg-red-50 dark:bg-red-500/10 text-red-600 border-red-200 dark:border-red-800' };
   };
   const openStatus = getOpenStatus();
@@ -223,7 +223,7 @@ export default function HospitalProfile() {
     <Star key={s} className={cn('w-4 h-4', s <= Math.round(r) ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground/20 fill-muted-foreground/20')} />
   ));
 
-  // â”€â”€â”€ Handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Handlers ──────────────────────────────────────────────────────────────
   const handleShare = async () => {
     const url = window.location.href;
     if (navigator.share) { try { await navigator.share({ title: hospital?.name, url }); } catch {} }
@@ -424,12 +424,12 @@ export default function HospitalProfile() {
     return 0;
   });
 
-  // â”€â”€â”€ Loading / 404 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Loading / 404 ─────────────────────────────────────────────────────────
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-3">
         <div className="w-10 h-10 border-[3px] border-primary border-t-transparent rounded-full animate-spin" />
-        <p className="text-sm text-muted-foreground animate-pulse">Loading hospitalâ€¦</p>
+        <p className="text-sm text-muted-foreground animate-pulse">Loading hospital…</p>
       </div>
     </div>
   );
@@ -440,7 +440,7 @@ export default function HospitalProfile() {
   return (
     <motion.div initial="hidden" animate="show" className="bg-background min-h-screen">
 
-      {/* â•â•â•â•â•â•â•â•â•â•â• BREADCRUMB â•â•â•â•â•â•â•â•â•â•â• */}
+      {/* ═══════════ BREADCRUMB ═══════════ */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-0">
         <nav className="flex items-center gap-1.5 text-sm text-muted-foreground flex-wrap">
           <Link to="/" className="hover:text-primary transition-colors flex items-center gap-1"><Home className="w-3.5 h-3.5" /><span className="hidden sm:inline">Home</span></Link>
@@ -452,7 +452,7 @@ export default function HospitalProfile() {
         </nav>
       </div>
 
-      {/* â•â•â•â•â•â•â•â• 1. HERO SECTION â•â•â•â•â•â•â•â• */}
+      {/* ════════ 1. HERO SECTION ════════ */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
@@ -582,11 +582,11 @@ export default function HospitalProfile() {
         </div>
       </motion.div>
 
-      {/* â•â•â•â•â•â•â•â• 2. QUICK STATS STRIP â•â•â•â•â•â•â•â• */}
+      {/* ════════ 2. QUICK STATS STRIP ════════ */}
       <motion.div variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true }}
         className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
         {[
-          { icon: Building2, label: 'Established', value: establishedYear || 'â€”', color: 'text-primary', desc: establishedYear ? `Since ${establishedYear}` : 'â€”' },
+          { icon: Building2, label: 'Established', value: establishedYear || '—', color: 'text-primary', desc: establishedYear ? `Since ${establishedYear}` : '—' },
           { icon: Stethoscope, label: 'Total Doctors', value: hospital.totalDoctors || doctors.length || 0, color: 'text-blue-500', desc: 'Qualified professionals' },
           { icon: Sparkles, label: 'Departments', value: totalDepts, color: 'text-purple-500', desc: 'Specialties available' },
           { icon: BedDouble, label: 'Total Beds', value: hospital.bedAvailability || 0, color: 'text-emerald-500', desc: 'Available beds' },
@@ -604,18 +604,18 @@ export default function HospitalProfile() {
         ))}
       </motion.div>
 
-      {/* â•â•â•â•â•â•â•â•â•â•â• MAIN CONTENT + SIDEBAR â•â•â•â•â•â•â•â•â•â•â• */}
+      {/* ═══════════ MAIN CONTENT + SIDEBAR ═══════════ */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-          {/* â”€â”€â”€â”€ LEFT COLUMN â”€â”€â”€â”€ */}
+          {/* ──── LEFT COLUMN ──── */}
           <div className="lg:col-span-2 space-y-8">
 
       <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>
         <ServiceLocationMap entityType="hospital" entity={hospital} />
       </motion.div>
 
-      {/* â•â•â•â•â•â•â•â•â•â•â• DOCTOR / TESTS SECTION â•â•â•â•â•â•â•â•â•â•â• */}
+      {/* ═══════════ DOCTOR / TESTS SECTION ═══════════ */}
       <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}
         className=""
       >
@@ -671,7 +671,7 @@ export default function HospitalProfile() {
               <div className="relative mb-4">
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input value={docSearch} onChange={e => setDocSearch(e.target.value)}
-                  placeholder="Search doctors by name or specializationâ€¦"
+                  placeholder="Search doctors by name or specialization…"
                   className="pl-10 rounded-xl h-10 text-sm"
                 />
               </div>
@@ -715,7 +715,7 @@ export default function HospitalProfile() {
                     <Button key={r} variant={ratingFilter === r ? 'default' : 'outline'} size="sm"
                       onClick={() => setRatingFilter(ratingFilter === r ? 0 : r)}
                       className="h-8 text-[11px] px-2 rounded-lg">
-                      <Star className="w-3 h-3 mr-0.5" /> {r}â˜… & above
+                      <Star className="w-3 h-3 mr-0.5" /> {r}★ & above
                     </Button>
                   ))}
                 </div>
@@ -823,7 +823,7 @@ export default function HospitalProfile() {
 
                       <div className="flex items-center justify-between p-3 rounded-xl bg-primary/5 border border-primary/10 mb-4">
                         <span className="text-sm text-muted-foreground">Consultation Fee</span>
-                        <span className="font-bold text-lg text-primary">â‚¹{doc.consultation_fees || doc.fees || 0}</span>
+                        <span className="font-bold text-lg text-primary">₹{doc.consultation_fees || doc.fees || 0}</span>
                       </div>
 
 <div className="flex gap-2">
@@ -873,9 +873,9 @@ export default function HospitalProfile() {
                   <select value={priceRange} onChange={e => setPriceRange(e.target.value)}
                     className="h-8 px-2.5 rounded-lg text-[11px] bg-background border border-border/50 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
                     <option value="all">Price: All</option>
-                    <option value="0-500">Under â‚¹500</option>
-                    <option value="500-2000">â‚¹500 - â‚¹2000</option>
-                    <option value="2000+">â‚¹2000+</option>
+                    <option value="0-500">Under ₹500</option>
+                    <option value="500-2000">₹500 - ₹2000</option>
+                    <option value="2000+">₹2000+</option>
                   </select>
                   <select value={testRxFilter} onChange={e => setTestRxFilter(e.target.value)}
                     className="h-8 px-2.5 rounded-lg text-[11px] bg-background border border-border/50 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
@@ -929,8 +929,8 @@ export default function HospitalProfile() {
                           </div>
 <div className="mt-auto flex items-center justify-between pt-2 border-t border-border/30">
                              <div>
-                               <span className="text-sm font-bold text-foreground">â‚¹{test.price}</span>
-                               {test.mrp > test.price && <span className="text-[9px] text-muted-foreground line-through ml-1">â‚¹{test.mrp}</span>}
+                               <span className="text-sm font-bold text-foreground">₹{test.price}</span>
+                               {test.mrp > test.price && <span className="text-[9px] text-muted-foreground line-through ml-1">₹{test.mrp}</span>}
                              </div>
                              {testCart[test.id] ? (
                                <div className="flex items-center gap-1">
@@ -959,7 +959,7 @@ export default function HospitalProfile() {
           </Card>
         </motion.div>
 
-      {/* â•â•â•â•â•â•â•â•â•â•â• ABOUT SECTION (Stats ke neeche) â•â•â•â•â•â•â•â•â•â•â• */}
+      {/* ═══════════ ABOUT SECTION (Stats ke neeche) ═══════════ */}
       {hospital.description && (
         <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}
           className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8"
@@ -986,7 +986,7 @@ export default function HospitalProfile() {
         </motion.div>
       )}
 
-      {/* â”€â”€â”€ Specialties & Departments â”€â”€â”€ */}
+      {/* ─── Specialties & Departments ─── */}
       {hospital.specialties?.length > 0 && (
         <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>
           <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden">
@@ -1012,7 +1012,7 @@ export default function HospitalProfile() {
         </motion.div>
       )}
 
-      {/* â”€â”€â”€ Location & Contact â”€â”€â”€ */}
+      {/* ─── Location & Contact ─── */}
       <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>
         <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden">
           <CardContent className="p-6 sm:p-8">
@@ -1070,7 +1070,7 @@ export default function HospitalProfile() {
         </Card>
       </motion.div>
 
-      {/* â”€â”€â”€ Photo Gallery â”€â”€â”€ */}
+      {/* ─── Photo Gallery ─── */}
       <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>
         <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden">
           <CardContent className="p-6 sm:p-8">
@@ -1107,7 +1107,7 @@ export default function HospitalProfile() {
         </Card>
       </motion.div>
 
-      {/* â”€â”€â”€ Patient Reviews â”€â”€â”€ */}
+      {/* ─── Patient Reviews ─── */}
       <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>
         <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden">
           <CardContent className="p-6 sm:p-8">
@@ -1189,7 +1189,7 @@ export default function HospitalProfile() {
         </Card>
       </motion.div>
 
-      {/* â”€â”€â”€ FAQs â”€â”€â”€ */}
+      {/* ─── FAQs ─── */}
       <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>
         <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden">
           <CardContent className="p-6 sm:p-8">
@@ -1220,7 +1220,7 @@ export default function HospitalProfile() {
         </Card>
       </motion.div>
 
-      {/* â•â•â•â•â•â•â•â•â•â•â• TESTS SECTION â•â•â•â•â•â•â•â•â•â•â• */}
+      {/* ═══════════ TESTS SECTION ═══════════ */}
       <div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-6">
@@ -1294,8 +1294,8 @@ export default function HospitalProfile() {
                                     <div className="flex items-center justify-between">
                                       <div>
                                         <div className="flex items-baseline gap-1.5">
-                                          <span className="text-lg font-bold text-foreground">â‚¹{test.price}</span>
-                                          {test.mrp > test.price && <span className="text-xs text-muted-foreground line-through">â‚¹{test.mrp}</span>}
+                                          <span className="text-lg font-bold text-foreground">₹{test.price}</span>
+                                          {test.mrp > test.price && <span className="text-xs text-muted-foreground line-through">₹{test.mrp}</span>}
                                         </div>
                                         <p className="text-[10px] text-muted-foreground">Report in {test.reportTime}</p>
                                       </div>
@@ -1340,8 +1340,8 @@ export default function HospitalProfile() {
                                       </div>
                                       <div className="text-right shrink-0">
                                         <div className="flex items-baseline gap-1.5">
-                                          <span className="text-sm font-bold text-foreground">â‚¹{test.price}</span>
-                                          {test.mrp > test.price && <span className="text-[10px] text-muted-foreground line-through">â‚¹{test.mrp}</span>}
+                                          <span className="text-sm font-bold text-foreground">₹{test.price}</span>
+                                          {test.mrp > test.price && <span className="text-[10px] text-muted-foreground line-through">₹{test.mrp}</span>}
                                         </div>
                                       </div>
                                     </div>
@@ -1396,7 +1396,7 @@ export default function HospitalProfile() {
 
         </div>
 
-        {/* â”€â”€â”€â”€ RIGHT SIDEBAR â”€â”€â”€â”€ */}
+        {/* ──── RIGHT SIDEBAR ──── */}
         <div className="space-y-6">
           {/* Trust & Accreditation */}
           <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>
@@ -1421,7 +1421,7 @@ export default function HospitalProfile() {
                   )}
                   <Separator />
                   <div className="space-y-3">
-                    {[['Established', establishedYear || 'â€”'], ['Hospital Type', hospital.hospitalType || 'â€”'], ['License', hospital.licenseNumber || 'â€”'], ['Working Hours', hospital.workingHours?.weekdays || '9:00 AM - 6:00 PM'], ['Saturday', hospital.workingHours?.saturday || '9:00 AM - 2:00 PM'], ['Sunday', hospital.workingHours?.sunday || 'Closed']].map(([label, val]) => (
+                    {[['Established', establishedYear || '—'], ['Hospital Type', hospital.hospitalType || '—'], ['License', hospital.licenseNumber || '—'], ['Working Hours', hospital.workingHours?.weekdays || '9:00 AM - 6:00 PM'], ['Saturday', hospital.workingHours?.saturday || '9:00 AM - 2:00 PM'], ['Sunday', hospital.workingHours?.sunday || 'Closed']].map(([label, val]) => (
                       <div key={label} className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">{label}</span>
                         <span className="font-semibold text-foreground">{val}</span>
@@ -1565,7 +1565,7 @@ export default function HospitalProfile() {
               </div>
               <div>
                 <span className="text-xs text-muted-foreground">{cartCount} test{cartCount > 1 ? 's' : ''} selected</span>
-                <span className="text-lg font-bold text-foreground block leading-tight">â‚¹{cartTotal}</span>
+                <span className="text-lg font-bold text-foreground block leading-tight">₹{cartTotal}</span>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -1580,7 +1580,7 @@ export default function HospitalProfile() {
         </motion.div>
       )}
 
-      {/* â•â•â•â•â•â•â•â•â•â•â• SUGGESTED HOSPITALS CAROUSEL â•â•â•â•â•â•â•â•â•â•â• */}
+      {/* ═══════════ SUGGESTED HOSPITALS CAROUSEL ═══════════ */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-14 mb-20">
         <motion.div variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true }}>
           <div className="flex items-center gap-3 mb-5">
@@ -1765,7 +1765,7 @@ export default function HospitalProfile() {
                  </div>
                  <div className="space-y-1.5">
                    <label className="text-xs font-medium text-foreground">Notes (optional)</label>
-                   <textarea value={bookingNotes} onChange={e => setBookingNotes(e.target.value)} placeholder="Any specific concernsâ€¦" className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm resize-none" rows={2} />
+                   <textarea value={bookingNotes} onChange={e => setBookingNotes(e.target.value)} placeholder="Any specific concerns…" className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm resize-none" rows={2} />
                  </div>
                </div>
                <DialogFooter>
@@ -1790,7 +1790,7 @@ export default function HospitalProfile() {
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 border border-primary/20">
                 <CalendarDays className="w-4 h-4 text-primary" />
                 <p className="text-xs font-medium text-primary">
-                  {bookingDate && new Date(bookingDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} â€¢ {bookingTime}
+                  {bookingDate && new Date(bookingDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} • {bookingTime}
                 </p>
               </div>
               <DialogFooter className="mt-6">
@@ -1801,7 +1801,7 @@ export default function HospitalProfile() {
         </DialogContent>
       </Dialog>
 
-      {/* â•â•â•â•â•â•â•â•â•â•â• TEST BOOKING MODAL â•â•â•â•â•â•â•â•â•â•â• */}
+      {/* ═══════════ TEST BOOKING MODAL ═══════════ */}
       <AnimatePresence>
         {showTestBooking && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -1948,11 +1948,11 @@ export default function HospitalProfile() {
                       ))}
                       <div className="border-t border-border/40 pt-3 flex items-center justify-between">
                         <span className="text-xs text-muted-foreground">Home Collection Fee</span>
-                        <span className={cn('text-xs font-semibold', testCollectionMode === 'home' ? 'text-foreground' : 'text-muted-foreground')}>{testCollectionMode === 'home' ? '+â‚¹50' : 'â€”'}</span>
+                        <span className={cn('text-xs font-semibold', testCollectionMode === 'home' ? 'text-foreground' : 'text-muted-foreground')}>{testCollectionMode === 'home' ? '+₹50' : '—'}</span>
                       </div>
                       <div className="border-t-2 border-border/60 pt-3 flex items-center justify-between">
                         <span className="text-sm font-bold text-foreground">Total</span>
-                        <span className="text-lg font-bold text-primary">â‚¹{cartTotal + (testCollectionMode === 'home' ? 50 : 0)}</span>
+                        <span className="text-lg font-bold text-primary">₹{cartTotal + (testCollectionMode === 'home' ? 50 : 0)}</span>
                       </div>
                     </div>
                   </div>
@@ -2001,7 +2001,7 @@ export default function HospitalProfile() {
                 {testBookingStep === 2 && <Button className="w-full rounded-xl h-11 text-sm gap-1.5" onClick={() => setTestBookingStep(3)}>Continue <ChevronRight className="w-4 h-4" /></Button>}
                 {testBookingStep === 3 && <Button className="w-full rounded-xl h-11 text-sm gap-1.5" onClick={() => setTestBookingStep(4)} disabled={!testSelectedDate || !testSelectedSlot}>Continue <ChevronRight className="w-4 h-4" /></Button>}
                 {testBookingStep === 4 && <Button className="w-full rounded-xl h-11 text-sm gap-1.5" onClick={() => setTestBookingStep(5)}>Proceed to Pay <ChevronRight className="w-4 h-4" /></Button>}
-                {testBookingStep === 5 && <Button className="w-full rounded-xl h-11 text-sm gap-1.5" onClick={() => { setTestBookingId('MED' + Date.now().toString(36).toUpperCase()); setTestBookingStep(6); }}>Pay â‚¹{cartTotal + (testCollectionMode === 'home' ? 50 : 0)}</Button>}
+                {testBookingStep === 5 && <Button className="w-full rounded-xl h-11 text-sm gap-1.5" onClick={() => { setTestBookingId('MED' + Date.now().toString(36).toUpperCase()); setTestBookingStep(6); }}>Pay ₹{cartTotal + (testCollectionMode === 'home' ? 50 : 0)}</Button>}
                 {testBookingStep === 6 && <Button className="w-full rounded-xl h-11 text-sm gap-1.5 bg-gradient-to-r from-emerald-500 to-emerald-600" onClick={() => { setShowTestBooking(false); setTestCart({}); setTestBookingStep(1); setTestSelectedDate(''); setTestSelectedSlot(''); }}>Done <CheckCircle2 className="w-4 h-4" /></Button>}
               
       <ReviewDialog 

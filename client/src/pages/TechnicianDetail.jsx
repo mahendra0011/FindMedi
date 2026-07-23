@@ -257,7 +257,7 @@ export default function TechnicianDetail() {
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
           <div className="w-10 h-10 border-[3px] border-primary border-t-transparent rounded-full animate-spin" />
-          <p className="text-sm text-muted-foreground animate-pulse">Loading technicianâ€¦</p>
+          <p className="text-sm text-muted-foreground animate-pulse">Loading technician…</p>
         </div>
       </div>
     );
@@ -282,7 +282,7 @@ export default function TechnicianDetail() {
   return (
     <motion.div initial="hidden" animate="show" className="bg-background min-h-screen">
 
-      {/* â•â•â•â•â•â•â•â•â•â•â• BREADCRUMB â•â•â•â•â•â•â•â•â•â•â• */}
+      {/* ═══════════ BREADCRUMB ═══════════ */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-0">
         <nav className="flex items-center gap-1.5 text-sm text-muted-foreground flex-wrap">
           <Link to="/" className="hover:text-primary transition-colors flex items-center gap-1">
@@ -298,10 +298,10 @@ export default function TechnicianDetail() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-20">
         <div className="grid lg:grid-cols-3 gap-8">
 
-          {/* â•â•â•â•â•â•â•â•â•â•â• MAIN CONTENT â•â•â•â•â•â•â•â•â•â•â• */}
+          {/* ═══════════ MAIN CONTENT ═══════════ */}
           <div className="lg:col-span-2 space-y-8">
 
-            {/* â•â•â• 1. HERO SECTION â•â•â• */}
+            {/* ═══ 1. HERO SECTION ═══ */}
             <motion.div variants={fadeUp}
               className="bg-card rounded-2xl border border-border/60 p-6 sm:p-8 shadow-sm"
             >
@@ -367,7 +367,7 @@ export default function TechnicianDetail() {
                     </span>
                     <span className="flex items-center gap-1.5">
                       <MapPin className="w-4 h-4 text-primary shrink-0" />
-                      {tech.distance} Â· {tech.area}
+                      {tech.distance} · {tech.area}
                     </span>
                   </div>
                 </div>
@@ -398,7 +398,7 @@ export default function TechnicianDetail() {
               </div>
             </motion.div>
 
-            {/* â•â•â• 2. ABOUT SECTION â•â•â• */}
+            {/* ═══ 2. ABOUT SECTION ═══ */}
             <motion.div variants={fadeUp}>
               <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden">
                 <CardContent className="p-6 sm:p-8">
@@ -450,7 +450,7 @@ export default function TechnicianDetail() {
               </Card>
             </motion.div>
 
-            {/* â•â•â• 3. EDUCATION & CAREER â•â•â• */}
+            {/* ═══ 3. EDUCATION & CAREER ═══ */}
             <motion.div variants={fadeUp}>
               <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden">
                 <CardContent className="p-6 sm:p-8">
@@ -554,7 +554,7 @@ export default function TechnicianDetail() {
               </Card>
             </motion.div>
 
-            {/* â•â•â• 4. LAB ASSOCIATION + SERVICE AREA â•â•â• */}
+            {/* ═══ 4. LAB ASSOCIATION + SERVICE AREA ═══ */}
             <motion.div variants={fadeUp}>
               <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden">
                 <CardContent className="p-6 sm:p-8">
@@ -575,7 +575,7 @@ export default function TechnicianDetail() {
                         </div>
                         <div>
                           <p className="font-semibold text-foreground">{tech.labName}</p>
-                          <p className="text-xs text-muted-foreground">{tech.employmentType} Â· {tech.role}</p>
+                          <p className="text-xs text-muted-foreground">{tech.employmentType} · {tech.role}</p>
                         </div>
                       </div>
                       <Button variant="outline" size="sm" className="rounded-xl gap-1.5 shrink-0"
@@ -604,7 +604,7 @@ export default function TechnicianDetail() {
               </Card>
             </motion.div>
 
-            {/* â•â•â• 5. WEEKLY SCHEDULE â•â•â• */}
+            {/* ═══ 5. WEEKLY SCHEDULE ═══ */}
             <motion.div variants={fadeUp}>
               <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden">
                 <CardContent className="p-6 sm:p-8">
@@ -656,10 +656,10 @@ export default function TechnicianDetail() {
                                 </span>
                               </td>
                               <td className="py-3 px-4 text-muted-foreground">
-                                {active ? (slot?.timing || '9:00 AM â€“ 5:00 PM') : 'â€”'}
+                                {active ? (slot?.timing || '9:00 AM – 5:00 PM') : '—'}
                               </td>
                               <td className="py-3 px-4 text-muted-foreground">
-                                {active ? (slot?.shift || 'â€”') : 'â€”'}
+                                {active ? (slot?.shift || '—') : '—'}
                               </td>
                             </tr>
                           );
@@ -671,7 +671,7 @@ export default function TechnicianDetail() {
               </Card>
             </motion.div>
 
-            {/* â•â•â• 6. ADDITIONAL INFO â•â•â• */}
+            {/* ═══ 6. ADDITIONAL INFO ═══ */}
             <motion.div variants={fadeUp}>
               <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden">
                 <CardContent className="p-6 sm:p-8">
@@ -717,7 +717,7 @@ export default function TechnicianDetail() {
               </Card>
             </motion.div>
 
-            {/* â•â•â• 7. REVIEWS SECTION â•â•â• */}
+            {/* ═══ 7. REVIEWS SECTION ═══ */}
             <motion.div variants={fadeUp}>
               <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden">
                 <CardContent className="p-6 sm:p-8">
@@ -823,7 +823,7 @@ export default function TechnicianDetail() {
               </Card>
             </motion.div>
 
-            {/* â•â•â• 8. RELATED TECHNICIANS â•â•â• */}
+            {/* ═══ 8. RELATED TECHNICIANS ═══ */}
             <motion.div variants={fadeUp}>
               <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden">
                 <CardContent className="p-6 sm:p-8">
@@ -847,10 +847,10 @@ export default function TechnicianDetail() {
                         </div>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           <div className="flex items-center gap-0.5">{renderStars(r.rating, 'w-3 h-3')}</div>
-                          <span>Â·</span>
+                          <span>·</span>
                           <span>{r.exp}</span>
-                          <span>Â·</span>
-                          <span>{r.distance} Â· {r.area}</span>
+                          <span>·</span>
+                          <span>{r.distance} · {r.area}</span>
                         </div>
                       </div>
                     ))}
@@ -861,7 +861,7 @@ export default function TechnicianDetail() {
 
           </div>
 
-          {/* â•â•â•â•â•â•â•â•â•â•â• SIDEBAR â€” BOOKING â•â•â•â•â•â•â•â•â•â•â• */}
+          {/* ═══════════ SIDEBAR — BOOKING ═══════════ */}
           <motion.div variants={fadeUp} className="space-y-6">
             <div className="bg-card rounded-2xl border border-border/60 p-6 shadow-sm">
               <h3 className="font-heading font-semibold text-foreground mb-4 flex items-center gap-2">

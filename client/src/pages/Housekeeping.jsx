@@ -6,10 +6,10 @@ import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 
 const hkApi = {
-  getTasks: async (p) => { try { return await api.getHousekeepingTasks(p); } catch (e) { return { tasks: [] }; } },
-  createTask: async (b) => { try { return await api.createHousekeepingTask(b); } catch (e) { return {}; } },
-  completeTask: async (id, b) => { try { return await api.completeHousekeepingTask(id, b); } catch (e) { return {}; } },
-  verifyTask: async (id, b) => { try { return await api.verifyHousekeepingTask(id, b); } catch (e) { return {}; } },
+  getTasks: (p) => api.getHousekeepingTasks(p),
+  createTask: (b) => api.createHousekeepingTask(b),
+  completeTask: (id, b) => api.completeHousekeepingTask(id, b),
+  verifyTask: (id, b) => api.verifyHousekeepingTask(id, b),
   autoCreateOnDischarge: async (id, b) => { try { return await api.autoCreateHousekeepingOnDischarge({ id, ...b }); } catch (e) { return {}; } },
   getStats: async () => { try { return await api.getHousekeepingStats(); } catch (e) { return { pending: 0, inProgress: 0, completed: 0, total: 0 }; } },
 };

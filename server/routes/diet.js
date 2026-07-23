@@ -113,6 +113,42 @@ router.put('/orders/:id/review', protect, async (req, res) => {
     }
     order.reviewedByDietitian = true;
     order.dietitianName = req.user.name;
+    if (req.body.kitchenNotified) {
+      order.kitchenNotifiedAt = new Date();
+    }
+    if (req.body.patientFeedback) {
+      order.patientFeedback = req.body.patientFeedback;
+      order.patientFeedbackAt = new Date();
+    }
+    await order.save();
+    res.json(order);
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+// Notify kitchen
+router.put('/orders/:id/notify', protect, async (req, res) => {
+  try {
+    const order = await DietOrder.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && order.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    order.kitchenNotifiedAt = new Date();
+    await order.save();
+    res.json(order);
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+// Add patient feedback
+router.put('/orders/:id/feedback', protect, async (req, res) => {
+  try {
+    const order = await DietOrder.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && order.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    order.patientFeedback = req.body.feedback;
+    order.patientFeedbackAt = new Date();
     await order.save();
     res.json(order);
   } catch (err) { res.status(400).json({ message: err.message }); }

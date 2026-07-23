@@ -6,13 +6,13 @@ import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 
 const invApi = {
-  getItems: async (p) => { try { return await api.getInventoryItems(p); } catch (e) { return { items: [] }; } },
-  createItem: async (b) => { try { return await api.createInventoryItem(b); } catch (e) { return {}; } },
-  addStock: async (id, b) => { try { return await api.addInventoryStock(id, b); } catch (e) { return {}; } },
-  issueItem: async (id, b) => { try { return await api.issueInventoryItem(id, b); } catch (e) { return {}; } },
-  createPR: async (b) => { try { return await api.createInventoryPR(b); } catch (e) { return {}; } },
-  createPO: async (b) => { try { return await api.createInventoryPO(b); } catch (e) { return {}; } },
-  receiveGRN: async (id, b) => { try { return await api.receiveInventoryGRN(id, b); } catch (e) { return {}; } },
+  getItems: (p) => api.getInventoryItems(p),
+  createItem: (b) => api.createInventoryItem(b),
+  addStock: (id, b) => api.addInventoryStock(id, b),
+  issueItem: (id, b) => api.issueInventoryItem(id, b),
+  createPR: (b) => api.createInventoryPR(b),
+  createPO: (b) => api.createInventoryPO(b),
+  receiveGRN: (id, b) => api.receiveInventoryGRN(id, b),
   getStats: async () => { try { return await api.getInventoryStats(); } catch (e) { return { total: 0, lowStock: 0, expiring: 0, deadStock: 0 }; } },
 };
 
