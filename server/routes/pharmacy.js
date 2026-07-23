@@ -14,6 +14,14 @@ import { protect } from '../middleware/auth.js';
 import { validate, createMedicineSchema } from '../utils/validate.js';
 import { auditLog } from '../middleware/audit.js';
 
+const REJECTION_REASONS = [
+  'Unclear/blurry prescription image',
+  'Prescription has expired',
+  'Medicine name does not match handwriting',
+  'Doctor signature/stamp missing',
+  'Requested quantity exceeds prescribed amount',
+];
+
 const medicineUpdateSchema = z.object({}).passthrough();
 const pharmacyStockSchema = z.object({ quantity: z.number(), type: z.enum(['add', 'deduct']) });
 const prescriptionSchema = z.object({}).passthrough();
@@ -540,9 +548,57 @@ router.put('/staff/:id', protect, validate(pharmacyStaffSchema), async (req, res
 });
 
 router.delete('/staff/:id', protect, async (req, res) => {
-   try { await PharmacyStaff.findByIdAndDelete(req.params.id); await auditLog('delete_pharmacy_staff', req.user._id, { recordId: req.params.id, ip: req.ip, userAgent: req.get('user-agent') }); res.json({ message: 'Deleted' }); }
-   catch (err) { res.status(500).json({ message: err.message }); }
- });
+  try {
+    await PharmacyStaff.findByIdAndDelete(req.params.id);
+    await auditLog('delete_pharmacy_staff', req.user._id, { recordId: req.params.id, ip: req.ip, userAgent: req.get('user-agent') });
+    res.json({ message: 'Deleted' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// ─── Coupon Validation ─────────────────────────────────────────────────────
+router.post('/coupons/validate', protect, async (req, res) => {
+  try {
+    const { code } = req.body;
+    if (!code) return res.status(400).json({ message: 'Coupon code required' });
+    const offer = await PharmacyOffer.findOne({ code: code.toUpperCase(), isActive: true });
+    if (!offer) return res.status(404).json({ valid: false, message: 'Coupon not found or expired' });
+    res.json({ valid: true, code: offer.code, discount: offer.discount, title: offer.title });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// ─── Prescription Verification ───────────────────────────────────────────────
+router.post('/orders/verify-prescriptions', protect, async (req, res) => {
+  try {
+    const { entries, file } = req.body;
+    // For demo purposes, simulate 40% approval rate
+    if (Math.random() < 0.4) {
+      res.json({ verified: true });
+    } else {
+      res.json({ verified: false, reason: REJECTION_REASONS[Math.floor(Math.random() * REJECTION_REASONS.length)] });
+    }
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// ─── Refund Endpoint ───────────────────────────────────────────────────────
+router.post('/orders/:id/refund', protect, async (req, res) => {
+  try {
+    const order = await PharmacyOrder.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && order.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    const { amount, reason, items } = req.body;
+    order.refunded = true;
+    order.refundAmount = amount || 0;
+    order.refundReason = reason || '';
+    order.refundDate = new Date();
+    await order.save();
+    await auditLog('process_pharmacy_refund', req.user._id, { recordId: order._id, ip: req.ip, userAgent: req.get('user-agent') });
+    res.json({ message: 'Refund processed', order });
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
 
 export default router;
 

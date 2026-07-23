@@ -201,6 +201,9 @@ export const api = {
   getPharmacyReturns:     (p={})    => request('/pharmacy/returns?' + new URLSearchParams(p)),
   createPharmacyReturn:   (body)    => request('/pharmacy/returns', { method:'POST', body: JSON.stringify(body) }),
   updatePharmacyReturn:   (id,body) => request(`/pharmacy/returns/${id}`, { method:'PUT', body: JSON.stringify(body) }),
+  refundPharmacyOrder:    (id,body) => request(`/pharmacy/orders/${id}/refund`, { method:'POST', body: JSON.stringify(body) }),
+  validatePharmacyCoupon: (code)    => request('/pharmacy/coupons/validate', { method:'POST', body: JSON.stringify({ code }) }),
+  verifyPharmacyPrescriptions: (body) => request('/pharmacy/orders/verify-prescriptions', { method:'POST', body: JSON.stringify(body) }),
   getPharmacyDeliveries:  (p={})    => request('/pharmacy/deliveries?' + new URLSearchParams(p)),
   getPharmacyPrescriptions: (p={})  => request('/pharmacy/prescriptions?' + new URLSearchParams(p)),
   getPharmacyPrescription:  (id)    => request(`/pharmacy/prescriptions/${id}`),
@@ -228,6 +231,7 @@ export const api = {
   enterResult:        (id,body) => request(`/lab/orders/${id}/enter-result`, { method:'PUT', body: JSON.stringify(body) }),
   verifyLabResult:    (id,body) => request(`/lab/orders/${id}/verify`, { method:'PUT', body: JSON.stringify(body) }),
   deliverLabReport:   (id,body) => request(`/lab/orders/${id}/deliver-report`, { method:'PUT', body: JSON.stringify(body) }),
+  exportLabOrders:      (p={})    => request('/lab/export?' + new URLSearchParams(p)),
 
   getBloodUnits:      (p={})    => request('/bloodbank/units?' + new URLSearchParams(p)),
   addBloodUnit:       (body)    => request('/bloodbank/units', { method:'POST', body: JSON.stringify(body) }),
