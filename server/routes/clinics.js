@@ -51,6 +51,20 @@ router.post('/staff', protect, async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
+router.put('/staff/:id', protect, async (req, res) => {
+  try {
+    const facilityId = req.user.facilityId || req.user.hospitalId;
+    const { name, email, phone, role } = req.body;
+    const user = await User.findOneAndUpdate(
+      { _id: req.params.id, facilityId },
+      { ...(name && { name }), ...(email && { email: email.toLowerCase() }), ...(phone !== undefined && { phone }), ...(role && { role }) },
+      { new: true, select: '-password' }
+    );
+    if (!user) return res.status(404).json({ message: 'Staff not found' });
+    res.json(user);
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
 router.delete('/staff/:id', protect, async (req, res) => {
   try {
     const facilityId = req.user.facilityId || req.user.hospitalId;

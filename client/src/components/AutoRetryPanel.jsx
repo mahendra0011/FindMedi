@@ -1,13 +1,17 @@
 import { useState, useEffect } from 'react';
-import { AlertCircle, CheckCircle2, XCircle, Clock, ArrowRight, RotateCcw, StopCircle, RefreshCw, Store, Pill, ExternalLink, Timer } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { AlertCircle, CheckCircle2, XCircle, Clock, ArrowRight, RotateCcw, StopCircle, RefreshCw, Store, Pill, ExternalLink, Timer, FlaskConical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
+import { api } from '@/lib/api';
+import { toast } from 'sonner';
 import { usePreferredPharmacies } from '@/context/PreferredPharmacyContext';
 import { useAutoRetry, AUTO_RETRY_STATUS, REJECTION_REASONS } from '@/hooks/useAutoRetry';
 
 export default function AutoRetryPanel({ orderContext, onPriceConfirm, onStoreSelect }) {
+  const navigate = useNavigate();
   const { pharmacies, autoRetryEnabled } = usePreferredPharmacies();
   const autoRetry = useAutoRetry();
   const [showPriceConfirm, setShowPriceConfirm] = useState(false);
@@ -102,6 +106,7 @@ export default function AutoRetryPanel({ orderContext, onPriceConfirm, onStoreSe
             {autoRetry.status === AUTO_RETRY_STATUS.ALL_EXHAUSTED && 'All Pharmacies Declined'}
             {autoRetry.status === AUTO_RETRY_STATUS.STOPPED && 'Auto-Retry Stopped'}
           </h3>
+          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300">BETA</span>
         </div>
         <div className="flex items-center gap-2">
           {/* SLA countdown shown while trying */}
@@ -238,26 +243,39 @@ export default function AutoRetryPanel({ orderContext, onPriceConfirm, onStoreSe
             None of your preferred pharmacies could accept the prescription. Please take one of the following actions:
           </p>
           <div className="space-y-2">
-            <Button variant="outline" size="sm" className="w-full justify-start gap-2 rounded-lg text-xs">
+            <Button variant="outline" size="sm" className="w-full justify-start gap-2 rounded-lg text-xs"
+              onClick={() => navigate('/patient/upload')}>
               <RotateCcw className="w-3.5 h-3.5" /> Re-upload a clearer prescription
             </Button>
-            <Button variant="outline" size="sm" className="w-full justify-start gap-2 rounded-lg text-xs">
+            <Button variant="outline" size="sm" className="w-full justify-start gap-2 rounded-lg text-xs"
+              onClick={() => navigate('/telemedicine')}>
               <Pill className="w-3.5 h-3.5" /> Get a new prescription from your doctor
             </Button>
-            <Button variant="outline" size="sm" className="w-full justify-start gap-2 rounded-lg text-xs">
+            <Button variant="outline" size="sm" className="w-full justify-start gap-2 rounded-lg text-xs"
+              onClick={() => navigate('/patient/support')}>
               <ExternalLink className="w-3.5 h-3.5" /> Contact Support
             </Button>
-            <Button variant="outline" size="sm" className="w-full justify-start gap-2 rounded-lg text-xs text-red-500">
+            <Button variant="outline" size="sm" className="w-full justify-start gap-2 rounded-lg text-xs text-red-500"
+              onClick={async () => {
+                if (!orderContext?.orderId) { toast.error('No order to cancel'); return; }
+                try {
+                  await api.updatePharmacyOrder(orderContext.orderId, { status: 'Cancelled' });
+                  toast.success('Order cancelled successfully');
+                  autoRetry.resetRetry();
+                } catch {
+                  toast.error('Failed to cancel order');
+                }
+              }}>
               <XCircle className="w-3.5 h-3.5" /> Cancel Order (Full Refund)
             </Button>
           </div>
         </div>
       )}
 
-      {/* Simulate rejection (for demo) */}
-      {autoRetry.status === AUTO_RETRY_STATUS.IDLE && autoRetryEnabled && pharmacies.length > 0 && (
+      {/* Simulate rejection (dev-only) */}
+      {import.meta.env.DEV && autoRetry.status === AUTO_RETRY_STATUS.IDLE && autoRetryEnabled && pharmacies.length > 0 && (
         <Button variant="outline" size="sm" className="gap-1.5 rounded-lg text-xs" onClick={handleSimulateReject}>
-          <RefreshCw className="w-3.5 h-3.5" /> Simulate Rx Rejection (Demo)
+          <RefreshCw className="w-3.5 h-3.5" /> Simulate Rx Rejection (Dev Only)
         </Button>
       )}
 

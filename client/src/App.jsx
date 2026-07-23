@@ -125,6 +125,7 @@ import FileUpload from './pages/FileUpload';
 import Lab from './pages/Lab';
 import Pharmacy from './pages/Pharmacy';
 import IPD from './pages/IPD';
+import NursingCharts from './pages/NursingCharts';
 import TriagePage from './pages/TriagePage';
 import Radiology from './pages/Radiology';
 import Insurance from './pages/Insurance';
@@ -444,6 +445,7 @@ const App = () => (
                     <Route path="/pharmacy" element={<RoleRoute allowedRoles={['admin', 'doctor', 'pharmacist']}><Pharmacy /></RoleRoute>} />
                     <Route path="/ipd" element={<RoleRoute allowedRoles={['admin', 'doctor', 'nurse']}><IPD /></RoleRoute>} />
                     <Route path="/triage" element={<RoleRoute allowedRoles={['admin', 'doctor', 'nurse']}><TriagePage /></RoleRoute>} />
+                    <Route path="/nursing" element={<RoleRoute allowedRoles={['admin', 'doctor', 'nurse']}><NursingCharts /></RoleRoute>} />
                     <Route path="/radiology" element={<RoleRoute allowedRoles={['admin', 'doctor', 'radiologist']}><Radiology /></RoleRoute>} />
                     <Route path="/insurance" element={<RoleRoute allowedRoles={['admin', 'doctor', 'patient']}><Insurance /></RoleRoute>} />
                     <Route path="/diet" element={<RoleRoute allowedRoles={['admin', 'doctor', 'nurse']}><DietKitchen /></RoleRoute>} />

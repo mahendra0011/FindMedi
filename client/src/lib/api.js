@@ -175,6 +175,7 @@ export const api = {
   updateClinicProfile:   (body)  => request('/clinics/profile', { method:'PUT', body: JSON.stringify(body) }),
   getClinicStaff:        ()      => request('/clinics/staff'),
   createClinicStaff:     (body)  => request('/clinics/staff',   { method:'POST', body: JSON.stringify(body) }),
+  updateClinicStaff:     (id,b)  => request(`/clinics/staff/${id}`, { method:'PUT', body: JSON.stringify(b) }),
   deleteClinicStaff:     (id)    => request(`/clinics/staff/${id}`, { method:'DELETE' }),
 
   getPharmacyStats:       ()        => request('/pharmacy/stats'),
@@ -324,6 +325,19 @@ export const api = {
   verifyHousekeepingTask: (id, b) => request(`/housekeeping/${id}/verify`, { method: 'PUT', body: JSON.stringify(b) }),
   autoCreateHousekeepingOnDischarge: (b) => request(`/housekeeping/auto-create-on-discharge`, { method: 'POST', body: JSON.stringify(b) }),
   getHousekeepingStats: () => request('/housekeeping/stats'),
+
+  get2FAStatus: () => request('/auth/2fa/status'),
+  setup2FA: () => request('/auth/2fa/setup', { method: 'POST' }),
+  verify2FA: (body) => request('/auth/2fa/verify', { method: 'POST', body: JSON.stringify(body) }),
+  disable2FA: (body) => request('/auth/2fa/disable', { method: 'POST', body: JSON.stringify(body) }),
+
+  getNursingCharts: (p={}) => request('/nursing?' + new URLSearchParams(p)),
+  createVitalsChart: (b) => request('/nursing/vitals', { method: 'POST', body: JSON.stringify(b) }),
+  createMARChart: (b) => request('/nursing/mar', { method: 'POST', body: JSON.stringify(b) }),
+  createIOChart: (b) => request('/nursing/io', { method: 'POST', body: JSON.stringify(b) }),
+  createWoundChart: (b) => request('/nursing/wound-dressing', { method: 'POST', body: JSON.stringify(b) }),
+  getNursingShiftCharts: (admissionId, date) => request(`/nursing/shift/${admissionId}/${date}`),
+  getNursingStats: () => request('/nursing/stats'),
 
   getTokens: (p={}) => request('/tokens?' + new URLSearchParams(p)),
   generateToken: (b) => request('/tokens/generate', { method: 'POST', body: JSON.stringify(b) }),

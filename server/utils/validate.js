@@ -184,7 +184,7 @@ export const registerHospitalSchema = z.object({
 export const createTestSchema = z.object({
   name: z.string().trim().min(2, 'Test name is required'),
   category: z.string().min(1, 'Category is required'),
-  department: z.string().min(1, 'Department is required'),
+  department: z.string().optional(),
   price: positiveNumber,
   mrp: positiveNumber.optional(),
   description: z.string().optional(),
@@ -243,6 +243,88 @@ export const createBedSchema = z.object({
   floor: z.string().optional(),
   isAC: z.boolean().optional(),
   hospitalId: z.string().optional(),
+});
+
+// ─── Record Schemas ─────────────────────────────────────────────────────────
+export const createRecordSchema = z.object({
+  patient: z.string().min(1, 'Patient is required'),
+  patientId: z.string().optional(),
+  doctor: z.string().optional(),
+  doctorId: z.string().optional(),
+  date: z.string().optional(),
+  diagnosis: z.string().optional().default(''),
+  prescription: z.string().optional().default(''),
+  type: z.enum(['Diagnosis', 'Prescription', 'Lab Report', 'Imaging', 'Discharge Summary', 'prescription', 'lab_report', 'discharge_summary', 'bill_invoice', 'payment_invoice']).optional().default('Diagnosis'),
+  notes: z.string().optional().default(''),
+  vitals: z.object({
+    bp: z.string().optional(),
+    temp: z.number().optional(),
+    weight: z.number().optional(),
+    spo2: z.number().optional(),
+    pulse: z.number().optional(),
+    respiration: z.number().optional(),
+    height: z.number().optional(),
+  }).optional(),
+  icdCodes: z.array(z.object({
+    code: z.string(),
+    description: z.string().optional(),
+    diagnosis: z.string().optional().default(''),
+  })).optional(),
+  examination: z.object({
+    general: z.string().optional(),
+    systemic: z.string().optional(),
+    local: z.string().optional(),
+    cardiovascular: z.string().optional(),
+    respiratory: z.string().optional(),
+    abdominal: z.string().optional(),
+    neurological: z.string().optional(),
+    musculoskeletal: z.string().optional(),
+  }).optional(),
+  data: z.object({}).passthrough().optional(),
+  attachments: z.array(z.string()).optional(),
+});
+
+// ─── Support Ticket Schemas ──────────────────────────────────────────────────
+export const createSupportTicketSchema = z.object({
+  subject: z.string().trim().min(2, 'Subject is required'),
+  message: z.string().trim().min(2, 'Message is required'),
+  category: z.string().optional(),
+  priority: z.enum(['Low', 'Medium', 'High', 'Urgent']).optional().default('Medium'),
+});
+
+// ─── Leave Request Schemas ───────────────────────────────────────────────────
+export const createLeaveRequestSchema = z.object({
+  leaveType: z.enum(['Sick Leave', 'Casual Leave', 'Earned Leave', 'Personal Leave', 'Maternity/Paternity Leave', 'Other']),
+  startDate: z.string().min(1, 'Start date is required'),
+  endDate: z.string().min(1, 'End date is required'),
+  reason: z.string().trim().min(2, 'Reason is required'),
+});
+
+export const updateLeaveStatusSchema = z.object({
+  status: z.enum(['Approved', 'Rejected']),
+  adminNotes: z.string().optional().default(''),
+});
+
+// ─── Payment Schemas ─────────────────────────────────────────────────────────
+export const createPaymentSchema = z.object({
+  patient_id: z.string().min(1, 'Patient ID is required'),
+  amount: positiveNumber,
+  method: z.string().optional(),
+  status: z.enum(['pending', 'completed', 'failed', 'refunded']).optional().default('pending'),
+  description: z.string().optional(),
+  appointment_id: z.string().optional(),
+  bill_id: z.string().optional(),
+});
+
+export const updatePaymentSchema = z.object({
+  status: z.enum(['pending', 'completed', 'failed', 'refunded']).optional(),
+  method: z.string().optional(),
+  transaction_id: z.string().optional(),
+  description: z.string().optional(),
+});
+
+export const refundPaymentSchema = z.object({
+  refund_amount: z.number().nonnegative('Refund amount must be non-negative'),
 });
 
 // ─── Facility Schemas ──────────────────────────────────────────────────────

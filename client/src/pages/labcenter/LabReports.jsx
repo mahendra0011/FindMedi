@@ -36,6 +36,13 @@ export default function LabReports() {
     } catch (e) { console.error(e); }
   };
 
+  const handleDownload = async (id) => {
+    try {
+      await api.updateLabBooking(id, { notified: true });
+      alert('Report download initiated');
+    } catch (e) { console.error(e); }
+  };
+
   const handleNotify = async (id) => {
     try {
       await api.updateLabBooking(id, { status: 'Delivered', notified: true });
@@ -124,7 +131,7 @@ export default function LabReports() {
                   </Button>
                 )}
                 {(r.status === 'Uploaded' || r.status === 'Delivered') && (
-                  <Button size="sm" variant="outline" className="gap-1">
+                  <Button size="sm" variant="outline" className="gap-1" onClick={() => handleDownload(r._id)}>
                     <Download className="w-4 h-4" /> Download
                   </Button>
                 )}

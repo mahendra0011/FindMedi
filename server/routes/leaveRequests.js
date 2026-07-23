@@ -2,6 +2,7 @@ import express from 'express';
 import LeaveRequest from '../models/LeaveRequest.js';
 import Doctor from '../models/Doctor.js';
 import { protect } from '../middleware/auth.js';
+import { validate, createLeaveRequestSchema, updateLeaveStatusSchema } from '../utils/validate.js';
 import logger from '../config/logger.js';
 
 const createNotification = async (userId, title, message, type = 'system') => {
@@ -16,17 +17,33 @@ const router = express.Router();
 router.get('/', protect, async (req, res) => {
   try {
     const filter = {};
+    let balance = null;
     if (req.user.role === 'doctor') {
       const doctor = await Doctor.findOne({ email: req.user.email });
-      if (doctor) filter.doctorId = doctor._id;
+      if (doctor) {
+        filter.doctorId = doctor._id;
+        const used = await LeaveRequest.aggregate([
+          { $match: { doctorId: doctor._id, status: { $ne: 'Rejected' } } },
+          { $group: { _id: '$leaveType', count: { $sum: 1 } } },
+        ]);
+        const usedMap = {};
+        used.forEach(u => { usedMap[u._id] = u.count; });
+        balance = {
+          sick: { total: doctor.leaveBalance?.sick || 12, used: usedMap['Sick Leave'] || 0 },
+          casual: { total: doctor.leaveBalance?.casual || 15, used: usedMap['Casual Leave'] || 0 },
+          earned: { total: doctor.leaveBalance?.earned || 20, used: usedMap['Earned Leave'] || 0 },
+          personal: { total: doctor.leaveBalance?.personal || 10, used: usedMap['Personal Leave'] || 0 },
+          maternity: { total: doctor.leaveBalance?.maternity || 90, used: usedMap['Maternity/Paternity Leave'] || 0 },
+        };
+      }
     }
     if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
     const leaves = await LeaveRequest.find(filter).sort({ createdAt: -1 });
-    res.json({ leaves });
+    res.json({ leaves, balance });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/', protect, async (req, res) => {
+router.post('/', protect, validate(createLeaveRequestSchema), async (req, res) => {
   try {
     const doctor = await Doctor.findOne({ email: req.user.email });
     if (!doctor) return res.status(404).json({ message: 'Doctor profile not found' });
@@ -55,12 +72,9 @@ router.post('/', protect, async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/:id/status', protect, async (req, res) => {
+router.put('/:id/status', protect, validate(updateLeaveStatusSchema), async (req, res) => {
   try {
     const { status, adminNotes } = req.body;
-    if (!['Approved', 'Rejected'].includes(status)) {
-      return res.status(400).json({ message: 'Invalid status' });
-    }
     const leave = await LeaveRequest.findByIdAndUpdate(
       req.params.id,
       { status, adminNotes, reviewedBy: req.user._id, reviewedAt: new Date() },

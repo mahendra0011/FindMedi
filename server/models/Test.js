@@ -5,7 +5,7 @@ const testSchema = new mongoose.Schema({
   category: { type: String, required: true },
   department: { type: String, default: 'Pathology' },
   price: { type: Number, required: true },
-  mrp: { type: Number, required: true },
+  mrp: { type: Number, default: 0 },
   discount: { type: Number, default: 0 },
   reportTime: { type: String, default: '24 hrs' },
   prescriptionReq: { type: Boolean, default: false },
