@@ -328,7 +328,7 @@ export default function PatientDashboard() {
                   </div>
                   <div className="flex gap-2 mt-3 pt-3 border-t">
                     <Button size="sm" variant="outline" onClick={() => showToast('Reschedule request sent')}><CalendarDays className="w-3 h-3 mr-1" /> Reschedule</Button>
-                    {a.status !== 'Cancelled' && <Button size="sm" variant="outline" className="text-destructive" onClick={() => showToast('Appointment cancelled')}>Cancel</Button>}
+                    {a.status !== 'Cancelled' && <Button size="sm" variant="outline" className="text-destructive" onClick={async () => { try { await api.updateAppointment(a._id, { status: 'Cancelled' }); setAppointments(prev => prev.map(ap => ap._id === a._id ? { ...ap, status: 'Cancelled' } : ap)); showToast('Appointment cancelled'); } catch { showToast('Failed to cancel', 'error'); } }}>Cancel</Button>}
                   </div>
                 </div>
               ))}
@@ -383,7 +383,7 @@ export default function PatientDashboard() {
                   {o.tracking && <p className="text-xs text-info mt-2"><Truck className="w-3 h-3 inline mr-1" />{o.tracking}</p>}
                   {o.deliveryAddress && <p className="text-xs text-muted-foreground mt-1"><MapPin className="w-3 h-3 inline mr-1" />{o.deliveryAddress}</p>}
                   <div className="flex gap-2 mt-3 pt-3 border-t">
-                    {o.status === 'Pending' && <Button size="sm" variant="outline" onClick={() => showToast('Order cancelled')} className="text-destructive">Cancel</Button>}
+                    {o.status === 'Pending' && <Button size="sm" variant="outline" onClick={async () => { try { await api.updatePharmacyOrder(o._id, { status: 'Cancelled' }); setMedOrders(prev => prev.map(mo => mo._id === o._id ? { ...mo, status: 'Cancelled' } : mo)); showToast('Order cancelled'); } catch { showToast('Failed to cancel', 'error'); } }} className="text-destructive">Cancel</Button>}
                     {o.status === 'Delivered' && <Button size="sm" variant="outline" onClick={() => showToast('Reorder placed')}><RefreshCw className="w-3 h-3 mr-1" /> Reorder</Button>}
                   </div>
                 </div>
@@ -483,7 +483,7 @@ export default function PatientDashboard() {
                       </div>
                       <div className="flex gap-2">
                         <Button size="sm" variant="outline" onClick={() => showToast('Booking for ' + m.name)}><CalendarDays className="w-3 h-3 mr-1" /> Book Test</Button>
-                        <Button size="sm" variant="outline" className="text-destructive" onClick={() => { setFamily(f => f.filter(mm => mm._id !== m._id)); showToast(m.name + ' removed'); }}><Trash2 className="w-3 h-3" /></Button>
+                        <Button size="sm" variant="outline" className="text-destructive" onClick={async () => { try { await patientApi.deleteFamily(m._id); setFamily(f => f.filter(mm => mm._id !== m._id)); showToast(m.name + ' removed'); } catch { showToast('Failed to remove', 'error'); } }}><Trash2 className="w-3 h-3" /></Button>
                       </div>
                     </div>
                   </div>
@@ -506,7 +506,7 @@ export default function PatientDashboard() {
                     </div>
                     <div className="flex gap-2">
                       <Button size="sm" variant="outline" className="flex-1" onClick={() => showToast('Opening ' + f.refName)}><ExternalLink className="w-3 h-3 mr-1" /> View</Button>
-                      <Button size="sm" variant="outline" className="text-destructive" onClick={() => { setFavorites(fs => fs.filter(ff => ff._id !== f._id)); showToast('Removed from favorites'); }}><Trash2 className="w-3 h-3" /></Button>
+                      <Button size="sm" variant="outline" className="text-destructive" onClick={async () => { try { await patientApi.removeFavorite(f._id); setFavorites(fs => fs.filter(ff => ff._id !== f._id)); showToast('Removed from favorites'); } catch { showToast('Failed to remove', 'error'); } }}><Trash2 className="w-3 h-3" /></Button>
                     </div>
                   </div>
                 ))}
@@ -616,7 +616,7 @@ export default function PatientDashboard() {
                       </div>
                       <div className="flex gap-2">
                         <Button size="sm" variant="outline" onClick={() => { setAddEditId(a._id); setNewAddress({ label: a.label, address: a.address, city: a.city, state: a.state, pincode: a.pincode, phone: a.phone, isDefault: a.isDefault }); setShowModal('add-address'); }}><Edit className="w-3 h-3" /></Button>
-                        <Button size="sm" variant="outline" className="text-destructive" onClick={() => { setAddresses(ads => ads.filter(ad => ad._id !== a._id)); showToast('Address deleted'); }}><Trash2 className="w-3 h-3" /></Button>
+                        <Button size="sm" variant="outline" className="text-destructive" onClick={async () => { try { await patientApi.deleteAddress(a._id); setAddresses(ads => ads.filter(ad => ad._id !== a._id)); showToast('Address deleted'); } catch { showToast('Failed to delete', 'error'); } }}><Trash2 className="w-3 h-3" /></Button>
                       </div>
                     </div>
                   </div>
@@ -629,7 +629,7 @@ export default function PatientDashboard() {
           {tab === 'notifications' && (
             <div className="space-y-4">
               <SectionHeader title="Notifications" subtitle={`${unreadNotifs} unread`}
-                action={<Button size="sm" variant="outline" onClick={() => { setNotifs(ns => ns.map(n => ({ ...n, read: true }))); showToast('All marked as read'); }}>Mark All Read</Button>} />
+                action={<Button size="sm" variant="outline" onClick={async () => { try { await api.markAllRead(); setNotifs(ns => ns.map(n => ({ ...n, read: true }))); showToast('All marked as read'); } catch { showToast('Failed to mark as read', 'error'); } }}>Mark All Read</Button>} />
               {notifs.map(n => (
                 <div key={n._id} className={`bg-card rounded-xl border p-4 ${!n.read ? 'border-l-4 border-l-primary' : ''}`}>
                   <div className="flex items-start justify-between">
@@ -697,7 +697,7 @@ export default function PatientDashboard() {
                   <Input value={profileForm.allergies} onChange={e => setProfileForm({ ...profileForm, allergies: e.target.value })} placeholder="e.g. Penicillin, Peanuts, Sulfa" />
                   <p className="text-xs text-muted-foreground mt-1">This helps doctors and pharmacists avoid prescribing medicines you're allergic to.</p>
                 </div>
-                <Button className="w-full" onClick={() => showToast('Profile updated')}><Save className="w-4 h-4 mr-1" /> Save Profile</Button>
+                <Button className="w-full" onClick={async () => { try { await api.updateProfile(profileForm); showToast('Profile updated'); } catch { showToast('Failed to update profile', 'error'); } }}><Save className="w-4 h-4 mr-1" /> Save Profile</Button>
               </div>
             </div>
           )}
@@ -750,7 +750,7 @@ export default function PatientDashboard() {
             <div><label className="text-sm font-medium mb-1 block">Relation</label><select value={newFamily.relation} onChange={e => setNewFamily({ ...newFamily, relation: e.target.value })} className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm">{['Spouse', 'Child', 'Parent', 'Sibling', 'Grandparent', 'Other'].map(r => <option key={r} value={r}>{r}</option>)}</select></div>
             <div><label className="text-sm font-medium mb-1 block">Gender</label><select value={newFamily.gender} onChange={e => setNewFamily({ ...newFamily, gender: e.target.value })} className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm">{['Male', 'Female', 'Other'].map(g => <option key={g} value={g}>{g}</option>)}</select></div>
           </div>
-          <Button className="w-full mt-6" onClick={() => { setFamily(f => [...f, { ...newFamily, _id: `fm${Date.now()}`, isActive: true }]); showToast(newFamily.name + ' added'); setShowModal(null); }} disabled={!newFamily.name}>Add Member</Button>
+          <Button className="w-full mt-6" onClick={async () => { try { await patientApi.createFamily(newFamily); setFamily(f => [...f, { ...newFamily, _id: `fm${Date.now()}`, isActive: true }]); showToast(newFamily.name + ' added'); setShowModal(null); } catch { showToast('Failed to add member', 'error'); } }} disabled={!newFamily.name}>Add Member</Button>
         </Modal>
       )}
 
@@ -766,7 +766,7 @@ export default function PatientDashboard() {
             </div>
             <div><label className="text-sm font-medium mb-1 block">Phone</label><Input value={newAddress.phone} onChange={e => setNewAddress({ ...newAddress, phone: e.target.value })} /></div>
             <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={newAddress.isDefault} onChange={e => setNewAddress({ ...newAddress, isDefault: e.target.checked })} className="rounded" /> Set as default address</label>
-            <Button className="w-full" onClick={() => { if (addEditId) { setAddresses(ads => ads.map(ad => ad._id === addEditId ? { ...ad, ...newAddress } : ad)); showToast('Address updated'); } else { setAddresses(ads => [...ads, { ...newAddress, _id: `ad${Date.now()}` }]); showToast('Address added'); } setShowModal(null); }} disabled={!newAddress.address}>{addEditId ? 'Update Address' : 'Add Address'}</Button>
+            <Button className="w-full" onClick={async () => { try { if (addEditId) { await patientApi.updateAddress(addEditId, newAddress); setAddresses(ads => ads.map(ad => ad._id === addEditId ? { ...ad, ...newAddress } : ad)); showToast('Address updated'); } else { await patientApi.createAddress(newAddress); setAddresses(ads => [...ads, { ...newAddress, _id: `ad${Date.now()}` }]); showToast('Address added'); } setShowModal(null); } catch { showToast('Failed to save address', 'error'); } }} disabled={!newAddress.address}>{addEditId ? 'Update Address' : 'Add Address'}</Button>
           </div>
         </Modal>
       )}

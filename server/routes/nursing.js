@@ -1,7 +1,14 @@
 import express from 'express';
+import { z } from 'zod';
 import NursingChart from '../models/NursingChart.js';
 import Admission from '../models/Admission.js';
 import { protect } from '../middleware/auth.js';
+import { validate } from '../utils/validate.js';
+
+const nursingVitalsSchema = z.object({ patientId: z.string().min(1), patientName: z.string().optional(), admissionId: z.string().optional(), vitals: z.any() });
+const nursingMarSchema = z.object({ patientId: z.string().min(1), patientName: z.string().optional(), admissionId: z.string().optional(), medicationAdmin: z.any() });
+const nursingIOSchema = z.object({ patientId: z.string().min(1), patientName: z.string().optional(), admissionId: z.string().optional(), vitals: z.any().optional() });
+const nursingWoundSchema = z.object({ patientId: z.string().min(1), patientName: z.string().optional(), admissionId: z.string().optional(), woundDressing: z.any().optional() });
 
 const router = express.Router();
 
@@ -27,7 +34,7 @@ router.get('/', protect, async (req, res) => {
 });
 
 // Create vitals chart entry
-router.post('/vitals', protect, async (req, res) => {
+router.post('/vitals', protect, validate(nursingVitalsSchema), async (req, res) => {
   try {
     const { patientId, patientName, admissionId, vitals } = req.body;
     if (!patientId || !vitals) return res.status(400).json({ message: 'Patient and vitals required' });
@@ -41,7 +48,7 @@ router.post('/vitals', protect, async (req, res) => {
 });
 
 // Create MAR entry
-router.post('/mar', protect, async (req, res) => {
+router.post('/mar', protect, validate(nursingMarSchema), async (req, res) => {
   try {
     const { patientId, patientName, admissionId, medicationAdmin } = req.body;
     if (!patientId || !medicationAdmin) return res.status(400).json({ message: 'Patient and medication data required' });
@@ -55,7 +62,7 @@ router.post('/mar', protect, async (req, res) => {
 });
 
 // Create Input/Output chart entry
-router.post('/io', protect, async (req, res) => {
+router.post('/io', protect, validate(nursingIOSchema), async (req, res) => {
   try {
     const { patientId, patientName, admissionId, vitals } = req.body;
     if (!patientId) return res.status(400).json({ message: 'Patient required' });
@@ -69,7 +76,7 @@ router.post('/io', protect, async (req, res) => {
 });
 
 // Create wound dressing entry
-router.post('/wound-dressing', protect, async (req, res) => {
+router.post('/wound-dressing', protect, validate(nursingWoundSchema), async (req, res) => {
   try {
     const { patientId, patientName, admissionId, woundDressing } = req.body;
     if (!patientId) return res.status(400).json({ message: 'Patient required' });

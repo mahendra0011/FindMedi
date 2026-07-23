@@ -1,13 +1,17 @@
 import express from 'express';
+import { z } from 'zod';
 import Token from '../models/Token.js';
 import Notification from '../models/Notification.js';
 import Appointment from '../models/Appointment.js';
 import { protect } from '../middleware/auth.js';
+import { validate, createTokenSchema } from '../utils/validate.js';
+
+const tokenSkipSchema = z.object({ reason: z.string().optional() });
 
 const router = express.Router();
 
 // Generate token with auto-increment
-router.post('/generate', protect, async (req, res) => {
+router.post('/generate', protect, validate(createTokenSchema), async (req, res) => {
   try {
     const { patientId, patientName, uhid, doctorId, doctorName, department, appointmentId, type, priority } = req.body;
     if (!patientId || !patientName || !department) {
@@ -170,7 +174,7 @@ router.put('/:id/complete', protect, async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/:id/skip', protect, async (req, res) => {
+router.put('/:id/skip', protect, validate(tokenSkipSchema), async (req, res) => {
   try {
     const { reason } = req.body;
     const token = await Token.findById(req.params.id);

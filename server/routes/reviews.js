@@ -1,6 +1,10 @@
 import express from 'express';
+import { z } from 'zod';
 import Review from '../models/Review.js';
 import { protect } from '../middleware/auth.js';
+import { validate, createReviewSchema } from '../utils/validate.js';
+
+const replySchema = z.object({ reply: z.string().min(1, 'Reply text is required') });
 
 const router = express.Router();
 
@@ -14,7 +18,7 @@ router.get('/', async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/', protect, async (req, res) => {
+router.post('/', protect, validate(createReviewSchema), async (req, res) => {
   try {
     const data = { ...req.body, hospitalId: req.user.hospitalId || undefined };
     const review = await Review.create(data);
@@ -22,10 +26,9 @@ router.post('/', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.put('/:id/reply', protect, async (req, res) => {
+router.put('/:id/reply', protect, validate(replySchema), async (req, res) => {
   try {
     const { reply } = req.body;
-    if (!reply) return res.status(400).json({ message: 'Reply text is required' });
     const review = await Review.findByIdAndUpdate(
       req.params.id,
       { reply, repliedAt: new Date() },

@@ -225,6 +225,14 @@ export const createDepartmentSchema = z.object({
   active: z.boolean().optional(),
 });
 
+export const updateDepartmentSchema = z.object({
+  name: z.string().trim().min(2).optional(),
+  description: z.string().optional(),
+  head: z.string().optional(),
+  fees_structure: positiveNumber.optional(),
+  active: z.boolean().optional(),
+});
+
 // ─── Emergency Schemas ─────────────────────────────────────────────────────
 export const createEmergencySchema = z.object({
   patientName: z.string().trim().min(2, 'Patient name is required'),
@@ -243,6 +251,16 @@ export const createBedSchema = z.object({
   floor: z.string().optional(),
   isAC: z.boolean().optional(),
   hospitalId: z.string().optional(),
+});
+
+export const updateBedSchema = z.object({
+  bedNumber: z.string().optional(),
+  ward: z.string().optional(),
+  bedType: z.string().optional(),
+  dailyRate: positiveNumber.optional(),
+  floor: z.string().optional(),
+  isAC: z.boolean().optional(),
+  status: z.string().optional(),
 });
 
 // ─── Record Schemas ─────────────────────────────────────────────────────────
@@ -285,6 +303,44 @@ export const createRecordSchema = z.object({
 });
 
 // ─── Support Ticket Schemas ──────────────────────────────────────────────────
+// ─── Lab Order Schema ──────────────────────────────────────────────────────
+export const createLabOrderSchema = z.object({
+  patientId: z.string().min(1, 'Patient is required'),
+  patientName: z.string().optional(),
+  tests: z.array(z.object({
+    testName: z.string().min(1),
+    category: z.string().optional(),
+    priority: z.string().optional(),
+  })).min(1, 'At least one test required'),
+  clinicalNotes: z.string().optional(),
+  priority: z.string().optional(),
+});
+
+// ─── Medicine Schema ──────────────────────────────────────────────────────
+export const updateMedicineSchema = z.object({
+  name: z.string().optional(),
+  genericName: z.string().optional(),
+  category: z.string().optional(),
+  price: positiveNumber.optional(),
+  currentStock: z.number().int().nonnegative().optional(),
+  reorderLevel: z.number().int().nonnegative().optional(),
+  manufacturer: z.string().optional(),
+  expiryDate: z.string().optional(),
+  requiresPrescription: z.boolean().optional(),
+  description: z.string().optional(),
+  interactions: z.array(z.string()).optional(),
+});
+
+// ─── Housekeeping Schemas ────────────────────────────────────────────────────
+export const createHousekeepingSchema = z.object({
+  room: z.string().min(1, 'Room is required'),
+  bedNumber: z.string().optional(),
+  ward: z.string().optional(),
+  type: z.string().min(1, 'Type is required'),
+  priority: z.string().optional(),
+  checklist: z.any().optional(),
+});
+
 export const createSupportTicketSchema = z.object({
   subject: z.string().trim().min(2, 'Subject is required'),
   message: z.string().trim().min(2, 'Message is required'),
@@ -327,6 +383,184 @@ export const refundPaymentSchema = z.object({
   refund_amount: z.number().nonnegative('Refund amount must be non-negative'),
 });
 
+// ─── Blood Bank Schemas ─────────────────────────────────────────────────────
+export const createBloodUnitSchema = z.object({
+  bloodGroup: z.string().min(1, 'Blood group is required'),
+  bloodType: z.string().optional(),
+  volume: z.number().positive().optional(),
+  donorName: z.string().optional(),
+  donationDate: z.string().optional(),
+  expiryDate: z.string().optional(),
+  status: z.string().optional(),
+  hospitalId: z.string().optional(),
+});
+
+export const createBloodRequestSchema = z.object({
+  patientId: z.string().min(1, 'Patient ID is required'),
+  patientName: z.string().optional(),
+  bloodGroup: z.string().min(1, 'Blood group is required'),
+  unitsRequired: z.number().positive().optional(),
+  reason: z.string().optional(),
+  priority: z.string().optional(),
+});
+
+// ─── Diet Order Schema ──────────────────────────────────────────────────────
+export const createDietOrderSchema = z.object({
+  patientId: z.string().min(1, 'Patient is required'),
+  patientName: z.string().optional(),
+  admissionId: z.string().optional(),
+  ward: z.string().optional(),
+  bedNumber: z.string().optional(),
+  dietType: z.string().min(1, 'Diet type is required'),
+  mealTimes: z.array(z.string()).optional(),
+  instructions: z.string().optional(),
+  allergies: z.string().optional(),
+});
+
+// ─── Insurance Schemas ──────────────────────────────────────────────────────
+export const createInsuranceSchema = z.object({
+  patientId: z.string().min(1, 'Patient is required'),
+  patientName: z.string().optional(),
+  insuranceProvider: z.string().min(1, 'Insurance provider is required'),
+  policyNumber: z.string().min(1, 'Policy number is required'),
+  insuranceId: z.string().optional(),
+  tpaName: z.string().optional(),
+  tpaContact: z.string().optional(),
+  coverageType: z.string().optional(),
+  diagnosis: z.string().optional(),
+  treatmentPlan: z.string().optional(),
+  estimatedCost: z.number().optional(),
+  admissionId: z.string().optional(),
+});
+
+// ─── Inventory Schemas ──────────────────────────────────────────────────────
+export const createInventoryItemSchema = z.object({
+  itemName: z.string().min(1, 'Item name is required'),
+  itemCode: z.string().optional(),
+  category: z.string().min(1, 'Category is required'),
+  unitPrice: positiveNumber.optional(),
+  currentStock: z.number().nonnegative().optional(),
+  minStockLevel: z.number().nonnegative().optional(),
+  unit: z.string().optional(),
+  hospitalId: z.string().optional(),
+});
+
+export const updateInventoryItemSchema = z.object({
+  itemName: z.string().optional(),
+  itemCode: z.string().optional(),
+  category: z.string().optional(),
+  unitPrice: positiveNumber.optional(),
+  currentStock: z.number().nonnegative().optional(),
+  minStockLevel: z.number().nonnegative().optional(),
+  unit: z.string().optional(),
+});
+
+export const createSupplierSchema = z.object({
+  name: z.string().min(1, 'Supplier name is required'),
+  contactPerson: z.string().optional(),
+  email: emailSchema.optional(),
+  phone: z.string().optional(),
+  address: z.string().optional(),
+  category: z.string().optional(),
+  hospitalId: z.string().optional(),
+});
+
+export const createPurchaseOrderSchema = z.object({
+  supplierId: z.string().min(1, 'Supplier is required'),
+  supplierName: z.string().optional(),
+  items: z.array(z.object({
+    inventoryItemId: z.string().optional(),
+    itemName: z.string().optional(),
+    quantity: z.number().positive(),
+    unitPrice: z.number().nonnegative(),
+    discount: z.number().optional(),
+  })).min(1, 'At least one item required'),
+  expectedDelivery: z.string().optional(),
+  notes: z.string().optional(),
+  taxRate: z.number().optional(),
+});
+
+// ─── IPD / Admission Schemas ────────────────────────────────────────────────
+export const createAdmissionSchema = z.object({
+  patientId: z.string().min(1, 'Patient is required'),
+  patientName: z.string().optional(),
+  bedId: z.string().optional(),
+  primaryDiagnosis: z.string().optional(),
+  source: z.string().optional(),
+  attendantName: z.string().optional(),
+  attendantPhone: z.string().optional(),
+  estimatedStay: z.number().optional(),
+  admissionNotes: z.string().optional(),
+  priority: z.string().optional(),
+});
+
+// ─── OT Surgery Schema ──────────────────────────────────────────────────────
+export const createSurgerySchema = z.object({
+  patientId: z.string().min(1, 'Patient is required'),
+  patientName: z.string().optional(),
+  surgeryName: z.string().min(1, 'Surgery name is required'),
+  surgeryType: z.string().optional(),
+  anaesthesiaType: z.string().optional(),
+  assistants: z.array(z.string()).optional(),
+  otNumber: z.string().optional(),
+  scheduledDate: z.string().optional(),
+});
+
+// ─── Token Schema ──────────────────────────────────────────────────────────
+export const createTokenSchema = z.object({
+  patientId: z.string().min(1, 'Patient is required'),
+  patientName: z.string().min(1, 'Patient name is required'),
+  uhid: z.string().optional(),
+  doctorId: z.string().optional(),
+  doctorName: z.string().optional(),
+  department: z.string().min(1, 'Department is required'),
+  appointmentId: z.string().optional(),
+  type: z.string().optional(),
+  priority: z.string().optional(),
+});
+
+// ─── Triage Schema ──────────────────────────────────────────────────────────
+export const createTriageSchema = z.object({
+  patientName: z.string().min(1, 'Patient name is required'),
+  age: z.number().optional(),
+  gender: z.string().optional(),
+  phone: z.string().optional(),
+  patientId: z.string().optional(),
+  arrivalMode: z.string().optional(),
+  broughtBy: z.string().optional(),
+  chiefComplaint: z.string().min(1, 'Chief complaint is required'),
+  triageLevel: z.string().min(1, 'Triage level is required'),
+  triageNotes: z.string().optional(),
+  vitals: z.any().optional(),
+  isMLCO: z.boolean().optional(),
+});
+
+// ─── Radiology Order Schema ─────────────────────────────────────────────────
+export const createRadiologyOrderSchema = z.object({
+  patientId: z.string().min(1, 'Patient is required'),
+  patientName: z.string().optional(),
+  modality: z.string().min(1, 'Modality is required'),
+  bodyPart: z.string().min(1, 'Body part is required'),
+  clinicalHistory: z.string().optional(),
+  priority: z.string().optional(),
+});
+
+// ─── Physiotherapy Referral Schema ──────────────────────────────────────────
+export const createPhysioReferralSchema = z.object({
+  patientId: z.string().min(1, 'Patient is required'),
+  patientName: z.string().optional(),
+  diagnosis: z.string().optional(),
+  treatmentPlan: z.string().optional(),
+});
+
+// ─── Mental Health Referral Schema ──────────────────────────────────────────
+export const createMentalHealthReferralSchema = z.object({
+  patientId: z.string().min(1, 'Patient is required'),
+  patientName: z.string().optional(),
+  referralSource: z.string().optional(),
+  referrerName: z.string().optional(),
+});
+
 // ─── Facility Schemas ──────────────────────────────────────────────────────
 export const registerFacilitySchema = z.object({
   name: z.string().trim().min(2, 'Facility name is required'),
@@ -338,4 +572,152 @@ export const registerFacilitySchema = z.object({
   state: z.string().min(2, 'State is required'),
   licenseNumber: z.string().min(1, 'License number is required'),
   description: z.string().optional(),
+  establishedYear: z.union([z.string(), z.number()]).optional(),
+  logo: z.string().optional(),
+  image: z.string().optional(),
+  nablNumber: z.string().optional(),
+  aerbNumber: z.string().optional(),
+  workingHours: z.any().optional(),
+  pathologistName: z.string().optional(),
+  pathologistQualification: z.string().optional(),
+  radiologistName: z.string().optional(),
+  radiologistQualification: z.string().optional(),
+  cardiologistName: z.string().optional(),
+  cardiologistQualification: z.string().optional(),
+  technicianName: z.string().optional(),
+  technicianRole: z.string().optional(),
+  technicianQualification: z.string().optional(),
+  technicianExperience: z.string().optional(),
+  timing: z.any().optional(),
+  amenities: z.any().optional(),
+  socialLinks: z.any().optional(),
+  adminName: z.string().optional(),
+  adminEmail: z.string().optional(),
+  adminPhone: z.string().optional(),
+  details: z.any().optional(),
+});
+
+export const updateFacilitySchema = z.object({
+  name: z.string().optional(),
+  email: emailSchema.optional(),
+  address: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  pincode: z.string().optional(),
+  phone: z.string().optional(),
+  logo: z.string().optional(),
+  image: z.string().optional(),
+  description: z.string().optional(),
+  specialties: z.array(z.string()).optional(),
+  establishedYear: z.number().optional(),
+  accreditations: z.array(z.string()).optional(),
+  licenseNumber: z.string().optional(),
+  workingHours: z.string().optional(),
+  nablNumber: z.string().optional(),
+  aerbNumber: z.string().optional(),
+  pathologistName: z.string().optional(),
+  pathologistQualification: z.string().optional(),
+  radiologistName: z.string().optional(),
+  radiologistQualification: z.string().optional(),
+  cardiologistName: z.string().optional(),
+  cardiologistQualification: z.string().optional(),
+  technicianName: z.string().optional(),
+  technicianRole: z.string().optional(),
+  technicianQualification: z.string().optional(),
+  technicianExperience: z.string().optional(),
+  timing: z.any().optional(),
+  amenities: z.any().optional(),
+  socialLinks: z.any().optional(),
+  details: z.any().optional(),
+});
+
+// ─── Announcement Schema ──────────────────────────────────────────────────
+export const createAnnouncementSchema = z.object({
+  title: z.string().min(2, 'Title is required'),
+  message: z.string().min(2, 'Message is required'),
+  priority: z.string().optional(),
+  targetRoles: z.array(z.string()).optional(),
+});
+
+// ─── Category Schemas ────────────────────────────────────────────────────
+export const createCategorySchema = z.object({
+  name: z.string().trim().min(2, 'Name is required'),
+  type: z.string().optional(),
+  description: z.string().optional(),
+  displayOrder: z.number().optional(),
+  parent: z.string().optional(),
+  isActive: z.boolean().optional(),
+});
+
+export const updateCategorySchema = z.object({
+  name: z.string().trim().min(2).optional(),
+  type: z.string().optional(),
+  description: z.string().optional(),
+  displayOrder: z.number().optional(),
+  parent: z.string().optional(),
+  isActive: z.boolean().optional(),
+});
+
+export const mergeCategorySchema = z.object({
+  sourceIds: z.array(z.string()).min(1, 'At least one source ID required'),
+  targetId: z.string().min(1, 'Target ID is required'),
+});
+
+// ─── Staff Schemas ─────────────────────────────────────────────────────────
+export const createStaffSchema = z.object({
+  name: z.string().trim().min(2, 'Name is required'),
+  role: z.string().min(1, 'Role is required'),
+  department: z.string().optional(),
+  email: z.string().email().optional(),
+  phone: z.string().optional(),
+  salary: z.number().optional(),
+  hospitalId: z.string().optional(),
+});
+
+export const updateStaffSchema = z.object({
+  name: z.string().trim().min(2).optional(),
+  role: z.string().optional(),
+  department: z.string().optional(),
+  email: z.string().email().optional(),
+  phone: z.string().optional(),
+  salary: z.number().optional(),
+  status: z.string().optional(),
+});
+
+// ─── Clinic Schemas ──────────────────────────────────────────────────────
+export const updateClinicProfileSchema = z.object({
+  name: z.string().optional(),
+  address: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  phone: z.string().optional(),
+  logo: z.string().optional(),
+  description: z.string().optional(),
+  specialties: z.array(z.string()).optional(),
+  image: z.string().optional(),
+  details: z.any().optional(),
+});
+
+export const createClinicStaffSchema = z.object({
+  name: z.string().trim().min(2, 'Name is required'),
+  email: emailSchema,
+  phone: z.string().optional(),
+  role: z.string().min(1, 'Role is required'),
+});
+
+export const updateClinicStaffSchema = z.object({
+  name: z.string().optional(),
+  email: emailSchema.optional(),
+  phone: z.string().optional(),
+  role: z.string().optional(),
+});
+
+// ─── Notification Schema ────────────────────────────────────────────────
+export const createNotificationSchema = z.object({
+  userId: z.string().min(1, 'User ID is required'),
+  title: z.string().min(1, 'Title is required'),
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().optional(),
+  read: z.boolean().optional(),
+  date: z.string().optional(),
 });

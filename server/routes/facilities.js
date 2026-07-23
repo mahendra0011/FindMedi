@@ -4,6 +4,7 @@ import Facility from '../models/Facility.js';
 import User from '../models/User.js';
 import Doctor from '../models/Doctor.js';
 import { protect, superadminOnly } from '../middleware/auth.js';
+import { validate, registerFacilitySchema, updateFacilitySchema } from '../utils/validate.js';
 import { auditLog } from '../middleware/audit.js';
 import License from '../models/License.js';
 import logger from '../config/logger.js';
@@ -72,7 +73,7 @@ router.get('/:id', async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/register', async (req, res) => {
+router.post('/register', validate(registerFacilitySchema), async (req, res) => {
   try {
     const { type, name, email, phone, address, city, state, licenseNumber, description, establishedYear, logo, image, nablNumber, aerbNumber, workingHours, pathologistName, pathologistQualification, radiologistName, radiologistQualification, cardiologistName, cardiologistQualification, technicianName, technicianRole, technicianQualification, technicianExperience, timing, amenities, socialLinks, adminName, adminEmail, adminPhone, details } = req.body;
     if (!type || !name || !email || !phone || !address || !licenseNumber || !adminName || !adminEmail || !adminPhone) {
@@ -152,7 +153,7 @@ router.put('/:id/suspend', protect, superadminOnly, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.put('/:id', protect, async (req, res) => {
+router.put('/:id', protect, validate(updateFacilitySchema), async (req, res) => {
   try {
     const facility = await Facility.findById(req.params.id);
     if (!facility) return res.status(404).json({ message: 'Facility not found' });

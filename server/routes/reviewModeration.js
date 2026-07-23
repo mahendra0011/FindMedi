@@ -1,7 +1,11 @@
 import express from 'express';
+import { z } from 'zod';
 import Review from '../models/Review.js';
 import { protect, superadminOnly } from '../middleware/auth.js';
 import { auditLog } from '../middleware/audit.js';
+import { validate } from '../utils/validate.js';
+
+const flagSchema = z.object({ reason: z.string().optional() });
 
 const router = express.Router();
 
@@ -24,7 +28,7 @@ router.get('/', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.put('/:id/flag', protect, async (req, res) => {
+router.put('/:id/flag', protect, validate(flagSchema), async (req, res) => {
   try {
     const { reason } = req.body;
     const review = await Review.findByIdAndUpdate(

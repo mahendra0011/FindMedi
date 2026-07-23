@@ -1,6 +1,7 @@
 import express from 'express';
 import Department from '../models/Department.js';
 import { protect, scopeToHospital, superadminOnly } from '../middleware/auth.js';
+import { validate, createDepartmentSchema, updateDepartmentSchema } from '../utils/validate.js';
 
 const router = express.Router();
 
@@ -14,7 +15,7 @@ router.get('/', async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/', protect, scopeToHospital, async (req, res) => {
+router.post('/', protect, scopeToHospital, validate(createDepartmentSchema), async (req, res) => {
   try {
     if (req.user.role !== 'superadmin' && req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Admin access required' });
@@ -25,7 +26,7 @@ router.post('/', protect, scopeToHospital, async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/:id', protect, scopeToHospital, async (req, res) => {
+router.put('/:id', protect, scopeToHospital, validate(updateDepartmentSchema), async (req, res) => {
   try {
     if (req.user.role !== 'superadmin' && req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Admin access required' });

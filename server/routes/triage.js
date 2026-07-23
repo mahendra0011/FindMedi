@@ -1,8 +1,15 @@
 import express from 'express';
+import { z } from 'zod';
 import Triage from '../models/Triage.js';
 import Notification from '../models/Notification.js';
 import User from '../models/User.js';
 import { protect } from '../middleware/auth.js';
+import { validate, createTriageSchema } from '../utils/validate.js';
+
+const triageUpdateSchema = z.object({}).passthrough();
+const triageAssignSchema = z.object({ doctorId: z.string().optional(), doctorName: z.string().optional() });
+const triageMlcSchema = z.object({}).passthrough();
+const triageNoteSchema = z.object({ text: z.string().min(1) });
 
 const router = express.Router();
 
@@ -16,7 +23,7 @@ const generateMlcNumber = async () => {
   return `MLC-${new Date().getFullYear()}-${String(count + 1).padStart(5, '0')}`;
 };
 
-router.post('/', protect, async (req, res) => {
+router.post('/', protect, validate(createTriageSchema), async (req, res) => {
   try {
     const { patientName, age, gender, phone, arrivalMode, broughtBy, chiefComplaint, triageLevel, triageNotes, vitals, isMLCO, patientId } = req.body;
     if (!patientName || !chiefComplaint || !triageLevel) {
@@ -73,7 +80,7 @@ router.get('/:id', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.put('/:id', protect, async (req, res) => {
+router.put('/:id', protect, validate(triageUpdateSchema), async (req, res) => {
   try {
     const entry = await Triage.findById(req.params.id);
     if (!entry) return res.status(404).json({ message: 'Entry not found' });
@@ -86,7 +93,7 @@ router.put('/:id', protect, async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/:id/assign', protect, async (req, res) => {
+router.put('/:id/assign', protect, validate(triageAssignSchema), async (req, res) => {
   try {
     const { doctorId, doctorName } = req.body;
     const entry = await Triage.findById(req.params.id);
@@ -102,7 +109,7 @@ router.put('/:id/assign', protect, async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/:id/mlc', protect, async (req, res) => {
+router.put('/:id/mlc', protect, validate(triageMlcSchema), async (req, res) => {
   try {
     const entry = await Triage.findById(req.params.id);
     if (!entry) return res.status(404).json({ message: 'Entry not found' });
@@ -117,7 +124,7 @@ router.put('/:id/mlc', protect, async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.post('/:id/notes', protect, async (req, res) => {
+router.post('/:id/notes', protect, validate(triageNoteSchema), async (req, res) => {
   try {
     const entry = await Triage.findById(req.params.id);
     if (!entry) return res.status(404).json({ message: 'Entry not found' });

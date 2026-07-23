@@ -9,6 +9,7 @@ import { protect, adminOnly, hospitalAdminOnly, superadminOnly, scopeToHospital 
 import { sendDoctorApprovalEmail, sendDoctorRejectionEmail, sendEmail } from '../services/notificationService.js';
 import { auditLog } from '../middleware/audit.js';
 import { uploadFileToCloudinary } from '../services/cloudinaryService.js';
+import { z } from 'zod';
 import { validate, createDoctorSchema, updateDoctorSchema } from '../utils/validate.js';
 
 const router = express.Router();
@@ -118,7 +119,7 @@ router.get('/:id', async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/', protect, async (req, res) => {
+router.post('/', protect, validate(createDoctorSchema), async (req, res) => {
   try {
     if (req.user.role !== 'superadmin' && req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Admin access required' });
@@ -198,7 +199,7 @@ router.post('/', protect, async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/:id', protect, async (req, res) => {
+router.put('/:id', protect, validate(updateDoctorSchema), async (req, res) => {
   try {
     const doctor = await Doctor.findById(req.params.id);
     if (!doctor) return res.status(404).json({ message: 'Doctor not found' });
@@ -210,7 +211,9 @@ router.put('/:id', protect, async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/:id/clinic-profile', protect, async (req, res) => {
+const clinicProfileSchema = z.object({ clinicProfile: z.object({}).passthrough() });
+
+router.put('/:id/clinic-profile', protect, validate(clinicProfileSchema), async (req, res) => {
   try {
     const doctor = await Doctor.findById(req.params.id);
     if (!doctor) return res.status(404).json({ message: 'Doctor not found' });
@@ -285,7 +288,13 @@ router.put('/:id/reject', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.put('/:id/schedule', protect, async (req, res) => {
+const scheduleSchema = z.object({
+  time_slots: z.any().optional(),
+  weekly_schedule: z.any().optional(),
+  leaves: z.any().optional(),
+});
+
+router.put('/:id/schedule', protect, validate(scheduleSchema), async (req, res) => {
   try {
     if (req.user.role !== 'superadmin' && req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Admin access required' });

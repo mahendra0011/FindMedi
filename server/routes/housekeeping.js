@@ -1,16 +1,23 @@
 import express from 'express';
+import { z } from 'zod';
 import Housekeeping from '../models/Housekeeping.js';
 import Admission from '../models/Admission.js';
 import Bed from '../models/Bed.js';
 import Notification from '../models/Notification.js';
 import { protect } from '../middleware/auth.js';
+import { validate, createHousekeepingSchema } from '../utils/validate.js';
+
+const hkAutoCreateSchema = z.object({ admissionId: z.string().min(1), bedNumber: z.string().min(1), ward: z.string().optional(), room: z.string().optional(), isInfectionCase: z.boolean().optional() });
+const hkAssignSchema = z.object({ assignedTo: z.string().optional(), assignedById: z.string().optional() });
+const hkCompleteSchema = z.object({ checklistNotes: z.string().optional(), photo: z.string().optional(), checklist: z.any().optional() });
+const hkChecklistSchema = z.object({ checklist: z.any() });
 
 const router = express.Router();
 
 const genId = async () => { const c = await Housekeeping.countDocuments(); return `HSK-${new Date().getFullYear()}-${String(c+1).padStart(5,'0')}`; };
 
 // Auto-create housekeeping task when patient is discharged
-router.post('/auto-create-on-discharge', protect, async (req, res) => {
+router.post('/auto-create-on-discharge', protect, validate(hkAutoCreateSchema), async (req, res) => {
   try {
     const { admissionId, bedNumber, ward, room, isInfectionCase } = req.body;
     if (!admissionId || !bedNumber) {
@@ -59,7 +66,7 @@ router.post('/auto-create-on-discharge', protect, async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.post('/tasks', protect, async (req, res) => {
+router.post('/tasks', protect, validate(createHousekeepingSchema), async (req, res) => {
   try {
     const { room, bedNumber, ward, type, priority, checklist } = req.body;
     if (!room || !type) return res.status(400).json({ message: 'Room and type required' });
@@ -111,7 +118,7 @@ router.get('/tasks/:id', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.put('/tasks/:id/assign', protect, async (req, res) => {
+router.put('/tasks/:id/assign', protect, validate(hkAssignSchema), async (req, res) => {
   try {
     const { assignedTo, assignedById } = req.body;
     const task = await Housekeeping.findById(req.params.id);
@@ -128,7 +135,7 @@ router.put('/tasks/:id/assign', protect, async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/tasks/:id/complete', protect, async (req, res) => {
+router.put('/tasks/:id/complete', protect, validate(hkCompleteSchema), async (req, res) => {
   try {
     const { checklistNotes, photo, checklist } = req.body;
     const task = await Housekeeping.findById(req.params.id);
@@ -182,7 +189,7 @@ router.put('/tasks/:id/verify', protect, async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/tasks/:id/checklist', protect, async (req, res) => {
+router.put('/tasks/:id/checklist', protect, validate(hkChecklistSchema), async (req, res) => {
   try {
     const { checklist } = req.body;
     const task = await Housekeeping.findById(req.params.id);

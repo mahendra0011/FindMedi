@@ -1,4 +1,5 @@
 import express from 'express';
+import { z } from 'zod';
 import Report from '../models/Report.js';
 import Bed from '../models/Bed.js';
 import Admission from '../models/Admission.js';
@@ -10,6 +11,15 @@ import Inventory from '../models/Inventory.js';
 import OperationTheatre from '../models/OperationTheatre.js';
 import Staff from '../models/Staff.js';
 import { protect } from '../middleware/auth.js';
+import { validate } from '../utils/validate.js';
+
+const reportGenerateSchema = z.object({
+  reportType: z.string().min(1, 'Report type is required'),
+  category: z.string().optional(),
+  dateFrom: z.string().optional(),
+  dateTo: z.string().optional(),
+  department: z.string().optional(),
+});
 
 const router = express.Router();
 
@@ -252,7 +262,7 @@ case 'OT Statistics':
   }
 };
 
-router.post('/generate', protect, async (req, res) => {
+router.post('/generate', protect, validate(reportGenerateSchema), async (req, res) => {
   try {
     const { reportType, category, dateFrom, dateTo, department } = req.body;
     

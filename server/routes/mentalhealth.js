@@ -1,14 +1,23 @@
 import express from 'express';
+import { z } from 'zod';
 import MentalHealth from '../models/MentalHealth.js';
 import Billing from '../models/Billing.js';
 import Notification from '../models/Notification.js';
 import { protect } from '../middleware/auth.js';
+import { validate, createMentalHealthReferralSchema } from '../utils/validate.js';
+
+const mhAssessmentSchema = z.object({}).passthrough();
+const mhSessionSchema = z.object({}).passthrough();
+const mhMedicationSchema = z.object({}).passthrough();
+const mhFamilySchema = z.object({ familyMemberName: z.string().optional(), relationship: z.string().optional(), involvementType: z.string().optional(), notes: z.string().optional(), contactNumber: z.string().optional() });
+const mhConsentSchema = z.object({ consentType: z.string().optional(), documentUrl: z.string().optional(), expiryDate: z.string().optional(), notes: z.string().optional() });
+const mhBillingSchema = z.object({ amount: z.number().optional(), description: z.string().optional(), sessionType: z.string().optional() });
 
 const router = express.Router();
 
 const genId = async () => { const c = await MentalHealth.countDocuments(); return `MH-${new Date().getFullYear()}-${String(c+1).padStart(5,'0')}`; };
 
-router.post('/referrals', protect, async (req, res) => {
+router.post('/referrals', protect, validate(createMentalHealthReferralSchema), async (req, res) => {
   try {
     const { patientId, patientName, referralSource, referrerName } = req.body;
     if (!patientId) return res.status(400).json({ message: 'Patient required' });
@@ -30,7 +39,7 @@ router.get('/referrals', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.put('/referrals/:id/assessment', protect, async (req, res) => {
+router.put('/referrals/:id/assessment', protect, validate(mhAssessmentSchema), async (req, res) => {
   try {
     const r = await MentalHealth.findById(req.params.id);
     if (!r) return res.status(404).json({ message: 'Not found' });
@@ -46,7 +55,7 @@ router.put('/referrals/:id/assessment', protect, async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.post('/referrals/:id/session', protect, async (req, res) => {
+router.post('/referrals/:id/session', protect, validate(mhSessionSchema), async (req, res) => {
   try {
     const r = await MentalHealth.findById(req.params.id);
     if (!r) return res.status(404).json({ message: 'Not found' });
@@ -60,7 +69,7 @@ router.post('/referrals/:id/session', protect, async (req, res) => {
 });
 
 // ─── Medication Management ───────────────────────────────────────────────────
-router.put('/referrals/:id/medication', protect, async (req, res) => {
+router.put('/referrals/:id/medication', protect, validate(mhMedicationSchema), async (req, res) => {
   try {
     const r = await MentalHealth.findById(req.params.id);
     if (!r) return res.status(404).json({ message: 'Not found' });
@@ -77,7 +86,7 @@ router.put('/referrals/:id/medication', protect, async (req, res) => {
 });
 
 // Family Involvement Tracking
-router.post('/referrals/:id/family', protect, async (req, res) => {
+router.post('/referrals/:id/family', protect, validate(mhFamilySchema), async (req, res) => {
   try {
     const { familyMemberName, relationship, involvementType, notes, contactNumber } = req.body;
     const r = await MentalHealth.findById(req.params.id);
@@ -102,7 +111,7 @@ router.post('/referrals/:id/family', protect, async (req, res) => {
 });
 
 // Consent Document Upload
-router.post('/referrals/:id/consent', protect, async (req, res) => {
+router.post('/referrals/:id/consent', protect, validate(mhConsentSchema), async (req, res) => {
   try {
     const { consentType, documentUrl, expiryDate, notes } = req.body;
     const r = await MentalHealth.findById(req.params.id);
@@ -127,7 +136,7 @@ router.post('/referrals/:id/consent', protect, async (req, res) => {
 });
 
 // Create billing for mental health session
-router.post('/referrals/:id/create-billing', protect, async (req, res) => {
+router.post('/referrals/:id/create-billing', protect, validate(mhBillingSchema), async (req, res) => {
   try {
     const referral = await MentalHealth.findById(req.params.id);
     if (!referral) return res.status(404).json({ message: 'Referral not found' });

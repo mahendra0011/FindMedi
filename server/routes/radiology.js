@@ -1,8 +1,14 @@
 import express from 'express';
+import { z } from 'zod';
 import Radiology from '../models/Radiology.js';
 import Notification from '../models/Notification.js';
 import User from '../models/User.js';
 import { protect } from '../middleware/auth.js';
+import { validate, createRadiologyOrderSchema } from '../utils/validate.js';
+
+const radScheduleSchema = z.object({ scheduledAt: z.string().optional() });
+const radCompleteSchema = z.object({ imageUrls: z.array(z.string()).optional() });
+const radReportSchema = z.object({ findings: z.string().optional(), impression: z.string().optional(), recommendation: z.string().optional(), reportUrl: z.string().optional() });
 
 const router = express.Router();
 
@@ -12,7 +18,7 @@ const generateOrderId = async () => {
 };
 
 // ─── Create Radiology Order ────────────────────────────────────────────────
-router.post('/orders', protect, async (req, res) => {
+router.post('/orders', protect, validate(createRadiologyOrderSchema), async (req, res) => {
   try {
     const { patientId, patientName, modality, bodyPart, clinicalHistory, priority } = req.body;
     if (!patientId || !modality || !bodyPart) {
@@ -71,7 +77,7 @@ router.get('/orders/:id', protect, async (req, res) => {
 });
 
 // ─── Schedule Scan ─────────────────────────────────────────────────────────
-router.put('/orders/:id/schedule', protect, async (req, res) => {
+router.put('/orders/:id/schedule', protect, validate(radScheduleSchema), async (req, res) => {
   try {
     const { scheduledAt } = req.body;
     const existing = await Radiology.findById(req.params.id);
@@ -103,7 +109,7 @@ router.put('/orders/:id/start', protect, async (req, res) => {
 });
 
 // ─── Complete Scan ─────────────────────────────────────────────────────────
-router.put('/orders/:id/complete', protect, async (req, res) => {
+router.put('/orders/:id/complete', protect, validate(radCompleteSchema), async (req, res) => {
   try {
     const { imageUrls } = req.body;
     const existing = await Radiology.findById(req.params.id);
@@ -119,7 +125,7 @@ router.put('/orders/:id/complete', protect, async (req, res) => {
 });
 
 // ─── Submit Report (Radiologist) ──────────────────────────────────────────
-router.put('/orders/:id/report', protect, async (req, res) => {
+router.put('/orders/:id/report', protect, validate(radReportSchema), async (req, res) => {
   try {
     const { findings, impression, recommendation, reportUrl } = req.body;
     const order = await Radiology.findById(req.params.id);

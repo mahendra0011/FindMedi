@@ -1,6 +1,7 @@
 import express from 'express';
 import Bed from '../models/Bed.js';
 import { protect, scopeToHospital } from '../middleware/auth.js';
+import { validate, createBedSchema, updateBedSchema } from '../utils/validate.js';
 
 const router = express.Router();
 
@@ -32,7 +33,7 @@ router.get('/stats', async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/', protect, scopeToHospital, async (req, res) => {
+router.post('/', protect, scopeToHospital, validate(createBedSchema), async (req, res) => {
   try {
     if (req.user.role !== 'superadmin' && req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Admin access required' });
@@ -43,7 +44,7 @@ router.post('/', protect, scopeToHospital, async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/:id', protect, scopeToHospital, async (req, res) => {
+router.put('/:id', protect, scopeToHospital, validate(updateBedSchema), async (req, res) => {
   try {
     if (req.user.role !== 'superadmin' && req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Admin access required' });

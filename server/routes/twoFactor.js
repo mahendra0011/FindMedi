@@ -1,6 +1,12 @@
 import express from 'express';
+import { z } from 'zod';
 import User from '../models/User.js';
 import { protect } from '../middleware/auth.js';
+import { validate } from '../utils/validate.js';
+
+const twoFactorVerifySchema = z.object({ token: z.string().regex(/^\d{6}$/, 'Valid 6-digit code is required') });
+const twoFactorDisableSchema = z.object({ password: z.string().min(1, 'Password is required') });
+const twoFactorValidateSchema = z.object({ email: z.string().email('Valid email is required'), token: z.string().optional(), backupCode: z.string().optional() });
 import {
   generateSecret,
   generateOtpAuthUrl,
@@ -44,12 +50,9 @@ router.post('/setup', protect, async (req, res) => {
  * POST /api/auth/2fa/verify
  * Verify TOTP token and enable 2FA (step 2)
  */
-router.post('/verify', protect, async (req, res) => {
+router.post('/verify', protect, validate(twoFactorVerifySchema), async (req, res) => {
   try {
     const { token } = req.body;
-    if (!token || !/^\d{6}$/.test(token)) {
-      return res.status(400).json({ message: 'Valid 6-digit code is required' });
-    }
 
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ message: 'User not found' });
@@ -85,10 +88,9 @@ router.post('/verify', protect, async (req, res) => {
  * POST /api/auth/2fa/disable
  * Disable 2FA (requires current password)
  */
-router.post('/disable', protect, async (req, res) => {
+router.post('/disable', protect, validate(twoFactorDisableSchema), async (req, res) => {
   try {
     const { password } = req.body;
-    if (!password) return res.status(400).json({ message: 'Password is required to disable 2FA' });
 
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ message: 'User not found' });
@@ -115,10 +117,9 @@ router.post('/disable', protect, async (req, res) => {
  * POST /api/auth/2fa/validate
  * Validate 2FA during login (called after password verification)
  */
-router.post('/validate', async (req, res) => {
+router.post('/validate', validate(twoFactorValidateSchema), async (req, res) => {
   try {
     const { email, token, backupCode } = req.body;
-    if (!email) return res.status(400).json({ message: 'Email is required' });
 
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) return res.status(404).json({ message: 'User not found' });
