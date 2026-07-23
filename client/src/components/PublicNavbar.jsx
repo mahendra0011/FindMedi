@@ -148,7 +148,7 @@ export default function PublicNavbar() {
                 <CommandList>
                   <CommandEmpty>No city found</CommandEmpty>
                   <CommandGroup heading="Available">
-                    {allCities.map((city) => (
+                    {allCities.filter(c => !c.locked).map((city) => (
                       <CommandItem
                         key={city.name}
                         onSelect={() => handleCitySelect(city.name)}
@@ -159,6 +159,18 @@ export default function PublicNavbar() {
                         <span className="ml-auto text-[10px] text-muted-foreground">{city.state}</span>
                         {selectedCity === city.name && <Check className="w-3.5 h-3.5 ml-1.5 text-primary" />}
                       </CommandItem>
+                    ))}
+                  </CommandGroup>
+                  <CommandGroup heading="Coming Soon">
+                    {allCities.filter(c => c.locked).map((city) => (
+                      <div
+                        key={city.name}
+                        className="flex items-center gap-2 px-2 py-1.5 text-sm text-muted-foreground/50 cursor-not-allowed select-none"
+                      >
+                        <Lock className="w-3.5 h-3.5 ml-2 shrink-0" />
+                        <span>{city.name}</span>
+                        <span className="ml-auto text-[10px]">{city.state}</span>
+                      </div>
                     ))}
                   </CommandGroup>
 

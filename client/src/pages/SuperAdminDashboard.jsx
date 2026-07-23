@@ -59,7 +59,7 @@ function UserManagementTab() {
     setLoading(false);
   };
 
-  useEffect(() => { loadUsers(); }, [search, roleFilter, loadUsers]);
+  useEffect(() => { loadUsers(); }, [search, roleFilter]);
 
   const handleDelete = async (id) => {
     if (!confirm('Permanently delete this user?')) return;

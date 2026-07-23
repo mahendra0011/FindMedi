@@ -58,6 +58,13 @@ const TYPE_CONFIG = {
     ring: 'ring-emerald-500/30',
     markerBg: 'bg-emerald-500',
   },
+  imaging: {
+    label: 'Imaging Center',
+    icon: `${BASE_ASSET_PATH}images/map-icons/clinic.svg?v=clean-2`,
+    routeColor: '#2563eb',
+    ring: 'ring-blue-500/30',
+    markerBg: 'bg-blue-500',
+  },
 };
 
 const TYPE_FALLBACK_PHOTO = {
@@ -65,6 +72,7 @@ const TYPE_FALLBACK_PHOTO = {
   clinic: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=640&q=80',
   lab: 'https://images.unsplash.com/photo-1579154204601-01588f351e67?auto=format&fit=crop&w=640&q=80',
   pharmacy: 'https://images.unsplash.com/photo-1587854692152-cbe660dbde88?auto=format&fit=crop&w=640&q=80',
+  imaging: 'https://images.unsplash.com/photo-1587854692152-cbe660dbde88?auto=format&fit=crop&w=640&q=80',
 };
 
 const CITY_COORDINATES = {
@@ -289,6 +297,7 @@ function getDetailsPath(place) {
   if (place.type === 'hospital') return `/hospitals/${id}`;
   if (place.type === 'clinic') return `/clinic/${id}`;
   if (place.type === 'lab') return `/lab/${id}`;
+  if (place.type === 'imaging') return `/imaging/${id}`;
   if (place.type === 'pharmacy') return `/buy-medicine/${id}`;
   return '#';
 }
@@ -371,6 +380,24 @@ function TypeDetails({ place, route }) {
           {specialist ? <InfoBadge>{qualification ? `${specialist}, ${qualification}` : specialist}</InfoBadge> : null}
           {turnaround ? <InfoBadge>{turnaround} reports</InfoBadge> : null}
           {testCount ? <InfoBadge>{testCount} Tests</InfoBadge> : null}
+        </div>
+      </>
+    );
+  }
+
+  if (place.type === 'imaging') {
+    const radiologist = displayValue(raw.radiologistName || raw.radiologist);
+    const equipment = displayValue(raw.equipment?.mri || raw.equipment?.ct);
+    return (
+      <>
+        <div className="flex flex-wrap gap-1.5">
+          {routeText ? <InfoBadge tone="blue">{routeText}</InfoBadge> : null}
+          {raw.status === 'approved' || raw.verified ? <InfoBadge tone="green">Verified</InfoBadge> : null}
+          {raw.aerbNumber ? <InfoBadge tone="green">AERB Certified</InfoBadge> : null}
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {radiologist ? <InfoBadge>{radiologist}</InfoBadge> : null}
+          {equipment ? <InfoBadge>{equipment}</InfoBadge> : null}
         </div>
       </>
     );
@@ -759,7 +786,10 @@ export default function ServiceLocationMap({ entityType, entity, className }) {
     dispatch(selectMapPlace(id));
   }, [dispatch, id, placeSignature]);
 
+  const placesLoadedRef = useRef(new Set());
   useEffect(() => {
+    if (placesLoadedRef.current.has(id)) return;
+    placesLoadedRef.current.add(id);
     let cancelled = false;
     async function loadPlaces() {
       try {

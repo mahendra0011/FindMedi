@@ -170,7 +170,7 @@ const loadDoctors = async () => {
     setLoading(false);
   };
 
-  useEffect(() => { loadDoctors(); }, [search, specFilter, loadDoctors]);
+  useEffect(() => { loadDoctors(); }, [search, specFilter]);
 
   const insuranceProviders = useMemo(() => {
     const providers = new Set();

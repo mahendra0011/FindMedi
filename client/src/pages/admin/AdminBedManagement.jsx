@@ -35,7 +35,7 @@ export default function AdminBedManagement() {
     setLoading(false);
   };
 
-  useEffect(() => { loadBeds(); }, [wardFilter, statusFilter, loadBeds]);
+  useEffect(() => { loadBeds(); }, [wardFilter, statusFilter]);
 
   const resetForm = () => {
     setForm({ bedNumber: '', ward: 'General', bedType: 'General', dailyRate: '', floor: '', isAC: false });

@@ -176,6 +176,12 @@ const LabTestCatalog = lazy(() => import('./pages/labcenter/LabTestCatalog'));
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1, staleTime: 30_000 } } });
 
+const loadingFallback = (
+  <div className="min-h-screen flex items-center justify-center">
+    <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+  </div>
+);
+
 // Auth initializer component
 function AuthInitializer({ children }) {
   const dispatch = useDispatch();
@@ -327,10 +333,11 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          <HashRouter>
+          <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <LenisScroll>
               <AppMotion>
-                <Routes>
+                <Suspense fallback={loadingFallback}>
+                  <Routes>
                   {/* Public routes */}
                   <Route path="/" element={<Home />} />
                   <Route path="/login" element={<Login />} />
@@ -504,6 +511,7 @@ const App = () => (
 
                   <Route path="*" element={<NotFound />} />
                 </Routes>
+              </Suspense>
               </AppMotion>
             </LenisScroll>
           </HashRouter>

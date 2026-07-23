@@ -4,7 +4,6 @@ import { Calendar, Clock, Send, Plus, X, AlertCircle, CheckCircle, FileText } fr
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 
@@ -24,7 +23,6 @@ const leaveTypes = [
 ];
 
 export default function DoctorLeaveRequests() {
-  const { user } = useAuth();
   const [leaves, setLeaves] = useState([]);
   const [balance, setBalance] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -46,7 +44,7 @@ export default function DoctorLeaveRequests() {
     setLoading(false);
   };
 
-  useEffect(() => { loadData(); }, [user?.email, user?.name, loadData]);
+  useEffect(() => { loadData(); }, []);
 
   const handleSubmit = async () => {
     if (!startDate || !endDate || !reason) return;

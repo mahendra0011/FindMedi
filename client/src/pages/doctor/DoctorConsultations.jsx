@@ -48,7 +48,7 @@ export default function DoctorConsultations() {
     setLoading(false);
   };
 
-  useEffect(() => { loadRecords(); }, [user?.name, loadRecords]);
+  useEffect(() => { loadRecords(); }, [user?.name]);
 
   const handleDownloadPdf = async (recordId) => {
     try {

@@ -96,7 +96,7 @@ export default function HospitalDirectory() {
     setLoading(false);
   };
 
-  useEffect(() => { loadHospitals(); }, [search, cityFilter, specFilter, loadHospitals]);
+  useEffect(() => { loadHospitals(); }, [search, cityFilter, specFilter]);
 
   const insuranceProviders = useMemo(() => {
     const providers = new Set();

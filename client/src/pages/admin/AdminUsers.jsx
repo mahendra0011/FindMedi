@@ -22,7 +22,7 @@ export default function AdminUsers() {
     setLoading(false);
   };
 
-  useEffect(() => { loadUsers(); }, [search, roleFilter, loadUsers]);
+  useEffect(() => { loadUsers(); }, [search, roleFilter]);
 
   const handleDelete = async (id) => {
     try { await api.deleteUser(id); loadUsers(); } catch (e) { console.error(e); }

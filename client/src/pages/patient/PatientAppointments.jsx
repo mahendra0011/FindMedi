@@ -30,7 +30,7 @@ export default function PatientAppointments() {
     setLoading(false);
   };
 
-  useEffect(() => { loadAppointments(); }, [filter, loadAppointments]);
+  useEffect(() => { loadAppointments(); }, [filter]);
 
   const handleCancel = async (id) => {
     try {

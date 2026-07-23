@@ -38,7 +38,7 @@ export default function PatientDoctors() {
     setLoading(false);
   };
 
-  useEffect(() => { loadDoctors(); }, [search, specFilter, hospitalFilter, typeFilter, loadDoctors]);
+  useEffect(() => { loadDoctors(); }, [search, specFilter, hospitalFilter, typeFilter]);
 
   useEffect(() => {
     api.getHospitals({ status: 'approved' }).then(setHospitals).catch(() => {});
