@@ -1,7 +1,11 @@
 import express from 'express';
+import { z } from 'zod';
 import License from '../models/License.js';
 import { protect, superadminOnly } from '../middleware/auth.js';
 import { auditLog } from '../middleware/audit.js';
+import { validate } from '../utils/validate.js';
+
+const licenseSchema = z.object({}).passthrough();
 
 const router = express.Router();
 
@@ -20,7 +24,7 @@ router.get('/', protect, superadminOnly, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.put('/:id', protect, superadminOnly, async (req, res) => {
+router.put('/:id', protect, superadminOnly, validate(licenseSchema), async (req, res) => {
   try {
     const license = await License.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!license) return res.status(404).json({ message: 'License not found' });

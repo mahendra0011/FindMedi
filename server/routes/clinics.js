@@ -3,6 +3,7 @@ import Doctor from '../models/Doctor.js';
 import Facility from '../models/Facility.js';
 import User from '../models/User.js';
 import { protect } from '../middleware/auth.js';
+import { validate, updateClinicProfileSchema, createClinicStaffSchema, updateClinicStaffSchema } from '../utils/validate.js';
 
 const router = express.Router();
 
@@ -16,7 +17,7 @@ router.get('/profile', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.put('/profile', protect, async (req, res) => {
+router.put('/profile', protect, validate(updateClinicProfileSchema), async (req, res) => {
   try {
     const facilityId = req.user.facilityId || req.user.hospitalId;
     const facility = await Facility.findById(facilityId);
@@ -37,7 +38,7 @@ router.get('/staff', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/staff', protect, async (req, res) => {
+router.post('/staff', protect, validate(createClinicStaffSchema), async (req, res) => {
   try {
     const facilityId = req.user.facilityId || req.user.hospitalId;
     const { name, email, phone, role } = req.body;
@@ -51,7 +52,7 @@ router.post('/staff', protect, async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/staff/:id', protect, async (req, res) => {
+router.put('/staff/:id', protect, validate(updateClinicStaffSchema), async (req, res) => {
   try {
     const facilityId = req.user.facilityId || req.user.hospitalId;
     const { name, email, phone, role } = req.body;

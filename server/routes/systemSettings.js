@@ -1,7 +1,11 @@
 import express from 'express';
+import { z } from 'zod';
 import SystemSetting from '../models/SystemSetting.js';
 import { protect, superadminOnly } from '../middleware/auth.js';
 import { auditLog } from '../middleware/audit.js';
+import { validate } from '../utils/validate.js';
+
+const systemSettingSchema = z.object({ value: z.any().optional() });
 
 const router = express.Router();
 
@@ -43,7 +47,7 @@ router.get('/', protect, superadminOnly, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.put('/:key', protect, superadminOnly, async (req, res) => {
+router.put('/:key', protect, superadminOnly, validate(systemSettingSchema), async (req, res) => {
   try {
     const { value } = req.body;
     if (value === undefined) return res.status(400).json({ message: 'Value is required' });

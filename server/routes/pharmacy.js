@@ -1,4 +1,5 @@
 import express from 'express';
+import { z } from 'zod';
 import Medicine from '../models/Medicine.js';
 import Prescription from '../models/Prescription.js';
 import PharmacyOrder from '../models/PharmacyOrder.js';
@@ -9,6 +10,17 @@ import PharmacyStaff from '../models/PharmacyStaff.js';
 import Notification from '../models/Notification.js';
 import User from '../models/User.js';
 import { protect } from '../middleware/auth.js';
+import { validate, createMedicineSchema } from '../utils/validate.js';
+
+const medicineUpdateSchema = z.object({}).passthrough();
+const pharmacyStockSchema = z.object({ quantity: z.number(), type: z.enum(['add', 'deduct']) });
+const prescriptionSchema = z.object({}).passthrough();
+const pharmacyOrderSchema = z.object({}).passthrough();
+const pharmacyDeliverySchema = z.object({}).passthrough();
+const pharmacyOfferSchema = z.object({}).passthrough();
+const pharmacyReturnSchema = z.object({}).passthrough();
+const pharmacyStaffSchema = z.object({}).passthrough();
+const pharmacyDispenseSchema = z.object({ medicineIndex: z.number().int().nonnegative() });
 
 const router = express.Router();
 
@@ -56,14 +68,14 @@ router.get('/medicines', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/medicines', protect, async (req, res) => {
+router.post('/medicines', protect, validate(createMedicineSchema), async (req, res) => {
   try {
     const medicine = await Medicine.create({ ...req.body, hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined });
     res.status(201).json(medicine);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/medicines/:id', protect, async (req, res) => {
+router.put('/medicines/:id', protect, validate(medicineUpdateSchema), async (req, res) => {
   try {
     const medicine = await Medicine.findById(req.params.id);
     if (!medicine) return res.status(404).json({ message: 'Medicine not found' });
@@ -89,7 +101,7 @@ router.delete('/medicines/:id', protect, async (req, res) => {
 });
 
 // ─── Stock Management ──────────────────────────────────────────────────────
-router.put('/medicines/:id/stock', protect, async (req, res) => {
+router.put('/medicines/:id/stock', protect, validate(pharmacyStockSchema), async (req, res) => {
   try {
     const { quantity, type } = req.body; // type: 'add' | 'deduct'
     const medicine = await Medicine.findById(req.params.id);
@@ -105,7 +117,7 @@ router.put('/medicines/:id/stock', protect, async (req, res) => {
 });
 
 // ─── Prescription CRUD ─────────────────────────────────────────────────────
-router.post('/prescriptions', protect, async (req, res) => {
+router.post('/prescriptions', protect, validate(prescriptionSchema), async (req, res) => {
   try {
     const { patientId, patientName, medicines, diagnosis, clinicalNotes, isEmergency } = req.body;
     if (!patientId || !medicines?.length) {
@@ -175,7 +187,7 @@ router.get('/prescriptions/:id', protect, async (req, res) => {
 });
 
 // ─── Pharmacist: Dispense Medicine ─────────────────────────────────────────
-router.put('/prescriptions/:id/dispense', protect, async (req, res) => {
+router.put('/prescriptions/:id/dispense', protect, validate(pharmacyDispenseSchema), async (req, res) => {
   try {
     const { medicineIndex } = req.body;
     if (medicineIndex === undefined) return res.status(400).json({ message: 'Medicine index required' });
@@ -276,7 +288,7 @@ router.get('/orders', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/orders', protect, async (req, res) => {
+router.post('/orders', protect, validate(pharmacyOrderSchema), async (req, res) => {
   try {
     const count = await PharmacyOrder.countDocuments();
     const orderId = `ORD-${String(count + 1).padStart(4, '0')}`;
@@ -287,7 +299,7 @@ router.post('/orders', protect, async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/orders/:id', protect, async (req, res) => {
+router.put('/orders/:id', protect, validate(pharmacyOrderSchema), async (req, res) => {
   try {
     const order = await PharmacyOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
@@ -313,14 +325,14 @@ router.get('/deliveries', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/deliveries', protect, async (req, res) => {
+router.post('/deliveries', protect, validate(pharmacyDeliverySchema), async (req, res) => {
   try {
     const delivery = await PharmacyDelivery.create({ ...req.body, hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined });
     res.status(201).json(delivery);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/deliveries/:id', protect, async (req, res) => {
+router.put('/deliveries/:id', protect, validate(pharmacyDeliverySchema), async (req, res) => {
   try {
     const delivery = await PharmacyDelivery.findById(req.params.id);
     if (!delivery) return res.status(404).json({ message: 'Delivery not found' });
@@ -342,14 +354,14 @@ router.get('/offers', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/offers', protect, async (req, res) => {
+router.post('/offers', protect, validate(pharmacyOfferSchema), async (req, res) => {
   try {
     const offer = await PharmacyOffer.create({ ...req.body, hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined });
     res.status(201).json(offer);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/offers/:id', protect, async (req, res) => {
+router.put('/offers/:id', protect, validate(pharmacyOfferSchema), async (req, res) => {
   try {
     const offer = await PharmacyOffer.findById(req.params.id);
     if (!offer) return res.status(404).json({ message: 'Offer not found' });
@@ -375,7 +387,7 @@ router.get('/returns', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/returns', protect, async (req, res) => {
+router.post('/returns', protect, validate(pharmacyReturnSchema), async (req, res) => {
   try {
     const count = await PharmacyReturn.countDocuments();
     const returnId = `RET-${String(count + 1).padStart(4, '0')}`;
@@ -384,7 +396,7 @@ router.post('/returns', protect, async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/returns/:id', protect, async (req, res) => {
+router.put('/returns/:id', protect, validate(pharmacyReturnSchema), async (req, res) => {
   try {
     const ret = await PharmacyReturn.findById(req.params.id);
     if (!ret) return res.status(404).json({ message: 'Return not found' });
@@ -406,14 +418,14 @@ router.get('/staff', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/staff', protect, async (req, res) => {
+router.post('/staff', protect, validate(pharmacyStaffSchema), async (req, res) => {
   try {
     const member = await PharmacyStaff.create({ ...req.body, hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined });
     res.status(201).json(member);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/staff/:id', protect, async (req, res) => {
+router.put('/staff/:id', protect, validate(pharmacyStaffSchema), async (req, res) => {
   try {
     const member = await PharmacyStaff.findById(req.params.id);
     if (!member) return res.status(404).json({ message: 'Staff not found' });

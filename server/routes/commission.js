@@ -1,11 +1,17 @@
 import express from 'express';
+import { z } from 'zod';
 import CommissionConfig from '../models/CommissionConfig.js';
 import Payout from '../models/Payout.js';
 import TransactionLedger from '../models/TransactionLedger.js';
 import Hospital from '../models/Hospital.js';
 import { protect, superadminOnly } from '../middleware/auth.js';
 import { auditLog } from '../middleware/audit.js';
+import { validate } from '../utils/validate.js';
 import logger from '../config/logger.js';
+
+const commissionConfigSchema = z.object({ commissionPercent: z.number().optional(), commissionCap: z.number().optional(), payoutSchedule: z.string().optional(), status: z.string().optional() });
+const payoutCreateSchema = z.object({ facilityId: z.string().min(1), periodStart: z.string().optional(), periodEnd: z.string().optional() });
+const payoutPaySchema = z.object({ transactionRef: z.string().optional() });
 
 const router = express.Router();
 
@@ -42,7 +48,7 @@ router.get('/config', protect, superadminOnly, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.put('/config/:id', protect, superadminOnly, async (req, res) => {
+router.put('/config/:id', protect, superadminOnly, validate(commissionConfigSchema), async (req, res) => {
   try {
     const allowedFields = ['commissionPercent', 'commissionCap', 'payoutSchedule', 'status'];
     const update = {};
@@ -115,7 +121,7 @@ router.get('/payouts', protect, superadminOnly, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/payouts', protect, superadminOnly, async (req, res) => {
+router.post('/payouts', protect, superadminOnly, validate(payoutCreateSchema), async (req, res) => {
   try {
     const { facilityId, periodStart, periodEnd } = req.body;
     if (!facilityId) return res.status(400).json({ message: 'facilityId is required' });
@@ -165,7 +171,7 @@ router.post('/payouts', protect, superadminOnly, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.put('/payouts/:id/pay', protect, superadminOnly, async (req, res) => {
+router.put('/payouts/:id/pay', protect, superadminOnly, validate(payoutPaySchema), async (req, res) => {
   try {
     const payout = await Payout.findByIdAndUpdate(
       req.params.id,

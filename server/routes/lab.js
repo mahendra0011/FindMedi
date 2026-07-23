@@ -1,4 +1,5 @@
 import express from 'express';
+import { z } from 'zod';
 import LabOrder from '../models/LabOrder.js';
 import LabBooking from '../models/LabBooking.js';
 import Equipment from '../models/Equipment.js';
@@ -7,6 +8,16 @@ import Test from '../models/Test.js';
 import User from '../models/User.js';
 import Notification from '../models/Notification.js';
 import { protect } from '../middleware/auth.js';
+import { validate, createLabOrderSchema } from '../utils/validate.js';
+
+const labRegisterSampleSchema = z.object({ testIndex: z.number().int().nonnegative(), sampleType: z.string().optional() });
+const labCollectSampleSchema = z.object({ testIndex: z.number().int().nonnegative(), rejectionReason: z.string().optional() });
+const labEnterResultSchema = z.object({ testIndex: z.number().int().nonnegative(), resultValue: z.string().min(1), normalRange: z.string().optional(), unit: z.string().optional() });
+const labVerifySchema = z.object({ testIndex: z.number().int().nonnegative(), approved: z.boolean().optional(), notes: z.string().optional() });
+const labDeliverReportSchema = z.object({ testIndex: z.number().int().nonnegative(), reportUrl: z.string().optional() });
+const labBookingSchema = z.object({}).passthrough();
+const labEquipmentSchema = z.object({}).passthrough();
+const labPackageSchema = z.object({}).passthrough();
 
 const router = express.Router();
 
@@ -18,7 +29,7 @@ const generateOrderId = async () => {
 const generateSampleId = () => `SMP-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
 // ─── Doctor: Create Lab Order ──────────────────────────────────────────────
-router.post('/orders', protect, async (req, res) => {
+router.post('/orders', protect, validate(createLabOrderSchema), async (req, res) => {
   try {
     const { patientId, patientName, tests, clinicalNotes, priority } = req.body;
     if (!patientId || !tests?.length) {
@@ -97,7 +108,7 @@ router.get('/orders/:id', protect, async (req, res) => {
 });
 
 // ─── Lab Receptionist: Register Sample ─────────────────────────────────────
-router.put('/orders/:id/register-sample', protect, async (req, res) => {
+router.put('/orders/:id/register-sample', protect, validate(labRegisterSampleSchema), async (req, res) => {
   try {
     const order = await LabOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
@@ -118,7 +129,7 @@ router.put('/orders/:id/register-sample', protect, async (req, res) => {
 });
 
 // ─── Phlebotomist: Collect Sample ──────────────────────────────────────────
-router.put('/orders/:id/collect-sample', protect, async (req, res) => {
+router.put('/orders/:id/collect-sample', protect, validate(labCollectSampleSchema), async (req, res) => {
   try {
     const order = await LabOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
@@ -137,7 +148,7 @@ router.put('/orders/:id/collect-sample', protect, async (req, res) => {
 });
 
 // ─── Lab Technician: Enter Results ─────────────────────────────────────────
-router.put('/orders/:id/enter-result', protect, async (req, res) => {
+router.put('/orders/:id/enter-result', protect, validate(labEnterResultSchema), async (req, res) => {
   try {
     const order = await LabOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
@@ -173,7 +184,7 @@ router.put('/orders/:id/enter-result', protect, async (req, res) => {
 });
 
 // ─── Pathologist: Verify Results ───────────────────────────────────────────
-router.put('/orders/:id/verify', protect, async (req, res) => {
+router.put('/orders/:id/verify', protect, validate(labVerifySchema), async (req, res) => {
   try {
     const order = await LabOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
@@ -196,7 +207,7 @@ router.put('/orders/:id/verify', protect, async (req, res) => {
 });
 
 // ─── Mark Report Delivered ─────────────────────────────────────────────────
-router.put('/orders/:id/deliver-report', protect, async (req, res) => {
+router.put('/orders/:id/deliver-report', protect, validate(labDeliverReportSchema), async (req, res) => {
   try {
     const order = await LabOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
@@ -264,7 +275,7 @@ router.get('/bookings', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/bookings', protect, async (req, res) => {
+router.post('/bookings', protect, validate(labBookingSchema), async (req, res) => {
   try {
     const { testIds, tests, prescriptionUrl } = req.body;
     const requestedTests = testIds || (tests || []).map(t => t._id || t.id || t.name).filter(Boolean);
@@ -281,7 +292,7 @@ router.post('/bookings', protect, async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/bookings/:id', protect, async (req, res) => {
+router.put('/bookings/:id', protect, validate(labBookingSchema), async (req, res) => {
   try {
     const booking = await LabBooking.findById(req.params.id);
     if (!booking) return res.status(404).json({ message: 'Booking not found' });
@@ -307,14 +318,14 @@ router.get('/equipment', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/equipment', protect, async (req, res) => {
+router.post('/equipment', protect, validate(labEquipmentSchema), async (req, res) => {
   try {
     const item = await Equipment.create({ ...req.body, hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined });
     res.status(201).json(item);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/equipment/:id', protect, async (req, res) => {
+router.put('/equipment/:id', protect, validate(labEquipmentSchema), async (req, res) => {
   try {
     const item = await Equipment.findById(req.params.id);
     if (!item) return res.status(404).json({ message: 'Equipment not found' });
@@ -352,14 +363,14 @@ router.get('/packages', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/packages', protect, async (req, res) => {
+router.post('/packages', protect, validate(labPackageSchema), async (req, res) => {
   try {
     const pkg = await HealthPackage.create({ ...req.body, hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined });
     res.status(201).json(pkg);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/packages/:id', protect, async (req, res) => {
+router.put('/packages/:id', protect, validate(labPackageSchema), async (req, res) => {
   try {
     const pkg = await HealthPackage.findById(req.params.id);
     if (!pkg) return res.status(404).json({ message: 'Package not found' });

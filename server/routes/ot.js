@@ -1,8 +1,16 @@
 import express from 'express';
+import { z } from 'zod';
 import OperationTheatre from '../models/OperationTheatre.js';
 import Notification from '../models/Notification.js';
 import User from '../models/User.js';
 import { protect } from '../middleware/auth.js';
+import { validate, createSurgerySchema } from '../utils/validate.js';
+
+const otCompleteSchema = z.object({ findings: z.string().optional(), procedure: z.string().optional(), complications: z.string().optional(), postOpInstructions: z.string().optional(), instrumentsAfter: z.number().optional(), spongesAfter: z.number().optional() });
+const otRecoverySchema = z.object({ recoveryNotes: z.string().optional(), vitals: z.any().optional() });
+const otChecklistSchema = z.object({ checklist: z.any() });
+const otPreOpVitalsSchema = z.object({ bp: z.string().optional(), hr: z.string().optional(), temp: z.string().optional(), spO2: z.string().optional(), weight: z.string().optional(), notes: z.string().optional() });
+const otInstrumentsSchema = z.object({ instrumentsBefore: z.number().optional(), spongesBefore: z.number().optional() });
 
 const router = express.Router();
 
@@ -11,7 +19,7 @@ const generateOTId = async () => {
   return `OT-${new Date().getFullYear()}-${String(count + 1).padStart(5, '0')}`;
 };
 
-router.post('/surgeries', protect, async (req, res) => {
+router.post('/surgeries', protect, validate(createSurgerySchema), async (req, res) => {
   try {
     const { patientId, patientName, surgeryName, surgeryType, anaesthesiaType, assistants, otNumber, scheduledDate } = req.body;
     if (!patientId || !surgeryName) return res.status(400).json({ message: 'Patient and surgery required' });
@@ -73,7 +81,7 @@ router.put('/surgeries/:id/start', protect, async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/surgeries/:id/complete', protect, async (req, res) => {
+router.put('/surgeries/:id/complete', protect, validate(otCompleteSchema), async (req, res) => {
   try {
     const { findings, procedure, complications, postOpInstructions, instrumentsAfter, spongesAfter } = req.body;
     const surgery = await OperationTheatre.findById(req.params.id);
@@ -100,7 +108,7 @@ router.put('/surgeries/:id/complete', protect, async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/surgeries/:id/recovery', protect, async (req, res) => {
+router.put('/surgeries/:id/recovery', protect, validate(otRecoverySchema), async (req, res) => {
   try {
     const { recoveryNotes, vitals } = req.body;
     const surgery = await OperationTheatre.findById(req.params.id);
@@ -116,7 +124,7 @@ router.put('/surgeries/:id/recovery', protect, async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/surgeries/:id/checklist', protect, async (req, res) => {
+router.put('/surgeries/:id/checklist', protect, validate(otChecklistSchema), async (req, res) => {
   try {
     const { checklist } = req.body;
     const requiredFields = ['consentSigned', 'bloodGroupConfirmed', 'anaesthesiaFitness', 'npoStatus', 'allergiesChecked', 'siteMarked', 'investigationsReviewed'];
@@ -136,7 +144,7 @@ router.put('/surgeries/:id/checklist', protect, async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.post('/surgeries/:id/pre-op-vitals', protect, async (req, res) => {
+router.post('/surgeries/:id/pre-op-vitals', protect, validate(otPreOpVitalsSchema), async (req, res) => {
   try {
     const { bp, hr, temp, spO2, weight, notes } = req.body;
     const surgery = await OperationTheatre.findById(req.params.id);
@@ -157,7 +165,7 @@ router.post('/surgeries/:id/pre-op-vitals', protect, async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.post('/surgeries/:id/instruments', protect, async (req, res) => {
+router.post('/surgeries/:id/instruments', protect, validate(otInstrumentsSchema), async (req, res) => {
   try {
     const { instrumentsBefore, spongesBefore } = req.body;
     const surgery = await OperationTheatre.findById(req.params.id);

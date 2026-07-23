@@ -1,19 +1,63 @@
 import express from 'express';
+import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import User from '../models/User.js';
 import Hospital from '../models/Hospital.js';
 import Facility from '../models/Facility.js';
 import Doctor from '../models/Doctor.js';
+import { validate } from '../utils/validate.js';
+
+const platformRegisterSchema = z.object({
+  type: z.enum(['hospital', 'clinic', 'diagnostic', 'pharmacy']),
+  account: z.object({
+    name: z.string().min(2),
+    email: z.string().email(),
+    phone: z.string().min(10),
+    password: z.string().min(8),
+  }),
+  facility: z.object({
+    name: z.string().min(2),
+    email: z.string().email().optional(),
+    phone: z.string().optional(),
+    address: z.string().optional(),
+    city: z.string().optional(),
+    state: z.string().optional(),
+    pincode: z.string().optional(),
+    license: z.string().optional(),
+    website: z.string().optional(),
+    description: z.string().optional(),
+    specialties: z.array(z.string()).optional(),
+    established: z.number().optional(),
+    logo: z.string().optional(),
+    image: z.string().optional(),
+    accreditations: z.array(z.string()).optional(),
+    weekSchedule: z.any().optional(),
+    insurance: z.array(z.string()).optional(),
+    amenities: z.any().optional(),
+    socialLinks: z.any().optional(),
+    timing: z.string().optional(),
+    nablNumber: z.string().optional(),
+    aerbNumber: z.string().optional(),
+  }).passthrough().optional(),
+  services: z.array(z.any()).optional(),
+  doctors: z.array(z.object({
+    name: z.string().optional(),
+    email: z.string().optional(),
+    phone: z.string().optional(),
+    specialization: z.string().optional(),
+    experience: z.string().optional(),
+    qualifications: z.string().optional(),
+    licenseNumber: z.string().optional(),
+    consultationFee: z.number().optional(),
+  })).optional(),
+  specialist: z.any().optional(),
+});
 
 const router = express.Router();
 
-router.post('/register', async (req, res) => {
+router.post('/register', validate(platformRegisterSchema), async (req, res) => {
   try {
     const { type, account, facility, services, doctors, specialist } = req.body;
-
-    if (!type || !account?.name || !account?.email || !account?.phone || !account?.password || !facility?.name) {
-      return res.status(400).json({ message: 'Missing required fields: type, account (name, email, phone, password), facility.name' });
-    }
 
     const existingUser = await User.findOne({ email: account.email.toLowerCase() });
     if (existingUser) return res.status(400).json({ message: 'An account with this email already exists' });

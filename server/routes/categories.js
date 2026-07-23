@@ -1,6 +1,7 @@
 import express from 'express';
 import Category from '../models/Category.js';
 import { protect, superadminOnly } from '../middleware/auth.js';
+import { validate, createCategorySchema, updateCategorySchema, mergeCategorySchema } from '../utils/validate.js';
 
 const router = express.Router();
 
@@ -15,14 +16,14 @@ router.get('/', protect, superadminOnly, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/', protect, superadminOnly, async (req, res) => {
+router.post('/', protect, superadminOnly, validate(createCategorySchema), async (req, res) => {
   try {
     const category = await Category.create(req.body);
     res.status(201).json(category);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/:id', protect, superadminOnly, async (req, res) => {
+router.put('/:id', protect, superadminOnly, validate(updateCategorySchema), async (req, res) => {
   try {
     const category = await Category.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!category) return res.status(404).json({ message: 'Category not found' });
@@ -37,7 +38,7 @@ router.delete('/:id', protect, superadminOnly, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/merge', protect, superadminOnly, async (req, res) => {
+router.post('/merge', protect, superadminOnly, validate(mergeCategorySchema), async (req, res) => {
   try {
     const { sourceIds, targetId } = req.body;
     await Category.updateMany({ _id: { $in: sourceIds, $ne: targetId } }, { parent: targetId, isActive: false });

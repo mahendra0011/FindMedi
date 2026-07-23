@@ -46,7 +46,7 @@ router.post('/', protect, validate(createPatientSchema), async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/:id', protect, async (req, res) => {
+router.put('/:id', protect, validate(updatePatientSchema), async (req, res) => {
   try {
     const p = await Patient.findById(req.params.id);
     if (!p) return res.status(404).json({ message: 'Patient not found' });

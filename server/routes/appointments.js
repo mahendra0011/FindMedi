@@ -202,7 +202,7 @@ router.get('/queue/:department', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.put('/:id', protect, async (req, res) => {
+router.put('/:id', protect, validate(updateAppointmentSchema), async (req, res) => {
   try {
     const { status, notes, time, date } = req.body;
     const appointment = await Appointment.findById(req.params.id);

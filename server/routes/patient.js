@@ -1,8 +1,14 @@
 import express from 'express';
+import { z } from 'zod';
 import FamilyMember from '../models/FamilyMember.js';
 import PatientAddress from '../models/PatientAddress.js';
 import SavedFavorite from '../models/SavedFavorite.js';
 import { protect } from '../middleware/auth.js';
+import { validate } from '../utils/validate.js';
+
+const familySchema = z.object({}).passthrough();
+const addressSchema = z.object({}).passthrough();
+const favoriteSchema = z.object({ refType: z.string().optional(), refId: z.string().optional() }).passthrough();
 
 const router = express.Router();
 
@@ -14,14 +20,14 @@ router.get('/family', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/family', protect, async (req, res) => {
+router.post('/family', protect, validate(familySchema), async (req, res) => {
   try {
     const member = await FamilyMember.create({ ...req.body, patientId: req.user._id });
     res.status(201).json(member);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/family/:id', protect, async (req, res) => {
+router.put('/family/:id', protect, validate(familySchema), async (req, res) => {
   try {
     const member = await FamilyMember.findOne({ _id: req.params.id, patientId: req.user._id });
     if (!member) return res.status(404).json({ message: 'Family member not found' });
@@ -46,7 +52,7 @@ router.get('/addresses', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/addresses', protect, async (req, res) => {
+router.post('/addresses', protect, validate(addressSchema), async (req, res) => {
   try {
     if (req.body.isDefault) {
       await PatientAddress.updateMany({ patientId: req.user._id }, { isDefault: false });
@@ -56,7 +62,7 @@ router.post('/addresses', protect, async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/addresses/:id', protect, async (req, res) => {
+router.put('/addresses/:id', protect, validate(addressSchema), async (req, res) => {
   try {
     const addr = await PatientAddress.findOne({ _id: req.params.id, patientId: req.user._id });
     if (!addr) return res.status(404).json({ message: 'Address not found' });
@@ -87,7 +93,7 @@ router.get('/favorites', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/favorites', protect, async (req, res) => {
+router.post('/favorites', protect, validate(favoriteSchema), async (req, res) => {
   try {
     const fav = await SavedFavorite.findOneAndUpdate(
       { patientId: req.user._id, refType: req.body.refType, refId: req.body.refId },

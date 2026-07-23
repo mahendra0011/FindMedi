@@ -1,9 +1,16 @@
 import express from 'express';
+import { z } from 'zod';
 import Inventory from '../models/Inventory.js';
 import Supplier from '../models/Supplier.js';
 import PurchaseOrder from '../models/PurchaseOrder.js';
 import Notification from '../models/Notification.js';
 import { protect } from '../middleware/auth.js';
+import { validate, createInventoryItemSchema, updateInventoryItemSchema, createSupplierSchema, createPurchaseOrderSchema } from '../utils/validate.js';
+
+const stockUpdateSchema = z.object({ quantity: z.number(), type: z.enum(['add', 'deduct', 'adjust']), reference: z.string().optional(), notes: z.string().optional() });
+const updateSupplierSchema = z.object({}).passthrough();
+const poStatusSchema = z.object({ status: z.string().min(1), approvedBy: z.string().optional() });
+const poReceiveSchema = z.object({ receivedNotes: z.string().optional() });
 
 const router = express.Router();
 
@@ -14,7 +21,7 @@ const generatePONumber = async () => {
 };
 
 // Inventory Items
-router.post('/items', protect, async (req, res) => {
+router.post('/items', protect, validate(createInventoryItemSchema), async (req, res) => {
   try {
     const item = await Inventory.create({ ...req.body, hospitalId: req.user.hospitalId || undefined });
     res.status(201).json(item);
@@ -42,7 +49,7 @@ router.get('/items', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.put('/items/:id', protect, async (req, res) => {
+router.put('/items/:id', protect, validate(updateInventoryItemSchema), async (req, res) => {
   try {
     const item = await Inventory.findById(req.params.id);
     if (!item) return res.status(404).json({ message: 'Item not found' });
@@ -55,7 +62,7 @@ router.put('/items/:id', protect, async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/items/:id/stock', protect, async (req, res) => {
+router.put('/items/:id/stock', protect, validate(stockUpdateSchema), async (req, res) => {
   try {
     const { quantity, type, reference, notes } = req.body;
     const item = await Inventory.findById(req.params.id);
@@ -114,7 +121,7 @@ router.get('/stats', protect, async (req, res) => {
 });
 
 // Suppliers
-router.post('/suppliers', protect, async (req, res) => {
+router.post('/suppliers', protect, validate(createSupplierSchema), async (req, res) => {
   try {
     const supplier = await Supplier.create({ ...req.body, hospitalId: req.user.hospitalId || undefined });
     res.status(201).json(supplier);
@@ -134,7 +141,7 @@ router.get('/suppliers', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.put('/suppliers/:id', protect, async (req, res) => {
+router.put('/suppliers/:id', protect, validate(updateSupplierSchema), async (req, res) => {
   try {
     const supplier = await Supplier.findById(req.params.id);
     if (!supplier) return res.status(404).json({ message: 'Supplier not found' });
@@ -159,7 +166,7 @@ router.get('/suppliers/:id', protect, async (req, res) => {
 });
 
 // Purchase Orders
-router.post('/purchase-orders', protect, async (req, res) => {
+router.post('/purchase-orders', protect, validate(createPurchaseOrderSchema), async (req, res) => {
   try {
     const { supplierId, supplierName, items, expectedDelivery, notes, taxRate } = req.body;
     const poNumber = await generatePONumber();
@@ -226,7 +233,7 @@ router.get('/purchase-orders/:id', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.put('/purchase-orders/:id/status', protect, async (req, res) => {
+router.put('/purchase-orders/:id/status', protect, validate(poStatusSchema), async (req, res) => {
   try {
     const { status, approvedBy } = req.body;
     const po = await PurchaseOrder.findById(req.params.id);
@@ -241,7 +248,7 @@ router.put('/purchase-orders/:id/status', protect, async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/purchase-orders/:id/receive', protect, async (req, res) => {
+router.put('/purchase-orders/:id/receive', protect, validate(poReceiveSchema), async (req, res) => {
   try {
     const { receivedNotes } = req.body;
     const po = await PurchaseOrder.findById(req.params.id);
