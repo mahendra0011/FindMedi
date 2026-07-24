@@ -40,6 +40,25 @@ export async function downloadInvoicePdf(billId, filename = 'invoice.pdf') {
   }
 }
 
+export async function downloadPaymentInvoice(txnId, filename = 'invoice.pdf') {
+  try {
+    const response = await apiClient.get(`/transactions/${txnId}/invoice`, {
+      responseType: 'blob',
+    });
+    const blob = new Blob([response.data]);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    throw new Error(error.message || 'Unable to download invoice');
+  }
+}
+
 export const api = {
   dispatch,
   login:              (body)    => request('/auth/login',            { method:'POST', body: JSON.stringify(body) }),
@@ -92,6 +111,7 @@ export const api = {
 
   getAppointments:    (p={})    => request('/appointments?' + new URLSearchParams(p)),
   getMyAppointments:  (p={})    => request('/appointments/my-appointments?' + new URLSearchParams(p)),
+  getBookedSlots:     (p={})    => request('/appointments/booked-slots?' + new URLSearchParams(p)),
   createAppointment:  (body)    => request('/appointments',         { method:'POST',   body: JSON.stringify(body) }),
   updateAppointment:  (id,b)    => request(`/appointments/${id}`,   { method:'PUT',    body: JSON.stringify(b) }),
   deleteAppointment:  (id)      => request(`/appointments/${id}`,   { method:'DELETE' }),
@@ -132,8 +152,11 @@ export const api = {
   getEmergencyStats:     ()         => request('/emergency/stats'),
 
   getPayments:    (p={})  => request('/payments?' + new URLSearchParams(p)),
-  createPayment:  (body)  => request('/payments',          { method:'POST',   body: JSON.stringify(body) }),
-  updatePayment:  (id,b)  => request(`/payments/${id}`,    { method:'PUT',    body: JSON.stringify(b) }),
+  createPayment:  (body)  => request('/payments',            { method:'POST',   body: JSON.stringify(body) }),
+  updatePayment:  (id,b)  => request(`/payments/${id}`,      { method:'PUT',    body: JSON.stringify(b) }),
+
+  getTransactions:  (p={})  => request('/transactions?' + new URLSearchParams(p)),
+  payTransaction:   (body)  => request('/transactions/pay',  { method:'POST',   body: JSON.stringify(body) }),
 
   getHospitals:         (p={})  => request('/hospitals?' + new URLSearchParams(p)),
   getHospital:          (id)    => request(`/hospitals/${id}`),

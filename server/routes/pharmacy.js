@@ -331,7 +331,9 @@ router.get('/orders', protect, async (req, res) => {
     if (status && status !== 'All') filter.status = status;
     if (orderId) filter.orderId = orderId;
     if (search) filter.$or = [{ orderId: new RegExp(search, 'i') }, { patientName: new RegExp(search, 'i') }];
-    const orders = await PharmacyOrder.find(filter).sort({ orderDate: -1 });
+    let query = PharmacyOrder.find(filter).sort({ orderDate: -1 });
+    if (orderId) query = query.populate('items.medicineId', 'name form');
+    const orders = await query;
     res.json({ orders });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });

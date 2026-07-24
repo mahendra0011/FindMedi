@@ -69,13 +69,9 @@ export default function PatientBookings() {
     const load = async () => {
       setLoading(true);
       try {
-        const [appts, labBks] = await Promise.all([
-          api.getMyAppointments(),
-          api.getLabBookings({}),
-        ]);
+        const labBks = await api.getLabBookings({});
         const normalized = [
-          ...(Array.isArray(appts) ? appts : []).map(a => normalizeBooking(a, 'appointment')),
-          ...((labBks?.bookings || [])).map(b => normalizeBooking(b, 'test')),
+          ...((labBks?.bookings || labBks?.data || [])).map(b => normalizeBooking(b, 'test')),
         ];
         setBookings(normalized);
       } catch {
@@ -119,8 +115,8 @@ export default function PatientBookings() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-heading text-2xl font-bold text-foreground">My Bookings</h1>
-        <p className="text-muted-foreground">Track your lab tests and appointment bookings</p>
+        <h1 className="font-heading text-2xl font-bold text-foreground">My Lab Tests</h1>
+        <p className="text-muted-foreground">Track your lab test bookings and reports</p>
       </div>
 
       {/* Filters */}
@@ -131,9 +127,8 @@ export default function PatientBookings() {
         </div>
         <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}
           className="h-11 px-4 rounded-xl text-sm bg-background border border-border/50 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
-          <option value="All">All Types</option>
+          <option value="All">All</option>
           <option value="test">Lab Tests</option>
-          <option value="appointment">Appointments</option>
         </select>
       </div>
 

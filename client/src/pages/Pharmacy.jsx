@@ -65,7 +65,7 @@ export default function Pharmacy() {
   const [medFilter, setMedFilter] = useState({ category: '', lowStock: false, expiring: false });
 
   // Prescriptions
-  const [prescriptions, setPrescriptions] = useState(pharmApi.getPrescriptions);
+  const [prescriptions, setPrescriptions] = useState([]);
   const [rxSearch, setRxSearch] = useState('');
   const [newRx, setNewRx] = useState({ patientName: '', diagnosis: '', medicines: [{ medicineName: '', dosage: '', frequency: '1-0-1', duration: '7 days', quantity: 1 }] });
 

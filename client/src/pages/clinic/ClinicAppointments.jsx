@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { CalendarDays, Clock, User, CheckCircle, XCircle, AlertCircle, RefreshCw, FileText, IndianRupee, Send, Plus, X, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { CalendarDays, Clock, CheckCircle, XCircle, AlertCircle, FileText, IndianRupee, Send, Plus, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
@@ -27,7 +27,7 @@ export default function ClinicAppointments() {
     setLoading(true);
     try {
       const data = await api.getAppointments({ doctor: user?.name, status: filter });
-      setAppointments(data);
+      setAppointments(data?.appointments || data?.data || data || []);
     } catch (e) { console.error(e); }
     setLoading(false);
   };
@@ -132,7 +132,6 @@ export default function ClinicAppointments() {
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <h3 className="font-heading font-semibold text-foreground">{apt.patient}</h3>
-                  <p className="text-sm text-primary">{apt.type} {apt.department ? `- ${apt.department}` : ''}</p>
                 </div>
                 <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${statusColors[apt.status]}`}>{apt.status}</span>
               </div>

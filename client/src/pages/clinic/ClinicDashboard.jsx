@@ -125,7 +125,6 @@ export default function ClinicDashboard() {
                     </div>
                     <div>
                       <p className="font-medium text-foreground">{apt.patient}</p>
-                      <p className="text-xs text-muted-foreground">{apt.type}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">

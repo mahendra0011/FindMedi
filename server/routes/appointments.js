@@ -85,6 +85,18 @@ router.get('/', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
+router.get('/booked-slots', async (req, res) => {
+  try {
+    const { doctorId, date } = req.query;
+    if (!doctorId || !date) return res.status(400).json({ message: 'doctorId and date required' });
+    const booked = await Appointment.find({
+      doctorId, date,
+      status: { $nin: ['Cancelled', 'Completed'] }
+    }).select('time -_id').lean();
+    res.json(booked.map(b => b.time));
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
 router.get('/my-appointments', protect, async (req, res) => {
   try {
     const { status } = req.query;
@@ -156,7 +168,7 @@ const appointment = await Appointment.create({
        patientId,
        doctor: doctor || '',
        doctorId: doctorId || null,
-       department,
+        department: department || 'General',
        date,
        time,
        type: type || 'Consultation',
@@ -174,6 +186,7 @@ const appointment = await Appointment.create({
     if (doctorId) {
       await createNotification(doctorId, 'New Appointment', `New ${type || 'Consultation'} appointment from ${patientName} for ${date} at ${time}`, 'appointment');
     }
+    await createNotification(patientId, 'Appointment Booked', `Your appointment with Dr. ${doctor || 'Doctor'} on ${date} at ${time} has been booked successfully. Token: ${tokenNumber}`, 'appointment');
     
     res.status(201).json(appointment);
   } catch (err) { res.status(400).json({ message: err.message }); }

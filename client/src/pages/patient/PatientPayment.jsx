@@ -25,8 +25,8 @@ export default function PatientPayment() {
         api.getPayments({ patient_id: user?._id }),
         api.getBilling({ patientId: user?._id }),
       ]);
-      setPayments(p.payments || p);
-      setBills(b.bills || b);
+      setPayments(p?.payments || p?.data || []);
+      setBills(b?.bills || b?.data || []);
     } catch (e) { console.error(e); }
     setLoading(false);
   };
@@ -40,7 +40,7 @@ export default function PatientPayment() {
   const handlePay = async (bill) => {
     try {
       await api.createPayment({
-        patient_id: user?.id,
+        patient_id: user?._id,
         patient_name: user?.name,
         amount: bill.amount - bill.paid,
         method: payMethod,

@@ -1,20 +1,31 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, CalendarDays, Clock, UserRound, Stethoscope, X, Trash2 } from 'lucide-react';
+import { Plus, CalendarDays, Clock, X, Trash2, MapPin, FileText, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 
-const statusCls = {
-  Confirmed:'bg-success/10 text-success border-success/20',
-  Pending:'bg-warning/10 text-warning border-warning/20',
-  Cancelled:'bg-destructive/10 text-destructive border-destructive/20',
-  Completed:'bg-info/10 text-info border-info/20',
-};
 const STATUSES = ['All','Confirmed','Pending','Cancelled','Completed'];
-const TYPES = ['Consultation','Follow-up','Check-up','Emergency'];
 const DEPARTMENTS = ['Cardiology','Neurology','Orthopedics','Pediatrics','Dermatology','Oncology'];
-const empty = { patient:'', doctor:'', department:'Cardiology', date:'', time:'', type:'Consultation', status:'Pending', notes:'' };
+const empty = { patient:'', doctor:'', department:'Cardiology', date:'', time:'', status:'Pending', notes:'' };
+
+const statusColors = {
+  Confirmed: { bg: 'bg-success/10', text: 'text-success', dot: 'bg-success' },
+  Pending: { bg: 'bg-warning/10', text: 'text-warning', dot: 'bg-warning' },
+  Cancelled: { bg: 'bg-destructive/10', text: 'text-destructive', dot: 'bg-destructive' },
+  Completed: { bg: 'bg-info/10', text: 'text-info', dot: 'bg-info' },
+};
+
+function formatDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function getInitials(name) {
+  if (!name) return '?';
+  return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+}
 
 export default function Appointments() {
   const qc = useQueryClient();
@@ -22,10 +33,11 @@ export default function Appointments() {
   const [modal, setModal] = useState(false);
   const [form, setForm] = useState(empty);
 
-  const { data: appointments = [], isLoading } = useQuery({
+  const { data: raw = [], isLoading } = useQuery({
     queryKey: ['appointments', statusFilter],
     queryFn: () => api.getAppointments(statusFilter !== 'All' ? { status: statusFilter } : {}),
   });
+  const appointments = raw?.data || raw?.appointments || Array.isArray(raw) ? raw : [];
 
   const createMut = useMutation({ mutationFn: api.createAppointment, onSuccess: () => { qc.invalidateQueries(['appointments']); setModal(false); setForm(empty); } });
   const updateMut = useMutation({ mutationFn: ({ id, data }) => api.updateAppointment(id, data), onSuccess: () => qc.invalidateQueries(['appointments']) });
@@ -68,57 +80,77 @@ export default function Appointments() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {appointments.map(apt => (
-            <div key={apt._id} className={`bg-card rounded-xl border-2 ${statusCls[apt.status]?.split(' ').at(-1)} p-5 hover:shadow-md transition-all duration-200 group`}>
+          {appointments.map(apt => {
+            const sc = statusColors[apt.status] || statusColors.Pending;
+            const initials = getInitials(apt.doctor);
+            return (
+            <div key={apt._id} className="bg-card rounded-2xl border border-border/60 p-5 hover:shadow-lg transition-all duration-200 group">
               <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${statusCls[apt.status]}`}>{apt.status}</span>
-                  <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">{apt.type}</span>
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shrink-0 shadow-sm">
+                    <span className="text-primary-foreground font-bold text-sm">{initials}</span>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-heading font-semibold text-sm text-foreground truncate">{apt.doctor}</p>
+                    <p className="text-xs text-primary truncate">{apt.department || 'General'}</p>
+                  </div>
                 </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full ${sc.bg} ${sc.text}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${sc.dot}`} />
+                    {apt.status}
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2.5 mb-4">
+                <div className="flex items-center gap-2 p-2.5 rounded-xl bg-muted/30 border border-border/40">
+                  <CalendarDays className="w-4 h-4 text-primary shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Date</p>
+                    <p className="text-xs font-medium text-foreground truncate">{formatDate(apt.date)}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 p-2.5 rounded-xl bg-muted/30 border border-border/40">
+                  <Clock className="w-4 h-4 text-primary shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Time</p>
+                    <p className="text-xs font-medium text-foreground truncate">{apt.time}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 p-2.5 rounded-xl bg-muted/30 border border-border/40">
+                  <MapPin className="w-4 h-4 text-primary shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Token</p>
+                    <p className="text-xs font-medium text-foreground truncate">{apt.tokenNumber || apt.queuePosition || '—'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {apt.notes && (
+                <div className="flex items-start gap-2 mb-3 p-2.5 rounded-xl bg-muted/20 border border-border/30">
+                  <FileText className="w-3.5 h-3.5 text-muted-foreground shrink-0 mt-0.5" />
+                  <p className="text-xs text-muted-foreground leading-relaxed">{apt.notes}</p>
+                </div>
+              )}
+
+              <div className="flex items-center gap-2 pt-3 border-t border-border/40">
+                <Button size="sm" variant="outline" className="flex-1 gap-1.5 rounded-xl h-9 text-xs"
+                  onClick={() => updateMut.mutate({ id: apt._id, data: { status: 'Cancelled' } })}>
+                  <X className="w-3.5 h-3.5" /> Cancel
+                </Button>
+                <Button size="sm" variant="outline" className="flex-1 gap-1.5 rounded-xl h-9 text-xs"
+                  onClick={() => updateMut.mutate({ id: apt._id, data: { status: 'Pending' } })}>
+                  <RotateCcw className="w-3.5 h-3.5" /> Reschedule
+                </Button>
                 <button onClick={() => { if (confirm('Delete appointment?')) deleteMut.mutate(apt._id); }}
-                  className="opacity-0 group-hover:opacity-100 p-1 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all">
+                  className="p-2 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all shrink-0">
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
-              <div className="space-y-2.5">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center flex-shrink-0">
-                    <UserRound className="w-4 h-4 text-accent-foreground" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-sm text-card-foreground">{apt.patient}</p>
-                    <p className="text-xs text-muted-foreground">Patient</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <Stethoscope className="w-4 h-4 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-sm text-card-foreground">{apt.doctor}</p>
-                    <p className="text-xs text-muted-foreground">{apt.department}</p>
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center justify-between mt-4 pt-4 border-t border-border/50">
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <CalendarDays className="w-3.5 h-3.5" />{apt.date}
-                </div>
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <Clock className="w-3.5 h-3.5" />{apt.time}
-                </div>
-              </div>
-              {/* Quick status update */}
-              <div className="mt-3 flex gap-1.5 flex-wrap">
-                {['Confirmed','Pending','Cancelled','Completed'].filter(s => s !== apt.status).map(s => (
-                  <button key={s} onClick={() => updateMut.mutate({ id: apt._id, data: { status: s } })}
-                    className="text-[10px] px-2 py-0.5 rounded-full border border-border hover:border-primary/40 text-muted-foreground hover:text-foreground transition-colors">
-                    → {s}
-                  </button>
-                ))}
-              </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -138,12 +170,6 @@ export default function Appointments() {
                   <label className="text-sm font-medium mb-1.5 block">Department</label>
                   <select value={form.department} onChange={e=>set('department',e.target.value)} className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring">
                     {DEPARTMENTS.map(d => <option key={d}>{d}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-sm font-medium mb-1.5 block">Type</label>
-                  <select value={form.type} onChange={e=>set('type',e.target.value)} className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring">
-                    {TYPES.map(t => <option key={t}>{t}</option>)}
                   </select>
                 </div>
                 <div><label className="text-sm font-medium mb-1.5 block">Date</label><Input type="date" value={form.date} onChange={e=>set('date',e.target.value)} required /></div>

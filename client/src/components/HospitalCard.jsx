@@ -5,13 +5,15 @@ import {
    Building2, MapPin, Phone, Star, CalendarDays, Users,
    ShieldCheck, Truck, BedDouble, Stethoscope, Heart, Brain,
    Bone, Baby, Eye, Activity, Droplets, ArrowRight, Ambulance,
-   FlaskConical, BadgeCheck, Clock, Mail, Navigation, CheckCircle2
+   FlaskConical, BadgeCheck, Clock, Mail, Navigation, CheckCircle2,
+   Smartphone, Landmark, CreditCard, Wallet, ChevronRight, ArrowLeft, CheckCircle
  } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import BillCheckout from '@/components/BillCheckout';
 
 
 const ACCREDITATION_COLORS = {
@@ -33,8 +35,11 @@ const [showDoctors, setShowDoctors] = useState(false);
     const [bookingDate, setBookingDate] = useState('');
     const [bookingTime, setBookingTime] = useState('');
     const [bookingConfirmed, setBookingConfirmed] = useState(false);
-    const [bookingType, setBookingType] = useState('Consultation');
     const [bookingNotes, setBookingNotes] = useState('');
+    const [bookingStep, setBookingStep] = useState(0);
+    const [paymentMethod, setPaymentMethod] = useState('card');
+    const [paymentLoading, setPaymentLoading] = useState(false);
+    const [paymentSuccess, setPaymentSuccess] = useState(false);
    const yearsSinceEst = hospital.establishedYear
     ? new Date().getFullYear() - hospital.establishedYear
     : null;
@@ -393,9 +398,9 @@ const [showDoctors, setShowDoctors] = useState(false);
       </div>
 
       {/* Booking Modal */}
-      <Dialog open={showBooking} onOpenChange={(open) => { if (!open) { setBookingConfirmed(false); setBookingDate(''); setBookingTime(''); setBookingType('Consultation'); setBookingNotes(''); setSelectedDoctor(null); } }}>
+      <Dialog open={showBooking} onOpenChange={(open) => { if (!open) { setBookingConfirmed(false); setBookingDate(''); setBookingTime(''); setBookingNotes(''); setSelectedDoctor(null); setBookingStep(0); setPaymentMethod('card'); setPaymentSuccess(false); } }}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto w-[calc(100%-2rem)] sm:w-full rounded-2xl">
-          {!bookingConfirmed ? (
+          {bookingStep === 0 && (
             <>
               <DialogHeader>
                 <DialogTitle>Book Appointment</DialogTitle>
@@ -431,21 +436,12 @@ const [showDoctors, setShowDoctors] = useState(false);
                   <label className="text-xs font-medium text-foreground">Select Time Slot</label>
                   <select value={bookingTime} onChange={e => setBookingTime(e.target.value)} className="w-full h-9 px-3 rounded-xl border border-border bg-background text-sm">
                     <option value="">Choose time</option>
-                    <option>09:00 AM - 10:00 AM</option>
-                    <option>10:00 AM - 11:00 AM</option>
-                    <option>11:00 AM - 12:00 PM</option>
-                    <option>02:00 PM - 03:00 PM</option>
-                    <option>03:00 PM - 04:00 PM</option>
+                    {(selectedDoctor?.time_slots || ['09:00 AM', '10:00 AM', '11:00 AM', '02:00 PM', '03:00 PM', '04:00 PM']).map(t => (
+                      <option key={t}>{t}</option>
+                    ))}
                   </select>
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-foreground">Appointment Type</label>
-                  <select value={bookingType} onChange={e => setBookingType(e.target.value)} className="w-full h-9 px-3 rounded-xl border border-border bg-background text-sm">
-                    <option value="Consultation">Consultation</option>
-                    <option value="Follow-up">Follow-up</option>
-                    <option value="Check-up">Check-up</option>
-                  </select>
-                </div>
+                
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-foreground">Notes (optional)</label>
                   <textarea value={bookingNotes} onChange={e => setBookingNotes(e.target.value)} placeholder="Any specific concerns…" className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm resize-none" rows={2} />
@@ -453,12 +449,111 @@ const [showDoctors, setShowDoctors] = useState(false);
               </div>
               <DialogFooter>
                 <Button variant="outline" size="sm" onClick={() => setShowBooking(false)}>Cancel</Button>
-                <Button size="sm" disabled={!bookingDate || !bookingTime} onClick={() => {
-                  setBookingConfirmed(true);
-                }}>Confirm Booking</Button>
+                <Button size="sm" disabled={!bookingDate || !bookingTime} onClick={() => setBookingStep(1)}>
+                  Next: Payment <ChevronRight className="w-3.5 h-3.5 ml-1" />
+                </Button>
               </DialogFooter>
             </>
-          ) : (
+          )}
+
+          {bookingStep === 1 && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Button variant="ghost" size="icon" className="w-7 h-7 -ml-1" onClick={() => setBookingStep(0)}>
+                    <ArrowLeft className="w-4 h-4" />
+                  </Button>
+                  Payment Method
+                </DialogTitle>
+                <DialogDescription>
+                  Choose how you'd like to pay
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-2 py-4">
+                {[
+                  { id: 'card', label: 'Credit / Debit Card', icon: CreditCard, desc: 'Pay securely with your card' },
+                  { id: 'upi', label: 'UPI', icon: Smartphone, desc: 'Google Pay, PhonePe, Paytm' },
+                  { id: 'netbanking', label: 'Net Banking', icon: Landmark, desc: 'All major banks supported' },
+                  { id: 'wallet', label: 'Wallet', icon: Wallet, desc: 'Paytm, Mobikwik, Freecharge' },
+                ].map(m => (
+                  <motion.div
+                    key={m.id}
+                    whileHover={{ scale: 1.01 }}
+                    onClick={() => setPaymentMethod(m.id)}
+                    className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                      paymentMethod === m.id
+                        ? 'border-primary bg-primary/5 shadow-sm'
+                        : 'border-border/60 hover:border-primary/30 bg-card'
+                    }`}
+                  >
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                      paymentMethod === m.id ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+                    }`}>
+                      <m.icon className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm text-foreground">{m.label}</p>
+                      <p className="text-xs text-muted-foreground">{m.desc}</p>
+                    </div>
+                    {paymentMethod === m.id && <CheckCircle className="w-5 h-5 text-primary shrink-0" />}
+                  </motion.div>
+                ))}
+              </div>
+              <DialogFooter>
+                <Button variant="outline" size="sm" onClick={() => setShowBooking(false)}>Cancel</Button>
+                <Button size="sm" onClick={() => setBookingStep(2)}>
+                  Next: Review Bill <ChevronRight className="w-3.5 h-3.5 ml-1" />
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+
+          {bookingStep === 2 && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Button variant="ghost" size="icon" className="w-7 h-7 -ml-1" onClick={() => setBookingStep(1)}>
+                    <ArrowLeft className="w-4 h-4" />
+                  </Button>
+                  Review & Confirm
+                </DialogTitle>
+                <DialogDescription>
+                  Verify your appointment details
+                </DialogDescription>
+              </DialogHeader>
+              <div className="py-3">
+                <BillCheckout
+                  doctorName={selectedDoctor?.name}
+                  specialization={selectedDoctor?.specialization}
+                  hospitalName={hospital?.name}
+                  date={bookingDate}
+                  time={bookingTime}
+                  fees={selectedDoctor?.fees || selectedDoctor?.consultation_fees || 0}
+                  compact
+                />
+              </div>
+              <DialogFooter>
+                <Button variant="outline" size="sm" onClick={() => setShowBooking(false)}>Cancel</Button>
+                <Button size="sm" disabled={paymentLoading} onClick={async () => {
+                  setPaymentLoading(true);
+                  // Simulate payment processing
+                  await new Promise(r => setTimeout(r, 1500));
+                  setBookingConfirmed(true);
+                  setPaymentSuccess(true);
+                  setBookingStep(3);
+                  setPaymentLoading(false);
+                }}>
+                  {paymentLoading ? (
+                    <>Processing…</>
+                  ) : (
+                    <>Confirm & Pay Rs {selectedDoctor?.fees || selectedDoctor?.consultation_fees || 0}</>
+                  )}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+
+          {bookingStep === 3 && (
             <div className="py-8 text-center">
               <motion.div
                 initial={{ scale: 0, opacity: 0 }}
@@ -477,6 +572,12 @@ const [showDoctors, setShowDoctors] = useState(false);
                 <p className="text-xs font-medium text-primary">
                   {bookingDate && new Date(bookingDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} • {bookingTime}
                 </p>
+              </div>
+              <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20">
+                <CheckCircle className="w-4 h-4 text-emerald-600" />
+                <span className="text-xs font-medium text-emerald-600">
+                  Payment of Rs {selectedDoctor?.fees || selectedDoctor?.consultation_fees || 0} via {paymentMethod === 'upi' ? 'UPI' : paymentMethod === 'netbanking' ? 'Net Banking' : paymentMethod === 'wallet' ? 'Wallet' : 'Card'} successful
+                </span>
               </div>
               <DialogFooter className="mt-6">
                 <Button size="sm" onClick={() => setShowBooking(false)}>Done</Button>

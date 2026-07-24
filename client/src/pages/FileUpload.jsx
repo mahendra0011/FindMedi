@@ -92,8 +92,8 @@ export default function FileUpload() {
       }
 
       const data = await res.json();
-      if (data.records) {
-        const filesWithUploads = data.records
+      if (data.data) {
+        const filesWithUploads = data.data
           .filter((r) => r.data?.uploadedFile)
           .map((r) => ({
             ...r,

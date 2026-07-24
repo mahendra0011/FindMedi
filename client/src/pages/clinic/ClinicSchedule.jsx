@@ -1,17 +1,27 @@
-import { useState, useEffect } from 'react';
-import { Clock, Calendar, Save, Plus, X, Settings, CheckCircle, Info } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Clock, Calendar, Save, Plus, X, Settings, CheckCircle, Info, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 
-const allTimeSlots = [
-  '08:00 AM', '08:30 AM', '09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM',
-  '11:00 AM', '11:30 AM', '12:00 PM', '12:30 PM', '02:00 PM', '02:30 PM',
-  '03:00 PM', '03:30 PM', '04:00 PM', '04:30 PM', '05:00 PM', '05:30 PM', '06:00 PM', '06:30 PM', '07:00 PM', '07:30 PM'
-];
-
 const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+
+function generateTimeSlots(startTime, endTime, slotDuration) {
+  const slots = [];
+  const [sh, sm] = startTime.split(':').map(Number);
+  const [eh, em] = endTime.split(':').map(Number);
+  let h = sh, m = sm;
+  while (h < eh || (h === eh && m < em)) {
+    const hour = h > 12 ? h - 12 : h;
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const time = `${String(hour).padStart(2, '0')}:${String(m).padStart(2, '0')} ${ampm}`;
+    slots.push(time);
+    m += slotDuration;
+    while (m >= 60) { m -= 60; h++; }
+  }
+  return slots;
+}
 
 export default function ClinicSchedule() {
   const { user } = useAuth();
@@ -23,10 +33,22 @@ export default function ClinicSchedule() {
   const [schedule, setSchedule] = useState({});
   const [leaves, setLeaves] = useState([]);
   const [newLeave, setNewLeave] = useState('');
-  const [duration, setDuration] = useState('15');
+  const [slotDuration, setSlotDuration] = useState('15');
+  const [bufferPerHour, setBufferPerHour] = useState('1');
   const [startTime, setStartTime] = useState('09:00');
   const [endTime, setEndTime] = useState('17:00');
-  const [bulkMode, setBulkMode] = useState(false);
+  const [manualMode, setManualMode] = useState(false);
+
+  const patientsPerHour = useMemo(() => Math.floor(60 / parseInt(slotDuration || 15)), [slotDuration]);
+  const totalWorkingMinutes = useMemo(() => {
+    const [sh, sm] = startTime.split(':').map(Number);
+    const [eh, em] = endTime.split(':').map(Number);
+    return (eh * 60 + em) - (sh * 60 + sm);
+  }, [startTime, endTime]);
+  const totalSlots = useMemo(() => {
+    if (!startTime || !endTime || !slotDuration) return 0;
+    return generateTimeSlots(startTime, endTime, parseInt(slotDuration)).length;
+  }, [startTime, endTime, slotDuration]);
 
   useEffect(() => {
     const load = async () => {
@@ -39,6 +61,12 @@ export default function ClinicSchedule() {
           setSelectedSlots(myDoc.time_slots || []);
           setSchedule(myDoc.weekly_schedule || {});
           setLeaves(myDoc.leaves || []);
+          setSlotDuration(String(myDoc.slotDuration || 15));
+          setBufferPerHour(String(myDoc.bufferPerHour || 1));
+          if (myDoc.workingHours) {
+            setStartTime(myDoc.workingHours.start || '09:00');
+            setEndTime(myDoc.workingHours.end || '17:00');
+          }
         }
       } catch (e) { console.error(e); }
       setLoading(false);
@@ -65,28 +93,27 @@ export default function ClinicSchedule() {
     setLeaves(prev => prev.filter(l => l !== date));
   };
 
-  const generateSlots = () => {
-    const slots = [];
-    const [sh, sm] = startTime.split(':').map(Number);
-    const [eh, em] = endTime.split(':').map(Number);
-    let h = sh, m = sm;
-    const dur = parseInt(duration);
-    while (h < eh || (h === eh && m < em)) {
-      const hour = h > 12 ? h - 12 : h;
-      const ampm = h >= 12 ? 'PM' : 'AM';
-      const time = `${String(hour).padStart(2, '0')}:${String(m).padStart(2, '0')} ${ampm}`;
-      slots.push(time);
-      m += dur;
-      while (m >= 60) { m -= 60; h++; }
-    }
+  const handleGenerateAndSaveSlots = () => {
+    const slots = generateTimeSlots(startTime, endTime, parseInt(slotDuration));
     setSelectedSlots(slots);
   };
+
+  useEffect(() => {
+    if (!manualMode) handleGenerateAndSaveSlots();
+  }, [startTime, endTime, slotDuration, manualMode]);
 
   const handleSave = async () => {
     if (!doctor) return;
     setSaving(true);
     try {
-      await api.updateDoctorSchedule(doctor._id, { time_slots: selectedSlots, weekly_schedule: schedule, leaves });
+      await api.updateDoctorSchedule(doctor._id, {
+        time_slots: selectedSlots,
+        weekly_schedule: schedule,
+        leaves,
+        slotDuration: parseInt(slotDuration),
+        bufferPerHour: parseInt(bufferPerHour),
+        workingHours: { start: startTime, end: endTime },
+      });
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch (e) { console.error(e); }
@@ -108,49 +135,77 @@ export default function ClinicSchedule() {
         </Button>
       </div>
 
-      {/* Bulk Generator */}
+      {/* Slot Settings */}
       <div className="bg-card rounded-2xl border border-border/60 p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-heading text-lg font-semibold text-foreground flex items-center gap-2">
-            <Clock className="w-5 h-5 text-primary" /> Quick Slot Generator
+            <Clock className="w-5 h-5 text-primary" /> Slot Settings
           </h2>
-          <button onClick={() => setBulkMode(!bulkMode)} className="text-xs text-primary hover:underline">
-            {bulkMode ? 'Manual Mode' : 'Bulk Mode'}
+          <button onClick={() => setManualMode(!manualMode)} className="text-xs text-primary hover:underline">
+            {manualMode ? 'Auto Mode' : 'Manual Slot Selection'}
           </button>
         </div>
-        {bulkMode ? (
-          <div className="flex flex-col sm:flex-row gap-3 items-end">
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Start Time</label>
-              <Input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} className="w-32" />
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">End Time</label>
-              <Input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} className="w-32" />
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Duration (min)</label>
-              <select value={duration} onChange={e => setDuration(e.target.value)} className="w-24 px-3 py-2 rounded-lg border border-border bg-background text-sm">
-                <option value="10">10 min</option>
-                <option value="15">15 min</option>
-                <option value="20">20 min</option>
-                <option value="30">30 min</option>
-                <option value="45">45 min</option>
-                <option value="60">60 min</option>
-              </select>
-            </div>
-            <Button size="sm" onClick={generateSlots} className="gap-1"><Plus className="w-3 h-3" /> Generate Slots</Button>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Working Hours Start</label>
+            <Input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} className="w-full" />
           </div>
-        ) : null}
-        <div className="mt-4 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
-          {allTimeSlots.map(slot => (
-            <button key={slot} onClick={() => toggleSlot(slot)}
-              className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${selectedSlots.includes(slot) ? 'bg-primary text-primary-foreground shadow-md' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Working Hours End</label>
+            <Input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} className="w-full" />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Consultation Duration (min)</label>
+            <select value={slotDuration} onChange={e => setSlotDuration(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm">
+              <option value="10">10 min</option>
+              <option value="15">15 min</option>
+              <option value="20">20 min</option>
+              <option value="30">30 min</option>
+              <option value="45">45 min</option>
+              <option value="60">60 min</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Buffer Slots Per Hour</label>
+            <select value={bufferPerHour} onChange={e => setBufferPerHour(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm">
+              <option value="0">0 (no buffer)</option>
+              <option value="1">1 slot</option>
+              <option value="2">2 slots</option>
+            </select>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-4 text-xs text-muted-foreground bg-muted/30 rounded-xl px-4 py-3">
+          <span><strong className="text-foreground">{patientsPerHour}</strong> patients/hour</span>
+          <span><strong className="text-foreground">{totalWorkingMinutes}</strong> min working time</span>
+          <span><strong className="text-foreground">{totalSlots}</strong> total slots</span>
+          <span><strong className="text-foreground">{totalSlots - Math.floor(totalWorkingMinutes / 60) * parseInt(bufferPerHour || 0)}</strong> bookable slots</span>
+        </div>
+        {manualMode && (
+          <Button size="sm" onClick={handleGenerateAndSaveSlots} className="gap-1 mt-3">
+            <Plus className="w-3 h-3" /> Regenerate Slots
+          </Button>
+        )}
+      </div>
+
+      {/* Time Slots Grid */}
+      <div className="bg-card rounded-2xl border border-border/60 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-heading text-lg font-semibold text-foreground flex items-center gap-2">
+            <Clock className="w-5 h-5 text-primary" /> Time Slots
+          </h2>
+          <span className="text-xs text-muted-foreground">{selectedSlots.length} slots</span>
+        </div>
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+          {selectedSlots.map(slot => (
+            <button key={slot} onClick={() => manualMode && toggleSlot(slot)}
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${'bg-primary text-primary-foreground shadow-md'} ${manualMode ? 'cursor-pointer hover:opacity-80' : 'cursor-default'}`}>
               {slot}
             </button>
           ))}
         </div>
-        <p className="text-xs text-muted-foreground mt-3">Selected: {selectedSlots.length} slots. Click to toggle.</p>
+        {selectedSlots.length === 0 && (
+          <p className="text-sm text-muted-foreground text-center py-4">Set working hours and duration above to auto-generate slots</p>
+        )}
       </div>
 
       {/* Weekly Schedule */}

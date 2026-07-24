@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { CalendarDays, Clock, User, Filter, XCircle, RefreshCw, CheckCircle, AlertCircle } from 'lucide-react';
+import { CalendarDays, Clock, Filter, XCircle, RefreshCw, CheckCircle, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
@@ -26,8 +26,8 @@ export default function PatientAppointments() {
   const loadAppointments = async () => {
     setLoading(true);
     try {
-      const data = await api.getAppointments({ patientId: user?._id, status: filter });
-      setAppointments(data);
+      const res = await api.getAppointments({ patientId: user?._id, status: filter });
+      setAppointments(res?.appointments || res?.data || res || []);
     } catch (e) { console.error(e); toast.error('Failed to load appointments'); }
     setLoading(false);
   };
@@ -102,7 +102,6 @@ export default function PatientAppointments() {
                       <div className="space-y-1.5 text-sm text-muted-foreground mb-4">
                         <div className="flex items-center gap-2"><CalendarDays className="w-3.5 h-3.5" /><span>{apt.date}</span></div>
                         <div className="flex items-center gap-2"><Clock className="w-3.5 h-3.5" /><span>{apt.time}</span></div>
-                        <div className="flex items-center gap-2"><User className="w-3.5 h-3.5" /><span>{apt.type}</span></div>
                       </div>
                       <div className="flex gap-2">
                         <Button variant="outline" size="sm" className="flex-1 gap-1" onClick={() => setRescheduleId(apt._id)}>

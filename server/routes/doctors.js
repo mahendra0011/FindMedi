@@ -297,7 +297,26 @@ const scheduleSchema = z.object({
   time_slots: z.any().optional(),
   weekly_schedule: z.any().optional(),
   leaves: z.any().optional(),
+  slotDuration: z.number().optional(),
+  bufferPerHour: z.number().optional(),
+  workingHours: z.object({ start: z.string(), end: z.string() }).optional(),
 });
+
+const generateTimeSlots = (startTime, endTime, slotDuration) => {
+  const slots = [];
+  const [sh, sm] = startTime.split(':').map(Number);
+  const [eh, em] = endTime.split(':').map(Number);
+  let h = sh, m = sm;
+  while (h < eh || (h === eh && m < em)) {
+    const hour = h > 12 ? h - 12 : h;
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const time = `${String(hour).padStart(2, '0')}:${String(m).padStart(2, '0')} ${ampm}`;
+    slots.push(time);
+    m += slotDuration;
+    while (m >= 60) { m -= 60; h++; }
+  }
+  return slots;
+};
 
 router.put('/:id/schedule', protect, validate(scheduleSchema), async (req, res) => {
   try {
@@ -313,6 +332,16 @@ router.put('/:id/schedule', protect, validate(scheduleSchema), async (req, res) 
     if (req.body.time_slots) update.time_slots = req.body.time_slots;
     if (req.body.weekly_schedule) update.weekly_schedule = req.body.weekly_schedule;
     if (req.body.leaves) update.leaves = req.body.leaves;
+    if (req.body.slotDuration !== undefined) update.slotDuration = req.body.slotDuration;
+    if (req.body.bufferPerHour !== undefined) update.bufferPerHour = req.body.bufferPerHour;
+    if (req.body.workingHours) update.workingHours = req.body.workingHours;
+
+    if (req.body.workingHours || req.body.slotDuration !== undefined) {
+      const wh = req.body.workingHours || doctor.workingHours;
+      const sd = req.body.slotDuration !== undefined ? req.body.slotDuration : doctor.slotDuration;
+      update.time_slots = generateTimeSlots(wh.start, wh.end, sd);
+    }
+
     const updated = await Doctor.findByIdAndUpdate(req.params.id, update, { new: true });
     res.json(updated);
   } catch (err) { res.status(500).json({ message: err.message }); }

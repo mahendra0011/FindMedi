@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { CalendarDays, Clock, User, CheckCircle, XCircle, AlertCircle, Filter, RefreshCw, FileText, IndianRupee, Send, Plus, X } from 'lucide-react';
+import { CalendarDays, Clock, CheckCircle, XCircle, AlertCircle, RefreshCw, FileText, IndianRupee, Send, Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
@@ -313,7 +313,6 @@ export default function DoctorAppointments() {
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <h3 className="font-heading font-semibold text-foreground">{apt.patient}</h3>
-                  <p className="text-sm text-primary">{apt.type} - {apt.department}</p>
                 </div>
                 <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${statusColors[apt.status]}`}>{apt.status}</span>
               </div>
