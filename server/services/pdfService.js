@@ -467,8 +467,211 @@ export const generateInvoicePDF = async (bill) => collectPdf((doc) => {
   doc.text(money(outstanding), x + 112, y + 72, { width: 90, align: 'right' });
   doc.y = y + 118;
 
-  drawSectionTitle(doc, 'Payment Notes');
-  drawTextBlock(doc, 'Instructions', outstanding > 0
-    ? 'Please clear the outstanding amount by the due date. Keep this invoice for your records.'
-    : 'Payment received. Thank you for choosing MediCore Hospital.');
+drawSectionTitle(doc, 'Payment Notes');
+drawTextBlock(doc, 'Instructions', outstanding > 0
+  ? 'Please clear the outstanding amount by the due date. Keep this invoice for your records.'
+  : 'Payment received. Thank you for choosing MediCore Hospital.');
+});
+
+export const generatePaymentInvoicePDF = async (payment, reference = null) => collectPdf((doc) => {
+  const typePrefix = { appointment: 'APT', test: 'TST', medicine: 'MED' };
+  const year = new Date(payment.createdAt || Date.now()).getFullYear();
+  const shortId = String(payment._id || Date.now()).slice(-5).padStart(5, '0');
+  const invoiceId = payment.invoice_id || `INV-${typePrefix[payment.serviceType] || 'GEN'}-${year}-${shortId}`;
+
+  drawHeader(doc, 'INVOICE', { id: invoiceId, date: payment.createdAt || new Date() });
+  drawStatusPill(doc, 'Paid', doc.page.width - doc.page.margins.right - 84, 118);
+
+  // Patient info
+  let patientName = payment.patient_name || 'Patient';
+  let patientPhone = '';
+  let patientAddr = '';
+  if (reference) {
+    patientName = reference.patientName || reference.patient || patientName;
+    if (payment.serviceType === 'appointment') patientPhone = reference.patientId?.phone || '';
+    else if (payment.serviceType === 'test') { patientPhone = reference.patientPhone || ''; patientAddr = reference.homeCollectionAddress || ''; }
+    else if (payment.serviceType === 'medicine') { patientPhone = reference.phone || ''; patientAddr = reference.deliveryAddress || ''; }
+  }
+  patientPhone = patientPhone || payment.patient_phone || '';
+
+  // Provider info
+  let providerName = payment.provider || 'MediCore';
+  let providerAddr = '';
+  let providerLic = '';
+  if (reference?.hospitalId && typeof reference.hospitalId === 'object') {
+    const h = reference.hospitalId;
+    providerName = h.name || providerName;
+    const parts = [h.address, h.city, h.state, h.pincode].filter(Boolean);
+    providerAddr = parts.join(', ');
+    if (h.phone) providerAddr += `\n${h.phone}`;
+    providerLic = payment.serviceType === 'test' ? (h.nablNo || '-') : (h.licenseNo || '-');
+  }
+
+  drawInfoGrid(doc, [
+    {
+      title: 'Bill To',
+      rows: [
+        { label: 'Patient', value: patientName },
+        { label: 'Phone', value: patientPhone || '-' },
+        { label: 'Address', value: patientAddr || '-' },
+        { label: 'Invoice Date', value: formatDate(payment.createdAt) },
+      ],
+    },
+    {
+      title: 'Billed By',
+      rows: [
+        { label: 'Provider', value: providerName },
+        { label: 'Address', value: providerAddr || '-' },
+        { label: payment.serviceType === 'test' ? 'NABL No.' : 'License No.', value: providerLic },
+        { label: 'Invoice', value: invoiceId },
+      ],
+    },
+  ]);
+
+  // Type-specific detail section
+  if (payment.serviceType === 'appointment' && reference) {
+    const d = reference.doctorId || {};
+    drawSectionTitle(doc, 'Appointment Details');
+    drawTextBlock(doc, 'Doctor', `${d.name || reference.doctor || 'Doctor'}${d.specialization ? ` (${d.specialization})` : ''}`);
+    drawTextBlock(doc, 'Date & Time', `${formatDate(reference.date)} at ${reference.time || ''}`);
+    drawTextBlock(doc, 'Appointment Type', reference.type || 'Consultation');
+  }
+
+  if (payment.serviceType === 'test' && reference) {
+    drawSectionTitle(doc, 'Booking Details');
+    drawTextBlock(doc, 'Booking ID', reference.bookingId || `BK-${year}-${shortId}`);
+    drawTextBlock(doc, 'Collection Mode', reference.visitType || 'Lab Visit');
+    drawTextBlock(doc, 'Slot', `${formatDate(reference.bookingDate)}${reference.timeSlot ? `\n${reference.timeSlot}` : ''}`);
+    drawTextBlock(doc, 'Prescription', reference.prescriptionVerified ? 'Uploaded' : 'Not Required (Direct Book)');
+  }
+
+  if (payment.serviceType === 'medicine' && reference) {
+    drawSectionTitle(doc, 'Order Details');
+    drawTextBlock(doc, 'Order ID', reference.orderId || `ORD-${year}-${shortId}`);
+    drawTextBlock(doc, 'Delivery Type', reference.deliveryMode === 'delivery' ? 'Home Delivery' : 'Store Pickup');
+    const ps = reference.prescriptionStatus;
+    drawTextBlock(doc, 'Prescription', ps === 'verified' ? 'Verified (Rx items included)' : ps === 'pending' ? 'Pending Verification' : ps === 'rejected' ? 'Rejected' : 'Not Required');
+  }
+
+  // Items table — type-specific columns
+  drawSectionTitle(doc, 'Items');
+  const lineItems = (payment.lineItems || []).filter(Boolean);
+
+  if (payment.serviceType === 'medicine') {
+    const packLookup = {};
+    if (reference?.items) {
+      reference.items.forEach(item => {
+        const name = item.medicineName || item.name;
+        if (item.medicineId && typeof item.medicineId === 'object') {
+          packLookup[name] = `${item.medicineId.form || '-'}`;
+        } else {
+          packLookup[name] = item.packSize || item.form || '-';
+        }
+      });
+    }
+    drawTable(doc, [
+      { key: 'index', label: '#', width: 0.06, align: 'center' },
+      { key: 'item', label: 'Item', width: 0.32, bold: true },
+      { key: 'pack', label: 'Pack Size', width: 0.16 },
+      { key: 'qty', label: 'Qty', width: 0.1, align: 'center' },
+      { key: 'price', label: 'Price', width: 0.14, align: 'right' },
+      { key: 'total', label: 'Total', width: 0.16, align: 'right' },
+    ], lineItems.length > 0
+      ? lineItems.map((item, i) => ({
+          index: i + 1,
+          item: item.name || 'Item',
+          pack: packLookup[item.name] || item.packSize || '-',
+          qty: item.qty || 1,
+          price: money(item.price || 0),
+          total: money((item.price || 0) * (item.qty || 1)),
+        }))
+      : [{ index: 1, item: 'Medicine Order', pack: '-', qty: 1, price: money(payment.amount), total: money(payment.amount) }],
+      { fontSize: 8 });
+  } else if (payment.serviceType === 'test') {
+    const reportLookup = {};
+    if (reference?.testIds) {
+      reference.testIds.forEach(t => {
+        if (t && t._id) reportLookup[t._id.toString()] = t.reportTime || '-';
+        if (t && t.name) reportLookup[t.name] = t.reportTime || '-';
+      });
+    }
+    drawTable(doc, [
+      { key: 'index', label: '#', width: 0.06, align: 'center' },
+      { key: 'item', label: 'Test', width: 0.40, bold: true },
+      { key: 'reportTime', label: 'Report Time', width: 0.24 },
+      { key: 'amount', label: 'Amount', width: 0.24, align: 'right' },
+    ], lineItems.length > 0
+      ? lineItems.map((item, i) => ({
+          index: i + 1,
+          item: item.name || 'Test',
+          reportTime: reportLookup[item.name] || item.reportTime || '-',
+          amount: money(item.price || item.discountedPrice || 0),
+        }))
+      : [{ index: 1, item: 'Lab Test', reportTime: '-', amount: money(payment.amount) }],
+      { fontSize: 8 });
+  } else {
+    drawTable(doc, [
+      { key: 'index', label: '#', width: 0.08, align: 'center' },
+      { key: 'item', label: 'Item', width: 0.54, bold: true },
+      { key: 'amount', label: 'Amount', width: 0.30, align: 'right' },
+    ], lineItems.length > 0
+      ? lineItems.map((item, i) => ({
+          index: i + 1,
+          item: item.name || 'Service',
+          amount: money(item.price || 0),
+        }))
+      : [{ index: 1, item: 'Consultation Fee', amount: money(payment.amount) }],
+      { fontSize: 8 });
+  }
+
+  // Totals box
+  const { left, right } = doc.page.margins;
+  const width = doc.page.width - left - right;
+  const boxWidth = 220;
+  const x = left + width - boxWidth;
+  ensureSpace(doc, 140);
+  const y = doc.y + 4;
+
+  const discount = reference?.discount || reference?.discountAmount || 0;
+  const discountCode = reference?.couponCode || '';
+  const deliveryCharges = payment.serviceType === 'medicine' ? (reference?.deliveryFee || 0) : 0;
+  const platformFee = payment.serviceType === 'appointment' ? (reference?.platformFee || 0) : 0;
+  const showDelivery = payment.serviceType === 'medicine';
+  const showPlatform = payment.serviceType === 'appointment';
+  const totalRows = 3 + (showDelivery ? 1 : 0) + (showPlatform ? 1 : 0);
+  const subtotal = (payment.amount || 0) + discount + deliveryCharges + platformFee;
+
+  doc.roundedRect(x, y, boxWidth, 18 + totalRows * 18 + 10, 6).fillAndStroke(COLORS.soft, COLORS.border);
+  let cy = y + 12;
+  doc.fillColor(COLORS.ink).font('Helvetica').fontSize(9);
+  doc.text('Subtotal', x + 14, cy, { width: 100 });
+  doc.text(money(subtotal), x + 112, cy, { width: 90, align: 'right' });
+  cy += 18;
+  if (showDelivery) {
+    doc.text('Delivery Charges', x + 14, cy, { width: 100 });
+    doc.text(money(deliveryCharges), x + 112, cy, { width: 90, align: 'right' });
+    cy += 18;
+  }
+  if (showPlatform) {
+    doc.text('Platform Fee', x + 14, cy, { width: 100 });
+    doc.text(money(platformFee), x + 112, cy, { width: 90, align: 'right' });
+    cy += 18;
+  }
+  const discountLabel = discountCode ? `Discount (Code: ${discountCode})` : 'Discount';
+  doc.fillColor(discount > 0 ? COLORS.warning : COLORS.ink).text(discountLabel, x + 14, cy, { width: 100 });
+  doc.fillColor(discount > 0 ? COLORS.warning : COLORS.ink).text(`-${money(discount)}`, x + 112, cy, { width: 90, align: 'right' });
+  cy += 22;
+  doc.fillColor(COLORS.border).lineWidth(0.5).moveTo(x + 14, cy - 6).lineTo(x + boxWidth - 14, cy - 6).stroke();
+  doc.fillColor(COLORS.success).font('Helvetica-Bold').fontSize(10);
+  doc.text('Total Paid', x + 14, cy, { width: 100 });
+  doc.text(money(payment.amount), x + 112, cy, { width: 90, align: 'right' });
+  doc.y = y + 18 + rowCount * 18 + 22;
+
+  // Payment info
+  drawSectionTitle(doc, 'Payment Information');
+  drawTextBlock(doc, 'Payment Method', `${payment.method?.toUpperCase() || '-'} (Ref: ${payment.transaction_id || '-'})`);
+  drawTextBlock(doc, 'Transaction ID', payment.transaction_id || '-');
+  drawTextBlock(doc, 'Payment Status', 'Paid ✅');
+
+  drawSignature(doc, 'MediCore Authorized Signatory');
 });

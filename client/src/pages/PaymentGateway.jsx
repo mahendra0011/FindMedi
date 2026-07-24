@@ -8,6 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
+import BillCheckout from '@/components/BillCheckout';
 
 const UPI_APPS = ['Google Pay', 'PhonePe', 'Paytm', 'BHIM', 'CRED'];
 
@@ -38,6 +39,8 @@ export default function PaymentGateway() {
   const [agreed, setAgreed] = useState(false);
   const [_paying, setPaying] = useState(false);
   const [storeNames, setStoreNames] = useState({});
+  const [order, setOrder] = useState(null);
+  const [orderLoading, setOrderLoading] = useState(true);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -60,6 +63,20 @@ export default function PaymentGateway() {
     load();
   }, [storeIds]);
 
+  useEffect(() => {
+    if (!orderIds[0]) { setOrderLoading(false); return; }
+    const load = async () => {
+      try {
+        const res = await api.get(`/api/pharmacy/orders?orderId=${orderIds[0]}`);
+        const data = typeof res === 'object' && res !== null ? res : { orders: [] };
+        const ordersArr = Array.isArray(data) ? data : (data.orders || []);
+        setOrder(ordersArr[0] || null);
+      } catch { /* empty */ }
+      setOrderLoading(false);
+    };
+    load();
+  }, [orderIds[0]]);
+
   const getStoreName = (sid) => storeNames[sid] || sid;
 
   const methodInfo = PAYMENT_METHODS[method] || PAYMENT_METHODS.upi;
@@ -70,14 +87,14 @@ export default function PaymentGateway() {
     setPaying(true);
     setStep('processing');
     try {
-      await api.createPayment({
-        patientId: user?._id,
-        patientName: user?.name,
-        email: user?.email,
-        orderIds,
-        total,
-        method,
-        status: 'Completed',
+      await api.payTransaction({
+        serviceType: 'medicine',
+        referenceId: orderIds[0],
+        amount: total,
+        method: method === 'wallet' ? 'card' : method,
+        description: `Medicine Order - ${storeIds.map(sid => getStoreName(sid)).join(', ')}`,
+        provider: storeNames[storeIds[0]] || storeIds[0],
+        lineItems: (order?.items || []).map(i => ({ name: i.medicineName, price: i.price, qty: i.qty })),
       });
       setStep('success');
     } catch {
@@ -114,21 +131,33 @@ export default function PaymentGateway() {
         </div>
 
         {/* Order Summary Card */}
-        <div className="bg-card rounded-2xl border border-border/60 p-5 mb-4">
-          <p className="text-xs text-muted-foreground mb-3">Order{storeIds.length > 1 ? 's' : ''}</p>
-          {storeIds.map((sid, i) => {
-            return (
-              <div key={sid} className="flex items-center justify-between py-1.5 text-sm">
-                <span className="text-muted-foreground">{getStoreName(sid)}</span>
-                <Badge className="text-[10px] font-mono bg-primary/10 text-primary">{orderIds[i]}</Badge>
-              </div>
-            );
-          })}
-          <Separator className="my-3" />
-          <div className="flex justify-between text-base font-bold">
-            <span>Amount to Pay</span>
-            <span className="text-primary">₹{total}</span>
-          </div>
+        <div className="mb-4">
+          {orderLoading ? (
+            <div className="bg-card rounded-2xl border border-border/60 p-8 text-center text-sm text-muted-foreground">
+              <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
+              Loading order details...
+            </div>
+          ) : order ? (
+            <BillCheckout
+              amount={total}
+              serviceType="medicine"
+              provider={storeNames[storeIds[0]] || storeIds[0]}
+              details={{ deliveryType: order.deliveryMode === 'delivery' ? 'Home Delivery' : 'Store Pickup' }}
+              lineItems={(order.items || []).map(i => ({
+                name: i.medicineName,
+                price: i.price,
+                qty: i.qty,
+              }))}
+              deliveryCharges={order.deliveryFee || 0}
+              discount={order.discount || 0}
+              discountCode={order.couponCode || ''}
+              compact
+            />
+          ) : (
+            <div className="bg-card rounded-2xl border border-border/60 p-8 text-center text-sm text-muted-foreground">
+              Order details unavailable
+            </div>
+          )}
         </div>
 
         {/* Payment Method Display */}

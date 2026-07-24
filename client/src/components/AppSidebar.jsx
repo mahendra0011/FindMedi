@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, UserRound, Stethoscope, CalendarDays, FileText,
   CreditCard, Percent, Settings, ChevronLeft, ChevronRight, Activity, LogOut,
-  Home, Search, Star, Users, BarChart3, Bell, Building2, Clock, Calendar, DollarSign, FileUp, Download, TestTube, AlertTriangle, Menu, X, Bed, Pill, FlaskConical, Hospital, Heart, Brain, Syringe, ClipboardList, ShieldCheck, Baby, Ambulance, IndianRupee, History, Flag, ShoppingCart, Megaphone, Settings2, Truck, Microscope, HelpCircle
+  Home, Search, Star, Users, BarChart3, Bell, Building2, Clock, Calendar, DollarSign, FileUp, Download, TestTube, AlertTriangle, Menu, X, Bed, Pill, FlaskConical, Hospital, Heart, Brain, Syringe, ClipboardList, ShieldCheck, Baby, Ambulance, IndianRupee, History, Flag, ShoppingCart, Megaphone, Settings2, Truck, Microscope, HelpCircle, MapPinned, User, Bookmark, Upload
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { t } from '@/lib/settings';
@@ -129,24 +129,21 @@ const navConfig = {
     { icon: Settings,        labelKey: 'nav.settings',         path: '/settings'                    },
   ],
   patient: [
-    { icon: LayoutDashboard, labelKey: 'nav.dashboard',       path: '/dashboard'            },
-    { icon: Building2,       labelKey: 'nav.findHospital',    path: '/hospitals'            },
-    { icon: Search,          labelKey: 'nav.findDoctors',     path: '/clinic-doctors'       },
-    { icon: CalendarDays,    labelKey: 'nav.myAppointments',  path: '/patient/appointments' },
-    { icon: FlaskConical,    labelKey: 'nav.bookTests',       path: '/all-tests'            },
-    { icon: TestTube,        labelKey: 'nav.myTestBookings',  path: '/patient/bookings'     },
-    { icon: AlertTriangle,   labelKey: 'nav.emergency',       path: '/patient/emergency'    },
-    { icon: FileText,        labelKey: 'nav.medicalRecords',  path: '/patient/records'      },
-    { icon: FileUp,          labelKey: 'nav.uploadFiles',     path: '/upload'               },
-    { icon: Download,        labelKey: 'nav.myReports',       path: '/patient/reports'      },
-    { icon: CreditCard,      labelKey: 'nav.myBilling',       path: '/patient/billing'      },
-    { icon: Pill,            labelKey: 'nav.myPrescriptions', path: '/patient/prescriptions' },
-    { icon: ShoppingCart,    labelKey: 'nav.myMedicineOrders', path: '/patient/medicine-orders' },
-    { icon: DollarSign,      labelKey: 'nav.payments',        path: '/patient/payment'      },
-    { icon: Star,            labelKey: 'nav.myReviews',       path: '/patient/reviews'      },
-    { icon: HelpCircle,      labelKey: 'nav.support',         path: '/patient/support'      },
-    { icon: Bell,            labelKey: 'nav.notifications',   path: '/notifications'        },
-    { icon: Settings,        labelKey: 'nav.settings',        path: '/settings'             },
+    { icon: LayoutDashboard, labelKey: 'nav.dashboard',             path: '/dashboard'                  },
+    { icon: CalendarDays,    labelKey: 'nav.myAppointments',        path: '/patient/appointments'       },
+    { icon: TestTube,        labelKey: 'nav.myTestBookings',        path: '/patient/bookings'           },
+    { icon: ShoppingCart,    labelKey: 'nav.myMedicineOrders',      path: '/patient/medicine-orders'    },
+    { icon: Pill,            labelKey: 'nav.myPrescriptions',       path: '/patient/prescriptions'      },
+    { icon: Download,        labelKey: 'nav.myReports',             path: '/patient/reports'            },
+    { icon: Upload,          labelKey: 'nav.upload',                 path: '/upload'                     },
+    { icon: Bookmark,        labelKey: 'nav.favorites',              path: '/patient/favorites'          },
+    { icon: IndianRupee,     labelKey: 'nav.billing',               path: '/patient/billing'            },
+    { icon: MapPinned,       labelKey: 'nav.addresses',             path: '/patient/addresses'          },
+    { icon: Bell,            labelKey: 'nav.notifications',         path: '/notifications'              },
+    { icon: Ambulance,       labelKey: 'nav.emergency',             path: '/patient/emergency'          },
+    { icon: Star,            labelKey: 'nav.myReviews',             path: '/patient/reviews'            },
+    { icon: User,            labelKey: 'nav.profileSettings',       path: '/patient/profile'            },
+    { icon: HelpCircle,      labelKey: 'nav.support',               path: '/patient/support'            },
   ],
 };
 

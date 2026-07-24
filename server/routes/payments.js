@@ -1,5 +1,6 @@
 import express from 'express';
 import Payment from '../models/Payment.js';
+import Notification from '../models/Notification.js';
 import { protect, adminOnly } from '../middleware/auth.js';
 import { validate, createPaymentSchema, updatePaymentSchema, refundPaymentSchema } from '../utils/validate.js';
 import { auditLog } from '../middleware/audit.js';
@@ -26,9 +27,15 @@ router.post('/', protect, validate(createPaymentSchema), async (req, res) => {
     const payment = await Payment.create({
       ...req.body,
       patient_id,
-      status: 'pending',
       transaction_id,
       hospitalId: req.user.hospitalId || undefined,
+    });
+    await Notification.create({
+      userId: patient_id,
+      title: 'Payment Received',
+      message: `Payment of ₹${payment.amount} via ${payment.method || 'card'} was successful. Transaction: ${transaction_id}`,
+      type: 'payment',
+      date: new Date().toISOString().split('T')[0],
     });
     await auditLog('create_payment', req.user._id, { paymentId: payment._id, amount: payment.amount, transaction_id });
     res.status(201).json(payment);

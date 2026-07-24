@@ -54,7 +54,7 @@ function UserManagementTab() {
     setLoading(true);
     try {
       const data = await api.getUsers({ search, role: roleFilter });
-      setUsers(data);
+      setUsers(data?.users || data?.data || data || []);
     } catch { toast.error('Failed to load users'); }
     setLoading(false);
   }, [search, roleFilter]);
@@ -321,7 +321,7 @@ function ContentModerationTab() {
     try {
       const params = filter === 'flagged' ? { flagged: 'true' } : {};
       const data = await api.getFlaggedReviews(params);
-      setReviews(data || []);
+      setReviews(data?.reviews || data?.data || data || []);
     } catch { toast.error('Failed to load reviews'); }
     setLoading(false);
   }, [filter]);
@@ -1465,8 +1465,8 @@ export default function SuperAdminDashboard() {
         api.getPendingHospitals(),
         api.getHospitals({}),
       ]);
-      setPendingHospitals(pending || []);
-      setAllHospitals(all || []);
+      setPendingHospitals(pending?.hospitals || pending?.data || pending || []);
+      setAllHospitals(all?.hospitals || all?.data || all || []);
     } catch {
       toast.error('Failed to load hospitals');
     } finally {
@@ -1536,7 +1536,7 @@ export default function SuperAdminDashboard() {
     setDoctorsLoading(true);
     try {
       const data = await api.getDoctors({ hospitalId });
-      setHospitalDoctors(data || []);
+      setHospitalDoctors(data?.doctors || data?.data || data || []);
     } catch {
       setHospitalDoctors([]);
     } finally {
@@ -1548,7 +1548,7 @@ export default function SuperAdminDashboard() {
     setFacilityLoading(true);
     try {
       const data = await api.getPendingFacilities(type || '');
-      setPendingFacilities(data || []);
+      setPendingFacilities(data?.facilities || data?.data || data || []);
     } catch {
       toast.error('Failed to load facilities');
     } finally {

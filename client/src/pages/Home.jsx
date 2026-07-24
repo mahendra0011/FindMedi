@@ -165,7 +165,8 @@ const Home = () => {
     const load = async () => {
       try {
         const data = await api.getDoctors({ available: 'true' });
-        setDoctorsList(data?.slice(0, 6) || doctors.slice(0, 6));
+        const list = data?.doctors || data?.data || data || [];
+        setDoctorsList(list.slice(0, 6));
       } catch {
         setDoctorsList(doctors.slice(0, 6));
       }

@@ -19,10 +19,11 @@ export default function Notifications() {
     setLoading(true);
     try {
       const data = await api.getNotifications({});
+      const list = data?.data || data?.notifications || data || [];
       const userId = (user?._id || user?.id)?.toString();
-      let filtered = data;
+      let filtered = list;
       if (user?.role !== 'admin') {
-        filtered = data.filter(n => n.userId === userId);
+        filtered = list.filter(n => n.userId === userId);
       }
       setNotifications(filtered);
     } catch (e) { 

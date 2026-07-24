@@ -18,13 +18,6 @@ const categoryConfig = {
 
 const CATEGORIES = ['All', 'prescription', 'lab_report', 'discharge_summary', 'bill_invoice', 'payment_invoice'];
 
-const typeColors = {
-  Consultation: 'bg-primary/10 text-primary',
-  'Follow-up': 'bg-info/10 text-info',
-  Emergency: 'bg-destructive/10 text-destructive',
-  Checkup: 'bg-success/10 text-success',
-};
-
 export default function PatientRecords() {
   const { user } = useAuth();
   const [appointments, setAppointments] = useState([]);
@@ -41,8 +34,8 @@ export default function PatientRecords() {
         api.getAppointments(),
         api.getRecords(),
       ]);
-      setAppointments(a || []);
-      const recordsArray = r?.records || r || [];
+      setAppointments(a?.appointments || a?.data || a || []);
+      const recordsArray = r?.records || r?.data || [];
       setRecords(recordsArray);
     } catch (e) { console.error(e); toast.error('Failed to load records'); }
     setLoading(false);
@@ -209,12 +202,9 @@ export default function PatientRecords() {
                         <div>
                           <div className="flex items-center gap-2 mb-1">
                             <span className="font-medium text-foreground">{apt.date}</span>
-                            <Badge className={`text-[10px] ${typeColors[apt.type] || 'bg-muted text-muted-foreground'}`}>
-                              {apt.type || apt.status}
-                            </Badge>
                           </div>
                           <p className="text-sm text-muted-foreground">
-                            {apt.time} • {apt.type} • {apt.department}
+                            {apt.time} • {apt.department}
                           </p>
                         </div>
                         <div className="text-right">

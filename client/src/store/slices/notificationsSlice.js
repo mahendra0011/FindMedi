@@ -63,7 +63,8 @@ export const selectNotificationsList = (state) => state.notifications.list;
 // Thunks
 export const fetchNotifications = () => async (dispatch) => {
   try {
-    const list = await api.getNotifications({});
+    const res = await api.getNotifications({});
+    const list = Array.isArray(res) ? res : (res?.data || []);
     dispatch(setList(list));
   } catch (error) {
     console.error('Failed to fetch notifications:', error);

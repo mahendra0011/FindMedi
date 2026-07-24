@@ -134,12 +134,12 @@ export default function DiagnosticDashboard() {
   const { data: reviewsData } = useQuery({ queryKey: ['lab-reviews'], queryFn: () => api.getReviews({}).catch(() => []) });
 
   const orders = ordersData?.orders || [];
-  const tests = testsData || [];
-  const bookings = bookingsData?.bookings || [];
-  const equipment = equipmentData?.equipment || [];
-  const packages = packagesData?.packages || [];
-  const staffList = staffData || [];
-  const reviews = reviewsData || [];
+  const tests = testsData?.tests || testsData?.data || testsData || [];
+  const bookings = bookingsData?.bookings || bookingsData?.data || [];
+  const equipment = equipmentData?.equipment || equipmentData?.data || [];
+  const packages = packagesData?.packages || packagesData?.data || [];
+  const staffList = staffData?.staff || staffData?.data || staffData || [];
+  const reviews = reviewsData?.reviews || reviewsData?.data || reviewsData || [];
 
   // Mutations
   const updateBookingMut = useMutation({

@@ -7,12 +7,13 @@ import {
   BookMarked, ChevronRight, GraduationCap, Briefcase, Shield, Trophy,
   HeartPulse, Syringe, Ambulance, Plus, Minus, ChevronDown, ChevronUp,
   Quote, Home, ExternalLink, Sparkles, Languages, CircleDot, FileText, BedDouble,
-  CreditCard, Image, Pill, Car, Accessibility, Wind, FlaskConical, DoorOpen, ArrowRight, Share2, Heart, Zap
+  CreditCard, Smartphone, Landmark, Wallet, Image, Pill, Car, Accessibility, Wind, FlaskConical, DoorOpen, ArrowRight, Share2, Heart, Zap, Bell
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import BillCheckout from '@/components/BillCheckout';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -54,10 +55,12 @@ export default function HospitalDoctor() {
 
   const [bookingDate, setBookingDate] = useState('');
   const [bookingTime, setBookingTime] = useState('');
-  const [bookingType, setBookingType] = useState('Consultation');
   const [bookingNotes, setBookingNotes] = useState('');
   const [bookingSuccess, setBookingSuccess] = useState(false);
   const [bookingDetails, setBookingDetails] = useState(null);
+  const [bookedSlots, setBookedSlots] = useState([]);
+  const [showWaitlist, setShowWaitlist] = useState(false);
+  const [waitlistEmail, setWaitlistEmail] = useState('');
 
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [showAllReviews, setShowAllReviews] = useState(false);
@@ -95,8 +98,9 @@ export default function HospitalDoctor() {
         const rv = await api.getReviews({ doctorId: id }).catch(() => []);
         if (Array.isArray(rv) && rv.length > 0) setReviews(rv);
 
-        const allDocs = await api.getDoctors({}).catch(() => []);
-        const filtered = (allDocs || []).filter(d => d._id !== id);
+        const allDocs = await api.getDoctors({}).catch(() => ({ data: [] }));
+        const allList = allDocs?.data || allDocs || [];
+        const filtered = allList.filter(d => d._id !== id);
         if (doc.hospitalId?._id || doc.hospitalId) {
           const hospitalId = doc.hospitalId._id || doc.hospitalId;
           setRelatedDoctors(filtered.filter(d => (d.hospitalId?._id || d.hospitalId)?.toString() === hospitalId.toString()).slice(0, 4));
@@ -112,35 +116,75 @@ export default function HospitalDoctor() {
     load();
   }, [id]);
 
+  useEffect(() => {
+    if (!bookingDate || !doctor?._id) { setBookedSlots([]); return; }
+    const fetchBooked = async () => {
+      try {
+        const slots = await api.getBookedSlots({ doctorId: doctor._id, date: bookingDate });
+        setBookedSlots(Array.isArray(slots) ? slots : []);
+      } catch { setBookedSlots([]); }
+    };
+    fetchBooked();
+  }, [bookingDate, doctor?._id]);
+
+  const handleWaitlistJoin = async () => {
+    toast.success('You have been added to the waitlist. We will notify you if a slot opens up.');
+    setShowWaitlist(false);
+  };
+
+  const [bookingLoading, setBookingLoading] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('card');
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [bookingStep, setBookingStep] = useState('method');
+
   const handleBook = async () => {
-    if (!bookingDate || !bookingTime || !doctor) return;
+    if (!bookingDate || !bookingTime || !doctor) { toast.error('Please select date and time'); return; }
+    setBookingLoading(true);
     try {
       const details = {
         patient: user?.name || 'Guest User',
         patientId: user?._id || 'guest',
         doctor: doctor.name,
         doctorId: doctor._id,
-        department: doctor.specialization,
+        department: doctor.specialization || 'General',
         date: bookingDate,
         time: bookingTime,
         status: 'Pending',
-        type: bookingType,
         notes: bookingNotes,
         fees: doctor.consultation_fees || doctor.fees || 0,
       };
       const result = await api.createAppointment(details);
-      setBookingDetails(result || details);
+      setBookingDetails({ ...(result || details), fees: doctor.consultation_fees || doctor.fees || 0 });
       setBookingSuccess(true);
-      setTimeout(() => {
-        setBookingSuccess(false);
-        setBookingDate('');
-        setBookingTime('');
-        setBookingNotes('');
-        setBookingDetails(null);
-      }, 4000);
     } catch (e) {
-      console.error(e);
+      toast.error(e.response?.data?.message || e.message || 'Failed to book appointment');
     }
+    setBookingLoading(false);
+  };
+
+  const handlePayment = async () => {
+    const fees = doctor.consultation_fees || doctor.fees || 0;
+    if (fees <= 0) { setPaymentSuccess(true); return; }
+    setPaymentLoading(true);
+    try {
+      const result = await api.payTransaction({
+        serviceType: 'appointment',
+        referenceId: bookingDetails?._id,
+        amount: fees,
+        method: paymentMethod,
+        description: `Consultation with ${doctor.name}`,
+        provider: doctor.name,
+        lineItems: [{ name: 'Consultation Fee', price: fees, qty: 1 }],
+      });
+      if (result?.success) {
+        setPaymentSuccess(true);
+        toast.success('Payment successful! Appointment confirmed.');
+      }
+    } catch (e) {
+      toast.error(e.response?.data?.message || e.message || 'Payment failed');
+    }
+    setPaymentLoading(false);
   };
 
   const handleReview = async () => {
@@ -203,7 +247,7 @@ export default function HospitalDoctor() {
   }
 
   if (notFound || !doctor) {
-    return <Navigate to="/clinic-doctors" replace />;
+    return <Navigate to="/hospital-doctors" replace />;
   }
 
   const reviewCount = doctor.reviews_count || reviews.length;
@@ -219,7 +263,7 @@ export default function HospitalDoctor() {
             <Home className="w-3.5 h-3.5" /><span className="hidden sm:inline">Home</span>
           </Link>
           <ChevronRight className="w-3.5 h-3.5" />
-          <Link to="/clinic-doctors" className="hover:text-primary transition-colors">Doctors</Link>
+          <Link to={doctor?.hospitalId?._id ? `/hospitals/${doctor.hospitalId._id}/doctors` : `/hospitals/${doctor.hospitalId}/doctors`} className="hover:text-primary transition-colors">Doctors</Link>
           <ChevronRight className="w-3.5 h-3.5" />
           <span className="text-foreground font-medium truncate max-w-[200px]">{doctor.name}</span>
         </nav>
@@ -1130,22 +1174,87 @@ export default function HospitalDoctor() {
               )}
 
               {bookingSuccess && bookingDetails ? (
-                <div className="space-y-3">
-                  <div className="px-4 py-3 rounded-xl bg-success/10 border border-success/20 text-success text-sm flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4" />
-                    Appointment Booked!
+                paymentSuccess ? (
+                  <div className="space-y-3">
+                    <div className="px-4 py-3 rounded-xl bg-success/10 border border-success/20 text-success text-sm flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4" />
+                      Booking & Payment Complete!
+                    </div>
+                    <div className="text-sm text-muted-foreground space-y-1.5 bg-muted/30 rounded-xl p-4">
+                      <p><span className="text-foreground font-medium">Doctor:</span> {bookingDetails.doctor}</p>
+                      <p><span className="text-foreground font-medium">Date:</span> {bookingDetails.date}</p>
+                      <p><span className="text-foreground font-medium">Time:</span> {bookingDetails.time}</p>
+                      <p><span className="text-foreground font-medium">Fees:</span> ₹{bookingDetails.fees}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button className="flex-1 rounded-xl" onClick={() => navigate('/patient/appointments')}>
+                        View Appointments
+                      </Button>
+                      <Button variant="outline" className="flex-1 rounded-xl" onClick={() => navigate('/patient/billing')}>
+                        View Bill
+                      </Button>
+                    </div>
                   </div>
-                  <div className="text-sm text-muted-foreground space-y-1.5 bg-muted/30 rounded-xl p-4">
-                    <p><span className="text-foreground font-medium">Doctor:</span> {bookingDetails.doctor}</p>
-                    <p><span className="text-foreground font-medium">Date:</span> {bookingDetails.date}</p>
-                    <p><span className="text-foreground font-medium">Time:</span> {bookingDetails.time}</p>
-                    <p><span className="text-foreground font-medium">Type:</span> {bookingDetails.type}</p>
-                    <p><span className="text-foreground font-medium">Fees:</span> ₹{bookingDetails.fees}</p>
+                ) : bookingStep === 'method' ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-success/10 border border-success/20 text-success text-sm">
+                      <CheckCircle className="w-4 h-4" />
+                      Appointment Booked — Select Payment Method
+                    </div>
+                    <div className="text-sm text-muted-foreground space-y-1.5 bg-muted/30 rounded-xl p-4">
+                      <p><span className="text-foreground font-medium">Doctor:</span> {bookingDetails.doctor}</p>
+                      <p><span className="text-foreground font-medium">Date:</span> {bookingDetails.date}</p>
+                      <p><span className="text-foreground font-medium">Time:</span> {bookingDetails.time}</p>
+                      <p><span className="text-foreground font-medium">Fees:</span> <span className="text-foreground font-bold">₹{bookingDetails.fees}</span></p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-foreground mb-2">Choose payment method</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {[{ value: 'card', label: 'Card', icon: CreditCard }, { value: 'upi', label: 'UPI', icon: Smartphone }, { value: 'netbanking', label: 'Net Banking', icon: Landmark }, { value: 'cash', label: 'Cash', icon: Wallet }].map(m => {
+                          const Icon = m.icon;
+                          const active = paymentMethod === m.value;
+                          return (
+                            <button key={m.value} onClick={() => setPaymentMethod(m.value)}
+                              className={`relative flex items-center gap-2.5 p-3 rounded-xl border text-left transition-all ${active ? 'border-primary bg-primary/5 shadow-sm' : 'border-border/60 bg-card hover:border-primary/40'}`}>
+                              <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${active ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+                                <Icon className="w-4 h-4" />
+                              </div>
+                              <span className="text-xs font-semibold text-foreground">{m.label}</span>
+                              {active && <CheckCircle className="w-3.5 h-3.5 text-primary absolute top-1.5 right-1.5" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <Button className="w-full rounded-xl h-10 font-semibold" onClick={() => setBookingStep('billing')}>
+                      Next <ChevronRight className="w-4 h-4 ml-1" />
+                    </Button>
+                    <Button variant="outline" className="w-full rounded-xl h-10" onClick={() => { setBookingSuccess(false); setPaymentSuccess(false); setBookingDetails(null); setBookingStep('method'); }}>
+                      Cancel
+                    </Button>
                   </div>
-                  <Button className="w-full rounded-xl" onClick={() => navigate(user ? '/patient/appointments' : '/login')}>
-                    View My Appointments
-                  </Button>
-                </div>
+                ) : (
+                  <div className="space-y-4">
+                    <BillCheckout
+                      amount={bookingDetails.fees}
+                      serviceType="appointment"
+                      provider={doctor.hospitalId?.name || bookingDetails.doctor}
+                      details={{ doctor: doctor.name || bookingDetails.doctor, specialization: doctor.specialization || '', date: bookingDetails.date, time: bookingDetails.time, type: 'Consultation' }}
+                      lineItems={[{ name: 'Consultation Fee', price: bookingDetails.fees, qty: 1 }]}
+                      platformFee={0}
+                      gst={0}
+                      discount={0}
+                      compact
+                      method={paymentMethod}
+                      onMethodChange={setPaymentMethod}
+                      onPay={handlePayment}
+                      loading={paymentLoading}
+                    />
+                    <Button variant="outline" className="w-full rounded-xl h-10" onClick={() => { setBookingSuccess(false); setPaymentSuccess(false); setBookingDetails(null); setBookingStep('method'); }}>
+                      Cancel
+                    </Button>
+                  </div>
+                )
               ) : (
                 <div className="space-y-3">
                   <div>
@@ -1155,61 +1264,97 @@ export default function HospitalDoctor() {
                   </div>
                   <div>
                     <label className="text-xs font-medium text-foreground mb-1 block">Select Time</label>
-                    <div className="grid grid-cols-2 gap-1.5">
-                      {(doctor.time_slots || ['09:00 AM', '10:00 AM', '11:00 AM', '02:00 PM', '03:00 PM', '04:00 PM']).map(t => {
-                        const now = new Date();
-                        const [time, period] = t.split(' ');
-                        let [h, m] = time.split(':').map(Number);
-                        if (period === 'PM' && h !== 12) h += 12;
-                        if (period === 'AM' && h === 12) h = 0;
-                        const slotDate = new Date(bookingDate || now.toISOString().split('T')[0]);
-                        const slotTime = new Date(slotDate);
-                        slotTime.setHours(h, m, 0, 0);
-                        const isPast = slotDate.toDateString() === now.toDateString() && slotTime < now;
+                    {(() => {
+                      const timeSlots = doctor.time_slots || ['09:00 AM', '10:00 AM', '11:00 AM', '02:00 PM', '03:00 PM', '04:00 PM'];
+                      const now = new Date();
+                      const bufferPerHour = doctor.bufferPerHour || 0;
+                      const slotDuration = doctor.slotDuration || 15;
+                      const slotsPerHour = Math.ceil(60 / slotDuration);
+                      const bookableSlots = timeSlots.filter((_, i) => {
+                        if (bufferPerHour === 0) return true;
+                        const hourIndex = i % slotsPerHour;
+                        return hourIndex < slotsPerHour - bufferPerHour;
+                      });
+                      const availableSlots = bookableSlots.filter(t => !bookedSlots.includes(t));
+                      const isFullyBooked = availableSlots.length === 0 && timeSlots.length > 0;
+
+                      if (isFullyBooked) {
                         return (
-                          <button key={t} type="button"
-                            disabled={isPast}
-                            onClick={() => !isPast && setBookingTime(t)}
-                            className={cn(
-                              'px-2 py-1.5 rounded-lg text-xs font-medium transition-colors relative',
-                              isPast
-                                ? 'bg-muted/30 text-muted-foreground/40 cursor-not-allowed line-through'
-                                : bookingTime === t
-                                  ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20'
-                                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                          <div className="space-y-3">
+                            <div className="px-4 py-3 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-800 text-center">
+                              <CalendarDays className="w-8 h-8 mx-auto text-amber-500 mb-2" />
+                              <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">Dr. {doctor.name} is fully booked today</p>
+                              <p className="text-xs text-muted-foreground mt-1">Next Available: Tomorrow, {timeSlots[0]}</p>
+                            </div>
+                            {!showWaitlist ? (
+                              <Button variant="outline" className="w-full rounded-xl h-10 gap-2" onClick={() => setShowWaitlist(true)}>
+                                <Bell className="w-4 h-4" /> Join Waitlist
+                              </Button>
+                            ) : (
+                              <div className="flex gap-2">
+                                <Input placeholder="Your email" value={waitlistEmail} onChange={e => setWaitlistEmail(e.target.value)} className="rounded-xl h-9 text-sm" />
+                                <Button size="sm" className="rounded-xl h-9" onClick={handleWaitlistJoin}>Notify Me</Button>
+                              </div>
                             )}
-                          >
-                            {t}
-                            {isPast && <span className="absolute -top-1 -right-1 text-[8px] font-bold text-muted-foreground/50 bg-background px-1 rounded">Past</span>}
-                          </button>
+                          </div>
                         );
-                      })}
-                    </div>
+                      }
+
+                      return (
+                        <div className="grid grid-cols-2 gap-1.5">
+                          {timeSlots.map(t => {
+                            const [time, period] = t.split(' ');
+                            let [h, m] = time.split(':').map(Number);
+                            if (period === 'PM' && h !== 12) h += 12;
+                            if (period === 'AM' && h === 12) h = 0;
+                            const slotDate = new Date(bookingDate || now.toISOString().split('T')[0]);
+                            const slotTime = new Date(slotDate);
+                            slotTime.setHours(h, m, 0, 0);
+                            const isPast = slotDate.toDateString() === now.toDateString() && slotTime < now;
+                            const isBooked = bookedSlots.includes(t);
+                            const isBuffer = (() => {
+                              if (bufferPerHour === 0) return false;
+                              const idx = timeSlots.indexOf(t);
+                              const hourIndex = idx % slotsPerHour;
+                              return hourIndex >= slotsPerHour - bufferPerHour;
+                            })();
+                            const disabled = isPast || isBooked || isBuffer;
+                            return (
+                              <button key={t} type="button"
+                                disabled={disabled}
+                                onClick={() => !disabled && setBookingTime(t)}
+                                className={cn(
+                                  'px-2 py-1.5 rounded-lg text-xs font-medium transition-colors relative',
+                                  isPast
+                                    ? 'bg-muted/30 text-muted-foreground/40 cursor-not-allowed line-through'
+                                    : isBuffer
+                                      ? 'bg-muted/20 text-muted-foreground/30 cursor-not-allowed'
+                                      : isBooked
+                                        ? 'bg-red-50 dark:bg-red-500/10 text-red-500 cursor-not-allowed border border-red-200 dark:border-red-800'
+                                        : bookingTime === t
+                                          ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20'
+                                          : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                                )}
+                              >
+                                {t}
+                                {isPast && <span className="absolute -top-1 -right-1 text-[8px] font-bold text-muted-foreground/50 bg-background px-1 rounded">Past</span>}
+                                {isBooked && <span className="absolute -top-1 -right-1 text-[8px] font-bold text-red-400 bg-background px-1 rounded">Booked</span>}
+                                {isBuffer && <span className="absolute -top-1 -right-1 text-[8px] font-bold text-muted-foreground/30 bg-background px-1 rounded">Buf</span>}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
                   </div>
-                  <div>
-                    <label className="text-xs font-medium text-foreground mb-1 block">Appointment Type</label>
-                    <div className="grid grid-cols-3 gap-1.5">
-                      {['Consultation', 'Follow-up', 'Check-up'].map(t => (
-                        <button key={t} type="button" onClick={() => setBookingType(t)}
-                          className={cn(
-                            'px-2 py-1.5 rounded-lg text-xs font-medium transition-colors text-center',
-                            bookingType === t
-                              ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20'
-                              : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                          )}
-                        >
-                          {t}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                  
                   <div>
                     <label className="text-xs font-medium text-foreground mb-1 block">Notes (optional)</label>
                     <Input placeholder="Any specific concerns…" value={bookingNotes} onChange={e => setBookingNotes(e.target.value)} className="rounded-xl h-9" />
                   </div>
-                  <Button className="w-full rounded-xl h-10 font-semibold shadow-lg shadow-primary/25" onClick={handleBook} disabled={!bookingDate || !bookingTime}>
-                    <CalendarDays className="w-4 h-4 mr-2" /> Confirm Booking
-                  </Button>
+                   <Button className="w-full rounded-xl h-10 font-semibold shadow-lg shadow-primary/25" onClick={handleBook} disabled={!bookingDate || !bookingTime || bookingLoading}>
+                     <CalendarDays className="w-4 h-4 mr-2" /> {bookingLoading ? 'Booking...' : 'Confirm Booking'}
+                   </Button>
 
                   {/* Call Hospital Reception */}
                   {(doctor.clinic_reception_phone || doctor.hospitalId?.phone) && (

@@ -60,6 +60,12 @@ const doctorSchema = new mongoose.Schema({
   home_visit: { type: Boolean, default: false },
   payment_modes: { type: [String], default: ['Cash', 'UPI', 'Card'] },
   opd_timings: { type: String, default: '9:00 AM – 5:00 PM' },
+  workingHours: {
+    start: { type: String, default: '09:00' },
+    end: { type: String, default: '17:00' },
+  },
+  slotDuration: { type: Number, default: 15 },
+  bufferPerHour: { type: Number, default: 1 },
   createdAt: { type: Date, default: Date.now },
 });
 

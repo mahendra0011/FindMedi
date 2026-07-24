@@ -13,6 +13,10 @@ export const csrfProtection = (req, res, next) => {
     return next();
   }
 
+  if (req.path === '/upload') {
+    return next();
+  }
+
   const origin = req.headers['origin'];
   const referer = req.headers['referer'];
   if (origin || referer) {

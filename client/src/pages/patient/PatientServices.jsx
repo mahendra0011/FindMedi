@@ -91,9 +91,10 @@ export default function PatientServices() {
         api.getLabServices(),
         api.getBilling(),
       ]);
-      setServices(data);
-      const bills = billingData?.bills || billingData || [];
-      setBookedServices(buildLabBookings(bills, data || [], user));
+      const servicesList = data?.services || data?.data || data || [];
+      setServices(servicesList);
+      const bills = billingData?.bills || billingData?.data || [];
+      setBookedServices(buildLabBookings(bills, servicesList, user));
     } catch (e) { console.error(e); }
     setLoading(false);
   }, [user]);

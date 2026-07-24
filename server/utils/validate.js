@@ -124,11 +124,14 @@ export const updatePatientSchema = z.object({
 export const createAppointmentSchema = z.object({
   patient: z.string().min(1, 'Patient is required'),
   doctor: z.string().min(1, 'Doctor is required'),
+  doctorId: z.string().optional(),
   department: z.string().optional(),
   date: z.string().min(1, 'Date is required'),
   time: z.string().min(1, 'Time is required'),
   type: z.string().optional(),
   notes: z.string().optional(),
+  symptoms: z.string().optional(),
+  priority: z.string().optional(),
 });
 
 export const updateAppointmentSchema = z.object({
@@ -141,12 +144,22 @@ export const updateAppointmentSchema = z.object({
 // ─── Billing Schemas ───────────────────────────────────────────────────────
 export const createBillSchema = z.object({
   patient: z.string().min(1, 'Patient is required'),
+  patientId: z.string().optional(),
   service: z.string().min(1, 'Service is required'),
   amount: positiveNumber,
   doctor: z.string().optional(),
+  doctorId: z.string().optional(),
+  appointmentId: z.string().optional(),
+  source: z.string().optional(),
+  date: z.string().optional(),
   paid: nonNegativeNumber.optional().default(0),
   status: z.enum(['Pending', 'Paid', 'Partial', 'Overdue']).optional().default('Pending'),
   dueDate: z.string().optional(),
+  services: z.array(z.object({
+    name: z.string().optional(),
+    price: z.number().optional(),
+    category: z.string().optional(),
+  })).optional(),
 });
 
 // ─── Hospital Schemas ──────────────────────────────────────────────────────
@@ -364,11 +377,14 @@ export const updateLeaveStatusSchema = z.object({
 // ─── Payment Schemas ─────────────────────────────────────────────────────────
 export const createPaymentSchema = z.object({
   patient_id: z.string().min(1, 'Patient ID is required'),
+  patient_name: z.string().optional(),
   amount: positiveNumber,
   method: z.string().optional(),
+  invoice_id: z.string().optional(),
   description: z.string().optional(),
   appointment_id: z.string().optional(),
   bill_id: z.string().optional(),
+  status: z.string().optional(),
 });
 
 export const updatePaymentSchema = z.object({
