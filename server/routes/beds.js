@@ -5,13 +5,14 @@ import { validate, createBedSchema, updateBedSchema } from '../utils/validate.js
 
 const router = express.Router();
 
-router.get('/', async (req, res) => {
+router.get('/', protect, scopeToHospital, async (req, res) => {
   try {
     const { ward, status, hospitalId } = req.query;
     const filter = {};
     if (ward) filter.ward = ward;
     if (status) filter.status = status;
     if (hospitalId) filter.hospitalId = hospitalId;
+    if (req.hospitalId) filter.hospitalId = req.hospitalId;
     const beds = await Bed.find(filter).sort({ bedNumber: 1 });
     res.json(beds);
   } catch (err) { res.status(500).json({ message: err.message }); }
@@ -20,11 +21,10 @@ router.get('/', async (req, res) => {
 // sanitize ward name input before processing
 const sanitizeWard = (ward) => ward?.trim().replace(/[<>]/g, '')
 
-router.get('/stats', async (req, res) => {
+router.get('/stats', protect, scopeToHospital, async (req, res) => {
   try {
-    const { hospitalId } = req.query;
     const filter = {};
-    if (hospitalId) filter.hospitalId = hospitalId;
+    if (req.hospitalId) filter.hospitalId = req.hospitalId;
     const total = await Bed.countDocuments(filter);
     const available = await Bed.countDocuments({ ...filter, status: 'Available' });
     const occupied = await Bed.countDocuments({ ...filter, status: 'Occupied' });

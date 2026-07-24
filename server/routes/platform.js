@@ -7,6 +7,7 @@ import Facility from '../models/Facility.js';
 import Doctor from '../models/Doctor.js';
 import { validate } from '../utils/validate.js';
 import { createAndSendOTP } from '../services/otpService.js';
+import { sendEmail } from '../services/notificationService.js';
 
 const platformRegisterSchema = z.object({
   type: z.enum(['hospital', 'clinic', 'diagnostic', 'pharmacy']),
@@ -207,6 +208,12 @@ router.post('/register', validate(platformRegisterSchema), async (req, res) => {
           ...(type === 'hospital' ? { hospitalId: entity._id } : { facilityId: entity._id, facilityType: type }),
           approved: true,
         });
+
+        sendEmail({
+          to: docEmail.toLowerCase(),
+          subject: 'Your MediCore Doctor Account Credentials',
+          text: `Hi ${doc.name},\n\nYou have been registered on MediCore by ${account.name}.\n\nLogin: ${docEmail.toLowerCase()}\nTemporary Password: ${tempPassword}\n\nPlease login and change your password.\n\nRegards,\nMediCore Team`,
+        }).catch(() => {});
       }
     }
 

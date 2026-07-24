@@ -3,7 +3,7 @@ import { z } from 'zod';
 import Bed from '../models/Bed.js';
 import Admission from '../models/Admission.js';
 import Notification from '../models/Notification.js';
-import { protect, adminOnly } from '../middleware/auth.js';
+import { protect, adminOnly, clinicalStaffOnly } from '../middleware/auth.js';
 import { validate, createAdmissionSchema } from '../utils/validate.js';
 
 const ipdBedSchema = z.object({}).passthrough();
@@ -187,7 +187,7 @@ router.put('/admissions/:id/discharge', protect, adminOnly, validate(ipdDischarg
 });
 
 // ─── Clinical Charting ─────────────────────────────────────────────────────
-router.post('/admissions/:id/vitals', protect, validate(ipdClinicalSchema), async (req, res) => {
+router.post('/admissions/:id/vitals', protect, clinicalStaffOnly, validate(ipdClinicalSchema), async (req, res) => {
   try {
     const admission = await Admission.findById(req.params.id);
     if (!admission) return res.status(404).json({ message: 'Not found' });
@@ -200,7 +200,7 @@ router.post('/admissions/:id/vitals', protect, validate(ipdClinicalSchema), asyn
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.post('/admissions/:id/mar', protect, validate(ipdClinicalSchema), async (req, res) => {
+router.post('/admissions/:id/mar', protect, clinicalStaffOnly, validate(ipdClinicalSchema), async (req, res) => {
   try {
     const admission = await Admission.findById(req.params.id);
     if (!admission) return res.status(404).json({ message: 'Not found' });
@@ -213,7 +213,7 @@ router.post('/admissions/:id/mar', protect, validate(ipdClinicalSchema), async (
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.post('/admissions/:id/io', protect, validate(ipdClinicalSchema), async (req, res) => {
+router.post('/admissions/:id/io', protect, clinicalStaffOnly, validate(ipdClinicalSchema), async (req, res) => {
   try {
     const admission = await Admission.findById(req.params.id);
     if (!admission) return res.status(404).json({ message: 'Not found' });
@@ -226,7 +226,7 @@ router.post('/admissions/:id/io', protect, validate(ipdClinicalSchema), async (r
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.post('/admissions/:id/nursing-notes', protect, validate(ipdClinicalSchema), async (req, res) => {
+router.post('/admissions/:id/nursing-notes', protect, clinicalStaffOnly, validate(ipdClinicalSchema), async (req, res) => {
   try {
     const admission = await Admission.findById(req.params.id);
     if (!admission) return res.status(404).json({ message: 'Not found' });
@@ -252,7 +252,7 @@ router.post('/admissions/:id/doctor-notes', protect, adminOnly, validate(ipdClin
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.post('/admissions/:id/wound-care', protect, validate(ipdClinicalSchema), async (req, res) => {
+router.post('/admissions/:id/wound-care', protect, clinicalStaffOnly, validate(ipdClinicalSchema), async (req, res) => {
   try {
     const admission = await Admission.findById(req.params.id);
     if (!admission) return res.status(404).json({ message: 'Not found' });

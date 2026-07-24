@@ -197,7 +197,6 @@ import dashboardRoutes from './routes/dashboard.js';
 import reviewRoutes from './routes/reviews.js';
 import notificationRoutes from './routes/notifications.js';
 import reportRoutes from './routes/reports.js';
-import Report from './models/Report.js';
 import uploadRoutes from './routes/upload.js';
 import emergencyRoutes from './routes/emergency.js';
 import departmentRoutes from './routes/departments.js';

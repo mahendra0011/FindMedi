@@ -29,7 +29,7 @@ export function AuthProvider({ children }) {
     dispatch(updateUserAction(updates));
   };
 
-  const completeOtpLogin = async ({ token, user: userData }) => {
+  const completeOtpLogin = async ({ user: userData }) => {
     dispatch(setUser({
       ...userData,
       settings: mergeSettings(readStoredSettings(), userData?.settings),

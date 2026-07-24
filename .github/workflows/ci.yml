@@ -7,32 +7,46 @@ on:
     branches: [ "main" ]
 
 jobs:
-  test:
+  client:
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        node-version: [20.x]
 
     steps:
     - uses: actions/checkout@v4
-    
-    - name: Use Node.js ${{ matrix.node-version }}
+
+    - name: Use Node.js 20.x
       uses: actions/setup-node@v4
       with:
-        node-version: ${{ matrix.node-version }}
-        
-    - name: Install Client Dependencies
-      run: cd client && npm install
-      
-    - name: Client Lint
+        node-version: 20.x
+        cache: 'npm'
+        cache-dependency-path: client/package-lock.json
+
+    - name: Install Dependencies
+      run: cd client && npm install --legacy-peer-deps
+
+    - name: Lint
       run: cd client && npm run lint
-      
-    - name: Client Test
+
+    - name: Build
+      run: cd client && npm run build
+
+    - name: Test
       run: cd client && npm test
-      
-    - name: Install Server Dependencies
+
+  server:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Use Node.js 20.x
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20.x
+        cache: 'npm'
+        cache-dependency-path: server/package-lock.json
+
+    - name: Install Dependencies
       run: cd server && npm install
-      
-    - name: Server Test
+
+    - name: Test
       run: cd server && npm test
