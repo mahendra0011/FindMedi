@@ -665,7 +665,7 @@ export const generatePaymentInvoicePDF = async (payment, reference = null) => co
   doc.fillColor(COLORS.success).font('Helvetica-Bold').fontSize(10);
   doc.text('Total Paid', x + 14, cy, { width: 100 });
   doc.text(money(payment.amount), x + 112, cy, { width: 90, align: 'right' });
-  doc.y = y + 18 + rowCount * 18 + 22;
+  doc.y = y + 18 + totalRows * 18 + 22;
 
   // Payment info
   drawSectionTitle(doc, 'Payment Information');

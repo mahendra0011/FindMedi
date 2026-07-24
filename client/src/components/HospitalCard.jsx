@@ -11,6 +11,7 @@ import {
    FlaskConical, BadgeCheck, Clock, Mail, Navigation, CheckCircle2,
    Smartphone, Landmark, CreditCard, Wallet, ChevronRight, ArrowLeft, CheckCircle
  } from 'lucide-react';
+import BookingModal from './BookingModal';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -33,92 +34,9 @@ const HOSPITAL_TYPE_STYLES = {
 export default function HospitalCard({ hospital, index = 0, distance }) {
    const navigate = useNavigate();
    const { user } = useAuth();
-const [showDoctors, setShowDoctors] = useState(false);
-    const [showBooking, setShowBooking] = useState(false);
-    const [selectedDoctor, setSelectedDoctor] = useState(null);
-    const [bookingDate, setBookingDate] = useState('');
-    const [bookingTime, setBookingTime] = useState('');
-    const [bookingConfirmed, setBookingConfirmed] = useState(false);
-    const [bookingNotes, setBookingNotes] = useState('');
-    const [bookingStep, setBookingStep] = useState(0);
-    const [paymentMethod, setPaymentMethod] = useState('card');
-    const [paymentLoading, setPaymentLoading] = useState(false);
-    const [paymentSuccess, setPaymentSuccess] = useState(false);
-    const [bookingLoading, setBookingLoading] = useState(false);
-    const [bookingDetails, setBookingDetails] = useState(null);
-
-    const handleCreateAppointment = async () => {
-      if (!bookingDate || !bookingTime || !selectedDoctor) return;
-      if (!user) { toast.error('Please login to book'); navigate('/login'); return; }
-      setBookingLoading(true);
-      try {
-        const fees = selectedDoctor.fees || selectedDoctor.consultation_fees || 0;
-        const details = {
-          patient: user.name || 'Patient',
-          patientId: user._id,
-          doctor: selectedDoctor.name,
-          doctorId: selectedDoctor._id,
-          department: selectedDoctor.specialization || 'General',
-          date: bookingDate,
-          time: bookingTime,
-          status: 'Pending',
-          notes: bookingNotes,
-          fees,
-        };
-        const result = await api.createAppointment(details);
-        const bill = await api.createBill({
-          patient: user.name || 'Patient',
-          patientId: user._id,
-          doctor: selectedDoctor.name,
-          invoiceId: `INV-${Date.now()}-${String(user._id).slice(-4)}`,
-          appointmentId: result?._id,
-          service: 'Doctor Consultation',
-          amount: fees,
-          paid: 0,
-          status: 'Pending',
-          date: bookingDate,
-          dueDate: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
-        });
-        setBookingDetails({ ...(result || details), billId: bill?._id });
-        setBookingStep(1);
-      } catch (e) {
-        toast.error(e.response?.data?.message || e.message || 'Failed to create appointment');
-      }
-      setBookingLoading(false);
-    };
-
-    const handlePayment = async () => {
-      const fees = selectedDoctor?.fees || selectedDoctor?.consultation_fees || 0;
-      if (fees <= 0) { setPaymentSuccess(true); setBookingStep(3); return; }
-      setPaymentLoading(true);
-      try {
-        const result = await api.payTransaction({
-          serviceType: 'appointment',
-          referenceId: bookingDetails?._id,
-          amount: fees,
-          method: paymentMethod,
-          description: `Consultation with ${selectedDoctor?.name}`,
-          provider: selectedDoctor?.name,
-          lineItems: [{ name: 'Consultation Fee', price: fees, qty: 1 }],
-        });
-        if (result?.success) {
-          if (bookingDetails?.billId) {
-            try {
-              await api.updateBill(bookingDetails.billId, { paid: fees, status: 'Paid' });
-            } catch (e) {
-              console.warn('Bill status update failed, will rely on cross-reference:', e.message);
-            }
-          }
-          setBookingConfirmed(true);
-          setPaymentSuccess(true);
-          setBookingStep(3);
-          toast.success('Payment successful! Appointment confirmed.');
-        }
-      } catch (e) {
-        toast.error(e.response?.data?.message || e.message || 'Payment failed');
-      }
-      setPaymentLoading(false);
-    };
+   const [showDoctors, setShowDoctors] = useState(false);
+   const [showBooking, setShowBooking] = useState(false);
+   const [selectedDoctor, setSelectedDoctor] = useState(null);
    const yearsSinceEst = hospital.establishedYear
     ? new Date().getFullYear() - hospital.establishedYear
     : null;
@@ -407,28 +325,33 @@ const [showDoctors, setShowDoctors] = useState(false);
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {(hospital.doctors && hospital.doctors.length > 0 
                     ? hospital.doctors 
-                    : [{ _id: 'temp-1', name: 'Dr. Rohit Verma', specialization: 'Dermatology', experience: '7 years', fees: 900 }, { _id: 'temp-2', name: 'Dr. Anita Sharma', specialization: 'Orthopedics', experience: '10 years', fees: 1200 }]
+                    : [{ _id: '60d5f484f1a2b3c4d5e6f789', name: 'Dr. Rohit Verma', specialization: 'Dermatology', experience: '7 years', fees: 900 }, { _id: '60d5f484f1a2b3c4d5e6f790', name: 'Dr. Anita Sharma', specialization: 'Orthopedics', experience: '10 years', fees: 1200 }]
                   ).map((doc, idx) => (
                     <motion.div 
                       key={doc._id || idx} 
                       initial={{ opacity: 0, scale: 0.9 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: idx * 0.05 }}
-                      className="p-3 rounded-xl border border-border/50 hover:border-primary/30 hover:shadow-md transition-all cursor-pointer bg-card"
+                      className="p-3 rounded-xl border border-border/50 bg-card overflow-hidden hover:shadow-md hover:border-primary/30 transition-all duration-300 cursor-pointer group"
                       onClick={() => { setSelectedDoctor(doc); setShowDoctors(false); setShowBooking(true); }}
                       whileHover={{ scale: 1.02, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
-                          <span className="text-primary-foreground font-bold text-sm">{doc.name?.split(' ').map(n=>n[0]).join('').slice(0,2) || 'DR'}</span>
+                      <div className="flex items-start gap-3">
+                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shrink-0 border-2 border-primary/20 shadow-md shadow-primary/20 group-hover:scale-105 transition-all duration-300 overflow-hidden">
+                          <span className="text-primary-foreground font-bold text-xs">{doc.name?.split(' ').map(n=>n[0]).join('').slice(0,2) || 'DR'}</span>
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="font-heading font-semibold text-sm text-foreground truncate">{doc.name}</p>
-                          <p className="text-xs text-primary">{doc.specialization}</p>
-                          <div className="flex items-center gap-2 mt-1">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <h3 className="font-heading font-semibold text-sm text-foreground truncate group-hover:text-primary transition-colors">{doc.name}</h3>
+                            <Badge className="text-[10px] h-4 px-1 bg-primary/10 text-primary border-primary/20 shrink-0">
+                              <BadgeCheck className="w-2.5 h-2.5 mr-0.5" />Verified
+                            </Badge>
+                          </div>
+                          <p className="text-xs font-medium text-primary mt-0.5">{doc.specialization}</p>
+                          <div className="flex items-center gap-2 mt-1.5">
                             <span className="text-xs text-muted-foreground">{doc.experience || `${doc.experienceYears || 0} yrs`}</span>
                             <span className="text-xs text-muted-foreground">•</span>
-                            <span className="text-xs font-medium text-primary">Rs {doc.fees || doc.consultation_fees || 0}</span>
+                            <span className="text-xs font-medium text-primary">₹{doc.fees || doc.consultation_fees || 0}</span>
                           </div>
                         </div>
                       </div>
@@ -477,188 +400,15 @@ const [showDoctors, setShowDoctors] = useState(false);
       </div>
 
       {/* Booking Modal */}
-      <Dialog open={showBooking} onOpenChange={(open) => { if (!open) { setBookingConfirmed(false); setBookingDate(''); setBookingTime(''); setBookingNotes(''); setSelectedDoctor(null); setBookingStep(0); setPaymentMethod('card'); setPaymentSuccess(false); setBookingLoading(false); setBookingDetails(null); } }}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto w-[calc(100%-2rem)] sm:w-full rounded-2xl">
-          {bookingStep === 0 && (
-            <>
-              <DialogHeader>
-                <DialogTitle>Book Appointment</DialogTitle>
-                <DialogDescription>
-                  Quick booking for {hospital?.name} - {selectedDoctor?.name}
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-3 py-2">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shrink-0">
-                    <span className="text-primary-foreground font-bold text-xs">{selectedDoctor?.name?.split(' ')?.map(n=>n?.[0])?.join('')?.slice(0,2)}</span>
-                  </div>
-                  <div className="min-w-0">
-                    <h3 className="font-heading font-semibold text-foreground text-sm truncate">{selectedDoctor?.name}</h3>
-                    <p className="text-xs text-primary">{selectedDoctor?.specialization}</p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="p-2 rounded-xl bg-primary/5 border border-primary/10 text-center">
-                    <p className="text-[11px] text-muted-foreground mb-0.5">Consultation Fee</p>
-                    <p className="font-bold text-sm text-primary">Rs {selectedDoctor?.fees || selectedDoctor?.consultation_fees || 0}</p>
-                  </div>
-                  <div className="p-2 rounded-xl bg-emerald-50 border border-emerald-200 dark:bg-emerald-500/10 text-center">
-                    <p className="text-[11px] text-muted-foreground mb-0.5">Available Slot</p>
-                    <p className="font-semibold text-xs text-emerald-600">{selectedDoctor?.next_available_slot || 'Today'}</p>
-                  </div>
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-foreground">Select Date</label>
-                  <Input type="date" className="w-full" value={bookingDate} onChange={e => setBookingDate(e.target.value)} min={new Date().toISOString().split('T')[0]} />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-foreground">Select Time Slot</label>
-                  <select value={bookingTime} onChange={e => setBookingTime(e.target.value)} className="w-full h-9 px-3 rounded-xl border border-border bg-background text-sm">
-                    <option value="">Choose time</option>
-                    {(selectedDoctor?.time_slots || ['09:00 AM', '10:00 AM', '11:00 AM', '02:00 PM', '03:00 PM', '04:00 PM']).map(t => (
-                      <option key={t}>{t}</option>
-                    ))}
-                  </select>
-                </div>
-                
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-foreground">Notes (optional)</label>
-                  <textarea value={bookingNotes} onChange={e => setBookingNotes(e.target.value)} placeholder="Any specific concerns…" className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm resize-none" rows={2} />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" size="sm" onClick={() => setShowBooking(false)}>Cancel</Button>
-                <Button size="sm" disabled={!bookingDate || !bookingTime || bookingLoading} onClick={handleCreateAppointment}>
-                  {bookingLoading ? <>Booking…</> : <>Next: Payment <ChevronRight className="w-3.5 h-3.5 ml-1" /></>}
-                </Button>
-              </DialogFooter>
-            </>
-          )}
-
-          {bookingStep === 1 && (
-            <>
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <Button variant="ghost" size="icon" className="w-7 h-7 -ml-1" onClick={() => setBookingStep(0)}>
-                    <ArrowLeft className="w-4 h-4" />
-                  </Button>
-                  Payment Method
-                </DialogTitle>
-                <DialogDescription>
-                  Choose how you'd like to pay
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-2 py-4">
-                {[
-                  { id: 'card', label: 'Credit / Debit Card', icon: CreditCard, desc: 'Pay securely with your card' },
-                  { id: 'upi', label: 'UPI', icon: Smartphone, desc: 'Google Pay, PhonePe, Paytm' },
-                  { id: 'netbanking', label: 'Net Banking', icon: Landmark, desc: 'All major banks supported' },
-                  { id: 'wallet', label: 'Wallet', icon: Wallet, desc: 'Paytm, Mobikwik, Freecharge' },
-                ].map(m => (
-                  <motion.div
-                    key={m.id}
-                    whileHover={{ scale: 1.01 }}
-                    onClick={() => setPaymentMethod(m.id)}
-                    className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
-                      paymentMethod === m.id
-                        ? 'border-primary bg-primary/5 shadow-sm'
-                        : 'border-border/60 hover:border-primary/30 bg-card'
-                    }`}
-                  >
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                      paymentMethod === m.id ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
-                    }`}>
-                      <m.icon className="w-5 h-5" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm text-foreground">{m.label}</p>
-                      <p className="text-xs text-muted-foreground">{m.desc}</p>
-                    </div>
-                    {paymentMethod === m.id && <CheckCircle className="w-5 h-5 text-primary shrink-0" />}
-                  </motion.div>
-                ))}
-              </div>
-              <DialogFooter>
-                <Button variant="outline" size="sm" onClick={() => setShowBooking(false)}>Cancel</Button>
-                <Button size="sm" onClick={() => setBookingStep(2)}>
-                  Next: Review Bill <ChevronRight className="w-3.5 h-3.5 ml-1" />
-                </Button>
-              </DialogFooter>
-            </>
-          )}
-
-          {bookingStep === 2 && (
-            <>
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <Button variant="ghost" size="icon" className="w-7 h-7 -ml-1" onClick={() => setBookingStep(1)}>
-                    <ArrowLeft className="w-4 h-4" />
-                  </Button>
-                  Review & Confirm
-                </DialogTitle>
-                <DialogDescription>
-                  Verify your appointment details
-                </DialogDescription>
-              </DialogHeader>
-              <div className="py-3 space-y-3">
-                <BillCheckout
-                  amount={selectedDoctor?.fees || selectedDoctor?.consultation_fees || 0}
-                  serviceType="appointment"
-                  provider={hospital?.name}
-                  details={{ doctor: selectedDoctor?.name, specialization: selectedDoctor?.specialization, date: bookingDate, time: bookingTime, type: 'Consultation' }}
-                  lineItems={[{ name: 'Consultation Fee', price: selectedDoctor?.fees || selectedDoctor?.consultation_fees || 0, qty: 1 }]}
-                  platformFee={0}
-                  gst={0}
-                  discount={0}
-                  compact
-                  method={paymentMethod}
-                  onMethodChange={setPaymentMethod}
-                  onPay={handlePayment}
-                  loading={paymentLoading}
-                />
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" className="flex-1" onClick={() => setShowBooking(false)}>Cancel</Button>
-                  <Button size="sm" className="flex-1" disabled={paymentLoading} onClick={handlePayment}>
-                    {paymentLoading ? <>Processing…</> : <>Pay Rs {selectedDoctor?.fees || selectedDoctor?.consultation_fees || 0}</>}
-                  </Button>
-                </div>
-              </div>
-            </>
-          )}
-
-          {bookingStep === 3 && (
-            <div className="py-8 text-center">
-              <motion.div
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ type: 'spring', stiffness: 300 }}
-                className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shadow-lg shadow-primary/30"
-              >
-                <CheckCircle2 className="w-10 h-10 text-primary-foreground" />
-              </motion.div>
-              <h3 className="text-lg font-bold text-primary mb-2">Booking Confirmed!</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Appointment booked for {selectedDoctor?.name}
-              </p>
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 border border-primary/20">
-                <CalendarDays className="w-4 h-4 text-primary" />
-                <p className="text-xs font-medium text-primary">
-                  {bookingDate && new Date(bookingDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} • {bookingTime}
-                </p>
-              </div>
-              <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20">
-                <CheckCircle className="w-4 h-4 text-emerald-600" />
-                <span className="text-xs font-medium text-emerald-600">
-                  Payment of Rs {selectedDoctor?.fees || selectedDoctor?.consultation_fees || 0} via {paymentMethod === 'upi' ? 'UPI' : paymentMethod === 'netbanking' ? 'Net Banking' : paymentMethod === 'wallet' ? 'Wallet' : 'Card'} successful
-                </span>
-              </div>
-              <DialogFooter className="mt-6">
-                <Button size="sm" onClick={() => setShowBooking(false)}>Done</Button>
-              </DialogFooter>
-            </div>
-          )}
-        </DialogContent>
-</Dialog>
+      <BookingModal 
+        open={showBooking} 
+        onOpenChange={(open) => {
+          setShowBooking(open);
+          if (!open) setSelectedDoctor(null);
+        }}
+        doctor={selectedDoctor}
+        facility={hospital}
+      />
     </motion.div>
   );
 }

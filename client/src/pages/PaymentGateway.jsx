@@ -42,7 +42,6 @@ export default function PaymentGateway() {
   const [order, setOrder] = useState(null);
   const [orderLoading, setOrderLoading] = useState(true);
   const { user } = useAuth();
-
   useEffect(() => {
     if (storeIds.length === 0) return;
     const load = async () => {

@@ -186,7 +186,7 @@ const appointment = await Appointment.create({
     if (doctorId) {
       await createNotification(doctorId, 'New Appointment', `New ${type || 'Consultation'} appointment from ${patientName} for ${date} at ${time}`, 'appointment');
     }
-    await createNotification(patientId, 'Appointment Booked', `Your appointment with Dr. ${doctor || 'Doctor'} on ${date} at ${time} has been booked successfully. Token: ${tokenNumber}`, 'appointment');
+    await createNotification(patientId, 'Appointment Created', `Your appointment with Dr. ${doctor || 'Doctor'} on ${date} at ${time} has been created. Please complete payment to confirm. Token: ${tokenNumber}`, 'appointment');
     
     res.status(201).json(appointment);
   } catch (err) { res.status(400).json({ message: err.message }); }
