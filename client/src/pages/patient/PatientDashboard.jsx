@@ -5,12 +5,13 @@ import {
   CalendarDays, User, FileText, TestTube, Bell, AlertTriangle, ClipboardList,
   Pill, ShoppingCart, Upload, Search, Zap, Heart, ArrowRight, Clock, Star,
   IndianRupee, Activity, MapPinned, HelpCircle, Phone, MessageCircle, ChevronRight,
-  X, Download, Users, Ambulance, Stethoscope, Syringe, CreditCard, Bookmark
+  X, Download, Users, Ambulance, Stethoscope, Syringe, CreditCard, Bookmark,
+  Smartphone, Landmark, Wallet
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
-import { api } from '@/lib/api';
+import { api, downloadPaymentInvoice } from '@/lib/api';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
@@ -27,6 +28,8 @@ const StatusBadge = ({ status, mapping }) => {
   };
   return <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${colors[status] || 'bg-muted text-muted-foreground'}`}>{status}</span>;
 };
+
+const methodIcons = { card: CreditCard, upi: Smartphone, netbanking: Landmark, cash: Wallet };
 
 const SupportTicketForm = ({ onClose, showToast }) => {
   const [subject, setSubject] = useState('');
@@ -65,7 +68,6 @@ const statCards = [
   { icon: ClipboardList, label: 'Active Prescriptions', color: 'text-blue-500', bg: 'bg-blue-500/10', link: '/patient/prescriptions' },
   { icon: ShoppingCart, label: 'Active Orders', color: 'text-amber-500', bg: 'bg-amber-500/10', link: '/patient/medicine-orders' },
   { icon: FileText, label: 'Reports Ready', color: 'text-violet-500', bg: 'bg-violet-500/10', link: '/patient/reports' },
-  { icon: IndianRupee, label: 'Pending Bills', color: 'text-rose-500', bg: 'bg-rose-500/10', link: '/patient/billing' },
   { icon: Bell, label: 'Notifications', color: 'text-orange-500', bg: 'bg-orange-500/10', link: '/notifications' },
   { icon: TestTube, label: 'Test Bookings', color: 'text-cyan-500', bg: 'bg-cyan-500/10', link: '/patient/bookings' },
   { icon: Star, label: 'My Reviews', color: 'text-yellow-500', bg: 'bg-yellow-500/10', link: '/patient/reviews' },
@@ -103,6 +105,7 @@ export default function PatientDashboard() {
   const [cancelTarget, setCancelTarget] = useState(null);
   const [tipIndex, setTipIndex] = useState(0);
   const [greeting, setGreeting] = useState('');
+  const [payments, setPayments] = useState([]);
 
   useEffect(() => {
     const h = new Date().getHours();
@@ -131,8 +134,8 @@ export default function PatientDashboard() {
 
   const showToast = (msg, type = 'success') => { setToast({ msg, type }); setTimeout(() => setToast(null), 3000); };
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
+    if (!user?._id) return;
     const load = async () => {
       try {
         const [a, r, b] = await Promise.all([
@@ -141,7 +144,21 @@ export default function PatientDashboard() {
           api.getBilling().catch(() => ({ data: [] })),
         ]);
         setAppointments((a?.appointments || a?.data || []).slice(0, 8));
-        setBills(b?.bills || b?.data || []);
+        const rawBills = b?.bills || b?.data || [];
+        const [p] = await Promise.all([
+          api.getPayments({ patient_id: user?._id }).catch(() => ({ data: [] })),
+        ]);
+        const rawPayments = p?.payments || p?.data || [];
+        setPayments(rawPayments);
+        // Cross-reference: mark bills as Paid if matching payment exists
+        const uid = String(user?._id || '');
+        const paidRefs = new Set(rawPayments.map(pay => pay.invoice_id || pay.invoiceId || pay.referenceId));
+        const paidSignatures = new Set(rawPayments.map(pay => `${String(pay.patient_id || pay.patientId || '')}:${pay.amount}`));
+        setBills(rawBills.map(bill => {
+          if (paidRefs.has(bill.invoiceId || bill._id)) return { ...bill, status: 'Paid' };
+          if (bill.status !== 'Paid' && uid && paidSignatures.has(`${uid}:${bill.amount}`)) return { ...bill, status: 'Paid' };
+          return bill;
+        }));
         const [phOrders, rx, n, lb] = await Promise.all([
           api.getPharmacyOrders({}).catch(() => ({ orders: [] })),
           api.getPharmacyPrescriptions({}).catch(() => ({ prescriptions: [] })),
@@ -186,12 +203,23 @@ export default function PatientDashboard() {
       } catch (e) { console.error(e); showToast('Failed to load dashboard data', 'error'); }
     };
     load();
-  }, []);
+  }, [user?._id]);
 
   const today = new Date().toISOString().split('T')[0];
   const upcomingAppts = appointments.filter(a => a.date >= today && a.status !== 'Completed');
   const unreadNotifs = notifs.filter(n => !n.read).length;
-  const pendingBillsCount = bills.filter(b => b.status === 'Pending' || b.status === 'Overdue').length;
+  const isBillPaid = (bill) => {
+    if (bill.status === 'Paid') return true;
+    const uid = String(user?._id || '');
+    return payments.some(p =>
+      p.invoice_id === bill.invoiceId ||
+      p.invoiceId === bill.invoiceId ||
+      (String(p.patient_id || p.patientId || '') === uid && p.amount === bill.amount)
+    );
+  };
+
+  const pendingBills = bills.filter(b => !isBillPaid(b));
+  const pendingBillsCount = pendingBills.length;
   const activeRxCount = prescriptions.filter(r => r.status === 'Active').length;
   const activeOrders = medOrders.filter(o => o.status !== 'Delivered').length;
   const readyReportsCount = reports.filter(r => r.status === 'Ready').length;
@@ -203,7 +231,6 @@ export default function PatientDashboard() {
     'Active Prescriptions': activeRxCount,
     'Active Orders': activeOrders,
     'Reports Ready': readyReportsCount,
-    'Pending Bills': pendingBillsCount,
     'Notifications': unreadNotifs,
     'Test Bookings': recentTests.length,
     'My Reviews': reviews.length,
@@ -243,7 +270,7 @@ export default function PatientDashboard() {
 
       {/* Stats Grid */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-6">
           {statCards.map((s, i) => {
             const val = statValues[s.label];
             return (
@@ -405,39 +432,50 @@ export default function PatientDashboard() {
           )}
         </div>
 
-        {/* Pending Bills */}
+        {/* Recent History */}
         <div className="bg-card rounded-2xl border border-border/60 p-5">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-rose-500/10 flex items-center justify-center"><IndianRupee className="w-4 h-4 text-rose-500" /></div>
+              <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center"><FileText className="w-4 h-4 text-primary" /></div>
               <div>
-                <h3 className="font-semibold text-foreground">Pending Bills</h3>
-                <p className="text-xs text-muted-foreground">{pendingBillsCount > 0 ? `${pendingBillsCount} unpaid` : 'All clear'}</p>
+                <h3 className="font-semibold text-foreground">Recent History</h3>
+                <p className="text-xs text-muted-foreground">{payments.length > 0 ? `Last ${Math.min(payments.length, 3)} transactions` : 'No transactions yet'}</p>
               </div>
             </div>
-            <Button variant="ghost" size="sm" className="gap-1 text-primary" onClick={() => navigate('/patient/billing')}>View<ChevronRight className="w-3.5 h-3.5" /></Button>
+            <Button variant="ghost" size="sm" className="gap-1 text-primary" onClick={() => navigate('/patient/history')}>View All<ChevronRight className="w-3.5 h-3.5" /></Button>
           </div>
-          {bills.filter(b => b.status !== 'Paid').length > 0 ? (
+          {payments.length > 0 ? (
             <div className="space-y-2.5">
-              {bills.filter(b => b.status !== 'Paid').slice(0, 3).map(b => (
-                <div key={b._id} className="flex items-center justify-between p-3 bg-muted/30 rounded-xl">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">{b.invoiceId || `Bill #${String(b._id).slice(-6)}`}</p>
-                    <p className="text-xs text-muted-foreground">{b.service || 'Consultation'}</p>
+              {payments.slice(0, 3).map(txn => {
+                const MethodIcon = methodIcons[txn.method] || FileText;
+                const typeIcon = txn.serviceType === 'appointment' ? '🩺' : txn.serviceType === 'test' ? '🧪' : '💊';
+                return (
+                  <div key={txn._id} className="flex items-center justify-between p-3 bg-muted/30 rounded-xl">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-foreground truncate">{txn.description || `${txn.serviceType} payment`}</p>
+                      <p className="text-[11px] text-muted-foreground">{txn.provider} · {new Date(txn.createdAt).toLocaleDateString('en-IN')}</p>
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <MethodIcon className="w-3 h-3 text-muted-foreground" />
+                        <span className="text-[10px] text-muted-foreground capitalize">{txn.method}</span>
+                        {txn.transaction_id && <span className="text-[10px] font-mono text-muted-foreground">· {txn.transaction_id}</span>}
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0 ml-3">
+                      <p className="text-sm font-bold text-emerald-600">₹{txn.amount?.toLocaleString('en-IN')}</p>
+                      <Button size="sm" variant="ghost" className="h-7 px-2 text-xs gap-1 text-primary"
+                        onClick={() => downloadPaymentInvoice(txn._id, `${txn.invoice_id || 'invoice'}.pdf`).catch(() => {})}>
+                        <FileText className="w-3 h-3" /> Invoice
+                      </Button>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm font-bold text-rose-500">₹{((b.amount || 0) - (b.paid || 0)).toLocaleString()}</p>
-                    <StatusBadge status={b.status} />
-                  </div>
-                </div>
-              ))}
-              <Button size="sm" variant="outline" className="w-full mt-1" onClick={() => navigate('/patient/payment')}>Pay Now</Button>
+                );
+              })}
             </div>
           ) : (
             <div className="text-center py-8">
-              <IndianRupee className="w-10 h-10 text-muted-foreground/30 mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">No pending bills</p>
-              <p className="text-xs text-muted-foreground mt-1">Everything is paid up!</p>
+              <FileText className="w-10 h-10 text-muted-foreground/30 mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">No transactions yet</p>
+              <p className="text-xs text-muted-foreground mt-1">Your payment history will appear here</p>
             </div>
           )}
         </div>
@@ -480,16 +518,16 @@ export default function PatientDashboard() {
         <Modal title="Make a Payment" onClose={() => setShowModal(null)}>
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">Select a bill to pay from your pending invoices.</p>
-            {bills.filter(b => b.status !== 'Paid').slice(0, 5).map(b => (
+            {pendingBills.slice(0, 5).map(b => (
               <div key={b._id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
                 <div>
                   <p className="text-sm font-medium">{b.invoiceId}</p>
                   <p className="text-xs text-muted-foreground">{b.service} · ₹{((b.amount || 0) - (b.paid || 0)).toLocaleString()}</p>
                 </div>
-                <Button size="sm" onClick={() => { navigate('/patient/payment'); setShowModal(null); }}>Pay Now</Button>
+                <Button size="sm" onClick={() => { navigate('/patient/history'); setShowModal(null); }}>Pay Now</Button>
               </div>
             ))}
-            {bills.filter(b => b.status !== 'Paid').length === 0 && <p className="text-center py-4 text-sm text-muted-foreground">No pending bills</p>}
+            {pendingBills.length === 0 && <p className="text-center py-4 text-sm text-muted-foreground">No pending bills</p>}
           </div>
         </Modal>
       )}

@@ -38,7 +38,7 @@ function formatTime(d) {
   return dt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
 }
 
-export default function PatientBilling() {
+export default function PatientHistory() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [transactions, setTransactions] = useState([]);

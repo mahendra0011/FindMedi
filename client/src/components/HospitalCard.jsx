@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { toast } from 'sonner';
+import { useAuth } from '@/context/AuthContext';
+import { api } from '@/lib/api';
 import {
    Building2, MapPin, Phone, Star, CalendarDays, Users,
    ShieldCheck, Truck, BedDouble, Stethoscope, Heart, Brain,
@@ -29,6 +32,7 @@ const HOSPITAL_TYPE_STYLES = {
 
 export default function HospitalCard({ hospital, index = 0, distance }) {
    const navigate = useNavigate();
+   const { user } = useAuth();
 const [showDoctors, setShowDoctors] = useState(false);
     const [showBooking, setShowBooking] = useState(false);
     const [selectedDoctor, setSelectedDoctor] = useState(null);
@@ -40,6 +44,81 @@ const [showDoctors, setShowDoctors] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState('card');
     const [paymentLoading, setPaymentLoading] = useState(false);
     const [paymentSuccess, setPaymentSuccess] = useState(false);
+    const [bookingLoading, setBookingLoading] = useState(false);
+    const [bookingDetails, setBookingDetails] = useState(null);
+
+    const handleCreateAppointment = async () => {
+      if (!bookingDate || !bookingTime || !selectedDoctor) return;
+      if (!user) { toast.error('Please login to book'); navigate('/login'); return; }
+      setBookingLoading(true);
+      try {
+        const fees = selectedDoctor.fees || selectedDoctor.consultation_fees || 0;
+        const details = {
+          patient: user.name || 'Patient',
+          patientId: user._id,
+          doctor: selectedDoctor.name,
+          doctorId: selectedDoctor._id,
+          department: selectedDoctor.specialization || 'General',
+          date: bookingDate,
+          time: bookingTime,
+          status: 'Pending',
+          notes: bookingNotes,
+          fees,
+        };
+        const result = await api.createAppointment(details);
+        const bill = await api.createBill({
+          patient: user.name || 'Patient',
+          patientId: user._id,
+          doctor: selectedDoctor.name,
+          invoiceId: `INV-${Date.now()}-${String(user._id).slice(-4)}`,
+          appointmentId: result?._id,
+          service: 'Doctor Consultation',
+          amount: fees,
+          paid: 0,
+          status: 'Pending',
+          date: bookingDate,
+          dueDate: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
+        });
+        setBookingDetails({ ...(result || details), billId: bill?._id });
+        setBookingStep(1);
+      } catch (e) {
+        toast.error(e.response?.data?.message || e.message || 'Failed to create appointment');
+      }
+      setBookingLoading(false);
+    };
+
+    const handlePayment = async () => {
+      const fees = selectedDoctor?.fees || selectedDoctor?.consultation_fees || 0;
+      if (fees <= 0) { setPaymentSuccess(true); setBookingStep(3); return; }
+      setPaymentLoading(true);
+      try {
+        const result = await api.payTransaction({
+          serviceType: 'appointment',
+          referenceId: bookingDetails?._id,
+          amount: fees,
+          method: paymentMethod,
+          description: `Consultation with ${selectedDoctor?.name}`,
+          provider: selectedDoctor?.name,
+          lineItems: [{ name: 'Consultation Fee', price: fees, qty: 1 }],
+        });
+        if (result?.success) {
+          if (bookingDetails?.billId) {
+            try {
+              await api.updateBill(bookingDetails.billId, { paid: fees, status: 'Paid' });
+            } catch (e) {
+              console.warn('Bill status update failed, will rely on cross-reference:', e.message);
+            }
+          }
+          setBookingConfirmed(true);
+          setPaymentSuccess(true);
+          setBookingStep(3);
+          toast.success('Payment successful! Appointment confirmed.');
+        }
+      } catch (e) {
+        toast.error(e.response?.data?.message || e.message || 'Payment failed');
+      }
+      setPaymentLoading(false);
+    };
    const yearsSinceEst = hospital.establishedYear
     ? new Date().getFullYear() - hospital.establishedYear
     : null;
@@ -398,7 +477,7 @@ const [showDoctors, setShowDoctors] = useState(false);
       </div>
 
       {/* Booking Modal */}
-      <Dialog open={showBooking} onOpenChange={(open) => { if (!open) { setBookingConfirmed(false); setBookingDate(''); setBookingTime(''); setBookingNotes(''); setSelectedDoctor(null); setBookingStep(0); setPaymentMethod('card'); setPaymentSuccess(false); } }}>
+      <Dialog open={showBooking} onOpenChange={(open) => { if (!open) { setBookingConfirmed(false); setBookingDate(''); setBookingTime(''); setBookingNotes(''); setSelectedDoctor(null); setBookingStep(0); setPaymentMethod('card'); setPaymentSuccess(false); setBookingLoading(false); setBookingDetails(null); } }}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto w-[calc(100%-2rem)] sm:w-full rounded-2xl">
           {bookingStep === 0 && (
             <>
@@ -449,8 +528,8 @@ const [showDoctors, setShowDoctors] = useState(false);
               </div>
               <DialogFooter>
                 <Button variant="outline" size="sm" onClick={() => setShowBooking(false)}>Cancel</Button>
-                <Button size="sm" disabled={!bookingDate || !bookingTime} onClick={() => setBookingStep(1)}>
-                  Next: Payment <ChevronRight className="w-3.5 h-3.5 ml-1" />
+                <Button size="sm" disabled={!bookingDate || !bookingTime || bookingLoading} onClick={handleCreateAppointment}>
+                  {bookingLoading ? <>Booking…</> : <>Next: Payment <ChevronRight className="w-3.5 h-3.5 ml-1" /></>}
                 </Button>
               </DialogFooter>
             </>
@@ -521,35 +600,29 @@ const [showDoctors, setShowDoctors] = useState(false);
                   Verify your appointment details
                 </DialogDescription>
               </DialogHeader>
-              <div className="py-3">
+              <div className="py-3 space-y-3">
                 <BillCheckout
-                  doctorName={selectedDoctor?.name}
-                  specialization={selectedDoctor?.specialization}
-                  hospitalName={hospital?.name}
-                  date={bookingDate}
-                  time={bookingTime}
-                  fees={selectedDoctor?.fees || selectedDoctor?.consultation_fees || 0}
+                  amount={selectedDoctor?.fees || selectedDoctor?.consultation_fees || 0}
+                  serviceType="appointment"
+                  provider={hospital?.name}
+                  details={{ doctor: selectedDoctor?.name, specialization: selectedDoctor?.specialization, date: bookingDate, time: bookingTime, type: 'Consultation' }}
+                  lineItems={[{ name: 'Consultation Fee', price: selectedDoctor?.fees || selectedDoctor?.consultation_fees || 0, qty: 1 }]}
+                  platformFee={0}
+                  gst={0}
+                  discount={0}
                   compact
+                  method={paymentMethod}
+                  onMethodChange={setPaymentMethod}
+                  onPay={handlePayment}
+                  loading={paymentLoading}
                 />
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" className="flex-1" onClick={() => setShowBooking(false)}>Cancel</Button>
+                  <Button size="sm" className="flex-1" disabled={paymentLoading} onClick={handlePayment}>
+                    {paymentLoading ? <>Processing…</> : <>Pay Rs {selectedDoctor?.fees || selectedDoctor?.consultation_fees || 0}</>}
+                  </Button>
+                </div>
               </div>
-              <DialogFooter>
-                <Button variant="outline" size="sm" onClick={() => setShowBooking(false)}>Cancel</Button>
-                <Button size="sm" disabled={paymentLoading} onClick={async () => {
-                  setPaymentLoading(true);
-                  // Simulate payment processing
-                  await new Promise(r => setTimeout(r, 1500));
-                  setBookingConfirmed(true);
-                  setPaymentSuccess(true);
-                  setBookingStep(3);
-                  setPaymentLoading(false);
-                }}>
-                  {paymentLoading ? (
-                    <>Processing…</>
-                  ) : (
-                    <>Confirm & Pay Rs {selectedDoctor?.fees || selectedDoctor?.consultation_fees || 0}</>
-                  )}
-                </Button>
-              </DialogFooter>
             </>
           )}
 

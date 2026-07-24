@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { CalendarDays, Clock, User, CheckCircle, XCircle, AlertCircle, Star, TrendingUp, DollarSign, Stethoscope, Activity, Heart, FileText, Users, FlaskConical, Download } from 'lucide-react';
+import { CalendarDays, Clock, User, CheckCircle, AlertCircle, Star, DollarSign, Stethoscope, Activity, Users, FlaskConical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
@@ -21,17 +21,21 @@ export default function DoctorDashboard() {
   const [bills, setBills] = useState([]);
   const [labReports, setLabReports] = useState([]);
   const [loading, setLoading] = useState(true);
+  const mounted = useRef(true);
 
   useEffect(() => {
+    mounted.current = true;
     const load = async () => {
       setLoading(true);
       try {
-        const [a, r, b, records] = await Promise.all([
+        const results = await Promise.allSettled([
           api.getAppointments(),
           api.getReviews(),
           api.getBilling(),
           api.getRecords(),
         ]);
+        if (!mounted.current) return;
+        const [a, r, b, records] = results.map(res => res.status === 'fulfilled' ? res.value : []);
         const docName = user?.name?.toLowerCase();
         const myAppointments = a?.filter(apt => 
           apt.doctor?.toLowerCase() === docName
@@ -51,10 +55,16 @@ export default function DoctorDashboard() {
           .slice(-10)
           .reverse();
         setLabReports(myLabReports);
+
+        const failed = results.filter(r => r.status === 'rejected');
+        if (failed.length > 0) {
+          toast.error(`Failed to load ${failed.length} data source(s)`);
+        }
       } catch (e) { console.error(e); toast.error('Failed to load dashboard data'); }
-      setLoading(false);
+      if (mounted.current) setLoading(false);
     };
     load();
+    return () => { mounted.current = false; };
   }, [user?.name]);
 
   const today = new Date().toISOString().split('T')[0];
@@ -62,7 +72,7 @@ export default function DoctorDashboard() {
   const pendingAppts = appointments.filter(a => a.status === 'Pending');
   const completedAppts = appointments.filter(a => a.status === 'Completed');
   const uniquePatients = new Set(appointments.map(a => a.patient?.toLowerCase())).size;
-  const avgRating = reviews.length > 0 ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1) : '0.0';
+  const avgRating = reviews.length > 0 ? (reviews.reduce((s, r) => s + Number(r.rating || 0), 0) / reviews.length).toFixed(1) : '0.0';
   
   // Earnings
   const totalEarned = bills.reduce((s, b) => s + (b.paid || 0), 0);
@@ -242,7 +252,7 @@ export default function DoctorDashboard() {
                 </div>
                 {report.data?.tests && report.data.tests.length > 0 && (
                   <span className="shrink-0 text-xs font-medium text-success">
-                    {report.data.tests.filter(t => t.result).length}/{report.data.tests.length} done
+                    {report.data.tests.filter(t => t.result !== undefined && t.result !== null).length}/{report.data.tests.length} done
                   </span>
                 )}
               </div>

@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { CreditCard, IndianRupee, CheckCircle, Clock, AlertCircle, History, Smartphone, Landmark, Wallet } from 'lucide-react';
+import { CreditCard, IndianRupee, CheckCircle, Clock, AlertCircle, History, Smartphone, Landmark, Wallet, Download, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
+import { toast } from 'sonner';
 import StatCard from '@/components/StatCard';
 
 const statusColors = { completed: 'bg-success/10 text-success', pending: 'bg-warning/10 text-warning', failed: 'bg-destructive/10 text-destructive', refunded: 'bg-info/10 text-info' };
@@ -18,21 +19,33 @@ export default function PatientPayment() {
   const [payMethod, setPayMethod] = useState('card');
   const [paySuccess, setPaySuccess] = useState(false);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const [p, b] = await Promise.all([
-        api.getPayments({ patient_id: user?._id }),
-        api.getBilling({ patientId: user?._id }),
+        api.getPayments({ patientId: user?._id, patient_id: user?._id }),
+        api.getBilling({ patientId: user?._id, patient_id: user?._id }),
       ]);
-      setPayments(p?.payments || p?.data || []);
-      setBills(b?.bills || b?.data || []);
-    } catch (e) { console.error(e); }
+      const rawPayments = p?.payments || p?.data || p || [];
+      const rawBills = b?.bills || b?.data || b || [];
+      // Cross-reference: mark bills as Paid if matching payment exists
+      const uid = String(user?._id || '');
+      const paidRefs = new Set(rawPayments.map(pay => pay.invoice_id || pay.invoiceId || pay.referenceId));
+      const paidSignatures = new Set(rawPayments.map(pay => `${String(pay.patient_id || pay.patientId || '')}:${pay.amount}`));
+      setPayments(rawPayments);
+      setBills(rawBills.map(bill => {
+        if (paidRefs.has(bill.invoiceId || bill._id)) return { ...bill, status: 'Paid' };
+        if (bill.status !== 'Paid' && uid && paidSignatures.has(`${uid}:${bill.amount}`)) return { ...bill, status: 'Paid' };
+        return bill;
+      }));
+    } catch (e) {
+      console.error(e);
+      toast.error('Failed to load payment data');
+    }
     setLoading(false);
-  };
+  }, [user?._id]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { if (user?._id) loadData(); }, [loadData, user?._id]);
 
   const totalPaid = payments.filter(p => p.status === 'completed').reduce((s, p) => s + (p.amount || 0), 0);
   const pendingAmount = bills.filter(b => b.status !== 'Paid').reduce((s, b) => s + ((b.amount || 0) - (b.paid || 0)), 0);
@@ -40,17 +53,21 @@ export default function PatientPayment() {
   const handlePay = async (bill) => {
     try {
       await api.createPayment({
+        patientId: user?._id,
         patient_id: user?._id,
         patient_name: user?.name,
-        amount: bill.amount - bill.paid,
+        amount: (bill.amount || 0) - (bill.paid || 0),
         method: payMethod,
-        invoice_id: bill.invoiceId,
+        invoice_id: bill.invoiceId || bill._id,
         status: 'completed',
       });
       await api.updateBill(bill._id, { paid: bill.amount, status: 'Paid' });
       setPaySuccess(true);
       setTimeout(() => { setPaySuccess(false); setPayingBill(null); loadData(); }, 2000);
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+      toast.error('Payment failed');
+    }
   };
 
   if (loading) return <div className="flex justify-center py-12"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>;
@@ -72,30 +89,32 @@ export default function PatientPayment() {
       {/* Pending Bills */}
       {bills.filter(b => b.status !== 'Paid').length > 0 && (
         <div>
-          <h2 className="font-heading text-lg font-semibold text-foreground mb-3">Pending Bills</h2>
+          <h2 className="font-heading text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
+            <Clock className="w-5 h-5 text-warning" /> Pending Bills
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {bills.filter(b => b.status !== 'Paid').map((bill, i) => (
               <motion.div key={bill._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
                 className="bg-card rounded-2xl border border-border/60 p-5">
                 <div className="flex items-start justify-between mb-3">
                   <div>
-                    <p className="text-xs font-mono text-muted-foreground">{bill.invoiceId}</p>
-                    <h3 className="font-heading font-semibold text-foreground">{bill.service}</h3>
-                    <p className="text-sm text-primary">{bill.doctor}</p>
+                    <p className="text-xs font-mono text-muted-foreground">{bill.invoiceId || bill._id}</p>
+                    <h3 className="font-heading font-semibold text-foreground">{bill.service || bill.description || 'Consultation'}</h3>
+                    <p className="text-sm text-primary">{bill.doctor || bill.provider || ''}</p>
                   </div>
-                  <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-warning/10 text-warning">{bill.status}</span>
+                  <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-warning/10 text-warning">{bill.status || 'Pending'}</span>
                 </div>
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <p className="text-xs text-muted-foreground">Amount Due</p>
-                    <p className="font-heading text-xl font-bold text-foreground">₹{bill.amount - bill.paid}</p>
+                    <p className="font-heading text-xl font-bold text-foreground">₹{((bill.amount || 0) - (bill.paid || 0)).toLocaleString()}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-xs text-muted-foreground">Due Date</p>
-                    <p className="text-sm text-foreground">{bill.dueDate}</p>
+                    <p className="text-sm text-foreground">{bill.dueDate || bill.date || '—'}</p>
                   </div>
                 </div>
-                <Button className="w-full gap-2" onClick={() => setPayingBill(bill)}>
+                <Button className="w-full gap-2" onClick={() => { setPayMethod('card'); setPayingBill(bill); }}>
                   <CreditCard className="w-4 h-4" /> Pay Now
                 </Button>
               </motion.div>
@@ -125,17 +144,25 @@ export default function PatientPayment() {
                   </tr>
                 </thead>
                 <tbody>
-                  {payments.map(pay => (
+                  {payments.map(pay => {
+                    const PayIcon = methodIcons[pay.method] || CreditCard;
+                    return (
                     <tr key={pay._id} className="border-b border-border/30 hover:bg-muted/30">
-                      <td className="px-4 py-3 text-sm font-mono">{pay.transaction_id}</td>
-                      <td className="px-4 py-3 text-sm">{pay.invoice_id || '-'}</td>
-                      <td className="px-4 py-3 text-sm font-semibold">₹{pay.amount}</td>
-                      <td className="px-4 py-3 text-sm flex items-center gap-1">{(() => { const Icon = methodIcons[pay.method] || CreditCard; return <Icon className="w-3.5 h-3.5" />; })()} {pay.method}</td>
+                      <td className="px-4 py-3 text-sm font-mono">{pay.transaction_id || pay.transactionId || pay._id?.slice(-8)}</td>
+                      <td className="px-4 py-3 text-sm">
+                        <span className="flex items-center gap-1">
+                          <FileText className="w-3.5 h-3.5 text-muted-foreground" />
+                          {pay.invoice_id || pay.invoiceId || '-'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-sm font-semibold">₹{(pay.amount || 0).toLocaleString()}</td>
+                      <td className="px-4 py-3 text-sm flex items-center gap-1"><PayIcon className="w-3.5 h-3.5" /> {pay.method}</td>
                       <td className="px-4 py-3">
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${statusColors[pay.status]}`}>{pay.status}</span>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${statusColors[pay.status] || 'bg-muted text-muted-foreground'}`}>{pay.status}</span>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -159,9 +186,9 @@ export default function PatientPayment() {
                 <h3 className="font-heading text-lg font-bold text-foreground mb-4">Make Payment</h3>
                 <div className="space-y-4">
                   <div className="bg-muted/50 rounded-xl p-4">
-                    <p className="text-sm text-muted-foreground">Invoice: {payingBill.invoiceId}</p>
-                    <p className="font-heading text-2xl font-bold text-foreground">₹{payingBill.amount - payingBill.paid}</p>
-                    <p className="text-sm text-muted-foreground">{payingBill.service}</p>
+                    <p className="text-sm text-muted-foreground">Invoice: {payingBill.invoiceId || payingBill._id}</p>
+                    <p className="font-heading text-2xl font-bold text-foreground">₹{((payingBill.amount || 0) - (payingBill.paid || 0)).toLocaleString()}</p>
+                    <p className="text-sm text-muted-foreground">{payingBill.service || payingBill.description || 'Consultation'}</p>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-foreground mb-2 block">Payment Method</label>
@@ -178,7 +205,7 @@ export default function PatientPayment() {
                 <div className="flex gap-3 mt-6">
                   <Button variant="outline" className="flex-1" onClick={() => setPayingBill(null)}>Cancel</Button>
                   <Button className="flex-1 gap-2" onClick={() => handlePay(payingBill)}>
-                    <IndianRupee className="w-4 h-4" /> Pay ₹{payingBill.amount - payingBill.paid}
+                    <IndianRupee className="w-4 h-4" /> Pay ₹{((payingBill.amount || 0) - (payingBill.paid || 0)).toLocaleString()}
                   </Button>
                 </div>
               </>

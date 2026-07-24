@@ -563,7 +563,7 @@ export default function ClinicDetail() {
                         <p className="text-sm font-semibold text-foreground mb-4">Fees: ₹{bookingDetails?.fees}</p>
                         <div className="flex gap-2 justify-center">
                           <Button size="sm" onClick={() => navigate('/patient/appointments')}>View Appointments</Button>
-                          <Button size="sm" variant="outline" onClick={() => navigate('/patient/billing')}>View Bill</Button>
+                          <Button size="sm" variant="outline" onClick={() => navigate('/patient/history')}>View Bill</Button>
                         </div>
                       </div>
                     ) : bookingStep === 'method' ? (

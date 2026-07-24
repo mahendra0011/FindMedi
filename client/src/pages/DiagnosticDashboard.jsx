@@ -705,7 +705,7 @@ export default function DiagnosticDashboard() {
                       { label: 'Tests Conducted', value: orders.reduce((s, o) => s + (o.tests?.length || 0), 0), change: '+12%' },
                       { label: 'Avg Turnaround', value: orders.length > 0 ? '6.2 hrs' : 'N/A', change: '-8%' },
                       { label: 'Revenue (Period)', value: `₹${bookings.filter(b => b.paymentStatus === 'Paid').reduce((s, b) => s + (b.totalAmount || 0), 0).toLocaleString()}`, change: '+22%' },
-                      { label: 'Critical Results', value: stats.critical || 0, change: '0%' },
+                      { label: 'Critical Results', value: stats?.critical ?? 0, change: '0%' },
                       { label: 'Patient Satisfaction', value: reviews.length > 0 ? `${(reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)}/5` : 'N/A', change: '+0.3' },
                     ].map(d => (
                       <div key={d.label} className="flex items-center justify-between">
@@ -774,7 +774,7 @@ export default function DiagnosticDashboard() {
                   <label className="flex items-center gap-2 cursor-pointer p-3 rounded-xl border"><input type="checkbox" checked={centerSettings.aerbCertified} onChange={e => setCenterSettings(s => ({ ...s, aerbCertified: e.target.checked }))} className="rounded" /> AERB Certified</label>
                   <label className="flex items-center gap-2 cursor-pointer p-3 rounded-xl border"><input type="checkbox" checked={centerSettings.homeCollectionAvailable} onChange={e => setCenterSettings(s => ({ ...s, homeCollectionAvailable: e.target.checked }))} className="rounded" /> Home Collection</label>
                 </div>
-                <Button className="w-full" onClick={() => { api.updateSystemSetting?.(centerSettings); showToast('Settings saved'); }}><Save className="w-4 h-4 mr-1" /> Save Settings</Button>
+                <Button className="w-full" onClick={async () => { try { await Promise.all(Object.entries(centerSettings).map(([k, v]) => api.updateSystemSetting(k, { value: v }))); showToast('Settings saved'); } catch { showToast('Failed to save settings', 'error'); } }}><Save className="w-4 h-4 mr-1" /> Save Settings</Button>
               </div>
             </div>
           )}

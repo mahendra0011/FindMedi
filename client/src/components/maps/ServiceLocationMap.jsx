@@ -3,13 +3,15 @@ import { createRoot } from 'react-dom/client';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import maplibregl from 'maplibre-gl';
-import { Clock, Loader2, MapPin, Phone, Route, Star } from 'lucide-react';
+import { AlertCircle, Clock, Loader2, LocateFixed, MapPin, Navigation, Phone, Route, Star } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api';
 import {
   Map,
+  MapControls,
   MapMarker,
+  MapRoute,
   MarkerContent,
   MarkerTooltip,
   useMap,
@@ -855,7 +857,7 @@ export default function ServiceLocationMap({ entityType, entity, className }) {
   const currentLocation = useSelector((state) => state.map.currentLocation);
   const selectedStoredPlace = useSelector((state) => state.map.placesById[selectedPlaceId]);
   const route = useSelector((state) => state.map.routesByPlaceId[selectedPlaceId || id]);
-  const _geocodeStatus = useSelector((state) => state.map.geocodingStatusByPlaceId[id]);
+  const geocodeStatus = useSelector((state) => state.map.geocodingStatusByPlaceId[id]);
   const routeStatus = useSelector((state) => state.map.routeStatusByPlaceId[selectedPlaceId || id]);
   const locateError = useSelector((state) => state.map.locateError);
   const routeSummary = useMemo(() => {
@@ -875,7 +877,7 @@ export default function ServiceLocationMap({ entityType, entity, className }) {
     return Array.from(byId.values()).filter((item) => coordinatePair(item.coordinates));
   }, [activePlace, nearbyPlaces, place]);
   const selectedPlace = mapPlaces.find((item) => item.id === selectedPlaceId) || selectedStoredPlace || activePlace;
-  const _selectedConfig = TYPE_CONFIG[selectedPlace?.type] || config;
+  const selectedConfig = TYPE_CONFIG[selectedPlace?.type] || config;
   const selectedCoordinates = coordinatePair(selectedPlace?.coordinates) || coordinatePair(fallbackCoordinates) || DEFAULT_COORDINATES;
   useEffect(() => {
     dispatch(upsertMapPlace(place));
@@ -940,7 +942,7 @@ export default function ServiceLocationMap({ entityType, entity, className }) {
     );
   };
 
-  const _requestLocationAndRoute = (targetPlace = selectedPlace) => {
+  const requestLocationAndRoute = (targetPlace = selectedPlace) => {
     if (currentLocation) {
       dispatchRoute(currentLocation, targetPlace);
       return;
@@ -963,7 +965,7 @@ export default function ServiceLocationMap({ entityType, entity, className }) {
     );
   };
 
-  const _handleLocate = (location) => {
+  const handleLocate = (location) => {
     dispatch(setCurrentLocation(location));
     dispatchRoute(location);
   };
@@ -982,7 +984,21 @@ export default function ServiceLocationMap({ entityType, entity, className }) {
     <div className={cn('overflow-hidden rounded-2xl border border-slate-200 bg-slate-100', className)}>
       <div className="relative h-[500px] sm:h-[580px] lg:h-[640px]">
         <Map center={selectedCoordinates} zoom={mapZoom}>
+          {hasRoute ? (
+            <>
+              <MapRoute
+                id={`route-${id}`}
+                coordinates={route.coordinates}
+                color={selectedConfig.routeColor}
+                width={5}
+                opacity={0.85}
+              />
+              <RouteViewport coordinates={route.coordinates} />
+            </>
+          ) : null}
+
           <MapBoundsController places={mapPlaces} fitToPlaces={mapPlaces.length > 1} />
+
           <ServiceDomMarkers
             places={mapPlaces}
             selectedPlace={selectedPlace}
@@ -991,8 +1007,60 @@ export default function ServiceLocationMap({ entityType, entity, className }) {
             onSelect={handleMapSelect}
             onViewDetails={handleViewDetails}
           />
+
           {currentLocation ? <CurrentLocationMarker location={currentLocation} /> : null}
-          {hasRoute ? <RouteLine coordinates={route.coordinates} /> : null}
+
+          <MapControls
+            position="top-right"
+            showZoom
+            showLocate
+            showFullscreen
+            onLocate={handleLocate}
+          >
+            <button
+              type="button"
+              title="Route"
+              aria-label="Route"
+              disabled={routeStatus?.loading}
+              onClick={() => requestLocationAndRoute(selectedPlace)}
+              className="flex h-9 w-9 items-center justify-center border-t border-border/70 bg-card text-foreground shadow-sm transition-colors hover:bg-accent disabled:pointer-events-none disabled:opacity-50"
+            >
+              {routeStatus?.loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Navigation className="h-4 w-4" />}
+            </button>
+          </MapControls>
+
+          <div className="absolute bottom-3 left-3 right-3 z-20 flex flex-col gap-2 sm:left-auto sm:w-[260px]">
+            {route?.distance ? (
+              <div className="flex items-center justify-between rounded-xl border border-border/60 bg-card/95 px-3 py-2 text-xs shadow-lg backdrop-blur">
+                <span className="inline-flex items-center gap-1.5 font-semibold text-foreground">
+                  <Route className="h-3.5 w-3.5 text-primary" />
+                  {formatDistance(route.distance)}
+                </span>
+                <span className="text-muted-foreground">{formatDuration(route.duration)}</span>
+              </div>
+            ) : null}
+            {(geocodeStatus?.loading || geocodeStatus?.error || routeStatus?.error || locateError) && (
+              <div className="flex items-start gap-2 rounded-xl border border-border/60 bg-card/95 px-3 py-2 text-xs shadow-lg backdrop-blur">
+                {geocodeStatus?.loading ? (
+                  <Loader2 className="mt-0.5 h-3.5 w-3.5 animate-spin text-primary" />
+                ) : (
+                  <AlertCircle className="mt-0.5 h-3.5 w-3.5 text-amber-500" />
+                )}
+                <span className="text-muted-foreground">
+                  {geocodeStatus?.loading
+                    ? 'Finding map location...'
+                    : routeStatus?.error || locateError || geocodeStatus?.error}
+                </span>
+              </div>
+            )}
+          </div>
+
+          <div className="absolute left-4 top-4 z-20 rounded-full border border-border/70 bg-card/95 px-3.5 py-2 text-xs font-bold text-foreground shadow-lg backdrop-blur">
+            <span className="inline-flex items-center gap-1.5">
+              <LocateFixed className="h-3.5 w-3.5 text-primary" />
+              {mapPlaces.length} locations
+            </span>
+          </div>
         </Map>
       </div>
       <div className="border-t border-slate-200 bg-card px-4 py-3">

@@ -164,6 +164,8 @@ export default function HospitalTestBooking() {
     if (!user) { toast.error('Please login to book'); navigate('/login'); return; }
     setBookingLoading(true);
     try {
+      const total = cartTotal + (collectionMode === 'home' ? 50 : 0);
+      // 1. Create lab booking
       const res = await api.createLabBooking({
         facilityId: activeId,
         patientId: user._id,
@@ -171,14 +173,28 @@ export default function HospitalTestBooking() {
         email: user.email,
         phone: user.phone || '',
         tests: cartItems.map(t => ({ testId: t.id, testName: t.name, price: t.price, qty: t.qty })),
-        total: cartTotal,
+        total,
         collectionMode,
         date: selectedDate,
         slot: selectedSlot,
         paymentMethod,
-        status: 'Confirmed',
+        status: 'Pending',
       });
-      const newId = res?.booking?._id || res?._id || 'MED' + Date.now().toString(36).toUpperCase();
+      const bookingId = res?.booking?._id || res?._id;
+
+      // 2. Process payment via unified gateway (cash/upi/card all go through payTransaction)
+      const result = await api.payTransaction({
+        serviceType: 'test',
+        referenceId: bookingId,
+        amount: total,
+        method: paymentMethod === 'cod' ? 'cash' : paymentMethod,
+        description: `Lab Test - ${cartItems.map(t => t.name).join(', ')}`,
+        provider: displayHospital?.name || 'Lab',
+        lineItems: cartItems.map(t => ({ name: t.name, price: t.price, qty: t.qty })),
+      });
+      if (!result?.success) throw new Error('Payment failed');
+
+      const newId = bookingId || 'MED' + Date.now().toString(36).toUpperCase();
       setBookingId(newId);
       setBookingConfirmed(true);
       setBookingStep(6);

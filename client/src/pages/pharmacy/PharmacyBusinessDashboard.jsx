@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import {
   Pill, ShoppingCart, DollarSign, AlertTriangle,
-  Package, Clock
+  Package
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import StatCard from '@/components/StatCard';
@@ -23,23 +24,30 @@ export default function PharmacyBusinessDashboard() {
   const [recentOrders, setRecentOrders] = useState([]);
   const [lowStock, setLowStock] = useState([]);
   const [loading, setLoading] = useState(true);
+  const mounted = useRef(true);
 
   useEffect(() => {
+    mounted.current = true;
     const load = async () => {
       setLoading(true);
       try {
-        const [s, o, m] = await Promise.all([
+        const results = await Promise.allSettled([
           api.getPharmacyStats(),
           api.getPharmacyOrders({}),
           api.getPharmacyMedicines({ lowStock: 'true' }),
         ]);
+        if (!mounted.current) return;
+        const [s, o, m] = results.map(res => res.status === 'fulfilled' ? res.value : null);
         setStats(s);
-        setRecentOrders((o.orders || []).slice(0, 5));
-        setLowStock((m.medicines || []).slice(0, 5));
-      } catch (e) { console.error(e); }
-      setLoading(false);
+        setRecentOrders((o?.orders || []).slice(0, 5));
+        setLowStock((m?.medicines || []).slice(0, 5));
+        const failed = results.filter(r => r.status === 'rejected');
+        if (failed.length > 0) toast.error(`Failed to load ${failed.length} data source(s)`);
+      } catch (e) { console.error(e); toast.error('Failed to load dashboard data'); }
+      if (mounted.current) setLoading(false);
     };
     load();
+    return () => { mounted.current = false; };
   }, []);
 
   if (loading) {

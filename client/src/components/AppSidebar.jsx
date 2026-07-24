@@ -137,7 +137,7 @@ const navConfig = {
     { icon: Download,        labelKey: 'nav.myReports',             path: '/patient/reports'            },
     { icon: Upload,          labelKey: 'nav.upload',                 path: '/upload'                     },
     { icon: Bookmark,        labelKey: 'nav.favorites',              path: '/patient/favorites'          },
-    { icon: IndianRupee,     labelKey: 'nav.billing',               path: '/patient/billing'            },
+    { icon: IndianRupee,     labelKey: 'nav.history',               path: '/patient/history'            },
     { icon: MapPinned,       labelKey: 'nav.addresses',             path: '/patient/addresses'          },
     { icon: Bell,            labelKey: 'nav.notifications',         path: '/notifications'              },
     { icon: Ambulance,       labelKey: 'nav.emergency',             path: '/patient/emergency'          },

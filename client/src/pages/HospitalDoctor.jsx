@@ -1190,7 +1190,7 @@ export default function HospitalDoctor() {
                       <Button className="flex-1 rounded-xl" onClick={() => navigate('/patient/appointments')}>
                         View Appointments
                       </Button>
-                      <Button variant="outline" className="flex-1 rounded-xl" onClick={() => navigate('/patient/billing')}>
+                      <Button variant="outline" className="flex-1 rounded-xl" onClick={() => navigate('/patient/history')}>
                         View Bill
                       </Button>
                     </div>
