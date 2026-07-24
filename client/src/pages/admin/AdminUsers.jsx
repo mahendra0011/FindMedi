@@ -31,6 +31,7 @@ export default function AdminUsers() {
     setLoading(false);
   }, [search, roleFilter]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadUsers(); }, [search, roleFilter]);
 
   const handleDelete = async (id) => {

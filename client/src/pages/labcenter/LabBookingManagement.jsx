@@ -37,7 +37,7 @@ export default function LabBookingManagement() {
     try {
       await api.updateLabBooking(id, { status, ...(slot ? { timeSlot: slot } : {}) });
       toast.success(`Booking ${status}`);
-    } catch (e) { setBookings(prev); toast.error('Failed to update booking'); }
+    } catch { setBookings(prev); toast.error('Failed to update booking'); }
   };
 
   if (loading) return (

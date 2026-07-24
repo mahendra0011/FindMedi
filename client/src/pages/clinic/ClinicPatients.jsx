@@ -36,6 +36,7 @@ export default function ClinicPatients() {
     setLoading(false);
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadData(); }, [user?.name]);
 
   const uniquePatients = [...new Map(appointments.map(a => [a.patient, a])).values()];

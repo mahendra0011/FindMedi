@@ -9,6 +9,11 @@ import { Separator } from '@/components/ui/separator';
 import { cn as _cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
+  AlertDialogHeader, AlertDialogTitle
+} from '@/components/ui/alert-dialog';
 
 
 export default function LabStaff() {
@@ -16,6 +21,7 @@ export default function LabStaff() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const [form, setForm] = useState({ name:'', role:'', email:'', phone:'', department:'', qualification:'', status:'Active', joinDate:'' });
 
   useEffect(() => {
@@ -64,7 +70,6 @@ export default function LabStaff() {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Remove this staff member?')) return;
     try {
       await api.deleteStaff(id);
       toast.success('Staff removed');
@@ -138,7 +143,7 @@ export default function LabStaff() {
                 <Badge variant="outline" className={staff.status === 'Active' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : staff.status === 'On Leave' ? 'bg-amber-50 text-amber-600 border-amber-200' : 'bg-muted text-muted-foreground'}>{staff.status}</Badge>
                 <div className="flex gap-2">
                   <Button variant="ghost" size="sm" onClick={() => handleEdit(staff)}><Edit2 className="w-3.5 h-3.5" /></Button>
-                  <Button variant="ghost" size="sm" className="text-destructive" onClick={() => handleDelete(staff._id || staff.id)}><X className="w-3.5 h-3.5" /></Button>
+                  <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setDeleteTarget(staff._id || staff.id)}><X className="w-3.5 h-3.5" /></Button>
                 </div>
               </div>
             </div>
@@ -146,6 +151,19 @@ export default function LabStaff() {
         ))}
       </div>
       )}
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Staff Member</AlertDialogTitle>
+            <AlertDialogDescription>Are you sure you want to remove this staff member? This action cannot be undone.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive text-destructive-foreground" onClick={() => { if (deleteTarget) handleDelete(deleteTarget); setDeleteTarget(null); }}>Remove</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

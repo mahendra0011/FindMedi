@@ -7,8 +7,6 @@ import { cn } from "@/lib/utils";
 
 const MapContext = React.createContext(null);
 
-const MAPTILER_KEY = import.meta.env.VITE_MAPTILER_API_KEY;
-const USE_MAPTILER_TILES = import.meta.env.VITE_USE_MAPTILER_TILES === "true";
 const DEFAULT_CENTER = [77.209, 28.6139];
 
 function finiteNumber(value, fallback) {
@@ -32,71 +30,6 @@ function normalizeRouteCoordinates(coordinates = []) {
     .filter(Boolean);
 }
 
-function cartoStyle(theme = "light") {
-  const dark = theme === "dark";
-  return {
-    version: 8,
-    glyphs: "https://basemaps.cartocdn.com/fonts/{fontstack}/{range}.pbf",
-    sources: {
-      carto: {
-        type: "raster",
-        tiles: [
-          dark
-            ? "https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-            : "https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-        ],
-        tileSize: 256,
-        attribution:
-          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-      },
-    },
-    layers: [{ id: "carto", type: "raster", source: "carto" }],
-  };
-}
-
-function getDefaultStyles() {
-  if (!MAPTILER_KEY || !USE_MAPTILER_TILES) return null;
-  const makeMapTilerRasterStyle = (mapId) => ({
-    version: 8,
-    sources: {
-      maptiler: {
-        type: "raster",
-        tiles: [`https://api.maptiler.com/maps/${mapId}/256/{z}/{x}/{y}.png?key=${MAPTILER_KEY}`],
-        tileSize: 256,
-        attribution:
-          '&copy; <a href="https://www.maptiler.com/copyright/">MapTiler</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      },
-    },
-    layers: [{ id: "maptiler", type: "raster", source: "maptiler" }],
-  });
-
-  return {
-    light: makeMapTilerRasterStyle("streets-v2"),
-    dark: makeMapTilerRasterStyle("streets-v2-dark"),
-  };
-}
-
-function resolveTheme(theme) {
-  if (theme) return theme;
-  if (typeof document !== "undefined" && document.documentElement.classList.contains("dark")) {
-    return "dark";
-  }
-  return "light";
-}
-
-function resolveStyle(styles, theme, blank) {
-  if (styles) {
-    if (typeof styles === "string" || styles.version) return styles;
-    return styles[theme] || styles.light || styles.dark;
-  }
-  const mapTilerStyles = getDefaultStyles();
-  if (mapTilerStyles) return mapTilerStyles[theme] || mapTilerStyles.light;
-  if (blank) {
-    return { version: 8, sources: {}, layers: [] };
-  }
-  return cartoStyle(theme);
-}
-
 export function useMap() {
   const context = React.useContext(MapContext);
   if (!context) {
@@ -105,104 +38,131 @@ export function useMap() {
   return context;
 }
 
+const osmRasterStyle = {
+  version: 8,
+  glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
+  sources: {
+    "osm-raster": {
+      type: "raster",
+      tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+      tileSize: 256,
+      minzoom: 0,
+      maxzoom: 19,
+      attribution: "OpenStreetMap contributors",
+    },
+  },
+  layers: [{ id: "osm-raster-layer", type: "raster", source: "osm-raster" }],
+};
+
+const MAPTILER_KEY = import.meta.env.VITE_MAPTILER_API_KEY;
+const maptilerBasicStyle = MAPTILER_KEY ? {
+  light: `https://api.maptiler.com/maps/basic-v2/style.json?key=${MAPTILER_KEY}`,
+  dark: `https://api.maptiler.com/maps/basic-v2-dark/style.json?key=${MAPTILER_KEY}`
+} : null;
+
+function getActiveStyle(styles) {
+  const activeStyles = styles || maptilerBasicStyle || osmRasterStyle;
+  if (typeof activeStyles === "string") return activeStyles;
+  if (activeStyles.version) return activeStyles;
+  const theme = document.documentElement.classList.contains("dark") ? "dark" : "light";
+  return activeStyles[theme] || activeStyles.light || activeStyles.dark || osmRasterStyle;
+}
+
 export function Map({
   children,
   className,
   center = [77.209, 28.6139],
-  zoom = 11,
-  theme,
+  zoom = 13,
   styles,
-  blank = false,
-  viewport,
   onViewportChange,
-  loading = false,
+  onReady,
   ...options
 }) {
   const containerRef = React.useRef(null);
-  const mapElementRef = React.useRef(null);
   const mapRef = React.useRef(null);
+  const [mapInstance, setMapInstance] = React.useState(null);
   const [isLoaded, setIsLoaded] = React.useState(false);
-  const activeTheme = resolveTheme(theme);
+  const [loadError, setLoadError] = React.useState("");
+  const activeStyle = React.useMemo(() => getActiveStyle(styles), [styles]);
 
   React.useEffect(() => {
-    if (!mapElementRef.current || mapRef.current) return undefined;
+    if (!containerRef.current || !center) return undefined;
+    setIsLoaded(false);
+    setLoadError("");
 
-    const initialViewport = viewport || {};
-    const initialCenter = normalizeLngLat(initialViewport.center || center);
-    const initialZoom = finiteNumber(initialViewport.zoom ?? zoom, 11);
-    const initialBearing = finiteNumber(initialViewport.bearing, 0);
-    const initialPitch = finiteNumber(initialViewport.pitch, 0);
     const map = new maplibregl.Map({
-      ...options,
-      container: mapElementRef.current,
-      style: resolveStyle(styles, activeTheme, blank),
-      center: initialCenter,
-      zoom: initialZoom,
-      bearing: initialBearing,
-      pitch: initialPitch,
+      container: containerRef.current,
+      style: activeStyle,
+      center: normalizeLngLat(center),
+      zoom: finiteNumber(zoom, 13),
       attributionControl: false,
+      ...options,
     });
 
     map.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-right");
     mapRef.current = map;
+    setMapInstance(map);
 
-    const handleLoad = () => setIsLoaded(true);
-    map.on("load", handleLoad);
+    function handleLoad() { setIsLoaded(true); onReady?.(map); }
+
+    let didFallback = false;
+    function handleError() {
+      if (!isLoaded && !didFallback && typeof activeStyle === "string") {
+        didFallback = true;
+        map.setStyle(osmRasterStyle);
+      }
+      if (!isLoaded) setLoadError("Map is having trouble loading.");
+    }
+
+    map.once("load", handleLoad);
+    map.on("error", handleError);
 
     let resizeObserver;
     if (typeof ResizeObserver !== "undefined") {
       resizeObserver = new ResizeObserver(() => map.resize());
-      resizeObserver.observe(mapElementRef.current);
+      resizeObserver.observe(containerRef.current);
     }
 
     return () => {
       resizeObserver?.disconnect();
-      map.off("load", handleLoad);
-      map.remove();
+      map.off("error", handleError);
+      try { map.remove(); } catch { /* map already removed */ }
       mapRef.current = null;
+      setMapInstance(null);
+      setIsLoaded(false);
     };
-  }, []);
+  }, [activeStyle, center?.[0], center?.[1], zoom]);
 
   React.useEffect(() => {
-    const nextCenter = normalizeLngLat(center, null);
-    if (!mapRef.current || !isLoaded || !nextCenter) return;
+    if (!mapRef.current || !isLoaded) return;
     mapRef.current.easeTo({
-      center: nextCenter,
+      center: normalizeLngLat(center),
       zoom: finiteNumber(zoom, mapRef.current.getZoom()),
       duration: 700,
       essential: true,
     });
-  }, [center?.[0], center?.[1], zoom, isLoaded]);
+  }, [center?.[0], center?.[1], isLoaded, zoom]);
 
   React.useEffect(() => {
     if (!mapRef.current || !onViewportChange) return undefined;
-    const map = mapRef.current;
     const handleMove = () => {
-      const mapCenter = map.getCenter();
-      onViewportChange({
-        center: [mapCenter.lng, mapCenter.lat],
-        zoom: map.getZoom(),
-        bearing: map.getBearing(),
-        pitch: map.getPitch(),
-      });
+      const c = mapRef.current.getCenter();
+      onViewportChange({ center: [c.lng, c.lat], zoom: mapRef.current.getZoom(), bearing: mapRef.current.getBearing(), pitch: mapRef.current.getPitch() });
     };
-    map.on("move", handleMove);
-    return () => map.off("move", handleMove);
+    mapRef.current.on("move", handleMove);
+    return () => mapRef.current?.off("move", handleMove);
   }, [onViewportChange]);
 
-  const value = React.useMemo(
-    () => ({ map: mapRef.current, isLoaded, containerRef }),
-    [isLoaded]
-  );
+  const value = React.useMemo(() => ({ map: mapInstance, isLoaded, containerRef }), [isLoaded, mapInstance]);
 
   return (
     <MapContext.Provider value={value}>
-      <div ref={containerRef} className={cn("relative h-full w-full overflow-hidden", className)}>
-        <div ref={mapElementRef} className="absolute inset-0" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} />
-        {isLoaded && children}
-        {loading && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/50 backdrop-blur-[1px]" />
+      <div className={`relative h-full w-full overflow-hidden ${className || ""}`}>
+        <div ref={containerRef} className="h-full w-full" />
+        {loadError && !isLoaded && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/90 p-4 text-center text-sm font-bold text-muted-foreground backdrop-blur-sm">{loadError}</div>
         )}
+        {isLoaded && children}
       </div>
     </MapContext.Provider>
   );

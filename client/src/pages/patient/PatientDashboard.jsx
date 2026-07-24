@@ -15,6 +15,11 @@ import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
 import { usePreferredPharmacies } from '@/context/PreferredPharmacyContext';
 import { api } from '@/lib/api';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
+  AlertDialogHeader, AlertDialogTitle
+} from '@/components/ui/alert-dialog';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
@@ -132,9 +137,22 @@ export default function PatientDashboard() {
   const formatDate = (d) => { if (!d) return ''; try { return d.includes('T') ? d.split('T')[0] : d.slice(0, 10); } catch { return ''; } };
   const [profileForm, setProfileForm] = useState({ name: user?.name || '', email: user?.email || '', phone: user?.phone || '', address: user?.address || '', gender: user?.gender || '', dateOfBirth: formatDate(user?.dateOfBirth), bloodGroup: user?.bloodGroup || '', allergies: user?.allergies?.map(a => a.allergen).join(', ') || '' });
   const [bookingFilter, setBookingFilter] = useState('All');
+  const [cancelTarget, setCancelTarget] = useState(null);
+
+  const handleCancelAppointment = async () => {
+    if (!cancelTarget) return;
+    const id = cancelTarget;
+    setCancelTarget(null);
+    try {
+      await api.updateAppointment(id, { status: 'Cancelled' });
+      setAppointments(prev => prev.map(ap => ap._id === id ? { ...ap, status: 'Cancelled' } : ap));
+      showToast('Appointment cancelled');
+    } catch { showToast('Failed to cancel', 'error'); }
+  };
 
   const showToast = (msg, type = 'success') => { setToast({ msg, type }); setTimeout(() => setToast(null), 3000); };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const load = async () => {
       try {
@@ -206,7 +224,7 @@ export default function PatientDashboard() {
       } catch (e) { console.error(e); showToast('Failed to load dashboard data', 'error'); }
     };
     load();
-  }, []);
+}, []);
 
   const today = new Date().toISOString().split('T')[0];
   const upcomingAppts = appointments.filter(a => a.date >= today && a.status !== 'Completed');
@@ -328,7 +346,7 @@ export default function PatientDashboard() {
                   </div>
                   <div className="flex gap-2 mt-3 pt-3 border-t">
                     <Button size="sm" variant="outline" onClick={() => navigate('/patient/appointments')}><CalendarDays className="w-3 h-3 mr-1" /> Reschedule</Button>
-                    {a.status !== 'Cancelled' && <Button size="sm" variant="outline" className="text-destructive" onClick={async () => { if (!window.confirm('Are you sure you want to cancel this appointment?')) return; try { await api.updateAppointment(a._id, { status: 'Cancelled' }); setAppointments(prev => prev.map(ap => ap._id === a._id ? { ...ap, status: 'Cancelled' } : ap)); showToast('Appointment cancelled'); } catch { showToast('Failed to cancel', 'error'); } }}>Cancel</Button>}
+                    {a.status !== 'Cancelled' && <Button size="sm" variant="outline" className="text-destructive" onClick={() => setCancelTarget(a._id)}>Cancel</Button>}
                   </div>
                 </div>
               ))}
@@ -788,6 +806,19 @@ export default function PatientDashboard() {
           </div>
         </Modal>
       )}
+
+      <AlertDialog open={!!cancelTarget} onOpenChange={(open) => { if (!open) setCancelTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel Appointment</AlertDialogTitle>
+            <AlertDialogDescription>Are you sure you want to cancel this appointment? This action cannot be undone.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep Appointment</AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive text-destructive-foreground" onClick={handleCancelAppointment}>Cancel Appointment</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -42,6 +42,7 @@ export default function AdminTestCatalog() {
     setLoading(false);
   }, [deptFilter, catFilter, search]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadTests(); }, [deptFilter, catFilter, search]);
 
   const resetForm = () => {

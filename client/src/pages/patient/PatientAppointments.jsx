@@ -32,6 +32,7 @@ export default function PatientAppointments() {
     setLoading(false);
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadAppointments(); }, [filter, user?._id]);
 
   const handleCancel = async () => {

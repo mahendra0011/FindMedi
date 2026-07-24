@@ -14,7 +14,6 @@ export default function OTPVerification() {
   const [searchParams] = useSearchParams();
   const { user, completeOtpLogin } = useAuth();
   const email = searchParams.get('email') || user?.email || '';
-  const role = searchParams.get('role') || user?.role || '';
   const deliveryState = searchParams.get('delivery');
   const sentTo = searchParams.get('sentTo') || email;
   const otpInputRef = useRef(null);

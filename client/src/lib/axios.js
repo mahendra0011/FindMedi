@@ -2,27 +2,17 @@ import axios from 'axios';
 
 const BASE = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
-/** Get stored auth token (same order as login) */
-function getStoredAuthToken() {
-  if (typeof localStorage === 'undefined') return null;
-  return localStorage.getItem('_secure_hms_token') || localStorage.getItem('hms_token') || localStorage.getItem('token');
-}
-
-/** Axios instance with base URL, timeout, and auto token injection */
+/** Axios instance with base URL, timeout, and auto cookie-based auth */
 const apiClient = axios.create({
   baseURL: BASE,
   timeout: 20000,
+  withCredentials: true,
   headers: { 'Content-Type': 'application/json' },
 });
 
-// ─── Request Interceptor: Auto-attach token ────────────────────────────────
+// ─── Request Interceptor: Handle FormData ──────────────────────────────────
 apiClient.interceptors.request.use(
   (config) => {
-    const token = getStoredAuthToken();
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    // If FormData, let browser set Content-Type (with boundary)
     if (config.data instanceof FormData) {
       delete config.headers['Content-Type'];
     }
@@ -38,13 +28,6 @@ apiClient.interceptors.response.use(
     if (error.response) {
       const { status, data } = error.response;
       const message = data?.message || data?.error || 'Request failed';
-
-      // Auto-logout on 401 (token expired / invalid)
-      if (status === 401) {
-        localStorage.removeItem('_secure_hms_token');
-        localStorage.removeItem('hms_token');
-        localStorage.removeItem('token');
-      }
 
       const enhanced = new Error(message);
       enhanced.status = status;

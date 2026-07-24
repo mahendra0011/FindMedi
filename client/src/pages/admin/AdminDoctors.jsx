@@ -25,6 +25,7 @@ export default function AdminDoctors() {
     setLoading(false);
   }, [search]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadDoctors(); }, [search]);
 
   const resetForm = () => { setForm({ name: '', specialization: 'Cardiology', experience: '', phone: '', email: '', qualifications: '', available: true }); setEditId(null); setShowForm(false); };

@@ -36,6 +36,7 @@ export default function AdminBedManagement() {
     setLoading(false);
   }, [wardFilter, statusFilter]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadBeds(); }, [wardFilter, statusFilter]);
 
   const resetForm = () => {

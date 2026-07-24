@@ -20,6 +20,7 @@ export default function AdminReviews() {
     setLoading(false);
   }, []);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadReviews(); }, []);
 
   const handleDelete = async (id) => {

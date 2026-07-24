@@ -59,6 +59,16 @@ router.put('/:id', protect, adminOnly, validate(updateStaffSchema), async (req, 
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
+router.delete('/:id', protect, adminOnly, async (req, res) => {
+  try {
+    const filter = { _id: req.params.id };
+    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    const staff = await Staff.findOneAndDelete(filter);
+    if (!staff) return res.status(404).json({ message: 'Staff not found' });
+    res.json({ message: 'Staff deleted' });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
 router.get('/stats', protect, async (req, res) => {
   const filter = { status: 'Active' };
   if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;

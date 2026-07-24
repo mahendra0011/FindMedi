@@ -72,6 +72,7 @@ export default function DoctorAppointments() {
     setLoading(false);
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadAppointments(); }, [filter, user?.name]);
 
   const handleStatus = async (id, status) => {

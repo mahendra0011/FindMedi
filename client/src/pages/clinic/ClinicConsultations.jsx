@@ -41,6 +41,7 @@ export default function ClinicConsultations() {
     setLoading(false);
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadRecords(); }, [user?.name]);
 
   const filtered = records.filter(r => {

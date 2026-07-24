@@ -7,7 +7,6 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 const severityColors = {
   Critical: { bg: 'bg-red-500/10', text: 'text-red-600', border: 'border-red-500' },

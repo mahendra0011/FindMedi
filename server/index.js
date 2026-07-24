@@ -10,6 +10,7 @@ dotenv.config({ path: path.join(__dirname, '.env') });
 import express from 'express';
 import http from 'http';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import mongoose from 'mongoose';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
@@ -153,7 +154,7 @@ const corsOptions = {
 // In production, restrict origins. In development, allow all.
 if (process.env.NODE_ENV === 'production') {
   const allowedOrigins = [
-    'https://medicore.example.com',
+    // 'https://medicore.example.com', // placeholder — rely on CLIENT_URL / CORS_ORIGIN env vars
     ...(process.env.CLIENT_URL ? [process.env.CLIENT_URL] : []),
     ...(process.env.CORS_ORIGIN ? [process.env.CORS_ORIGIN] : []),
   ].filter(Boolean);
@@ -166,12 +167,14 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 app.use(cors(corsOptions));
+app.use(cookieParser());
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 // Serve uploaded files with filename-based access control
 app.use('/uploads', (req, res, next) => {
-  // Authenticated access only for medical files
-  if (req.path.match(/\.(pdf|dcm|dicom|jpg|jpeg|png|gif)$/i) && !req.headers.authorization) {
+  // Authenticated access only for medical files (check cookie or Authorization header)
+  const hasAuth = req.cookies?.token || req.headers.authorization;
+  if (req.path.match(/\.(pdf|dcm|dicom|jpg|jpeg|png|gif)$/i) && !hasAuth) {
     return res.status(401).json({ message: 'Authentication required for medical file access' });
   }
   next();
@@ -303,10 +306,9 @@ const mongooseOptions = {
 logger.info('🔄 Attempting MongoDB connection...');
 logger.info('   URI: ' + redactMongoUri(MONGO_URI));
 
-const server = http.createServer(app);
-initSocket(server);
-
 if (process.env.NODE_ENV !== 'test') {
+  const server = http.createServer(app);
+  initSocket(server);
   mongoose.connect(MONGO_URI, mongooseOptions)
     .then(() => {
       logger.info('✅ MongoDB connected successfully');
