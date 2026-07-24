@@ -1,4 +1,5 @@
 import express from 'express';
+import Billing from '../models/Billing.js';
 import Payment from '../models/Payment.js';
 import Appointment from '../models/Appointment.js';
 import LabBooking from '../models/LabBooking.js';
@@ -110,6 +111,41 @@ router.post('/pay', protect, async (req, res, next) => {
       } catch (refErr) {
         console.error('Failed to update reference status:', refErr);
       }
+    }
+
+    // Auto-create billing record (Paid)
+    try {
+      const methodMap = { upi:'UPI', card:'Card', netbanking:'Online', cash:'Cash' };
+      const sourceMap = { appointment:'appointment', test:'lab', medicine:'pharmacy' };
+      const serviceLabel = description || `${serviceType} service`;
+      const providerName = provider || '';
+      const today = new Date().toISOString().split('T')[0];
+      const billServices = (lineItems || []).map(item => ({
+        name: item.name || 'Service',
+        description: '',
+        price: Number(item.price) || 0,
+        quantity: Number(item.qty) || 1,
+        category: 'General',
+      }));
+      await Billing.create({
+        invoiceId: invoice_id,
+        patient: req.user.name || 'Patient',
+        patientId: req.user._id,
+        doctor: serviceType === 'appointment' ? providerName : (serviceType === 'test' ? 'Lab Services' : 'Pharmacy'),
+        appointmentId: serviceType === 'appointment' ? referenceId : undefined,
+        service: serviceLabel,
+        services: billServices,
+        source: sourceMap[serviceType] || 'manual',
+        amount,
+        paid: amount,
+        balance: 0,
+        status: 'Paid',
+        date: today,
+        paymentMethod: methodMap[method] || 'Online',
+        transactionId: transaction_id,
+      });
+    } catch (billErr) {
+      console.error('Failed to create billing record:', billErr.message);
     }
 
     await Notification.create({

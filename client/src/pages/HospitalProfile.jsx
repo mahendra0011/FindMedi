@@ -1851,7 +1851,7 @@ export default function HospitalProfile() {
                </div>
                <DialogFooter className="mt-2">
                  <Button className="flex-1" size="sm" onClick={() => navigate('/patient/appointments')}>View Appointments</Button>
-                 <Button variant="outline" className="flex-1" size="sm" onClick={() => navigate('/patient/billing')}>View Bill</Button>
+                 <Button variant="outline" className="flex-1" size="sm" onClick={() => navigate('/patient/history')}>View Bill</Button>
                </DialogFooter>
              </div>
            )}

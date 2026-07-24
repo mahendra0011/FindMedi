@@ -716,7 +716,7 @@ const loadDoctors = async () => {
                                 </div>
                                 <div className="flex gap-2">
                                   <Button className="flex-1 rounded-xl" onClick={() => navigate('/patient/appointments')}>View Appointments</Button>
-                                  <Button variant="outline" className="flex-1 rounded-xl" onClick={() => navigate('/patient/billing')}>View Bill</Button>
+                                  <Button variant="outline" className="flex-1 rounded-xl" onClick={() => navigate('/patient/history')}>View Bill</Button>
                                 </div>
                               </div>
                             ) : bookingStep === 'method' ? (

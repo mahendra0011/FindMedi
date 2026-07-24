@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { UserRound, Stethoscope, CalendarDays, CreditCard, Clock, TrendingUp } from 'lucide-react';
+import { useEffect } from 'react';
+import { Stethoscope, CalendarDays, CreditCard, Clock, TrendingUp, UserRound } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import StatCard from '@/components/StatCard';
 import { api } from '@/lib/api';
@@ -39,13 +40,15 @@ const tooltipStyle = { borderRadius:'0.75rem', border:'1px solid hsl(200,20%,90%
 export default function Dashboard() {
   const { user } = useAuth();
   const settings = useSelector(selectSetting) || {};
-  const { data = FALLBACK } = useQuery({ queryKey:['dashboard'], queryFn: api.dashboardStats, onError:()=>{} });
+  const { data = FALLBACK, isError, error } = useQuery({ queryKey:['dashboard'], queryFn: api.dashboardStats });
   const { stats, weeklyAppointments, revenueData, departmentData, recentAppointments } = data;
 
   // Apply appearance settings when dashboard mounts or settings change
-  if (typeof document !== 'undefined') {
-    applyUserSettings(settings);
-  }
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      applyUserSettings(settings);
+    }
+  }, [settings]);
 
   return (
     <div>

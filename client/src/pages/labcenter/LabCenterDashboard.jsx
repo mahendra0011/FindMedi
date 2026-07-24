@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { CalendarDays, Clock, User, CheckCircle, AlertCircle, TrendingUp, DollarSign, Beaker, FileText, Microscope } from 'lucide-react';
+import { CalendarDays, Clock, User, AlertCircle, TrendingUp, DollarSign, Beaker, FileText, Microscope } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Link } from 'react-router-dom';
+import { toast } from 'sonner';
 import { api } from '@/lib/api';
 import LicenseExpiryReminder from '@/components/LicenseExpiryReminder';
 
@@ -18,28 +19,35 @@ export default function LabCenterDashboard() {
   const [stats, setStats] = useState(null);
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const mounted = useRef(true);
 
   useEffect(() => {
+    mounted.current = true;
     const load = async () => {
       setLoading(true);
       try {
-        const [s, b] = await Promise.all([
+        const results = await Promise.allSettled([
           api.getLabStats(),
           api.getLabBookings({}),
         ]);
+        if (!mounted.current) return;
+        const [s, b] = results.map(res => res.status === 'fulfilled' ? res.value : null);
         setStats(s);
-        setBookings(b.bookings || []);
-      } catch (e) { console.error(e); }
-      setLoading(false);
+        setBookings(b?.bookings || []);
+        const failed = results.filter(r => r.status === 'rejected');
+        if (failed.length > 0) toast.error(`Failed to load ${failed.length} data source(s)`);
+      } catch (e) { console.error(e); toast.error('Failed to load dashboard data'); }
+      if (mounted.current) setLoading(false);
     };
     load();
+    return () => { mounted.current = false; };
   }, []);
 
   const today = new Date().toISOString().split('T')[0];
   const todayBookings = bookings.filter(b => (b.bookingDate || '').startsWith(today));
-  const pendingReports = stats?.pending || bookings.filter(b => b.status === 'Pending' || b.status === 'Confirmed').length;
-  const totalEarned = bookings.filter(b => b.status === 'Completed').reduce((s, b) => s + (b.amount || 0), 0);
-  const totalTests = bookings.reduce((s, b) => s + (b.tests?.length || 0), 0);
+  const pendingReports = stats?.pending ?? bookings.filter(b => b.status === 'Pending' || b.status === 'Confirmed').length;
+  const totalEarned = bookings.filter(b => b.status === 'Completed').reduce((s, b) => s + Number(b.amount || 0), 0);
+  const completedTests = bookings.filter(b => b.status === 'Completed').reduce((s, b) => s + (b.tests?.length || 0), 0);
 
   if (loading) return <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>;
 
@@ -88,7 +96,7 @@ export default function LabCenterDashboard() {
               <Beaker className="w-5 h-5 text-info" />
             </div>
           </div>
-          <p className="font-heading text-2xl font-bold text-foreground">{stats?.completed ?? totalTests}</p>
+          <p className="font-heading text-2xl font-bold text-foreground">{stats?.completed ?? completedTests}</p>
           <p className="text-sm text-muted-foreground">Completed Tests</p>
         </motion.div>
       </div>

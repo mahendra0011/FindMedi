@@ -56,8 +56,8 @@ const osmRasterStyle = {
 
 const MAPTILER_KEY = import.meta.env.VITE_MAPTILER_API_KEY;
 const maptilerBasicStyle = MAPTILER_KEY ? {
-  light: `https://api.maptiler.com/maps/basic-v2/style.json?key=${MAPTILER_KEY}`,
-  dark: `https://api.maptiler.com/maps/basic-v2-dark/style.json?key=${MAPTILER_KEY}`
+  light: `https://api.maptiler.com/maps/streets-v2/style.json?key=${MAPTILER_KEY}`,
+  dark: `https://api.maptiler.com/maps/streets-v2-dark/style.json?key=${MAPTILER_KEY}`
 } : null;
 
 function getActiveStyle(styles) {
@@ -86,7 +86,8 @@ export function Map({
   const activeStyle = React.useMemo(() => getActiveStyle(styles), [styles]);
 
   React.useEffect(() => {
-    if (!containerRef.current || !center) return undefined;
+    if (!containerRef.current) return undefined;
+    if (mapRef.current) return undefined;
     setIsLoaded(false);
     setLoadError("");
 
@@ -131,7 +132,12 @@ export function Map({
       setMapInstance(null);
       setIsLoaded(false);
     };
-  }, [activeStyle, center?.[0], center?.[1], zoom]);
+  }, [activeStyle]);
+
+  React.useEffect(() => {
+    if (!mapRef.current || !isLoaded) return;
+    mapRef.current.setStyle(activeStyle);
+  }, [activeStyle]);
 
   React.useEffect(() => {
     if (!mapRef.current || !isLoaded) return;

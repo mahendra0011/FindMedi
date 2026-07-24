@@ -146,7 +146,7 @@ function UserManagementTab() {
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">{u.email}</td>
                     <td className="px-4 py-3">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-semibold capitalize flex items-center gap-1 w-fit ${roleColors[u.role]}`}>
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-semibold capitalize flex items-center gap-1 w-fit ${roleColors[u.role] || 'bg-muted text-muted-foreground'}`}>
                         <RoleIcon className="w-3 h-3" /> {u.role}
                       </span>
                     </td>
@@ -937,10 +937,12 @@ function SystemSettingsTab() {
 
   const handleSave = async (key) => {
     try {
+      const setting = settings[key];
+      if (!setting) { toast.error('Setting not found'); return; }
       let val = editValue;
-      if (settings[key].type === 'number') val = Number(val);
-      else if (settings[key].type === 'boolean') val = val === 'true';
-      else if (settings[key].type === 'array') val = val.split(',').map(s => s.trim());
+      if (setting.type === 'number') val = Number(val);
+      else if (setting.type === 'boolean') val = val === 'true';
+      else if (setting.type === 'array') val = val.split(',').map(s => s.trim());
       await api.updateSystemSetting(key, { value: val });
       toast.success('Setting updated');
       setEditKey(null);
@@ -1017,10 +1019,12 @@ function DisputesTab() {
 
   const handleResolve = async (id) => {
     if (!resolution) return;
-    await api.updateDisputeStatus(id, { status: 'Resolved', resolution });
-    setSelected(null);
-    setResolution('');
-    load();
+    try {
+      await api.updateDisputeStatus(id, { status: 'Resolved', resolution });
+      setSelected(null);
+      setResolution('');
+      load();
+    } catch { toast.error('Failed to resolve dispute'); }
   };
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
@@ -1539,6 +1543,7 @@ export default function SuperAdminDashboard() {
       setHospitalDoctors(data?.doctors || data?.data || data || []);
     } catch {
       setHospitalDoctors([]);
+      toast.error('Failed to load doctors');
     } finally {
       setDoctorsLoading(false);
     }

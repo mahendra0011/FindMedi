@@ -94,8 +94,7 @@ const PatientDashboard = lazy(() => import('./pages/patient/PatientDashboard'));
 const PatientAppointments = lazy(() => import('./pages/patient/PatientAppointments'));
 const PatientRecords = lazy(() => import('./pages/patient/PatientRecords'));
 const PatientReviews = lazy(() => import('./pages/patient/PatientReviews'));
-const PatientBilling = lazy(() => import('./pages/patient/PatientBilling'));
-const PatientPayment = lazy(() => import('./pages/patient/PatientPayment'));
+const PatientHistory = lazy(() => import('./pages/patient/PatientHistory'));
 const PatientReports = lazy(() => import('./pages/patient/PatientReports'));
 const PatientServices = lazy(() => import('./pages/patient/PatientServices'));
 const PatientEmergency = lazy(() => import('./pages/patient/PatientEmergency'));
@@ -297,7 +296,7 @@ function getDefaultDashboardPath(user) {
     patient: {
       appointments: '/patient/appointments',
       records: '/patient/records',
-      billing: '/patient/billing',
+      history: '/patient/history',
     },
   };
 
@@ -355,26 +354,18 @@ const App = () => (
                   <Route path="/doctor-setup" element={<DoctorSetup />} />
 <Route path="/hospitals" element={<PublicLayout><HospitalDirectory /></PublicLayout>} />
                    <Route path="/hospitals/:id" element={<PublicLayout><HospitalProfile /></PublicLayout>} />
-                   <Route path="/hospitals/:hospitalId/doctors" element={<PublicLayout><HospitalDoctors /></PublicLayout>} />
-                   <Route path="/register-hospital" element={<Navigate to="/join-platform" replace />} />
-                   <Route path="/register-facility" element={<Navigate to="/join-platform" replace />} />
-                     <Route path="/clinic-doctors" element={<PublicLayout><ClinicDoctors /></PublicLayout>} />
+<Route path="/hospitals/:hospitalId/doctors" element={<PublicLayout><HospitalDoctors /></PublicLayout>} />
+                      <Route path="/clinic-doctors" element={<PublicLayout><ClinicDoctors /></PublicLayout>} />
                       <Route path="/hospital-doctors/:id" element={<PublicLayout><HospitalDoctor /></PublicLayout>} />
                      <Route path="/clinic-doctors/:id" element={<PublicLayout><ClinicDoctor /></PublicLayout>} />
                      <Route path="/clinic/:clinicId" element={<PublicLayout><ClinicDetail /></PublicLayout>} />
-                     <Route path="/book-test/:entityId" element={<PublicLayout><HospitalTestBooking /></PublicLayout>} />
-                     <Route path="/diagnostic-centers" element={<PublicLayout><DiagnosticCenters /></PublicLayout>} />
-                     <Route path="/labs" element={<Navigate to="/diagnostic-centers" replace />} />
-                     <Route path="/all-tests" element={<PublicLayout><AllTests /></PublicLayout>} />
-                      <Route path="/lab/:clinicId" element={<PublicLayout><DiagnosticCenterDetail /></PublicLayout>} />
-                       <Route path="/lab/:clinicId/details" element={<PublicLayout><DiagnosticCenterDetail /></PublicLayout>} />
-                       <Route path="/technician/:id" element={<PublicLayout><TechnicianDetail /></PublicLayout>} />
-                     <Route path="/test-booking" element={<PublicLayout><HospitalTestBooking /></PublicLayout>} />
-                     <Route path="/test-booking/:hospitalId" element={<PublicLayout><HospitalTestBooking /></PublicLayout>} />
+<Route path="/book-test/:entityId" element={<PublicLayout><HospitalTestBooking /></PublicLayout>} />
+                      <Route path="/diagnostic-centers" element={<PublicLayout><DiagnosticCenters /></PublicLayout>} />
+                      <Route path="/all-tests" element={<PublicLayout><AllTests /></PublicLayout>} />
+                       <Route path="/lab/:clinicId" element={<PublicLayout><DiagnosticCenterDetail /></PublicLayout>} />
+                        <Route path="/technician/:id" element={<PublicLayout><TechnicianDetail /></PublicLayout>} />
 
-
-                     <Route path="/imaging/:clinicId" element={<PublicLayout><ImagingCenterDetail /></PublicLayout>} />
-                     <Route path="/imaging/:clinicId/details" element={<PublicLayout><ImagingCenterDetail /></PublicLayout>} />
+                      <Route path="/imaging/:clinicId" element={<PublicLayout><ImagingCenterDetail /></PublicLayout>} />
                     <Route path="/buy-medicine" element={<PublicLayout><BuyMedicine /></PublicLayout>} />
                    <Route path="/buy-medicine/:storeId/medicines" element={<PublicLayout><StoreMedicines /></PublicLayout>} />
                    <Route path="/buy-medicine/:storeId" element={<PublicLayout><MedicineStoreDetail /></PublicLayout>} />
@@ -478,10 +469,9 @@ const App = () => (
                     <Route path="/patient/reports" element={<RoleRoute allowedRoles={['patient']}><PatientReports /></RoleRoute>} />
                     <Route path="/patient/reviews" element={<RoleRoute allowedRoles={['patient']}><PatientReviews /></RoleRoute>} />
                     <Route path="/patient/reviews/write" element={<RoleRoute allowedRoles={['patient']}><PatientWriteReview /></RoleRoute>} />
-                    <Route path="/patient/billing" element={<RoleRoute allowedRoles={['patient']}><PatientBilling /></RoleRoute>} />
+                    <Route path="/patient/history" element={<RoleRoute allowedRoles={['patient']}><PatientHistory /></RoleRoute>} />
                     <Route path="/patient/prescriptions" element={<RoleRoute allowedRoles={['patient']}><PatientPrescriptions /></RoleRoute>} />
                     <Route path="/patient/medicine-orders" element={<RoleRoute allowedRoles={['patient']}><PatientMedicineOrders /></RoleRoute>} />
-                    <Route path="/patient/payment" element={<RoleRoute allowedRoles={['patient']}><PatientPayment /></RoleRoute>} />
                     <Route path="/patient/services" element={<RoleRoute allowedRoles={['patient']}><PatientServices /></RoleRoute>} />
                     <Route path="/patient/bookings" element={<RoleRoute allowedRoles={['patient']}><PatientBookings /></RoleRoute>} />
                     <Route path="/patient/emergency" element={<RoleRoute allowedRoles={['patient']}><PatientEmergency /></RoleRoute>} />

@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { CalendarDays, Clock, User, CheckCircle, AlertCircle, Stethoscope, DollarSign, TrendingUp, Activity, Star, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { Link } from 'react-router-dom';
@@ -20,25 +21,32 @@ export default function ClinicDashboard() {
   const [bills, setBills] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
+  const mounted = useRef(true);
 
   useEffect(() => {
+    mounted.current = true;
     const load = async () => {
       setLoading(true);
       try {
-        const [a, b, r] = await Promise.all([
+        const results = await Promise.allSettled([
           api.getAppointments(),
           api.getBilling(),
           api.getReviews(),
         ]);
+        if (!mounted.current) return;
+        const [a, b, r] = results.map(res => res.status === 'fulfilled' ? res.value : []);
         const myAppts = a?.filter(apt => apt.doctor?.toLowerCase().includes(user?.name?.toLowerCase())) || [];
         setAppointments(myAppts);
         const billsArray = b?.bills || b || [];
         setBills(billsArray.filter(bill => bill.doctor?.toLowerCase().includes(user?.name?.toLowerCase())));
         setReviews(r?.filter(rv => rv.doctorName === user?.name) || []);
-      } catch (e) { console.error(e); }
-      setLoading(false);
+        const failed = results.filter(res => res.status === 'rejected');
+        if (failed.length > 0) toast.error(`Failed to load ${failed.length} data source(s)`);
+      } catch (e) { console.error(e); toast.error('Failed to load dashboard data'); }
+      if (mounted.current) setLoading(false);
     };
     load();
+    return () => { mounted.current = false; };
   }, [user?.name]);
 
   const today = new Date().toISOString().split('T')[0];
