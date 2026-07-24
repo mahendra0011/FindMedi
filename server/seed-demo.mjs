@@ -80,10 +80,9 @@ async function seed() {
     const usersMap = {};
     for (const u of usersData) {
       const { _id, password, hospitalId, facilityId, ...rest } = u;
-      const hashedPassword = await bcrypt.hash(password, 10);
       const userObj = {
         ...rest,
-        password: hashedPassword,
+        password, // pass raw — pre-save hook in User model will hash it
         isVerified: true,
         status: 'active',
         approvalStatus: (rest.role === 'doctor' || rest.role === 'clinic_doctor') ? 'approved' : 'not_required',

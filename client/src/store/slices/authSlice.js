@@ -106,6 +106,7 @@ export const logoutUser = () => async (dispatch) => {
   try {
     await api.logout();
   } catch {
+    console.warn('Logout request failed, clearing local session');
   }
   dispatch(logout());
 };

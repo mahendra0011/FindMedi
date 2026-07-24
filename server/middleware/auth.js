@@ -102,6 +102,13 @@ export const hospitalAdminOnly = (req, res, next) => {
   next();
 };
 
+export const clinicalStaffOnly = (req, res, next) => {
+  if (!['superadmin', 'admin', 'doctor', 'nurse'].includes(req.user?.role)) {
+    return res.status(403).json({ message: 'Clinical staff access required' });
+  }
+  next();
+};
+
 export const scopeToHospital = (req, res, next) => {
   if (req.user?.role === 'superadmin') return next();
   if (!req.user?.hospitalId) {
