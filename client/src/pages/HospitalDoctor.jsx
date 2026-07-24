@@ -22,6 +22,7 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
 import ReviewDialog from '@/components/ReviewDialog';
+import BookingModal from '@/components/BookingModal';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -43,6 +44,7 @@ const DAY_LABELS = { sunday: 'Sunday', monday: 'Monday', tuesday: 'Tuesday', wed
 
 export default function HospitalDoctor() {
   const [showReviewDialog, setShowReviewDialog] = useState(false);
+  const [showBookingModal, setShowBookingModal] = useState(false);
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -1159,221 +1161,39 @@ export default function HospitalDoctor() {
 
               {/* Next Available Slot */}
               {doctor.next_available_slot && (
-                <div className="flex items-center gap-2 px-2.5 py-2 rounded-xl bg-primary/5 border border-primary/20 mb-2 text-xs">
+                <div className="flex items-center gap-2 px-2.5 py-2 rounded-xl bg-primary/5 border border-primary/20 mb-3 text-xs">
                   <Clock className="w-3.5 h-3.5 text-primary shrink-0" />
                   <span className="text-muted-foreground">Next available: <span className="font-semibold text-foreground">{doctor.next_available_slot}</span></span>
                 </div>
               )}
 
-              {/* OPD Timing */}
-              {doctor.opd_timings && (
-                <div className="flex items-center gap-2 px-2.5 py-2 rounded-xl bg-muted/30 border border-border/60 mb-3 text-xs text-muted-foreground">
-                  <Clock className="w-3.5 h-3.5 shrink-0" />
-                  <span>OPD: <span className="font-medium text-foreground">{doctor.opd_timings}</span></span>
-                </div>
+              <Button className="w-full rounded-xl h-11 font-semibold shadow-lg shadow-primary/25 mb-3 gap-2" onClick={() => setShowBookingModal(true)}>
+                <CalendarDays className="w-4 h-4" /> Book Appointment
+              </Button>
+
+              {/* Call Hospital Reception */}
+              {(doctor.clinic_reception_phone || doctor.hospitalId?.phone) && (
+                <Button variant="outline" className="w-full rounded-xl h-10 gap-2" asChild>
+                  <a href={`tel:${doctor.clinic_reception_phone || doctor.hospitalId?.phone}`}>
+                    <Phone className="w-4 h-4" />
+                    Call Hospital Reception
+                  </a>
+                </Button>
               )}
 
-              {bookingSuccess && bookingDetails ? (
-                paymentSuccess ? (
-                  <div className="space-y-3">
-                    <div className="px-4 py-3 rounded-xl bg-success/10 border border-success/20 text-success text-sm flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4" />
-                      Booking & Payment Complete!
-                    </div>
-                    <div className="text-sm text-muted-foreground space-y-1.5 bg-muted/30 rounded-xl p-4">
-                      <p><span className="text-foreground font-medium">Doctor:</span> {bookingDetails.doctor}</p>
-                      <p><span className="text-foreground font-medium">Date:</span> {bookingDetails.date}</p>
-                      <p><span className="text-foreground font-medium">Time:</span> {bookingDetails.time}</p>
-                      <p><span className="text-foreground font-medium">Fees:</span> ₹{bookingDetails.fees}</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button className="flex-1 rounded-xl" onClick={() => navigate('/patient/appointments')}>
-                        View Appointments
-                      </Button>
-                      <Button variant="outline" className="flex-1 rounded-xl" onClick={() => navigate('/patient/history')}>
-                        View Bill
-                      </Button>
-                    </div>
-                  </div>
-                ) : bookingStep === 'method' ? (
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-success/10 border border-success/20 text-success text-sm">
-                      <CheckCircle className="w-4 h-4" />
-                      Appointment Booked — Select Payment Method
-                    </div>
-                    <div className="text-sm text-muted-foreground space-y-1.5 bg-muted/30 rounded-xl p-4">
-                      <p><span className="text-foreground font-medium">Doctor:</span> {bookingDetails.doctor}</p>
-                      <p><span className="text-foreground font-medium">Date:</span> {bookingDetails.date}</p>
-                      <p><span className="text-foreground font-medium">Time:</span> {bookingDetails.time}</p>
-                      <p><span className="text-foreground font-medium">Fees:</span> <span className="text-foreground font-bold">₹{bookingDetails.fees}</span></p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold text-foreground mb-2">Choose payment method</p>
-                      <div className="grid grid-cols-2 gap-2">
-                        {[{ value: 'card', label: 'Card', icon: CreditCard }, { value: 'upi', label: 'UPI', icon: Smartphone }, { value: 'netbanking', label: 'Net Banking', icon: Landmark }, { value: 'cash', label: 'Cash', icon: Wallet }].map(m => {
-                          const Icon = m.icon;
-                          const active = paymentMethod === m.value;
-                          return (
-                            <button key={m.value} onClick={() => setPaymentMethod(m.value)}
-                              className={`relative flex items-center gap-2.5 p-3 rounded-xl border text-left transition-all ${active ? 'border-primary bg-primary/5 shadow-sm' : 'border-border/60 bg-card hover:border-primary/40'}`}>
-                              <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${active ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
-                                <Icon className="w-4 h-4" />
-                              </div>
-                              <span className="text-xs font-semibold text-foreground">{m.label}</span>
-                              {active && <CheckCircle className="w-3.5 h-3.5 text-primary absolute top-1.5 right-1.5" />}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                    <Button className="w-full rounded-xl h-10 font-semibold" onClick={() => setBookingStep('billing')}>
-                      Next <ChevronRight className="w-4 h-4 ml-1" />
-                    </Button>
-                    <Button variant="outline" className="w-full rounded-xl h-10" onClick={() => { setBookingSuccess(false); setPaymentSuccess(false); setBookingDetails(null); setBookingStep('method'); }}>
-                      Cancel
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <BillCheckout
-                      amount={bookingDetails.fees}
-                      serviceType="appointment"
-                      provider={doctor.hospitalId?.name || bookingDetails.doctor}
-                      details={{ doctor: doctor.name || bookingDetails.doctor, specialization: doctor.specialization || '', date: bookingDetails.date, time: bookingDetails.time, type: 'Consultation' }}
-                      lineItems={[{ name: 'Consultation Fee', price: bookingDetails.fees, qty: 1 }]}
-                      platformFee={0}
-                      gst={0}
-                      discount={0}
-                      compact
-                      method={paymentMethod}
-                      onMethodChange={setPaymentMethod}
-                      onPay={handlePayment}
-                      loading={paymentLoading}
-                    />
-                    <Button variant="outline" className="w-full rounded-xl h-10" onClick={() => { setBookingSuccess(false); setPaymentSuccess(false); setBookingDetails(null); setBookingStep('method'); }}>
-                      Cancel
-                    </Button>
-                  </div>
-                )
-              ) : (
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-xs font-medium text-foreground mb-1 block">Select Date</label>
-                    <Input type="date" value={bookingDate} onChange={e => setBookingDate(e.target.value)}
-                      min={new Date().toISOString().split('T')[0]} className="rounded-xl h-9" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-foreground mb-1 block">Select Time</label>
-                    {(() => {
-                      const timeSlots = doctor.time_slots || ['09:00 AM', '10:00 AM', '11:00 AM', '02:00 PM', '03:00 PM', '04:00 PM'];
-                      const now = new Date();
-                      const bufferPerHour = doctor.bufferPerHour || 0;
-                      const slotDuration = doctor.slotDuration || 15;
-                      const slotsPerHour = Math.ceil(60 / slotDuration);
-                      const bookableSlots = timeSlots.filter((_, i) => {
-                        if (bufferPerHour === 0) return true;
-                        const hourIndex = i % slotsPerHour;
-                        return hourIndex < slotsPerHour - bufferPerHour;
-                      });
-                      const availableSlots = bookableSlots.filter(t => !bookedSlots.includes(t));
-                      const isFullyBooked = availableSlots.length === 0 && timeSlots.length > 0;
-
-                      if (isFullyBooked) {
-                        return (
-                          <div className="space-y-3">
-                            <div className="px-4 py-3 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-800 text-center">
-                              <CalendarDays className="w-8 h-8 mx-auto text-amber-500 mb-2" />
-                              <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">Dr. {doctor.name} is fully booked today</p>
-                              <p className="text-xs text-muted-foreground mt-1">Next Available: Tomorrow, {timeSlots[0]}</p>
-                            </div>
-                            {!showWaitlist ? (
-                              <Button variant="outline" className="w-full rounded-xl h-10 gap-2" onClick={() => setShowWaitlist(true)}>
-                                <Bell className="w-4 h-4" /> Join Waitlist
-                              </Button>
-                            ) : (
-                              <div className="flex gap-2">
-                                <Input placeholder="Your email" value={waitlistEmail} onChange={e => setWaitlistEmail(e.target.value)} className="rounded-xl h-9 text-sm" />
-                                <Button size="sm" className="rounded-xl h-9" onClick={handleWaitlistJoin}>Notify Me</Button>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      }
-
-                      return (
-                        <div className="grid grid-cols-2 gap-1.5">
-                          {timeSlots.map(t => {
-                            const [time, period] = t.split(' ');
-                            let [h, m] = time.split(':').map(Number);
-                            if (period === 'PM' && h !== 12) h += 12;
-                            if (period === 'AM' && h === 12) h = 0;
-                            const slotDate = new Date(bookingDate || now.toISOString().split('T')[0]);
-                            const slotTime = new Date(slotDate);
-                            slotTime.setHours(h, m, 0, 0);
-                            const isPast = slotDate.toDateString() === now.toDateString() && slotTime < now;
-                            const isBooked = bookedSlots.includes(t);
-                            const isBuffer = (() => {
-                              if (bufferPerHour === 0) return false;
-                              const idx = timeSlots.indexOf(t);
-                              const hourIndex = idx % slotsPerHour;
-                              return hourIndex >= slotsPerHour - bufferPerHour;
-                            })();
-                            const disabled = isPast || isBooked || isBuffer;
-                            return (
-                              <button key={t} type="button"
-                                disabled={disabled}
-                                onClick={() => !disabled && setBookingTime(t)}
-                                className={cn(
-                                  'px-2 py-1.5 rounded-lg text-xs font-medium transition-colors relative',
-                                  isPast
-                                    ? 'bg-muted/30 text-muted-foreground/40 cursor-not-allowed line-through'
-                                    : isBuffer
-                                      ? 'bg-muted/20 text-muted-foreground/30 cursor-not-allowed'
-                                      : isBooked
-                                        ? 'bg-red-50 dark:bg-red-500/10 text-red-500 cursor-not-allowed border border-red-200 dark:border-red-800'
-                                        : bookingTime === t
-                                          ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20'
-                                          : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                                )}
-                              >
-                                {t}
-                                {isPast && <span className="absolute -top-1 -right-1 text-[8px] font-bold text-muted-foreground/50 bg-background px-1 rounded">Past</span>}
-                                {isBooked && <span className="absolute -top-1 -right-1 text-[8px] font-bold text-red-400 bg-background px-1 rounded">Booked</span>}
-                                {isBuffer && <span className="absolute -top-1 -right-1 text-[8px] font-bold text-muted-foreground/30 bg-background px-1 rounded">Buf</span>}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      );
-                    })()}
-                  </div>
-                  
-                  <div>
-                    <label className="text-xs font-medium text-foreground mb-1 block">Notes (optional)</label>
-                    <Input placeholder="Any specific concerns…" value={bookingNotes} onChange={e => setBookingNotes(e.target.value)} className="rounded-xl h-9" />
-                  </div>
-                   <Button className="w-full rounded-xl h-10 font-semibold shadow-lg shadow-primary/25" onClick={handleBook} disabled={!bookingDate || !bookingTime || bookingLoading}>
-                     <CalendarDays className="w-4 h-4 mr-2" /> {bookingLoading ? 'Booking...' : 'Confirm Booking'}
-                   </Button>
-
-                  {/* Call Hospital Reception */}
-                  {(doctor.clinic_reception_phone || doctor.hospitalId?.phone) && (
-                    <Button variant="outline" className="w-full rounded-xl h-10 gap-2" asChild>
-                      <a href={`tel:${doctor.clinic_reception_phone || doctor.hospitalId?.phone}`}>
-                        <Phone className="w-4 h-4" />
-                        Call Hospital Reception
-                      </a>
-                    </Button>
-                  )}
-
-                  {!user && (
-                    <p className="text-xs text-muted-foreground text-center">
-                      You need to <Link to="/login" className="text-primary underline">sign in</Link> to manage your appointments
-                    </p>
-                  )}
-                </div>
+              {!user && (
+                <p className="text-xs text-muted-foreground text-center mt-3">
+                  You need to <Link to="/login" className="text-primary underline">sign in</Link> to manage your appointments
+                </p>
               )}
             </div>
+
+            <BookingModal
+              open={showBookingModal}
+              onOpenChange={setShowBookingModal}
+              doctor={doctor}
+              facility={doctor.hospitalId}
+            />
           </motion.div>
 
         </div>
