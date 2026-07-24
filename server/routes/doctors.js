@@ -11,6 +11,7 @@ import { auditLog } from '../middleware/audit.js';
 import { uploadFileToCloudinary } from '../services/cloudinaryService.js';
 import { z } from 'zod';
 import { validate, createDoctorSchema, updateDoctorSchema } from '../utils/validate.js';
+import { paginatedResults } from '../utils/pagination.js';
 
 const router = express.Router();
 
@@ -49,7 +50,7 @@ const populatePractice = (query) => query
 
 router.get('/', async (req, res) => {
   try {
-    const { search, available, specialization, location, includeAll, hospitalId, doctor_type } = req.query;
+    const { page, limit, search, available, specialization, location, includeAll, hospitalId, doctor_type } = req.query;
     const filter = {};
     const canViewAll = includeAll === 'true' && await isAdminListRequest(req);
     if (!canViewAll) filter.approved = true;
@@ -61,36 +62,40 @@ router.get('/', async (req, res) => {
     if (location && location !== 'All') filter.location = new RegExp(location, 'i');
     if (available !== undefined) filter.available = available === 'true';
     if (doctor_type) filter.doctor_type = doctor_type;
+
+    const paginateOpts = {
+      page, limit,
+      sort: { createdAt: -1 },
+      populate: [
+        { path: 'hospitalId', select: 'name address city phone email rating reviewsCount establishedYear totalDoctors accreditations hospitalType emergency24x7 bedAvailability ambulanceService insuranceAccepted workingHours logo' },
+        { path: 'facilityId', select: 'name address city phone email type status rating reviewsCount specialties establishedYear' },
+      ],
+    };
+
+    let result;
     if (hospitalId) {
       try {
         filter.hospitalId = hospitalId;
-        let doctors = await populatePractice(Doctor.find(filter)).sort({ createdAt: -1 }).lean();
-        // Populate clinic profiles for clinic-type doctors
-        const clinicDoctorIds = doctors.filter(d => d.doctor_type === 'clinic').map(d => d._id);
-        if (clinicDoctorIds.length) {
-          const profiles = await ClinicProfile.find({ doctorId: { $in: clinicDoctorIds } }).lean();
-          const profileMap = Object.fromEntries(profiles.map(p => [p.doctorId.toString(), p]));
-          doctors = doctors.map(d => {
-            if (d.doctor_type === 'clinic') d.clinicProfile = profileMap[d._id.toString()] || null;
-            return d;
-          });
-        }
-        return res.json(doctors);
+        result = await paginatedResults(Doctor, filter, paginateOpts);
       } catch (castErr) {
-        return res.json([]);
+        const l = Math.min(100, Math.max(1, parseInt(limit) || 20));
+        return res.json({ data: [], total: 0, page: 1, limit: l, totalPages: 0 });
       }
+    } else {
+      result = await paginatedResults(Doctor, filter, paginateOpts);
     }
-    let doctors = await populatePractice(Doctor.find(filter)).sort({ createdAt: -1 }).lean();
-    const clinicDoctorIds = doctors.filter(d => d.doctor_type === 'clinic').map(d => d._id);
+
+    // Enrich with clinic profiles
+    const clinicDoctorIds = result.data.filter(d => d.doctor_type === 'clinic').map(d => d._id);
     if (clinicDoctorIds.length) {
       const profiles = await ClinicProfile.find({ doctorId: { $in: clinicDoctorIds } }).lean();
       const profileMap = Object.fromEntries(profiles.map(p => [p.doctorId.toString(), p]));
-      doctors = doctors.map(d => {
+      result.data = result.data.map(d => {
         if (d.doctor_type === 'clinic') d.clinicProfile = profileMap[d._id.toString()] || null;
         return d;
       });
     }
-    res.json(doctors);
+    res.json(result);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 

@@ -132,6 +132,10 @@ export default function JoinPlatform() {
       };
       if (type === 'hospital' || type === 'clinic') payload.doctors = doctors.filter(d => d.name && d.specialization);
       const res = await api.registerPlatform(payload);
+      if (res.requiresVerification) {
+        navigate(`/verify-otp?email=${encodeURIComponent(res.email)}`);
+        return;
+      }
       setSuccess(res);
     } catch (err) {
       setError(err.message || 'Registration failed');

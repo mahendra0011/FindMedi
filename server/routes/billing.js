@@ -8,6 +8,7 @@ import { generateInvoicePDF } from '../services/pdfService.js';
 import { validate, createBillSchema } from '../utils/validate.js';
 import { auditLog } from '../middleware/audit.js';
 import logger from '../config/logger.js';
+import { paginatedResults } from '../utils/pagination.js';
 
 const router = express.Router();
 
@@ -67,7 +68,7 @@ router.get('/services', protect, async (req, res) => {
 
 router.get('/', protect, async (req, res) => {
   try {
-    const { search, status } = req.query;
+    const { page, limit, search, status } = req.query;
     const filter = {};
     
     if (req.user.hospitalId && (req.user.role === 'admin' || req.user.role === 'superadmin')) {
@@ -92,10 +93,14 @@ router.get('/', protect, async (req, res) => {
       ];
     }
     
-    const bills = await Billing.find(filter)
-      .populate('patientId', 'name email phone')
-      .populate('doctorId', 'name specialization')
-      .sort({ createdAt: -1 });
+    const result = await paginatedResults(Billing, filter, {
+      page, limit,
+      sort: { createdAt: -1 },
+      populate: [
+        { path: 'patientId', select: 'name email phone' },
+        { path: 'doctorId', select: 'name specialization' },
+      ],
+    });
     
     // Calculate totals
     let totalFilter = {};
@@ -111,7 +116,7 @@ router.get('/', protect, async (req, res) => {
       { $group: { _id: null, total: { $sum: '$amount' }, paid: { $sum: '$paid' } } }
     ]);
     
-    res.json({ bills, summary: total[0] || { total: 0, paid: 0 } });
+    res.json({ ...result, summary: total[0] || { total: 0, paid: 0 } });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 

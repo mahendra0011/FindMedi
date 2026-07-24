@@ -4,6 +4,7 @@ import Doctor from '../models/Doctor.js';
 import { protect, adminOnly } from '../middleware/auth.js';
 import { notifyUser } from '../services/socketService.js';
 import { validate, createNotificationSchema } from '../utils/validate.js';
+import { paginatedResults } from '../utils/pagination.js';
 
 const router = express.Router();
 
@@ -22,11 +23,12 @@ const getNotificationUserId = async (req) => {
 
 router.get('/', protect, async (req, res, next) => {
   try {
+    const { page, limit } = req.query;
     let filter = {};
     const effectiveUserId = await getNotificationUserId(req);
     if (effectiveUserId) filter.userId = effectiveUserId;
-    const notifications = await Notification.find(filter).sort({ createdAt: -1 });
-    res.json(notifications);
+    const result = await paginatedResults(Notification, filter, { page, limit });
+    res.json(result);
   } catch (err) { 
     next(err);
   }

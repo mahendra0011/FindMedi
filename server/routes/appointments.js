@@ -9,6 +9,7 @@ import { protect, scopeToHospital } from '../middleware/auth.js';
 import { validate, createAppointmentSchema, updateAppointmentSchema } from '../utils/validate.js';
 import logger from '../config/logger.js';
 import { auditLog } from '../middleware/audit.js';
+import { paginatedResults } from '../utils/pagination.js';
 
 const router = express.Router();
 
@@ -51,7 +52,7 @@ const createNotification = async (userId, title, message, type = 'appointment') 
 
 router.get('/', protect, async (req, res) => {
   try {
-    const { status, date, search, hospitalId } = req.query;
+    const { page, limit, status, date, search, hospitalId } = req.query;
     const filter = {};
     
     if (status && status !== 'All') filter.status = status;
@@ -72,11 +73,15 @@ router.get('/', protect, async (req, res) => {
       filter.$or = [{ patient: new RegExp(search, 'i') }];
     }
     
-    const appointments = await Appointment.find(filter)
-      .populate('patientId', 'name email phone')
-      .populate('doctorId', 'name specialization')
-      .sort({ date: -1, createdAt: -1 });
-    res.json(appointments);
+    const result = await paginatedResults(Appointment, filter, {
+      page, limit,
+      sort: { date: -1, createdAt: -1 },
+      populate: [
+        { path: 'patientId', select: 'name email phone' },
+        { path: 'doctorId', select: 'name specialization' },
+      ],
+    });
+    res.json(result);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 

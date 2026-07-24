@@ -6,6 +6,7 @@ import Hospital from '../models/Hospital.js';
 import Facility from '../models/Facility.js';
 import Doctor from '../models/Doctor.js';
 import { validate } from '../utils/validate.js';
+import { createAndSendOTP } from '../services/otpService.js';
 
 const platformRegisterSchema = z.object({
   type: z.enum(['hospital', 'clinic', 'diagnostic', 'pharmacy']),
@@ -170,8 +171,9 @@ router.post('/register', validate(platformRegisterSchema), async (req, res) => {
       });
     }
 
+    const user = await User.findOne({ email: account.email.toLowerCase() });
+
     if (doctors?.length) {
-      const user = await User.findOne({ email: account.email.toLowerCase() });
       for (const doc of doctors) {
         if (!doc.name || !doc.specialization) continue;
         const docEmail = doc.email || `${doc.name.toLowerCase().replace(/\s+/g, '.')}@${slug}.medicore.app`;
@@ -192,7 +194,6 @@ router.post('/register', validate(platformRegisterSchema), async (req, res) => {
           status: 'active',
           approvalStatus: 'approved',
         });
-        // Password already hashed by pre('save') hook during create()
         await Doctor.create({
           userId: docUser._id,
           name: doc.name,
@@ -209,8 +210,12 @@ router.post('/register', validate(platformRegisterSchema), async (req, res) => {
       }
     }
 
+    await createAndSendOTP({ userId: user._id, email: user.email, type: 'email' });
+
     res.status(201).json({
-      message: `${type} registration submitted successfully. Awaiting approval.`,
+      message: 'Registration submitted. Please verify your email to continue.',
+      requiresVerification: true,
+      email: account.email,
       [type === 'hospital' ? 'hospitalId' : 'facilityId']: entity._id,
     });
   } catch (err) {

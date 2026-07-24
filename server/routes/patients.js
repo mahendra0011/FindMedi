@@ -3,13 +3,14 @@ import Patient from '../models/Patient.js';
 import { protect } from '../middleware/auth.js';
 import { validate, createPatientSchema, updatePatientSchema } from '../utils/validate.js';
 import { auditLog } from '../middleware/audit.js';
+import { paginatedResults } from '../utils/pagination.js';
 
 const router = express.Router();
 
 // ─── Get Patients ───────────────────────────────────────────────────────────
 router.get('/', protect, async (req, res) => {
   try {
-    const { search, status } = req.query;
+    const { page, limit, search, status } = req.query;
     const filter = {};
     if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
     if (search) {
@@ -21,8 +22,8 @@ router.get('/', protect, async (req, res) => {
       ];
     }
     if (status) filter.status = status;
-    const patients = await Patient.find(filter).sort({ createdAt: -1 });
-    res.json(patients);
+    const result = await paginatedResults(Patient, filter, { page, limit });
+    res.json(result);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 

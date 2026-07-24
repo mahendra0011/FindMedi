@@ -5,6 +5,7 @@ import { protect, adminOnly } from '../middleware/auth.js';
 import { sendAccountBlockedEmail } from '../services/notificationService.js';
 import { auditLog } from '../middleware/audit.js';
 import { validate } from '../utils/validate.js';
+import { paginatedResults } from '../utils/pagination.js';
 
 const blockUserSchema = z.object({ reason: z.string().optional() });
 
@@ -12,6 +13,7 @@ const router = express.Router();
 
 router.get('/', protect, adminOnly, async (req, res) => {
   try {
+    const { page, limit } = req.query;
     const filter = {};
     if (req.query.role && req.query.role !== 'All') filter.role = req.query.role;
     if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
@@ -22,8 +24,8 @@ router.get('/', protect, adminOnly, async (req, res) => {
         { email: { $regex: q, $options: 'i' } },
       ];
     }
-    const users = await User.find(filter).select('-password').sort({ createdAt: -1 });
-    res.json(users.map(u => ({
+    const result = await paginatedResults(User, filter, { page, limit });
+    result.data = result.data.map(u => ({
       id: u._id,
       name: u.name,
       email: u.email,
@@ -34,7 +36,8 @@ router.get('/', protect, adminOnly, async (req, res) => {
       status: u.status || 'active',
       isVerified: u.isVerified,
       approvalStatus: u.approvalStatus,
-    })));
+    }));
+    res.json(result);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 

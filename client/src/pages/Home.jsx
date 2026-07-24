@@ -637,7 +637,7 @@ const Home = () => {
                   >
                     <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/30 to-blue-500/30 flex items-center justify-center shrink-0 overflow-hidden">
                       {doc.profile_photo
-                        ? <img src={doc.profile_photo} alt="" className="w-full h-full object-cover" />
+                        ? <img src={doc.profile_photo} alt={doc.name || 'Doctor'} className="w-full h-full object-cover" />
                         : <UserRound className="w-7 h-7 text-primary" />}
                     </div>
                     <div className="flex-1">
@@ -819,7 +819,7 @@ const Home = () => {
         onMouseLeave={() => setCtaPointer({ x: 50, y: 50 })}
       >
         <div className="absolute inset-0">
-          <img src={doctorImage2} alt="" className="w-full h-full object-cover opacity-20" />
+          <img src={doctorImage2} alt="Background" className="w-full h-full object-cover opacity-20" />
           <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary/90 to-blue-600" />
           <div
             className="absolute inset-0 transition-opacity duration-200"
