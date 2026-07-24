@@ -21,6 +21,7 @@ import logger from './config/logger.js';
 import { configureMongoDns } from './config/mongoDns.js';
 import { validateEnv, printEnvStatus } from './config/envValidator.js';
 import { errorHandler, notFound } from './middleware/errorHandler.js';
+import { csrfProtection, setCsrfToken } from './middleware/csrf.js';
 import { initSocket } from './services/socketService.js';
 
 const app = express();
@@ -112,9 +113,9 @@ if (process.env.NODE_ENV === 'production' && !process.env.REDIS_URL) {
   logger.warn('Rate limiting is using in-memory store. Set REDIS_URL for shared rate limiting across multiple instances.');
 }
 
-// CSRF protection placeholder - enable when using cookie-based auth
-if (process.env.NODE_ENV === 'production' && process.env.USE_CSRF === 'true') {
-  logger.warn('CSRF protection is not yet implemented. Enable when transitioning to cookie-based sessions.');
+// CSRF protection (active when cookie-based auth is used)
+if (process.env.NODE_ENV === 'production') {
+  logger.info('CSRF protection is enabled via double-submit cookie pattern + Origin validation.');
 }
 
 // Environment validation
@@ -170,6 +171,10 @@ app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '5mb' }));
+// CSRF protection for state-changing requests (POST/PUT/DELETE)
+app.use('/api', csrfProtection);
+// CSRF token endpoint (must be before auth routes to allow anonymous access)
+app.get('/api/auth/csrf-token', setCsrfToken);
 // Serve uploaded files with filename-based access control
 app.use('/uploads', (req, res, next) => {
   // Authenticated access only for medical files (check cookie or Authorization header)

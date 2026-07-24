@@ -2,6 +2,11 @@ import axios from 'axios';
 
 const BASE = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
+function getCookie(name) {
+  const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+  return match ? decodeURIComponent(match[2]) : null;
+}
+
 /** Axios instance with base URL, timeout, and auto cookie-based auth */
 const apiClient = axios.create({
   baseURL: BASE,
@@ -10,11 +15,17 @@ const apiClient = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
-// ─── Request Interceptor: Handle FormData ──────────────────────────────────
+// ─── Request Interceptor: CSRF token + FormData ────────────────────────────
 apiClient.interceptors.request.use(
   (config) => {
     if (config.data instanceof FormData) {
       delete config.headers['Content-Type'];
+    }
+    if (['post', 'put', 'patch', 'delete'].includes(config.method?.toLowerCase())) {
+      const csrfToken = getCookie('csrf-token');
+      if (csrfToken) {
+        config.headers['X-CSRF-Token'] = csrfToken;
+      }
     }
     return config;
   },

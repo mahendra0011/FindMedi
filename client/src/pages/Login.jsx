@@ -192,6 +192,29 @@ export default function Login() {
             {googleLoading ? 'Connecting...' : 'Continue with Google'}
           </Button>
 
+          <div className="mt-4 p-3 bg-muted/50 rounded-xl border border-border/50">
+            <p className="text-xs font-medium text-muted-foreground mb-2">Quick Demo Login:</p>
+            <div className="grid grid-cols-4 gap-1.5">
+              {[
+                { key:'superadmin', label:'SuperAdmin',    desc:'Platform mgmt',          icon: Shield,      color:'text-purple-600',  bg:'bg-purple-500/10',  email:'mahendrapra0077@gmail.com', pass:'admin@123' },
+                { key:'admin',      label:'Hospital Admin',desc:'Full system & access',   icon: Shield,      color:'text-primary',     bg:'bg-primary/10',     email:'admin@medicore.com',        pass:'password' },
+                { key:'doctor',     label:'Hosp Doctor',   desc:'Patient & schedule',     icon: Stethoscope, color:'text-info',         bg:'bg-info/10',        email:'sarah.smith@medicore.com',  pass:'password' },
+                { key:'clinic_doctor', label:'Clinic',     desc:'Clinic management',       icon: Heart,       color:'text-rose-600',    bg:'bg-rose-500/10',    email:'clinic@medicore.com',       pass:'password' },
+                { key:'lab_owner',  label:'Diagnostic',    desc:'Lab test mgmt',           icon: Microscope,  color:'text-emerald-600', bg:'bg-emerald-500/10', email:'diagnostic@medicore.com',   pass:'password' },
+                { key:'pharmacy_owner', label:'Pharmacy',  desc:'Medicine store',          icon: Pill,        color:'text-amber-600',   bg:'bg-amber-500/10',   email:'pharmacy@medicore.com',     pass:'password' },
+                { key:'patient',    label:'Patient',       desc:'Appointments & records', icon: UserRound,   color:'text-success',     bg:'bg-success/10',     email:'patient@medicore.com',      pass:'password' },
+              ].map(({ key, label, desc, icon: Icon, color, bg, email, pass }) => (
+                <button key={key} type="button" onClick={() => { setRole(key); setEmail(email); setPassword(pass); setError(''); }}
+                  className="p-1.5 rounded-lg border text-center transition-all border-border hover:border-primary/30 hover:bg-muted/50">
+                  <div className={`w-5 h-5 rounded-md ${bg} flex items-center justify-center mx-auto mb-0.5`}>
+                    <Icon className={`w-2.5 h-2.5 ${color}`} />
+                  </div>
+                  <p className="text-[10px] font-semibold leading-tight text-foreground">{label}</p>
+                  <p className="text-[7px] text-muted-foreground leading-tight">{desc}</p>
+                </button>
+              ))}
+            </div>
+          </div>
 
         </motion.div>
       </div>

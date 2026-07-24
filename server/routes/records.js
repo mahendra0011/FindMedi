@@ -7,6 +7,7 @@ import { protect } from '../middleware/auth.js';
 import { validate, createRecordSchema } from '../utils/validate.js';
 import { generatePrescriptionPDF } from '../services/pdfService.js';
 import { auditLog } from '../middleware/audit.js';
+import { paginatedResults } from '../utils/pagination.js';
 
 const router = express.Router();
 
@@ -23,7 +24,7 @@ const findPatientByName = async (name) => {
 
 router.get('/', protect, async (req, res) => {
   try {
-    const { search, type, patient } = req.query;
+    const { page, limit, search, type, patient } = req.query;
     const filter = {};
     
     if (req.user.role === 'patient') {
@@ -48,11 +49,15 @@ router.get('/', protect, async (req, res) => {
     ];
     if (patient) filter.patient = new RegExp(patient, 'i');
     
-    const records = await Record.find(filter)
-      .populate('patientId', 'name email')
-      .populate('doctorId', 'name specialization')
-      .sort({ createdAt: -1 });
-    res.json({ records });
+    const result = await paginatedResults(Record, filter, {
+      page, limit,
+      sort: { createdAt: -1 },
+      populate: [
+        { path: 'patientId', select: 'name email' },
+        { path: 'doctorId', select: 'name specialization' },
+      ],
+    });
+    res.json(result);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 

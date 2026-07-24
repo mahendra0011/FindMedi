@@ -618,9 +618,9 @@ export default function MedicineStoreDetail() {
                       )}
                       <div className="flex items-center gap-2 pt-1">
                         <span className="text-xs text-muted-foreground mr-1">Follow us:</span>
-                        <a href="#" className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-500/15 flex items-center justify-center hover:bg-blue-200 dark:hover:bg-blue-500/30 transition-colors"><Globe className="w-4 h-4 text-blue-600" /></a>
-                        <a href="#" className="w-8 h-8 rounded-lg bg-pink-100 dark:bg-pink-500/15 flex items-center justify-center hover:bg-pink-200 dark:hover:bg-pink-500/30 transition-colors"><Globe className="w-4 h-4 text-pink-600" /></a>
-                        <a href="#" className="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-500/15 flex items-center justify-center hover:bg-red-200 dark:hover:bg-red-500/30 transition-colors"><Globe className="w-4 h-4 text-red-600" /></a>
+                        <span className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-500/15 flex items-center justify-center"><Globe className="w-4 h-4 text-blue-600" /></span>
+                        <span className="w-8 h-8 rounded-lg bg-pink-100 dark:bg-pink-500/15 flex items-center justify-center"><Globe className="w-4 h-4 text-pink-600" /></span>
+                        <span className="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-500/15 flex items-center justify-center"><Globe className="w-4 h-4 text-red-600" /></span>
                       </div>
                     </div>
                   </div>

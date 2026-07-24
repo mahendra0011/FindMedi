@@ -52,6 +52,9 @@ async function seed() {
     const hospitalsMap = {};
     for (const h of hospitalsData) {
       const { _id, ...rest } = h;
+      if (!rest.location || !rest.location.coordinates) {
+        rest.location = { type: 'Point', coordinates: [78.9629, 23.1815] };
+      }
       const inserted = await Hospital.create(rest);
       hospitalsMap[_id] = inserted._id;
     }
@@ -63,6 +66,9 @@ async function seed() {
     const facilitiesMap = {};
     for (const f of facilitiesData) {
       const { _id, ...rest } = f;
+      if (!rest.location || !rest.location.coordinates) {
+        rest.location = { type: 'Point', coordinates: [78.9629, 23.1815] };
+      }
       const inserted = await Facility.create(rest);
       facilitiesMap[_id] = inserted._id;
     }

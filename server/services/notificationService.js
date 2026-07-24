@@ -1,7 +1,7 @@
 import { renderEmailTemplate, renderPlainText } from './emailTemplates.js';
 
 const BREVO_API_KEY = process.env.BREVO_API_KEY;
-const BREVO_SENDER_EMAIL = process.env.BREVO_SENDER_EMAIL || 'mahendrapra0077@gmail.com';
+const BREVO_SENDER_EMAIL = process.env.BREVO_SENDER_EMAIL;
 const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email';
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
 
