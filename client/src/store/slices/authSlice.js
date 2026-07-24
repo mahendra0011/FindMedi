@@ -1,7 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { api } from '@/lib/api';
 import { mergeSettings, readStoredSettings } from '@/lib/settings';
-import { secureSetItem, secureGetItem, secureRemoveItem } from '@/lib/security';
 
 const initialState = {
   user: null,
@@ -42,16 +41,9 @@ export const selectIsAuthenticated = (state) => !!state.auth.user;
 export const selectUserRole = (state) => state.auth.user?.role;
 export const selectUserSettings = (state) => state.auth.user?.settings;
 
-// Async thunk: initialize auth from stored token
+// Async thunk: initialize auth from httpOnly cookie (auto-sent by browser)
 export const initializeAuth = () => async (dispatch) => {
   try {
-    const token = await secureGetItem('hms_token');
-    if (!token) {
-      dispatch(setUser(null));
-      dispatch(setLoading(false));
-      return;
-    }
-
     const user = await api.me();
     const mergedUser = {
       ...user,
@@ -59,8 +51,6 @@ export const initializeAuth = () => async (dispatch) => {
     };
     dispatch(setUser(mergedUser));
   } catch {
-    secureRemoveItem('hms_token');
-    secureRemoveItem('token');
     dispatch(setUser(null));
     dispatch(setLoading(false));
   }
@@ -71,9 +61,6 @@ export const loginUser = (credentials) => async (dispatch) => {
   dispatch(setLoading(true));
   try {
     const data = await api.login(credentials);
-    secureRemoveItem('token');
-    await secureSetItem('hms_token', data.token);
-
     const mergedUser = {
       ...data.user,
       settings: mergeSettings(readStoredSettings(), data.user?.settings),
@@ -98,11 +85,6 @@ export const registerUser = (body) => async (dispatch) => {
       return { ...data, requiresVerification: true };
     }
 
-    secureRemoveItem('token');
-    if (data.token) {
-      await secureSetItem('hms_token', data.token);
-    }
-
     const mergedUser = {
       ...data.user,
       settings: mergeSettings(readStoredSettings(), data.user?.settings),
@@ -120,9 +102,11 @@ export const registerUser = (body) => async (dispatch) => {
 };
 
 // Async thunk: logout
-export const logoutUser = () => (dispatch) => {
-  secureRemoveItem('hms_token');
-  secureRemoveItem('token');
+export const logoutUser = () => async (dispatch) => {
+  try {
+    await api.logout();
+  } catch {
+  }
   dispatch(logout());
 };
 

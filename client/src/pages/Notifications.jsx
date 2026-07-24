@@ -32,6 +32,7 @@ export default function Notifications() {
     setLoading(false);
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadNotifications(); }, [user?._id, user?.id, user?.role]);
 
   const handleMarkRead = async (id) => {

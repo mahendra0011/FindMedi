@@ -66,7 +66,7 @@ router.get('/', protect, async (req, res) => {
       if (req.user.hospitalId) filter.hospitalId = req.user.hospitalId;
     }
     
-    if (hospitalId) filter.hospitalId = hospitalId;
+    if (hospitalId && req.user.role === 'superadmin') filter.hospitalId = hospitalId;
     
     if (search && (req.user.role === 'doctor' || req.user.role === 'clinic_doctor')) {
       filter.$or = [{ patient: new RegExp(search, 'i') }];

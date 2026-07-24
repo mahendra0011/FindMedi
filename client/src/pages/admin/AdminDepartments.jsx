@@ -22,6 +22,7 @@ export default function AdminDepartments() {
     setLoading(false);
   }, []);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadDepartments(); }, []);
 
   const resetForm = () => { setForm({ name: '', description: '', head: '', active: true, fees_structure: 0 }); setEditId(null); setShowForm(false); };

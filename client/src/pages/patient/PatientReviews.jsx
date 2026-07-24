@@ -27,6 +27,7 @@ export default function PatientReviews() {
     setLoading(false);
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadData(); }, [user?.name]);
 
   const handleSubmit = async () => {

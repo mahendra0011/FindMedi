@@ -21,6 +21,7 @@ export default function PatientEmergency() {
   const [form, setForm] = useState({ condition: '', severity: 'Serious', phone: '' });
   const [submitting, setSubmitting] = useState(false);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadMyEmergencies(); }, []);
 
   const loadMyEmergencies = async () => {

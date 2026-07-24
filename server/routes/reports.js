@@ -16,6 +16,7 @@ import Doctor from '../models/Doctor.js';
 import { protect, adminOnly } from '../middleware/auth.js';
 import { validate } from '../utils/validate.js';
 import { parseExcelFile, exportToExcel, exportToCSV, validatePatientData, validateDoctorData, validateBillingData, formatPatientsForExport, formatDoctorsForExport, formatBillingForExport, formatAppointmentsForExport } from '../utils/excelUtils.js';
+import { getConfig } from '../utils/configLoader.js';
 import { generatePrescriptionPDF, generateLabReportPDF, generateDischargeSummaryPDF } from '../services/pdfService.js';
 import { sendEmail, attachmentFromPdf } from '../services/notificationService.js';
 
@@ -332,21 +333,7 @@ router.get('/:id', protect, async (req, res) => {
 
 router.get('/types/list', protect, async (req, res) => {
   try {
-    // TODO: move reportTypes to DB-backed admin-managed config
-    const reportTypes = [
-      { id: 'Bed Occupancy', name: 'Bed Occupancy Report', category: 'Administrative' },
-      { id: 'Financial Summary', name: 'Financial Summary', category: 'Financial' },
-      { id: 'Lab Statistics', name: 'Laboratory Statistics', category: 'Clinical' },
-      { id: 'Pharmacy', name: 'Pharmacy Report', category: 'Clinical' },
-      { id: 'Staff Attendance', name: 'Staff Attendance Report', category: 'HR' },
-      { id: 'Inventory', name: 'Inventory Status Report', category: 'Administrative' },
-      { id: 'OT Statistics', name: 'Operation Theatre Statistics', category: 'Clinical' },
-      { id: 'Appointment', name: 'Appointment Statistics', category: 'Administrative' },
-      { id: 'Patient', name: 'Patient Statistics', category: 'Clinical' },
-      { id: 'Birth Certificate', name: 'Birth Certificate Report', category: 'Administrative' },
-      { id: 'Death Certificate', name: 'Death Certificate Report', category: 'Administrative' },
-      { id: 'Notifiable Disease', name: 'Notifiable Disease Report', category: 'Administrative' },
-    ];
+    const reportTypes = await getConfig('reportTypes');
     res.json({ reportTypes });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
@@ -390,7 +377,7 @@ router.get('/export/:type', protect, adminOnly, async (req, res) => {
       return res.send(csv);
     }
 
-    const buffer = exportToExcel(records);
+    const buffer = await exportToExcel(records);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${type}.xlsx"`);
     res.send(buffer);
@@ -402,7 +389,7 @@ router.post('/import/:type', protect, adminOnly, upload.single('file'), async (r
     const { type } = req.params;
     if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
 
-    const rows = parseExcelFile(req.file.buffer);
+    const rows = await parseExcelFile(req.file.buffer);
     if (!rows || rows.length === 0) return res.status(400).json({ message: 'Excel file is empty or has no valid data' });
 
     const hospFilter = req.user.hospitalId ? { hospitalId: req.user.hospitalId } : {};

@@ -4,6 +4,7 @@ import { Search, Plus, IndianRupee, AlertCircle, CheckCircle, X, Trash2, Downloa
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api, downloadInvoicePdf } from '@/lib/api';
+import { toast } from 'sonner';
 
 const statusCls = {
   Paid:    'bg-success/10 text-success',
@@ -37,7 +38,7 @@ export default function Billing() {
     try {
       await downloadInvoicePdf(bill._id, `${bill.invoiceId || 'invoice'}.pdf`);
     } catch (error) {
-      alert(error.message || 'Unable to download invoice');
+      toast.error(error.message || 'Unable to download invoice');
     }
   };
 

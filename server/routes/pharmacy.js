@@ -14,15 +14,11 @@ import { protect } from '../middleware/auth.js';
 import { validate, createMedicineSchema } from '../utils/validate.js';
 import { auditLog } from '../middleware/audit.js';
 
-// TODO: move rejection reasons to DB-backed admin-managed config
-const REJECTION_REASONS = [
-  'Unclear/blurry prescription image',
-  'Prescription has expired',
-  'Medicine name does not match handwriting',
-  'Doctor signature/stamp missing',
-  'Requested quantity exceeds prescribed amount',
-];
+import { getConfig } from '../utils/configLoader.js';
 
+async function getRejectionReasons() {
+  return await getConfig('pharmacyRejectionReasons');
+}
 const medicineUpdateSchema = z.object({}).passthrough();
 const pharmacyStockSchema = z.object({ quantity: z.number(), type: z.enum(['add', 'deduct']) });
 const prescriptionSchema = z.object({}).passthrough();
@@ -573,7 +569,7 @@ router.post('/orders/verify-prescriptions', protect, async (req, res) => {
     if (Math.random() < 0.4) {
       res.json({ verified: true });
     } else {
-      res.json({ verified: false, reason: REJECTION_REASONS[Math.floor(Math.random() * REJECTION_REASONS.length)] });
+      const reasons = await getRejectionReasons(); res.json({ verified: false, reason: reasons[Math.floor(Math.random() * reasons.length)] });
     }
   } catch (err) { res.status(500).json({ message: err.message }); }
 });

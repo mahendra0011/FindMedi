@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { getStoredAuthToken } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -70,7 +69,6 @@ export default function FileUpload() {
   const fileInputRef = useRef(null);
 
   const handleSessionExpired = useCallback(() => {
-    localStorage.removeItem('token');
     logout();
     setUploadResult({
       success: false,
@@ -82,12 +80,9 @@ export default function FileUpload() {
   const fetchUploadedFiles = useCallback(async () => {
     setLoadingFiles(true);
     try {
-      const token = getStoredAuthToken();
       const res = await fetch(`${API_URL}/records`, {
-        headers: {
-          Authorization: token ? `Bearer ${token}` : '',
-          'Content-Type': 'application/json',
-        },
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
       });
 
       if (res.status === 401) {
@@ -135,10 +130,9 @@ export default function FileUpload() {
     formData.append('file', file);
 
     try {
-      const token = getStoredAuthToken();
       const res = await fetch(`${API_URL}/upload`, {
         method: 'POST',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        credentials: 'include',
         body: formData,
       });
 

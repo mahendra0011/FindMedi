@@ -96,6 +96,7 @@ export default function HospitalDirectory() {
     setLoading(false);
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadHospitals(); }, [search, cityFilter, specFilter]);
 
   const insuranceProviders = useMemo(() => {

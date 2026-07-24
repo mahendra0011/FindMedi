@@ -1,19 +1,44 @@
-import XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { Parser } from 'json2csv';
 
-export const parseExcelFile = (buffer) => {
-  const workbook = XLSX.read(buffer, { type: 'buffer' });
-  const sheetName = workbook.SheetNames[0];
-  const worksheet = workbook.Sheets[sheetName];
-  return XLSX.utils.sheet_to_json(worksheet);
+export const parseExcelFile = async (buffer) => {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(buffer);
+  const worksheet = workbook.worksheets[0];
+  const rows = [];
+  const headerRow = worksheet.getRow(1);
+  const headers = [];
+  headerRow.eachCell((cell) => {
+    headers.push(cell.value);
+  });
+  worksheet.eachRow((row, rowNumber) => {
+    if (rowNumber === 1) return;
+    const rowData = {};
+    row.eachCell((cell, colNumber) => {
+      rowData[headers[colNumber - 1]] = cell.value;
+    });
+    rows.push(rowData);
+  });
+  return rows;
 };
 
-export const exportToExcel = (data, filename = 'export') => {
-  const worksheet = XLSX.utils.json_to_sheet(data);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Data');
-  
-  const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+export const exportToExcel = async (data) => {
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet('Data');
+  const headers = Object.keys(data[0] || {});
+  worksheet.addRow(headers);
+  data.forEach(item => {
+    worksheet.addRow(headers.map(h => item[h]));
+  });
+  worksheet.columns.forEach(column => {
+    let maxLength = 10;
+    column.eachCell({ includeEmpty: true }, (cell) => {
+      const len = cell.value ? String(cell.value).length : 10;
+      if (len > maxLength) maxLength = len;
+    });
+    column.width = Math.min(maxLength + 2, 50);
+  });
+  const buffer = await workbook.xlsx.writeBuffer();
   return buffer;
 };
 
@@ -25,10 +50,10 @@ export const exportToCSV = (data, fields) => {
 export const validatePatientData = (patients) => {
   const errors = [];
   const validPatients = [];
-  
+
   patients.forEach((patient, index) => {
     const rowErrors = [];
-    
+
     if (!patient.name && !patient.Name) {
       rowErrors.push('Name is required');
     }
@@ -38,7 +63,7 @@ export const validatePatientData = (patients) => {
     if (!patient.email && !patient.Email) {
       rowErrors.push('Email is required');
     }
-    
+
     if (rowErrors.length > 0) {
       errors.push({ row: index + 2, errors: rowErrors });
     } else {
@@ -52,17 +77,17 @@ export const validatePatientData = (patients) => {
       });
     }
   });
-  
+
   return { validPatients, errors };
 };
 
 export const validateDoctorData = (doctors) => {
   const errors = [];
   const validDoctors = [];
-  
+
   doctors.forEach((doctor, index) => {
     const rowErrors = [];
-    
+
     if (!doctor.name && !doctor.Name) {
       rowErrors.push('Name is required');
     }
@@ -72,7 +97,7 @@ export const validateDoctorData = (doctors) => {
     if (!doctor.email && !doctor.Email) {
       rowErrors.push('Email is required');
     }
-    
+
     if (rowErrors.length > 0) {
       errors.push({ row: index + 2, errors: rowErrors });
     } else {
@@ -96,24 +121,24 @@ export const validateDoctorData = (doctors) => {
       });
     }
   });
-  
+
   return { validDoctors, errors };
 };
 
 export const validateBillingData = (records) => {
   const errors = [];
   const validRecords = [];
-  
+
   records.forEach((record, index) => {
     const rowErrors = [];
-    
+
     if (!record.patient && !record.Patient && !record.patientName && !record.PatientName && !record.patientId && !record.patient_id && !record.PatientId) {
       rowErrors.push('Patient name or patient ID is required');
     }
     if (!record.amount && !record.Amount) {
       rowErrors.push('Amount is required');
     }
-    
+
     if (rowErrors.length > 0) {
       errors.push({ row: index + 2, errors: rowErrors });
     } else {
@@ -130,7 +155,7 @@ export const validateBillingData = (records) => {
       });
     }
   });
-  
+
   return { validRecords, errors };
 };
 

@@ -49,14 +49,14 @@ export default function DoctorConsultations() {
     setLoading(false);
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadRecords(); }, [user?.name]);
 
   const handleDownloadPdf = async (recordId) => {
     try {
-      const token = localStorage.getItem('token');
       const base = import.meta.env.VITE_API_URL || 'http://localhost:5001';
       const res = await fetch(`${base}/api/records/${recordId}/prescription-pdf`, {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       });
       if (!res.ok) throw new Error('Download failed');
       const blob = await res.blob();

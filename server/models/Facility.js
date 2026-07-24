@@ -75,6 +75,10 @@ const facilitySchema = new mongoose.Schema({
     instagram: { type: String, default: '' },
     youtube: { type: String, default: '' },
   },
+  location: {
+    type: { type: String, enum: ['Point'], default: 'Point' },
+    coordinates: { type: [Number], default: undefined },
+  },
 
   details: {
     type: Object,
@@ -83,5 +87,6 @@ const facilitySchema = new mongoose.Schema({
 });
 
 facilitySchema.index({ type: 1, status: 1 });
+facilitySchema.index({ location: '2dsphere' });
 
 export default mongoose.model('Facility', facilitySchema);

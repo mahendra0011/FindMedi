@@ -36,13 +36,14 @@ const findPatientByName = async (name) => {
   return patient;
 };
 
-// COUPONS system TODO: move to database-backed admin-managed system
-const COUPONS = [];
+import { getConfig } from '../utils/configLoader.js';
+
+async function getCoupons() { return await getConfig('coupons'); }
 
 router.post('/validate-coupon', protect, async (req, res) => {
   try {
     const { code, amount } = req.body;
-    const coupon = COUPONS.find(c => c.code === code && c.active);
+    const COUPONS = await getCoupons(); const coupon = COUPONS.find(c => c.code === code && c.active);
     if (!coupon) {
       return res.json({ valid: false, message: 'Invalid or expired coupon code' });
     }

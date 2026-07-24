@@ -39,6 +39,10 @@ const hospitalSchema = new mongoose.Schema({
     instagram: { type: String, default: '' },
     youtube: { type: String, default: '' },
   },
+  location: {
+    type: { type: String, enum: ['Point'], default: 'Point' },
+    coordinates: { type: [Number], default: undefined },
+  },
   insuranceAccepted: [{ provider: String, planType: String }],  // Insurance providers accepted
   paymentModes: [{ type: String }],                             // Accepted payment modes
   workingHours: {
@@ -47,5 +51,7 @@ const hospitalSchema = new mongoose.Schema({
     sunday: { type: String, default: 'Closed' },
   },
 });
+
+hospitalSchema.index({ location: '2dsphere' });
 
 export default mongoose.model('Hospital', hospitalSchema);

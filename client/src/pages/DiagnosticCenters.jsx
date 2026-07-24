@@ -77,7 +77,8 @@ export default function DiagnosticCenters() {
     };
   };
 
-useEffect(() => {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
     const load = async () => {
       setLoading(true);
       try {
@@ -90,7 +91,7 @@ useEffect(() => {
       setLoading(false);
     };
     load();
-  }, []);
+}, []);
 
   const [activeCategory, setActiveCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');

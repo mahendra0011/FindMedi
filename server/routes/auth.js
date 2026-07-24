@@ -120,6 +120,31 @@ const sign = (user) => {
   return accessToken;
 };
 
+const setAuthCookies = (res, accessToken, refreshToken) => {
+  const isProd = process.env.NODE_ENV === 'production';
+  res.cookie('token', accessToken, {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 15 * 60 * 1000,
+  });
+  if (refreshToken) {
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+  }
+};
+
+const clearAuthCookies = (res) => {
+  res.clearCookie('token', { path: '/' });
+  res.clearCookie('refreshToken', { path: '/' });
+};
+
 const initialsFor = (name = '') => name
   .split(' ')
   .filter(Boolean)
@@ -388,9 +413,11 @@ router.post('/verify-otp', validate(verifyOtpSchema), async (req, res) => {
       }
     }
 
+    const accessToken = sign(user);
+    setAuthCookies(res, accessToken);
     res.json({
       message: 'OTP verified successfully',
-      token: sign(user),
+      token: accessToken,
       user: await userResponse(user),
     });
   } catch (err) {
@@ -562,8 +589,10 @@ router.post('/login', validate(loginSchema), async (req, res) => {
       logger.error('Audit error:', err);
     }
 
+    const accessToken = sign(user);
+    setAuthCookies(res, accessToken);
     return res.json({
-      token: sign(user),
+      token: accessToken,
       user: await userResponse(user),
     });
   } catch (err) {
@@ -726,8 +755,10 @@ router.post('/google', async (req, res) => {
       return res.status(403).json({ message: 'Your account has been blocked. Contact administrator.' });
     }
 
+    const accessToken = sign(user);
+    setAuthCookies(res, accessToken);
     res.json({
-      token: sign(user),
+      token: accessToken,
       user: await userResponse(user),
       googleUser: {
         name: googleName,
@@ -883,10 +914,25 @@ router.put('/profile', protect, async (req, res) => {
   }
 });
 
+// POST /api/auth/logout
+router.post('/logout', async (req, res) => {
+  try {
+    const refreshToken = req.cookies?.refreshToken;
+    if (refreshToken) {
+      await RefreshToken.deleteOne({ token: refreshToken });
+    }
+    clearAuthCookies(res);
+    res.json({ message: 'Logged out successfully' });
+  } catch (err) {
+    clearAuthCookies(res);
+    res.json({ message: 'Logged out successfully' });
+  }
+});
+
 // POST /api/auth/refresh
 router.post('/refresh', async (req, res) => {
   try {
-    const { refreshToken } = req.body;
+    const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
     if (!refreshToken) {
       return res.status(400).json({ message: 'Refresh token is required' });
     }
@@ -928,6 +974,7 @@ router.post('/refresh', async (req, res) => {
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       });
 
+      setAuthCookies(res, newAccessToken, newRefreshToken);
       res.json({
         token: newAccessToken,
         refreshToken: newRefreshToken,

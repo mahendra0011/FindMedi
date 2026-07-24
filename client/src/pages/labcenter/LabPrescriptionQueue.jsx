@@ -107,7 +107,7 @@ export default function LabPrescriptionQueue() {
       setQueue(prev => prev.map(r => r._id === id ? { ...r, status: 'Verified' } : r));
       if (selectedRx?._id === id) setSelectedRx(prev => ({ ...prev, status: 'Verified' }));
       toast.success('✅ Prescription verified — booking confirmed.');
-    } catch (e) {
+    } catch {
       toast.error('Failed to verify prescription — please try again.');
     }
     setProcessing(false);
@@ -129,7 +129,7 @@ export default function LabPrescriptionQueue() {
       if (selectedRx?._id === rejectTarget._id)
         setSelectedRx(prev => ({ ...prev, status: 'Rejected', notes: rejectReason }));
       toast.error(`❌ Prescription rejected: ${REJECTION_REASONS.find(r => r.id === rejectReason)?.label}`);
-    } catch (e) {
+    } catch {
       toast.error('Failed to reject prescription — please try again.');
     }
     setShowRejectDlg(false);

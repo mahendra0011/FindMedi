@@ -1,3 +1,4 @@
+import 'maplibre-gl/dist/maplibre-gl.css';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { HashRouter, Route, Routes, Navigate, Outlet } from 'react-router-dom';
 import { useEffect, lazy, Suspense } from 'react';

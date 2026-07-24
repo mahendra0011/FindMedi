@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/AuthContext';
 import { api, downloadInvoicePdf } from '@/lib/api';
+import { toast } from 'sonner';
 
 const statusColors = { 
   Paid: 'bg-success/10 text-success', 
@@ -50,7 +51,7 @@ export default function DoctorEarnings() {
     try {
       await downloadInvoicePdf(bill._id, `${bill.invoiceId || 'invoice'}.pdf`);
     } catch (error) {
-      alert(error.message || 'Unable to download invoice');
+      toast.error(error.message || 'Unable to download invoice');
     }
   };
 

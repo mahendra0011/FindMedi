@@ -6,11 +6,6 @@ export function dispatch(_fallback, path, options = {}) {
   return request(path, options);
 }
 
-export function getStoredAuthToken() {
-  if (typeof localStorage === 'undefined') return null;
-  return localStorage.getItem('_secure_hms_token') || localStorage.getItem('hms_token') || localStorage.getItem('token');
-}
-
 async function request(path, options = {}) {
   const { method = 'GET', body, headers: extraHeaders } = options;
   const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
@@ -55,6 +50,7 @@ export const api = {
   resendOTP:          (body)    => request('/auth/resend-otp',       { method:'POST', body: JSON.stringify(body) }),
   forgotPassword:     (body)    => request('/auth/forgot-password',  { method:'POST', body: JSON.stringify(body) }),
   resetPassword:      (body)    => request('/auth/reset-password',   { method:'POST', body: JSON.stringify(body) }),
+  logout:             ()        => request('/auth/logout',           { method:'POST' }),
   me:                 ()        => request('/auth/me'),
   updateProfile:      (body)    => request('/auth/profile',          { method:'PUT',  body: JSON.stringify(body) }),
   uploadAvatar:       (file)    => {

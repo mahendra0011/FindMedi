@@ -32,6 +32,7 @@ export default function ClinicBilling() {
     setLoading(false);
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadBills(); }, [user?.name]);
 
   const filtered = bills.filter(b => {

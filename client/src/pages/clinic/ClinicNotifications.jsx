@@ -47,6 +47,7 @@ export default function ClinicNotifications() {
     setLoading(false);
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadNotifications(); }, [filter, user?.name]);
 
   const filtered = notifications.filter(n => {
