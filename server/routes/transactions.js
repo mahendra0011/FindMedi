@@ -5,6 +5,7 @@ import Payment from '../models/Payment.js';
 import Appointment from '../models/Appointment.js';
 import LabBooking from '../models/LabBooking.js';
 import PharmacyOrder from '../models/PharmacyOrder.js';
+import mongoose from 'mongoose';
 import Notification from '../models/Notification.js';
 import { generatePaymentInvoicePDF } from '../services/pdfService.js';
 import Doctor from '../models/Doctor.js';
@@ -73,7 +74,7 @@ router.get('/', protect, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// POST /api/transactions/pay — unified payment + confirm (idempotent)
+// POST /api/transactions/pay — unified payment + confirm (idempotent, atomic)
 router.post('/pay', protect, async (req, res, next) => {
   try {
     const { serviceType, referenceId, amount, method, description, provider, lineItems } = req.body;
@@ -103,88 +104,83 @@ router.post('/pay', protect, async (req, res, next) => {
     const transaction_id = `TXN-${year}-${rndTxn}`;
     const invoice_id = `INV-${invPrefix}-${year}-${rndInv}`;
 
-    const payment = await Payment.create({
-      transaction_id,
-      invoice_id,
-      patient_id: req.user._id.toString(),
-      patient_name: req.user.name || 'Patient',
-      amount,
-      method,
-      status: 'completed',
-      serviceType,
-      referenceId: referenceId || '',
-      description: description || `${serviceType} payment`,
-      provider: provider || '',
-      lineItems: lineItems || [],
-    });
+    const methodMap = { upi:'UPI', card:'Card', netbanking:'Online', cash:'Cash', wallet:'Wallet' };
+    const sourceMap = { appointment:'appointment', test:'lab', medicine:'pharmacy' };
+    const serviceLabel = description || `${serviceType} service`;
+    const today = new Date().toISOString().split('T')[0];
+    const billServices = (lineItems || []).map(item => ({
+      name: item.name || 'Service',
+      description: '',
+      price: Number(item.price) || 0,
+      quantity: Number(item.qty) || 1,
+      category: 'General',
+    }));
 
-    // ── Everything below is post-payment side-effects ──
-    // ALL wrapped in try/catch so nothing can break the success response
+    // ── Atomic transaction: all critical DB ops succeed or fail together ──
+    const session = await mongoose.startSession();
+    let payment;
 
-    // Auto-confirm the referenced booking
-    if (referenceId) {
-      try {
-        if (serviceType === 'appointment') {
-          await Appointment.findByIdAndUpdate(referenceId, { status: 'Confirmed' });
-        } else if (serviceType === 'test') {
-          await LabBooking.findByIdAndUpdate(referenceId, { status: 'Confirmed', paymentStatus: 'Paid' });
-        } else if (serviceType === 'medicine') {
-          await PharmacyOrder.findByIdAndUpdate(referenceId, { status: 'Confirmed', paymentStatus: 'Paid' });
-        }
-      } catch (refErr) {
-        console.error('Failed to update reference status:', refErr);
-      }
-    }
-
-    // Auto-create billing record
     try {
-      const methodMap = { upi:'UPI', card:'Card', netbanking:'Online', cash:'Cash', wallet:'Wallet' };
-      const sourceMap = { appointment:'appointment', test:'lab', medicine:'pharmacy' };
-      const serviceLabel = description || `${serviceType} service`;
-      const providerName = provider || '';
-      const today = new Date().toISOString().split('T')[0];
-      const billServices = (lineItems || []).map(item => ({
-        name: item.name || 'Service',
-        description: '',
-        price: Number(item.price) || 0,
-        quantity: Number(item.qty) || 1,
-        category: 'General',
-      }));
-      await Billing.create({
+      session.startTransaction();
+
+      const [p] = await Payment.create([{
+        transaction_id, invoice_id,
+        patient_id: req.user._id.toString(),
+        patient_name: req.user.name || 'Patient',
+        amount, method, status: 'completed',
+        serviceType, referenceId: referenceId || '',
+        description: description || `${serviceType} payment`,
+        provider: provider || '',
+        lineItems: lineItems || [],
+      }], { session });
+      payment = p;
+
+      // Auto-confirm the referenced booking
+      if (referenceId) {
+        if (serviceType === 'appointment') {
+          await Appointment.findByIdAndUpdate(referenceId, { status: 'Confirmed' }, { session });
+        } else if (serviceType === 'test') {
+          await LabBooking.findByIdAndUpdate(referenceId, { status: 'Confirmed', paymentStatus: 'Paid' }, { session });
+        } else if (serviceType === 'medicine') {
+          await PharmacyOrder.findByIdAndUpdate(referenceId, { status: 'Confirmed', paymentStatus: 'Paid' }, { session });
+        }
+      }
+
+      await Billing.create([{
         invoiceId: invoice_id,
         patient: req.user.name || 'Patient',
         patientId: req.user._id,
-        doctor: serviceType === 'appointment' ? providerName : (serviceType === 'test' ? 'Lab Services' : 'Pharmacy'),
+        doctor: serviceType === 'appointment' ? (provider || 'Doctor') : (serviceType === 'test' ? 'Lab Services' : 'Pharmacy'),
         appointmentId: serviceType === 'appointment' ? referenceId : undefined,
-        service: serviceLabel,
-        services: billServices,
+        service: serviceLabel, services: billServices,
         source: sourceMap[serviceType] || 'manual',
-        amount,
-        paid: amount,
-        balance: 0,
-        status: 'Paid',
+        amount, paid: amount, balance: 0, status: 'Paid',
         date: today,
         paymentMethod: methodMap[method] || 'Online',
         transactionId: transaction_id,
-      });
-    } catch (billErr) {
-      console.error('Failed to create billing record:', billErr.message);
+      }], { session });
+
+      await session.commitTransaction();
+    } catch (txErr) {
+      await session.abortTransaction();
+      throw txErr;
+    } finally {
+      session.endSession();
     }
 
-    // Notification — wrapped in try/catch (was NOT wrapped before, causing phantom failures)
+    // ── Non-critical side-effects (outside transaction, can fail independently) ──
     try {
       await Notification.create({
         userId: req.user._id.toString(),
         title: 'Payment Successful',
         message: `₹${amount} paid for ${description || serviceType}. Invoice: ${invoice_id}`,
         type: 'payment',
-        date: new Date().toISOString().split('T')[0],
+        date: today,
       });
     } catch (notifErr) {
       console.error('Failed to create payment notification:', notifErr.message);
     }
 
-    // Audit log — wrapped in try/catch
     try {
       await auditLog('create_payment', req.user._id, { transaction_id, amount, serviceType, referenceId });
     } catch (auditErr) {
@@ -198,7 +194,6 @@ router.post('/pay', protect, async (req, res, next) => {
       payment,
     });
   } catch (err) {
-    // MongoDB unique index collision (race condition) — look up the existing payment and return it
     if (err.code === 11000 && req.body.referenceId) {
       try {
         const existing = await Payment.findOne({ referenceId: req.body.referenceId, status: 'completed' });
@@ -211,7 +206,7 @@ router.post('/pay', protect, async (req, res, next) => {
             alreadyPaid: true,
           });
         }
-      } catch (_) { /* fall through to generic error */ }
+      } catch (_) { /* fall through */ }
     }
     if (err.code === 11000) {
       return res.status(409).json({ message: 'Duplicate transaction detected. Please check your appointment history — your payment may already be completed.' });
