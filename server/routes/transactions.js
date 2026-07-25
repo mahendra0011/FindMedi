@@ -1,4 +1,5 @@
 import express from 'express';
+import crypto from 'crypto';
 import Billing from '../models/Billing.js';
 import Payment from '../models/Payment.js';
 import Appointment from '../models/Appointment.js';
@@ -90,9 +91,10 @@ router.post('/pay', protect, async (req, res, next) => {
     const year = new Date().getFullYear();
     const prefixMap = { appointment: 'APT', test: 'TST', medicine: 'MED' };
     const invPrefix = prefixMap[serviceType] || serviceType.slice(0,3).toUpperCase();
-    const rndBase = `${Date.now()}${Math.floor(Math.random() * 10**9)}`;
-    const transaction_id = `TXN-${year}-${rndBase.slice(-12)}`;
-    const invoice_id = `INV-${invPrefix}-${year}-${rndBase.slice(-16)}`;
+    const rndTxn = crypto.randomBytes(6).toString('hex').toUpperCase(); // 12 chars
+    const rndInv = crypto.randomBytes(8).toString('hex').toUpperCase(); // 16 chars
+    const transaction_id = `TXN-${year}-${rndTxn}`;
+    const invoice_id = `INV-${invPrefix}-${year}-${rndInv}`;
 
     const payment = await Payment.create({
       transaction_id,

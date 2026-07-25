@@ -69,7 +69,8 @@ export default function BookingModal({
         notes: bookingNotes,
         type: 'Consultation',
       });
-      setBookingDetails({ ...(result || {}), doctor: currentDoc.name, date: bookingDate, time: bookingTime, fees });
+      const appointmentData = result?.appointment || result?.data?.appointment || result;
+      setBookingDetails({ ...appointmentData, doctor: currentDoc.name, date: bookingDate, time: bookingTime, fees });
       setBookingStep(1); // Go to Payment Method
     } catch (e) {
       toast.error(e.response?.data?.message || e.message || 'Failed to reserve appointment');
