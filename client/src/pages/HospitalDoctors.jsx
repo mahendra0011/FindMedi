@@ -9,8 +9,6 @@ import { Card } from '@/components/ui/card';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
-import { useAuth } from '@/context/AuthContext';
 import BookingModal from '@/components/BookingModal';
 
 const DEFAULT_SPECS = ['All', 'Cardiology', 'Neurology', 'Orthopedics', 'Pediatrics', 'Dermatology', 'Oncology', 'General Medicine', 'ENT'];
@@ -45,10 +43,9 @@ function getExpYears(exp) {
 }
 
 export default function HospitalDoctors() {
-  const { hospitalId } = useParams();
-  const navigate = useNavigate();
-  const { user } = useAuth();
-  const [hospital, setHospital] = useState(null);
+   const { hospitalId } = useParams();
+   const navigate = useNavigate();
+   const [hospital, setHospital] = useState(null);
   const [doctors, setDoctors] = useState([]);
   const [allDoctors, setAllDoctors] = useState([]);
   const [search, setSearch] = useState('');
@@ -57,75 +54,7 @@ export default function HospitalDoctors() {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showBooking, setShowBooking] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState(null);
-  const [bookingNotes, setBookingNotes] = useState('');
-  const [bookingDate, setBookingDate] = useState(new Date().toISOString().split('T')[0]);
-  const [bookingTime, setBookingTime] = useState('09:00 AM - 10:00 AM');
-  const [bookingLoading, setBookingLoading] = useState(false);
-  const [bookingDetails, setBookingDetails] = useState(null);
-  const [bookingSuccess, setBookingSuccess] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState('card');
-  const [paymentLoading, setPaymentLoading] = useState(false);
-  const [paymentSuccess, setPaymentSuccess] = useState(false);
-  const [bookingStep, setBookingStep] = useState('method');
   const [loadError, setLoadError] = useState(null);
-
-  const handleConfirmBooking = async () => {
-    if (!selectedDoctor) { toast.error('No doctor selected'); return; }
-    if (!user) { toast.error('Please login to book an appointment'); navigate('/login'); return; }
-    setBookingLoading(true);
-    try {
-      const result = await api.createAppointment({
-        doctorId: selectedDoctor._id,
-        doctor: selectedDoctor.name,
-        doctorName: selectedDoctor.name,
-        department: selectedDoctor.specialization || 'General',
-        hospitalId: hospitalId || selectedDoctor.hospitalId,
-        patient: user.name || 'Patient',
-        patientId: user._id,
-        email: user.email,
-        phone: user.phone || '',
-        date: bookingDate,
-        time: bookingTime,
-        notes: bookingNotes,
-      });
-      setBookingDetails({ ...(result || {}), doctor: selectedDoctor.name, date: bookingDate, time: bookingTime, fees: selectedDoctor.consultation_fees || selectedDoctor.fees || 0 });
-      setBookingSuccess(true);
-      toast.success('Appointment booked successfully!');
-    } catch (e) {
-      toast.error(e.response?.data?.message || e.message || 'Failed to book appointment');
-    }
-    setBookingLoading(false);
-  };
-
-  const handlePayment = async () => {
-    const fees = selectedDoctor?.consultation_fees || selectedDoctor?.fees || 0;
-    if (fees <= 0) { setPaymentSuccess(true); return; }
-    setPaymentLoading(true);
-    try {
-      const result = await api.payTransaction({
-        serviceType: 'appointment',
-        referenceId: bookingDetails?._id,
-        amount: fees,
-        method: paymentMethod,
-        description: `Consultation with ${selectedDoctor.name}`,
-        provider: selectedDoctor.name,
-        lineItems: [{ name: 'Consultation Fee', price: fees, qty: 1 }],
-      });
-      if (result?.success) {
-        setPaymentSuccess(true);
-        toast.success('Payment successful! Appointment confirmed.');
-      }
-    } catch (e) {
-      const msg = e.response?.data?.message || e.message || '';
-      if (msg.includes('already be completed') || msg.includes('Duplicate')) {
-        setPaymentSuccess(true);
-        toast.success('Payment already completed!');
-        return;
-      }
-      toast.error(msg || 'Payment failed');
-    }
-    setPaymentLoading(false);
-  };
 
   const [availabilityFilter, setAvailabilityFilter] = useState('');
   const [genderFilter, setGenderFilter] = useState('');

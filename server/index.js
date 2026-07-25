@@ -292,7 +292,7 @@ app.use('/api/announcements', announcementRoutes);
 app.use('/api/auth/2fa', twoFactorRoutes);
 
 app.get('/api/health', (_, res) => res.json({ status: 'ok', time: new Date() }));
-
+ 
 // 404 handler for unknown routes
 app.use(notFound);
 
