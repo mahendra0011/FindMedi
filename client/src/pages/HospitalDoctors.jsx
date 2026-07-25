@@ -603,8 +603,7 @@ export default function HospitalDoctors() {
           </div>
         )}
       </div>
-      <BookingModal open={showBooking} onOpenChange={setShowBooking} doctor={selectedDoctor} facility={{ ...hospital, doctors: allDoctors }} />
+      <BookingModal open={showBooking} onOpenChange={setShowBooking} doctor={selectedDoctor} facility={hospital} />
     </div>
   );
 }
-
