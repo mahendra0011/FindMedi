@@ -24,7 +24,6 @@ import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import ServiceLocationMap from '@/components/maps/ServiceLocationMap';
 import ClinicCard from '@/components/ClinicCard';
-import { useAuth } from '@/context/AuthContext';
 import BookingModal from '@/components/BookingModal';
 import ReviewDialog from '@/components/ReviewDialog';
 
@@ -117,11 +116,10 @@ export default function ClinicDetail() {
   const [testSearch, setTestSearch] = useState('');
   const [testRxFilter, setTestRxFilter] = useState('all');
   const [testHomeFilter, setTestHomeFilter] = useState('all');
-  const [testSort, setTestSort] = useState('popularity');
+const [testSort, setTestSort] = useState('popularity');
   const [showBooking, setShowBooking] = useState(false);
   const [expandedFaq, setExpandedFaq] = useState(null);
   const [testCart, setTestCart] = useState({});
-  const { user } = useAuth();
   const [isFavorited, setIsFavorited] = useState(() => localStorage.getItem(`fav_clinic_${clinicId}`) === 'true');
   const toggleFavorite = async () => {
     const next = !isFavorited;

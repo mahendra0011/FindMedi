@@ -1,59 +1,66 @@
-import { Building2, MapPin, Star, Users, BadgeCheck, Clock, CalendarDays } from 'lucide-react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Building2, MapPin, Star, Users, BadgeCheck, Clock, CalendarDays } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import BookingModal from './BookingModal';
 
 export default function ClinicCard({ clinic }) {
+  const [showBooking, setShowBooking] = useState(false);
+  const [selectedDoctor, setSelectedDoctor] = useState(null);
   const fallbackDist = '0.8';
 
   return (
-    <Link
-      to={`/clinic/${clinic._id}`}
-      className="group bg-card rounded-2xl border border-border/50 overflow-hidden hover:shadow-xl hover:shadow-primary/5 hover:border-primary/20 transition-all duration-300 flex flex-col"
-    >
-      <div className="relative h-44 overflow-hidden">
-        {clinic.photos?.[0] ? (
-          <img
-            src={clinic.photos[0]}
-            alt={clinic.name}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/15 via-primary/5 to-primary/10">
-            <Building2 className="w-16 h-16 text-primary/25" />
-          </div>
-        )}
-
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
-
-        <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
-          {clinic.verified && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-success/90 text-white shadow-lg shadow-success/30">
-              <BadgeCheck className="w-3 h-3" /> Verified
-            </span>
+    <div className="group bg-card rounded-2xl border border-border/50 overflow-hidden hover:shadow-xl hover:shadow-primary/5 hover:border-primary/20 transition-all duration-300 flex flex-col">
+      <Link
+        to={`/clinic/${clinic._id}`}
+        className="block relative overflow-hidden"
+      >
+        <div className="relative h-44 overflow-hidden">
+          {clinic.photos?.[0] ? (
+            <img
+              src={clinic.photos[0]}
+              alt={clinic.name}
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/15 via-primary/5 to-primary/10">
+              <Building2 className="w-16 h-16 text-primary/25" />
+            </div>
           )}
-        </div>
 
-        <div className="absolute bottom-3 left-4 right-4">
-          <h3 className="font-heading font-bold text-white text-lg leading-tight drop-shadow-sm">
-            {clinic.name}
-          </h3>
-          <div className="flex items-center gap-3 mt-1.5">
-            {clinic.established && (
-              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-white/80 bg-white/15 backdrop-blur-sm px-2 py-0.5 rounded-full">
-                <CalendarDays className="w-3 h-3" />
-                Est. {clinic.established}
-              </span>
-            )}
-            {clinic.totalDoctors > 0 && (
-              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-white/80 bg-white/15 backdrop-blur-sm px-2 py-0.5 rounded-full">
-                <Users className="w-3 h-3" />
-                {clinic.totalDoctors} Doctors
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+
+          <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
+            {clinic.verified && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-success/90 text-white shadow-lg shadow-success/30">
+                <BadgeCheck className="w-3 h-3" /> Verified
               </span>
             )}
           </div>
+
+          <div className="absolute bottom-3 left-4 right-4">
+            <h3 className="font-heading font-bold text-white text-lg leading-tight drop-shadow-sm">
+              {clinic.name}
+            </h3>
+            <div className="flex items-center gap-3 mt-1.5">
+              {clinic.established && (
+                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-white/80 bg-white/15 backdrop-blur-sm px-2 py-0.5 rounded-full">
+                  <CalendarDays className="w-3 h-3" />
+                  Est. {clinic.established}
+                </span>
+              )}
+              {clinic.totalDoctors > 0 && (
+                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-white/80 bg-white/15 backdrop-blur-sm px-2 py-0.5 rounded-full">
+                  <Users className="w-3 h-3" />
+                  {clinic.totalDoctors} Doctors
+                </span>
+              )}
+            </div>
+          </div>
         </div>
-      </div>
+      </Link>
 
       <div className="p-4 space-y-3 flex-1 flex flex-col">
         <div className="flex items-start gap-2 text-sm text-muted-foreground">
@@ -112,6 +119,28 @@ export default function ClinicCard({ clinic }) {
           {clinic.open ? 'Open Now' : 'Closed'}
         </div>
       </div>
-    </Link>
+
+      <div className="p-4 pt-0">
+        <Button
+          variant="default"
+          size="sm"
+          className="w-full gap-2 rounded-xl h-9 shadow-lg shadow-primary/20"
+          onClick={() => { setSelectedDoctor(null); setShowBooking(true); }}
+        >
+          <CalendarDays className="w-4 h-4" />
+          Book Appointment
+        </Button>
+      </div>
+
+      <BookingModal
+        open={showBooking}
+        onOpenChange={(open) => {
+          setShowBooking(open);
+          if (!open) setSelectedDoctor(null);
+        }}
+        doctor={selectedDoctor}
+        facility={clinic}
+      />
+    </div>
   );
 }

@@ -80,15 +80,6 @@ export default function ClinicDoctor() {
   const [notFound, setNotFound] = useState(false);
   const [reviews, setReviews] = useState([]);
 
-  const [bookingDate, setBookingDate] = useState('');
-  const [bookingTime, setBookingTime] = useState('');
-  const [bookingNotes, setBookingNotes] = useState('');
-  const [bookingSuccess, setBookingSuccess] = useState(false);
-  const [bookingDetails, setBookingDetails] = useState(null);
-  const [bookedSlots, setBookedSlots] = useState([]);
-  const [showWaitlist, setShowWaitlist] = useState(false);
-  const [waitlistEmail, setWaitlistEmail] = useState('');
-
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [reviewRating, setReviewRating] = useState(5);
@@ -145,83 +136,6 @@ export default function ClinicDoctor() {
     };
     load();
   }, [id]);
-
-  useEffect(() => {
-    if (!bookingDate || !doctor?._id) { setBookedSlots([]); return; }
-    const fetchBooked = async () => {
-      try {
-        const slots = await api.getBookedSlots({ doctorId: doctor._id, date: bookingDate });
-        setBookedSlots(Array.isArray(slots) ? slots : []);
-      } catch { setBookedSlots([]); }
-    };
-    fetchBooked();
-  }, [bookingDate, doctor?._id]);
-
-  const handleWaitlistJoin = async () => {
-    toast.success('You have been added to the waitlist. We will notify you if a slot opens up.');
-    setShowWaitlist(false);
-  };
-
-  const [bookingLoading, setBookingLoading] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState('card');
-  const [paymentLoading, setPaymentLoading] = useState(false);
-  const [paymentSuccess, setPaymentSuccess] = useState(false);
-  const [bookingStep, setBookingStep] = useState('method');
-
-  const handleBook = async () => {
-    if (!bookingDate || !bookingTime || !doctor) { toast.error('Please select date and time'); return; }
-    setBookingLoading(true);
-    try {
-      const details = {
-        patient: user?.name || 'Guest User',
-        patientId: user?._id || 'guest',
-        doctor: doctor.name,
-        doctorId: doctor._id,
-        department: doctor.specialization || 'General',
-        date: bookingDate,
-        time: bookingTime,
-        status: 'Pending',
-        notes: bookingNotes,
-        fees: doctor.consultation_fees || doctor.fees || 0,
-      };
-      const result = await api.createAppointment(details);
-      setBookingDetails({ ...(result || details), fees: doctor.consultation_fees || doctor.fees || 0 });
-      setBookingSuccess(true);
-    } catch (e) {
-      toast.error(e.response?.data?.message || e.message || 'Failed to book appointment');
-    }
-    setBookingLoading(false);
-  };
-
-  const handlePayment = async () => {
-    const fees = doctor.consultation_fees || doctor.fees || 0;
-    if (fees <= 0) { setPaymentSuccess(true); return; }
-    setPaymentLoading(true);
-    try {
-      const result = await api.payTransaction({
-        serviceType: 'appointment',
-        referenceId: bookingDetails?._id,
-        amount: fees,
-        method: paymentMethod,
-        description: `Consultation with ${doctor.name}`,
-        provider: doctor.name,
-        lineItems: [{ name: 'Consultation Fee', price: fees, qty: 1 }],
-      });
-      if (result?.success) {
-        setPaymentSuccess(true);
-        toast.success('Payment successful! Appointment confirmed.');
-      }
-    } catch (e) {
-      const msg = e.response?.data?.message || e.message || '';
-      if (msg.includes('already be completed') || msg.includes('Duplicate')) {
-        setPaymentSuccess(true);
-        toast.success('Payment already completed!');
-        return;
-      }
-      toast.error(msg || 'Payment failed');
-    }
-    setPaymentLoading(false);
-  };
 
   const handleShare = async () => {
     const url = window.location.href;

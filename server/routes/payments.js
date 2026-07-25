@@ -14,8 +14,9 @@ router.get('/', protect, async (req, res) => {
     if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
     if (status && status !== 'All') filter.status = status;
     if (patient_id) filter.patient_id = patient_id;
+    if (req.user.role === 'patient') filter.patient_id = req.user._id.toString();
     const payments = await Payment.find(filter).sort({ createdAt: -1 });
-    const total = await Payment.aggregate([{ $group: { _id: null, total: { $sum: '$amount' } } }]);
+    const total = await Payment.aggregate([{ $match: filter }, { $group: { _id: null, total: { $sum: '$amount' } } }]);
     res.json({ payments, total_amount: total[0]?.total || 0 });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
