@@ -8,7 +8,6 @@ import PharmacyOrder from '../models/PharmacyOrder.js';
 import mongoose from 'mongoose';
 import Notification from '../models/Notification.js';
 import { generatePaymentInvoicePDF } from '../services/pdfService.js';
-import { generateAppointmentBillPDF, generateTestBillPDF, generateMedicineBillPDF } from '../services/billPdfService.js';
 import Doctor from '../models/Doctor.js';
 import { protect } from '../middleware/auth.js';
 import { validate, createPaymentSchema } from '../utils/validate.js';
@@ -100,10 +99,9 @@ router.post('/pay', protect, async (req, res, next) => {
     const year = new Date().getFullYear();
     const prefixMap = { appointment: 'APT', test: 'TST', medicine: 'MED' };
     const invPrefix = prefixMap[serviceType] || serviceType.slice(0,3).toUpperCase();
-    const rndTxn = crypto.randomBytes(6).toString('hex').toUpperCase();
-    const rndInv = crypto.randomBytes(8).toString('hex').toUpperCase();
-    const transaction_id = `TXN-${year}-${rndTxn}`;
-    const invoice_id = `INV-${invPrefix}-${year}-${rndInv}`;
+    const sharedSuffix = Math.floor(10000 + Math.random() * 90000).toString().padStart(5, '0');
+    const transaction_id = `TXN-${year}-${sharedSuffix}`;
+    const invoice_id = `INV-${invPrefix}-${year}-${sharedSuffix}`;
 
     const methodMap = { upi:'UPI', card:'Card', netbanking:'Online', cash:'Cash', wallet:'Wallet' };
     const sourceMap = { appointment:'appointment', test:'lab', medicine:'pharmacy' };
@@ -230,7 +228,8 @@ router.get('/:id/invoice', protect, async (req, res, next) => {
     if (payment.referenceId && payment.serviceType === 'appointment') {
       reference = await Appointment.findById(payment.referenceId)
         .populate('doctorId', 'name specialization qualification')
-        .populate('hospitalId', 'name address phone licenseNo');
+        .populate('hospitalId', 'name address phone licenseNo')
+        .populate('patientId', 'phone address');
     } else if (payment.referenceId && payment.serviceType === 'test') {
       reference = await LabBooking.findById(payment.referenceId)
         .populate('testIds')
@@ -240,7 +239,7 @@ router.get('/:id/invoice', protect, async (req, res, next) => {
         .populate('items.medicineId', 'name form');
     }
 
-    const pdfBuffer = await generatePaymentInvoicePDF(payment, reference);
+    const pdfBuffer = await generatePaymentInvoicePDF(payment, reference, req.user);
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename=${payment.invoice_id || 'invoice'}.pdf`);
     res.send(pdfBuffer);
@@ -260,7 +259,8 @@ router.get('/:id/bill', protect, async (req, res, next) => {
     if (payment.referenceId && payment.serviceType === 'appointment') {
       reference = await Appointment.findById(payment.referenceId)
         .populate('doctorId', 'name specialization registrationNo')
-        .populate('hospitalId', 'name tagline address city state pincode phone licenseNo');
+        .populate('hospitalId', 'name tagline address city state pincode phone licenseNo')
+        .populate('patientId', 'phone address');
     } else if (payment.referenceId && payment.serviceType === 'test') {
       reference = await LabBooking.findById(payment.referenceId)
         .populate('testIds')
@@ -270,13 +270,9 @@ router.get('/:id/bill', protect, async (req, res, next) => {
         .populate('items.medicineId', 'name form rxRequired rx');
     }
 
-    const gen = payment.serviceType === 'appointment' ? generateAppointmentBillPDF
-      : payment.serviceType === 'test' ? generateTestBillPDF
-      : generateMedicineBillPDF;
-
-    const pdfBuffer = await gen(payment, reference);
+    const pdfBuffer = await generatePaymentInvoicePDF(payment, reference, req.user, 'Payment Bill');
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename=${payment.invoice_id || 'bill'}.pdf`);
+    res.setHeader('Content-Disposition', `attachment; filename=${payment.transaction_id || 'bill'}.pdf`);
     res.send(pdfBuffer);
   } catch (err) { next(err); }
 });

@@ -285,7 +285,11 @@ export default function PatientHistory() {
                     {/* Action buttons */}
                     <div className="flex gap-2">
                       <Button size="sm" variant="ghost" className="gap-1.5 rounded-xl h-9 text-xs"
-                        onClick={(e) => { e.stopPropagation(); downloadBillPdf(txn._id, `${txn.invoice_id || 'bill'}.pdf`).catch(err => toast.error(err.message)); }}>
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
+                          const billName = txn.invoice_id ? txn.invoice_id.replace('INV', 'BILL') : 'bill';
+                          downloadBillPdf(txn._id, `${billName}.pdf`).catch(err => toast.error(err.message)); 
+                        }}>
                         <FileText className="w-3.5 h-3.5" /> Download Bill
                       </Button>
                       {txn.status === 'completed' && (
