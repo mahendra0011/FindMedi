@@ -80,8 +80,19 @@ router.post('/pay', protect, async (req, res, next) => {
       return res.status(400).json({ message: 'serviceType, amount, and method are required' });
     }
 
-    const transaction_id = `TXN-${Date.now()}`;
-    const invoice_id = `INV-${serviceType.slice(0,3).toUpperCase()}-${Date.now()}-${Math.random().toString(36).slice(2,6).toUpperCase()}`;
+    if (referenceId) {
+      const existingPayment = await Payment.findOne({ referenceId, status: 'completed' });
+      if (existingPayment) {
+        return res.status(409).json({ message: 'Payment already completed for this service.' });
+      }
+    }
+
+    const year = new Date().getFullYear();
+    const prefixMap = { appointment: 'APT', test: 'TST', medicine: 'MED' };
+    const invPrefix = prefixMap[serviceType] || serviceType.slice(0,3).toUpperCase();
+    const rndBase = `${Date.now()}${Math.floor(Math.random() * 10**9)}`;
+    const transaction_id = `TXN-${year}-${rndBase.slice(-12)}`;
+    const invoice_id = `INV-${invPrefix}-${year}-${rndBase.slice(-16)}`;
 
     const payment = await Payment.create({
       transaction_id,
@@ -164,7 +175,12 @@ router.post('/pay', protect, async (req, res, next) => {
       invoice_id,
       payment,
     });
-  } catch (err) { next(err); }
+  } catch (err) {
+    if (err.code === 11000) {
+      return res.status(409).json({ message: 'Duplicate transaction. Please try again.' });
+    }
+    next(err);
+  }
 });
 
 // GET /api/transactions/:id/invoice — download invoice PDF

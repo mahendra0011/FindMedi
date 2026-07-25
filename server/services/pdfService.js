@@ -471,13 +471,19 @@ drawSectionTitle(doc, 'Payment Notes');
 drawTextBlock(doc, 'Instructions', outstanding > 0
   ? 'Please clear the outstanding amount by the due date. Keep this invoice for your records.'
   : 'Payment received. Thank you for choosing MediCore Hospital.');
+if (bill.transactionId) {
+  drawTextBlock(doc, 'Transaction ID', bill.transactionId);
+}
+if (bill.invoiceId) {
+  drawTextBlock(doc, 'Invoice ID', bill.invoiceId);
+}
 });
 
 export const generatePaymentInvoicePDF = async (payment, reference = null) => collectPdf((doc) => {
   const typePrefix = { appointment: 'APT', test: 'TST', medicine: 'MED' };
   const year = new Date(payment.createdAt || Date.now()).getFullYear();
-  const shortId = String(payment._id || Date.now()).slice(-5).padStart(5, '0');
-  const invoiceId = payment.invoice_id || `INV-${typePrefix[payment.serviceType] || 'GEN'}-${year}-${shortId}`;
+  const rndBase = `${Date.now()}${Math.floor(Math.random() * 10**9)}`;
+  const invoiceId = payment.invoice_id || `INV-${typePrefix[payment.serviceType] || 'GEN'}-${year}-${rndBase.slice(-16)}`;
 
   drawHeader(doc, 'INVOICE', { id: invoiceId, date: payment.createdAt || new Date() });
   drawStatusPill(doc, 'Paid', doc.page.width - doc.page.margins.right - 84, 118);
@@ -671,6 +677,7 @@ export const generatePaymentInvoicePDF = async (payment, reference = null) => co
   drawSectionTitle(doc, 'Payment Information');
   drawTextBlock(doc, 'Payment Method', `${payment.method?.toUpperCase() || '-'} (Ref: ${payment.transaction_id || '-'})`);
   drawTextBlock(doc, 'Transaction ID', payment.transaction_id || '-');
+  drawTextBlock(doc, 'Invoice ID', invoiceId || '-');
   drawTextBlock(doc, 'Payment Status', 'Paid ✅');
 
   drawSignature(doc, 'MediCore Authorized Signatory');

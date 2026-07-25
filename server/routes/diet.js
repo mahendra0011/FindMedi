@@ -175,7 +175,9 @@ router.post('/orders/:id/create-billing', protect, adminOnly, validate(dietBilli
       return res.status(400).json({ message: 'Billing already created for this order' });
     }
     
-    const invoiceId = `INV-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+    const year = new Date().getFullYear();
+    const rndBase = `${Date.now()}${Math.floor(Math.random() * 10**9)}`;
+    const invoiceId = `INV-DIE-${year}-${rndBase.slice(-16)}`;
     
     const billing = await Billing.create({
       invoiceId,

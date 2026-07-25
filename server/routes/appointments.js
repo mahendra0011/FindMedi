@@ -152,44 +152,51 @@ router.post('/', protect, validate(createAppointmentSchema), async (req, res) =>
       }
     }
     
-    if (doctorId && date && time) {
-      const existing = await Appointment.findOne({ doctorId, date, time, status: { $nin: ['Cancelled', 'Completed'] } });
-      if (existing) return res.status(409).json({ message: 'This time slot is already booked' });
+    if (patientId && date && time) {
+      const existing = await Appointment.findOne({ patientId, date, time, status: { $nin: ['Cancelled', 'Completed'] } });
+      if (existing) return res.status(409).json({ message: 'you have already book this slot pleast try another slot' });
     }
     
     const countToday = await Appointment.countDocuments({ date, doctor: doctor || '' });
-    const tokenNumber = `${new Date(date || Date.now()).toISOString().slice(0,10).replace(/-/g,'')}-${String(countToday + 1).padStart(3, '0')}`;
+    const dateStr = new Date(date || Date.now()).toISOString().slice(0,10).replace(/-/g,'');
+    const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
+    const tokenNumber = `${dateStr}-${String(countToday + 1).padStart(3, '0')}${rand}`;
     const patientUser = await User.findById(patientId);
     const estimatedWaitTime = await calculateEstimatedWaitTime(department, priority);
-const appointment = await Appointment.create({
-       tokenNumber,
-       uhid: patientUser?.uhid || '',
-       patient: patientName,
-       patientId,
-       doctor: doctor || '',
-       doctorId: doctorId || null,
+    const appointment = await Appointment.create({
+        tokenNumber,
+        uhid: patientUser?.uhid || '',
+        patient: patientName,
+        patientId,
+        doctor: doctor || '',
+        doctorId: doctorId || null,
         department: department || 'General',
-       date,
-       time,
-       type: type || 'Consultation',
-       symptoms: symptoms || '',
-       priority: priority || 'Normal',
-       estimatedWaitTime,
-       hospitalId: hospitalId || undefined,
-       status: 'Pending'
-     });
-     
-     await auditLog('create_appointment', req.user._id, { recordId: appointment._id, ip: req.ip, userAgent: req.get('user-agent') });
-     
-     await appointment.populate('doctorId', 'name specialization');
+        date,
+        time,
+        type: type || 'Consultation',
+        symptoms: symptoms || '',
+        priority: priority || 'Normal',
+        estimatedWaitTime,
+        hospitalId: hospitalId || undefined,
+        status: 'Pending'
+      });
+      
+      await auditLog('create_appointment', req.user._id, { recordId: appointment._id, ip: req.ip, userAgent: req.get('user-agent') });
+      
+      await appointment.populate('doctorId', 'name specialization');
     
     if (doctorId) {
       await createNotification(doctorId, 'New Appointment', `New ${type || 'Consultation'} appointment from ${patientName} for ${date} at ${time}`, 'appointment');
     }
-    await createNotification(patientId, 'Appointment Created', `Your appointment with Dr. ${doctor || 'Doctor'} on ${date} at ${time} has been created. Please complete payment to confirm. Token: ${tokenNumber}`, 'appointment');
+    await createNotification(patientId, 'Appointment Created', `Your appointment with Dr. ${doctor || 'Doctor'} on ${date} at ${time} has been created. Token: ${tokenNumber}`, 'appointment');
     
-    res.status(201).json(appointment);
-  } catch (err) { res.status(400).json({ message: err.message }); }
+    res.status(201).json({ appointment });
+  } catch (err) {
+    if (err.code === 11000) {
+      return res.status(409).json({ message: 'you have already book this slot pleast try another slot' });
+    }
+    res.status(400).json({ message: err.message });
+  }
 });
 
 router.put('/:id/checkin', protect, async (req, res) => {

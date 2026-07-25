@@ -303,68 +303,15 @@ export default function HospitalCard({ hospital, index = 0, distance }) {
 
         {/* Action Buttons - Row 1 */}
         <div className="flex gap-2 pt-1 mt-auto">
-          <Dialog open={showDoctors} onOpenChange={setShowDoctors}>
-            <DialogTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex-1 gap-1 rounded-xl text-[11px] h-9"
-              >
-                <CalendarDays className="w-3.5 h-3.5" />
-                Book Appointment
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[80vh]">
-              <DialogHeader>
-                <DialogTitle>Available Doctors at {hospital.name}</DialogTitle>
-                <DialogDescription>
-                  Select a doctor to book your appointment
-                </DialogDescription>
-              </DialogHeader>
-              <div className="max-h-96 overflow-y-auto py-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {(hospital.doctors && hospital.doctors.length > 0 
-                    ? hospital.doctors 
-                    : [{ _id: '60d5f484f1a2b3c4d5e6f789', name: 'Dr. Rohit Verma', specialization: 'Dermatology', experience: '7 years', fees: 900 }, { _id: '60d5f484f1a2b3c4d5e6f790', name: 'Dr. Anita Sharma', specialization: 'Orthopedics', experience: '10 years', fees: 1200 }]
-                  ).map((doc, idx) => (
-                    <motion.div 
-                      key={doc._id || idx} 
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: idx * 0.05 }}
-                      className="p-3 rounded-xl border border-border/50 bg-card overflow-hidden hover:shadow-md hover:border-primary/30 transition-all duration-300 cursor-pointer group"
-                      onClick={() => { setSelectedDoctor(doc); setShowDoctors(false); setShowBooking(true); }}
-                      whileHover={{ scale: 1.02, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shrink-0 border-2 border-primary/20 shadow-md shadow-primary/20 group-hover:scale-105 transition-all duration-300 overflow-hidden">
-                          <span className="text-primary-foreground font-bold text-xs">{doc.name?.split(' ').map(n=>n[0]).join('').slice(0,2) || 'DR'}</span>
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <h3 className="font-heading font-semibold text-sm text-foreground truncate group-hover:text-primary transition-colors">{doc.name}</h3>
-                            <Badge className="text-[10px] h-4 px-1 bg-primary/10 text-primary border-primary/20 shrink-0">
-                              <BadgeCheck className="w-2.5 h-2.5 mr-0.5" />Verified
-                            </Badge>
-                          </div>
-                          <p className="text-xs font-medium text-primary mt-0.5">{doc.specialization}</p>
-                          <div className="flex items-center gap-2 mt-1.5">
-                            <span className="text-xs text-muted-foreground">{doc.experience || `${doc.experienceYears || 0} yrs`}</span>
-                            <span className="text-xs text-muted-foreground">•</span>
-                            <span className="text-xs font-medium text-primary">₹{doc.fees || doc.consultation_fees || 0}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" size="sm" onClick={() => setShowDoctors(false)}>Close</Button>
-                <Button size="sm" onClick={() => { setShowDoctors(false); navigate(`/hospitals/${hospital._id}/doctors`); }}>View All Doctors</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1 gap-1 rounded-xl text-[11px] h-9"
+            onClick={() => { setSelectedDoctor(null); setShowBooking(true); }}
+          >
+            <CalendarDays className="w-3.5 h-3.5" />
+            Book Appointment
+          </Button>
 
           <Button
             variant="outline"

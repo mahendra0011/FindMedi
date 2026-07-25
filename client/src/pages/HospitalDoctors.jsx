@@ -11,7 +11,7 @@ import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
-import BillCheckout from '@/components/BillCheckout';
+import BookingModal from '@/components/BookingModal';
 
 const DEFAULT_SPECS = ['All', 'Cardiology', 'Neurology', 'Orthopedics', 'Pediatrics', 'Dermatology', 'Oncology', 'General Medicine', 'ENT'];
 
@@ -591,72 +591,7 @@ export default function HospitalDoctors() {
                   </div>
 
                   <div className="flex gap-2">
-                    <Dialog open={showBooking} onOpenChange={(open) => { if (!open) { setShowBooking(false); setSelectedDoctor(null); setBookingSuccess(false); setBookingDetails(null); setBookingDate(new Date().toISOString().split('T')[0]); setBookingTime(''); setBookingNotes(''); } }}>
-                      <DialogTrigger asChild>
-                        <Button className="flex-1 gap-2 rounded-xl shadow-lg shadow-primary/20 group/btn" size="sm" disabled={!doc.available}
-                          onClick={(e) => { e.stopPropagation(); setShowBooking(true); setSelectedDoctor(doc); }}>
-                          <CalendarDays className="w-3.5 h-3.5" /> Book Appointment
-                          <ChevronRight className="w-3 h-3 transition-transform duration-300 group-hover/btn:translate-x-0.5" />
-                        </Button>
-                      </DialogTrigger>
-<DialogContent className="max-w-md max-h-[90vh] overflow-y-auto w-[calc(100%-2rem)] sm:w-full rounded-2xl">
-                           <DialogHeader>
-                             <DialogTitle>Book Appointment</DialogTitle>
-                             <DialogDescription>
-                               Quick booking for {selectedDoctor?.name}
-                             </DialogDescription>
-                           </DialogHeader>
-                           <div className="space-y-3 py-2">
-                             <div className="flex items-center gap-2.5">
-                               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shrink-0 border-2 border-primary/20 shadow-md">
-                                 <span className="text-primary-foreground font-bold text-xs">{selectedDoctor?.name?.split(' ').map(n=>n[0]).join('').slice(0,2)}</span>
-                               </div>
-                               <div className="min-w-0 flex-1">
-                                 <h3 className="font-heading font-semibold text-foreground text-sm truncate">{selectedDoctor?.name}</h3>
-                                 <div className="flex items-center gap-1.5 flex-wrap">
-                                   <p className="text-xs text-primary">{selectedDoctor?.specialization}</p>
-                                   <Badge className="text-[10px] h-4 px-1 bg-primary/10 text-primary border-primary/20 shrink-0">
-                                     <BadgeCheck className="w-2.5 h-2.5 mr-0.5" />Verified
-                                   </Badge>
-                                 </div>
-                               </div>
-                             </div>
-                             <div className="grid grid-cols-2 gap-2">
-                               <div className="p-2 rounded-xl bg-primary/5 border border-primary/10 text-center">
-                                 <p className="text-[11px] text-muted-foreground mb-0.5">Consultation Fee</p>
-                                 <p className="font-bold text-sm text-primary">₹{selectedDoctor?.consultation_fees || 0}</p>
-                               </div>
-                               <div className="p-2 rounded-xl bg-emerald-50 border border-emerald-200 dark:bg-emerald-500/10 text-center">
-                                 <p className="text-[11px] text-muted-foreground mb-0.5">Available Slot</p>
-                                 <p className="font-semibold text-xs text-emerald-600">{selectedDoctor?.next_available_slot || 'Today'}</p>
-                               </div>
-                             </div>
-                             <div className="space-y-1.5">
-                               <label className="text-xs font-medium text-foreground">Select Date</label>
-                               <Input type="date" className="w-full" value={bookingDate} onChange={e => setBookingDate(e.target.value)} min={new Date().toISOString().split('T')[0]} />
-                             </div>
-                             <div className="space-y-1.5">
-                               <label className="text-xs font-medium text-foreground">Select Time Slot</label>
-                                <select className="w-full h-9 px-3 rounded-xl border border-border bg-background text-sm" value={bookingTime} onChange={e => setBookingTime(e.target.value)}>
-                                 <option value="">Choose time</option>
-                                 {(selectedDoctor?.time_slots || ['09:00 AM', '10:00 AM', '11:00 AM', '02:00 PM', '03:00 PM', '04:00 PM']).map(t => (
-                                   <option key={t}>{t}</option>
-                                 ))}
-                               </select>
-                             </div>
-                             <div className="space-y-1.5">
-                               <label className="text-xs font-medium text-foreground">Notes (optional)</label>
-                               <textarea value={bookingNotes} onChange={e => setBookingNotes(e.target.value)} placeholder="Any specific concerns…" className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm resize-none" rows={2} />
-                             </div>
-                           </div>
-<DialogFooter>
-                              <Button variant="outline" size="sm" onClick={() => setShowBooking(false)}>Cancel</Button>
-                              <Button size="sm" disabled={!bookingDate || !bookingTime || bookingLoading} onClick={handleConfirmBooking}>
-                                {bookingLoading ? <>Booking…</> : <>Confirm Booking <ChevronRight className="w-3.5 h-3.5 ml-1" /></>}
-                              </Button>
-                            </DialogFooter>
-                          </DialogContent>
-                         </Dialog>
+                    <Button className="flex-1 gap-2 rounded-xl shadow-lg shadow-primary/20 group/btn" size="sm" disabled={!doc.available} onClick={(e) => { e.stopPropagation(); setShowBooking(true); setSelectedDoctor(doc); }}><CalendarDays className="w-3.5 h-3.5" /> Book Appointment<ChevronRight className="w-3 h-3 transition-transform duration-300 group-hover/btn:translate-x-0.5" /></Button>
                     <Button variant="outline" className="gap-2 rounded-xl hover:border-primary/50 hover:text-primary transition-all" size="sm"
                       onClick={(e) => { e.stopPropagation(); navigate(`/hospital-doctors/${doc._id}`); }}>
                       <Eye className="w-3.5 h-3.5" /> View Profile
@@ -668,6 +603,8 @@ export default function HospitalDoctors() {
           </div>
         )}
       </div>
+      <BookingModal open={showBooking} onOpenChange={setShowBooking} doctor={selectedDoctor} facility={hospitalId} />
     </div>
   );
 }
+
