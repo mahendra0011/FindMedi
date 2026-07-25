@@ -1637,7 +1637,7 @@ export default function HospitalProfile() {
         open={showBookingModal}
         onOpenChange={setShowBookingModal}
         doctor={selectedDoctorForBooking}
-        facility={hospital}
+        facility={{ ...hospital, doctors }}
       />
 
       {/* ═══════════ TEST BOOKING MODAL ═══════════ */}
