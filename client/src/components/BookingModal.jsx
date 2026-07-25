@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,6 +29,7 @@ export default function BookingModal({
   const [paymentMethod, setPaymentMethod] = useState('card');
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [bookingDetails, setBookingDetails] = useState(null);
+  const processingRef = useRef(false);
 
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -50,7 +51,8 @@ export default function BookingModal({
         const query = facility.type === 'clinic' ? { clinicId: facility._id } : { hospitalId: facility._id };
         api.getDoctors(query)
           .then(res => {
-            setFetchedDoctors(res || []);
+            const docs = Array.isArray(res) ? res : (res?.data || res?.doctors || []);
+            setFetchedDoctors(docs);
           })
           .catch(err => console.error('Failed to fetch facility doctors:', err))
           .finally(() => setFetchingDoctors(false));
@@ -63,9 +65,11 @@ export default function BookingModal({
   const currentDoc = selectedDoctor || doctor;
 
   const handleCreateAppointment = async () => {
+    if (processingRef.current) return;
     if (!currentDoc) { toast.error('No doctor selected'); return; }
     if (!user) { toast.error('Please login to book an appointment'); navigate('/login'); return; }
     
+    processingRef.current = true;
     setBookingLoading(true);
     try {
       const fees = currentDoc.consultation_fees || currentDoc.fees || 0;
@@ -91,16 +95,20 @@ export default function BookingModal({
       toast.error(e.response?.data?.message || e.message || 'Failed to reserve appointment');
     }
     setBookingLoading(false);
+    processingRef.current = false;
   };
 
   const handlePayment = async () => {
+    if (processingRef.current) return;
     const fees = bookingDetails?.fees || 0;
     if (fees <= 0) { setBookingStep(3); return; }
+    processingRef.current = true;
     setPaymentLoading(true);
     try {
+      const refId = bookingDetails?._id?.toString?.() || bookingDetails?._id || '';
       const result = await api.payTransaction({
         serviceType: 'appointment',
-        referenceId: bookingDetails?._id,
+        referenceId: refId,
         amount: fees,
         method: paymentMethod,
         description: `Consultation with ${bookingDetails?.doctor || 'Doctor'}`,
@@ -116,6 +124,7 @@ export default function BookingModal({
       toast.error(e.response?.data?.message || e.message || 'Payment failed');
     }
     setPaymentLoading(false);
+    processingRef.current = false;
   };
 
   return (
