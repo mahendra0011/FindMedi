@@ -464,7 +464,7 @@ export default function PatientDashboard() {
                       <p className="text-sm font-bold text-emerald-600">₹{txn.amount?.toLocaleString('en-IN')}</p>
                       <Button size="sm" variant="ghost" className="h-7 px-2 text-xs gap-1 text-primary"
                         onClick={() => downloadPaymentInvoice(txn._id, `${txn.invoice_id || 'invoice'}.pdf`).catch(() => {})}>
-                        <FileText className="w-3 h-3" /> Invoice
+                        <Download className="w-3 h-3" /> Invoice
                       </Button>
                     </div>
                   </div>

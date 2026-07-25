@@ -163,8 +163,9 @@ export default function HospitalTestBooking() {
   const confirmBooking = async () => {
     if (!user) { toast.error('Please login to book'); navigate('/login'); return; }
     setBookingLoading(true);
+    const total = cartTotal + (collectionMode === 'home' ? 50 : 0);
+    let bookingId = '';
     try {
-      const total = cartTotal + (collectionMode === 'home' ? 50 : 0);
       // 1. Create lab booking
       const res = await api.createLabBooking({
         facilityId: activeId,
@@ -180,7 +181,7 @@ export default function HospitalTestBooking() {
         paymentMethod,
         status: 'Pending',
       });
-      const bookingId = res?.booking?._id || res?._id;
+      bookingId = res?.booking?._id || res?._id || '';
 
       // 2. Process payment via unified gateway (cash/upi/card all go through payTransaction)
       const result = await api.payTransaction({
@@ -200,7 +201,15 @@ export default function HospitalTestBooking() {
       setBookingStep(6);
       toast.success('Booking confirmed!');
     } catch (e) {
-      toast.error(e.response?.data?.message || e.message || 'Failed to confirm booking');
+      const msg = e.response?.data?.message || e.message || '';
+      if (msg.includes('already be completed') || msg.includes('Duplicate')) {
+        setBookingId(bookingId || 'MED' + Date.now().toString(36).toUpperCase());
+        setBookingConfirmed(true);
+        setBookingStep(6);
+        toast.success('Booking already confirmed!');
+        return;
+      }
+      toast.error(msg || 'Failed to confirm booking');
     }
     setBookingLoading(false);
   };

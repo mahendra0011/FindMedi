@@ -232,6 +232,7 @@ export default function HospitalProfile() {
     const total = cartTotal + (testCollectionMode === 'home' ? 50 : 0);
     if (total <= 0) { toast.error('Cart is empty'); return; }
     setTestPaymentLoading(true);
+    let bookingId = '';
     try {
       const booking = await api.createLabBooking({
         patientId: user?._id,
@@ -246,7 +247,7 @@ export default function HospitalProfile() {
         homeCollectionFee: testCollectionMode === 'home' ? 50 : 0,
         status: 'Pending',
       });
-      const bookingId = booking?._id || booking?.booking?._id;
+      bookingId = booking?._id || booking?.booking?._id || '';
       const result = await api.payTransaction({
         serviceType: 'test',
         referenceId: bookingId,
@@ -262,7 +263,13 @@ export default function HospitalProfile() {
         toast.success('Payment successful! Test booking confirmed.');
       }
     } catch (e) {
-      toast.error(e.response?.data?.message || e.message || 'Payment failed');
+      const msg = e.response?.data?.message || e.message || '';
+      if (msg.includes('already be completed') || msg.includes('Duplicate')) {
+        setTestBookingStep(6);
+        toast.success('Booking already confirmed!');
+        return;
+      }
+      toast.error(msg || 'Payment failed');
     }
     setTestPaymentLoading(false);
   };

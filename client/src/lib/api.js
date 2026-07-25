@@ -59,6 +59,25 @@ export async function downloadPaymentInvoice(txnId, filename = 'invoice.pdf') {
   }
 }
 
+export async function downloadBillPdf(txnId, filename = 'bill.pdf') {
+  try {
+    const response = await apiClient.get(`/transactions/${txnId}/bill`, {
+      responseType: 'blob',
+    });
+    const blob = new Blob([response.data]);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    throw new Error(error.message || 'Unable to download bill');
+  }
+}
+
 export const api = {
   dispatch,
   login:              (body)    => request('/auth/login',            { method:'POST', body: JSON.stringify(body) }),
