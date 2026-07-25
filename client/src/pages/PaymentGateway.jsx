@@ -150,7 +150,6 @@ export default function PaymentGateway() {
               deliveryCharges={order.deliveryFee || 0}
               discount={order.discount || 0}
               discountCode={order.couponCode || ''}
-              compact
             />
           ) : (
             <div className="bg-card rounded-2xl border border-border/60 p-8 text-center text-sm text-muted-foreground">
