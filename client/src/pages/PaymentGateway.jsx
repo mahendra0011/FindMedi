@@ -96,7 +96,12 @@ export default function PaymentGateway() {
         lineItems: (order?.items || []).map(i => ({ name: i.medicineName, price: i.price, qty: i.qty })),
       });
       setStep('success');
-    } catch {
+    } catch (e) {
+      const msg = e.response?.data?.message || e.message || '';
+      if (msg.includes('already be completed') || msg.includes('Duplicate')) {
+        setStep('success');
+        return;
+      }
       setStep('failed');
     }
     setPaying(false);

@@ -116,7 +116,13 @@ export default function HospitalDoctors() {
         toast.success('Payment successful! Appointment confirmed.');
       }
     } catch (e) {
-      toast.error(e.response?.data?.message || e.message || 'Payment failed');
+      const msg = e.response?.data?.message || e.message || '';
+      if (msg.includes('already be completed') || msg.includes('Duplicate')) {
+        setPaymentSuccess(true);
+        toast.success('Payment already completed!');
+        return;
+      }
+      toast.error(msg || 'Payment failed');
     }
     setPaymentLoading(false);
   };

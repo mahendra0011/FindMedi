@@ -8,6 +8,7 @@ import PharmacyOrder from '../models/PharmacyOrder.js';
 import mongoose from 'mongoose';
 import Notification from '../models/Notification.js';
 import { generatePaymentInvoicePDF } from '../services/pdfService.js';
+import { generateAppointmentBillPDF, generateTestBillPDF, generateMedicineBillPDF } from '../services/billPdfService.js';
 import Doctor from '../models/Doctor.js';
 import { protect } from '../middleware/auth.js';
 import { validate, createPaymentSchema } from '../utils/validate.js';
@@ -242,6 +243,40 @@ router.get('/:id/invoice', protect, async (req, res, next) => {
     const pdfBuffer = await generatePaymentInvoicePDF(payment, reference);
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename=${payment.invoice_id || 'invoice'}.pdf`);
+    res.send(pdfBuffer);
+  } catch (err) { next(err); }
+});
+
+// GET /api/transactions/:id/bill — download bill PDF (type-specific Tax Invoice format)
+router.get('/:id/bill', protect, async (req, res, next) => {
+  try {
+    const payment = await Payment.findById(req.params.id);
+    if (!payment) return res.status(404).json({ message: 'Transaction not found' });
+    if (payment.patient_id !== req.user._id.toString() && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+
+    let reference = null;
+    if (payment.referenceId && payment.serviceType === 'appointment') {
+      reference = await Appointment.findById(payment.referenceId)
+        .populate('doctorId', 'name specialization registrationNo')
+        .populate('hospitalId', 'name tagline address city state pincode phone licenseNo');
+    } else if (payment.referenceId && payment.serviceType === 'test') {
+      reference = await LabBooking.findById(payment.referenceId)
+        .populate('testIds')
+        .populate('hospitalId', 'name address city state pincode phone nablNo');
+    } else if (payment.referenceId && payment.serviceType === 'medicine') {
+      reference = await PharmacyOrder.findById(payment.referenceId)
+        .populate('items.medicineId', 'name form rxRequired rx');
+    }
+
+    const gen = payment.serviceType === 'appointment' ? generateAppointmentBillPDF
+      : payment.serviceType === 'test' ? generateTestBillPDF
+      : generateMedicineBillPDF;
+
+    const pdfBuffer = await gen(payment, reference);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=${payment.invoice_id || 'bill'}.pdf`);
     res.send(pdfBuffer);
   } catch (err) { next(err); }
 });

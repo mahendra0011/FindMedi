@@ -121,7 +121,14 @@ export default function BookingModal({
         if (onSuccess) onSuccess();
       }
     } catch (e) {
-      toast.error(e.response?.data?.message || e.message || 'Payment failed');
+      const msg = e.response?.data?.message || e.message || '';
+      if (msg.includes('already be completed') || msg.includes('Duplicate')) {
+        toast.success('Payment already completed!');
+        setBookingStep(3);
+        if (onSuccess) onSuccess();
+        return;
+      }
+      toast.error(msg || 'Payment failed');
     }
     setPaymentLoading(false);
     processingRef.current = false;

@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Stethoscope, Beaker, Pill, IndianRupee, FileText, CreditCard, Smartphone, Landmark, Wallet, CheckCircle, Clock, AlertCircle, RotateCcw, Calendar, ArrowUpDown, ChevronDown, ExternalLink, Loader2 } from 'lucide-react';
+import { Stethoscope, Beaker, Pill, IndianRupee, FileText, Download, CreditCard, Smartphone, Landmark, Wallet, CheckCircle, Clock, AlertCircle, RotateCcw, Calendar, ArrowUpDown, ChevronDown, ExternalLink, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { api, downloadPaymentInvoice } from '@/lib/api';
+import { api, downloadPaymentInvoice, downloadBillPdf } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 
 const typeFilters = ['All', 'appointment', 'test', 'medicine'];
@@ -284,10 +284,14 @@ export default function PatientHistory() {
 
                     {/* Action buttons */}
                     <div className="flex gap-2">
+                      <Button size="sm" variant="ghost" className="gap-1.5 rounded-xl h-9 text-xs"
+                        onClick={(e) => { e.stopPropagation(); downloadBillPdf(txn._id, `${txn.invoice_id || 'bill'}.pdf`).catch(err => toast.error(err.message)); }}>
+                        <FileText className="w-3.5 h-3.5" /> Download Bill
+                      </Button>
                       {txn.status === 'completed' && (
                         <Button size="sm" variant="outline" className="gap-1.5 rounded-xl h-9 text-xs"
                           onClick={(e) => { e.stopPropagation(); downloadPaymentInvoice(txn._id, `${txn.invoice_id || 'invoice'}.pdf`).catch(err => toast.error(err.message)); }}>
-                          <FileText className="w-3.5 h-3.5" /> View Invoice
+                          <Download className="w-3.5 h-3.5" /> Invoice
                         </Button>
                       )}
                       {secondBtn && (
@@ -304,6 +308,7 @@ export default function PatientHistory() {
           })}
         </div>
       )}
+
     </div>
   );
 }
