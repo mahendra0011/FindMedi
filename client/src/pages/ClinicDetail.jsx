@@ -103,6 +103,7 @@ export default function ClinicDetail() {
   const { clinicId } = useParams();
   const navigate = useNavigate();
   const [doctor, setDoctor] = useState(null);
+  const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [facility, setFacility] = useState(null);
   const [clinicDoctors, setClinicDoctors] = useState([]);
   const [reviews, setReviews] = useState([]);
@@ -423,7 +424,7 @@ export default function ClinicDetail() {
                   open={showBooking}
                   onOpenChange={setShowBooking}
                   doctor={selectedDoctor}
-                  facility={{ ...clinic, doctors }}
+                  facility={{ ...clinic, doctors: clinicDoctors }}
                 />
                 <Button variant="outline" className="rounded-xl h-11 px-3 hover:bg-primary/5 hover:border-primary/30 transition-all" onClick={() => { const addr = encodeURIComponent('Clinic'); window.open(`https://www.google.com/maps/search/${addr}`, '_blank'); }}>
                   <Navigation className="w-4 h-4" />
@@ -1015,7 +1016,7 @@ export default function ClinicDetail() {
                     Quick Actions
                   </h3>
                   <div className="space-y-3">
-                     <Button className="w-full gap-2.5 rounded-xl h-11 font-semibold shadow-md" onClick={() => { setSelectedDoctor(doc); setShowBooking(true); }}>
+                     <Button className="w-full gap-2.5 rounded-xl h-11 font-semibold shadow-md" onClick={() => { setSelectedDoctor(null); setShowBooking(true); }}>
                        <CalendarDays className="w-4 h-4" /> Book Appointment
                      </Button>
                      <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={toggleFavorite}>
