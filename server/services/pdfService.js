@@ -484,6 +484,10 @@ export const generatePaymentInvoicePDF = async (payment, reference = null) => co
   const year = new Date(payment.createdAt || Date.now()).getFullYear();
   const rndBase = `${Date.now()}${Math.floor(Math.random() * 10**9)}`;
   const invoiceId = payment.invoice_id || `INV-${typePrefix[payment.serviceType] || 'GEN'}-${year}-${rndBase.slice(-16)}`;
+  // FIX: shortId was used below (Booking ID / Order ID fallback) but was never defined — this
+  // caused a ReferenceError crash whenever a test/medicine payment PDF was generated without a
+  // bookingId/orderId on the reference doc. Derive it from the transaction_id/payment._id instead.
+  const shortId = (payment.transaction_id || payment._id?.toString() || rndBase).slice(-6).toUpperCase();
 
   drawHeader(doc, 'INVOICE', { id: invoiceId, date: payment.createdAt || new Date() });
   drawStatusPill(doc, 'Paid', doc.page.width - doc.page.margins.right - 84, 118);
