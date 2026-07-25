@@ -222,70 +222,7 @@ export default function HospitalProfile() {
   const [testCart, setTestCart] = useState({});
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [selectedDoctorForBooking, setSelectedDoctorForBooking] = useState(null);
-  const [bookingDate, setBookingDate] = useState('');
-  const [bookingTime, setBookingTime] = useState('');
-  const [bookingNotes, setBookingNotes] = useState('');
-  const [bookingConfirmed, setBookingConfirmed] = useState(false);
-  const [bookingDetails, setBookingDetails] = useState(null);
-  const [bookingLoading, setBookingLoading] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState('card');
-  const [paymentLoading, setPaymentLoading] = useState(false);
-  const [paymentSuccess, setPaymentSuccess] = useState(false);
-  const [bookingStep, setBookingStep] = useState('method');
   const { user } = useAuth();
-
-  const handleConfirmBooking = async () => {
-    const doc = selectedDoctorForBooking;
-    if (!doc) { toast.error('No doctor selected'); return; }
-    if (!user) { toast.error('Please login to book an appointment'); navigate('/login'); return; }
-    setBookingLoading(true);
-    try {
-      const result = await api.createAppointment({
-        doctorId: doc._id,
-        doctor: doc.name,
-        doctorName: doc.name,
-        department: doc.specialization || 'General',
-        hospitalId: id || doc.hospitalId,
-        patient: user.name || 'Patient',
-        patientId: user._id,
-        email: user.email,
-        phone: user.phone || '',
-        date: bookingDate,
-        time: bookingTime,
-        notes: bookingNotes,
-      });
-      setBookingDetails({ ...(result || {}), doctor: doc.name, date: bookingDate, time: bookingTime, fees: doc.consultation_fees || doc.fees || 0 });
-      setBookingConfirmed(true);
-    } catch (e) {
-      toast.error(e.response?.data?.message || e.message || 'Failed to book appointment');
-    }
-    setBookingLoading(false);
-  };
-
-  const handlePayment = async () => {
-    const doc = selectedDoctorForBooking;
-    const fees = doc?.consultation_fees || doc?.fees || 0;
-    if (fees <= 0) { setPaymentSuccess(true); return; }
-    setPaymentLoading(true);
-    try {
-      const result = await api.payTransaction({
-        serviceType: 'appointment',
-        referenceId: bookingDetails?._id,
-        amount: fees,
-        method: paymentMethod,
-        description: `Consultation with ${doc?.name}`,
-        provider: doc?.name,
-        lineItems: [{ name: 'Consultation Fee', price: fees, qty: 1 }],
-      });
-      if (result?.success) {
-        setPaymentSuccess(true);
-        toast.success('Payment successful! Appointment confirmed.');
-      }
-    } catch (e) {
-      toast.error(e.response?.data?.message || e.message || 'Payment failed');
-    }
-    setPaymentLoading(false);
-  };
 
   const [testPaymentLoading, setTestPaymentLoading] = useState(false);
   const [testPaymentResult, setTestPaymentResult] = useState(null);
