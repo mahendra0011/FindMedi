@@ -20,6 +20,8 @@ export default function BookingModal({
 }) {
   const [bookingStep, setBookingStep] = useState(doctor ? 0 : -1);
   const [selectedDoctor, setSelectedDoctor] = useState(doctor || null);
+  const [fetchedDoctors, setFetchedDoctors] = useState([]);
+  const [fetchingDoctors, setFetchingDoctors] = useState(false);
   const [bookingDate, setBookingDate] = useState('');
   const [bookingTime, setBookingTime] = useState('');
   const [bookingNotes, setBookingNotes] = useState('');
@@ -42,8 +44,21 @@ export default function BookingModal({
       setBookingNotes('');
       setPaymentMethod('card');
       setBookingDetails(null);
+      
+      if (!doc && facility && (!facility.doctors || facility.doctors.length === 0)) {
+        setFetchingDoctors(true);
+        const query = facility.type === 'clinic' ? { clinicId: facility._id } : { hospitalId: facility._id };
+        api.getDoctors(query)
+          .then(res => {
+            setFetchedDoctors(res || []);
+          })
+          .catch(err => console.error('Failed to fetch facility doctors:', err))
+          .finally(() => setFetchingDoctors(false));
+      } else {
+        setFetchedDoctors(facility?.doctors || []);
+      }
     }
-  }, [open, doctor]);
+  }, [open, doctor, facility]);
 
   const currentDoc = selectedDoctor || doctor;
 
@@ -115,10 +130,10 @@ export default function BookingModal({
               </DialogDescription>
             </DialogHeader>
             <div className="py-2 space-y-3">
-              {(facility?.doctors && facility.doctors.length > 0
-                ? facility.doctors
-                : [{ _id: '60d5f484f1a2b3c4d5e6f789', name: 'Dr. Rohit Verma', specialization: 'Dermatology', experience: '7 years', fees: 900 }, { _id: '60d5f484f1a2b3c4d5e6f790', name: 'Dr. Anita Sharma', specialization: 'Orthopedics', experience: '10 years', fees: 1200 }]
-              ).map((doc, idx) => (
+              {fetchingDoctors ? (
+                <div className="text-center text-sm text-muted-foreground py-6">Loading doctors...</div>
+              ) : fetchedDoctors.length > 0 ? (
+                fetchedDoctors.map((doc, idx) => (
                 <motion.div
                   key={doc._id || idx}
                   whileHover={{ scale: 1.02 }}
@@ -141,7 +156,10 @@ export default function BookingModal({
                     <ChevronRight className="w-4 h-4 text-muted-foreground self-center" />
                   </div>
                 </motion.div>
-              ))}
+              ))
+              ) : (
+                <div className="text-center text-sm text-muted-foreground py-6">No doctors available.</div>
+              )}
             </div>
             <DialogFooter>
               <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Cancel</Button>
