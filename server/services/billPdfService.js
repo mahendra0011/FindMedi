@@ -10,7 +10,7 @@ const C = {
   success: '#15803d',
 };
 
-const money = (v = 0) => `₹${Number(v || 0).toLocaleString('en-IN')}`;
+const money = (v = 0) => `Rs. ${Number(v || 0).toLocaleString('en-IN')}`;
 const val = (v) => (v === undefined || v === null || v === '' ? '-' : String(v).trim());
 const fmtDate = (d) => {
   if (!d) return '-';
@@ -76,20 +76,20 @@ export const generateAppointmentBillPDF = async (payment, reference) => collect(
 
   // ── Header box ──
   doc.save();
-  doc.rect(l, 28, pw, 82).fillAndStroke('#ffffff', C.border);
-  doc.circle(l + 28, 67, 16).fill(C.primary);
-  doc.fillColor('#ffffff').font('Helvetica-Bold', 18).text('M', l + 22, 57, { width: 12, align: 'center' });
-  doc.fillColor(C.ink).font('Helvetica-Bold', 14).text(hospName, l + 56, 36);
-  doc.font('Helvetica', 8).fillColor(C.muted).text(h.tagline || 'Multi-Speciality Hospital', l + 56, 56);
-  doc.fontSize(7).text(hospAddr, l + 56, 72);
-  doc.fontSize(7).text(`License: ${hospLic}`, l + 56, 86);
-  doc.fillColor(C.ink).font('Helvetica-Bold', 14).text('TAX INVOICE', l, 36, { width: pw - 18, align: 'right' });
-  doc.font('Helvetica', 8).fillColor(C.muted).text(`# ${invoiceId}`, l, 56, { width: pw - 18, align: 'right' });
-  doc.fontSize(7).text(`Date: ${fmtDateTime(payment.createdAt || new Date())}`, l, 72, { width: pw - 18, align: 'right' });
-  doc.roundedRect(l + pw - 88, 84, 84, 20, 10).fill(C.success);
-  doc.fillColor('#ffffff').font('Helvetica-Bold', 9).text('PAID', l + pw - 88, 89, { width: 84, align: 'center' });
+  doc.rect(l, 28, pw, 92).fillAndStroke('#ffffff', C.border);
+  doc.circle(l + 28, 68, 16).fill(C.primary);
+  doc.fillColor('#ffffff').font('Helvetica-Bold', 18).text('M', l + 22, 58, { width: 12, align: 'center' });
+  doc.fillColor(C.ink).font('Helvetica-Bold', 14).text(hospName, l + 56, 38);
+  doc.font('Helvetica', 8).fillColor(C.muted).text(h.tagline || 'Multi-Speciality Hospital', l + 56, 58);
+  doc.fontSize(7).text(hospAddr, l + 56, 76);
+  doc.fontSize(7).text(`License: ${hospLic}`, l + 56, 92);
+  doc.fillColor(C.ink).font('Helvetica-Bold', 14).text('BILL', l, 38, { width: pw - 18, align: 'right' });
+  doc.font('Helvetica', 8).fillColor(C.muted).text(`# ${payment.transaction_id || '-'}`, l, 58, { width: pw - 18, align: 'right' });
+  doc.fontSize(7).text(`Date: ${fmtDateTime(payment.createdAt || new Date())}`, l, 76, { width: pw - 18, align: 'right' });
+  doc.roundedRect(l + pw - 88, 92, 84, 20, 10).fill(C.success);
+  doc.fillColor('#ffffff').font('Helvetica-Bold', 9).text('PAID', l + pw - 88, 97, { width: 84, align: 'center' });
   doc.restore();
-  doc.y = 128;
+  doc.y = 138;
 
   // ── BILLED TO / PROVIDER ──
   const cw = (pw - 12) / 2;
@@ -125,9 +125,9 @@ export const generateAppointmentBillPDF = async (payment, reference) => collect(
 
   doc.y = sy + 96 + 18;
 
-  // ── INVOICE DETAILS table ──
+  // ── BILL DETAILS table ──
   ES(doc, 40);
-  doc.fillColor(C.primaryDark).font('Helvetica-Bold', 11).text('INVOICE DETAILS');
+  doc.fillColor(C.primaryDark).font('Helvetica-Bold', 11).text('BILL DETAILS');
   doc.moveDown(0.4);
 
   const cols = [
@@ -164,7 +164,7 @@ export const generateAppointmentBillPDF = async (payment, reference) => collect(
   doc.text('Paid', bx + 14, cy, { width: 90 }); doc.text(money(amount), bx + 104, cy, { width: 80, align: 'right' }); cy += 22;
   doc.moveTo(bx + 14, cy - 6).lineTo(bx + bw - 14, cy - 6).strokeColor(C.border).lineWidth(0.5).stroke();
   doc.fillColor(amount > 0 ? C.success : C.muted).font('Helvetica-Bold', 10);
-  doc.text('Outstanding', bx + 14, cy, { width: 90 }); doc.text('₹0', bx + 104, cy, { width: 80, align: 'right' });
+  doc.text('Outstanding', bx + 14, cy, { width: 90 }); doc.text('Rs. 0', bx + 104, cy, { width: 80, align: 'right' });
   doc.y = ty + 102 + 16;
 
   // ── Payment Notes ──
@@ -175,9 +175,6 @@ export const generateAppointmentBillPDF = async (payment, reference) => collect(
   doc.moveDown(0.3);
   doc.fillColor(C.muted).font('Helvetica-Bold', 8.5).text('Transaction ID:', l, doc.y, { width: 80 });
   doc.fillColor(C.ink).font('Helvetica', 9).text(payment.transaction_id || '-', l + 80, doc.y - 8, { width: pw - 80 });
-  doc.moveDown(0.6);
-  doc.fillColor(C.muted).font('Helvetica-Bold', 8.5).text('Invoice ID:', l, doc.y, { width: 80 });
-  doc.fillColor(C.ink).font('Helvetica', 9).text(invoiceId || '-', l + 80, doc.y - 8, { width: pw - 80 });
   doc.moveDown(1.2);
 
   // ── Signature ──
@@ -211,20 +208,20 @@ export const generateTestBillPDF = async (payment, reference) => collect((doc) =
 
   // ── Header ──
   doc.save();
-  doc.rect(l, 28, pw, 82).fillAndStroke('#ffffff', C.border);
-  doc.circle(l + 28, 67, 16).fill(C.primary);
-  doc.fillColor('#ffffff').font('Helvetica-Bold', 18).text('M', l + 22, 57, { width: 12, align: 'center' });
-  doc.fillColor(C.ink).font('Helvetica-Bold', 14).text(labName, l + 56, 36);
-  doc.font('Helvetica', 8).fillColor(C.muted).text('Pathology Lab', l + 56, 56);
-  doc.fontSize(7).text(labAddr, l + 56, 72);
-  doc.fontSize(7).text(`NABL No: ${nablNo}`, l + 56, 86);
-  doc.fillColor(C.ink).font('Helvetica-Bold', 14).text('TAX INVOICE', l, 36, { width: pw - 18, align: 'right' });
-  doc.font('Helvetica', 8).fillColor(C.muted).text(`# ${invoiceId}`, l, 56, { width: pw - 18, align: 'right' });
-  doc.fontSize(7).text(`Date: ${fmtDateTime(payment.createdAt || new Date())}`, l, 72, { width: pw - 18, align: 'right' });
-  doc.roundedRect(l + pw - 88, 84, 84, 20, 10).fill(C.success);
-  doc.fillColor('#ffffff').font('Helvetica-Bold', 9).text('PAID', l + pw - 88, 89, { width: 84, align: 'center' });
+  doc.rect(l, 28, pw, 92).fillAndStroke('#ffffff', C.border);
+  doc.circle(l + 28, 68, 16).fill(C.primary);
+  doc.fillColor('#ffffff').font('Helvetica-Bold', 18).text('M', l + 22, 58, { width: 12, align: 'center' });
+  doc.fillColor(C.ink).font('Helvetica-Bold', 14).text(labName, l + 56, 38);
+  doc.font('Helvetica', 8).fillColor(C.muted).text('Pathology Lab', l + 56, 58);
+  doc.fontSize(7).text(labAddr, l + 56, 76);
+  doc.fontSize(7).text(`NABL No: ${nablNo}`, l + 56, 92);
+  doc.fillColor(C.ink).font('Helvetica-Bold', 14).text('BILL', l, 38, { width: pw - 18, align: 'right' });
+  doc.font('Helvetica', 8).fillColor(C.muted).text(`# ${payment.transaction_id || '-'}`, l, 58, { width: pw - 18, align: 'right' });
+  doc.fontSize(7).text(`Date: ${fmtDateTime(payment.createdAt || new Date())}`, l, 76, { width: pw - 18, align: 'right' });
+  doc.roundedRect(l + pw - 88, 92, 84, 20, 10).fill(C.success);
+  doc.fillColor('#ffffff').font('Helvetica-Bold', 9).text('PAID', l + pw - 88, 97, { width: 84, align: 'center' });
   doc.restore();
-  doc.y = 128;
+  doc.y = 138;
 
   // ── BILLED TO / PROVIDER ──
   const cw = (pw - 12) / 2;
@@ -258,9 +255,9 @@ export const generateTestBillPDF = async (payment, reference) => collect((doc) =
 
   doc.y = sy + 96 + 18;
 
-  // ── INVOICE DETAILS table ──
+  // ── BILL DETAILS table ──
   ES(doc, 40);
-  doc.fillColor(C.primaryDark).font('Helvetica-Bold', 11).text('INVOICE DETAILS');
+  doc.fillColor(C.primaryDark).font('Helvetica-Bold', 11).text('BILL DETAILS');
   doc.moveDown(0.4);
 
   const cols = [
@@ -308,7 +305,7 @@ export const generateTestBillPDF = async (payment, reference) => collect((doc) =
   doc.fillColor(C.ink).text('Paid', bx + 14, cy, { width: 90 }); doc.text(money(amount), bx + 104, cy, { width: 80, align: 'right' }); cy += 22;
   doc.moveTo(bx + 14, cy - 6).lineTo(bx + bw - 14, cy - 6).strokeColor(C.border).lineWidth(0.5).stroke();
   doc.fillColor(amount > 0 ? C.success : C.muted).font('Helvetica-Bold', 10);
-  doc.text('Outstanding', bx + 14, cy, { width: 90 }); doc.text('₹0', bx + 104, cy, { width: 80, align: 'right' });
+  doc.text('Outstanding', bx + 14, cy, { width: 90 }); doc.text('Rs. 0', bx + 104, cy, { width: 80, align: 'right' });
   doc.y = ty + 18 + rowsCount * 22 + 16;
 
   // ── Payment Notes ──
@@ -319,9 +316,6 @@ export const generateTestBillPDF = async (payment, reference) => collect((doc) =
   doc.moveDown(0.3);
   doc.fillColor(C.muted).font('Helvetica-Bold', 8.5).text('Transaction ID:', l, doc.y, { width: 80 });
   doc.fillColor(C.ink).font('Helvetica', 9).text(payment.transaction_id || '-', l + 80, doc.y - 8, { width: pw - 80 });
-  doc.moveDown(0.6);
-  doc.fillColor(C.muted).font('Helvetica-Bold', 8.5).text('Invoice ID:', l, doc.y, { width: 80 });
-  doc.fillColor(C.ink).font('Helvetica', 9).text(invoiceId || '-', l + 80, doc.y - 8, { width: pw - 80 });
   doc.moveDown(1.2);
 
   // ── Signature ──
@@ -356,20 +350,20 @@ export const generateMedicineBillPDF = async (payment, reference) => collect((do
 
   // ── Header ──
   doc.save();
-  doc.rect(l, 28, pw, 82).fillAndStroke('#ffffff', C.border);
-  doc.circle(l + 28, 67, 16).fill(C.primary);
-  doc.fillColor('#ffffff').font('Helvetica-Bold', 18).text('M', l + 22, 57, { width: 12, align: 'center' });
-  doc.fillColor(C.ink).font('Helvetica-Bold', 14).text(storeName, l + 56, 36);
-  doc.font('Helvetica', 8).fillColor(C.muted).text('Pharmacy', l + 56, 56);
-  doc.fontSize(7).text(storeAddr, l + 56, 72);
-  doc.fontSize(7).text(`License: ${storeLic}`, l + 56, 86);
-  doc.fillColor(C.ink).font('Helvetica-Bold', 14).text('TAX INVOICE', l, 36, { width: pw - 18, align: 'right' });
-  doc.font('Helvetica', 8).fillColor(C.muted).text(`# ${invoiceId}`, l, 56, { width: pw - 18, align: 'right' });
-  doc.fontSize(7).text(`Date: ${fmtDateTime(payment.createdAt || new Date())}`, l, 72, { width: pw - 18, align: 'right' });
-  doc.roundedRect(l + pw - 88, 84, 84, 20, 10).fill(C.success);
-  doc.fillColor('#ffffff').font('Helvetica-Bold', 9).text('PAID', l + pw - 88, 89, { width: 84, align: 'center' });
+  doc.rect(l, 28, pw, 92).fillAndStroke('#ffffff', C.border);
+  doc.circle(l + 28, 68, 16).fill(C.primary);
+  doc.fillColor('#ffffff').font('Helvetica-Bold', 18).text('M', l + 22, 58, { width: 12, align: 'center' });
+  doc.fillColor(C.ink).font('Helvetica-Bold', 14).text(storeName, l + 56, 38);
+  doc.font('Helvetica', 8).fillColor(C.muted).text('Pharmacy', l + 56, 58);
+  doc.fontSize(7).text(storeAddr, l + 56, 76);
+  doc.fontSize(7).text(`License: ${storeLic}`, l + 56, 92);
+  doc.fillColor(C.ink).font('Helvetica-Bold', 14).text('BILL', l, 38, { width: pw - 18, align: 'right' });
+  doc.font('Helvetica', 8).fillColor(C.muted).text(`# ${payment.transaction_id || '-'}`, l, 58, { width: pw - 18, align: 'right' });
+  doc.fontSize(7).text(`Date: ${fmtDateTime(payment.createdAt || new Date())}`, l, 76, { width: pw - 18, align: 'right' });
+  doc.roundedRect(l + pw - 88, 92, 84, 20, 10).fill(C.success);
+  doc.fillColor('#ffffff').font('Helvetica-Bold', 9).text('PAID', l + pw - 88, 97, { width: 84, align: 'center' });
   doc.restore();
-  doc.y = 128;
+  doc.y = 138;
 
   // ── BILLED TO / PROVIDER ──
   const cw = (pw - 12) / 2;
@@ -403,9 +397,9 @@ export const generateMedicineBillPDF = async (payment, reference) => collect((do
 
   doc.y = sy + 96 + 18;
 
-  // ── INVOICE DETAILS table (medicine: extra Qty/Price columns) ──
+  // ── BILL DETAILS table (medicine: extra Qty/Price columns) ──
   ES(doc, 40);
-  doc.fillColor(C.primaryDark).font('Helvetica-Bold', 11).text('INVOICE DETAILS');
+  doc.fillColor(C.primaryDark).font('Helvetica-Bold', 11).text('BILL DETAILS');
   doc.moveDown(0.4);
 
   const cols = [
@@ -468,7 +462,7 @@ export const generateMedicineBillPDF = async (payment, reference) => collect((do
   doc.fillColor(C.ink).text('Paid', bx + 14, cy, { width: 90 }); doc.text(money(amount), bx + 104, cy, { width: 80, align: 'right' }); cy += 22;
   doc.moveTo(bx + 14, cy - 6).lineTo(bx + bw - 14, cy - 6).strokeColor(C.border).lineWidth(0.5).stroke();
   doc.fillColor(amount > 0 ? C.success : C.muted).font('Helvetica-Bold', 10);
-  doc.text('Outstanding', bx + 14, cy, { width: 90 }); doc.text('₹0', bx + 104, cy, { width: 80, align: 'right' });
+  doc.text('Outstanding', bx + 14, cy, { width: 90 }); doc.text('Rs. 0', bx + 104, cy, { width: 80, align: 'right' });
   doc.y = ty + 18 + rowsCount * 22 + 16;
 
   // ── Payment Notes ──
@@ -480,9 +474,6 @@ export const generateMedicineBillPDF = async (payment, reference) => collect((do
   doc.moveDown(0.3);
   doc.fillColor(C.muted).font('Helvetica-Bold', 8.5).text('Transaction ID:', l, doc.y, { width: 80 });
   doc.fillColor(C.ink).font('Helvetica', 9).text(payment.transaction_id || '-', l + 80, doc.y - 8, { width: pw - 80 });
-  doc.moveDown(0.6);
-  doc.fillColor(C.muted).font('Helvetica-Bold', 8.5).text('Invoice ID:', l, doc.y, { width: 80 });
-  doc.fillColor(C.ink).font('Helvetica', 9).text(invoiceId || '-', l + 80, doc.y - 8, { width: pw - 80 });
   doc.moveDown(1.2);
 
   // ── Signature ──

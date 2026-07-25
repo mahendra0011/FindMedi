@@ -119,6 +119,8 @@ export default function ClinicDetail() {
   const [testHomeFilter, setTestHomeFilter] = useState('all');
   const [testSort, setTestSort] = useState('popularity');
   const [showBooking, setShowBooking] = useState(false);
+  const [expandedFaq, setExpandedFaq] = useState(null);
+  const [testCart, setTestCart] = useState({});
   const { user } = useAuth();
   const [isFavorited, setIsFavorited] = useState(() => localStorage.getItem(`fav_clinic_${clinicId}`) === 'true');
   const toggleFavorite = async () => {
@@ -292,6 +294,8 @@ export default function ClinicDetail() {
     if (testSort === 'name') return a.name.localeCompare(b.name);
     return (b.popular ? 1 : 0) - (a.popular ? 1 : 0);
   });
+
+  const clinicWorkingHours = Object.values(clinic?.timing || {}).find(t => t !== 'Closed') || '9:00 AM - 6:00 PM';
 
   if (loading) {
     return (

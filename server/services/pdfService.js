@@ -1,6 +1,6 @@
 import PDFDocument from 'pdfkit';
 import fetch from 'node-fetch';
-
+ 
 const HOSPITAL = {
   name: 'MediCore Hospital',
   tagline: 'Hospital Management System',
@@ -8,7 +8,7 @@ const HOSPITAL = {
   phone: '+1 (555) 123-4567',
   email: 'info@medicorehospital.com',
 };
-
+ 
 const COLORS = {
   primary: '#0f766e',
   primaryDark: '#134e4a',
@@ -21,8 +21,8 @@ const COLORS = {
   warning: '#b45309',
   danger: '#b91c1c',
 };
-
-const money = (value = 0) => `₹${Number(value || 0).toLocaleString('en-IN')}`;
+ 
+const money = (value = 0) => `Rs. ${Number(value || 0).toLocaleString('en-IN')}`;
 const valueOrDash = (value) => (value === undefined || value === null || value === '' ? '-' : String(value).trim() || '-');
 const formatDate = (value) => {
   if (!value) return '-';
@@ -36,21 +36,21 @@ const doctorName = (name) => {
   return /^dr\.?\s/i.test(cleaned) ? cleaned : `Dr. ${cleaned}`;
 };
 const cleanRows = (rows, fallback) => (rows || []).filter(Boolean).length ? rows.filter(Boolean) : [fallback];
-
+ 
 const createDocument = () => new PDFDocument({
   size: 'A4',
   margin: 36,
   bufferPages: true,
 });
-
+ 
 const collectPdf = (draw) => new Promise((resolve, reject) => {
   const doc = createDocument();
   const chunks = [];
-
+ 
   doc.on('data', chunk => chunks.push(chunk));
   doc.on('end', () => resolve(Buffer.concat(chunks)));
   doc.on('error', reject);
-
+ 
   try {
     draw(doc);
     drawFooter(doc);
@@ -59,19 +59,19 @@ const collectPdf = (draw) => new Promise((resolve, reject) => {
     reject(error);
   }
 });
-
+ 
 const bottomLimit = (doc) => doc.page.height - doc.page.margins.bottom - 56;
-
+ 
 const ensureSpace = (doc, height = 100) => {
   if (doc.y + height > bottomLimit(doc)) {
     doc.addPage();
   }
 };
-
+ 
 const drawHeader = (doc, documentTitle, meta = {}) => {
   const { left, right } = doc.page.margins;
   const width = doc.page.width - left - right;
-
+ 
   doc.save();
   doc.roundedRect(left, 28, width, 82, 8).fill(COLORS.primary);
   doc.circle(left + 30, 69, 17).fill('#ffffff');
@@ -86,15 +86,15 @@ const drawHeader = (doc, documentTitle, meta = {}) => {
   doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(20).text(HOSPITAL.name, left + 58, 46);
   doc.font('Helvetica').fontSize(8.5).text(HOSPITAL.tagline, left + 58, 71);
   doc.fontSize(7.5).text(`${HOSPITAL.address} | ${HOSPITAL.phone} | ${HOSPITAL.email}`, left + 58, 91);
-
+ 
   doc.font('Helvetica-Bold').fontSize(15).text(documentTitle, left, 48, { width: width - 18, align: 'right' });
   if (meta.id) doc.font('Helvetica').fontSize(8.5).text(`# ${meta.id}`, left, 71, { width: width - 18, align: 'right' });
   if (meta.date) doc.fontSize(8.5).text(`Date: ${formatDate(meta.date)}`, left, 91, { width: width - 18, align: 'right' });
   doc.restore();
-
+ 
   doc.y = 128;
 };
-
+ 
 const drawFooter = (doc) => {
   const pages = doc.bufferedPageRange();
   for (let i = 0; i < pages.count; i += 1) {
@@ -108,7 +108,7 @@ const drawFooter = (doc) => {
     doc.text(`Page ${i + 1} of ${pages.count}`, left, y + 10, { width, align: 'right' });
   }
 };
-
+ 
 const drawSectionTitle = (doc, title) => {
   ensureSpace(doc, 34);
   doc.moveDown(0.2);
@@ -120,7 +120,7 @@ const drawSectionTitle = (doc, title) => {
     .stroke();
   doc.moveDown(0.55);
 };
-
+ 
 const drawInfoGrid = (doc, groups) => {
   const gap = 12;
   const { left, right } = doc.page.margins;
@@ -128,7 +128,7 @@ const drawInfoGrid = (doc, groups) => {
   const cardWidth = (width - gap) / 2;
   const startY = doc.y;
   const cardHeight = 96;
-
+ 
   groups.slice(0, 2).forEach((group, index) => {
     const x = left + index * (cardWidth + gap);
     doc.roundedRect(x, startY, cardWidth, cardHeight, 6).fillAndStroke('#ffffff', COLORS.border);
@@ -142,10 +142,10 @@ const drawInfoGrid = (doc, groups) => {
       });
     });
   });
-
+ 
   doc.y = startY + cardHeight + 18;
 };
-
+ 
 const drawTextBlock = (doc, title, text) => {
   const content = valueOrDash(text);
   const width = doc.page.width - doc.page.margins.left - doc.page.margins.right;
@@ -159,7 +159,7 @@ const drawTextBlock = (doc, title, text) => {
   });
   doc.moveDown(0.55);
 };
-
+ 
 const drawTable = (doc, columns, rows, options = {}) => {
   ensureSpace(doc, 58);
   const { left, right } = doc.page.margins;
@@ -169,7 +169,7 @@ const drawTable = (doc, columns, rows, options = {}) => {
   const headerHeight = options.headerHeight || 24;
   const minRowHeight = options.rowHeight || 24;
   const fontSize = options.fontSize || 8.5;
-
+ 
   const drawHeaderRow = () => {
     doc.roundedRect(left, y, tableWidth, headerHeight, 4).fill(COLORS.primaryDark);
     doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(8);
@@ -180,10 +180,10 @@ const drawTable = (doc, columns, rows, options = {}) => {
     });
     y += headerHeight;
   };
-
+ 
   drawHeaderRow();
   doc.font('Helvetica').fontSize(fontSize);
-
+ 
   rows.forEach((row, rowIndex) => {
     const cellHeights = columns.map((column, colIndex) => {
       doc.font(column.bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(fontSize);
@@ -194,16 +194,16 @@ const drawTable = (doc, columns, rows, options = {}) => {
       });
     });
     const rowHeight = Math.max(minRowHeight, Math.max(...cellHeights) + 12);
-
+ 
     if (y + rowHeight > bottomLimit(doc)) {
       doc.addPage();
       y = doc.y;
       drawHeaderRow();
     }
-
+ 
     doc.rect(left, y, tableWidth, rowHeight).fill(rowIndex % 2 === 0 ? '#ffffff' : COLORS.soft);
     doc.strokeColor(COLORS.border).lineWidth(0.4).rect(left, y, tableWidth, rowHeight).stroke();
-
+ 
     let x = left;
     columns.forEach((column, colIndex) => {
       doc.fillColor(COLORS.ink).font(column.bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(fontSize).text(
@@ -216,10 +216,10 @@ const drawTable = (doc, columns, rows, options = {}) => {
     });
     y += rowHeight;
   });
-
+ 
   doc.y = y + 10;
 };
-
+ 
 const drawStatusPill = (doc, status, x, y) => {
   const normalized = String(status || 'Pending');
   const color = normalized === 'Paid' ? COLORS.success
@@ -229,7 +229,7 @@ const drawStatusPill = (doc, status, x, y) => {
   doc.roundedRect(x, y, 84, 22, 11).fill(color);
   doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(9).text(normalized, x, y + 6, { width: 84, align: 'center' });
 };
-
+ 
 const fetchImageBuffer = async (url) => {
   if (!url) return null;
   try {
@@ -239,20 +239,20 @@ const fetchImageBuffer = async (url) => {
     return buffer;
   } catch { return null; }
 };
-
+ 
 const drawSignature = (doc, label = 'Authorized Signatory', signatureBuffer = null) => {
   ensureSpace(doc, 64);
   const { right } = doc.page.margins;
   const width = 170;
   const x = doc.page.width - right - width;
   const y = doc.y + 18;
-
+ 
   if (signatureBuffer) doc.image(signatureBuffer, x + 35, y - 42, { width: 100, height: 40 });
   doc.strokeColor(COLORS.border).lineWidth(0.6).moveTo(x, y).lineTo(x + width, y).stroke();
   doc.fillColor(COLORS.muted).font('Helvetica').fontSize(8).text(label, x, y + 8, { width, align: 'center' });
   doc.y = y + 28;
 };
-
+ 
 export const generatePrescriptionPDF = async (data) => {
   const signatureBuffer = data.doctor?.signatureUrl ? await fetchImageBuffer(data.doctor.signatureUrl) : null;
   return collectPdf((doc) => {
@@ -277,11 +277,11 @@ export const generatePrescriptionPDF = async (data) => {
         ],
       },
     ]);
-
+ 
     drawSectionTitle(doc, 'Clinical Notes');
     drawTextBlock(doc, 'Chief Complaints', data.chiefComplaints);
     drawTextBlock(doc, 'Diagnosis', data.diagnosis);
-
+ 
     drawSectionTitle(doc, 'Medications');
     drawTable(doc, [
       { key: 'index', label: '#', width: 0.08, align: 'center' },
@@ -296,13 +296,13 @@ export const generatePrescriptionPDF = async (data) => {
       frequency: med.frequency,
       instructions: med.instructions,
     })), { index: '-', name: 'No medications prescribed', dosage: '-', frequency: '-', instructions: '-' }));
-
+ 
     drawSectionTitle(doc, 'Advice');
     drawTextBlock(doc, 'Instructions for Patient', data.advice || 'No specific advice');
     drawSignature(doc, doctorName(data.doctor?.name), signatureBuffer);
   });
 };
-
+ 
 export const generateLabReportPDF = async (data) => collectPdf((doc) => {
   drawHeader(doc, 'Laboratory Report', { id: data.reportId || `LAB-${Date.now()}`, date: data.reportDate || new Date() });
   drawInfoGrid(doc, [
@@ -325,7 +325,7 @@ export const generateLabReportPDF = async (data) => collectPdf((doc) => {
       ],
     },
   ]);
-
+ 
   drawSectionTitle(doc, 'Test Results');
   drawTable(doc, [
     { key: 'name', label: 'Test', width: 0.34, bold: true },
@@ -338,12 +338,12 @@ export const generateLabReportPDF = async (data) => collectPdf((doc) => {
     unit: test.unit,
     referenceRange: test.referenceRange,
   })), { name: 'No test results entered', result: '-', unit: '-', referenceRange: '-' }));
-
+ 
   drawSectionTitle(doc, 'Clinical Notes');
   drawTextBlock(doc, 'Notes', data.notes || 'No additional notes');
   drawSignature(doc, 'Lab In-charge / Pathologist');
 });
-
+ 
 export const generateDischargeSummaryPDF = async (data) => collectPdf((doc) => {
   drawHeader(doc, 'Discharge Summary', { id: data.admissionId || `DS-${Date.now()}`, date: data.dischargeDate || new Date() });
   drawInfoGrid(doc, [
@@ -366,13 +366,13 @@ export const generateDischargeSummaryPDF = async (data) => collectPdf((doc) => {
       ],
     },
   ]);
-
+ 
   drawSectionTitle(doc, 'Hospital Course');
   drawTextBlock(doc, 'Chief Complaints on Admission', data.chiefComplaints);
   drawTextBlock(doc, 'Final Diagnosis', data.diagnosis);
   drawTextBlock(doc, 'Treatment Given', data.treatment);
   drawTextBlock(doc, 'Surgery or Procedure', data.surgery || 'None');
-
+ 
   drawSectionTitle(doc, 'Discharge Medications');
   drawTable(doc, [
     { key: 'index', label: '#', width: 0.08, align: 'center' },
@@ -385,13 +385,13 @@ export const generateDischargeSummaryPDF = async (data) => collectPdf((doc) => {
     dosage: med.dosage,
     frequency: med.frequency,
   })), { index: '-', name: 'No discharge medications entered', dosage: '-', frequency: '-' }));
-
+ 
   drawSectionTitle(doc, 'Aftercare');
   drawTextBlock(doc, 'Discharge Advice', data.dischargeAdvice || 'No specific advice');
   drawTextBlock(doc, 'Follow-up Instructions', data.followUpInstructions || 'Not specified');
   drawSignature(doc, doctorName(data.doctor?.name));
 });
-
+ 
 export const generateInvoicePDF = async (bill) => collectPdf((doc) => {
   const patient = bill.patientId && typeof bill.patientId === 'object' ? bill.patientId : {};
   const doctor = bill.doctorId && typeof bill.doctorId === 'object' ? bill.doctorId : {};
@@ -413,10 +413,10 @@ export const generateInvoicePDF = async (bill) => collectPdf((doc) => {
       date: formatDate(bill.date),
       amount: money(amount),
     }];
-
+ 
   drawHeader(doc, 'Tax Invoice', { id: bill.invoiceId, date: bill.date || new Date() });
   drawStatusPill(doc, bill.status, doc.page.width - doc.page.margins.right - 84, 118);
-
+ 
   drawInfoGrid(doc, [
     {
       title: 'Billed To',
@@ -437,7 +437,7 @@ export const generateInvoicePDF = async (bill) => collectPdf((doc) => {
       ],
     },
   ]);
-
+ 
   drawSectionTitle(doc, 'Invoice Details');
   drawTable(doc, [
     { key: 'index', label: '#', width: 0.08, align: 'center' },
@@ -446,14 +446,14 @@ export const generateInvoicePDF = async (bill) => collectPdf((doc) => {
     { key: 'date', label: 'Date', width: 0.16 },
     { key: 'amount', label: 'Amount', width: 0.14, align: 'right' },
   ], lineItems);
-
+ 
   const { left, right } = doc.page.margins;
   const width = doc.page.width - left - right;
   const boxWidth = 220;
   const x = left + width - boxWidth;
   ensureSpace(doc, 126);
   const y = doc.y + 4;
-
+ 
   doc.roundedRect(x, y, boxWidth, 96, 6).fillAndStroke(COLORS.soft, COLORS.border);
   doc.fillColor(COLORS.ink).font('Helvetica-Bold').fontSize(10);
   doc.text('Subtotal', x + 14, y + 16, { width: 100 });
@@ -466,7 +466,7 @@ export const generateInvoicePDF = async (bill) => collectPdf((doc) => {
   doc.text('Outstanding', x + 14, y + 72, { width: 100 });
   doc.text(money(outstanding), x + 112, y + 72, { width: 90, align: 'right' });
   doc.y = y + 118;
-
+ 
 drawSectionTitle(doc, 'Payment Notes');
 drawTextBlock(doc, 'Instructions', outstanding > 0
   ? 'Please clear the outstanding amount by the due date. Keep this invoice for your records.'
@@ -478,142 +478,125 @@ if (bill.invoiceId) {
   drawTextBlock(doc, 'Invoice ID', bill.invoiceId);
 }
 });
-
-export const generatePaymentInvoicePDF = async (payment, reference = null) => collectPdf((doc) => {
+ 
+export const generatePaymentInvoicePDF = async (payment, reference = null, user = null, documentTitle = 'Payment Invoice') => collectPdf((doc) => {
   const typePrefix = { appointment: 'APT', test: 'TST', medicine: 'MED' };
   const year = new Date(payment.createdAt || Date.now()).getFullYear();
-  const rndBase = `${Date.now()}${Math.floor(Math.random() * 10**9)}`;
-  const invoiceId = payment.invoice_id || `INV-${typePrefix[payment.serviceType] || 'GEN'}-${year}-${rndBase.slice(-16)}`;
-  const shortId = (payment.transaction_id || payment._id?.toString() || rndBase).slice(-6).toUpperCase();
+  const numericPart = (payment.transaction_id || payment._id?.toString() || '00000').replace(/\D/g, '');
+  const sharedSuffix = numericPart.length >= 5 ? numericPart.slice(-5) : '00000';
+  const invoiceId = payment.invoice_id || `INV-${typePrefix[payment.serviceType] || 'GEN'}-${year}-${sharedSuffix}`;
+  const transactionId = payment.transaction_id || `TXN-${year}-${sharedSuffix}`;
 
-  // ── Patient Info ──
-  let patientName = payment.patient_name || 'Patient';
-  let patientEmail = '';
-  let patientPhone = '';
-  let patientAddr = '';
+  const isBill = documentTitle.toLowerCase().includes('bill');
+  const docId = isBill ? invoiceId.replace('INV', 'BILL') : invoiceId;
+
+  drawHeader(doc, documentTitle, { id: docId, date: payment.createdAt || new Date() });
+  drawStatusPill(doc, 'Paid', doc.page.width - doc.page.margins.right - 84, 118);
+
+  // ── Data Extraction ──
+  let patientName = payment.patient_name || user?.name || 'Patient';
+  let patientPhone = payment.patient_phone || user?.phone || '';
+  let patientAddr = user?.address || '';
   if (reference) {
     patientName = reference.patientName || reference.patient || patientName;
-    patientEmail = reference.email || '';
     if (payment.serviceType === 'appointment') {
-      patientPhone = reference.patientId?.phone || '';
+      patientPhone = reference.patientId?.phone || patientPhone;
+      patientAddr = reference.patientId?.address || patientAddr;
     } else if (payment.serviceType === 'test') {
-      patientPhone = reference.patientPhone || '';
-      patientAddr = reference.homeCollectionAddress || '';
+      patientPhone = reference.patientPhone || patientPhone;
+      patientAddr = reference.homeCollectionAddress || patientAddr;
     } else if (payment.serviceType === 'medicine') {
-      patientPhone = reference.phone || '';
-      patientAddr = reference.deliveryAddress || '';
+      patientPhone = reference.phone || patientPhone;
+      patientAddr = reference.deliveryAddress ? `${reference.deliveryAddress} (Delivery)` : patientAddr;
     }
   }
-  patientPhone = patientPhone || payment.patient_phone || '';
 
-  // ── Provider Info ──
   let providerName = payment.provider || 'MediCore';
   let providerAddr = '';
   let providerLic = '';
-  let providerPhone = '';
   if (reference?.hospitalId && typeof reference.hospitalId === 'object') {
     const h = reference.hospitalId;
     providerName = h.name || providerName;
-    const parts = [h.address, h.city, h.state, h.pincode].filter(Boolean);
-    providerAddr = parts.join(', ');
-    providerPhone = h.phone || '';
-    if (h.phone) providerAddr += `\n${h.phone}`;
+    providerAddr = [h.address, h.city, h.state, h.pincode].filter(Boolean).join(', ');
     providerLic = payment.serviceType === 'test' ? (h.nablNo || '-') : (h.licenseNo || '-');
+  } else if (reference?.doctorId && typeof reference.doctorId === 'object') {
+    providerAddr = reference.doctorId.location || '';
+  }
+  const licLabel = payment.serviceType === 'test' ? 'NABL No.' : 'License';
+
+  let serviceTitle = 'Service Details';
+  let serviceRows = [];
+  if (payment.serviceType === 'appointment') {
+    serviceTitle = 'Appointment Details';
+    const d = reference?.doctorId || {};
+    const fallbackDate = formatDate(reference?.date || payment.createdAt);
+    const fallbackTime = reference?.time ? `, ${reference.time}` : '';
+    serviceRows = [
+      { label: 'Doctor', value: `Dr. ${d.name || reference?.doctor || payment.provider || 'Doctor'}${d.specialization ? ` (${d.specialization})` : ''}` },
+      { label: 'Date & Time', value: `${fallbackDate}${fallbackTime}` },
+    ];
+  } else if (payment.serviceType === 'test') {
+    serviceTitle = 'Booking Details';
+    serviceRows = [
+      { label: 'Booking ID', value: reference?.bookingId || `BK-${year}-${sharedSuffix}` },
+      { label: 'Mode', value: reference?.visitType || 'Lab Visit' },
+      { label: 'Slot', value: `${formatDate(reference?.bookingDate)}${reference?.timeSlot ? `, ${reference.timeSlot}` : ''}` },
+      { label: 'Prescription', value: reference?.prescriptionVerified ? 'Verified' : 'Not Required' },
+    ];
+  } else if (payment.serviceType === 'medicine') {
+    serviceTitle = 'Order Details';
+    const ps = reference?.prescriptionStatus;
+    serviceRows = [
+      { label: 'Order ID', value: reference?.orderId || `ORD-${year}-${sharedSuffix}` },
+      { label: 'Delivery', value: reference?.deliveryMode === 'delivery' ? 'Home Delivery' : 'Store Pickup' },
+      { label: 'Prescription', value: ps === 'verified' ? 'Verified' : ps === 'pending' ? 'Pending' : ps === 'rejected' ? 'Rejected' : 'Not Required' },
+    ];
   }
 
-  // ── Header ──
-  const { left, right } = doc.page.margins;
-  const pw = doc.page.width - left - right;
+  const methodRef = payment.method_ref || payment.utr || payment.gateway_ref || null;
+  const methodLine = methodRef ? `${(payment.method || '-').toUpperCase()} (${methodRef})` : (payment.method || '-').toUpperCase();
 
-  doc.save();
-  doc.roundedRect(left, 28, pw, 82, 8).fill(COLORS.primary);
-  doc.circle(left + 30, 69, 17).fill('#ffffff');
-  doc.strokeColor(COLORS.primary).lineWidth(2.2)
-    .moveTo(left + 18, 69).lineTo(left + 25, 69)
-    .lineTo(left + 29, 59).lineTo(left + 36, 79)
-    .lineTo(left + 40, 69).lineTo(left + 47, 69).stroke();
-  doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(20).text(HOSPITAL.name, left + 58, 46);
-  doc.font('Helvetica').fontSize(8.5).text(HOSPITAL.tagline, left + 58, 71);
-  doc.fontSize(7.5).text(`${HOSPITAL.address} | ${HOSPITAL.phone} | ${HOSPITAL.email}`, left + 58, 91);
-  doc.font('Helvetica-Bold').fontSize(15).text('TAX INVOICE', left, 48, { width: pw - 18, align: 'right' });
-  doc.font('Helvetica').fontSize(8.5).text(`# ${invoiceId}`, left, 71, { width: pw - 18, align: 'right' });
-  doc.fontSize(8.5).text(`Date: ${formatDate(payment.createdAt || new Date())}`, left, 91, { width: pw - 18, align: 'right' });
-  doc.restore();
+  // ── Info Grids ──
+  drawInfoGrid(doc, [
+    {
+      title: 'Bill To',
+      rows: [
+        { label: 'Patient', value: patientName },
+        patientPhone ? { label: 'Phone', value: patientPhone } : null,
+        patientAddr ? { label: 'Address', value: patientAddr } : null,
+      ].filter(Boolean),
+    },
+    {
+      title: 'Billed By',
+      rows: [
+        { label: 'Provider', value: providerName },
+        providerAddr ? { label: 'Address', value: providerAddr } : null,
+        (providerLic && providerLic !== '-') ? { label: licLabel, value: providerLic } : null,
+      ].filter(Boolean),
+    },
+  ]);
 
-  drawStatusPill(doc, 'Paid', doc.page.width - right - 84, 118);
-  doc.y = 132;
 
-  // ── BILLED TO / PROVIDER Info Grid ──
-  const gap = 12;
-  const cardW = (pw - gap) / 2;
-  const sy = doc.y;
-
-  // BILLED TO
-  doc.roundedRect(left, sy, cardW, 96, 6).fillAndStroke('#ffffff', COLORS.border);
-  doc.fillColor(COLORS.primaryDark).font('Helvetica-Bold').fontSize(10).text('BILLED TO', left + 12, sy + 12);
-  const btRows = [
-    { label: 'Patient', value: patientName },
-    { label: 'Email', value: patientEmail || '-' },
-    { label: 'Phone', value: patientPhone || '-' },
-    { label: 'Due Date', value: formatDate(payment.createdAt || new Date()) },
-  ];
-  btRows.forEach((row, i) => {
-    const ry = sy + 32 + i * 15;
-    doc.fillColor(COLORS.muted).font('Helvetica-Bold').fontSize(8).text(`${row.label}:`, left + 12, ry, { width: 60 });
-    doc.fillColor(COLORS.ink).font('Helvetica').fontSize(8.5).text(valueOrDash(row.value), left + 72, ry, {
-      width: cardW - 84, ellipsis: true,
-    });
-  });
-
-  // PROVIDER
-  const px = left + cardW + gap;
-  doc.roundedRect(px, sy, cardW, 96, 6).fillAndStroke('#ffffff', COLORS.border);
-  doc.fillColor(COLORS.primaryDark).font('Helvetica-Bold').fontSize(10).text('PROVIDER', px + 12, sy + 12);
-  const prRows = [
-    { label: 'Provider', value: providerName },
-    { label: 'Speciality', value: reference?.doctorId?.specialization || (payment.serviceType === 'test' ? 'Lab Services' : payment.serviceType === 'medicine' ? 'Pharmacy' : '-') },
-    { label: 'Method', value: `${payment.method?.toUpperCase() || '-'}` },
-    { label: 'Txn ID', value: payment.transaction_id || '-' },
-  ];
-  prRows.forEach((row, i) => {
-    const ry = sy + 32 + i * 15;
-    doc.fillColor(COLORS.muted).font('Helvetica-Bold').fontSize(8).text(`${row.label}:`, px + 12, ry, { width: 60 });
-    doc.fillColor(COLORS.ink).font('Helvetica').fontSize(8.5).text(valueOrDash(row.value), px + 72, ry, {
-      width: cardW - 84, ellipsis: true,
-    });
-  });
-
-  doc.y = sy + 96 + 18;
-
-  // ── Type-specific details ──
-  if (payment.serviceType === 'appointment' && reference) {
-    const d = reference.doctorId || {};
-    drawSectionTitle(doc, 'Appointment Details');
-    drawTextBlock(doc, 'Doctor', `${d.name || reference.doctor || 'Doctor'}${d.specialization ? ` (${d.specialization})` : ''}`);
-    drawTextBlock(doc, 'Date & Time', `${formatDate(reference.date)} at ${reference.time || ''}`);
-    drawTextBlock(doc, 'Appointment Type', reference.type || 'Consultation');
-  }
-
-  if (payment.serviceType === 'test' && reference) {
-    drawSectionTitle(doc, 'Booking Details');
-    drawTextBlock(doc, 'Booking ID', reference.bookingId || `BK-${year}-${shortId}`);
-    drawTextBlock(doc, 'Collection Mode', reference.visitType || 'Lab Visit');
-    drawTextBlock(doc, 'Slot', `${formatDate(reference.bookingDate)}${reference.timeSlot ? `\n${reference.timeSlot}` : ''}`);
-    drawTextBlock(doc, 'Prescription', reference.prescriptionVerified ? 'Uploaded & Verified' : 'Not Required (Direct Book)');
-  }
-
-  if (payment.serviceType === 'medicine' && reference) {
-    drawSectionTitle(doc, 'Order Details');
-    drawTextBlock(doc, 'Order ID', reference.orderId || `ORD-${year}-${shortId}`);
-    drawTextBlock(doc, 'Delivery Type', reference.deliveryMode === 'delivery' ? 'Home Delivery' : 'Store Pickup');
-    const ps = reference.prescriptionStatus;
-    drawTextBlock(doc, 'Prescription', ps === 'verified' ? 'Verified (Rx items included)' : ps === 'pending' ? 'Pending Verification' : ps === 'rejected' ? 'Rejected' : 'Not Required');
-    if (providerLic && providerLic !== '-') drawTextBlock(doc, 'License No.', providerLic);
-  }
+  drawInfoGrid(doc, [
+    {
+      title: serviceTitle,
+      rows: serviceRows,
+    },
+    {
+      title: 'Payment Info',
+      rows: [
+        { label: 'Method', value: methodLine },
+        { label: 'Status', value: 'Paid (Completed)' },
+        { label: 'Txn ID', value: transactionId },
+        { label: isBill ? 'Bill ID' : 'Invoice ID', value: docId },
+      ],
+    },
+  ]);
 
   // ── Items Table ──
-  drawSectionTitle(doc, 'Invoice Details');
+  drawSectionTitle(doc, isBill ? 'Billing Items' : 'Invoice Items');
   const lineItems = (payment.lineItems || []).filter(Boolean);
+  let cols, rows;
 
   if (payment.serviceType === 'medicine') {
     const packLookup = {};
@@ -621,30 +604,31 @@ export const generatePaymentInvoicePDF = async (payment, reference = null) => co
       reference.items.forEach(item => {
         const name = item.medicineName || item.name;
         if (item.medicineId && typeof item.medicineId === 'object') {
-          packLookup[name] = `${item.medicineId.form || '-'}`;
+          packLookup[name] = { pack: item.medicineId.form || '-', rx: (item.medicineId.rxRequired || item.medicineId.rx) ? ' [Rx]' : '' };
         } else {
-          packLookup[name] = item.packSize || item.form || '-';
+          packLookup[name] = { pack: item.packSize || item.form || '-', rx: item.type === 'rx' ? ' [Rx]' : '' };
         }
       });
     }
-    drawTable(doc, [
-      { key: 'index', label: '#', width: 0.05, align: 'center' },
-      { key: 'item', label: 'Item', width: 0.28, bold: true },
-      { key: 'pack', label: 'Pack', width: 0.13 },
-      { key: 'qty', label: 'Qty', width: 0.08, align: 'center' },
-      { key: 'price', label: 'Price', width: 0.13, align: 'right' },
-      { key: 'total', label: 'Total', width: 0.14, align: 'right' },
-    ], lineItems.length > 0
-      ? lineItems.map((item, i) => ({
-          index: i + 1,
-          item: item.name || 'Item',
-          pack: packLookup[item.name] || item.packSize || '-',
-          qty: item.qty || 1,
-          price: money(item.price || 0),
-          total: money((item.price || 0) * (item.qty || 1)),
-        }))
-      : [{ index: 1, item: 'Medicine Order', pack: '-', qty: 1, price: money(payment.amount), total: money(payment.amount) }],
-      { fontSize: 8 });
+    cols = [
+      { key: 'item', label: 'Item Description', width: 0.38, bold: true },
+      { key: 'pack', label: 'Pack Size', width: 0.18 },
+      { key: 'qty', label: 'Qty', width: 0.10, align: 'center' },
+      { key: 'price', label: 'Price', width: 0.17, align: 'right' },
+      { key: 'total', label: 'Total', width: 0.17, align: 'right', bold: true },
+    ];
+    rows = lineItems.length > 0
+      ? lineItems.map((item) => {
+          const info = packLookup[item.name] || {};
+          return {
+            item: `${item.name || 'Item'}${info.rx || ''}`,
+            pack: info.pack || '-',
+            qty: item.qty || 1,
+            price: money(item.price || 0),
+            total: money((item.price || 0) * (item.qty || 1)),
+          };
+        })
+      : [{ item: 'Medicine Order', pack: '-', qty: 1, price: money(payment.amount), total: money(payment.amount) }];
   } else if (payment.serviceType === 'test') {
     const reportLookup = {};
     if (reference?.testIds) {
@@ -653,81 +637,74 @@ export const generatePaymentInvoicePDF = async (payment, reference = null) => co
         if (t && t.name) reportLookup[t.name] = t.reportTime || '-';
       });
     }
-    drawTable(doc, [
-      { key: 'index', label: '#', width: 0.06, align: 'center' },
-      { key: 'item', label: 'Test', width: 0.40, bold: true },
-      { key: 'reportTime', label: 'Report Time', width: 0.22 },
-      { key: 'amount', label: 'Amount', width: 0.20, align: 'right' },
-    ], lineItems.length > 0
-      ? lineItems.map((item, i) => ({
-          index: i + 1,
+    cols = [
+      { key: 'item', label: 'Test / Service Name', width: 0.50, bold: true },
+      { key: 'reportTime', label: 'Report Time', width: 0.25 },
+      { key: 'amount', label: 'Amount', width: 0.25, align: 'right', bold: true },
+    ];
+    rows = lineItems.length > 0
+      ? lineItems.map((item) => ({
           item: item.name || 'Test',
           reportTime: reportLookup[item.name] || item.reportTime || '-',
           amount: money(item.price || item.discountedPrice || 0),
         }))
-      : [{ index: 1, item: 'Lab Test', reportTime: '-', amount: money(payment.amount) }],
-      { fontSize: 8 });
+      : [{ item: 'Lab Test', reportTime: '-', amount: money(payment.amount) }];
   } else {
-    drawTable(doc, [
-      { key: 'index', label: '#', width: 0.08, align: 'center' },
-      { key: 'item', label: 'Service', width: 0.52, bold: true },
-      { key: 'amount', label: 'Amount', width: 0.28, align: 'right' },
-    ], lineItems.length > 0
-      ? lineItems.map((item, i) => ({
-          index: i + 1,
-          item: item.name || 'Service',
-          amount: money(item.price || 0),
-        }))
-      : [{ index: 1, item: 'Consultation Fee', amount: money(payment.amount) }],
-      { fontSize: 8 });
+    cols = [
+      { key: 'item', label: 'Service Name', width: 0.70, bold: true },
+      { key: 'amount', label: 'Amount', width: 0.30, align: 'right', bold: true },
+    ];
+    rows = lineItems.length > 0
+      ? lineItems.map((item) => ({ item: item.name || 'Service', amount: money(item.price || 0) }))
+      : [{ item: 'Consultation Fee', amount: money(payment.amount) }];
   }
 
-  // ── Totals Box (right-aligned) ──
-  const boxWidth = 220;
-  const bx = left + pw - boxWidth;
-  ensureSpace(doc, 140);
-  const ty = doc.y + 4;
+  drawTable(doc, cols, rows);
 
+  // ── Totals Box ──
   const discount = reference?.discount || reference?.discountAmount || 0;
   const discountCode = reference?.couponCode || '';
   const deliveryCharges = payment.serviceType === 'medicine' ? (reference?.deliveryFee || 0) : 0;
   const platformFee = payment.serviceType === 'appointment' ? (reference?.platformFee || 0) : 0;
   const showDelivery = payment.serviceType === 'medicine';
   const showPlatform = payment.serviceType === 'appointment';
-  const totalRows = 3 + (showDelivery ? 1 : 0) + (showPlatform ? 1 : 0);
   const subtotal = (payment.amount || 0) + discount + (showDelivery ? deliveryCharges : 0) + (showPlatform ? platformFee : 0);
-
-  doc.roundedRect(bx, ty, boxWidth, 18 + totalRows * 18 + 10, 6).fillAndStroke(COLORS.soft, COLORS.border);
-  let cy = ty + 12;
-  doc.fillColor(COLORS.ink).font('Helvetica').fontSize(9);
-  doc.text('Subtotal', bx + 14, cy, { width: 100 });
-  doc.text(money(subtotal), bx + 112, cy, { width: 90, align: 'right' });
-  cy += 18;
-  if (showDelivery) {
-    doc.text('Delivery Charges', bx + 14, cy, { width: 100 });
-    doc.text(money(deliveryCharges), bx + 112, cy, { width: 90, align: 'right' });
-    cy += 18;
-  }
-  if (showPlatform) {
-    doc.text('Platform Fee', bx + 14, cy, { width: 100 });
-    doc.text(money(platformFee), bx + 112, cy, { width: 90, align: 'right' });
-    cy += 18;
-  }
   const discountLabel = discountCode ? `Discount (${discountCode})` : 'Discount';
-  doc.fillColor(discount > 0 ? COLORS.warning : COLORS.ink).text(discountLabel, bx + 14, cy, { width: 100 });
-  doc.fillColor(discount > 0 ? COLORS.warning : COLORS.ink).text(`-${money(discount)}`, bx + 112, cy, { width: 90, align: 'right' });
-  cy += 22;
-  doc.fillColor(COLORS.border).lineWidth(0.5).moveTo(bx + 14, cy - 6).lineTo(bx + boxWidth - 14, cy - 6).stroke();
-  doc.fillColor(COLORS.success).font('Helvetica-Bold').fontSize(10);
-  doc.text('Total Paid', bx + 14, cy, { width: 100 });
-  doc.text(money(payment.amount), bx + 112, cy, { width: 90, align: 'right' });
-  doc.y = ty + 18 + totalRows * 18 + 22;
 
-  // ── Payment Notes ──
-  drawSectionTitle(doc, 'Payment Notes');
-  drawTextBlock(doc, 'Instructions', 'Payment received. Thank you for choosing MediCore Hospital.');
-  drawTextBlock(doc, 'Transaction ID', payment.transaction_id || '-');
-  drawTextBlock(doc, 'Invoice ID', invoiceId || '-');
+  const totalLines = [['Subtotal', money(subtotal)]];
+  if (payment.serviceType === 'appointment') {
+    if (discount > 0) totalLines.push([discountLabel, `-${money(discount)}`, COLORS.warning]);
+    if (platformFee > 0) totalLines.push(['Platform Fee', money(platformFee)]);
+  } else if (payment.serviceType === 'medicine') {
+    if (deliveryCharges > 0) totalLines.push(['Delivery Charges', money(deliveryCharges)]);
+    if (discount > 0) totalLines.push([discountLabel, `-${money(discount)}`, COLORS.warning]);
+  } else {
+    if (discount > 0) totalLines.push([discountLabel, `-${money(discount)}`, COLORS.warning]);
+  }
 
-  drawSignature(doc, 'MediCore Authorized Signatory');
+  const { left, right } = doc.page.margins;
+  const pw = doc.page.width - left - right;
+  const boxWidth = 240;
+  const boxHeight = 24 + totalLines.length * 18 + 36;
+  const x = left + pw - boxWidth;
+  
+  ensureSpace(doc, boxHeight + 20);
+  const y = doc.y + 8;
+
+  doc.roundedRect(x, y, boxWidth, boxHeight, 8).fillAndStroke(COLORS.soft, COLORS.border);
+  let ty = y + 18;
+  
+  totalLines.forEach(([label, value, accent]) => {
+    doc.fillColor(accent || COLORS.muted).font('Helvetica-Bold').fontSize(9.5).text(label, x + 16, ty, { width: 110 });
+    doc.fillColor(accent || COLORS.ink).font('Helvetica-Bold').fontSize(9.5).text(value, x + 126, ty, { width: 98, align: 'right' });
+    ty += 18;
+  });
+  
+  doc.moveTo(x + 16, ty + 8).lineTo(x + boxWidth - 16, ty + 8).strokeColor(COLORS.border).stroke();
+  ty += 22;
+
+  doc.fillColor(COLORS.primaryDark).font('Helvetica-Bold').fontSize(12).text('Total Paid', x + 16, ty, { width: 110 });
+  doc.fillColor(COLORS.primaryDark).font('Helvetica-Bold').fontSize(12).text(money(payment.amount), x + 126, ty, { width: 98, align: 'right' });
+  
+  doc.y = y + boxHeight + 20;
 });

@@ -75,7 +75,7 @@ router.get('/', protect, async (req, res) => {
     
     const result = await paginatedResults(Appointment, filter, {
       page, limit,
-      sort: { date: -1, createdAt: -1 },
+      sort: { createdAt: -1 },
       populate: [
         { path: 'patientId', select: 'name email phone' },
         { path: 'doctorId', select: 'name specialization' },

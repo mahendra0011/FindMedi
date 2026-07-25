@@ -64,16 +64,32 @@ export default function BookingModal({
 
   const currentDoc = selectedDoctor || doctor;
 
-  const handleCreateAppointment = async () => {
+  const handleProceedToPayment = () => {
     if (processingRef.current) return;
     if (!currentDoc) { toast.error('No doctor selected'); return; }
     if (!user) { toast.error('Please login to book an appointment'); navigate('/login'); return; }
     
+    // Validate inputs
+    if (!bookingDate || !bookingTime) { toast.error('Please select date and time'); return; }
+
+    const fees = currentDoc.consultation_fees || currentDoc.fees || 0;
+    setBookingDetails({ doctor: currentDoc.name, specialization: currentDoc.specialization, date: bookingDate, time: bookingTime, fees });
+    setBookingStep(1); // Go to Payment Method
+  };
+
+  const handlePayment = async () => {
+    if (processingRef.current) return;
+    if (!currentDoc) { toast.error('No doctor selected'); return; }
+    if (!user) { toast.error('Please login to book an appointment'); navigate('/login'); return; }
+
     processingRef.current = true;
-    setBookingLoading(true);
+    setPaymentLoading(true);
+
     try {
       const fees = currentDoc.consultation_fees || currentDoc.fees || 0;
-      const result = await api.createAppointment({
+      
+      // 1. Create Appointment
+      const apptResult = await api.createAppointment({
         doctorId: currentDoc._id,
         doctor: currentDoc.name,
         doctorName: currentDoc.name,
@@ -88,47 +104,40 @@ export default function BookingModal({
         notes: bookingNotes,
         type: 'Consultation',
       });
-      const appointmentData = result?.appointment || result?.data?.appointment || result;
-      setBookingDetails({ ...appointmentData, doctor: currentDoc.name, date: bookingDate, time: bookingTime, fees });
-      setBookingStep(1); // Go to Payment Method
-    } catch (e) {
-      toast.error(e.response?.data?.message || e.message || 'Failed to reserve appointment');
-    }
-    setBookingLoading(false);
-    processingRef.current = false;
-  };
+      const appointmentData = apptResult?.appointment || apptResult?.data?.appointment || apptResult;
 
-  const handlePayment = async () => {
-    if (processingRef.current) return;
-    const fees = bookingDetails?.fees || 0;
-    if (fees <= 0) { setBookingStep(3); return; }
-    processingRef.current = true;
-    setPaymentLoading(true);
-    try {
-      const refId = bookingDetails?._id?.toString?.() || bookingDetails?._id || '';
-      const result = await api.payTransaction({
-        serviceType: 'appointment',
-        referenceId: refId,
-        amount: fees,
-        method: paymentMethod,
-        description: `Consultation with ${bookingDetails?.doctor || 'Doctor'}`,
-        provider: facility?.name || bookingDetails?.doctor || 'Doctor',
-        lineItems: [{ name: 'Consultation Fee', price: fees, qty: 1 }],
-      });
-      if (result?.success) {
-        toast.success('Payment successful! Appointment confirmed.');
-        setBookingStep(3); // Go to Success Screen
-        if (onSuccess) onSuccess();
+      // 2. Pay Transaction
+      if (fees > 0) {
+        const refId = appointmentData?._id?.toString?.() || appointmentData?._id || '';
+        const payResult = await api.payTransaction({
+          serviceType: 'appointment',
+          referenceId: refId,
+          amount: fees,
+          method: paymentMethod,
+          description: `Consultation with ${currentDoc.name}`,
+          provider: facility?.name || currentDoc.name,
+          lineItems: [{ name: 'Consultation Fee', price: fees, qty: 1 }],
+        });
+        
+        if (!payResult?.success) {
+          throw new Error(payResult?.message || 'Payment failed');
+        }
       }
+
+      toast.success(fees > 0 ? 'Payment successful! Appointment confirmed.' : 'Appointment confirmed successfully.');
+      setBookingDetails({ ...appointmentData, doctor: currentDoc.name, specialization: currentDoc.specialization, date: bookingDate, time: bookingTime, fees });
+      setBookingStep(3); // Go to Success Screen
+      if (onSuccess) onSuccess();
+
     } catch (e) {
       const msg = e.response?.data?.message || e.message || '';
       if (msg.includes('already be completed') || msg.includes('Duplicate')) {
         toast.success('Payment already completed!');
         setBookingStep(3);
         if (onSuccess) onSuccess();
-        return;
+      } else {
+        toast.error(msg || 'Booking failed');
       }
-      toast.error(msg || 'Payment failed');
     }
     setPaymentLoading(false);
     processingRef.current = false;
@@ -238,8 +247,8 @@ export default function BookingModal({
             </div>
             <DialogFooter>
               <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Cancel</Button>
-              <Button size="sm" disabled={!bookingDate || !bookingTime || bookingLoading} onClick={handleCreateAppointment}>
-                {bookingLoading ? <>Booking…</> : <>Next: Payment <ChevronRight className="w-3.5 h-3.5 ml-1" /></>}
+              <Button size="sm" disabled={!bookingDate || !bookingTime || bookingLoading} onClick={handleProceedToPayment}>
+                <>Next: Payment <ChevronRight className="w-3.5 h-3.5 ml-1" /></>
               </Button>
             </DialogFooter>
           </>
