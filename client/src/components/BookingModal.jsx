@@ -285,18 +285,13 @@ export default function BookingModal({
                 platformFee={0}
                 gst={0}
                 discount={0}
-                compact
-                method={paymentMethod}
-                onMethodChange={setPaymentMethod}
-                onPay={handlePayment}
-                loading={paymentLoading}
               />
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" className="flex-1" onClick={() => onOpenChange(false)}>Cancel</Button>
-                <Button size="sm" className="flex-1" disabled={paymentLoading} onClick={handlePayment}>
+              <DialogFooter className="gap-2 sm:gap-2">
+                <Button variant="outline" size="sm" className="w-full sm:w-auto flex-1" onClick={() => onOpenChange(false)}>Cancel</Button>
+                <Button size="sm" className="w-full sm:w-auto flex-1" disabled={paymentLoading} onClick={handlePayment}>
                   {paymentLoading ? <>Processing…</> : <>Pay ₹{currentDoc?.fees || currentDoc?.consultation_fees || 0}</>}
                 </Button>
-              </div>
+              </DialogFooter>
             </div>
           </>
         )}

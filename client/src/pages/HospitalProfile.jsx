@@ -1831,11 +1831,6 @@ export default function HospitalProfile() {
                       lineItems={cartItems.map(t => ({ name: t.name, price: t.price, qty: t.qty, rx: t.rx }))}
                       homeCollectionFee={testCollectionMode === 'home' ? 50 : 0}
                       discount={0}
-                      compact
-                      onPay={handleTestPayment}
-                      onMethodChange={setTestPaymentMethod}
-                      method={testPaymentMethod}
-                      loading={testPaymentLoading}
                     />
                   </div>
                 )}
@@ -1871,7 +1866,11 @@ export default function HospitalProfile() {
                 {testBookingStep === 2 && <Button className="w-full rounded-xl h-11 text-sm gap-1.5" onClick={() => setTestBookingStep(3)}>Continue <ChevronRight className="w-4 h-4" /></Button>}
                 {testBookingStep === 3 && <Button className="w-full rounded-xl h-11 text-sm gap-1.5" onClick={() => setTestBookingStep(4)} disabled={!testSelectedDate || !testSelectedSlot}>Continue <ChevronRight className="w-4 h-4" /></Button>}
                 {testBookingStep === 4 && <Button className="w-full rounded-xl h-11 text-sm gap-1.5" onClick={() => setTestBookingStep(5)}>Proceed to Pay <ChevronRight className="w-4 h-4" /></Button>}
-                {testBookingStep === 5 && <div />}
+                {testBookingStep === 5 && (
+                  <Button className="w-full rounded-xl h-11 text-sm gap-1.5 bg-primary" onClick={handleTestPayment} disabled={testPaymentLoading}>
+                    {testPaymentLoading ? 'Processing...' : `Pay ₹${cartTotal + (testCollectionMode === 'home' ? 50 : 0)}`} <ChevronRight className="w-4 h-4 ml-1" />
+                  </Button>
+                )}
                 {testBookingStep === 6 && <Button className="w-full rounded-xl h-11 text-sm gap-1.5 bg-gradient-to-r from-emerald-500 to-emerald-600" onClick={() => { setShowTestBooking(false); setTestCart({}); setTestBookingStep(1); setTestSelectedDate(''); setTestSelectedSlot(''); setTestPaymentResult(null); }}>Done <CheckCircle2 className="w-4 h-4" /></Button>}
               </div>
               <ReviewDialog open={showReviewDialog} 

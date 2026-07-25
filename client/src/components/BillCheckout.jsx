@@ -11,21 +11,9 @@ export default function BillCheckout({
   gst,
   homeCollectionFee,
   deliveryCharges,
-  discount,
-  discountCode,
-  compact,
-  onPay,
-  onMethodChange,
-  method,
-  loading,
+  discount = 0,
+  discountCode = '',
 }) {
-  const methods = [
-    { value: 'card', label: 'Card', icon: CreditCard, desc: 'Credit / Debit' },
-    { value: 'upi', label: 'UPI', icon: Smartphone, desc: 'GPay / PhonePe / Paytm' },
-    { value: 'netbanking', label: 'Net Banking', icon: Landmark, desc: 'All Banks' },
-    { value: 'cash', label: 'Cash', icon: Wallet, desc: 'Pay at counter' },
-  ];
-
   const TypeIcon = serviceType === 'appointment' ? Stethoscope : serviceType === 'test' ? Beaker : Pill;
   const serviceLabel = { appointment: 'Appointment', test: 'Lab Test', medicine: 'Medicine Order' };
 
@@ -148,46 +136,6 @@ export default function BillCheckout({
           <span className="text-xl font-bold text-primary">₹{amount?.toLocaleString('en-IN') || 0}</span>
         </div>
       </div>
-
-      {!compact && (<>
-        {/* ── Payment Method ── */}
-        <div>
-          <p className="text-sm font-semibold text-foreground mb-3">Select Payment Method</p>
-          <div className="grid grid-cols-2 gap-2.5">
-            {methods.map(m => {
-              const Icon = m.icon;
-              const active = method === m.value;
-              return (
-                <button key={m.value} onClick={() => onMethodChange(m.value)}
-                  className={`relative flex items-center gap-3 p-3.5 rounded-xl border text-left transition-all ${active ? 'border-primary bg-primary/5 shadow-sm' : 'border-border/60 bg-card hover:border-primary/40 hover:bg-muted/30'}`}>
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${active ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
-                    <Icon className="w-4.5 h-4.5" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-foreground">{m.label}</p>
-                    <p className="text-[10px] text-muted-foreground truncate">{m.desc}</p>
-                  </div>
-                  {active && <CheckCircle className="w-4 h-4 text-primary absolute top-2 right-2" />}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* ── Pay Button ── */}
-        <button onClick={onPay} disabled={loading || !method}
-          className="w-full py-3.5 rounded-xl font-semibold text-base bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-primary/25 flex items-center justify-center gap-2">
-          {loading ? (
-            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-          ) : (
-            <>
-              <IndianRupee className="w-4.5 h-4.5" />
-              Confirm & Pay ₹{amount?.toLocaleString('en-IN') || 0}
-            </>
-          )}
-        </button>
-        <p className="text-[10px] text-center text-muted-foreground">Secure payment • Invoice will be generated</p>
-      </>)}
     </motion.div>
   );
 }
