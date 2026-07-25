@@ -73,7 +73,7 @@ router.get('/', protect, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// POST /api/transactions/pay — unified payment + confirm
+// POST /api/transactions/pay — unified payment + confirm (idempotent)
 router.post('/pay', protect, async (req, res, next) => {
   try {
     const { serviceType, referenceId, amount, method, description, provider, lineItems } = req.body;
@@ -81,18 +81,25 @@ router.post('/pay', protect, async (req, res, next) => {
       return res.status(400).json({ message: 'serviceType, amount, and method are required' });
     }
 
+    // ── Idempotency: if payment already completed for this referenceId, return it as success ──
     if (referenceId) {
       const existingPayment = await Payment.findOne({ referenceId, status: 'completed' });
       if (existingPayment) {
-        return res.status(409).json({ message: 'Payment already completed for this service.' });
+        return res.status(200).json({
+          success: true,
+          transaction_id: existingPayment.transaction_id,
+          invoice_id: existingPayment.invoice_id,
+          payment: existingPayment,
+          alreadyPaid: true,
+        });
       }
     }
 
     const year = new Date().getFullYear();
     const prefixMap = { appointment: 'APT', test: 'TST', medicine: 'MED' };
     const invPrefix = prefixMap[serviceType] || serviceType.slice(0,3).toUpperCase();
-    const rndTxn = crypto.randomBytes(6).toString('hex').toUpperCase(); // 12 chars
-    const rndInv = crypto.randomBytes(8).toString('hex').toUpperCase(); // 16 chars
+    const rndTxn = crypto.randomBytes(6).toString('hex').toUpperCase();
+    const rndInv = crypto.randomBytes(8).toString('hex').toUpperCase();
     const transaction_id = `TXN-${year}-${rndTxn}`;
     const invoice_id = `INV-${invPrefix}-${year}-${rndInv}`;
 
@@ -111,6 +118,9 @@ router.post('/pay', protect, async (req, res, next) => {
       lineItems: lineItems || [],
     });
 
+    // ── Everything below is post-payment side-effects ──
+    // ALL wrapped in try/catch so nothing can break the success response
+
     // Auto-confirm the referenced booking
     if (referenceId) {
       try {
@@ -126,9 +136,9 @@ router.post('/pay', protect, async (req, res, next) => {
       }
     }
 
-    // Auto-create billing record (Paid)
+    // Auto-create billing record
     try {
-      const methodMap = { upi:'UPI', card:'Card', netbanking:'Online', cash:'Cash' };
+      const methodMap = { upi:'UPI', card:'Card', netbanking:'Online', cash:'Cash', wallet:'Wallet' };
       const sourceMap = { appointment:'appointment', test:'lab', medicine:'pharmacy' };
       const serviceLabel = description || `${serviceType} service`;
       const providerName = provider || '';
@@ -161,15 +171,25 @@ router.post('/pay', protect, async (req, res, next) => {
       console.error('Failed to create billing record:', billErr.message);
     }
 
-    await Notification.create({
-      userId: req.user._id.toString(),
-      title: 'Payment Successful',
-      message: `₹${amount} paid for ${description || serviceType}. Invoice: ${invoice_id}`,
-      type: 'payment',
-      date: new Date().toISOString().split('T')[0],
-    });
+    // Notification — wrapped in try/catch (was NOT wrapped before, causing phantom failures)
+    try {
+      await Notification.create({
+        userId: req.user._id.toString(),
+        title: 'Payment Successful',
+        message: `₹${amount} paid for ${description || serviceType}. Invoice: ${invoice_id}`,
+        type: 'payment',
+        date: new Date().toISOString().split('T')[0],
+      });
+    } catch (notifErr) {
+      console.error('Failed to create payment notification:', notifErr.message);
+    }
 
-    await auditLog('create_payment', req.user._id, { transaction_id, amount, serviceType, referenceId });
+    // Audit log — wrapped in try/catch
+    try {
+      await auditLog('create_payment', req.user._id, { transaction_id, amount, serviceType, referenceId });
+    } catch (auditErr) {
+      console.error('Failed to create audit log:', auditErr.message);
+    }
 
     res.status(201).json({
       success: true,
@@ -178,12 +198,28 @@ router.post('/pay', protect, async (req, res, next) => {
       payment,
     });
   } catch (err) {
+    // MongoDB unique index collision (race condition) — look up the existing payment and return it
+    if (err.code === 11000 && req.body.referenceId) {
+      try {
+        const existing = await Payment.findOne({ referenceId: req.body.referenceId, status: 'completed' });
+        if (existing) {
+          return res.status(200).json({
+            success: true,
+            transaction_id: existing.transaction_id,
+            invoice_id: existing.invoice_id,
+            payment: existing,
+            alreadyPaid: true,
+          });
+        }
+      } catch (_) { /* fall through to generic error */ }
+    }
     if (err.code === 11000) {
-      return res.status(409).json({ message: 'Duplicate transaction. Please try again.' });
+      return res.status(409).json({ message: 'Duplicate transaction detected. Please check your appointment history — your payment may already be completed.' });
     }
     next(err);
   }
 });
+
 
 // GET /api/transactions/:id/invoice — download invoice PDF
 router.get('/:id/invoice', protect, async (req, res, next) => {
