@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { BadgeCheck, CalendarDays, CheckCircle, CheckCircle2, ChevronRight, CreditCard, Landmark, Smartphone, Wallet, ArrowLeft } from 'lucide-react';
+import { BadgeCheck, CalendarDays, CheckCircle, CheckCircle2, ChevronRight, CreditCard, Landmark, Smartphone, Wallet, ArrowLeft, Users } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import BillCheckout from './BillCheckout';
@@ -17,7 +18,8 @@ export default function BookingModal({
   facility,
   onSuccess,
 }) {
-  const [bookingStep, setBookingStep] = useState(0);
+  const [bookingStep, setBookingStep] = useState(doctor ? 0 : -1);
+  const [selectedDoctor, setSelectedDoctor] = useState(doctor || null);
   const [bookingDate, setBookingDate] = useState('');
   const [bookingTime, setBookingTime] = useState('');
   const [bookingNotes, setBookingNotes] = useState('');
@@ -32,28 +34,32 @@ export default function BookingModal({
   // Reset state when opened
   useEffect(() => {
     if (open) {
-      setBookingStep(0);
+      const doc = doctor || null;
+      setSelectedDoctor(doc);
+      setBookingStep(doc ? 0 : -1);
       setBookingDate(new Date().toISOString().split('T')[0]);
       setBookingTime('');
       setBookingNotes('');
       setPaymentMethod('card');
       setBookingDetails(null);
     }
-  }, [open]);
+  }, [open, doctor]);
+
+  const currentDoc = selectedDoctor || doctor;
 
   const handleCreateAppointment = async () => {
-    if (!doctor) { toast.error('No doctor selected'); return; }
+    if (!currentDoc) { toast.error('No doctor selected'); return; }
     if (!user) { toast.error('Please login to book an appointment'); navigate('/login'); return; }
     
     setBookingLoading(true);
     try {
-      const fees = doctor.consultation_fees || doctor.fees || 0;
+      const fees = currentDoc.consultation_fees || currentDoc.fees || 0;
       const result = await api.createAppointment({
-        doctorId: doctor._id,
-        doctor: doctor.name,
-        doctorName: doctor.name,
-        department: doctor.specialization || 'General',
-        facilityId: facility?._id || doctor.clinicProfile?.clinic_id,
+        doctorId: currentDoc._id,
+        doctor: currentDoc.name,
+        doctorName: currentDoc.name,
+        department: currentDoc.specialization || 'General',
+        facilityId: facility?._id || currentDoc.clinicProfile?.clinic_id,
         patient: user.name || 'Patient',
         patientId: user._id,
         email: user.email,
@@ -63,7 +69,7 @@ export default function BookingModal({
         notes: bookingNotes,
         type: 'Consultation',
       });
-      setBookingDetails({ ...(result || {}), doctor: doctor.name, date: bookingDate, time: bookingTime, fees });
+      setBookingDetails({ ...(result || {}), doctor: currentDoc.name, date: bookingDate, time: bookingTime, fees });
       setBookingStep(1); // Go to Payment Method
     } catch (e) {
       toast.error(e.response?.data?.message || e.message || 'Failed to reserve appointment');
@@ -99,32 +105,82 @@ export default function BookingModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto w-[calc(100%-2rem)] sm:w-full rounded-2xl">
-        {bookingStep === 0 && (
+        {bookingStep === -1 && (
           <>
             <DialogHeader>
-              <DialogTitle>Book Appointment</DialogTitle>
+              <DialogTitle>Select Doctor</DialogTitle>
               <DialogDescription>
-                Quick booking for {facility?.name || 'Clinic'} - {doctor?.name}
+                Choose a doctor at {facility?.name || 'this facility'}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-2 space-y-3">
+              {(facility?.doctors && facility.doctors.length > 0
+                ? facility.doctors
+                : [{ _id: '60d5f484f1a2b3c4d5e6f789', name: 'Dr. Rohit Verma', specialization: 'Dermatology', experience: '7 years', fees: 900 }, { _id: '60d5f484f1a2b3c4d5e6f790', name: 'Dr. Anita Sharma', specialization: 'Orthopedics', experience: '10 years', fees: 1200 }]
+              ).map((doc, idx) => (
+                <motion.div
+                  key={doc._id || idx}
+                  whileHover={{ scale: 1.02 }}
+                  className="p-3 rounded-xl border border-border/50 bg-card hover:border-primary/40 cursor-pointer"
+                  onClick={() => { setSelectedDoctor(doc); setBookingStep(0); }}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shrink-0">
+                      <span className="text-primary-foreground font-bold text-xs">{doc.name?.split(' ').map(n=>n[0]).join('').slice(0,2) || 'DR'}</span>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-heading font-semibold text-sm text-foreground truncate">{doc.name}</h3>
+                      <p className="text-xs font-medium text-primary mt-0.5">{doc.specialization}</p>
+                      <div className="flex items-center gap-2 mt-1.5">
+                        <span className="text-xs text-muted-foreground">{doc.experience || `${doc.experienceYears || 0} yrs`}</span>
+                        <span className="text-xs text-muted-foreground">•</span>
+                        <span className="text-xs font-medium text-primary">₹{doc.fees || doc.consultation_fees || 0}</span>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-muted-foreground self-center" />
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Cancel</Button>
+            </DialogFooter>
+          </>
+        )}
+
+        {bookingStep === 0 && currentDoc && (
+          <>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                {!doctor && (
+                  <Button variant="ghost" size="icon" className="w-7 h-7 -ml-1" onClick={() => setBookingStep(-1)}>
+                    <ArrowLeft className="w-4 h-4" />
+                  </Button>
+                )}
+                Book Appointment
+              </DialogTitle>
+              <DialogDescription>
+                Quick booking for {facility?.name || 'Clinic'} - {currentDoc?.name}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-3 py-2">
               <div className="flex items-center gap-2.5">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shrink-0">
-                  <span className="text-primary-foreground font-bold text-xs">{doctor?.name?.split(' ')?.map(n=>n?.[0])?.join('')?.slice(0,2) || 'DR'}</span>
+                  <span className="text-primary-foreground font-bold text-xs">{currentDoc?.name?.split(' ')?.map(n=>n?.[0])?.join('')?.slice(0,2) || 'DR'}</span>
                 </div>
                 <div className="min-w-0">
-                  <h3 className="font-heading font-semibold text-foreground text-sm truncate">{doctor?.name}</h3>
-                  <p className="text-xs text-primary">{doctor?.specialization}</p>
+                  <h3 className="font-heading font-semibold text-foreground text-sm truncate">{currentDoc?.name}</h3>
+                  <p className="text-xs text-primary">{currentDoc?.specialization}</p>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div className="p-2 rounded-xl bg-primary/5 border border-primary/10 text-center">
                   <p className="text-[11px] text-muted-foreground mb-0.5">Consultation Fee</p>
-                  <p className="font-bold text-sm text-primary">₹{doctor?.fees || doctor?.consultation_fees || 0}</p>
+                  <p className="font-bold text-sm text-primary">₹{currentDoc?.fees || currentDoc?.consultation_fees || 0}</p>
                 </div>
                 <div className="p-2 rounded-xl bg-emerald-50 border border-emerald-200 dark:bg-emerald-500/10 text-center">
                   <p className="text-[11px] text-muted-foreground mb-0.5">Available Slot</p>
-                  <p className="font-semibold text-xs text-emerald-600">{doctor?.next_available_slot || 'Today'}</p>
+                  <p className="font-semibold text-xs text-emerald-600">{currentDoc?.next_available_slot || 'Today'}</p>
                 </div>
               </div>
               <div className="space-y-1.5">
@@ -135,7 +191,7 @@ export default function BookingModal({
                 <label className="text-xs font-medium text-foreground">Select Time Slot</label>
                 <select value={bookingTime} onChange={e => setBookingTime(e.target.value)} className="w-full h-9 px-3 rounded-xl border border-border bg-background text-sm">
                   <option value="">Choose time</option>
-                  {(doctor?.time_slots || ['09:00 AM', '10:00 AM', '11:00 AM', '02:00 PM', '03:00 PM', '04:00 PM']).map(t => (
+                  {(currentDoc?.time_slots || ['09:00 AM', '10:00 AM', '11:00 AM', '02:00 PM', '03:00 PM', '04:00 PM']).map(t => (
                     <option key={t}>{t}</option>
                   ))}
                 </select>
@@ -221,11 +277,11 @@ export default function BookingModal({
             </DialogHeader>
             <div className="py-3 space-y-3">
               <BillCheckout
-                amount={doctor?.fees || doctor?.consultation_fees || 0}
+                amount={currentDoc?.fees || currentDoc?.consultation_fees || 0}
                 serviceType="appointment"
-                provider={facility?.name || doctor?.name}
-                details={{ doctor: doctor?.name, specialization: doctor?.specialization, date: bookingDate, time: bookingTime, type: 'Consultation' }}
-                lineItems={[{ name: 'Consultation Fee', price: doctor?.fees || doctor?.consultation_fees || 0, qty: 1 }]}
+                provider={facility?.name || currentDoc?.name}
+                details={{ doctor: currentDoc?.name, specialization: currentDoc?.specialization, date: bookingDate, time: bookingTime, type: 'Consultation' }}
+                lineItems={[{ name: 'Consultation Fee', price: currentDoc?.fees || currentDoc?.consultation_fees || 0, qty: 1 }]}
                 platformFee={0}
                 gst={0}
                 discount={0}
@@ -238,7 +294,7 @@ export default function BookingModal({
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" className="flex-1" onClick={() => onOpenChange(false)}>Cancel</Button>
                 <Button size="sm" className="flex-1" disabled={paymentLoading} onClick={handlePayment}>
-                  {paymentLoading ? <>Processing…</> : <>Pay ₹{doctor?.fees || doctor?.consultation_fees || 0}</>}
+                  {paymentLoading ? <>Processing…</> : <>Pay ₹{currentDoc?.fees || currentDoc?.consultation_fees || 0}</>}
                 </Button>
               </div>
             </div>
@@ -257,7 +313,7 @@ export default function BookingModal({
             </motion.div>
             <h3 className="text-lg font-bold text-primary mb-2">Booking Confirmed!</h3>
             <p className="text-sm text-muted-foreground mb-4">
-              Appointment booked for {doctor?.name}
+              Appointment booked for {currentDoc?.name}
             </p>
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 border border-primary/20">
               <CalendarDays className="w-4 h-4 text-primary" />
@@ -268,7 +324,7 @@ export default function BookingModal({
             <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20">
               <CheckCircle className="w-4 h-4 text-emerald-600" />
               <span className="text-xs font-medium text-emerald-600">
-                Payment of ₹{doctor?.fees || doctor?.consultation_fees || 0} via {paymentMethod === 'upi' ? 'UPI' : paymentMethod === 'netbanking' ? 'Net Banking' : paymentMethod === 'wallet' ? 'Wallet' : 'Card'} successful
+                Payment of ₹{currentDoc?.fees || currentDoc?.consultation_fees || 0} via {paymentMethod === 'upi' ? 'UPI' : paymentMethod === 'netbanking' ? 'Net Banking' : paymentMethod === 'wallet' ? 'Wallet' : 'Card'} successful
               </span>
             </div>
             <div className="mt-6 flex justify-center gap-2">

@@ -1,4 +1,5 @@
 import express from 'express';
+import crypto from 'crypto';
 import Billing from '../models/Billing.js';
 import Notification from '../models/Notification.js';
 import User from '../models/User.js';
@@ -124,7 +125,15 @@ router.post('/', protect, validate(createBillSchema), async (req, res) => {
   try {
     const { doctorId, doctor, service, amount, date, patient, patientId, services, source } = req.body;
     
-    const invoiceId = `INV-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+    const prefixMap = {
+      appointment: 'APT', lab: 'TST', pharmacy: 'MED',
+      physio: 'PHY', diet: 'DIE', ipd: 'IPD', ot: 'OT',
+      radiology: 'RAD', manual: 'GEN',
+    };
+    const year = new Date().getFullYear();
+    const invPrefix = prefixMap[source] || 'GEN';
+    const rndBase = `${Date.now()}${Math.floor(Math.random() * 10**9)}`;
+    const invoiceId = `INV-${invPrefix}-${year}-${rndBase.slice(-16)}`;
     
     let finalPatientId;
     let finalPatient = patient || req.user.name;
@@ -210,7 +219,12 @@ router.post('/', protect, validate(createBillSchema), async (req, res) => {
     }
     
     res.status(201).json(bill);
-  } catch (err) { res.status(400).json({ message: err.message }); }
+  } catch (err) {
+    if (err.code === 11000) {
+      return res.status(409).json({ message: 'Invoice already exists. Please try again.' });
+    }
+    res.status(400).json({ message: err.message });
+  }
 });
 
 router.get('/:id/invoice', protect, async (req, res) => {

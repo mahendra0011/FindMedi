@@ -416,14 +416,14 @@ export default function ClinicDetail() {
               </div>
 
               <div className="flex gap-2 mt-auto pt-3">
-                <Button className="flex-1 gap-2 rounded-xl shadow-lg shadow-primary/20 h-11 hover:shadow-xl hover:shadow-primary/30 transition-all" onClick={() => setShowBooking(true)}>
+                <Button className="flex-1 gap-2 rounded-xl shadow-lg shadow-primary/20 h-11 hover:shadow-xl hover:shadow-primary/30 transition-all" onClick={() => { setSelectedDoctor(null); setShowBooking(true); }}>
                   <CalendarDays className="w-4 h-4" /> Book Appointment
                 </Button>
                 <BookingModal
                   open={showBooking}
                   onOpenChange={setShowBooking}
-                  doctor={doctors[0]}
-                  facility={clinic}
+                  doctor={selectedDoctor}
+                  facility={{ ...clinic, doctors }}
                 />
                 <Button variant="outline" className="rounded-xl h-11 px-3 hover:bg-primary/5 hover:border-primary/30 transition-all" onClick={() => { const addr = encodeURIComponent('Clinic'); window.open(`https://www.google.com/maps/search/${addr}`, '_blank'); }}>
                   <Navigation className="w-4 h-4" />
@@ -1015,7 +1015,7 @@ export default function ClinicDetail() {
                     Quick Actions
                   </h3>
                   <div className="space-y-3">
-                     <Button className="w-full gap-2.5 rounded-xl h-11 font-semibold shadow-md" onClick={() => setShowBooking(true)}>
+                     <Button className="w-full gap-2.5 rounded-xl h-11 font-semibold shadow-md" onClick={() => { setSelectedDoctor(doc); setShowBooking(true); }}>
                        <CalendarDays className="w-4 h-4" /> Book Appointment
                      </Button>
                      <Button variant="outline" className="w-full gap-2.5 rounded-xl h-11" onClick={toggleFavorite}>
