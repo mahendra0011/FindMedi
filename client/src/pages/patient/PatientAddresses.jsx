@@ -59,7 +59,7 @@ export default function PatientAddresses() {
         toast.success('Address updated');
       } else {
         const res = await patientApi.createAddress(form);
-        setAddresses(ads => [...ads, { ...form, _id: res?._id || `ad${Date.now()}` }]);
+        setAddresses(ads => [...ads, { ...form, _id: res?._id || `ad${crypto.randomUUID()}` }]);
         toast.success('Address added');
       }
       setShowModal(false);

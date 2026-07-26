@@ -495,4 +495,93 @@ router.get('/:id/bill', protect, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// GET /api/transactions/verify/:id — universal transaction lookup by any valid ID
+router.get('/verify/:id', protect, async (req, res, next) => {
+  try {
+    const idParam = req.params.id;
+    let payment = null;
+    let reference = null;
+
+    // Strategy 1: Direct Payment lookup by _id or transaction_id or invoice_id
+    payment = mongoose.Types.ObjectId.isValid(idParam)
+      ? await Payment.findById(idParam)
+      : await Payment.findOne({
+          $or: [
+            { transaction_id: idParam },
+            { invoice_id: idParam },
+          ],
+        });
+
+    // Strategy 2: Billing lookup by _id or invoiceId → find Payment via transactionId
+    if (!payment) {
+      const billing = mongoose.Types.ObjectId.isValid(idParam)
+        ? await Billing.findById(idParam)
+        : await Billing.findOne({ invoiceId: idParam });
+
+      if (billing?.transactionId) {
+        payment = await Payment.findOne({ transaction_id: billing.transactionId });
+      } else if (billing?.invoiceId) {
+        payment = await Payment.findOne({ invoice_id: billing.invoiceId });
+      }
+    }
+
+    // Strategy 3: Reference lookup (Appointment, LabBooking, PharmacyOrder) via referenceId
+    if (!payment && mongoose.Types.ObjectId.isValid(idParam)) {
+      payment = await Payment.findOne({
+        referenceId: idParam,
+        status: 'completed',
+      });
+    }
+
+    if (!payment) {
+      return res.status(404).json({ message: 'Transaction not found' });
+    }
+
+    // Populate reference data based on serviceType
+    if (payment.referenceId && payment.serviceType === 'appointment') {
+      reference = await Appointment.findById(payment.referenceId)
+        .populate('doctorId', 'name specialization registrationNo')
+        .populate('hospitalId', 'name tagline address city state pincode phone licenseNo')
+        .populate('patientId', 'name phone address uhid')
+        .lean();
+    } else if (payment.referenceId && payment.serviceType === 'test') {
+      reference = await LabBooking.findById(payment.referenceId)
+        .populate('testIds')
+        .populate('hospitalId', 'name address city state pincode phone nablNo')
+        .populate('patientId', 'name phone address uhid')
+        .lean();
+    } else if (payment.referenceId && payment.serviceType === 'medicine') {
+      reference = await PharmacyOrder.findById(payment.referenceId)
+        .populate('items.medicineId', 'name form rxRequired rx')
+        .populate('hospitalId', 'name address city state pincode phone')
+        .populate('patientId', 'name phone address uhid')
+        .lean();
+    }
+
+    // Populate patient and hospital details
+    let patient = null;
+    if (payment.patient_id) {
+      patient = await User.findById(payment.patient_id)
+        .select('name phone email uhid address')
+        .lean();
+    }
+
+    let hospital = null;
+    if (payment.hospitalId) {
+      hospital = await Hospital.findById(payment.hospitalId)
+        .select('name tagline address city state pincode phone licenseNo')
+        .lean();
+    }
+
+    res.json({
+      payment: payment.toObject(),
+      reference,
+      patient,
+      hospital,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 export default router;

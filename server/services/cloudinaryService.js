@@ -1,5 +1,6 @@
 import { v2 as cloudinary } from 'cloudinary';
 import path from 'path';
+import { v4 as uuidv4 } from 'uuid';
 
 let configured = false;
 
@@ -59,7 +60,7 @@ export const uploadFileToCloudinary = async (
   const safeName = path.basename(filename).replace(/\s+/g, '_') || 'upload';
   const ext = path.extname(safeName);
   const base = ext ? safeName.slice(0, -ext.length) : safeName;
-  const publicId = `${Date.now()}-${base}${ext}`;
+  const publicId = `${uuidv4()}-${base}${ext}`;
 
   const resourceType = mimeType.startsWith('image/') ? 'image' : 'raw';
 

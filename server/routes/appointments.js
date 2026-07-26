@@ -81,6 +81,25 @@ router.get('/', protect, async (req, res) => {
         { path: 'doctorId', select: 'name specialization' },
       ],
     });
+
+    try {
+      const Payment = (await import('../models/Payment.js')).default;
+      for (const appt of result.data || []) {
+        const payment = await Payment.findOne({ referenceId: appt._id.toString(), status: 'completed' }).lean();
+        if (payment) {
+          if (appt._doc) {
+            appt._doc.transactionId = payment.transaction_id;
+            appt._doc.invoiceId = payment.invoice_id;
+          } else {
+            appt.transactionId = payment.transaction_id;
+            appt.invoiceId = payment.invoice_id;
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Failed to attach payment info to paginated appointments:', e);
+    }
+
     res.json(result);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
@@ -126,7 +145,22 @@ router.get('/my-appointments', protect, async (req, res) => {
     const appointments = await Appointment.find(filter)
       .populate('patientId', 'name email phone')
       .populate('doctorId', 'name specialization')
-      .sort({ date: -1, createdAt: 1 });
+      .sort({ date: -1, createdAt: 1 })
+      .lean();
+
+    try {
+      const Payment = (await import('../models/Payment.js')).default;
+      for (const appt of appointments) {
+        const payment = await Payment.findOne({ referenceId: appt._id.toString(), status: 'completed' }).lean();
+        if (payment) {
+          appt.transactionId = payment.transaction_id;
+          appt.invoiceId = payment.invoice_id;
+        }
+      }
+    } catch (e) {
+      console.error('Failed to attach payment info to appointments:', e);
+    }
+    
     res.json(appointments);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });

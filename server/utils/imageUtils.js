@@ -2,6 +2,7 @@ import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import { v4 as uuidv4 } from 'uuid';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -44,7 +45,7 @@ export const processAndSaveImage = async (file, options = {}) => {
   } = options;
 
   const uploadDir = getUploadDir(outputDir);
-  const filename = `${Date.now()}-${Math.random().toString(36).substring(7)}.${format}`;
+  const filename = `${uuidv4()}.${format}`;
   const filepath = path.join(uploadDir, filename);
 
   let pipeline = sharp(file.buffer)
@@ -75,7 +76,7 @@ export const compressImage = async (file, options = {}) => {
   const { quality = 70, format = 'jpeg' } = options;
   
   const uploadDir = getUploadDir('compressed');
-  const filename = `compressed-${Date.now()}.${format}`;
+  const filename = `compressed-${uuidv4()}.${format}`;
   const filepath = path.join(uploadDir, filename);
 
   let pipeline = sharp(file.buffer);
@@ -99,7 +100,7 @@ export const compressImage = async (file, options = {}) => {
 
 export const generateThumbnail = async (file, size = 150) => {
   const uploadDir = getUploadDir('thumbnails');
-  const filename = `thumb-${Date.now()}.jpg`;
+  const filename = `thumb-${uuidv4()}.jpg`;
   const filepath = path.join(uploadDir, filename);
 
   await sharp(file.buffer)
@@ -127,7 +128,7 @@ export const getImageMetadata = async (file) => {
 
 export const convertToJPEG = async (file) => {
   const uploadDir = getUploadDir('converted');
-  const filename = `converted-${Date.now()}.jpeg`;
+  const filename = `converted-${uuidv4()}.jpeg`;
   const filepath = path.join(uploadDir, filename);
 
   await sharp(file.buffer)
@@ -163,7 +164,7 @@ export const processMedicalFile = async (file, type = 'image') => {
   } else if (type === 'document') {
     const uploadDir = getUploadDir('documents');
     const ext = path.extname(file.originalname);
-    const filename = `${Date.now()}-${Math.random().toString(36).substring(7)}${ext}`;
+    const filename = `${uuidv4()}${ext}`;
     const filepath = path.join(uploadDir, filename);
     
     fs.writeFileSync(filepath, file.buffer);

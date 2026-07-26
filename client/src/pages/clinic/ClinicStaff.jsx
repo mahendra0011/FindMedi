@@ -44,7 +44,7 @@ export default function ClinicStaff() {
         toast.success('Staff updated');
       } else {
         const res = await api.createClinicStaff({ name, email, phone, role });
-        const newMember = res?.staff || res || { _id: `st_${Date.now()}`, name, email, phone, role, status: 'active' };
+        const newMember = res?.staff || res || { _id: `st_${crypto.randomUUID()}`, name, email, phone, role, status: 'active' };
         setStaff([newMember, ...staff]);
         toast.success('Staff added');
       }

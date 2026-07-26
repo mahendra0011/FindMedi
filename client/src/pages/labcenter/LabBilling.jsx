@@ -27,7 +27,7 @@ export default function LabBilling() {
         const bookings = res.bookings || [];
         setBills(bookings.map((b, i) => ({
           _id: b._id || `bill_${i}`,
-          invoiceId: b.invoiceId || `INV-TST-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}${String(new Date().getHours()).padStart(2, '0')}${String(new Date().getMinutes()).padStart(2, '0')}${String(Math.floor(Math.random() * 10**16)).padStart(16, '0').slice(-16)}`,
+          invoiceId: b.invoiceId || `INV-TST-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}${String(new Date().getHours()).padStart(2, '0')}${String(new Date().getMinutes()).padStart(2, '0')}${crypto.randomUUID()}`,
           patient: b.patient || b.patientName || 'Unknown',
           tests: b.tests || [],
           amount: b.amount || 0,
@@ -66,8 +66,8 @@ export default function LabBilling() {
         status: 'Pending',
       });
       setBills(prev => [{
-        _id: newBooking._id || `bill_${Date.now()}`,
-        invoiceId: newBooking.invoiceId || `INV-TST-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}${String(new Date().getHours()).padStart(2, '0')}${String(new Date().getMinutes()).padStart(2, '0')}${String(Math.floor(Math.random() * 10**16)).padStart(16, '0').slice(-16)}`,
+        _id: newBooking._id || `bill_${crypto.randomUUID()}`,
+        invoiceId: newBooking.invoiceId || `INV-TST-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}${String(new Date().getHours()).padStart(2, '0')}${String(new Date().getMinutes()).padStart(2, '0')}${crypto.randomUUID()}`,
         patient: patientName,
         tests: selectedTests,
         amount: subTotal,

@@ -212,7 +212,7 @@ export default function OrderTracking() {
           <div className="flex items-center gap-3 mt-2 flex-wrap">
             <Badge className="text-sm font-mono bg-primary/10 text-primary border-primary/20">
               <FileText className="w-3.5 h-3.5 mr-1.5" />
-              {orderId || `ORD${Date.now().toString(36).toUpperCase()}`}
+              {orderId || `ORD${crypto.randomUUID()}`}
             </Badge>
             <Badge className={cn(
               'text-xs',

@@ -104,7 +104,7 @@ export default function DoctorAppointments() {
     if (type === 'Prescription') {
       setPrescriptionData({ ...initialPrescriptionData, patientName: apt.patient, doctorName: user?.name, specialization: user?.specialization || '' });
     } else if (type === 'Lab Report') {
-      setLabReportData({ ...initialLabReportData, patientName: apt.patient, doctorName: user?.name, specialization: user?.specialization || '', testDate: getISTDateString(), reportDate: getISTDateString(), reportId: `LAB-${Date.now()}` });
+      setLabReportData({ ...initialLabReportData, patientName: apt.patient, doctorName: user?.name, specialization: user?.specialization || '', testDate: getISTDateString(), reportDate: getISTDateString(), reportId: `LAB-${crypto.randomUUID()}` });
     } else {
       setDischargeData({ ...initialDischargeData, patientName: apt.patient, doctorName: user?.name, specialization: user?.specialization || '', admissionDate: apt.date || getISTDateString(), dischargeDate: getISTDateString() });
     }

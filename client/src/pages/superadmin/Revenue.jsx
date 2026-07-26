@@ -396,7 +396,7 @@ function PayoutsTab() {
   const handleMarkPaid = async (id) => {
     if (!confirm('Mark this payout as paid?')) return;
     try {
-      await api.markPayoutPaid(id, { transactionRef: `TXN-${Date.now()}` });
+      await api.markPayoutPaid(id, { transactionRef: `TXN-${crypto.randomUUID()}` });
       toast.success('Payout marked as paid');
       fetchPayouts(page);
     } catch { toast.error('Failed'); }

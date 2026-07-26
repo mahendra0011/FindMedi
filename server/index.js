@@ -349,8 +349,17 @@ if (process.env.NODE_ENV !== 'test') {
       process.exit(1);
     });
 
-  mongoose.connection.on('connected', () => {
+  mongoose.connection.on('connected', async () => {
     logger.info('✅ Mongoose connected to MongoDB');
+    try {
+      const Appointment = (await import('./models/Appointment.js')).default;
+      const Payment = (await import('./models/Payment.js')).default;
+      await Appointment.syncIndexes();
+      await Payment.syncIndexes();
+      logger.info('✅ Database indexes synced');
+    } catch (e) {
+      logger.error('⚠️ Failed to sync indexes: ' + e.message);
+    }
   });
 
   mongoose.connection.on('error', (err) => {

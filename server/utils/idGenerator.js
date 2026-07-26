@@ -1,3 +1,4 @@
+import { v4 as uuidv4 } from 'uuid';
 import { getISTDateTimeParts } from './dateUtils.js';
 
 function getDateParts() {
@@ -5,11 +6,11 @@ function getDateParts() {
 }
 
 export function generate16DigitId() {
-  return String(Math.floor(Math.random() * 10 ** 16)).padStart(16, '0');
+  return uuidv4();
 }
 
 export function generate12DigitId() {
-  return String(Math.floor(Math.random() * 10 ** 12)).padStart(12, '0');
+  return uuidv4();
 }
 
 const invoicePrefixMap = {

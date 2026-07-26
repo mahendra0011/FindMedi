@@ -483,7 +483,7 @@ export function MapRoute({
 }) {
   const { map, isLoaded } = useMap();
   const routeId = React.useMemo(
-    () => id || `map-route-${Math.random().toString(36).slice(2)}`,
+    () => id || `map-route-${crypto.randomUUID()}`,
     [id]
   );
   const sourceId = `${routeId}-source`;

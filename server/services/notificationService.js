@@ -1,4 +1,5 @@
 import { renderEmailTemplate, renderPlainText } from './emailTemplates.js';
+import { v4 as uuidv4 } from 'uuid';
 
 const BREVO_API_KEY = process.env.BREVO_API_KEY;
 const BREVO_SENDER_EMAIL = process.env.BREVO_SENDER_EMAIL;
@@ -184,7 +185,7 @@ export const sendLabReportEmail = async (patient, report, pdfBuffer) => {
     to: patient.email,
     subject,
     ...email,
-    attachments: [attachmentFromPdf(`lab-report-${reportId || Date.now()}.pdf`, pdfBuffer)],
+    attachments: [attachmentFromPdf(`lab-report-${reportId || uuidv4()}.pdf`, pdfBuffer)],
   });
 };
 
@@ -214,7 +215,7 @@ export const sendDischargeSummaryEmail = async (patient, summary, pdfBuffer) => 
     to: patient.email,
     subject,
     ...email,
-    attachments: [attachmentFromPdf(`discharge-summary-${admissionId || Date.now()}.pdf`, pdfBuffer)],
+    attachments: [attachmentFromPdf(`discharge-summary-${admissionId || uuidv4()}.pdf`, pdfBuffer)],
   });
 };
 
