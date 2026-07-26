@@ -181,21 +181,6 @@ router.post('/pay', protect, async (req, res, next) => {
           await auditLog('create_appointment', req.user._id, { recordId: createdAppointment._id, ip: req.ip, userAgent: req.get('user-agent') });
         } catch (_) {}
 
-        if (doctorId) {
-          try {
-            const notifModule = await import('../models/Notification.js');
-            const NotificationModel = notifModule.default;
-            const doctorDoc = await Doctor.findById(doctorId).select('user_id').lean();
-            const notifUserId = doctorDoc?.user_id ? doctorDoc.user_id.toString() : doctorId.toString();
-            await NotificationModel.create({
-              userId: notifUserId,
-              title: 'New Appointment',
-              message: `New ${type || 'Consultation'} appointment from ${patientName} for ${date} at ${time}`,
-              type: 'appointment',
-              date: getISTDateString(),
-            });
-          } catch (_) {}
-        }
       } catch (apptErr) {
         if (createdAppointment) {
           try { await Appointment.findByIdAndDelete(createdAppointment._id); } catch (_) {}
@@ -289,6 +274,23 @@ router.post('/pay', protect, async (req, res, next) => {
         paymentMethod: methodMap[method] || 'Online',
         transactionId: transaction_id,
       }]);
+
+      // ── Payment confirmed — ab hi doctor ko notify karo ──
+      if (serviceType === 'appointment' && createdAppointment?.doctorId) {
+        try {
+          const notifModule = await import('../models/Notification.js');
+          const NotificationModel = notifModule.default;
+          const doctorDoc = await Doctor.findById(createdAppointment.doctorId).select('user_id').lean();
+          const notifUserId = doctorDoc?.user_id ? doctorDoc.user_id.toString() : createdAppointment.doctorId.toString();
+          await NotificationModel.create({
+            userId: notifUserId,
+            title: 'New Appointment',
+            message: `New ${createdAppointment.type || 'Consultation'} appointment from ${createdAppointment.patient} for ${createdAppointment.date} at ${createdAppointment.time}`,
+            type: 'appointment',
+            date: getISTDateString(),
+          });
+        } catch (_) {}
+      }
 
     } catch (txErr) {
       // If appointment was newly created but payment failed, clean up
