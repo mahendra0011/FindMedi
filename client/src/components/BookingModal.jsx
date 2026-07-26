@@ -91,6 +91,8 @@ export default function BookingModal({
     processingRef.current = true;
     setPaymentLoading(true);
 
+    let apptId = null;
+
     try {
       const fees = Number(currentDoc.consultation_fees) || Number(currentDoc.fees);
       if (!fees || fees <= 0) {
@@ -117,7 +119,7 @@ export default function BookingModal({
 
       // Extract appointment ID — try all possible response shapes
       const appointmentData = apptResult?.appointment || apptResult?.data?.appointment || apptResult;
-      const apptId = (
+      apptId = (
         appointmentData?._id?.toString?.() ||
         appointmentData?._id ||
         apptResult?.appointment?._id?.toString?.() ||
@@ -160,6 +162,9 @@ export default function BookingModal({
         if (onSuccess) onSuccess();
       } else {
         toast.error(msg || 'Booking failed');
+        if (apptId) {
+          try { await api.deleteAppointment(apptId); } catch (_) { /* best-effort cleanup */ }
+        }
       }
     }
     setPaymentLoading(false);

@@ -226,7 +226,10 @@ router.post('/pay', protect, async (req, res, next) => {
 // GET /api/transactions/:id/invoice — download invoice PDF
 router.get('/:id/invoice', protect, async (req, res, next) => {
   try {
-    const payment = await Payment.findById(req.params.id);
+    const idParam = req.params.id;
+    const payment = mongoose.Types.ObjectId.isValid(idParam)
+      ? await Payment.findById(idParam)
+      : await Payment.findOne({ transaction_id: idParam });
     if (!payment) return res.status(404).json({ message: 'Transaction not found' });
     if (payment.patient_id !== req.user._id.toString() && req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Not authorized' });
@@ -257,7 +260,10 @@ router.get('/:id/invoice', protect, async (req, res, next) => {
 // GET /api/transactions/:id/bill — download bill PDF (type-specific Tax Invoice format)
 router.get('/:id/bill', protect, async (req, res, next) => {
   try {
-    const payment = await Payment.findById(req.params.id);
+    const idParam = req.params.id;
+    const payment = mongoose.Types.ObjectId.isValid(idParam)
+      ? await Payment.findById(idParam)
+      : await Payment.findOne({ transaction_id: idParam });
     if (!payment) return res.status(404).json({ message: 'Transaction not found' });
     if (payment.patient_id !== req.user._id.toString() && req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Not authorized' });
