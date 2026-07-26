@@ -9,6 +9,7 @@ import { protect, adminOnly } from '../middleware/auth.js';
 import { validate, createEmergencySchema } from '../utils/validate.js';
 import logger from '../config/logger.js';
 import { generateAdmissionId } from '../utils/idGenerator.js';
+import { getISTDateString } from '../utils/dateUtils.js';
 
 const router = express.Router();
 
@@ -21,7 +22,7 @@ const createNotification = async (userId, title, message, type = 'system') => {
       type, 
       read: false, 
       userId: userId.toString(), 
-      date: new Date().toISOString().split('T')[0] 
+      date: getISTDateString() 
     });
 
   } catch (err) {

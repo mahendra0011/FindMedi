@@ -5,6 +5,7 @@ import Record from '../models/Record.js';
 import Notification from '../models/Notification.js';
 import { protect } from '../middleware/auth.js';
 import { uploadFileToCloudinary } from '../services/cloudinaryService.js';
+import { getISTDateString } from '../utils/dateUtils.js';
 
 const router = express.Router();
 
@@ -80,7 +81,7 @@ router.post('/', protect, upload.single('file'), async (req, res, next) => {
       patient: req.user.name,
       patientId: req.user._id,
       doctor: 'Self Upload',
-      date: new Date().toISOString().split('T')[0],
+      date: getISTDateString(),
       diagnosis: `Uploaded ${req.file.originalname}`,
       type: recordType,
       notes: `File: ${req.file.originalname}`,
@@ -96,7 +97,7 @@ router.post('/', protect, upload.single('file'), async (req, res, next) => {
           mimeType: req.file.mimetype,
           storedIn: 'cloudinary',
         },
-        date: new Date().toISOString().split('T')[0],
+        date: getISTDateString(),
       },
     });
 
@@ -106,7 +107,7 @@ router.post('/', protect, upload.single('file'), async (req, res, next) => {
       type: 'records',
       read: false,
       userId: req.user._id,
-      date: new Date().toISOString().split('T')[0],
+      date: getISTDateString(),
     });
 
     res.json({

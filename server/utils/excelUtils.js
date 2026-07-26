@@ -1,6 +1,8 @@
 import ExcelJS from 'exceljs';
 import { Parser } from 'json2csv';
 
+import { getISTDateString } from './dateUtils.js';
+
 export const parseExcelFile = async (buffer) => {
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(buffer);
@@ -150,7 +152,7 @@ export const validateBillingData = (records) => {
         amount: parseFloat(record.amount || record.Amount),
         description: record.description || record.Description,
         status: record.status || record.Status || 'Pending',
-        date: record.date || record.Date || new Date().toISOString().split('T')[0],
+        date: record.date || record.Date || getISTDateString(),
         dueDate: record.dueDate || record.DueDate || '',
       });
     }

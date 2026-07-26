@@ -8,12 +8,13 @@ import { validate, createRecordSchema } from '../utils/validate.js';
 import { generatePrescriptionPDF } from '../services/pdfService.js';
 import { auditLog } from '../middleware/audit.js';
 import { paginatedResults } from '../utils/pagination.js';
+import { getISTDateString } from '../utils/dateUtils.js';
 
 const router = express.Router();
 
 const createNotification = async (userId, title, message, type = 'records') => {
   if (!userId) return;
-  await Notification.create({ title, message, type, read: false, userId: userId.toString(), date: new Date().toISOString().split('T')[0] });
+  await Notification.create({ title, message, type, read: false, userId: userId.toString(), date: getISTDateString() });
 };
 
 const findPatientByName = async (name) => {
@@ -118,9 +119,9 @@ const record = await Record.create({
        doctorId: doctorId,
        appointmentId: appointmentId || null,
        hospitalId: req.body.hospitalId || req.user.hospitalId || undefined,
-       date: new Date().toISOString().split('T')[0],
-       diagnosis: diagnosis || '',
-       prescription: prescription || '',
+date: getISTDateString(),
+        diagnosis: diagnosis || '',
+        prescription: prescription || '',
        type: type || 'Diagnosis',
        notes: notes || '',
        data: data || {},

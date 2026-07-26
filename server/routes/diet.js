@@ -8,6 +8,7 @@ import { protect, adminOnly } from '../middleware/auth.js';
 import { validate, createDietOrderSchema } from '../utils/validate.js';
 import { auditLog } from '../middleware/audit.js';
 import { generateOrderId, generateInvoiceId } from '../utils/idGenerator.js';
+import { getISTDateString } from '../utils/dateUtils.js';
 
 const dietDeliverMealSchema = z.object({ mealType: z.string().optional(), items: z.any().optional() });
 const dietConfirmMealSchema = z.object({ mealIndex: z.number().int().nonnegative(), feedback: z.string().optional(), feedbackNote: z.string().optional() });
@@ -186,7 +187,7 @@ router.post('/orders/:id/create-billing', protect, adminOnly, validate(dietBilli
       source: 'diet',
       appointmentId: order.admissionId,
       status: 'Pending',
-      date: new Date().toISOString().split('T')[0],
+      date: getISTDateString(),
       dietOrderId: order._id,
     });
     await auditLog('create_diet_billing', req.user._id, { recordId: billing._id, ip: req.ip, userAgent: req.get('user-agent') });
