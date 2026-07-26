@@ -25,7 +25,6 @@ export default function BookingModal({
   const [bookingDate, setBookingDate] = useState('');
   const [bookingTime, setBookingTime] = useState('');
   const [bookingNotes, setBookingNotes] = useState('');
-  const [appointmentType, setAppointmentType] = useState('Consultation');
   const [bookingLoading, setBookingLoading] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('card');
   const [paymentLoading, setPaymentLoading] = useState(false);
@@ -44,7 +43,6 @@ export default function BookingModal({
       setBookingDate(new Date().toISOString().split('T')[0]);
       setBookingTime('');
       setBookingNotes('');
-      setAppointmentType('Consultation');
       setPaymentMethod('card');
       setBookingDetails(null);
       
@@ -113,7 +111,7 @@ export default function BookingModal({
           date: bookingDate,
           time: bookingTime,
           notes: bookingNotes,
-          type: appointmentType,
+          type: 'Consultation',
         },
         amount: fees,
         method: paymentMethod,
@@ -262,15 +260,6 @@ export default function BookingModal({
                 </select>
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-foreground">Appointment Type</label>
-                <select value={appointmentType} onChange={e => setAppointmentType(e.target.value)} className="w-full h-9 px-3 rounded-xl border border-border bg-background text-sm">
-                  <option value="Consultation">Consultation</option>
-                  <option value="Follow-up">Follow-up</option>
-                  <option value="Check-up">Check-up</option>
-                  <option value="Emergency">Emergency</option>
-                </select>
-              </div>
-              <div className="space-y-1.5">
                 <label className="text-xs font-medium text-foreground">Notes (optional)</label>
                 <textarea value={bookingNotes} onChange={e => setBookingNotes(e.target.value)} placeholder="Any specific concerns…" className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm resize-none" rows={2} />
               </div>
@@ -354,7 +343,7 @@ export default function BookingModal({
                 amount={Number(currentDoc?.consultation_fees) || Number(currentDoc?.fees) || 0}
                 serviceType="appointment"
                 provider={facility?.name || currentDoc?.name}
-                details={{ doctor: currentDoc?.name, specialization: currentDoc?.specialization, date: bookingDate, time: bookingTime, type: appointmentType }}
+                details={{ doctor: currentDoc?.name, specialization: currentDoc?.specialization, date: bookingDate, time: bookingTime, type: 'Consultation' }}
                 lineItems={[{ name: 'Consultation Fee', price: Number(currentDoc?.consultation_fees) || Number(currentDoc?.fees) || 0, qty: 1 }]}
                 platformFee={0}
                 gst={0}
