@@ -23,7 +23,7 @@ const BOOKING_STATUS = {
   Processing: { label: 'Processing', color: 'bg-amber-500/10 text-amber-600 border-amber-500/30', icon: Loader2 },
 };
 
-const STATUS_FILTERS = ['All', 'Scheduled', 'Confirmed', 'Completed', 'Cancelled'];
+const STATUS_FILTERS = ['All', 'Scheduled', 'Pending', 'Confirmed', 'Completed', 'Cancelled'];
 
 function normalizeBooking(item, type) {
   if (type === 'appointment') {

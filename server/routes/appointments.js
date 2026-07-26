@@ -329,6 +329,20 @@ router.put('/:id', protect, validate(updateAppointmentSchema), async (req, res) 
     }
     
     const oldStatus = appointment.status;
+    
+    // Verify payment before confirming (Bug 2)
+    if (status === 'Confirmed' && oldStatus === 'Pending') {
+      const Payment = (await import('../models/Payment.js')).default;
+      const paymentExists = await Payment.findOne({
+        serviceType: 'appointment',
+        referenceId: req.params.id,
+        status: 'completed',
+      });
+      if (!paymentExists) {
+        return res.status(400).json({ message: 'Cannot confirm appointment without completed payment' });
+      }
+    }
+    
     const updates = { ...req.body };
     
 const updated = await Appointment.findByIdAndUpdate(req.params.id, updates, { new: true, runValidators: true })
