@@ -175,8 +175,10 @@ router.post('/pay', protect, async (req, res, next) => {
           try {
             const notifModule = await import('../models/Notification.js');
             const NotificationModel = notifModule.default;
+            const doctorDoc = await Doctor.findById(doctorId).select('user_id').lean();
+            const notifUserId = doctorDoc?.user_id ? doctorDoc.user_id.toString() : doctorId.toString();
             await NotificationModel.create({
-              userId: doctorId.toString(),
+              userId: notifUserId,
               title: 'New Appointment',
               message: `New ${type || 'Consultation'} appointment from ${patientName} for ${date} at ${time}`,
               type: 'appointment',
