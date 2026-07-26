@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Save, Loader2, Building2, Phone, Mail, MapPin, Clock, Shield, Ambulance, BedDouble, CheckCircle2, Image, Plus, X, Globe, Star } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -14,11 +15,15 @@ export default function AdminHospitalSettings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({});
+  const [autoConfirm, setAutoConfirm] = useState(true);
+  const [settingsSaving, setSettingsSaving] = useState(false);
 
   useEffect(() => {
     const load = async () => {
       try {
         const h = await api.getMyHospital();
+        const settings = await api.getFacilitySettings().catch(() => ({}));
+        if (settings?.autoConfirmAppointment !== undefined) setAutoConfirm(settings.autoConfirmAppointment);
         setForm({
           name: h.name || '',
           email: h.email || '',
@@ -207,6 +212,32 @@ export default function AdminHospitalSettings() {
               <Input value={form.socialLinks?.[s] || ''} onChange={e => update('socialLinks', { ...form.socialLinks, [s]: e.target.value })} placeholder={`https://${s}.com/...`} />
             </div>
           ))}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle className="flex items-center gap-2"><Shield className="w-5 h-5" /> Appointment Settings</CardTitle></CardHeader>
+        <CardContent>
+          <div className="flex items-start justify-between gap-4">
+            <div className="space-y-1">
+              <h3 className="font-semibold text-foreground">Auto Confirm Appointment</h3>
+              <p className="text-sm text-muted-foreground">
+                When enabled, appointments are auto-confirmed after payment. When disabled, they stay pending until manually confirmed.
+              </p>
+            </div>
+            <Switch checked={autoConfirm} onCheckedChange={setAutoConfirm} />
+          </div>
+          <Button size="sm" variant="outline" className="mt-4 gap-2" onClick={async () => {
+            setSettingsSaving(true);
+            try {
+              await api.updateFacilitySettings({ autoConfirmAppointment: autoConfirm });
+              toast.success('Appointment settings updated');
+            } catch (e) { toast.error(e.message || 'Failed to update'); }
+            setSettingsSaving(false);
+          }} disabled={settingsSaving}>
+            {settingsSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            {settingsSaving ? 'Saving...' : 'Save Auto-Confirm Setting'}
+          </Button>
         </CardContent>
       </Card>
 

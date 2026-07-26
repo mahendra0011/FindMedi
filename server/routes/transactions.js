@@ -9,6 +9,7 @@ import Hospital from '../models/Hospital.js';
 import Appointment from '../models/Appointment.js';
 import LabBooking from '../models/LabBooking.js';
 import PharmacyOrder from '../models/PharmacyOrder.js';
+import SystemSetting from '../models/SystemSetting.js';
 import mongoose from 'mongoose';
 import Notification from '../models/Notification.js';
 import { generatePaymentInvoicePDF } from '../services/pdfService.js';
@@ -274,6 +275,14 @@ router.post('/pay', protect, async (req, res, next) => {
             }
             if (settings?.autoConfirmAppointment === false) {
               shouldConfirm = false;
+            }
+            if (shouldConfirm) {
+              try {
+                const platformSetting = await SystemSetting.findOne({ key: 'autoConfirmAppointment' }).lean();
+                if (platformSetting?.value === false) {
+                  shouldConfirm = false;
+                }
+              } catch (_) {}
             }
           } catch (_) { /* default to confirm on error */ }
           if (shouldConfirm) {
