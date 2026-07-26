@@ -50,10 +50,19 @@ const populatePractice = (query) => query
 
 router.get('/', async (req, res) => {
   try {
-    const { page, limit, search, available, specialization, location, includeAll, hospitalId, doctor_type } = req.query;
+    const { page, limit, search, available, specialization, location, includeAll, hospitalId, facilityId, doctor_type } = req.query;
     const filter = {};
     const canViewAll = includeAll === 'true' && await isAdminListRequest(req);
     if (!canViewAll) filter.approved = true;
+
+    // Non-superadmin admin/clinic_doctor ko apni hi facility ke doctors milein — query param se bypass na ho
+    let effectiveHospitalId = hospitalId;
+    let effectiveFacilityId = facilityId;
+    if (req.user && req.user.role !== 'superadmin' && (req.user.role === 'admin' || req.user.role === 'clinic_doctor')) {
+      effectiveHospitalId = req.user.hospitalId ? req.user.hospitalId.toString() : undefined;
+      effectiveFacilityId = req.user.facilityId ? req.user.facilityId.toString() : undefined;
+    }
+    if (effectiveFacilityId) filter.facilityId = effectiveFacilityId;
     if (search) filter.$or = [
       { name: new RegExp(search, 'i') },
       { specialization: new RegExp(search, 'i') },
@@ -73,9 +82,9 @@ router.get('/', async (req, res) => {
     };
 
     let result;
-    if (hospitalId) {
+    if (effectiveHospitalId) {
       try {
-        filter.hospitalId = hospitalId;
+        filter.hospitalId = effectiveHospitalId;
         result = await paginatedResults(Doctor, filter, paginateOpts);
       } catch (castErr) {
         const l = Math.min(100, Math.max(1, parseInt(limit) || 20));
@@ -108,6 +117,113 @@ router.get('/user/:userId', protect, async (req, res) => {
     }
     res.json(doctor);
   } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+router.get('/my-facility/auto-confirm', protect, async (req, res) => {
+  try {
+    if (!['admin', 'clinic_doctor', 'superadmin'].includes(req.user.role)) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+    const filter = {};
+    if (req.user.role !== 'superadmin') {
+      if (req.user.hospitalId) filter.hospitalId = req.user.hospitalId;
+      else if (req.user.facilityId) filter.facilityId = req.user.facilityId;
+      else return res.status(403).json({ message: 'No facility linked to this account' });
+    }
+    const doctors = await Doctor.find(filter)
+      .select('name specialization doctor_type autoConfirmAppointment maxBookingsPerSlot')
+      .sort({ name: 1 })
+      .lean();
+    res.json(doctors);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+router.put('/:id/auto-confirm', protect, async (req, res) => {
+  try {
+    if (!['admin', 'clinic_doctor', 'superadmin'].includes(req.user.role)) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+    const doctor = await Doctor.findById(req.params.id);
+    if (!doctor) return res.status(404).json({ message: 'Doctor not found' });
+    if (req.user.role !== 'superadmin') {
+      const sameHospital = req.user.hospitalId && doctor.hospitalId?.toString() === req.user.hospitalId.toString();
+      const sameFacility = req.user.facilityId && doctor.facilityId?.toString() === req.user.facilityId.toString();
+      if (!sameHospital && !sameFacility) return res.status(403).json({ message: 'Not authorized for this doctor' });
+    }
+    const { autoConfirmAppointment } = req.body;
+    doctor.autoConfirmAppointment = typeof autoConfirmAppointment === 'boolean' ? autoConfirmAppointment : null;
+    await doctor.save();
+    await auditLog('update_doctor_auto_confirm', req.user._id, { targetDoctorId: doctor._id, autoConfirmAppointment: doctor.autoConfirmAppointment, ip: req.ip, userAgent: req.get('user-agent') });
+    res.json({ _id: doctor._id, autoConfirmAppointment: doctor.autoConfirmAppointment });
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+router.get('/me/auto-confirm', protect, async (req, res) => {
+  try {
+    if (!['doctor', 'clinic_doctor'].includes(req.user.role)) return res.status(403).json({ message: 'Doctor access required' });
+    if (!req.user.doctorProfileId) return res.status(404).json({ message: 'Doctor profile not found' });
+    const doctor = await Doctor.findById(req.user.doctorProfileId).select('autoConfirmAppointment').lean();
+    res.json({ autoConfirmAppointment: doctor?.autoConfirmAppointment ?? null });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+router.put('/me/auto-confirm', protect, async (req, res) => {
+  try {
+    if (!['doctor', 'clinic_doctor'].includes(req.user.role)) return res.status(403).json({ message: 'Doctor access required' });
+    if (!req.user.doctorProfileId) return res.status(404).json({ message: 'Doctor profile not found' });
+    const { autoConfirmAppointment } = req.body;
+    const doctor = await Doctor.findByIdAndUpdate(
+      req.user.doctorProfileId,
+      { autoConfirmAppointment: typeof autoConfirmAppointment === 'boolean' ? autoConfirmAppointment : null },
+      { new: true }
+    ).select('autoConfirmAppointment');
+    await auditLog('update_doctor_auto_confirm', req.user._id, { targetDoctorId: req.user.doctorProfileId, autoConfirmAppointment: doctor?.autoConfirmAppointment, ip: req.ip, userAgent: req.get('user-agent') });
+    res.json({ autoConfirmAppointment: doctor?.autoConfirmAppointment ?? null });
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+router.get('/me/slot-capacity', protect, async (req, res) => {
+  try {
+    if (!['doctor', 'clinic_doctor'].includes(req.user.role)) return res.status(403).json({ message: 'Doctor access required' });
+    if (!req.user.doctorProfileId) return res.status(404).json({ message: 'Doctor profile not found' });
+    const doctor = await Doctor.findById(req.user.doctorProfileId).select('maxBookingsPerSlot slotDuration').lean();
+    res.json({ maxBookingsPerSlot: doctor?.maxBookingsPerSlot || 1, slotDuration: doctor?.slotDuration || 15 });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+router.put('/me/slot-capacity', protect, async (req, res) => {
+  try {
+    if (!['doctor', 'clinic_doctor'].includes(req.user.role)) return res.status(403).json({ message: 'Doctor access required' });
+    if (!req.user.doctorProfileId) return res.status(404).json({ message: 'Doctor profile not found' });
+    const n = Number(req.body.maxBookingsPerSlot);
+    if (!Number.isInteger(n) || n < 1 || n > 20) {
+      return res.status(400).json({ message: 'Per-slot value 1 se 20 ke beech ek whole number hona chahiye' });
+    }
+    const doctor = await Doctor.findByIdAndUpdate(req.user.doctorProfileId, { maxBookingsPerSlot: n }, { new: true }).select('maxBookingsPerSlot');
+    await auditLog('update_doctor_slot_capacity', req.user._id, { targetDoctorId: req.user.doctorProfileId, maxBookingsPerSlot: doctor.maxBookingsPerSlot, ip: req.ip, userAgent: req.get('user-agent') });
+    res.json({ maxBookingsPerSlot: doctor.maxBookingsPerSlot });
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+router.put('/:id/slot-capacity', protect, async (req, res) => {
+  try {
+    if (!['admin', 'clinic_doctor', 'superadmin'].includes(req.user.role)) return res.status(403).json({ message: 'Not authorized' });
+    const doctor = await Doctor.findById(req.params.id);
+    if (!doctor) return res.status(404).json({ message: 'Doctor not found' });
+    if (req.user.role !== 'superadmin') {
+      const sameHospital = req.user.hospitalId && doctor.hospitalId?.toString() === req.user.hospitalId.toString();
+      const sameFacility = req.user.facilityId && doctor.facilityId?.toString() === req.user.facilityId.toString();
+      if (!sameHospital && !sameFacility) return res.status(403).json({ message: 'Not authorized for this doctor' });
+    }
+    const n = Number(req.body.maxBookingsPerSlot);
+    if (!Number.isInteger(n) || n < 1 || n > 20) {
+      return res.status(400).json({ message: 'Per-slot value 1 se 20 ke beech ek whole number hona chahiye' });
+    }
+    doctor.maxBookingsPerSlot = n;
+    await doctor.save();
+    await auditLog('update_doctor_slot_capacity', req.user._id, { targetDoctorId: doctor._id, maxBookingsPerSlot: doctor.maxBookingsPerSlot, ip: req.ip, userAgent: req.get('user-agent') });
+    res.json({ _id: doctor._id, maxBookingsPerSlot: doctor.maxBookingsPerSlot });
+  } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
 router.get('/:id', async (req, res) => {

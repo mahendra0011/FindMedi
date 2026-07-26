@@ -1,17 +1,23 @@
 import express from 'express';
 import AuditLog from '../models/AuditLog.js';
 import User from '../models/User.js';
-import { protect, superadminOnly } from '../middleware/auth.js';
+import { protect } from '../middleware/auth.js';
 
 const router = express.Router();
 
-router.get('/', protect, superadminOnly, async (req, res) => {
+router.get('/', protect, async (req, res) => {
   try {
     const { action, userId, search, page = 1, limit = 50 } = req.query;
     const filter = {};
 
     if (action) filter.action = action;
     if (userId) filter.userId = userId;
+
+    // Non-superadmin users only see their own audit logs
+    if (req.user.role !== 'superadmin') {
+      filter.userId = req.user._id.toString();
+    }
+
     if (search) {
       const userIds = await User.find({
         $or: [
@@ -49,19 +55,24 @@ router.get('/', protect, superadminOnly, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.get('/stats', protect, superadminOnly, async (req, res) => {
+router.get('/stats', protect, async (req, res) => {
   try {
-    const totalLogs = await AuditLog.countDocuments();
+    const matchFilter = req.user.role !== 'superadmin' ? { userId: req.user._id.toString() } : {};
+    const totalLogs = await AuditLog.countDocuments(matchFilter);
     const actionCounts = await AuditLog.aggregate([
+      { $match: matchFilter },
       { $group: { _id: '$action', count: { $sum: 1 } } },
       { $sort: { count: -1 } },
       { $limit: 20 },
     ]);
     const last24h = await AuditLog.countDocuments({
+      ...matchFilter,
       timestamp: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
     });
-    const uniqueUsers = await AuditLog.distinct('userId');
-    const uniqueActions = await AuditLog.distinct('action');
+    const uniqueUsers = req.user.role === 'superadmin'
+      ? await AuditLog.distinct('userId')
+      : [req.user._id];
+    const uniqueActions = await AuditLog.distinct('action', matchFilter);
 
     res.json({
       totalLogs, last24h,

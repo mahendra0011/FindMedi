@@ -5,11 +5,68 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
+
+function DoctorAutoConfirmList() {
+  const [doctors, setDoctors] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [savingId, setSavingId] = useState(null);
+
+  useEffect(() => {
+    api.getDoctorAutoConfirmList()
+      .then(setDoctors)
+      .catch(() => toast.error('Failed to load doctors'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const toggleConfirm = async (doc) => {
+    const next = doc.autoConfirmAppointment === false ? true : false;
+    setSavingId(doc._id);
+    setDoctors(prev => prev.map(d => d._id === doc._id ? { ...d, autoConfirmAppointment: next } : d));
+    try { await api.updateDoctorAutoConfirm(doc._id, next); }
+    catch { toast.error('Failed to update ' + doc.name); }
+    setSavingId(null);
+  };
+
+  const updateSlotCapacity = async (doc, n) => {
+    setDoctors(prev => prev.map(d => d._id === doc._id ? { ...d, maxBookingsPerSlot: n } : d));
+    try { await api.updateDoctorSlotCapacity(doc._id, n); }
+    catch { toast.error('Failed to update slot capacity for ' + doc.name); }
+  };
+
+  if (loading) return <Loader2 className="w-5 h-5 animate-spin" />;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Per-Doctor Auto-Confirm & Slot Capacity</CardTitle>
+        <CardDescription>Har doctor ke liye auto-confirm on/off aur ek slot me kitne patients book ho sakte hain — set karein</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {doctors.map(doc => (
+          <div key={doc._id} className="flex items-center justify-between py-2 border-b last:border-0 gap-4">
+            <div className="min-w-0">
+              <p className="text-sm font-medium truncate">{doc.name}</p>
+              <p className="text-xs text-muted-foreground truncate">{doc.specialization}</p>
+            </div>
+            <div className="flex items-center gap-4 shrink-0">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-muted-foreground">Per slot</span>
+                <Input type="number" min={1} max={20} className="w-16 h-8" value={doc.maxBookingsPerSlot || 1}
+                  onChange={e => updateSlotCapacity(doc, Number(e.target.value))} />
+              </div>
+              <Switch checked={doc.autoConfirmAppointment !== false} disabled={savingId === doc._id} onCheckedChange={() => toggleConfirm(doc)} />
+            </div>
+          </div>
+        ))}
+        {!doctors.length && <p className="text-sm text-muted-foreground">No doctors found.</p>}
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function AdminHospitalSettings() {
   const [loading, setLoading] = useState(true);
@@ -240,6 +297,8 @@ export default function AdminHospitalSettings() {
           </Button>
         </CardContent>
       </Card>
+
+      <DoctorAutoConfirmList />
 
       <div className="flex justify-end">
         <Button size="lg" onClick={handleSave} disabled={saving} className="gap-2">

@@ -68,6 +68,8 @@ const doctorSchema = new mongoose.Schema({
   },
   slotDuration: { type: Number, default: 15 },
   bufferPerHour: { type: Number, default: 1 },
+  autoConfirmAppointment: { type: Boolean, default: null },
+  maxBookingsPerSlot: { type: Number, default: 1, min: 1 },
   createdAt: { type: Date, default: Date.now },
 });
 

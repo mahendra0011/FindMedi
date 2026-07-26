@@ -525,6 +525,19 @@ export default function HospitalDoctors() {
                     <span className="font-bold text-lg text-primary">₹{doc.consultation_fees || doc.fees || 0}</span>
                   </div>
 
+                  {/* Slot Capacity Indicator */}
+                  {doc.maxBookingsPerSlot > 1 && (
+                    <div className="flex items-center justify-between p-2 rounded-lg bg-amber-50/50 border border-amber-200/50 mb-4">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-2 h-2 rounded-full bg-amber-500" />
+                        <span className="text-xs text-muted-foreground">Capacity</span>
+                      </div>
+                      <span className="text-xs font-semibold text-amber-700">
+                        {doc.maxBookingsPerSlot} patients per slot
+                      </span>
+                    </div>
+                  )}
+
                   <div className="flex gap-2">
                     <Button className="flex-1 gap-2 rounded-xl shadow-lg shadow-primary/20 group/btn" size="sm" disabled={!doc.available} onClick={(e) => { e.stopPropagation(); setShowBooking(true); setSelectedDoctor(doc); }}><CalendarDays className="w-3.5 h-3.5" /> Book Appointment<ChevronRight className="w-3 h-3 transition-transform duration-300 group-hover/btn:translate-x-0.5" /></Button>
                     <Button variant="outline" className="gap-2 rounded-xl hover:border-primary/50 hover:text-primary transition-all" size="sm"

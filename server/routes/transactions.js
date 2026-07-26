@@ -163,6 +163,17 @@ router.post('/pay', protect, async (req, res, next) => {
 
         }
 
+        // Capacity check: alag users tab tak book kar sakte hain jab tak doctor ki maxBookingsPerSlot limit na aa jaye
+        if (doctorId) {
+          const doctorDoc2 = await Doctor.findById(doctorId).select('maxBookingsPerSlot').lean();
+          const capacity = doctorDoc2?.maxBookingsPerSlot || 1;
+          const slotFilter = { doctorId, date, time, status: { $nin: ['Cancelled', 'Completed', 'Missed'] } };
+          const existingBookings = await Appointment.find(slotFilter).select('patientId').lean();
+          if (existingBookings.length >= capacity) {
+            return res.status(409).json({ message: 'This time slot is full. Please choose a different time.' });
+          }
+        }
+
         const tokenNumber = generateTokenNumber();
         const patientUser = await User.findById(patientId);
         const countToday = await Appointment.countDocuments({ date, doctor: doctor || '' });
@@ -261,7 +272,9 @@ router.post('/pay', protect, async (req, res, next) => {
         if (serviceType === 'appointment') {
           let shouldConfirm = true;
           try {
-            const appt = await Appointment.findById(referenceId).populate('doctorId', 'facilityId hospitalId').lean();
+            const appt = await Appointment.findById(referenceId)
+              .populate('doctorId', 'facilityId hospitalId autoConfirmAppointment')
+              .lean();
             const facilityId = appt?.doctorId?.facilityId;
             const hospitalId = appt?.doctorId?.hospitalId;
             let settings = null;
@@ -273,16 +286,22 @@ router.post('/pay', protect, async (req, res, next) => {
               const hospital = await Hospital.findById(hospitalId).select('settings').lean();
               settings = hospital?.settings;
             }
-            if (settings?.autoConfirmAppointment === false) {
+
+            const doctorSetting = appt?.doctorId?.autoConfirmAppointment;
+            if (doctorSetting === false) {
               shouldConfirm = false;
-            }
-            if (shouldConfirm) {
-              try {
-                const platformSetting = await SystemSetting.findOne({ key: 'autoConfirmAppointment' }).lean();
-                if (platformSetting?.value === false) {
-                  shouldConfirm = false;
-                }
-              } catch (_) {}
+            } else if (doctorSetting === true) {
+              shouldConfirm = true;
+            } else {
+              if (settings?.autoConfirmAppointment === false) shouldConfirm = false;
+              if (shouldConfirm) {
+                try {
+                  const platformSetting = await SystemSetting.findOne({ key: 'autoConfirmAppointment' }).lean();
+                  if (platformSetting?.value === false) {
+                    shouldConfirm = false;
+                  }
+                } catch (_) {}
+              }
             }
           } catch (_) { /* default to confirm on error */ }
           if (shouldConfirm) {
