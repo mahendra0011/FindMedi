@@ -32,6 +32,8 @@ const userSchema = new mongoose.Schema({
   consultationFee: { type: Number, default: 0 },
   isVerified: { type: Boolean, default: false, index: true },
   status: { type: String, enum: ['active', 'blocked'], default: 'active', index: true },
+  flagged: { type: Boolean, default: false, index: true },
+  flagReason: { type: String, default: '' },
   approvalStatus: {
     type: String,
     enum: ['not_required', 'pending', 'approved', 'rejected'],

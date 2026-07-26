@@ -1,22 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Navigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Activity, ArrowRight, Shield, Stethoscope, UserRound, Microscope, Eye, EyeOff } from 'lucide-react';
+import { Activity, ArrowRight, Shield, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 
-const roles = [
-  { key: 'patient', label: 'Patient', desc: 'Book appointments & view records', icon: UserRound, color: 'text-success', bg: 'bg-success/10' },
-  { key: 'doctor', label: 'Doctor', desc: 'Manage consultations & patients', icon: Stethoscope, color: 'text-info', bg: 'bg-info/10' },
-  { key: 'technician', label: 'Technician', desc: 'Lab & diagnostic services', icon: Microscope, color: 'text-warning', bg: 'bg-warning/10' },
-];
-
 export default function Signup() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [role, setRole] = useState('patient');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -37,14 +30,6 @@ export default function Signup() {
     return { score, label: labels[score], color: colors[score] };
   })();
 
-  const [specialization, setSpecialization] = useState('');
-  const [experience, setExperience] = useState('');
-  const [qualification, setQualification] = useState('');
-  const [licenseNumber, setLicenseNumber] = useState('');
-  const [consultationFee, setConsultationFee] = useState('');
-  const [technicianRole, setTechnicianRole] = useState('');
-  const [technicianExperience, setTechnicianExperience] = useState('');
-  const [technicianQualification, setTechnicianQualification] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [agreed, setAgreed] = useState(false);
@@ -57,7 +42,6 @@ export default function Signup() {
       try {
         const data = JSON.parse(stored);
         if (data.isGoogle) {
-          if (data.role) setRole(data.role);
           if (data.name) setName(data.name);
           if (data.email) setEmail(data.email);
         }
@@ -86,9 +70,7 @@ export default function Signup() {
     try {
       // Register using API directly (do not set auth state yet)
       const data = await api.register({
-        name, email, password, role, phone, gender, dateOfBirth,
-        ...(role === 'doctor' ? { specialization, experience, qualification, licenseNumber, consultationFee: consultationFee ? Number(consultationFee) : undefined } : {}),
-        ...(role === 'technician' ? { specialization: technicianRole, experience: technicianExperience, qualification: technicianQualification } : {}),
+        name, email, password, role: 'patient', phone, gender, dateOfBirth,
       });
       // Navigate to OTP verification page
       const params = new URLSearchParams({ email, role });
@@ -130,21 +112,7 @@ export default function Signup() {
           </div>
 
           <h2 className="font-heading text-2xl font-bold text-foreground mb-1">Create Account</h2>
-          <p className="text-muted-foreground mb-8">Select your role and fill in your details</p>
-
-          {/* Role Selection */}
-          <div className="grid grid-cols-3 gap-3 mb-6">
-            {roles.map(({ key, label, desc, icon: Icon, color, bg }) => (
-              <button key={key} onClick={() => setRole(key)}
-                className={`p-3 rounded-xl border-2 text-center transition-all ${role === key ? 'border-primary bg-accent shadow-md' : 'border-border hover:border-primary/30 hover:bg-muted/50'}`}>
-                <div className={`w-8 h-8 rounded-lg ${bg} flex items-center justify-center mx-auto mb-1.5`}>
-                  <Icon className={`w-4 h-4 ${color}`} />
-                </div>
-                <p className={`text-sm font-semibold ${role === key ? 'text-primary' : 'text-foreground'}`}>{label}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{desc}</p>
-              </button>
-            ))}
-          </div>
+          <p className="text-muted-foreground mb-6">Fill in your details to get started</p>
 
           <form onSubmit={handleSignup} className="space-y-4">
             <div>
@@ -174,54 +142,7 @@ export default function Signup() {
                 <Input type="date" value={dateOfBirth} onChange={e => setDateOfBirth(e.target.value)} required />
               </div>
             </div>
-            {role === 'doctor' && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 bg-muted/20 rounded-xl border border-border/40">
-                <p className="text-xs font-semibold text-foreground sm:col-span-2 flex items-center gap-1.5"><Stethoscope className="w-3.5 h-3.5 text-primary" /> Professional Details</p>
-                <div>
-                  <label className="text-xs font-medium text-foreground mb-1 block">Specialization</label>
-                  <select value={specialization} onChange={e => setSpecialization(e.target.value)} className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm">
-                    <option value="">Select</option>
-                    {['Cardiology','Neurology','Orthopedics','Pediatrics','Dermatology','Oncology','General Medicine','ENT','Psychiatry','Gynecology','Urology','Ophthalmology'].map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-foreground mb-1 block">Experience</label>
-                  <Input value={experience} onChange={e => setExperience(e.target.value)} placeholder="e.g. 5 years" className="h-9 text-sm" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-foreground mb-1 block">Qualification</label>
-                  <Input value={qualification} onChange={e => setQualification(e.target.value)} placeholder="e.g. MBBS, MD" className="h-9 text-sm" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-foreground mb-1 block">License Number</label>
-                  <Input value={licenseNumber} onChange={e => setLicenseNumber(e.target.value)} placeholder="Medical license" className="h-9 text-sm" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-foreground mb-1 block">Consultation Fee</label>
-                  <Input type="number" value={consultationFee} onChange={e => setConsultationFee(e.target.value)} placeholder="e.g. 500" className="h-9 text-sm" />
-                </div>
-              </div>
-            )}
-            {role === 'technician' && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 bg-muted/20 rounded-xl border border-border/40">
-                <p className="text-xs font-semibold text-foreground sm:col-span-2 flex items-center gap-1.5"><Microscope className="w-3.5 h-3.5 text-primary" /> Technician Details</p>
-                <div>
-                  <label className="text-xs font-medium text-foreground mb-1 block">Role</label>
-                  <select value={technicianRole} onChange={e => setTechnicianRole(e.target.value)} className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm">
-                    <option value="">Select</option>
-                    {['Lab Technician','Phlebotomist','Radiographer','Sonographer'].map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-foreground mb-1 block">Experience</label>
-                  <Input value={technicianExperience} onChange={e => setTechnicianExperience(e.target.value)} placeholder="e.g. 3 years" className="h-9 text-sm" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-foreground mb-1 block">Qualification</label>
-                  <Input value={technicianQualification} onChange={e => setTechnicianQualification(e.target.value)} placeholder="e.g. B.Sc, MLT" className="h-9 text-sm" />
-                </div>
-              </div>
-            )}
+
             <div>
               <label className="text-sm font-medium text-foreground mb-1.5 block">Password</label>
               <div className="relative">

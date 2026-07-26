@@ -9,7 +9,7 @@ export default function NotificationBell({ className = '', onClick }) {
   const handleClick = async (e) => {
     if (onClick) onClick(e);
     try {
-      const list = await api.getNotifications({});
+      const list = (await api.getNotifications({}))?.data || [];
       const unread = list.filter(n => !n.read).length;
       if (unread !== count) refreshCount();
     } catch (e) { console.error(e); }

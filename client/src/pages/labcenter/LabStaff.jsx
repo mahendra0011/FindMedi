@@ -32,7 +32,7 @@ export default function LabStaff() {
     try {
       setLoading(true);
       const data = await api.getStaff();
-      setStaffList(data || []);
+      setStaffList(Array.isArray(data) ? data : (data?.staff || []));
     } catch (error) {
       console.error(error);
       setStaffList([]);
@@ -124,7 +124,7 @@ export default function LabStaff() {
       ) : (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {staffList.map(staff => (
-          <motion.div key={staff.id} layout initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-card rounded-2xl border border-border/50 overflow-hidden hover:shadow-lg transition-all">
+          <motion.div key={staff._id || staff.id} layout initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-card rounded-2xl border border-border/50 overflow-hidden hover:shadow-lg transition-all">
             <div className="bg-gradient-to-r from-primary/10 to-primary/5 p-5 flex items-center gap-4">
               <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shrink-0">
                 <span className="text-primary-foreground font-bold text-lg">{staff.name.split(' ').map(n=>n[0]).join('').slice(0,2)}</span>

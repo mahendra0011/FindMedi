@@ -47,7 +47,7 @@ export default function DoctorProfile() {
     const load = async () => {
       setLoading(true);
       try {
-        const doctors = await api.getDoctors();
+        const doctors = (await api.getDoctors())?.data || [];
         const myDoc = doctors.find(d => d.email === user?.email) || doctors.find(d => d.name?.includes(user?.name)) || null;
         if (myDoc) {
           setDoctor(myDoc);

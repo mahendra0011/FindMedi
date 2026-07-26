@@ -2,12 +2,12 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { BadgeCheck, CalendarDays, CheckCircle, CheckCircle2, ChevronRight, CreditCard, Landmark, Smartphone, Wallet, ArrowLeft, Users } from 'lucide-react';
+import { BadgeCheck, CalendarDays, CheckCircle, CheckCircle2, ChevronRight, CreditCard, Landmark, Smartphone, Wallet, ArrowLeft, Users, FileDown } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import BillCheckout from './BillCheckout';
-import { api } from '@/lib/api';
+import { api, downloadPaymentInvoice, downloadBillPdf } from '@/lib/api';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 
@@ -147,11 +147,8 @@ export default function BookingModal({
         throw new Error(payResult?.message || 'Payment failed');
       }
 
-      // Confirm appointment (backup — server already does it via transactions/pay)
-      await api.updateAppointment(apptId, { status: 'Confirmed' }).catch(() => {});
-
-      toast.success('Payment successful! Appointment confirmed.');
-      setBookingDetails({ ...appointmentData, doctor: currentDoc.name, specialization: currentDoc.specialization, date: bookingDate, time: bookingTime, fees });
+      toast.success('Payment successful! Appointment booked.');
+      setBookingDetails({ ...appointmentData, doctor: currentDoc.name, specialization: currentDoc.specialization, date: bookingDate, time: bookingTime, fees, transactionId: payResult.transaction_id, invoiceId: payResult.invoice_id });
       setBookingStep(3); // Go to Success Screen
       if (onSuccess) onSuccess();
 
@@ -392,7 +389,19 @@ export default function BookingModal({
                 Payment of ₹{Number(currentDoc?.consultation_fees) || Number(currentDoc?.fees) || 0} via {paymentMethod === 'upi' ? 'UPI' : paymentMethod === 'netbanking' ? 'Net Banking' : paymentMethod === 'wallet' ? 'Wallet' : 'Card'} successful
               </span>
             </div>
-            <div className="mt-6 flex justify-center gap-2">
+            {bookingDetails?.transactionId && (
+              <div className="mt-4 flex justify-center gap-2">
+                <Button size="sm" variant="outline" className="gap-1.5"
+                  onClick={() => downloadPaymentInvoice(bookingDetails.transactionId, `invoice-${bookingDetails.invoiceId || 'appt'}.pdf`)}>
+                  <FileDown className="w-3.5 h-3.5" /> Invoice
+                </Button>
+                <Button size="sm" variant="outline" className="gap-1.5"
+                  onClick={() => downloadBillPdf(bookingDetails.transactionId, `bill-${bookingDetails.invoiceId || 'appt'}.pdf`)}>
+                  <FileDown className="w-3.5 h-3.5" /> Bill
+                </Button>
+              </div>
+            )}
+            <div className="mt-4 flex justify-center gap-2">
               <Button size="sm" variant="outline" onClick={() => navigate('/patient/appointments')}>View Appointments</Button>
               <Button size="sm" onClick={() => onOpenChange(false)}>Done</Button>
             </div>

@@ -145,7 +145,7 @@ export default function DoctorConsultation() {
   const loadPatientHistory = async (patientName) => {
     try {
       const data = await consultationApi.getRecords({ search: patientName });
-      setPatientHistory(data?.records || []);
+      setPatientHistory(data?.data || data?.records || []);
     } catch {
       setPatientHistory([]);
     }

@@ -236,6 +236,13 @@ import leaveRequestRoutes from './routes/leaveRequests.js';
 import categoryRoutes from './routes/categories.js';
 import licenseRoutes from './routes/licenses.js';
 import announcementRoutes from './routes/announcements.js';
+import broadcastRoutes from './routes/broadcast.js';
+import platformCouponRoutes from './routes/platformCoupons.js';
+import featuredListingRoutes from './routes/featuredListings.js';
+import cityRoutes from './routes/cities.js';
+import platformContentRoutes from './routes/platformContent.js';
+import exportRoutes from './routes/export.js';
+import integrationRoutes from './routes/integrations.js';
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -287,6 +294,13 @@ app.use('/api/leave-requests', leaveRequestRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/licenses', licenseRoutes);
 app.use('/api/announcements', announcementRoutes);
+app.use('/api/broadcast', broadcastRoutes);
+app.use('/api/platform-coupons', platformCouponRoutes);
+app.use('/api/featured-listings', featuredListingRoutes);
+app.use('/api/cities', cityRoutes);
+app.use('/api/platform-content', platformContentRoutes);
+app.use('/api/export', exportRoutes);
+app.use('/api/integrations', integrationRoutes);
 
 // 2FA routes
 app.use('/api/auth/2fa', twoFactorRoutes);

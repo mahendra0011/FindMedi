@@ -6,8 +6,8 @@ import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 
-const statusColors = { Confirmed: 'bg-success/10 text-success', Cancelled: 'bg-destructive/10 text-destructive', Completed: 'bg-info/10 text-info' };
-const filters = ['All', 'Confirmed', 'Cancelled', 'Completed'];
+const statusColors = { Pending: 'bg-amber-50 text-amber-600 border border-amber-200', Confirmed: 'bg-success/10 text-success', Cancelled: 'bg-destructive/10 text-destructive', Completed: 'bg-info/10 text-info' };
+const filters = ['All', 'Pending', 'Confirmed', 'Cancelled', 'Completed'];
 
 const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
@@ -140,6 +140,9 @@ export default function ClinicAppointments() {
                 <div className="flex items-center gap-2"><Clock className="w-3.5 h-3.5" /><span>{apt.time}</span></div>
               </div>
               <div className="flex gap-2">
+                {apt.status === 'Pending' && (
+                  <Button size="sm" className="flex-1 gap-1" onClick={() => handleStatus(apt._id, 'Confirmed')}><CheckCircle className="w-3.5 h-3.5" /> Confirm</Button>
+                )}
                 {apt.status === 'Confirmed' && (
                   <Button variant="outline" size="sm" className="flex-1 gap-1 text-destructive" onClick={() => handleStatus(apt._id, 'Cancelled')}><XCircle className="w-3.5 h-3.5" /> Cancel</Button>
                 )}

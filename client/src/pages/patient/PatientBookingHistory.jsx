@@ -47,6 +47,8 @@ export default function PatientBookingHistory({ initialType }) {
   const [newDate, setNewDate] = useState('');
   const [newTime, setNewTime] = useState('');
 
+  const showActions = initialType === 'appointment';
+
   const handleCancel = async () => {
     if (!cancelId) return;
     try {
@@ -276,12 +278,6 @@ export default function PatientBookingHistory({ initialType }) {
             if (isTest) detail = `${formatShortDate(booking.bookingDate)}${booking.timeSlot ? ` • ${booking.timeSlot}` : ''}`;
             if (isMed) detail = `${formatShortDate(booking.orderDate || booking.createdAt)}`;
 
-            const secondBtn = isAppt
-              ? null
-              : isTest
-                ? { label: 'Track Booking', onClick: () => navigate('/patient/bookings') }
-                : { label: 'Track Order', onClick: () => booking._id && navigate(`/order-tracking/${booking._id}`) };
-
             return (
               <motion.div key={booking._id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}
                 className="bg-card rounded-2xl border border-border/60 overflow-hidden hover:shadow-lg transition-all">
@@ -318,7 +314,7 @@ export default function PatientBookingHistory({ initialType }) {
 
                   {/* Bottom: action buttons */}
                   <div className="flex items-end justify-end gap-2">
-                    {isAppt && (booking.status === 'Confirmed' || booking.status === 'Pending') ? (
+                    {showActions && isAppt && (booking.status === 'Confirmed' || booking.status === 'Pending') ? (
                       <>
                         <Button size="sm" variant="outline" className="gap-1.5 rounded-xl h-9 text-xs text-destructive hover:text-destructive"
                           onClick={(e) => { e.stopPropagation(); setCancelId(booking._id); }}>
@@ -329,12 +325,17 @@ export default function PatientBookingHistory({ initialType }) {
                           <RefreshCw className="w-3.5 h-3.5" /> Reschedule
                         </Button>
                       </>
-                    ) : secondBtn && (
+                    ) : !showActions && isTest ? (
                       <Button size="sm" variant="outline" className="gap-1.5 rounded-xl h-9 text-xs"
-                        onClick={(e) => { e.stopPropagation(); secondBtn.onClick(); }}>
-                        <ExternalLink className="w-3.5 h-3.5" /> {secondBtn.label}
+                        onClick={(e) => { e.stopPropagation(); navigate('/patient/bookings'); }}>
+                        <ExternalLink className="w-3.5 h-3.5" /> Track Booking
                       </Button>
-                    )}
+                    ) : !showActions && isMed ? (
+                      <Button size="sm" variant="outline" className="gap-1.5 rounded-xl h-9 text-xs"
+                        onClick={(e) => { e.stopPropagation(); booking._id && navigate(`/order-tracking/${booking._id}`); }}>
+                        <ExternalLink className="w-3.5 h-3.5" /> Track Order
+                      </Button>
+                    ) : null}
                   </div>
                 </div>
               </motion.div>
@@ -344,7 +345,7 @@ export default function PatientBookingHistory({ initialType }) {
       )}
 
       {/* Cancel Confirmation Modal */}
-      {cancelId && (
+      {showActions && cancelId && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setCancelId(null)}>
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
             className="bg-card rounded-2xl border border-border w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
@@ -362,7 +363,7 @@ export default function PatientBookingHistory({ initialType }) {
       )}
 
       {/* Reschedule Modal */}
-      {rescheduleId && (
+      {showActions && rescheduleId && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setRescheduleId(null)}>
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
             className="bg-card rounded-2xl border border-border w-full max-w-md p-6" onClick={e => e.stopPropagation()}>

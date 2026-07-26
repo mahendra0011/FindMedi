@@ -105,8 +105,10 @@ export const api = {
   dashboardStats:     ()        => request('/dashboard/stats'),
 
   getUsers:           (p={})    => request('/users?' + new URLSearchParams(p)),
-  deleteUser:         (id)      => request(`/users/${id}`,           { method:'DELETE' }),
-  blockUser:          (id)      => request(`/users/${id}/block`,     { method:'PUT' }),
+  deleteUser:             (id)      => request(`/users/${id}`, { method:'DELETE' }),
+  blockUser:              (id)      => request(`/users/${id}/block`, { method:'PUT' }),
+  flagUser:               (id,b)    => request(`/users/${id}/flag`, { method:'PUT', body: JSON.stringify(b) }),
+  unflagUser:             (id)      => request(`/users/${id}/unflag`, { method:'PUT' }),
 
   getDoctors:         (p={})    => request('/doctors?' + new URLSearchParams(p)),
   getDoctor:           (id)      => request(`/doctors/${id}`),
@@ -210,6 +212,8 @@ export const api = {
   suspendFacility:       (id)    => request(`/facilities/${id}/suspend`, { method:'PUT' }),
   updateFacility:        (id,b)  => request(`/facilities/${id}`,         { method:'PUT', body: JSON.stringify(b) }),
   getMyFacility:         ()      => request('/facilities/mine'),
+  getFacilitySettings:   ()      => request('/facilities/settings'),
+  updateFacilitySettings:(body)  => request('/facilities/settings', { method:'PUT', body: JSON.stringify(body) }),
   getPendingFacilities:  (type)  => request('/facilities/pending?' + (type ? new URLSearchParams({ type }) : '')),
   getClinicProfile:      ()      => request('/clinics/profile'),
   updateClinicProfile:   (body)  => request('/clinics/profile', { method:'PUT', body: JSON.stringify(body) }),
@@ -352,6 +356,8 @@ export const api = {
 
   getAnnouncements:       (p={})    => request('/announcements?' + new URLSearchParams(p)),
   createAnnouncement:     (body)    => request('/announcements', { method:'POST', body: JSON.stringify(body) }),
+  getBroadcasts:          (p={})    => request('/broadcast?' + new URLSearchParams(p)),
+  createBroadcast:        (body)    => request('/broadcast', { method:'POST', body: JSON.stringify(body) }),
   getStaff:               (p={})    => request('/staff?' + new URLSearchParams(p)),
   createStaff:            (body)    => request('/staff', { method:'POST', body: JSON.stringify(body) }),
   updateStaff:            (id,b)    => request(`/staff/${id}`, { method:'PUT', body: JSON.stringify(b) }),
@@ -405,4 +411,31 @@ export const api = {
   skipToken: (id, b) => request(`/tokens/${id}/skip`, { method: 'PUT', body: JSON.stringify(b) }),
   recallToken: (id) => request(`/tokens/${id}/recall`, { method: 'PUT' }),
   getTokenStats: () => request('/tokens/stats'),
+
+  getPlatformCoupons:       (p={})    => request('/platform-coupons?' + new URLSearchParams(p)),
+  getPlatformCouponStats:   ()        => request('/platform-coupons/stats'),
+  createPlatformCoupon:     (body)    => request('/platform-coupons', { method:'POST', body: JSON.stringify(body) }),
+  updatePlatformCoupon:     (id,b)    => request(`/platform-coupons/${id}`, { method:'PUT', body: JSON.stringify(b) }),
+  deletePlatformCoupon:     (id)      => request(`/platform-coupons/${id}`, { method:'DELETE' }),
+
+  getFeaturedListings:      (p={})    => request('/featured-listings?' + new URLSearchParams(p)),
+  createFeaturedListing:    (body)    => request('/featured-listings', { method:'POST', body: JSON.stringify(body) }),
+  updateFeaturedListing:    (id,b)    => request(`/featured-listings/${id}`, { method:'PUT', body: JSON.stringify(b) }),
+  deleteFeaturedListing:    (id)      => request(`/featured-listings/${id}`, { method:'DELETE' }),
+
+  getCities:                (p={})    => request('/cities?' + new URLSearchParams(p)),
+  createCity:               (body)    => request('/cities', { method:'POST', body: JSON.stringify(body) }),
+  updateCity:               (id,b)    => request(`/cities/${id}`, { method:'PUT', body: JSON.stringify(b) }),
+  deleteCity:               (id)      => request(`/cities/${id}`, { method:'DELETE' }),
+
+  getPlatformContent:       (key)     => request(`/platform-content/${key}`),
+  getAllPlatformContents:   (p={})    => request('/platform-content?' + new URLSearchParams(p)),
+  updatePlatformContent:    (key,b)   => request(`/platform-content/${key}`, { method:'PUT', body: JSON.stringify(b) }),
+
+  getIntegrations:           ()        => request('/integrations'),
+  updateIntegration:         (p,b)     => request(`/integrations/${p}`, { method:'PUT', body: JSON.stringify(b) }),
+  testIntegration:           (p)       => request(`/integrations/${p}/test`, { method:'POST' }),
+  getWebhooks:               (p)       => request(`/integrations/${p}/webhooks`),
+  createWebhook:             (p,b)     => request(`/integrations/${p}/webhooks`, { method:'POST', body: JSON.stringify(b) }),
+  deleteWebhook:             (p,w)     => request(`/integrations/${p}/webhooks/${w}`, { method:'DELETE' }),
 };

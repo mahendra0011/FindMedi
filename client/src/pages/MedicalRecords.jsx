@@ -28,7 +28,7 @@ export default function MedicalRecords() {
         ...(search && { search }), 
         ...(categoryFilter !== 'All' && { type: categoryFilter }) 
       });
-      return result?.records || result || [];
+      return result?.data || result?.records || result || [];
     },
   });
 

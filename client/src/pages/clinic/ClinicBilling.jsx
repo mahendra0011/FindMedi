@@ -26,7 +26,7 @@ export default function ClinicBilling() {
     setLoading(true);
     try {
       const data = await api.getBilling();
-      const arr = data?.bills || data || [];
+      const arr = data?.data || data?.bills || data || [];
       setBills(arr.filter(b => b.doctor?.toLowerCase().includes(user?.name?.toLowerCase())));
     } catch (e) { console.error(e); }
     setLoading(false);

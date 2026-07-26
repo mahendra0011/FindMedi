@@ -42,7 +42,27 @@ const Billing = lazy(() => import('./pages/Billing'));
 const Settings = lazy(() => import('./pages/Settings'));
 const Notifications = lazy(() => import('./pages/Notifications'));
 
-const SuperAdminDashboard = lazy(() => import('./pages/SuperAdminDashboard'));
+const SAPlatformKPIs = lazy(() => import('./pages/superadmin/PlatformKPIs'));
+const SAPendingApprovals = lazy(() => import('./pages/superadmin/PendingApprovals'));
+const SAAllFacilities = lazy(() => import('./pages/superadmin/AllFacilities'));
+const SAPlatformStats = lazy(() => import('./pages/superadmin/PlatformStats'));
+const SAUserManagement = lazy(() => import('./pages/superadmin/UserManagement'));
+const SAContentModeration = lazy(() => import('./pages/superadmin/ContentModeration'));
+const SADisputes = lazy(() => import('./pages/superadmin/Disputes'));
+const SARevenue = lazy(() => import('./pages/superadmin/Revenue'));
+const SALicenses = lazy(() => import('./pages/superadmin/Licenses'));
+const SACategories = lazy(() => import('./pages/superadmin/Categories'));
+const SAGlobalCatalog = lazy(() => import('./pages/superadmin/GlobalCatalog'));
+const SAAuditLogs = lazy(() => import('./pages/superadmin/AuditLogs'));
+const SABroadcast = lazy(() => import('./pages/superadmin/Broadcast'));
+const SASupportTickets = lazy(() => import('./pages/superadmin/SupportTickets'));
+const SASystemSettings = lazy(() => import('./pages/superadmin/SystemSettings'));
+const SASuperAdminTeam = lazy(() => import('./pages/superadmin/SuperAdminTeam'));
+const SAPromotions = lazy(() => import('./pages/superadmin/Promotions'));
+const SADataExport = lazy(() => import('./pages/superadmin/DataExport'));
+const SACities = lazy(() => import('./pages/superadmin/Cities'));
+const SALegal = lazy(() => import('./pages/superadmin/Legal'));
+const SAIntegrations = lazy(() => import('./pages/superadmin/Integrations'));
 const HospitalDirectory = lazy(() => import('./pages/HospitalDirectory'));
 const HospitalProfile = lazy(() => import('./pages/HospitalProfile'));
 const HospitalDoctors = lazy(() => import('./pages/HospitalDoctors'));
@@ -136,6 +156,7 @@ const ClinicEarnings = lazy(() => import('./pages/clinic/ClinicEarnings'));
 const ClinicReviews = lazy(() => import('./pages/clinic/ClinicReviews'));
 const ClinicStaff = lazy(() => import('./pages/clinic/ClinicStaff'));
 const ClinicNotifications = lazy(() => import('./pages/clinic/ClinicNotifications'));
+const ClinicPlatformSettings = lazy(() => import('./pages/clinic/ClinicPlatformSettings'));
 
 const AdminUsers = lazy(() => import('./pages/admin/AdminUsers'));
 const AdminPrescriptionQueue = lazy(() => import('./pages/admin/AdminPrescriptionQueue'));
@@ -294,6 +315,13 @@ function getDefaultDashboardPath(user) {
       earnings: '/clinic/earnings',
       schedule: '/clinic/schedule',
     },
+    superadmin: {
+      overview: '/superadmin/overview',
+      pending: '/superadmin/pending',
+      revenue: '/superadmin/revenue',
+      users: '/superadmin/users',
+      settings: '/superadmin/settings',
+    },
     patient: {
       appointments: '/patient/appointments',
       records: '/patient/records',
@@ -309,7 +337,7 @@ function RoleDashboard() {
   const { user } = useAuth();
   const defaultPath = getDefaultDashboardPath(user);
   if (defaultPath) return <Navigate to={defaultPath} replace />;
-  if (user?.role === 'superadmin') return <SuperAdminDashboard />;
+  if (user?.role === 'superadmin') return <Navigate to="/superadmin/overview" replace />;
   if (user?.role === 'doctor') return <DoctorDashboard />;
   if (user?.role === 'clinic_doctor') return <ClinicDashboard />;
   if (user?.role === 'admin') return <Dashboard />;
@@ -419,8 +447,31 @@ const App = () => (
                     <Route path="/settings" element={<Settings />} />
                     <Route path="/upload" element={<FileUpload />} />
 
+                    {/* Super Admin routes */}
+                    <Route path="/superadmin" element={<Navigate to="/superadmin/overview" replace />} />
+                    <Route path="/superadmin/overview" element={<RoleRoute allowedRoles={['superadmin']}><SAPlatformKPIs /></RoleRoute>} />
+                    <Route path="/superadmin/pending" element={<RoleRoute allowedRoles={['superadmin']}><SAPendingApprovals /></RoleRoute>} />
+                    <Route path="/superadmin/facilities" element={<RoleRoute allowedRoles={['superadmin']}><SAAllFacilities /></RoleRoute>} />
+                    <Route path="/superadmin/stats" element={<RoleRoute allowedRoles={['superadmin']}><SAPlatformStats /></RoleRoute>} />
+                    <Route path="/superadmin/users" element={<RoleRoute allowedRoles={['superadmin']}><SAUserManagement /></RoleRoute>} />
+                    <Route path="/superadmin/moderation" element={<RoleRoute allowedRoles={['superadmin']}><SAContentModeration /></RoleRoute>} />
+                    <Route path="/superadmin/disputes" element={<RoleRoute allowedRoles={['superadmin']}><SADisputes /></RoleRoute>} />
+                    <Route path="/superadmin/revenue" element={<RoleRoute allowedRoles={['superadmin']}><SARevenue /></RoleRoute>} />
+                    <Route path="/superadmin/licenses" element={<RoleRoute allowedRoles={['superadmin']}><SALicenses /></RoleRoute>} />
+                    <Route path="/superadmin/categories" element={<RoleRoute allowedRoles={['superadmin']}><SACategories /></RoleRoute>} />
+                    <Route path="/superadmin/catalog" element={<RoleRoute allowedRoles={['superadmin']}><SAGlobalCatalog /></RoleRoute>} />
+                    <Route path="/superadmin/audit" element={<RoleRoute allowedRoles={['superadmin']}><SAAuditLogs /></RoleRoute>} />
+                    <Route path="/superadmin/broadcast" element={<RoleRoute allowedRoles={['superadmin']}><SABroadcast /></RoleRoute>} />
+                    <Route path="/superadmin/tickets" element={<RoleRoute allowedRoles={['superadmin']}><SASupportTickets /></RoleRoute>} />
+                    <Route path="/superadmin/settings" element={<RoleRoute allowedRoles={['superadmin']}><SASystemSettings /></RoleRoute>} />
+                    <Route path="/superadmin/team" element={<RoleRoute allowedRoles={['superadmin']}><SASuperAdminTeam /></RoleRoute>} />
+                    <Route path="/superadmin/promotions" element={<RoleRoute allowedRoles={['superadmin']}><SAPromotions /></RoleRoute>} />
+                    <Route path="/superadmin/export" element={<RoleRoute allowedRoles={['superadmin']}><SADataExport /></RoleRoute>} />
+                    <Route path="/superadmin/cities" element={<RoleRoute allowedRoles={['superadmin']}><SACities /></RoleRoute>} />
+                    <Route path="/superadmin/legal" element={<RoleRoute allowedRoles={['superadmin']}><SALegal /></RoleRoute>} />
+                    <Route path="/superadmin/integrations" element={<RoleRoute allowedRoles={['superadmin']}><SAIntegrations /></RoleRoute>} />
+
                     {/* Admin routes */}
-                    <Route path="/superadmin" element={<RoleRoute allowedRoles={['superadmin']}><SuperAdminDashboard /></RoleRoute>} />
                     <Route path="/admin/users" element={<RoleRoute allowedRoles={['admin', 'superadmin']}><AdminUsers /></RoleRoute>} />
                     <Route path="/admin/doctors" element={<RoleRoute allowedRoles={['admin']}><AdminDoctors /></RoleRoute>} />
                     <Route path="/admin/prescriptions" element={<RoleRoute allowedRoles={['admin']}><AdminPrescriptionQueue /></RoleRoute>} />
@@ -510,6 +561,7 @@ const App = () => (
                     <Route path="/clinic/earnings" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicEarnings /></RoleRoute>} />
                     <Route path="/clinic/reviews" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicReviews /></RoleRoute>} />
                     <Route path="/clinic/settings" element={<RoleRoute allowedRoles={['clinic_doctor']}><AdminClinicSettings /></RoleRoute>} />
+                    <Route path="/clinic/platform-settings" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicPlatformSettings /></RoleRoute>} />
                     <Route path="/clinic/staff" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicStaff /></RoleRoute>} />
                     <Route path="/clinic/notifications" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicNotifications /></RoleRoute>} />
                   </Route>

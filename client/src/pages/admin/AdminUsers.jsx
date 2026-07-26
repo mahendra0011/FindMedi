@@ -26,7 +26,7 @@ export default function AdminUsers() {
     setLoading(true);
     try {
       const data = await api.getUsers({ search, role: roleFilter });
-      setUsers(data);
+      setUsers(data?.data || data || []);
     } catch { toast.error('Failed to load users'); }
     setLoading(false);
   }, [search, roleFilter]);
@@ -105,7 +105,7 @@ export default function AdminUsers() {
                 {users.map(u => {
                   const RoleIcon = roleIcons[u.role] || UserRound;
                   return (
-                    <tr key={u._id} className="border-b border-border/30 hover:bg-muted/30">
+                     <tr key={u._id || u.id || i} className="border-b border-border/30 hover:bg-muted/30">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary text-sm font-bold">

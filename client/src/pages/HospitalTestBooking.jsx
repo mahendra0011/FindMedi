@@ -4,16 +4,16 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
    FlaskConical, Search, Clock, Home, Lock, ShoppingCart,
    ChevronRight, Heart, Sparkles, Plus, Minus, Activity,
-   ArrowLeft, MapPin, Phone, Star, BadgeCheck,
-   Building2, X, CreditCard, Wallet, CheckCircle,
-   Calendar, Sun, Moon, MapPinHouse, ChevronLeft,
-    Banknote, Shield, ShieldCheck, Camera, FileText
+     ArrowLeft, MapPin, Phone, Star, BadgeCheck,
+    Building2, X, CreditCard, Wallet, CheckCircle,
+    Calendar, Sun, Moon, MapPinHouse, ChevronLeft,
+     Banknote, Shield, ShieldCheck, Camera, FileText, FileDown
   } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { api } from '@/lib/api';
+import { api, downloadPaymentInvoice, downloadBillPdf } from '@/lib/api';
 import { bookTestLab, isBookingConflictError } from '@/lib/testBooking';
 import { useAuth } from '@/context/AuthContext';
 
@@ -55,6 +55,7 @@ export default function HospitalTestBooking() {
   const [selectedSlot, setSelectedSlot] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('upi');
   const [bookingId, setBookingId] = useState('');
+  const [paymentResult, setPaymentResult] = useState(null);
   const [hospital, setHospital] = useState(null);
   const { user } = useAuth();
   const [tests, setTests] = useState([]);
@@ -262,7 +263,7 @@ export default function HospitalTestBooking() {
     const total = cartTotal + (collectionMode === 'home' ? 50 : 0);
     let bookingId = '';
     try {
-      const { bookingId: bid } = await bookTestLab(
+      const { bookingId: bid, result } = await bookTestLab(
         {
           bookingId: 'LB' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).substr(2, 4).toUpperCase(),
           patientId: user.id,
@@ -291,6 +292,7 @@ export default function HospitalTestBooking() {
         }
       );
       bookingId = bid;
+      setPaymentResult(result);
       setBookingId(bookingId || 'MED' + Date.now().toString(36).toUpperCase());
       setBookingConfirmed(true);
       setBookingStep(6);
@@ -677,6 +679,18 @@ export default function HospitalTestBooking() {
                 </div>
               </div>
             </div>
+            {paymentResult?.transaction_id && (
+              <div className="flex gap-3 pt-1">
+                <Button size="sm" variant="outline" className="flex-1 gap-1.5 rounded-xl h-10 text-xs"
+                  onClick={() => downloadPaymentInvoice(paymentResult.transaction_id, `invoice-${paymentResult.invoice_id || bookingId}.pdf`)}>
+                  <FileDown className="w-4 h-4" /> Download Invoice
+                </Button>
+                <Button size="sm" variant="outline" className="flex-1 gap-1.5 rounded-xl h-10 text-xs"
+                  onClick={() => downloadBillPdf(paymentResult.transaction_id, `bill-${paymentResult.invoice_id || bookingId}.pdf`)}>
+                  <FileDown className="w-4 h-4" /> Download Bill
+                </Button>
+              </div>
+            )}
             {hasFasting && (
               <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-500/10 dark:to-orange-500/10 rounded-xl p-4 border border-amber-200 dark:border-amber-500/20">
                 <div className="flex items-start gap-2">

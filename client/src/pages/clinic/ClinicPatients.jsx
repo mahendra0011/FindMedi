@@ -29,9 +29,10 @@ export default function ClinicPatients() {
     setLoading(true);
     try {
       const [a, r] = await Promise.all([api.getAppointments(), api.getRecords()]);
-      const myAppts = a?.filter(apt => apt.doctor?.toLowerCase().includes(user?.name?.toLowerCase())) || [];
+      const appts = a?.data || a || [];
+      const myAppts = appts?.filter(apt => apt.doctor?.toLowerCase().includes(user?.name?.toLowerCase())) || [];
       setAppointments(myAppts);
-      setRecords(r?.records || r || []);
+      setRecords(r?.data || r?.records || r || []);
     } catch (e) { console.error(e); }
     setLoading(false);
   };

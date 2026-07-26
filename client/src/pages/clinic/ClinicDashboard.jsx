@@ -35,9 +35,10 @@ export default function ClinicDashboard() {
         ]);
         if (!mounted.current) return;
         const [a, b, r] = results.map(res => res.status === 'fulfilled' ? res.value : []);
-        const myAppts = a?.filter(apt => apt.doctor?.toLowerCase().includes(user?.name?.toLowerCase())) || [];
+        const appts = a?.data || a || [];
+        const myAppts = appts?.filter(apt => apt.doctor?.toLowerCase().includes(user?.name?.toLowerCase())) || [];
         setAppointments(myAppts);
-        const billsArray = b?.bills || b || [];
+        const billsArray = b?.data || b?.bills || b || [];
         setBills(billsArray.filter(bill => bill.doctor?.toLowerCase().includes(user?.name?.toLowerCase())));
         setReviews(r?.filter(rv => rv.doctorName === user?.name) || []);
         const failed = results.filter(res => res.status === 'rejected');

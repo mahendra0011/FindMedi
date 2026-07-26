@@ -41,7 +41,7 @@ export default function DoctorConsultations() {
     setLoading(true);
     try {
       const data = await api.getRecords();
-      const recordsArray = data?.records || data || [];
+      const recordsArray = data?.data || data?.records || data || [];
       setRecords(recordsArray.filter(r => 
         r.doctor?.toLowerCase().includes(user?.name?.toLowerCase())
       ));

@@ -17,7 +17,8 @@ export default function PharmacyReviews() {
   useEffect(() => {
     const load = async () => {
       try {
-        const hospitalId = user?.hospitalId;
+        const hospitalId = user?.hospitalId || user?.facilityId;
+        if (!hospitalId) { setReviews([]); setLoading(false); return; }
         const res = await api.getReviews({ hospitalId });
         const data = res.reviews || res || [];
         setReviews(Array.isArray(data) ? data : []);

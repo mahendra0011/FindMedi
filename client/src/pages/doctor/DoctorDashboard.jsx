@@ -37,19 +37,20 @@ export default function DoctorDashboard() {
         if (!mounted.current) return;
         const [a, r, b, records] = results.map(res => res.status === 'fulfilled' ? res.value : []);
         const docName = user?.name?.toLowerCase();
-        const myAppointments = a?.filter(apt => 
+        const appts = a?.data || a || [];
+        const myAppointments = appts?.filter(apt => 
           apt.doctor?.toLowerCase() === docName
         ) || [];
         setAppointments(myAppointments);
         setReviews(r?.filter(rv => rv.doctorName === user?.name) || []);
         
-        const billsArray = b?.bills || b || [];
+        const billsArray = b?.data || b?.bills || b || [];
         const myBills = billsArray?.filter(bill => 
           bill.doctor?.toLowerCase() === docName
         ) || [];
         setBills(myBills);
 
-        const allRecords = records?.records || records || [];
+        const allRecords = records?.data || records?.records || records || [];
         const myLabReports = allRecords
           .filter(rec => rec.type === 'lab_report')
           .slice(-10)

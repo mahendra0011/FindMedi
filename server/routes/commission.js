@@ -129,11 +129,15 @@ router.post('/payouts', protect, superadminOnly, validate(payoutCreateSchema), a
     const config = await CommissionConfig.findOne({ facilityId });
     if (!config) return res.status(404).json({ message: 'Commission config not found for this facility' });
 
+    const dateFilter = {};
+    if (periodStart) dateFilter.$gte = new Date(periodStart);
+    if (periodEnd) dateFilter.$lte = new Date(periodEnd);
+
     const transactions = await TransactionLedger.find({
       facilityId,
       payoutId: { $exists: false },
       status: 'completed',
-      createdAt: { $gte: new Date(periodStart), $lte: new Date(periodEnd) },
+      ...(Object.keys(dateFilter).length ? { createdAt: dateFilter } : {}),
     });
 
     const grossRevenue = transactions.reduce((s, t) => s + (t.amount || 0), 0);

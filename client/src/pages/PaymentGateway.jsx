@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { CreditCard, Wallet, Banknote, Building, CheckCircle2, XCircle, Loader2, ArrowLeft, Shield, Lock, Smartphone, Copy, Check } from 'lucide-react';
+import { CreditCard, Wallet, Banknote, Building, CheckCircle2, XCircle, Loader2, ArrowLeft, Shield, Lock, Smartphone, Copy, Check, FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
-import { api } from '@/lib/api';
+import { api, downloadPaymentInvoice, downloadBillPdf } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import BillCheckout from '@/components/BillCheckout';
 
@@ -41,6 +41,7 @@ export default function PaymentGateway() {
   const [storeNames, setStoreNames] = useState({});
   const [order, setOrder] = useState(null);
   const [orderLoading, setOrderLoading] = useState(true);
+  const [payResult, setPayResult] = useState(null);
   const { user } = useAuth();
   useEffect(() => {
     if (storeIds.length === 0) return;
@@ -86,7 +87,7 @@ export default function PaymentGateway() {
     setPaying(true);
     setStep('processing');
     try {
-      await api.payTransaction({
+      const res = await api.payTransaction({
         serviceType: 'medicine',
         referenceId: orderIds[0],
         amount: total,
@@ -95,6 +96,7 @@ export default function PaymentGateway() {
         provider: storeNames[storeIds[0]] || storeIds[0],
         lineItems: (order?.items || []).map(i => ({ name: i.medicineName, price: i.price, qty: i.qty })),
       });
+      setPayResult(res);
       setStep('success');
     } catch (e) {
       const msg = e.response?.data?.message || e.message || '';
@@ -288,7 +290,19 @@ export default function PaymentGateway() {
               </div>
               <p className="text-lg font-semibold text-foreground">Payment Successful!</p>
               <p className="text-sm text-muted-foreground mt-1">₹{total} has been charged to your {methodInfo.label}</p>
-              <Button className="mt-6 gap-2 rounded-xl" onClick={handleProceed}>
+              {payResult?.transaction_id && (
+                <div className="flex gap-2 mt-4 justify-center">
+                  <Button size="sm" variant="outline" className="gap-1.5 rounded-xl"
+                    onClick={() => downloadPaymentInvoice(payResult.transaction_id, `invoice-${payResult.invoice_id || 'order'}.pdf`)}>
+                    <FileDown className="w-4 h-4" /> Invoice
+                  </Button>
+                  <Button size="sm" variant="outline" className="gap-1.5 rounded-xl"
+                    onClick={() => downloadBillPdf(payResult.transaction_id, `bill-${payResult.invoice_id || 'order'}.pdf`)}>
+                    <FileDown className="w-4 h-4" /> Bill
+                  </Button>
+                </div>
+              )}
+              <Button className="mt-4 gap-2 rounded-xl" onClick={handleProceed}>
                 View Order Confirmation
               </Button>
             </div>

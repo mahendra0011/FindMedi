@@ -28,7 +28,7 @@ export default function ClinicPrescriptions() {
     setLoading(true);
     try {
       const data = await api.getRecords();
-      const arr = data?.records || data || [];
+      const arr = data?.data || data?.records || data || [];
       setRecords(arr.filter(r => r.doctor?.toLowerCase().includes(user?.name?.toLowerCase()) && r.type === 'Prescription'));
     } catch (e) { console.error(e); }
     setLoading(false);
