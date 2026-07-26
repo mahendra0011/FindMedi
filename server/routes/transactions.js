@@ -94,6 +94,7 @@ router.get('/', protect, async (req, res, next) => {
 // POST /api/transactions/pay — unified payment + confirm (idempotent)
 // Can also accept appointment data to create appointment + payment atomically
 router.post('/pay', protect, async (req, res, next) => {
+  let createdAppointment = null;
   try {
     let { serviceType, referenceId, amount, method, description, provider, lineItems, appointment: apptData } = req.body;
     if (!serviceType || !amount || !method) {
@@ -104,7 +105,6 @@ router.post('/pay', protect, async (req, res, next) => {
     }
 
     // ── If appointment data is provided, create appointment first (atomic flow) ──
-    let createdAppointment = null;
     if (apptData && serviceType === 'appointment') {
       try {
         const { doctorId, doctor, doctorName, department, date, time, notes, type, symptoms, priority, facilityId } = apptData;
