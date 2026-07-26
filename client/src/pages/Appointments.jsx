@@ -36,7 +36,7 @@ export default function Appointments() {
     queryKey: ['appointments', statusFilter],
     queryFn: () => api.getAppointments(statusFilter !== 'All' ? { status: statusFilter } : {}),
   });
-  const appointments = raw?.data || raw?.appointments || Array.isArray(raw) ? raw : [];
+  const appointments = raw?.data || raw?.appointments || (Array.isArray(raw) ? raw : []);
 
   const createMut = useMutation({ mutationFn: api.createAppointment, onSuccess: () => { qc.invalidateQueries(['appointments']); setModal(false); setForm(empty); } });
   const updateMut = useMutation({ mutationFn: ({ id, data }) => api.updateAppointment(id, data), onSuccess: () => qc.invalidateQueries(['appointments']) });

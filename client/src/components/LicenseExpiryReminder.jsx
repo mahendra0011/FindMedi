@@ -8,12 +8,11 @@ export default function LicenseExpiryReminder() {
   const [expiringLicenses, setExpiringLicenses] = useState([]);
 
   useEffect(() => {
-    // Only applies to roles that represent facilities or doctors with licenses
-    if (!['clinic_doctor', 'lab_owner', 'pharmacy_owner', 'doctor', 'hospital'].includes(user?.role)) return;
+    if (user?.role !== 'superadmin') return;
 
     const checkLicenses = async () => {
       try {
-        const { licenses } = await api.getLicenses({ ownerId: user?._id });
+        const { licenses } = await api.getLicenses();
         if (licenses && licenses.length > 0) {
           const now = new Date();
           const thirtyDaysFromNow = new Date();

@@ -22,11 +22,12 @@ export default function Billing() {
   const [modal, setModal] = useState(false);
   const [form, setForm] = useState(empty);
 
-  const { data = { bills:[], summary:{total:0,paid:0} }, isLoading } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ['billing', search, statusFilter],
     queryFn: () => api.getBilling({ ...(search && { search }), ...(statusFilter !== 'All' && { status: statusFilter }) }),
+    select: (res) => ({ bills: res?.data || [], summary: res?.summary || { total: 0, paid: 0 } }),
   });
-  const { bills, summary } = data;
+  const { bills, summary } = data || { bills:[], summary:{total:0,paid:0} };
 
   const createMut = useMutation({ mutationFn: api.createBill, onSuccess: () => { qc.invalidateQueries(['billing']); setModal(false); setForm(empty); } });
   const deleteMut = useMutation({ mutationFn: api.deleteBill, onSuccess: () => qc.invalidateQueries(['billing']) });

@@ -42,13 +42,14 @@ export default function DoctorPatients() {
         api.getRecords(),
       ]);
       
-      const myAppointments = a?.filter(apt => 
+      const appts = a?.data || a || [];
+      const myAppointments = appts?.filter(apt => 
         apt.doctor?.toLowerCase().includes(user?.name?.toLowerCase()) ||
         apt.doctorId?.name?.toLowerCase().includes(user?.name?.toLowerCase())
       ) || [];
       
       setAppointments(myAppointments);
-      setRecords(r?.records || r || []);
+      setRecords(r?.data || r?.records || r || []);
     } catch (e) { toast.error(e.message); }
     setLoading(false);
   };

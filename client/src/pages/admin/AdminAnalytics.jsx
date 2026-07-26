@@ -8,7 +8,7 @@ const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
 
 export default function AdminAnalytics() {
   const { data: stats, isLoading: statsLoading } = useApiQuery(['admin', 'stats'], () => api.dashboardStats());
-  const { data: users = [], isLoading: usersLoading } = useApiQuery(['admin', 'users'], () => api.getUsers());
+  const { data: users = [], isLoading: usersLoading } = useApiQuery(['admin', 'users'], () => api.getUsers(), { select: (res) => res?.data || res || [] });
 
   if (statsLoading || usersLoading) return <div className="flex justify-center py-12"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>;
 

@@ -67,7 +67,7 @@ export default function DoctorAppointments() {
     try {
       const data = await api.getAppointments({ doctor: user?.name, status: filter });
       const docName = user?.name?.toLowerCase();
-      setAppointments((data || []).filter(apt => apt.doctor?.toLowerCase() === docName));
+      setAppointments((data?.data || data || []).filter(apt => apt.doctor?.toLowerCase() === docName));
     } catch (e) { console.error(e); toast.error('Failed to load appointments'); }
     setLoading(false);
   };

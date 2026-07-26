@@ -23,7 +23,7 @@ export default function MyReports() {
     setLoading(true);
     try {
       const data = await api.getRecords();
-      const allRecords = data?.records || data || [];
+      const allRecords = data?.data || data?.records || data || [];
       const prescriptions = allRecords.filter(r => r.type === 'prescription');
       const labReports = allRecords.filter(r => r.type === 'lab_report');
       const dischargeSummaries = allRecords.filter(r => r.type === 'discharge_summary');

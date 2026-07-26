@@ -20,7 +20,7 @@ export default function AdminDoctors() {
     setLoading(true);
     try {
       const data = await api.getDoctors({ search, includeAll: 'true' });
-      setDoctors(data);
+      setDoctors(data?.data || data || []);
     } catch { toast.error('Failed to load doctors'); }
     setLoading(false);
   }, [search]);

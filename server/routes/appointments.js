@@ -79,10 +79,6 @@ router.get('/', protect, async (req, res) => {
         { path: 'doctorId', select: 'name specialization' },
       ],
     });
-    // Map old Pending records to Confirmed
-    if (result.data) {
-      result.data.forEach(a => { if (a.status === 'Pending') a.status = 'Confirmed'; });
-    }
     res.json(result);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
@@ -122,8 +118,6 @@ router.get('/my-appointments', protect, async (req, res) => {
       .populate('patientId', 'name email phone')
       .populate('doctorId', 'name specialization')
       .sort({ date: -1, createdAt: 1 });
-    // Map old Pending records to Confirmed
-    appointments.forEach(a => { if (a.status === 'Pending') a.status = 'Confirmed'; });
     res.json(appointments);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });

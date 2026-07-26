@@ -27,7 +27,7 @@ export default function DoctorEarnings() {
       setLoading(true);
       try {
         const data = await api.getBilling();
-        const billsArray = data?.bills || data || [];
+        const billsArray = data?.data || data?.bills || data || [];
         const myBills = billsArray.filter(b => 
           b.doctor?.toLowerCase().includes(user?.name?.toLowerCase()) ||
           b.doctorId?.name?.toLowerCase().includes(user?.name?.toLowerCase())

@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Sheet, SheetContent } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Overview', path: '/pharmacy-business/dashboard' },
@@ -138,6 +138,8 @@ export default function PharmacyBusinessLayout() {
           </button>
           <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
             <SheetContent side="left" className="p-0 w-[280px] bg-sidebar border-r border-sidebar-border">
+              <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+              <SheetDescription className="sr-only">Mobile navigation sidebar</SheetDescription>
               <SidebarContent collapsed={false} onNavClick={() => setSheetOpen(false)} />
             </SheetContent>
           </Sheet>

@@ -13,7 +13,7 @@ export default function LabReviews() {
   useEffect(() => {
     const fetchReviews = async () => {
       try {
-        const hospitalId = user?.facilityId || user?.hospitalId || user?._id;
+        const hospitalId = user?.facilityId || user?.hospitalId || user?.id || user?._id;
         const data = await api.getReviews({ hospitalId });
         setReviews(data?.length > 0 ? data : []);
       } catch (error) {

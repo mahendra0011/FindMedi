@@ -36,7 +36,7 @@ export default function DoctorEmergency() {
 
   const handleAccept = async (id) => {
     try {
-      await api.assignEmergencyDoctor(id, user?._id, user?.name);
+      await api.assignEmergencyDoctor(id, user?.id || user?._id, user?.name);
       toast.success('Emergency case accepted');
       loadEmergencies();
     } catch (e) { toast.error(e.message); }

@@ -36,7 +36,7 @@ export default function AdminTestCatalog() {
         api.getTests(params),
         api.getTestStats(),
       ]);
-      setTests(data);
+      setTests(data?.tests || data || []);
       setStats(statsData);
     } catch { toast.error('Failed to load tests'); }
     setLoading(false);

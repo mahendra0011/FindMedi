@@ -9,7 +9,7 @@ import {
   ChevronDown, ChevronUp, FlaskRound, Quote, Mail,
   Circle, Heart, Eye, Sparkles, TrendingUp, Brain, Bone, Baby, Activity,
   FlaskConical, ShoppingCart, Lock, Plus, Minus, Zap, X, UserRound, HelpCircle,
-  Wallet, CreditCard, Smartphone, Landmark, Banknote
+   Wallet, CreditCard, Smartphone, Landmark, Banknote, FileDown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -25,7 +25,7 @@ import BookingModal from '@/components/BookingModal';
 // Carousel icons
 import { ChevronLeft } from 'lucide-react';
 const ChevronRightIcon = ChevronRight;
-import { api } from '@/lib/api';
+import { api, downloadPaymentInvoice, downloadBillPdf } from '@/lib/api';
 import { bookTestLab, isBookingConflictError } from '@/lib/testBooking';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -1794,6 +1794,18 @@ export default function HospitalProfile() {
                       <div className="flex justify-between"><span className="text-muted-foreground">Method</span><span className="capitalize text-foreground">{testPaymentMethod}</span></div>
                       <div className="flex justify-between"><span className="text-muted-foreground">Date</span><span className="text-foreground">{testSelectedDate}</span></div>
                     </div>
+                    {testPaymentResult?.transaction_id && (
+                      <div className="flex gap-3">
+                        <Button size="sm" variant="outline" className="flex-1 gap-1.5 rounded-xl h-10 text-xs"
+                          onClick={() => downloadPaymentInvoice(testPaymentResult.transaction_id, `invoice-${testPaymentResult.invoice_id || 'test'}.pdf`)}>
+                          <FileDown className="w-4 h-4" /> Download Invoice
+                        </Button>
+                        <Button size="sm" variant="outline" className="flex-1 gap-1.5 rounded-xl h-10 text-xs"
+                          onClick={() => downloadBillPdf(testPaymentResult.transaction_id, `bill-${testPaymentResult.invoice_id || 'test'}.pdf`)}>
+                          <FileDown className="w-4 h-4" /> Download Bill
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

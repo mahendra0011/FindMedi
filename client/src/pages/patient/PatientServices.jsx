@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Activity, TestTube, Heart, Droplets, Thermometer, Calendar, CheckCircle, Loader2, IndianRupee } from 'lucide-react';
+import { Activity, TestTube, Heart, Droplets, Thermometer, Calendar, CheckCircle, Loader2, IndianRupee, FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
-import { api } from '@/lib/api';
+import { api, downloadPaymentInvoice, downloadBillPdf } from '@/lib/api';
 import { bookTestLab } from '@/lib/testBooking';
 import { toast } from 'sonner';
 
@@ -139,7 +139,7 @@ export default function PatientServices() {
           lineItems: selectedServices.map(s => ({ name: s.name, price: s.price, qty: 1 })),
         }
       );
-      const bookingInfo = buildLabBookings([{ ...booking, status: 'Paid', invoiceId: result.invoice_id }], services, user)[0];
+      const bookingInfo = buildLabBookings([{ ...booking, status: 'Paid', invoiceId: result.invoice_id, transactionId: result.transaction_id }], services, user)[0];
       if (bookingInfo) {
         setBookedServices(current => [bookingInfo, ...current.filter(item => item.id !== bookingInfo.id)]);
         setLastBooking(bookingInfo);
@@ -175,6 +175,18 @@ export default function PatientServices() {
                 {lastBooking.services.map(service => service.name).join(', ')}
               </p>
               <p className="text-xs text-muted-foreground mt-1">Invoice {lastBooking.invoiceId || 'created'} is available in billing.</p>
+              {lastBooking.transactionId && (
+                <div className="flex gap-2 mt-3">
+                  <Button size="sm" variant="outline" className="gap-1.5 rounded-xl h-8 text-xs"
+                    onClick={() => downloadPaymentInvoice(lastBooking.transactionId, `invoice-${lastBooking.invoiceId || 'service'}.pdf`)}>
+                    <FileDown className="w-3.5 h-3.5" /> Invoice
+                  </Button>
+                  <Button size="sm" variant="outline" className="gap-1.5 rounded-xl h-8 text-xs"
+                    onClick={() => downloadBillPdf(lastBooking.transactionId, `bill-${lastBooking.invoiceId || 'service'}.pdf`)}>
+                    <FileDown className="w-3.5 h-3.5" /> Bill
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </motion.div>

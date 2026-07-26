@@ -82,6 +82,10 @@ const facilitySchema = new mongoose.Schema({
     coordinates: { type: [Number], default: undefined },
   },
 
+  settings: {
+    autoConfirmAppointment: { type: Boolean, default: true },
+  },
+
   details: {
     type: Object,
     default: {},

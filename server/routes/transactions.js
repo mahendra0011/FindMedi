@@ -2,6 +2,7 @@ import express from 'express';
 import crypto from 'crypto';
 import Billing from '../models/Billing.js';
 import Payment from '../models/Payment.js';
+import Facility from '../models/Facility.js';
 import Appointment from '../models/Appointment.js';
 import LabBooking from '../models/LabBooking.js';
 import PharmacyOrder from '../models/PharmacyOrder.js';
@@ -133,10 +134,22 @@ router.post('/pay', protect, async (req, res, next) => {
       }]);
       payment = p;
 
-      // Auto-confirm the referenced booking
+      // Auto-confirm the referenced booking (check facility setting)
       if (referenceId) {
         if (serviceType === 'appointment') {
-          await Appointment.findByIdAndUpdate(referenceId, { status: 'Confirmed' });
+          let shouldConfirm = true;
+          try {
+            const appt = await Appointment.findById(referenceId).populate('doctorId', 'facilityId').lean();
+            if (appt?.doctorId?.facilityId) {
+              const facility = await Facility.findById(appt.doctorId.facilityId).select('settings').lean();
+              if (facility?.settings?.autoConfirmAppointment === false) {
+                shouldConfirm = false;
+              }
+            }
+          } catch (_) { /* default to confirm on error */ }
+          if (shouldConfirm) {
+            await Appointment.findByIdAndUpdate(referenceId, { status: 'Confirmed' });
+          }
         } else if (serviceType === 'test') {
           await LabBooking.findByIdAndUpdate(referenceId, { status: 'Confirmed', paymentStatus: 'Paid' });
         } else if (serviceType === 'medicine') {

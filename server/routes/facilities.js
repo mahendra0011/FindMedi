@@ -61,6 +61,33 @@ router.get('/mine', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
+// GET /api/facilities/settings — get facility settings
+router.get('/settings', protect, async (req, res) => {
+  try {
+    const id = req.user.facilityId;
+    if (!id) return res.status(404).json({ message: 'No facility linked' });
+    const facility = await Facility.findById(id).select('settings');
+    if (!facility) return res.status(404).json({ message: 'Facility not found' });
+    res.json(facility.settings || { autoConfirmAppointment: true });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// PUT /api/facilities/settings — update facility settings
+router.put('/settings', protect, async (req, res) => {
+  try {
+    const id = req.user.facilityId;
+    if (!id) return res.status(404).json({ message: 'No facility linked' });
+    const { autoConfirmAppointment } = req.body;
+    const facility = await Facility.findByIdAndUpdate(
+      id,
+      { 'settings.autoConfirmAppointment': autoConfirmAppointment },
+      { new: true }
+    ).select('settings');
+    if (!facility) return res.status(404).json({ message: 'Facility not found' });
+    res.json(facility.settings);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
 router.get('/:id', async (req, res) => {
   try {
     let facility;

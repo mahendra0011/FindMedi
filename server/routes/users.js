@@ -1,13 +1,14 @@
 import express from 'express';
 import User from '../models/User.js';
 import { z } from 'zod';
-import { protect, adminOnly } from '../middleware/auth.js';
+import { protect, adminOnly, superadminOnly } from '../middleware/auth.js';
 import { sendAccountBlockedEmail } from '../services/notificationService.js';
 import { auditLog } from '../middleware/audit.js';
 import { validate } from '../utils/validate.js';
 import { paginatedResults } from '../utils/pagination.js';
 
 const blockUserSchema = z.object({ reason: z.string().optional() });
+const flagUserSchema = z.object({ reason: z.string().optional() });
 
 const router = express.Router();
 
@@ -16,6 +17,7 @@ router.get('/', protect, adminOnly, async (req, res) => {
     const { page, limit } = req.query;
     const filter = {};
     if (req.query.role && req.query.role !== 'All') filter.role = req.query.role;
+    if (req.query.flagged === 'true') filter.flagged = true;
     if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
     if (req.query.search) {
       const q = req.query.search;
@@ -36,6 +38,8 @@ router.get('/', protect, adminOnly, async (req, res) => {
       status: u.status || 'active',
       isVerified: u.isVerified,
       approvalStatus: u.approvalStatus,
+      flagged: u.flagged || false,
+      flagReason: u.flagReason || '',
     }));
     res.json(result);
   } catch (err) { res.status(500).json({ message: err.message }); }
@@ -62,6 +66,30 @@ router.put('/:id/block', protect, adminOnly, validate(blockUserSchema), async (r
     await auditLog(user.status === 'blocked' ? 'block_user' : 'unblock_user', req.user._id, { targetUserId: user._id, ip: req.ip, userAgent: req.get('user-agent') });
 
     res.json({ message: user.status === 'blocked' ? 'User blocked' : 'User unblocked', status: user.status });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+router.put('/:id/flag', protect, superadminOnly, validate(flagUserSchema), async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    user.flagged = true;
+    user.flagReason = req.body.reason || '';
+    await user.save();
+    await auditLog('flag_user', req.user._id, { targetUserId: user._id, reason: req.body.reason, ip: req.ip, userAgent: req.get('user-agent') });
+    res.json({ message: 'User flagged', flagged: true });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+router.put('/:id/unflag', protect, superadminOnly, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    user.flagged = false;
+    user.flagReason = '';
+    await user.save();
+    await auditLog('unflag_user', req.user._id, { targetUserId: user._id, ip: req.ip, userAgent: req.get('user-agent') });
+    res.json({ message: 'User unflagged', flagged: false });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 

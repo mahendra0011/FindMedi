@@ -5,7 +5,7 @@ import { Heart, Activity, Droplets, Bandage, Plus, Search, Loader2, AlertCircle 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 
@@ -92,7 +92,7 @@ export default function NursingCharts() {
             <Button className="gap-1.5"><Plus className="w-4 h-4" /> New {tab} Entry</Button>
           </DialogTrigger>
           <DialogContent className="max-w-lg">
-            <DialogHeader><DialogTitle>New {tab} Entry</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>New {tab} Entry</DialogTitle><DialogDescription className="sr-only">Enter details for a new {tab} chart entry</DialogDescription></DialogHeader>
             <div className="space-y-3 py-2">
               <Input value={newEntry.patientId} onChange={e => setNewEntry(p => ({ ...p, patientId: e.target.value }))} placeholder="Patient ID" />
               <Input value={newEntry.patientName} onChange={e => setNewEntry(p => ({ ...p, patientName: e.target.value }))} placeholder="Patient Name" />

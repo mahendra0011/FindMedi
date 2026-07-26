@@ -42,7 +42,7 @@ export default function ClinicNotifications() {
     setLoading(true);
     try {
       const data = await api.getNotifications({ doctor: user?.name, type: filter });
-      setNotifications(data);
+      setNotifications(data?.data || data || []);
     } catch (e) { console.error(e); }
     setLoading(false);
   };

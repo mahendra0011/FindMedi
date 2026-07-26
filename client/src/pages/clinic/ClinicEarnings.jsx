@@ -23,9 +23,10 @@ export default function ClinicEarnings() {
       setLoading(true);
       try {
         const [b, a] = await Promise.all([api.getBilling(), api.getAppointments()]);
-        const ba = b?.bills || b || [];
+        const ba = b?.data || b?.bills || b || [];
         setBills(ba.filter(bill => bill.doctor?.toLowerCase().includes(user?.name?.toLowerCase())));
-        setAppointments(a?.filter(apt => apt.doctor?.toLowerCase().includes(user?.name?.toLowerCase())) || []);
+        const appts = a?.data || a || [];
+        setAppointments(appts?.filter(apt => apt.doctor?.toLowerCase().includes(user?.name?.toLowerCase())) || []);
       } catch (e) { console.error(e); }
       setLoading(false);
     };

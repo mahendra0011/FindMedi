@@ -18,6 +18,7 @@ export default function Patients() {
   const { data: patients = [], isLoading } = useQuery({
     queryKey: ['patients', search, statusFilter],
     queryFn: () => api.getPatients({ ...(search && { search }), ...(statusFilter && { status: statusFilter }) }),
+    select: (data) => data?.data || data || [],
   });
 
   const createMut = useMutation({ mutationFn: api.createPatient, onSuccess: () => { qc.invalidateQueries(['patients']); setModal(false); setForm(empty); } });

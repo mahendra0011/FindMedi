@@ -3,19 +3,39 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, UserRound, Stethoscope, CalendarDays, FileText,
   CreditCard, Percent, Settings, ChevronLeft, ChevronRight, Activity, LogOut,
-  Home, Search, Star, Users, BarChart3, Bell, Building2, Clock, Calendar, DollarSign, FileUp, Download, TestTube, AlertTriangle, Menu, X, Bed, Pill, FlaskConical, Hospital, Heart, Brain, Syringe, ClipboardList, ShieldCheck, Baby, Ambulance, IndianRupee, History, Flag, ShoppingCart, Megaphone, Settings2, Truck, Microscope, HelpCircle, MapPinned, User, Bookmark, Upload
+  Home, Search, Star, Users, BarChart3, Bell, Building2, Clock, Calendar, DollarSign, FileUp, Download, TestTube, AlertTriangle, Menu, X, Bed, Pill, FlaskConical, Hospital, Heart, Brain, Syringe, ClipboardList, ShieldCheck, Baby, Ambulance, IndianRupee, History, Flag, ShoppingCart, Megaphone, Settings2, Truck, Microscope, HelpCircle, MapPinned, User, Bookmark, Upload, TrendingUp, FileCheck, Tags, Headset, Shield, Tag, MapPin, Globe
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { t } from '@/lib/settings';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTitle, SheetDescription, SheetTrigger, SheetClose } from '@/components/ui/sheet';
 import NotificationBell from './NotificationBell';
 
 const navConfig = {
   superadmin: [
     { icon: LayoutDashboard, labelKey: 'nav.dashboard',        path: '/dashboard'        },
     { icon: ShieldCheck,     labelKey: 'nav.superAdminPanel',  path: '/superadmin'       },
-    { icon: Users,           labelKey: 'nav.manageUsers',      path: '/admin/users'      },
+    { icon: TrendingUp,      labelKey: 'nav.saOverview',       path: '/superadmin/overview' },
+    { icon: Clock,           labelKey: 'nav.saPending',        path: '/superadmin/pending' },
+    { icon: Building2,       labelKey: 'nav.saFacilities',     path: '/superadmin/facilities' },
+    { icon: BarChart3,       labelKey: 'nav.saStats',          path: '/superadmin/stats' },
+    { icon: Users,           labelKey: 'nav.saUsers',          path: '/superadmin/users' },
+    { icon: Flag,            labelKey: 'nav.saModeration',     path: '/superadmin/moderation' },
+    { icon: AlertTriangle,   labelKey: 'nav.saDisputes',       path: '/superadmin/disputes' },
+    { icon: DollarSign,      labelKey: 'nav.saRevenue',        path: '/superadmin/revenue' },
+    { icon: FileCheck,       labelKey: 'nav.saLicenses',       path: '/superadmin/licenses' },
+    { icon: Tags,            labelKey: 'nav.saCategories',     path: '/superadmin/categories' },
+    { icon: FileText,        labelKey: 'nav.saCatalog',        path: '/superadmin/catalog' },
+    { icon: History,         labelKey: 'nav.saAudit',          path: '/superadmin/audit' },
+    { icon: Megaphone,       labelKey: 'nav.saBroadcast',      path: '/superadmin/broadcast' },
+    { icon: Headset,         labelKey: 'nav.saTickets',        path: '/superadmin/tickets' },
+    { icon: Settings,        labelKey: 'nav.saSettings',       path: '/superadmin/settings' },
+    { icon: Shield,          labelKey: 'nav.saTeam',           path: '/superadmin/team' },
+    { icon: Tag,             labelKey: 'nav.saPromotions',     path: '/superadmin/promotions' },
+    { icon: Download,        labelKey: 'nav.saExport',         path: '/superadmin/export' },
+    { icon: MapPin,          labelKey: 'nav.saCities',         path: '/superadmin/cities' },
+    { icon: FileText,        labelKey: 'nav.saLegal',          path: '/superadmin/legal' },
+    { icon: Settings,        labelKey: 'nav.saIntegrations',   path: '/superadmin/integrations' },
     { icon: Bell,            labelKey: 'nav.notifications',    path: '/notifications'    },
     { icon: Settings,        labelKey: 'nav.settings',         path: '/settings'         },
   ],
@@ -56,6 +76,7 @@ const navConfig = {
     { icon: Settings2,       labelKey: 'nav.hospitalSettings', path: '/admin/hospital-settings' },
     { icon: Megaphone,       labelKey: 'nav.announcements',    path: '/admin/announcements' },
     { icon: Calendar,        labelKey: 'nav.leaveManagement',  path: '/admin/leave-requests' },
+    { icon: Globe,           labelKey: 'nav.platformSettings',  path: '/superadmin/overview' },
     { icon: Bell,            labelKey: 'nav.notifications',    path: '/notifications'    },
     { icon: Settings,        labelKey: 'nav.settings',         path: '/settings'         },
   ],
@@ -75,6 +96,7 @@ const navConfig = {
     { icon: Users,           labelKey: 'nav.staffManagement',   path: '/clinic/staff'         },
     { icon: Bell,            labelKey: 'nav.notifications',     path: '/clinic/notifications' },
     { icon: Settings,        labelKey: 'nav.clinicSettings',    path: '/clinic/settings'      },
+    { icon: Globe,           labelKey: 'nav.platformSettings',  path: '/clinic/platform-settings' },
   ],
   doctor: [
     { icon: LayoutDashboard, labelKey: 'nav.dashboard',       path: '/dashboard'           },
@@ -111,6 +133,7 @@ const navConfig = {
     { icon: Settings2,       labelKey: 'nav.labSettings',      path: '/lab-business/settings'  },
     { icon: Bell,            labelKey: 'nav.notifications',    path: '/notifications'          },
     { icon: Settings,        labelKey: 'nav.settings',         path: '/settings'               },
+    { icon: Globe,           labelKey: 'nav.platformSettings',  path: '/superadmin/overview' },
   ],
   pharmacy_owner: [
     { icon: LayoutDashboard, labelKey: 'nav.dashboard',        path: '/dashboard'                  },
@@ -127,6 +150,7 @@ const navConfig = {
     { icon: Settings2,       labelKey: 'nav.pharmacySettings', path: '/pharmacy-business/settings'  },
     { icon: Bell,            labelKey: 'nav.notifications',    path: '/notifications'               },
     { icon: Settings,        labelKey: 'nav.settings',         path: '/settings'                    },
+    { icon: Globe,           labelKey: 'nav.platformSettings',  path: '/superadmin/overview' },
   ],
   patient: [
     { icon: LayoutDashboard, labelKey: 'nav.dashboard',             path: '/dashboard'                  },
@@ -250,9 +274,11 @@ export default function AppSidebar() {
           <Menu className="w-5 h-5" />
         </button>
         <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-          <SheetContent side="left" className="p-0 w-[280px] bg-sidebar border-r border-sidebar-border">
-            <SidebarContent collapsed={false} onNavClick={() => setSheetOpen(false)} />
-          </SheetContent>
+<SheetContent side="left" className="p-0 w-[280px] bg-sidebar border-r border-sidebar-border">
+          <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+          <SheetDescription className="sr-only">Mobile navigation sidebar</SheetDescription>
+          <SidebarContent collapsed={false} onNavClick={() => setSheetOpen(false)} />
+        </SheetContent>
         </Sheet>
       </>
     );
