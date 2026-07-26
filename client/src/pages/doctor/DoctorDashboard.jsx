@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import LicenseExpiryReminder from '@/components/LicenseExpiryReminder';
+import { getISTDateString } from '@/lib/dateUtils';
 
 const statusColors = {
   Confirmed: { bg: 'bg-success/10', text: 'text-success', border: 'border-success/20' },
@@ -68,7 +69,7 @@ export default function DoctorDashboard() {
     return () => { mounted.current = false; };
   }, [user?.name]);
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = getISTDateString();
   const todayAppts = appointments.filter(a => a.date === today);
   const pendingAppts = appointments.filter(a => a.status === 'Pending');
   const completedAppts = appointments.filter(a => a.status === 'Completed');

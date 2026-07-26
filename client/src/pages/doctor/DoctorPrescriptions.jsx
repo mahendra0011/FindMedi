@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
+import { getISTDateString } from '@/lib/dateUtils';
 
 const initialPrescription = {
   patientName: '', age: '', gender: '', phone: '', email: '', address: '',
@@ -80,7 +81,7 @@ export default function DoctorPrescriptions() {
           medications: meds,
           advice: form.advice,
           followUp: form.followUp,
-          date: new Date().toISOString().split('T')[0],
+          date: getISTDateString(),
         },
       });
       await api.createNotification({
@@ -132,7 +133,7 @@ export default function DoctorPrescriptions() {
         </div>
         <div className="bg-card rounded-xl border border-border/60 p-4 text-center">
           <Calendar className="w-6 h-6 mx-auto text-info mb-1" />
-          <p className="text-2xl font-bold text-foreground">{records.filter(r => r.date === new Date().toISOString().split('T')[0]).length}</p>
+          <p className="text-2xl font-bold text-foreground">{records.filter(r => r.date === getISTDateString()).length}</p>
           <p className="text-xs text-muted-foreground">Today</p>
         </div>
         <div className="bg-card rounded-xl border border-border/60 p-4 text-center">

@@ -10,6 +10,7 @@ import BillCheckout from './BillCheckout';
 import { api, downloadPaymentInvoice, downloadBillPdf } from '@/lib/api';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
+import { getISTDateString } from '@/lib/dateUtils';
 
 export default function BookingModal({
   open,
@@ -40,7 +41,7 @@ export default function BookingModal({
       const doc = doctor || null;
       setSelectedDoctor(doc);
       setBookingStep(doc ? 0 : -1);
-      setBookingDate(new Date().toISOString().split('T')[0]);
+      setBookingDate(getISTDateString());
       setBookingTime('');
       setBookingNotes('');
       setPaymentMethod('card');
@@ -252,7 +253,7 @@ export default function BookingModal({
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-foreground">Select Date</label>
-                <Input type="date" className="w-full" value={bookingDate} onChange={e => setBookingDate(e.target.value)} min={new Date().toISOString().split('T')[0]} />
+                <Input type="date" className="w-full" value={bookingDate} onChange={e => setBookingDate(e.target.value)} min={getISTDateString()} />
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-foreground">Select Time Slot</label>

@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
 import { api, downloadPaymentInvoice } from '@/lib/api';
+import { getISTDateString } from '@/lib/dateUtils';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
@@ -205,7 +206,7 @@ export default function PatientDashboard() {
     load();
   }, [user?.id]);
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = getISTDateString();
   const upcomingAppts = appointments.filter(a => a.date >= today && a.status !== 'Completed');
   const unreadNotifs = notifs.filter(n => !n.read).length;
   const isBillPaid = (bill) => {

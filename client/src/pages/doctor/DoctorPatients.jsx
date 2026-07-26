@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
+import { getISTDateString } from '@/lib/dateUtils';
 
 const statusColors = {
   Confirmed: { bg: 'bg-success/10', text: 'text-success', border: 'border-success/20' },
@@ -87,7 +88,7 @@ export default function DoctorPatients() {
           medications: prescription.split('\n').filter(p => p.trim()),
           advice,
           followUp,
-          date: new Date().toISOString().split('T')[0],
+          date: getISTDateString(),
         },
       });
       setSelectedPatient(null); 

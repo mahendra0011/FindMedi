@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
+import { getISTDateString } from '@/lib/dateUtils';
 
 const pharmApi = {
   getMedicines: (p = {}) => api.dispatch(() => Promise.resolve({ medicines: [] }), '/pharmacy/medicines?' + new URLSearchParams(p)),
@@ -551,7 +552,7 @@ showToast('Failed to export billing', 'error');
                     </div>
                     <div className="flex gap-2 mt-3 pt-3 border-t">
                       {r.status === 'Pending' && <>
-                        <Button size="sm" onClick={async () => { await api.updatePharmacyReturn(r._id, { status: 'Approved' }); setReturns(rs => rs.map(rr => rr._id === r._id ? { ...rr, status: 'Approved', completedAt: new Date().toISOString().split('T')[0] } : rr)); showToast('Return approved, refund initiated'); }}><Check className="w-3 h-3 mr-1" /> Approve</Button>
+                        <Button size="sm" onClick={async () => { await api.updatePharmacyReturn(r._id, { status: 'Approved' }); setReturns(rs => rs.map(rr => rr._id === r._id ? { ...rr, status: 'Approved', completedAt: getISTDateString() } : rr)); showToast('Return approved, refund initiated'); }}><Check className="w-3 h-3 mr-1" /> Approve</Button>
                         <Button size="sm" variant="outline" className="text-destructive" onClick={async () => { await api.updatePharmacyReturn(r._id, { status: 'Rejected' }); setReturns(rs => rs.map(rr => rr._id === r._id ? { ...rr, status: 'Rejected' } : rr)); showToast('Return rejected'); }}><X className="w-3 h-3 mr-1" /> Reject</Button>
                       </>}
                     </div>

@@ -16,6 +16,7 @@ import { validate, createPaymentSchema } from '../utils/validate.js';
 import { auditLog } from '../middleware/audit.js';
 import { paginatedResults } from '../utils/pagination.js';
 import { generateTransactionId, generateInvoiceId, generateBillId, generateTokenNumber } from '../utils/idGenerator.js';
+import { getISTDateString } from '../utils/dateUtils.js';
 
 const router = express.Router();
 
@@ -133,9 +134,18 @@ router.post('/pay', protect, async (req, res, next) => {
         }
 
         if (patientId && date && time) {
-          const existing = await Appointment.findOne({ patientId, date, time, status: { $nin: ['Cancelled', 'Completed'] } });
+          const dupFilter = { patientId, doctorId: doctorId || null, date, time, status: { $nin: ['Cancelled', 'Completed'] } };
+          const existing = await Appointment.findOne(dupFilter);
           if (existing) {
-            return res.status(409).json({ message: 'You have already booked this slot. Please try another slot.' });
+            if (existing.status === 'Pending') {
+              const hasCompletedPayment = await Payment.findOne({ referenceId: existing._id.toString(), status: 'completed' });
+              if (hasCompletedPayment) {
+                return res.status(409).json({ message: 'You already have an appointment with this doctor on this date and time.' });
+              }
+              await Appointment.findByIdAndDelete(existing._id);
+            } else {
+              return res.status(409).json({ message: 'You already have an appointment with this doctor on this date and time.' });
+            }
           }
         }
 
@@ -182,7 +192,7 @@ router.post('/pay', protect, async (req, res, next) => {
               title: 'New Appointment',
               message: `New ${type || 'Consultation'} appointment from ${patientName} for ${date} at ${time}`,
               type: 'appointment',
-              date: new Date().toISOString().split('T')[0],
+              date: getISTDateString(),
             });
           } catch (_) {}
         }
@@ -218,7 +228,7 @@ router.post('/pay', protect, async (req, res, next) => {
     const methodMap = { upi:'UPI', card:'Card', netbanking:'Online', cash:'Cash', wallet:'Wallet' };
     const sourceMap = { appointment:'appointment', test:'lab', medicine:'pharmacy' };
     const serviceLabel = description || `${serviceType} service`;
-    const today = new Date().toISOString().split('T')[0];
+    const today = getISTDateString();
     const billServices = (lineItems || []).map(item => ({
       name: item.name || 'Service',
       description: '',
@@ -333,22 +343,24 @@ router.post('/pay', protect, async (req, res, next) => {
         }
       } catch (_) {}
     }
-    if (err.code === 11000 && req.body.referenceId) {
-      try {
-        const existing = await Payment.findOne({ referenceId: req.body.referenceId, status: 'completed' });
-        if (existing) {
-          return res.status(200).json({
-            success: true,
-            transaction_id: existing.transaction_id,
-            invoice_id: existing.invoice_id,
-            payment: existing,
-            alreadyPaid: true,
-          });
-        }
-      } catch (_) { /* fall through */ }
-    }
     if (err.code === 11000) {
-      return res.status(409).json({ message: 'Duplicate transaction detected. Please check your appointment history — your payment may already be completed.' });
+      const refId = req.body.referenceId || createdAppointment?._id?.toString();
+      if (refId) {
+        try {
+          const existing = await Payment.findOne({ referenceId: refId, status: 'completed' });
+          if (existing) {
+            return res.status(200).json({
+              success: true,
+              transaction_id: existing.transaction_id,
+              invoice_id: existing.invoice_id,
+              payment: existing,
+              appointment: createdAppointment,
+              alreadyPaid: true,
+            });
+          }
+        } catch (_) { /* fall through */ }
+      }
+      return res.status(409).json({ message: 'This slot is already booked with this doctor, or your previous payment for it is still processing. Please check your appointment history.' });
     }
     next(err);
   }

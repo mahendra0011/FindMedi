@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
+import { getISTDateString } from '@/lib/dateUtils';
 
 const typeIcons = {
   Prescription: { icon: Pill, color: 'text-success', bg: 'bg-success/10' },
@@ -83,7 +84,7 @@ export default function DoctorConsultations() {
       await api.createRecord({
         patient: patientName,
         doctor: user?.name,
-        date: new Date().toISOString().split('T')[0],
+        date: getISTDateString(),
         diagnosis,
         prescription,
         type: recordType,
@@ -95,7 +96,7 @@ export default function DoctorConsultations() {
           medications: prescription.split('\n').filter(m => m.trim()),
           advice,
           followUp,
-          date: new Date().toISOString().split('T')[0],
+          date: getISTDateString(),
         },
       });
       setShowForm(false); 

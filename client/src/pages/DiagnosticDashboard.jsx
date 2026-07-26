@@ -13,6 +13,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
+import { getISTDateString } from '@/lib/dateUtils';
 
 const labApi = {
   getOrders: (p) => api.getLabOrders(p),
@@ -202,7 +203,7 @@ export default function DiagnosticDashboard() {
   }, [bills, billFilter]);
 
   const derivedStats = useMemo(() => {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getISTDateString();
     const todayBookingCount = bookings.filter(b => b.bookingDate?.startsWith(todayStr)).length;
     const pendingRx = rxQueue.filter(r => r.status === 'Pending').length;
     const revenue = bookings.filter(b => b.paymentStatus === 'Paid').reduce((s, b) => s + (b.totalAmount || 0), 0);
@@ -291,13 +292,13 @@ export default function DiagnosticDashboard() {
                 <div className="bg-card rounded-xl border p-5">
                   <h3 className="font-semibold mb-4 flex items-center gap-2"><CalendarDays className="w-4 h-4 text-info" /> Today's Bookings</h3>
                   <div className="space-y-3">
-                    {bookings.filter(b => b.bookingDate?.startsWith(new Date().toISOString().split('T')[0])).slice(0, 5).map(b => (
+                    {bookings.filter(b => b.bookingDate?.startsWith(getISTDateString())).slice(0, 5).map(b => (
                       <div key={b._id} className="flex items-center justify-between text-sm">
                         <div><span className="font-medium">{b.patientName}</span><p className="text-xs text-muted-foreground">{b.timeSlot} · {b.tests?.join(', ')}</p></div>
                         <StatusBadge status={b.status} />
                       </div>
                     ))}
-                    {bookings.filter(b => b.bookingDate?.startsWith(new Date().toISOString().split('T')[0])).length === 0 && <p className="text-sm text-muted-foreground">No bookings today</p>}
+                    {bookings.filter(b => b.bookingDate?.startsWith(getISTDateString())).length === 0 && <p className="text-sm text-muted-foreground">No bookings today</p>}
                   </div>
                 </div>
 

@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
+import { getISTDateString } from '@/lib/dateUtils';
 
 const statusColors = { Confirmed: 'bg-success/10 text-success', Cancelled: 'bg-destructive/10 text-destructive', Completed: 'bg-info/10 text-info' };
 const filters = ['All', 'Confirmed', 'Cancelled', 'Completed'];
@@ -93,8 +94,8 @@ export default function DoctorAppointments() {
     setCompleteId(apt._id);
     setBillAmount(user?.consultationFee || billServices[apt.type] || 500);
     setPrescriptionData({ ...initialPrescriptionData, patientName: apt.patient, doctorName: user?.name, specialization: user?.specialization || '' });
-    setLabReportData({ ...initialLabReportData, patientName: apt.patient, doctorName: user?.name, specialization: user?.specialization || '', testDate: new Date().toISOString().split('T')[0], reportDate: new Date().toISOString().split('T')[0] });
-    setDischargeData({ ...initialDischargeData, patientName: apt.patient, doctorName: user?.name, specialization: user?.specialization || '', admissionDate: new Date().toISOString().split('T')[0], dischargeDate: new Date().toISOString().split('T')[0] });
+    setLabReportData({ ...initialLabReportData, patientName: apt.patient, doctorName: user?.name, specialization: user?.specialization || '', testDate: getISTDateString(), reportDate: getISTDateString() });
+    setDischargeData({ ...initialDischargeData, patientName: apt.patient, doctorName: user?.name, specialization: user?.specialization || '', admissionDate: getISTDateString(), dischargeDate: getISTDateString() });
   };
 
   const openReportModal = (apt, type) => {
@@ -103,9 +104,9 @@ export default function DoctorAppointments() {
     if (type === 'Prescription') {
       setPrescriptionData({ ...initialPrescriptionData, patientName: apt.patient, doctorName: user?.name, specialization: user?.specialization || '' });
     } else if (type === 'Lab Report') {
-      setLabReportData({ ...initialLabReportData, patientName: apt.patient, doctorName: user?.name, specialization: user?.specialization || '', testDate: new Date().toISOString().split('T')[0], reportDate: new Date().toISOString().split('T')[0], reportId: `LAB-${Date.now()}` });
+      setLabReportData({ ...initialLabReportData, patientName: apt.patient, doctorName: user?.name, specialization: user?.specialization || '', testDate: getISTDateString(), reportDate: getISTDateString(), reportId: `LAB-${Date.now()}` });
     } else {
-      setDischargeData({ ...initialDischargeData, patientName: apt.patient, doctorName: user?.name, specialization: user?.specialization || '', admissionDate: apt.date || new Date().toISOString().split('T')[0], dischargeDate: new Date().toISOString().split('T')[0] });
+      setDischargeData({ ...initialDischargeData, patientName: apt.patient, doctorName: user?.name, specialization: user?.specialization || '', admissionDate: apt.date || getISTDateString(), dischargeDate: getISTDateString() });
     }
     setShowReportModal(true);
   };
@@ -174,7 +175,7 @@ export default function DoctorAppointments() {
           medications: meds,
           advice: prescriptionData.advice,
           followUp: prescriptionData.followUp,
-          date: new Date().toISOString().split('T')[0],
+          date: getISTDateString(),
         },
       });
       await api.createNotification({ title: 'New Prescription', message: `Dr. ${user?.name} has generated your prescription`, type: 'records', userId: apt.patientId || apt.patient });
@@ -265,7 +266,7 @@ export default function DoctorAppointments() {
         doctor: user?.name,
         service: `${apt.type} - ${apt.department}`,
         amount: billAmount,
-        date: new Date().toISOString().split('T')[0],
+        date: getISTDateString(),
         status: 'Confirmed',
       });
       await api.createNotification({
@@ -368,7 +369,7 @@ export default function DoctorAppointments() {
             <div className="space-y-4">
               <div>
                 <label className="text-sm font-medium text-foreground mb-1.5 block">New Date</label>
-                <Input type="date" value={newDate} onChange={e => setNewDate(e.target.value)} min={new Date().toISOString().split('T')[0]} />
+                <Input type="date" value={newDate} onChange={e => setNewDate(e.target.value)} min={getISTDateString()} />
               </div>
               <div>
                 <label className="text-sm font-medium text-foreground mb-1.5 block">New Time</label>

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
+import { getISTDateString } from '@/lib/dateUtils';
 
 const statusColors = { Paid: 'bg-success/10 text-success', Pending: 'bg-warning/10 text-warning', Overdue: 'bg-destructive/10 text-destructive' };
 
@@ -72,7 +73,7 @@ export default function LabBilling() {
         amount: subTotal,
         discount: Number(discount),
         total: Math.round(total),
-        date: new Date().toISOString().split('T')[0],
+        date: getISTDateString(),
         status: 'Pending',
       }, ...prev]);
       setShowForm(false);

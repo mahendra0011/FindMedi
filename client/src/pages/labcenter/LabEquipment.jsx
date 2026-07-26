@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
+import { getISTDateString } from '@/lib/dateUtils';
 
 const statusColors = {
   Operational: 'bg-success/10 text-success',
@@ -43,7 +44,7 @@ export default function LabEquipment() {
         type: newEq.type,
         status: 'Operational',
         purchaseDate: newEq.purchaseDate,
-        lastMaintenance: new Date().toISOString().split('T')[0],
+        lastMaintenance: getISTDateString(),
         nextMaintenance: '',
       });
       setEquipment(prev => [eq, ...prev]);
@@ -53,7 +54,7 @@ export default function LabEquipment() {
   };
 
   const updateStatus = async (id, status) => {
-    const updates = { status, lastMaintenance: status === 'Maintenance' ? new Date().toISOString().split('T')[0] : undefined };
+    const updates = { status, lastMaintenance: status === 'Maintenance' ? getISTDateString() : undefined };
     setEquipment(prev => prev.map(eq => eq.id === id ? { ...eq, ...updates } : eq));
     try { await api.updateLabEquipment(id, updates); } catch (e) { console.error(e); }
   };

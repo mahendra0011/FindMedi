@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { Link } from 'react-router-dom';
+import { getISTDateString } from '@/lib/dateUtils';
 import LicenseExpiryReminder from '@/components/LicenseExpiryReminder';
 
 const statusColors = {
@@ -50,7 +51,7 @@ export default function ClinicDashboard() {
     return () => { mounted.current = false; };
   }, [user?.name]);
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = getISTDateString();
   const todayAppts = appointments.filter(a => a.date === today);
   const pendingAppts = appointments.filter(a => a.status === 'Pending');
   const completedAppts = appointments.filter(a => a.status === 'Completed');

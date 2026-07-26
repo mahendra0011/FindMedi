@@ -11,6 +11,8 @@ import logger from '../config/logger.js';
 import { auditLog } from '../middleware/audit.js';
 import { paginatedResults } from '../utils/pagination.js';
 import { generateTokenNumber } from '../utils/idGenerator.js';
+import Payment from '../models/Payment.js';
+import { getISTDateString } from '../utils/dateUtils.js';
 
 const router = express.Router();
 
@@ -39,7 +41,7 @@ const createNotification = async (userId, title, message, type = 'appointment') 
         }
       }
     }
-    await Notification.create({ title, message, type, read: false, userId: finalUserId, date: new Date().toISOString().split('T')[0] });
+    await Notification.create({ title, message, type, read: false, userId: finalUserId, date: getISTDateString() });
   } catch (err) {
     logger.error('[createNotification] ERROR:', err);
   }
@@ -227,8 +229,19 @@ router.post('/', protect, validate(createAppointmentSchema), async (req, res) =>
     }
     
     if (patientId && date && time) {
-      const existing = await Appointment.findOne({ patientId, date, time, status: { $nin: ['Cancelled', 'Completed'] } });
-      if (existing) return res.status(409).json({ message: 'you have already book this slot pleast try another slot' });
+      const dupFilter = { patientId, doctorId: doctorId || null, date, time, status: { $nin: ['Cancelled', 'Completed'] } };
+      const existing = await Appointment.findOne(dupFilter);
+      if (existing) {
+        if (existing.status === 'Pending') {
+          const hasCompletedPayment = await Payment.findOne({ referenceId: existing._id.toString(), status: 'completed' });
+          if (hasCompletedPayment) {
+            return res.status(409).json({ message: 'You already have an appointment with this doctor on this date and time.' });
+          }
+          await Appointment.findByIdAndDelete(existing._id);
+        } else {
+          return res.status(409).json({ message: 'You already have an appointment with this doctor on this date and time.' });
+        }
+      }
     }
     
     const countToday = await Appointment.countDocuments({ date, doctor: doctor || '' });
@@ -266,7 +279,7 @@ router.post('/', protect, validate(createAppointmentSchema), async (req, res) =>
     res.status(201).json({ appointment });
   } catch (err) {
     if (err.code === 11000) {
-      return res.status(409).json({ message: 'you have already book this slot pleast try another slot' });
+      return res.status(409).json({ message: 'This slot is already booked with this doctor, or your previous payment for it is still processing. Please check your appointment history.' });
     }
     res.status(400).json({ message: err.message });
   }
