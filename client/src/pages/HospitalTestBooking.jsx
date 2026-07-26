@@ -7,8 +7,8 @@ import {
    ArrowLeft, MapPin, Phone, Star, BadgeCheck,
    Building2, X, CreditCard, Wallet, CheckCircle,
    Calendar, Sun, Moon, MapPinHouse, ChevronLeft,
-   Banknote, Shield, ShieldCheck, Camera
- } from 'lucide-react';
+    Banknote, Shield, ShieldCheck, Camera, FileText
+  } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -60,6 +60,31 @@ export default function HospitalTestBooking() {
   const [loading, setLoading] = useState(true);
   const [_bookingConfirmed, setBookingConfirmed] = useState(false);
   const [_bookingLoading, setBookingLoading] = useState(false);
+  const [prescriptionFile, setPrescriptionFile] = useState(null);
+  const [prescriptionPreview, setPrescriptionPreview] = useState('');
+
+  // Generate next 6 days for date selection
+  const getNextDays = () => {
+    const days = [];
+    const today = new Date();
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    
+    for (let i = 0; i < 6; i++) {
+      const date = new Date(today);
+      date.setDate(today.getDate() + i);
+      days.push({
+        display: `${dayNames[date.getDay()]} ${date.getDate()}`,
+        value: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`,
+        dayName: dayNames[date.getDay()],
+        dayNum: date.getDate(),
+        month: monthNames[date.getMonth()]
+      });
+    }
+    return days;
+  };
+
+  const availableDates = getNextDays();
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -118,6 +143,76 @@ export default function HospitalTestBooking() {
     return next;
   });
 
+  // Handle prescription file upload from camera
+  const handleCameraUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please capture an image');
+      return;
+    }
+    
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image size should not exceed 5MB');
+      return;
+    }
+    
+    setPrescriptionFile(file);
+    
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPrescriptionPreview(reader.result);
+    };
+    reader.readAsDataURL(file);
+    
+    toast.success('Prescription captured successfully');
+  };
+
+  // Handle prescription file upload from gallery/files
+  const handleFileUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+    if (!validTypes.includes(file.type)) {
+      toast.error('Please upload JPG, PNG, or PDF file only');
+      return;
+    }
+    
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File size should not exceed 5MB');
+      return;
+    }
+    
+    setPrescriptionFile(file);
+    
+    // Create preview for images
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPrescriptionPreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      setPrescriptionPreview('');
+    }
+    
+    toast.success('Prescription uploaded successfully');
+  };
+
+  // Remove uploaded prescription
+  const removePrescription = () => {
+    setPrescriptionFile(null);
+    setPrescriptionPreview('');
+    toast.success('Prescription removed');
+  };
+
   let filtered = tests.filter(t => {
     if (deptFilter !== 'all' && t.dept !== deptFilter) return false;
     if (testSearch && !t.name.toLowerCase().includes(testSearch.toLowerCase())) return false;
@@ -168,18 +263,23 @@ export default function HospitalTestBooking() {
     try {
       // 1. Create lab booking
       const res = await api.createLabBooking({
-        facilityId: activeId,
-        patientId: user._id,
+        bookingId: 'LB' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).substr(2, 4).toUpperCase(),
+        patientId: user.id,
         patientName: user.name,
-        email: user.email,
-        phone: user.phone || '',
-        tests: cartItems.map(t => ({ testId: t.id, testName: t.name, price: t.price, qty: t.qty })),
-        total,
-        collectionMode,
-        date: selectedDate,
-        slot: selectedSlot,
-        paymentMethod,
+        patientEmail: user.email,
+        patientPhone: user.phone || '',
+        hospitalId: activeId,
+        tests: cartItems.map(t => t.name), // Array of test names (strings)
+        testIds: cartItems.map(t => t.id), // Array of test IDs
+        totalAmount: total,
+        bookingDate: selectedDate ? new Date(selectedDate) : new Date(), // Convert to Date object
+        timeSlot: selectedSlot,
+        visitType: collectionMode === 'home' ? 'Home Collection' : 'Walk-in',
+        homeCollectionFee: collectionMode === 'home' ? 50 : 0,
+        homeCollectionAddress: collectionMode === 'home' ? (user.address || '') : '',
+        prescriptionUrl: prescriptionFile ? 'uploaded' : '', // Will be updated after file upload
         status: 'Pending',
+        paymentStatus: 'Pending',
       });
       bookingId = res?.booking?._id || res?._id || '';
 
@@ -209,6 +309,7 @@ export default function HospitalTestBooking() {
         toast.success('Booking already confirmed!');
         return;
       }
+      console.error('Booking error:', e);
       toast.error(msg || 'Failed to confirm booking');
     }
     setBookingLoading(false);
@@ -251,26 +352,84 @@ export default function HospitalTestBooking() {
                     </div>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <button className="flex flex-col items-center gap-3 p-5 rounded-xl border-2 border-dashed border-border/60 bg-card hover:border-primary/40 hover:bg-primary/5 transition-all group">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <Camera className="w-6 h-6 text-primary" />
+
+                {/* Show uploaded prescription preview */}
+                {prescriptionFile ? (
+                  <div className="bg-gradient-to-br from-emerald-50 to-emerald-50/50 dark:from-emerald-500/10 dark:to-emerald-500/5 rounded-xl p-4 border border-emerald-200 dark:border-emerald-500/20">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center shrink-0">
+                        <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">Prescription Uploaded</p>
+                        <p className="text-xs text-emerald-600 dark:text-emerald-400/80 mt-0.5 truncate">{prescriptionFile.name}</p>
+                        {prescriptionPreview && (
+                          <div className="mt-3 rounded-lg overflow-hidden border border-emerald-200 dark:border-emerald-500/20">
+                            <img src={prescriptionPreview} alt="Prescription preview" className="w-full h-32 object-contain bg-white dark:bg-gray-900" />
+                          </div>
+                        )}
+                        {!prescriptionPreview && prescriptionFile.type === 'application/pdf' && (
+                          <div className="mt-3 rounded-lg overflow-hidden border border-emerald-200 dark:border-emerald-500/20 bg-white dark:bg-gray-900 p-4 flex items-center justify-center gap-2">
+                            <FileText className="w-6 h-6 text-emerald-600" />
+                            <span className="text-xs text-emerald-600">PDF Document</span>
+                          </div>
+                        )}
+                      </div>
+                      <button onClick={removePrescription} className="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-500/20 hover:bg-red-200 dark:hover:bg-red-500/30 flex items-center justify-center transition-colors shrink-0">
+                        <X className="w-4 h-4 text-red-600 dark:text-red-400" />
+                      </button>
                     </div>
-                    <div className="text-center">
-                      <p className="text-sm font-semibold text-foreground">Camera / Gallery</p>
-                      <p className="text-[10px] text-muted-foreground">JPG, PNG</p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Upload buttons */}
+                    <div className="grid grid-cols-2 gap-3">
+                      {/* Camera Button - Opens camera directly */}
+                      <input
+                        type="file"
+                        id="prescription-camera"
+                        accept="image/*"
+                        capture="environment"
+                        onChange={handleCameraUpload}
+                        className="hidden"
+                      />
+                      <label
+                        htmlFor="prescription-camera"
+                        className="flex flex-col items-center gap-3 p-5 rounded-xl border-2 border-dashed border-border/60 bg-card hover:border-primary/40 hover:bg-primary/5 transition-all group cursor-pointer"
+                      >
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center group-hover:scale-110 transition-transform">
+                          <Camera className="w-6 h-6 text-primary" />
+                        </div>
+                        <div className="text-center">
+                          <p className="text-sm font-semibold text-foreground">Open Camera</p>
+                          <p className="text-[10px] text-muted-foreground">Take Photo</p>
+                        </div>
+                      </label>
+
+                      {/* Gallery/Files Button - Opens file picker */}
+                      <input
+                        type="file"
+                        id="prescription-file"
+                        accept="image/jpeg,image/jpg,image/png,application/pdf"
+                        onChange={handleFileUpload}
+                        className="hidden"
+                      />
+                      <label
+                        htmlFor="prescription-file"
+                        className="flex flex-col items-center gap-3 p-5 rounded-xl border-2 border-dashed border-border/60 bg-card hover:border-primary/40 hover:bg-primary/5 transition-all group cursor-pointer"
+                      >
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center group-hover:scale-110 transition-transform">
+                          <FileText className="w-6 h-6 text-primary" />
+                        </div>
+                        <div className="text-center">
+                          <p className="text-sm font-semibold text-foreground">Gallery / Files</p>
+                          <p className="text-[10px] text-muted-foreground">JPG, PNG, PDF</p>
+                        </div>
+                      </label>
                     </div>
-                  </button>
-                  <button className="flex flex-col items-center gap-3 p-5 rounded-xl border-2 border-dashed border-border/60 bg-card hover:border-primary/40 hover:bg-primary/5 transition-all group">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <FileText className="w-6 h-6 text-primary" />
-                    </div>
-                    <div className="text-center">
-                      <p className="text-sm font-semibold text-foreground">Upload PDF</p>
-                      <p className="text-[10px] text-muted-foreground">Max 5MB</p>
-                    </div>
-                  </button>
-                </div>
+                  </>
+                )}
+
                 <div className="bg-muted/30 rounded-xl p-3 flex items-center gap-2 text-xs text-muted-foreground">
                   <Shield className="w-4 h-4 text-primary shrink-0" />
                   Your documents are encrypted and secure
@@ -351,16 +510,17 @@ export default function HospitalTestBooking() {
             <div>
               <p className="text-xs font-semibold text-foreground mb-2">Select Date</p>
               <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-                {['Mon 21','Tue 22','Wed 23','Thu 24','Fri 25','Sat 26'].map(d => (
-                  <button key={d} onClick={() => setSelectedDate(d)}
+                {availableDates.map(d => (
+                  <button key={d.value} onClick={() => setSelectedDate(d.value)}
                     className={cn(
                       'flex flex-col items-center gap-1 px-5 py-3 rounded-xl border-2 transition-all shrink-0 min-w-[72px]',
-                      selectedDate === d
+                      selectedDate === d.value
                         ? 'border-primary bg-primary/5 shadow-sm'
                         : 'border-border/60 bg-card hover:border-primary/30'
                     )}>
-                    <span className={cn('text-[11px] font-bold', selectedDate === d ? 'text-primary' : 'text-foreground')}>{d.split(' ')[0]}</span>
-                    <span className={cn('text-lg font-bold', selectedDate === d ? 'text-primary' : 'text-foreground')}>{d.split(' ')[1]}</span>
+                    <span className={cn('text-[11px] font-bold', selectedDate === d.value ? 'text-primary' : 'text-foreground')}>{d.dayName}</span>
+                    <span className={cn('text-lg font-bold', selectedDate === d.value ? 'text-primary' : 'text-foreground')}>{d.dayNum}</span>
+                    <span className={cn('text-[9px]', selectedDate === d.value ? 'text-primary/70' : 'text-muted-foreground')}>{d.month}</span>
                   </button>
                 ))}
               </div>
@@ -489,7 +649,9 @@ export default function HospitalTestBooking() {
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Scheduled</p>
-                  <p className="text-sm font-semibold text-foreground">{selectedDate} at {selectedSlot}</p>
+                  <p className="text-sm font-semibold text-foreground">
+                    {selectedDate ? new Date(selectedDate).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' }) : ''} at {selectedSlot}
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -839,9 +1001,22 @@ export default function HospitalTestBooking() {
                 {bookingStep === 1 && (
                   <div className="flex gap-3">
                     <Button variant="outline" className="flex-1 rounded-xl h-11 text-sm" onClick={closeBooking}>Cancel</Button>
-                    <Button className="flex-1 rounded-xl h-11 text-sm gap-1.5 shadow-lg shadow-primary/20" onClick={nextStep}>
-                      {hasRx ? 'Skip Prescription' : 'Continue'} <ChevronRight className="w-4 h-4" />
-                    </Button>
+                    {hasRx ? (
+                      <Button 
+                        className="flex-1 rounded-xl h-11 text-sm gap-1.5 shadow-lg shadow-primary/20" 
+                        onClick={nextStep}
+                        disabled={!prescriptionFile}
+                      >
+                        Continue <ChevronRight className="w-4 h-4" />
+                      </Button>
+                    ) : (
+                      <Button 
+                        className="flex-1 rounded-xl h-11 text-sm gap-1.5 shadow-lg shadow-primary/20" 
+                        onClick={nextStep}
+                      >
+                        Continue <ChevronRight className="w-4 h-4" />
+                      </Button>
+                    )}
                   </div>
                 )}
                 {bookingStep === 2 && (

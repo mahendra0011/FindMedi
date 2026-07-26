@@ -63,6 +63,8 @@ const en = {
   'nav.medicalRecords': 'Medical Records',
   'nav.billing': 'Billing',
   'nav.history': 'History',
+  'nav.bookingHistory': 'Booking History',
+  'nav.paymentHistory': 'Payment History',
   'nav.departments': 'Departments',
   'nav.reviews': 'Reviews',
   'nav.analytics': 'Analytics',

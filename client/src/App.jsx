@@ -95,6 +95,7 @@ const PatientAppointments = lazy(() => import('./pages/patient/PatientAppointmen
 const PatientRecords = lazy(() => import('./pages/patient/PatientRecords'));
 const PatientReviews = lazy(() => import('./pages/patient/PatientReviews'));
 const PatientHistory = lazy(() => import('./pages/patient/PatientHistory'));
+const PatientBookingHistory = lazy(() => import('./pages/patient/PatientBookingHistory'));
 const PatientReports = lazy(() => import('./pages/patient/PatientReports'));
 const PatientServices = lazy(() => import('./pages/patient/PatientServices'));
 const PatientEmergency = lazy(() => import('./pages/patient/PatientEmergency'));
@@ -297,6 +298,7 @@ function getDefaultDashboardPath(user) {
       appointments: '/patient/appointments',
       records: '/patient/records',
       history: '/patient/history',
+      bookingHistory: '/patient/booking-history',
     },
   };
 
@@ -470,6 +472,7 @@ const App = () => (
                     <Route path="/patient/reviews" element={<RoleRoute allowedRoles={['patient']}><PatientReviews /></RoleRoute>} />
                     <Route path="/patient/reviews/write" element={<RoleRoute allowedRoles={['patient']}><PatientWriteReview /></RoleRoute>} />
                     <Route path="/patient/history" element={<RoleRoute allowedRoles={['patient']}><PatientHistory /></RoleRoute>} />
+                    <Route path="/patient/booking-history" element={<RoleRoute allowedRoles={['patient']}><PatientBookingHistory /></RoleRoute>} />
                     <Route path="/patient/prescriptions" element={<RoleRoute allowedRoles={['patient']}><PatientPrescriptions /></RoleRoute>} />
                     <Route path="/patient/medicine-orders" element={<RoleRoute allowedRoles={['patient']}><PatientMedicineOrders /></RoleRoute>} />
                     <Route path="/patient/services" element={<RoleRoute allowedRoles={['patient']}><PatientServices /></RoleRoute>} />

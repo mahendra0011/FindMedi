@@ -23,7 +23,7 @@ const BOOKING_STATUS = {
   Processing: { label: 'Processing', color: 'bg-amber-500/10 text-amber-600 border-amber-500/30', icon: Loader2 },
 };
 
-const STATUS_FILTERS = ['All', 'Pending', 'Scheduled', 'Confirmed', 'Completed', 'Cancelled'];
+const STATUS_FILTERS = ['All', 'Scheduled', 'Confirmed', 'Completed', 'Cancelled'];
 
 function normalizeBooking(item, type) {
   if (type === 'appointment') {
@@ -34,7 +34,7 @@ function normalizeBooking(item, type) {
       date: item.date ? item.date.split('T')[0] : '',
       tests: [],
       amount: item.fees || item.consultation_fees || 0,
-      status: item.status || 'Scheduled',
+      status: item.status || 'Confirmed',
       slot: item.timeSlot || item.time || '',
       address: item.hospitalId?.name || item.hospitalName || '',
       phone: item.phone || '',
@@ -69,8 +69,12 @@ export default function PatientBookings() {
     const load = async () => {
       setLoading(true);
       try {
-        const labBks = await api.getLabBookings({});
+        const [appts, labBks] = await Promise.all([
+          api.getMyAppointments(),
+          api.getLabBookings({})
+        ]);
         const normalized = [
+          ...((appts?.data || appts || [])).map(a => normalizeBooking(a, 'appointment')),
           ...((labBks?.bookings || labBks?.data || [])).map(b => normalizeBooking(b, 'test')),
         ];
         setBookings(normalized);
@@ -115,8 +119,8 @@ export default function PatientBookings() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-heading text-2xl font-bold text-foreground">My Lab Tests</h1>
-        <p className="text-muted-foreground">Track your lab test bookings and reports</p>
+        <h1 className="font-heading text-2xl font-bold text-foreground">My Bookings & Appointments</h1>
+        <p className="text-muted-foreground">Track your appointments and lab test bookings</p>
       </div>
 
       {/* Filters */}
@@ -128,6 +132,7 @@ export default function PatientBookings() {
         <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}
           className="h-11 px-4 rounded-xl text-sm bg-background border border-border/50 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
           <option value="All">All</option>
+          <option value="appointment">Appointments</option>
           <option value="test">Lab Tests</option>
         </select>
       </div>
@@ -284,7 +289,7 @@ function BookingCard({ booking, index, onCancel }) {
             <span className="font-semibold text-foreground">₹{booking.amount}</span>
           </div>
           <div className="flex gap-2">
-            {(booking.status === 'Pending' || booking.status === 'Scheduled' || booking.status === 'Confirmed') && (
+            {(booking.status === 'Scheduled' || booking.status === 'Confirmed') && (
               <Button variant="ghost" size="sm" className="text-xs h-8 text-destructive hover:text-destructive"
                 onClick={() => onCancel(booking)}>
                 <XCircle className="w-3 h-3 mr-1" /> Cancel

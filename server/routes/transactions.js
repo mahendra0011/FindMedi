@@ -13,6 +13,7 @@ import { protect } from '../middleware/auth.js';
 import { validate, createPaymentSchema } from '../utils/validate.js';
 import { auditLog } from '../middleware/audit.js';
 import { paginatedResults } from '../utils/pagination.js';
+import { generateTransactionId, generateInvoiceId, generateBillId } from '../utils/idGenerator.js';
 
 const router = express.Router();
 
@@ -81,6 +82,9 @@ router.post('/pay', protect, async (req, res, next) => {
     if (!serviceType || !amount || !method) {
       return res.status(400).json({ message: 'serviceType, amount, and method are required' });
     }
+    if (Number(amount) <= 0) {
+      return res.status(400).json({ message: 'Payment amount must be greater than 0. Please check doctor consultation fee.' });
+    }
 
     // ── Idempotency: if payment already completed for this referenceId, return it as success ──
     if (referenceId) {
@@ -96,12 +100,10 @@ router.post('/pay', protect, async (req, res, next) => {
       }
     }
 
-    const year = new Date().getFullYear();
-    const prefixMap = { appointment: 'APT', test: 'TST', medicine: 'MED' };
-    const invPrefix = prefixMap[serviceType] || serviceType.slice(0,3).toUpperCase();
-    const sharedSuffix = Math.floor(10000 + Math.random() * 90000).toString().padStart(5, '0');
-    const transaction_id = `TXN-${year}-${sharedSuffix}`;
-    const invoice_id = `INV-${invPrefix}-${year}-${sharedSuffix}`;
+    // Generate IDs using centralized utility
+    const transaction_id = generateTransactionId(serviceType);
+    const invoice_id = generateInvoiceId(serviceType);
+    const bill_id = generateBillId(serviceType);
 
     const methodMap = { upi:'UPI', card:'Card', netbanking:'Online', cash:'Cash', wallet:'Wallet' };
     const sourceMap = { appointment:'appointment', test:'lab', medicine:'pharmacy' };
@@ -115,12 +117,9 @@ router.post('/pay', protect, async (req, res, next) => {
       category: 'General',
     }));
 
-    // ── Atomic transaction: all critical DB ops succeed or fail together ──
-    const session = await mongoose.startSession();
     let payment;
 
     try {
-      session.startTransaction();
 
       const [p] = await Payment.create([{
         transaction_id, invoice_id,
@@ -131,22 +130,22 @@ router.post('/pay', protect, async (req, res, next) => {
         description: description || `${serviceType} payment`,
         provider: provider || '',
         lineItems: lineItems || [],
-      }], { session });
+      }]);
       payment = p;
 
       // Auto-confirm the referenced booking
       if (referenceId) {
         if (serviceType === 'appointment') {
-          await Appointment.findByIdAndUpdate(referenceId, { status: 'Confirmed' }, { session });
+          await Appointment.findByIdAndUpdate(referenceId, { status: 'Confirmed' });
         } else if (serviceType === 'test') {
-          await LabBooking.findByIdAndUpdate(referenceId, { status: 'Confirmed', paymentStatus: 'Paid' }, { session });
+          await LabBooking.findByIdAndUpdate(referenceId, { status: 'Confirmed', paymentStatus: 'Paid' });
         } else if (serviceType === 'medicine') {
-          await PharmacyOrder.findByIdAndUpdate(referenceId, { status: 'Confirmed', paymentStatus: 'Paid' }, { session });
+          await PharmacyOrder.findByIdAndUpdate(referenceId, { status: 'Confirmed', paymentStatus: 'Paid' });
         }
       }
 
       await Billing.create([{
-        invoiceId: invoice_id,
+        invoiceId: bill_id,
         patient: req.user.name || 'Patient',
         patientId: req.user._id,
         doctor: serviceType === 'appointment' ? (provider || 'Doctor') : (serviceType === 'test' ? 'Lab Services' : 'Pharmacy'),
@@ -157,14 +156,10 @@ router.post('/pay', protect, async (req, res, next) => {
         date: today,
         paymentMethod: methodMap[method] || 'Online',
         transactionId: transaction_id,
-      }], { session });
+      }]);
 
-      await session.commitTransaction();
     } catch (txErr) {
-      await session.abortTransaction();
       throw txErr;
-    } finally {
-      session.endSession();
     }
 
     // ── Non-critical side-effects (outside transaction, can fail independently) ──

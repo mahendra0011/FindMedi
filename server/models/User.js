@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
+import { generate16DigitId } from '../utils/idGenerator.js';
 
 const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
@@ -77,7 +78,7 @@ userSchema.pre('save', async function (next) {
 
 userSchema.pre('save', async function (next) {
   if (!this.uhid && this.role === 'patient') {
-    this.uhid = `UHID${Date.now()}${Math.floor(Math.random() * 1000)}`;
+    this.uhid = generate16DigitId();
   }
   next();
 });

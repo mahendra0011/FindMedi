@@ -23,13 +23,13 @@ export default function PatientPayment() {
     setLoading(true);
     try {
       const [p, b] = await Promise.all([
-        api.getPayments({ patientId: user?._id, patient_id: user?._id }),
-        api.getBilling({ patientId: user?._id, patient_id: user?._id }),
+        api.getPayments({ patientId: user?.id, patient_id: user?.id }),
+        api.getBilling({ patientId: user?.id, patient_id: user?.id }),
       ]);
       const rawPayments = p?.payments || p?.data || p || [];
       const rawBills = b?.bills || b?.data || b || [];
       // Cross-reference: mark bills as Paid if matching payment exists
-      const uid = String(user?._id || '');
+      const uid = String(user?.id || '');
       const paidRefs = new Set(rawPayments.map(pay => pay.invoice_id || pay.invoiceId || pay.referenceId));
       const paidSignatures = new Set(rawPayments.map(pay => `${String(pay.patient_id || pay.patientId || '')}:${pay.amount}`));
       setPayments(rawPayments);
@@ -43,9 +43,9 @@ export default function PatientPayment() {
       toast.error('Failed to load payment data');
     }
     setLoading(false);
-  }, [user?._id]);
+  }, [user?.id]);
 
-  useEffect(() => { if (user?._id) loadData(); }, [loadData, user?._id]);
+  useEffect(() => { if (user?.id) loadData(); }, [loadData, user?.id]);
 
   const totalPaid = payments.filter(p => p.status === 'completed').reduce((s, p) => s + (p.amount || 0), 0);
   const pendingAmount = bills.filter(b => b.status !== 'Paid').reduce((s, b) => s + ((b.amount || 0) - (b.paid || 0)), 0);
@@ -53,8 +53,8 @@ export default function PatientPayment() {
   const handlePay = async (bill) => {
     try {
       await api.createPayment({
-        patientId: user?._id,
-        patient_id: user?._id,
+        patientId: user?.id,
+        patient_id: user?.id,
         patient_name: user?.name,
         amount: (bill.amount || 0) - (bill.paid || 0),
         method: payMethod,

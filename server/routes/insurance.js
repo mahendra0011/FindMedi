@@ -4,6 +4,7 @@ import Insurance from '../models/Insurance.js';
 import Notification from '../models/Notification.js';
 import { protect, adminOnly } from '../middleware/auth.js';
 import { validate, createInsuranceSchema } from '../utils/validate.js';
+import { generateTimestampedId } from '../utils/idGenerator.js';
 
 const updateInsuranceSchema = z.object({}).passthrough();
 const preAuthSchema = z.object({ preAuthStatus: z.string().optional(), preAuthAmount: z.number().optional(), preAuthExpiry: z.string().optional() });
@@ -12,7 +13,7 @@ const settleClaimSchema = z.object({ approvedAmount: z.number().optional() });
 
 const router = express.Router();
 
-const generateClaimId = () => `CLM-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+const generateClaimId = () => generateTimestampedId('CLM');
 
 // ─── Create Insurance Claim ────────────────────────────────────────────────
 router.post('/', protect, validate(createInsuranceSchema), async (req, res) => {

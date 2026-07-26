@@ -8,6 +8,7 @@ import Doctor from '../models/Doctor.js';
 import { protect, adminOnly } from '../middleware/auth.js';
 import { validate, createEmergencySchema } from '../utils/validate.js';
 import logger from '../config/logger.js';
+import { generateAdmissionId } from '../utils/idGenerator.js';
 
 const router = express.Router();
 
@@ -214,7 +215,7 @@ router.post('/:id/transfer-to-ipd', protect, adminOnly, async (req, res) => {
     }
 
     // Generate admission ID
-    const admissionId = `IPD-${new Date().getFullYear()}-${Date.now().toString(36).slice(-6).toUpperCase()}${Math.floor(Math.random() * 36).toString(36).toUpperCase()}`;
+    const admissionId = generateAdmissionId();
 
     // Find appropriate bed based on severity
     let bed = await Bed.findOne({

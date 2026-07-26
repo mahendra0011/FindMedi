@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { generateTimestampedId } from '../utils/idGenerator.js';
 
 const supplierSchema = new mongoose.Schema({
   supplierId: { type: String, required: true, unique: true },
@@ -21,7 +22,7 @@ const supplierSchema = new mongoose.Schema({
 
 supplierSchema.pre('save', async function (next) {
   if (!this.supplierId) {
-    this.supplierId = `SUP-${Date.now().toString(36).slice(-6).toUpperCase()}${Math.floor(Math.random() * 36).toString(36).toUpperCase()}`;
+    this.supplierId = generateTimestampedId('SUP');
   }
   next();
 });

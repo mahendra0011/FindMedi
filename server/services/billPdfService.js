@@ -1,4 +1,6 @@
 import PDFDocument from 'pdfkit';
+import { generate12DigitId, generate16DigitId } from '../utils/idGenerator.js';
+const shortId = (v) => (v ? String(v).replace(/\D/g, '').slice(-5) : '00000');
 
 const C = {
   primary: '#0f766e',
@@ -22,7 +24,7 @@ const fmtDateTime = (d) => {
   const dt = new Date(d);
   return isNaN(dt.getTime()) ? String(d) : dt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 };
-const shortId = (id) => (id || '').slice(-6).toUpperCase();
+const generateBillId = (type) => type === 'bill' ? generate12DigitId() : generate16DigitId();
 
 const mkDoc = () => new PDFDocument({ size: 'A4', margin: 36, bufferPages: true });
 
@@ -59,12 +61,12 @@ export const generateAppointmentBillPDF = async (payment, reference) => collect(
   const { l, r } = { l: doc.page.margins.left, r: doc.page.margins.right };
   const pw = doc.page.width - l - r;
   const year = new Date(payment.createdAt || Date.now()).getFullYear();
-  const invoiceId = payment.invoice_id || `INV-APT-${year}-${shortId(payment.transaction_id)}`;
+  const invoiceId = payment.invoice_id || payment.transaction_id || generateBillId('invoice');
 
   const patientName = reference?.patientName || reference?.patient || payment.patient_name || 'Patient';
   const patientEmail = reference?.email || '';
   const patientPhone = reference?.patientId?.phone || payment.patient_phone || '';
-  const patientId = `PT-${year}-${shortId(payment.transaction_id)}`;
+  const patientId = payment.transaction_id || generateBillId('invoice');
 
   const h = reference?.hospitalId && typeof reference.hospitalId === 'object' ? reference.hospitalId : {};
   const hospName = h.name || payment.provider || 'Hospital';

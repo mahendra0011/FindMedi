@@ -483,9 +483,8 @@ export const generatePaymentInvoicePDF = async (payment, reference = null, user 
   const typePrefix = { appointment: 'APT', test: 'TST', medicine: 'MED' };
   const year = new Date(payment.createdAt || Date.now()).getFullYear();
   const numericPart = (payment.transaction_id || payment._id?.toString() || '00000').replace(/\D/g, '');
-  const sharedSuffix = numericPart.length >= 5 ? numericPart.slice(-5) : '00000';
-  const invoiceId = payment.invoice_id || `INV-${typePrefix[payment.serviceType] || 'GEN'}-${year}-${sharedSuffix}`;
-  const transactionId = payment.transaction_id || `TXN-${year}-${sharedSuffix}`;
+  const invoiceId = payment.invoice_id || `INV-${typePrefix[payment.serviceType] || 'GEN'}-${year}-${numericPart.slice(-16).padStart(16, '0')}`;
+  const transactionId = payment.transaction_id || `TXN-${year}-${numericPart.slice(-16).padStart(16, '0')}`;
 
   const isBill = documentTitle.toLowerCase().includes('bill');
   const docId = isBill ? invoiceId.replace('INV', 'BILL') : invoiceId;

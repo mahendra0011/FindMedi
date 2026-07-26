@@ -1,6 +1,8 @@
 import mongoose from 'mongoose';
+import { generate16DigitId } from '../utils/idGenerator.js';
 
 const hospitalSchema = new mongoose.Schema({
+  hospitalId: { type: String, unique: true, sparse: true, index: true },
   name: { type: String, required: true },
   slug: { type: String, unique: true, index: true },
   email: { type: String, required: true, lowercase: true },
@@ -53,5 +55,12 @@ const hospitalSchema = new mongoose.Schema({
 });
 
 hospitalSchema.index({ location: '2dsphere' });
+
+hospitalSchema.pre('save', async function (next) {
+  if (!this.hospitalId) {
+    this.hospitalId = generate16DigitId();
+  }
+  next();
+});
 
 export default mongoose.model('Hospital', hospitalSchema);

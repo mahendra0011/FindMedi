@@ -13,6 +13,7 @@ import User from '../models/User.js';
 import { protect } from '../middleware/auth.js';
 import { validate, createMedicineSchema } from '../utils/validate.js';
 import { auditLog } from '../middleware/audit.js';
+import { generatePrescriptionId, generateTimestampedId } from '../utils/idGenerator.js';
 
 import { getConfig } from '../utils/configLoader.js';
 
@@ -30,10 +31,6 @@ const pharmacyStaffSchema = z.object({}).passthrough();
 const pharmacyDispenseSchema = z.object({ medicineIndex: z.number().int().nonnegative() });
 
 const router = express.Router();
-
-const generatePrescriptionId = async () => {
-  return `RX-${new Date().getFullYear()}-${Date.now().toString(36).slice(-6).toUpperCase()}${Math.floor(Math.random() * 36).toString(36).toUpperCase()}`;
-};
 
 // ─── Public Store Medicines (no auth required) ─────────────────────────────
 router.get('/medicines/store/:storeId', async (req, res) => {
@@ -152,7 +149,7 @@ router.post('/prescriptions', protect, validate(prescriptionSchema), async (req,
     if (!patientId || !medicines?.length) {
       return res.status(400).json({ message: 'Patient and at least one medicine required' });
     }
-const prescriptionId = await generatePrescriptionId();
+const prescriptionId = generatePrescriptionId();
     const prescription = await Prescription.create({
       prescriptionId, patientId, patientName,
       doctorId: req.user.doctorProfileId || req.user._id, doctorName: req.user.name,
@@ -182,7 +179,10 @@ router.get('/prescriptions', protect, async (req, res) => {
     const { status, patientId, doctorId, search } = req.query;
     const filter = {};
     if (req.user.role === 'patient') {
-      filter.patientId = req.user._id;
+      filter.$or = [
+        { patientId: req.user._id },
+        { patientId: { $exists: false }, patientName: req.user.name },
+      ];
     } else if (patientId) {
       filter.patientId = patientId;
     }
@@ -325,7 +325,12 @@ router.get('/orders', protect, async (req, res) => {
   try {
     const { status, search, orderId } = req.query;
     const filter = {};
-    if (req.user.role === 'patient') filter.patientId = req.user._id;
+    if (req.user.role === 'patient') {
+      filter.$or = [
+        { patientId: req.user._id },
+        { patientId: { $exists: false }, patientName: req.user.name },
+      ];
+    }
     if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
     if ((req.user.facilityId || req.user.hospitalId) && req.user.role !== 'superadmin') filter.facilityId = req.user.facilityId || req.user.hospitalId;
     if (status && status !== 'All') filter.status = status;
@@ -340,7 +345,7 @@ router.get('/orders', protect, async (req, res) => {
 
 router.post('/orders', protect, validate(pharmacyOrderSchema), async (req, res) => {
   try {
-    const orderId = `ORD-${Date.now().toString(36).slice(-5).toUpperCase()}${Math.floor(Math.random() * 36).toString(36).toUpperCase()}`;
+    const orderId = generateTimestampedId('ORD');
     // Use facilityId from body for patient orders, fallback to user's facility for staff
     const facilityId = req.body.facilityId || req.user.facilityId || req.user.hospitalId || undefined;
     const order = await PharmacyOrder.create({ ...req.body, orderId, hospitalId: req.user.hospitalId, facilityId, createdBy: req.user._id });
@@ -374,7 +379,7 @@ router.post('/orders/:id/forward', protect, async (req, res) => {
     if (!original) return res.status(404).json({ message: 'Order not found' });
     const { facilityId } = req.body;
     if (!facilityId) return res.status(400).json({ message: 'facilityId (new pharmacy) is required' });
-    const newOrderId = `ORD-${Date.now().toString(36).slice(-5).toUpperCase()}${Math.floor(Math.random() * 36).toString(36).toUpperCase()}`;
+    const newOrderId = generateTimestampedId('ORD');
     const newOrder = await PharmacyOrder.create({
       patientId: original.patientId,
       patientName: original.patientName,
@@ -493,7 +498,7 @@ router.get('/returns', protect, async (req, res) => {
 
 router.post('/returns', protect, validate(pharmacyReturnSchema), async (req, res) => {
   try {
-    const returnId = `RET-${Date.now().toString(36).slice(-5).toUpperCase()}${Math.floor(Math.random() * 36).toString(36).toUpperCase()}`;
+    const returnId = generateTimestampedId('RET');
     const ret = await PharmacyReturn.create({ ...req.body, returnId, hospitalId: req.user.hospitalId, facilityId: req.user.facilityId || req.user.hospitalId || undefined });
     await auditLog('create_pharmacy_return', req.user._id, { recordId: ret._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.status(201).json(ret);

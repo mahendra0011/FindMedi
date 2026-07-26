@@ -25,11 +25,11 @@ const tokenSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
 });
 
+import { generateTokenNumber } from '../utils/idGenerator.js';
+
 tokenSchema.pre('save', async function (next) {
   if (!this.tokenNumber) {
-    const today = new Date();
-    const dateStr = `${today.getFullYear()}${String(today.getMonth()+1).padStart(2,'0')}${String(today.getDate()).padStart(2,'0')}`;
-    this.tokenNumber = `TKN-${dateStr}-${Date.now().toString(36).slice(-4).toUpperCase()}${Math.floor(Math.random() * 36).toString(36).toUpperCase()}`;
+    this.tokenNumber = generateTokenNumber();
   }
   next();
 });

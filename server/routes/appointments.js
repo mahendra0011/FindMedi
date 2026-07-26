@@ -10,14 +10,9 @@ import { validate, createAppointmentSchema, updateAppointmentSchema } from '../u
 import logger from '../config/logger.js';
 import { auditLog } from '../middleware/audit.js';
 import { paginatedResults } from '../utils/pagination.js';
+import { generateTokenNumber } from '../utils/idGenerator.js';
 
 const router = express.Router();
-
-const generateToken = async (department) => {
-  const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-  const seq = Date.now().toString(36).slice(-4).toUpperCase();
-  return `TKT-${department.slice(0, 3).toUpperCase()}-${dateStr}-${seq}`;
-};
 
 const calculateEstimatedWaitTime = async (department, priority = 'Normal') => {
   const waitingCount = await Appointment.countDocuments({
@@ -59,7 +54,10 @@ router.get('/', protect, async (req, res) => {
     if (date) filter.date = date;
     
     if (req.user.role === 'patient') {
-      filter.patientId = req.user._id;
+      filter.$or = [
+        { patientId: req.user._id },
+        { patientId: { $exists: false }, patient: req.user.name },
+      ];
     } else if (req.user.role === 'doctor' || req.user.role === 'clinic_doctor') {
       filter.doctorId = req.user.doctorProfileId;
       if (req.user.hospitalId) filter.hospitalId = req.user.hospitalId;
@@ -81,6 +79,10 @@ router.get('/', protect, async (req, res) => {
         { path: 'doctorId', select: 'name specialization' },
       ],
     });
+    // Map old Pending records to Confirmed
+    if (result.data) {
+      result.data.forEach(a => { if (a.status === 'Pending') a.status = 'Confirmed'; });
+    }
     res.json(result);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
@@ -103,7 +105,10 @@ router.get('/my-appointments', protect, async (req, res) => {
     const filter = {};
     
     if (req.user.role === 'patient') {
-      filter.patientId = req.user._id;
+      filter.$or = [
+        { patientId: req.user._id },
+        { patientId: { $exists: false }, patient: req.user.name },
+      ];
     } else if (req.user.role === 'doctor' || req.user.role === 'clinic_doctor') {
       filter.doctorId = req.user.doctorProfileId;
       if (req.user.hospitalId) filter.hospitalId = req.user.hospitalId;
@@ -117,8 +122,83 @@ router.get('/my-appointments', protect, async (req, res) => {
       .populate('patientId', 'name email phone')
       .populate('doctorId', 'name specialization')
       .sort({ date: -1, createdAt: 1 });
+    // Map old Pending records to Confirmed
+    appointments.forEach(a => { if (a.status === 'Pending') a.status = 'Confirmed'; });
     res.json(appointments);
   } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// GET /appointments/history-with-payments — patient's appointment history with payment details
+router.get('/history-with-payments', protect, async (req, res) => {
+  try {
+    if (req.user.role !== 'patient') {
+      return res.status(403).json({ message: 'This endpoint is for patients only' });
+    }
+
+    const Payment = (await import('../models/Payment.js')).default;
+    
+    const filter = {
+      patientId: req.user._id,
+    };
+    
+    const appointments = await Appointment.find(filter)
+      .populate('doctorId', 'name specialization')
+      .populate('hospitalId', 'name')
+      .sort({ createdAt: -1 })
+      .lean();
+    
+    // For each appointment, try to find its payment record
+    const enrichedAppointments = await Promise.all(
+      appointments.map(async (apt) => {
+        const payment = await Payment.findOne({
+          serviceType: 'appointment',
+          referenceId: apt._id.toString(),
+          patient_id: req.user._id.toString(),
+        }).lean();
+        
+        return {
+          _id: apt._id,
+          serviceType: 'appointment',
+          createdAt: apt.createdAt || apt.date,
+          
+          // Appointment details
+          appointmentDate: apt.date,
+          appointmentTime: apt.time,
+          tokenNumber: apt.tokenNumber,
+          status: apt.status,
+          type: apt.type,
+          
+          // Doctor details
+          doctorName: apt.doctor || apt.doctorId?.name || 'Doctor',
+          doctorSpecialization: apt.doctorId?.specialization || '',
+          provider: apt.hospitalId?.name || apt.doctorId?.name || 'Clinic',
+          
+          // Payment details (if exists)
+          paymentStatus: payment ? payment.status : (apt.status === 'Cancelled' ? 'cancelled' : 'unpaid'),
+          amount: payment?.amount || 0,
+          method: payment?.method || '',
+          transaction_id: payment?.transaction_id || '',
+          invoice_id: payment?.invoice_id || '',
+          paymentId: payment?._id || null,
+          
+          // Reference
+          referenceId: apt._id,
+          reference: {
+            doctorName: apt.doctor || apt.doctorId?.name || '',
+            doctorSpecialization: apt.doctorId?.specialization || '',
+            appointmentDate: apt.date,
+            appointmentTime: apt.time,
+            appointmentType: apt.type,
+          },
+        };
+      })
+    );
+    
+    res.json({ data: enrichedAppointments, total: enrichedAppointments.length });
+  } catch (err) {
+    console.error('[appointments/history-with-payments] ERROR:', err);
+    res.status(500).json({ message: err.message });
+  }
 });
 
 router.get('/:id', protect, async (req, res) => {
@@ -158,9 +238,7 @@ router.post('/', protect, validate(createAppointmentSchema), async (req, res) =>
     }
     
     const countToday = await Appointment.countDocuments({ date, doctor: doctor || '' });
-    const dateStr = new Date(date || Date.now()).toISOString().slice(0,10).replace(/-/g,'');
-    const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
-    const tokenNumber = `${dateStr}-${String(countToday + 1).padStart(3, '0')}${rand}`;
+    const tokenNumber = generateTokenNumber();
     const patientUser = await User.findById(patientId);
     const estimatedWaitTime = await calculateEstimatedWaitTime(department, priority);
     const appointment = await Appointment.create({
@@ -178,7 +256,7 @@ router.post('/', protect, validate(createAppointmentSchema), async (req, res) =>
         priority: priority || 'Normal',
         estimatedWaitTime,
         hospitalId: hospitalId || undefined,
-        status: 'Pending'
+        status: req.body.status || 'Confirmed'
       });
       
       await auditLog('create_appointment', req.user._id, { recordId: appointment._id, ip: req.ip, userAgent: req.get('user-agent') });
@@ -188,7 +266,8 @@ router.post('/', protect, validate(createAppointmentSchema), async (req, res) =>
     if (doctorId) {
       await createNotification(doctorId, 'New Appointment', `New ${type || 'Consultation'} appointment from ${patientName} for ${date} at ${time}`, 'appointment');
     }
-    await createNotification(patientId, 'Appointment Created', `Your appointment with Dr. ${doctor || 'Doctor'} on ${date} at ${time} has been created. Token: ${tokenNumber}`, 'appointment');
+    const doctorDisplay = doctor ? (doctor.match(/^dr\.?\s/i) ? doctor : `Dr. ${doctor}`) : 'Doctor';
+    await createNotification(patientId, 'Appointment Created', `Your appointment with ${doctorDisplay} on ${date} at ${time} has been created. Token: ${tokenNumber}`, 'appointment');
     
     res.status(201).json({ appointment });
   } catch (err) {

@@ -4,6 +4,7 @@ import Dispute from '../models/Dispute.js';
 import { protect, superadminOnly } from '../middleware/auth.js';
 import { auditLog } from '../middleware/audit.js';
 import { validate } from '../utils/validate.js';
+import { generateTimestampedId } from '../utils/idGenerator.js';
 import logger from '../config/logger.js';
 
 const disputeStatusSchema = z.object({ status: z.string().min(1), resolution: z.string().optional() });
@@ -11,9 +12,7 @@ const disputeAssignSchema = z.object({ assignedTo: z.string().min(1) });
 
 const router = express.Router();
 
-const generateDisputeId = async () => {
-  return `DSP-${Date.now().toString(36).slice(-5).toUpperCase()}${Math.floor(Math.random() * 36).toString(36).toUpperCase()}`;
-};
+const generateDisputeId = async () => generateTimestampedId('DSP');
 
 router.get('/', protect, superadminOnly, async (req, res) => {
   try {

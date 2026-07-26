@@ -235,7 +235,7 @@ export default function HospitalProfile() {
     let bookingId = '';
     try {
       const booking = await api.createLabBooking({
-        patientId: user?._id,
+        patientId: user?.id,
         patientName: user?.name || 'Patient',
         tests: cartItems.map(t => t.name),
         testIds: cartItems.map(t => t.id),

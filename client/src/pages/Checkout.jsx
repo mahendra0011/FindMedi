@@ -219,7 +219,7 @@ export default function Checkout() {
 
     try {
       const orderPayload = {
-        patientId: user._id,
+        patientId: user.id,
         patientName: user.name,
         email: user.email,
         phone: user.phone || '',

@@ -5,13 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 
-const STATUSES = ['All','Confirmed','Pending','Cancelled','Completed'];
+const STATUSES = ['All','Confirmed','Cancelled','Completed'];
 const DEPARTMENTS = ['Cardiology','Neurology','Orthopedics','Pediatrics','Dermatology','Oncology'];
-const empty = { patient:'', doctor:'', department:'Cardiology', date:'', time:'', status:'Pending', notes:'' };
+const empty = { patient:'', doctor:'', department:'Cardiology', date:'', time:'', status:'Confirmed', notes:'' };
 
 const statusColors = {
   Confirmed: { bg: 'bg-success/10', text: 'text-success', dot: 'bg-success' },
-  Pending: { bg: 'bg-warning/10', text: 'text-warning', dot: 'bg-warning' },
   Cancelled: { bg: 'bg-destructive/10', text: 'text-destructive', dot: 'bg-destructive' },
   Completed: { bg: 'bg-info/10', text: 'text-info', dot: 'bg-info' },
 };
@@ -140,7 +139,7 @@ export default function Appointments() {
                   <X className="w-3.5 h-3.5" /> Cancel
                 </Button>
                 <Button size="sm" variant="outline" className="flex-1 gap-1.5 rounded-xl h-9 text-xs"
-                  onClick={() => updateMut.mutate({ id: apt._id, data: { status: 'Pending' } })}>
+                  onClick={() => updateMut.mutate({ id: apt._id, data: { status: 'Confirmed' } })}>
                   <RotateCcw className="w-3.5 h-3.5" /> Reschedule
                 </Button>
                 <button onClick={() => { if (confirm('Delete appointment?')) deleteMut.mutate(apt._id); }}

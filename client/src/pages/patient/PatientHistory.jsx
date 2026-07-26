@@ -56,11 +56,21 @@ export default function PatientHistory() {
       const res = await api.getTransactions(filter);
       const list = res?.data || res?.payments || [];
       setTransactions(list);
-    } catch (e) { console.error(e); }
+    } catch (e) { 
+      console.error(e); 
+      toast.error('Failed to load payment history'); 
+    }
     setLoading(false);
   };
 
-  useEffect(() => { loadData(); }, [typeFilter]);
+  useEffect(() => { loadData(); }, [typeFilter, user?.id]);
+
+  // Reload when user navigates back to this page (after booking)
+  useEffect(() => {
+    const handleFocus = () => loadData();
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [typeFilter]);
 
   const getDateRangeFilter = () => {
     const now = new Date();

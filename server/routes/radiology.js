@@ -5,16 +5,13 @@ import Notification from '../models/Notification.js';
 import User from '../models/User.js';
 import { protect, adminOnly } from '../middleware/auth.js';
 import { validate, createRadiologyOrderSchema } from '../utils/validate.js';
+import { generateOrderId } from '../utils/idGenerator.js';
 
 const radScheduleSchema = z.object({ scheduledAt: z.string().optional() });
 const radCompleteSchema = z.object({ imageUrls: z.array(z.string()).optional() });
 const radReportSchema = z.object({ findings: z.string().optional(), impression: z.string().optional(), recommendation: z.string().optional(), reportUrl: z.string().optional() });
 
 const router = express.Router();
-
-const generateOrderId = async () => {
-  return `RAD-${new Date().getFullYear()}-${Date.now().toString(36).slice(-6).toUpperCase()}${Math.floor(Math.random() * 36).toString(36).toUpperCase()}`;
-};
 
 // ─── Create Radiology Order ────────────────────────────────────────────────
 router.post('/orders', protect, adminOnly, validate(createRadiologyOrderSchema), async (req, res) => {
@@ -23,7 +20,7 @@ router.post('/orders', protect, adminOnly, validate(createRadiologyOrderSchema),
     if (!patientId || !modality || !bodyPart) {
       return res.status(400).json({ message: 'Patient, modality, and body part required' });
     }
-    const orderId = await generateOrderId();
+    const orderId = generateOrderId('RAD');
     const order = await Radiology.create({
       orderId, patientId, patientName,
       doctorId: req.user.doctorProfileId || req.user._id, doctorName: req.user.name,

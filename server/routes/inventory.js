@@ -7,6 +7,7 @@ import Notification from '../models/Notification.js';
 import { protect, adminOnly } from '../middleware/auth.js';
 import { validate, createInventoryItemSchema, updateInventoryItemSchema, createSupplierSchema, createPurchaseOrderSchema } from '../utils/validate.js';
 import { auditLog } from '../middleware/audit.js';
+import { generateTimestampedId } from '../utils/idGenerator.js';
 
 const stockUpdateSchema = z.object({ quantity: z.number(), type: z.enum(['add', 'deduct', 'adjust']), reference: z.string().optional(), notes: z.string().optional() });
 const updateSupplierSchema = z.object({}).passthrough();
@@ -15,10 +16,7 @@ const poReceiveSchema = z.object({ receivedNotes: z.string().optional() });
 
 const router = express.Router();
 
-// Generate PO Number
-const generatePONumber = async () => {
-  return `PO-${new Date().getFullYear()}-${Date.now().toString(36).slice(-6).toUpperCase()}${Math.floor(Math.random() * 36).toString(36).toUpperCase()}`;
-};
+const generatePONumber = async () => generateTimestampedId('PO');
 
 // Inventory Items
 router.post('/items', protect, adminOnly, validate(createInventoryItemSchema), async (req, res) => {

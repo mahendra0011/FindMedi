@@ -5,16 +5,13 @@ import Admission from '../models/Admission.js';
 import Notification from '../models/Notification.js';
 import { protect, adminOnly, clinicalStaffOnly } from '../middleware/auth.js';
 import { validate, createAdmissionSchema } from '../utils/validate.js';
+import { generateAdmissionId } from '../utils/idGenerator.js';
 
 const ipdBedSchema = z.object({}).passthrough();
 const ipdDischargeSchema = z.object({ dischargeSummary: z.string().optional(), isInfectionCase: z.boolean().optional() });
 const ipdClinicalSchema = z.object({}).passthrough();
 
 const router = express.Router();
-
-const generateAdmissionId = async () => {
-  return `IPD-${new Date().getFullYear()}-${Date.now().toString(36).slice(-6).toUpperCase()}${Math.floor(Math.random() * 36).toString(36).toUpperCase()}`;
-};
 
 // ─── Bed Management ────────────────────────────────────────────────────────
 router.get('/beds', protect, async (req, res) => {
@@ -55,7 +52,7 @@ router.post('/admissions', protect, adminOnly, validate(createAdmissionSchema), 
     const { patientId, patientName, bedId, primaryDiagnosis, source, attendantName, attendantPhone, estimatedStay, admissionNotes, priority } = req.body;
     if (!patientId) return res.status(400).json({ message: 'Patient required' });
 
-    const admissionId = await generateAdmissionId();
+    const admissionId = generateAdmissionId();
     let bedData = null;
 
     // Auto-assign bed based on priority/severity if not provided
@@ -161,8 +158,6 @@ router.put('/admissions/:id/discharge', protect, adminOnly, validate(ipdDischarg
 
     // Auto-create housekeeping task on discharge
     const Housekeeping = (await import('../models/Housekeeping.js')).default;
-    const genId = () => `HSK-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
-    const taskId = genId();
     const taskType = isInfectionCase ? 'Terminal Cleaning (Infection)' : 'Routine Cleaning';
     await Housekeeping.create({
       taskId,
