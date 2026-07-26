@@ -36,7 +36,7 @@ export const protect = async (req, res, next) => {
     }
 
     let doctor = null;
-    if (user.role === 'doctor') {
+    if (user.role === 'doctor' || user.role === 'clinic_doctor') {
       doctor = await Doctor.findOne({
         $or: [
           { user_id: user._id.toString() },
@@ -68,7 +68,7 @@ export const protect = async (req, res, next) => {
       hospitalId: user.hospitalId || null,
       facilityId: user.facilityId || null,
       facilityType: user.facilityType || '',
-      doctorProfileId: user.role === 'doctor' ? (doctor?._id || null) : null,
+      doctorProfileId: (user.role === 'doctor' || user.role === 'clinic_doctor') ? (doctor?._id || null) : null,
     };
     req.authUser = user;
     next();
@@ -84,6 +84,13 @@ export const auditAction = async (req, action) => {
 export const adminOnly = (req, res, next) => {
   if (req.user?.role !== 'admin' && req.user?.role !== 'superadmin') {
     return res.status(403).json({ message: 'Admin access required' });
+  }
+  next();
+};
+
+export const requireRole = (roles) => (req, res, next) => {
+  if (!roles.includes(req.user?.role)) {
+    return res.status(403).json({ message: `${roles.join(' or ')} role required` });
   }
   next();
 };

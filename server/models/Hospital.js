@@ -47,6 +47,9 @@ const hospitalSchema = new mongoose.Schema({
   },
   insuranceAccepted: [{ provider: String, planType: String }],  // Insurance providers accepted
   paymentModes: [{ type: String }],                             // Accepted payment modes
+  settings: {
+    autoConfirmAppointment: { type: Boolean, default: true },
+  },
   workingHours: {
     weekdays: { type: String, default: '9:00 AM - 6:00 PM' },
     saturday: { type: String, default: '9:00 AM - 2:00 PM' },

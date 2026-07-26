@@ -5,6 +5,7 @@ import Payment from '../models/Payment.js';
 import User from '../models/User.js';
 import Doctor from '../models/Doctor.js';
 import Facility from '../models/Facility.js';
+import Hospital from '../models/Hospital.js';
 import Appointment from '../models/Appointment.js';
 import LabBooking from '../models/LabBooking.js';
 import PharmacyOrder from '../models/PharmacyOrder.js';
@@ -138,36 +139,27 @@ router.post('/pay', protect, async (req, res, next) => {
         }
 
         if (patientId && date && time) {
-          const dupFilter = { doctorId: doctorId || null, date, time, status: { $nin: ['Cancelled', 'Completed'] } };
-          // find -> delete -> create ek saath atomic nahi hai, isliye retry loop lagaya
-          // taaki koi stray unpaid Pending row beech me reappear ho to bhi genuine fresh
-          // booking fail na ho.
-          for (let attempt = 0; attempt < 3; attempt++) {
-            const existing = await Appointment.findOne(dupFilter);
-            if (!existing) break;
-            if (existing.status === 'Pending') {
-              const hasCompletedPayment = await Payment.findOne({ referenceId: existing._id.toString(), status: 'completed' });
+          // First: check if THIS patient already has an appointment at this slot
+          const ownFilter = { patientId, doctorId: doctorId || null, date, time, status: { $nin: ['Cancelled', 'Completed', 'Missed'] } };
+          const ownExisting = await Appointment.findOne(ownFilter);
+          if (ownExisting) {
+            if (ownExisting.status === 'Pending') {
+              const hasCompletedPayment = await Payment.findOne({ referenceId: ownExisting._id.toString(), status: 'completed' });
               if (hasCompletedPayment) {
                 return res.status(409).json({ message: 'You already have an appointment with this doctor on this date and time.' });
               }
-              await Appointment.findByIdAndDelete(existing._id);
+              // Only delete if it belongs to this patient AND is older than 2 minutes (stale checkout)
+              const ageMs = Date.now() - new Date(ownExisting.createdAt).getTime();
+              if (ageMs > 2 * 60 * 1000) {
+                await Appointment.findByIdAndDelete(ownExisting._id);
+              } else {
+                return res.status(409).json({ message: 'You already have an appointment with this doctor on this date and time.' });
+              }
             } else {
               return res.status(409).json({ message: 'You already have an appointment with this doctor on this date and time.' });
             }
           }
 
-          // Doctor-level check: kisi bhi OTHER patient ne bhi ye doctor+date+time
-          // le rakha ho to block karo — warna ek hi slot pe multiple patients
-          // book ho sakte hain.
-          if (doctorId) {
-            const slotTaken = await Appointment.findOne({
-              doctorId, date, time, patientId: { $ne: patientId },
-              status: { $nin: ['Cancelled', 'Completed', 'Missed'] },
-            });
-            if (slotTaken) {
-              return res.status(409).json({ message: 'This time slot is no longer available with this doctor. Please choose a different slot.' });
-            }
-          }
         }
 
         const tokenNumber = generateTokenNumber();
@@ -269,12 +261,19 @@ router.post('/pay', protect, async (req, res, next) => {
           let shouldConfirm = true;
           try {
             const appt = await Appointment.findById(referenceId).populate('doctorId', 'facilityId hospitalId').lean();
-            const facilityId = appt?.doctorId?.facilityId || appt?.doctorId?.hospitalId;
+            const facilityId = appt?.doctorId?.facilityId;
+            const hospitalId = appt?.doctorId?.hospitalId;
+            let settings = null;
             if (facilityId) {
               const facility = await Facility.findById(facilityId).select('settings').lean();
-              if (facility?.settings?.autoConfirmAppointment === false) {
-                shouldConfirm = false;
-              }
+              settings = facility?.settings;
+            }
+            if (!settings && hospitalId) {
+              const hospital = await Hospital.findById(hospitalId).select('settings').lean();
+              settings = hospital?.settings;
+            }
+            if (settings?.autoConfirmAppointment === false) {
+              shouldConfirm = false;
             }
           } catch (_) { /* default to confirm on error */ }
           if (shouldConfirm) {

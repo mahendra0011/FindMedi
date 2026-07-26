@@ -83,11 +83,11 @@ router.get('/', protect, async (req, res) => {
         { patientId: req.user._id },
         { patientId: { $exists: false }, patient: req.user.name },
       ];
-    } else if (req.user.role === 'doctor') {
+    } else if (req.user.role === 'doctor' || req.user.role === 'clinic_doctor') {
       filter.doctorId = req.user.doctorProfileId;
     }
 
-    if (req.user.hospitalId && req.user.role !== 'superadmin') {
+    if (req.user.hospitalId && (req.user.role === 'admin' || req.user.role === 'superadmin')) {
       filter.hospitalId = req.user.hospitalId;
     }
 
