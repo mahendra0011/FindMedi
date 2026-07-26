@@ -5,7 +5,7 @@ import Notification from '../models/Notification.js';
 import Doctor from '../models/Doctor.js';
 import User from '../models/User.js';
 import Hospital from '../models/Hospital.js';
-import { protect, scopeToHospital } from '../middleware/auth.js';
+import { protect, scopeToHospital, requireRole } from '../middleware/auth.js';
 import { validate, createAppointmentSchema, updateAppointmentSchema } from '../utils/validate.js';
 import logger from '../config/logger.js';
 import { auditLog } from '../middleware/audit.js';
@@ -85,14 +85,13 @@ router.get('/', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.get('/booked-slots', async (req, res) => {
+router.get('/booked-slots', protect, async (req, res) => {
   try {
     const { doctorId, date } = req.query;
     if (!doctorId || !date) return res.status(400).json({ message: 'doctorId and date required' });
-    const booked = await Appointment.find({
-      doctorId, date,
-      status: { $nin: ['Cancelled', 'Completed'] }
-    }).select('time -_id').lean();
+    const filter = { doctorId, date, status: { $nin: ['Cancelled', 'Completed', 'Missed'] } };
+    if (req.user.role === 'patient') filter.patientId = req.user._id;
+    const booked = await Appointment.find(filter).select('time -_id').lean();
     res.json(booked.map(b => b.time));
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
@@ -219,7 +218,7 @@ router.get('/:id', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/', protect, validate(createAppointmentSchema), async (req, res) => {
+router.post('/', protect, requireRole(['admin', 'superadmin']), validate(createAppointmentSchema), async (req, res) => {
   try {
     const { doctorId, doctor, department, date, time, type, symptoms, priority } = req.body;
     
@@ -235,19 +234,27 @@ router.post('/', protect, validate(createAppointmentSchema), async (req, res) =>
     }
     
     if (patientId && date && time) {
-      const dupFilter = { doctorId: doctorId || null, date, time, status: { $nin: ['Cancelled', 'Completed'] } };
-      const existing = await Appointment.findOne(dupFilter);
+      // Check if THIS patient already has an appointment at this slot
+      const ownFilter = { patientId, doctorId: doctorId || null, date, time, status: { $nin: ['Cancelled', 'Completed', 'Missed'] } };
+      const existing = await Appointment.findOne(ownFilter);
       if (existing) {
         if (existing.status === 'Pending') {
           const hasCompletedPayment = await Payment.findOne({ referenceId: existing._id.toString(), status: 'completed' });
           if (hasCompletedPayment) {
             return res.status(409).json({ message: 'You already have an appointment with this doctor on this date and time.' });
           }
-          await Appointment.findByIdAndDelete(existing._id);
+          // Only delete if it belongs to this patient AND is older than 2 minutes
+          const ageMs = Date.now() - new Date(existing.createdAt).getTime();
+          if (ageMs > 2 * 60 * 1000) {
+            await Appointment.findByIdAndDelete(existing._id);
+          } else {
+            return res.status(409).json({ message: 'You already have an appointment with this doctor on this date and time.' });
+          }
         } else {
           return res.status(409).json({ message: 'You already have an appointment with this doctor on this date and time.' });
         }
       }
+
     }
     
     const countToday = await Appointment.countDocuments({ date, doctor: doctor || '' });
@@ -269,7 +276,7 @@ router.post('/', protect, validate(createAppointmentSchema), async (req, res) =>
         priority: priority || 'Normal',
         estimatedWaitTime,
         hospitalId: hospitalId || undefined,
-        status: req.body.status || 'Pending'
+        status: 'Pending'
       });
       
       await auditLog('create_appointment', req.user._id, { recordId: appointment._id, ip: req.ip, userAgent: req.get('user-agent') });

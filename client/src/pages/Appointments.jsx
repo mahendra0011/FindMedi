@@ -4,6 +4,7 @@ import { Plus, CalendarDays, Clock, X, Trash2, MapPin, FileText, RotateCcw } fro
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
+import { formatDisplayDate } from '@/lib/dateUtils';
 
 const STATUSES = ['All','Confirmed','Cancelled','Completed'];
 const DEPARTMENTS = ['Cardiology','Neurology','Orthopedics','Pediatrics','Dermatology','Oncology'];
@@ -16,9 +17,7 @@ const statusColors = {
 };
 
 function formatDate(dateStr) {
-  if (!dateStr) return '';
-  const d = new Date(dateStr);
-  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  return formatDisplayDate(dateStr);
 }
 
 function getInitials(name) {

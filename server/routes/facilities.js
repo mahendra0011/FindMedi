@@ -1,6 +1,7 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import Facility from '../models/Facility.js';
+import Hospital from '../models/Hospital.js';
 import User from '../models/User.js';
 import Doctor from '../models/Doctor.js';
 import { protect, superadminOnly } from '../middleware/auth.js';
@@ -64,27 +65,46 @@ router.get('/mine', protect, async (req, res) => {
 // GET /api/facilities/settings — get facility settings
 router.get('/settings', protect, async (req, res) => {
   try {
-    const id = req.user.facilityId || req.user.hospitalId;
-    if (!id) return res.status(404).json({ message: 'No facility linked' });
-    const facility = await Facility.findById(id).select('settings');
-    if (!facility) return res.status(404).json({ message: 'Facility not found' });
-    res.json(facility.settings || { autoConfirmAppointment: true });
+    const facilityId = req.user.facilityId;
+    const hospitalId = req.user.hospitalId;
+    let settings = { autoConfirmAppointment: true };
+    if (facilityId) {
+      const facility = await Facility.findById(facilityId).select('settings');
+      if (facility) return res.json(facility.settings || settings);
+    }
+    if (hospitalId) {
+      const hospital = await Hospital.findById(hospitalId).select('settings');
+      if (hospital) return res.json(hospital.settings || settings);
+    }
+    if (!facilityId && !hospitalId) return res.status(404).json({ message: 'No facility linked' });
+    res.json(settings);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
 // PUT /api/facilities/settings — update facility settings
 router.put('/settings', protect, async (req, res) => {
   try {
-    const id = req.user.facilityId || req.user.hospitalId;
-    if (!id) return res.status(404).json({ message: 'No facility linked' });
+    const facilityId = req.user.facilityId;
+    const hospitalId = req.user.hospitalId;
     const { autoConfirmAppointment } = req.body;
-    const facility = await Facility.findByIdAndUpdate(
-      id,
-      { 'settings.autoConfirmAppointment': autoConfirmAppointment },
-      { new: true }
-    ).select('settings');
-    if (!facility) return res.status(404).json({ message: 'Facility not found' });
-    res.json(facility.settings);
+    if (facilityId) {
+      const facility = await Facility.findByIdAndUpdate(
+        facilityId,
+        { 'settings.autoConfirmAppointment': autoConfirmAppointment },
+        { new: true }
+      ).select('settings');
+      if (facility) return res.json(facility.settings);
+    }
+    if (hospitalId) {
+      const hospital = await Hospital.findByIdAndUpdate(
+        hospitalId,
+        { 'settings.autoConfirmAppointment': autoConfirmAppointment },
+        { new: true }
+      ).select('settings');
+      if (hospital) return res.json(hospital.settings);
+    }
+    if (!facilityId && !hospitalId) return res.status(404).json({ message: 'No facility linked' });
+    res.status(404).json({ message: 'Facility not found' });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 

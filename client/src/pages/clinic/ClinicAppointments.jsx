@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
-import { getISTDateString } from '@/lib/dateUtils';
+import { getISTDateString, formatDisplayDate } from '@/lib/dateUtils';
 
 const statusColors = { Pending: 'bg-amber-50 text-amber-600 border border-amber-200', Confirmed: 'bg-success/10 text-success', Cancelled: 'bg-destructive/10 text-destructive', Completed: 'bg-info/10 text-info' };
 const filters = ['All', 'Pending', 'Confirmed', 'Cancelled', 'Completed'];
@@ -138,7 +138,7 @@ export default function ClinicAppointments() {
                 <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${statusColors[apt.status]}`}>{apt.status}</span>
               </div>
               <div className="space-y-1.5 text-sm text-muted-foreground mb-4">
-                <div className="flex items-center gap-2"><CalendarDays className="w-3.5 h-3.5" /><span>{apt.date}</span></div>
+                <div className="flex items-center gap-2"><CalendarDays className="w-3.5 h-3.5" /><span>{formatDisplayDate(apt.date)}</span></div>
                 <div className="flex items-center gap-2"><Clock className="w-3.5 h-3.5" /><span>{apt.time}</span></div>
               </div>
               <div className="flex gap-2">

@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
-import { getISTDateString } from '@/lib/dateUtils';
+import { getISTDateString, formatDisplayDate } from '@/lib/dateUtils';
 
 const timeSlots = ['9:00 AM', '9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM', '2:00 PM', '2:30 PM', '3:00 PM', '3:30 PM', '4:00 PM', '4:30 PM'];
 
@@ -24,9 +24,7 @@ const statusConfig = {
 };
 
 function formatDate(d) {
-  if (!d) return '';
-  const dt = new Date(d);
-  return dt.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return formatDisplayDate(d);
 }
 
 function formatShortDate(d) {

@@ -34,10 +34,10 @@ async function migrateIndex() {
   if (expectedIndex) {
     console.log('New index patientId_1_doctorId_1_date_1_time_1 already exists. Skipping creation.');
   } else {
-    console.log('\nCreating new compound index patientId_1_doctorId_1_date_1_time_1...');
+    console.log('\nCreating new compound index doctorId_1_patientId_1_date_1_time_1...');
     await collection.createIndex(
-      { patientId: 1, doctorId: 1, date: 1, time: 1 },
-      { unique: true, partialFilterExpression: { status: { $in: ['Pending', 'Confirmed', 'In Queue', 'Serving', 'Missed'] } } }
+      { doctorId: 1, patientId: 1, date: 1, time: 1 },
+      { unique: true, partialFilterExpression: { status: { $in: ['Pending', 'Confirmed', 'In Queue', 'Serving'] }, doctorId: { $type: 'objectId' } } }
     );
     console.log('New index created successfully.');
   }
