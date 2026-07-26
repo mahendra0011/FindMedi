@@ -10,7 +10,7 @@ const appointmentSchema = new mongoose.Schema({
   doctor: { type: String, required: true },
   doctorId: { type: mongoose.Schema.Types.ObjectId, ref: 'Doctor' },
   department: { type: String, required: true },
-  date: { type: Date, required: true },
+  date: { type: String, required: true },
   time: { type: String, required: true },
   status: { type: String, enum: ['Pending', 'Confirmed', 'Cancelled', 'Completed', 'In Queue', 'Serving', 'Missed'], default: 'Pending' },
   priority: { type: String, enum: ['Normal', 'Urgent', 'Emergency'], default: 'Normal' },
@@ -30,6 +30,6 @@ const appointmentSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
 });
 
-appointmentSchema.index({ doctorId: 1, date: 1, time: 1 }, { unique: true, partialFilterExpression: { status: { $in: ['Pending', 'Confirmed', 'In Queue', 'Serving', 'Missed'] }, doctorId: { $type: 'objectId' } } });
+appointmentSchema.index({ doctorId: 1, date: 1, time: 1 }, { unique: true, partialFilterExpression: { status: { $in: ['Pending', 'Confirmed', 'In Queue', 'Serving'] }, doctorId: { $type: 'objectId' } } });
 
 export default mongoose.model('Appointment', appointmentSchema);

@@ -12,6 +12,7 @@ import mongoose from 'mongoose';
 import Notification from '../models/Notification.js';
 import { generatePaymentInvoicePDF } from '../services/pdfService.js';
 import { protect } from '../middleware/auth.js';
+import logger from '../config/logger.js';
 import { validate, createPaymentSchema } from '../utils/validate.js';
 import { auditLog } from '../middleware/audit.js';
 import { paginatedResults } from '../utils/pagination.js';
@@ -267,9 +268,10 @@ router.post('/pay', protect, async (req, res, next) => {
         if (serviceType === 'appointment') {
           let shouldConfirm = true;
           try {
-            const appt = await Appointment.findById(referenceId).populate('doctorId', 'facilityId').lean();
-            if (appt?.doctorId?.facilityId) {
-              const facility = await Facility.findById(appt.doctorId.facilityId).select('settings').lean();
+            const appt = await Appointment.findById(referenceId).populate('doctorId', 'facilityId hospitalId').lean();
+            const facilityId = appt?.doctorId?.facilityId || appt?.doctorId?.hospitalId;
+            if (facilityId) {
+              const facility = await Facility.findById(facilityId).select('settings').lean();
               if (facility?.settings?.autoConfirmAppointment === false) {
                 shouldConfirm = false;
               }
@@ -285,6 +287,16 @@ router.post('/pay', protect, async (req, res, next) => {
         }
       }
 
+    } catch (txErr) {
+      // If appointment was newly created but payment failed, clean up
+      if (req.body?.appointment && createdAppointment?._id) {
+        try { await Appointment.findByIdAndDelete(createdAppointment._id); } catch (_) {}
+      }
+      throw txErr;
+    }
+
+    // ── Payment successfully committed — these steps must NOT roll back the appointment ──
+    try {
       await Billing.create([{
         invoiceId: bill_id,
         patient: req.user.name || 'Patient',
@@ -298,30 +310,25 @@ router.post('/pay', protect, async (req, res, next) => {
         paymentMethod: methodMap[method] || 'Online',
         transactionId: transaction_id,
       }]);
+    } catch (billErr) {
+      logger.error('[transactions/pay] Billing.create failed post-payment', billErr);
+    }
 
-      // ── Payment confirmed — ab hi doctor ko notify karo ──
-      if (serviceType === 'appointment' && createdAppointment?.doctorId) {
-        try {
-          const notifModule = await import('../models/Notification.js');
-          const NotificationModel = notifModule.default;
-          const doctorDoc = await Doctor.findById(createdAppointment.doctorId).select('user_id').lean();
-          const notifUserId = doctorDoc?.user_id ? doctorDoc.user_id.toString() : createdAppointment.doctorId.toString();
-          await NotificationModel.create({
-            userId: notifUserId,
-            title: 'New Appointment',
-            message: `New ${createdAppointment.type || 'Consultation'} appointment from ${createdAppointment.patient} for ${createdAppointment.date} at ${createdAppointment.time}`,
-            type: 'appointment',
-            date: getISTDateString(),
-          });
-        } catch (_) {}
-      }
-
-    } catch (txErr) {
-      // If appointment was newly created but payment failed, clean up
-      if (req.body?.appointment && createdAppointment?._id) {
-        try { await Appointment.findByIdAndDelete(createdAppointment._id); } catch (_) {}
-      }
-      throw txErr;
+    // ── Payment confirmed — ab hi doctor ko notify karo ──
+    if (serviceType === 'appointment' && createdAppointment?.doctorId) {
+      try {
+        const notifModule = await import('../models/Notification.js');
+        const NotificationModel = notifModule.default;
+        const doctorDoc = await Doctor.findById(createdAppointment.doctorId).select('user_id').lean();
+        const notifUserId = doctorDoc?.user_id ? doctorDoc.user_id.toString() : createdAppointment.doctorId.toString();
+        await NotificationModel.create({
+          userId: notifUserId,
+          title: 'New Appointment',
+          message: `New ${createdAppointment.type || 'Consultation'} appointment from ${createdAppointment.patient} for ${createdAppointment.date} at ${createdAppointment.time}`,
+          type: 'appointment',
+          date: getISTDateString(),
+        });
+      } catch (_) {}
     }
 
     // ── Non-critical side-effects (outside transaction, can fail independently) ──
