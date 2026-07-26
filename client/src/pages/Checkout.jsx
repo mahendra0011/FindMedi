@@ -376,7 +376,7 @@ export default function Checkout() {
                 </div>
                 <Button size="sm" className="rounded-lg w-full" onClick={async () => {
                  if (!newAddress.full || !newAddress.city) { toast.error('Please fill all fields'); return; }
-                 const newId = `a${Date.now()}`;
+                  const newId = `a${crypto.randomUUID()}`;
                  const updated = [...addressList, { id:newId, label:'Other', address:`${newAddress.full}, ${newAddress.city}, ${newAddress.pincode}`, type:'other', default:false }];
                  setAddressList(updated);
                  setAddress(newId);
@@ -826,7 +826,7 @@ export default function Checkout() {
                     message: msg,
                     onConfirm: () => {
                       setConfirmDialog(null);
-                      const orderIds = stores.map((st, i) => `ORD${Date.now().toString(36).toUpperCase()}-${i + 1}`);
+                      const orderIds = stores.map((st, i) => `ORD${crypto.randomUUID()}-${i + 1}`);
                       const params = new URLSearchParams({ stores: stores.map(s => s.storeId).join(','), orderIds: orderIds.join(','), rx: hasRxItems ? 'true' : 'false' });
                       remainingOos.forEach(e => removeItem(e.key));
                       if (payOnDelivery) { navigate(`/order-confirmation?${params}`); }

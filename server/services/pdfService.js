@@ -1,5 +1,6 @@
 import PDFDocument from 'pdfkit';
 import fetch from 'node-fetch';
+import { v4 as uuidv4 } from 'uuid';
  
 const HOSPITAL = {
   name: 'MediCore Hospital',
@@ -256,7 +257,7 @@ const drawSignature = (doc, label = 'Authorized Signatory', signatureBuffer = nu
 export const generatePrescriptionPDF = async (data) => {
   const signatureBuffer = data.doctor?.signatureUrl ? await fetchImageBuffer(data.doctor.signatureUrl) : null;
   return collectPdf((doc) => {
-    const now = new Date(); const rxId = data.prescriptionId || data.reportId || `RX-${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}-${String(now.getHours()).padStart(2,'0')}-${String(now.getMinutes()).padStart(2,'0')}-${String(Math.floor(Math.random()*10**16)).padStart(16,'0')}`;
+    const now = new Date(); const rxId = data.prescriptionId || data.reportId || `RX-${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}-${String(now.getHours()).padStart(2,'0')}-${String(now.getMinutes()).padStart(2,'0')}-${uuidv4()}`;
     drawHeader(doc, 'Prescription', { id: rxId, date: data.date || new Date() });
     drawInfoGrid(doc, [
       {
@@ -305,7 +306,7 @@ export const generatePrescriptionPDF = async (data) => {
 };
  
 export const generateLabReportPDF = async (data) => collectPdf((doc) => {
-  const labNow = new Date(); const labId = data.reportId || `LAB-${labNow.getFullYear()}-${String(labNow.getMonth()+1).padStart(2,'0')}-${String(labNow.getDate()).padStart(2,'0')}-${String(labNow.getHours()).padStart(2,'0')}-${String(labNow.getMinutes()).padStart(2,'0')}-${String(Math.floor(Math.random()*10**16)).padStart(16,'0')}`;
+  const labNow = new Date(); const labId = data.reportId || `LAB-${labNow.getFullYear()}-${String(labNow.getMonth()+1).padStart(2,'0')}-${String(labNow.getDate()).padStart(2,'0')}-${String(labNow.getHours()).padStart(2,'0')}-${String(labNow.getMinutes()).padStart(2,'0')}-${uuidv4()}`;
   drawHeader(doc, 'Laboratory Report', { id: labId, date: data.reportDate || new Date() });
   drawInfoGrid(doc, [
     {
@@ -347,7 +348,7 @@ export const generateLabReportPDF = async (data) => collectPdf((doc) => {
 });
  
 export const generateDischargeSummaryPDF = async (data) => collectPdf((doc) => {
-  const dsNow = new Date(); const dsId = data.admissionId || `DS-${dsNow.getFullYear()}-${String(dsNow.getMonth()+1).padStart(2,'0')}-${String(dsNow.getDate()).padStart(2,'0')}-${String(dsNow.getHours()).padStart(2,'0')}-${String(dsNow.getMinutes()).padStart(2,'0')}-${String(Math.floor(Math.random()*10**16)).padStart(16,'0')}`;
+  const dsNow = new Date(); const dsId = data.admissionId || `DS-${dsNow.getFullYear()}-${String(dsNow.getMonth()+1).padStart(2,'0')}-${String(dsNow.getDate()).padStart(2,'0')}-${String(dsNow.getHours()).padStart(2,'0')}-${String(dsNow.getMinutes()).padStart(2,'0')}-${uuidv4()}`;
   drawHeader(doc, 'Discharge Summary', { id: dsId, date: data.dischargeDate || new Date() });
   drawInfoGrid(doc, [
     {

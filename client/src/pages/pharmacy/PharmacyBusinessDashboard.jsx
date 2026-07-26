@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import {
   Pill, ShoppingCart, DollarSign, AlertTriangle,
-  Package
+  Package, RotateCcw, Globe, Save, Building2, Users, CheckCircle, AlertCircle
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -23,6 +23,7 @@ export default function PharmacyBusinessDashboard() {
   const [stats, setStats] = useState(null);
   const [recentOrders, setRecentOrders] = useState([]);
   const [lowStock, setLowStock] = useState([]);
+  const [refunds, setRefunds] = useState([]);
   const [loading, setLoading] = useState(true);
   const mounted = useRef(true);
 
@@ -35,12 +36,14 @@ export default function PharmacyBusinessDashboard() {
           api.getPharmacyStats(),
           api.getPharmacyOrders({}),
           api.getPharmacyMedicines({ lowStock: 'true' }),
+          api.getPharmacyReturns({}),
         ]);
         if (!mounted.current) return;
-        const [s, o, m] = results.map(res => res.status === 'fulfilled' ? res.value : null);
+        const [s, o, m, rf] = results.map(res => res.status === 'fulfilled' ? res.value : null);
         setStats(s);
         setRecentOrders((o?.orders || []).slice(0, 5));
         setLowStock((m?.medicines || []).slice(0, 5));
+        setRefunds((rf?.returns || rf?.data || []).slice(0, 5));
         const failed = results.filter(r => r.status === 'rejected');
         if (failed.length > 0) toast.error(`Failed to load ${failed.length} data source(s)`);
       } catch (e) { console.error(e); toast.error('Failed to load dashboard data'); }
@@ -49,6 +52,9 @@ export default function PharmacyBusinessDashboard() {
     load();
     return () => { mounted.current = false; };
   }, []);
+
+  const totalRefunded = refunds.reduce((s, r) => s + (r.total || r.refundAmount || 0), 0);
+  const pendingRefunds = refunds.filter(r => r.status === 'Pending' || r.status === 'pending').length;
 
   if (loading) {
     return (
@@ -193,6 +199,144 @@ export default function PharmacyBusinessDashboard() {
               <p className="text-sm text-muted-foreground text-center py-4">All items well-stocked</p>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* Refund Section */}
+      <div className="bg-card rounded-xl border p-6 shadow-sm mt-6">
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="font-heading font-semibold text-lg text-card-foreground flex items-center gap-2">
+            <RotateCcw className="w-5 h-5 text-destructive" /> Refunds & Returns
+          </h3>
+          <Link to="/pharmacy-business/returns" className="text-xs text-primary hover:underline">View All</Link>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <div className="bg-destructive/5 rounded-lg border border-destructive/20 p-4">
+            <p className="text-2xl font-bold text-destructive">₹{totalRefunded.toLocaleString()}</p>
+            <p className="text-xs text-muted-foreground">Total Refunded</p>
+          </div>
+          <div className="bg-warning/5 rounded-lg border border-warning/20 p-4">
+            <p className="text-2xl font-bold text-warning">{pendingRefunds}</p>
+            <p className="text-xs text-muted-foreground">Pending Returns</p>
+          </div>
+          <div className="bg-info/5 rounded-lg border border-info/20 p-4">
+            <p className="text-2xl font-bold text-info">{refunds.length}</p>
+            <p className="text-xs text-muted-foreground">Total Returns</p>
+          </div>
+        </div>
+        {refunds.length > 0 ? (
+          <div className="space-y-3">
+            {refunds.map((r, i) => (
+              <motion.div
+                key={r._id}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.08 }}
+                className="flex items-center justify-between p-3 bg-muted/30 rounded-xl"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-card-foreground truncate">{r.returnId || r._id}</p>
+                  <p className="text-xs text-muted-foreground">Patient: {r.patientName || r.customer || '—'}</p>
+                </div>
+                <div className="text-right flex-shrink-0 ml-3">
+                  <p className="text-sm font-bold text-destructive">₹{(r.total || r.refundAmount || 0).toLocaleString()}</p>
+                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${r.status === 'Refunded' ? 'bg-destructive/10 text-destructive' : r.status === 'Approved' ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'}`}>
+                    {r.status}
+                  </span>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-6 text-muted-foreground">
+            <RotateCcw className="w-8 h-8 mx-auto mb-2 opacity-30" />
+            <p>No returns or refunds</p>
+          </div>
+        )}
+      </div>
+
+      {/* Platform Settings Section */}
+      <div className="bg-card rounded-xl border p-6 shadow-sm mt-6">
+        <div className="flex items-center gap-2 mb-5">
+          <Globe className="w-4 h-4 text-primary" />
+          <h3 className="font-heading font-semibold text-lg text-card-foreground">Platform Settings</h3>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="bg-success/5 rounded-lg border border-success/20 p-4">
+            <p className="text-2xl font-bold text-success">Active</p>
+            <p className="text-xs text-muted-foreground">Platform Status</p>
+          </div>
+          <div className="bg-primary/5 rounded-lg border border-primary/20 p-4">
+            <p className="text-2xl font-bold text-primary">{stats?.totalOrders ?? '—'}</p>
+            <p className="text-xs text-muted-foreground">Total Orders</p>
+          </div>
+          <div className="bg-info/5 rounded-lg border border-info/20 p-4">
+            <p className="text-2xl font-bold text-info">{stats?.totalMedicines ?? '—'}</p>
+            <p className="text-xs text-muted-foreground">Total Medicines</p>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div className="flex items-center justify-between py-3 border-b border-border last:border-0">
+            <div className="flex items-start gap-3">
+              <Building2 className="w-5 h-5 text-muted-foreground mt-0.5" />
+              <div>
+                <p className="font-medium text-sm text-card-foreground">Auto Confirm Orders</p>
+                <p className="text-xs text-muted-foreground">Automatically confirm orders after payment</p>
+              </div>
+            </div>
+            <button className="relative inline-flex h-6 w-11 items-center rounded-full bg-primary transition-colors">
+              <span className="inline-block h-4 w-4 transform rounded-full bg-white translate-x-6" />
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between py-3 border-b border-border last:border-0">
+            <div className="flex items-start gap-3">
+              <Users className="w-5 h-5 text-muted-foreground mt-0.5" />
+              <div>
+                <p className="font-medium text-sm text-card-foreground">Customer Self-Registration</p>
+                <p className="text-xs text-muted-foreground">Allow customers to register without approval</p>
+              </div>
+            </div>
+            <button className="relative inline-flex h-6 w-11 items-center rounded-full bg-gray-300 transition-colors">
+              <span className="inline-block h-4 w-4 transform rounded-full bg-white translate-x-1" />
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between py-3 border-b border-border last:border-0">
+            <div className="flex items-start gap-3">
+              <CheckCircle className="w-5 h-5 text-muted-foreground mt-0.5" />
+              <div>
+                <p className="font-medium text-sm text-card-foreground">Prescription Validation</p>
+                <p className="text-xs text-muted-foreground">Require prescription verification for controlled medicines</p>
+              </div>
+            </div>
+            <button className="relative inline-flex h-6 w-11 items-center rounded-full bg-primary transition-colors">
+              <span className="inline-block h-4 w-4 transform rounded-full bg-white translate-x-6" />
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between py-3 border-b border-border last:border-0">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-muted-foreground mt-0.5" />
+              <div>
+                <p className="font-medium text-sm text-card-foreground">Delivery Integration</p>
+                <p className="text-xs text-muted-foreground">Enable third-party delivery for medicine orders</p>
+              </div>
+            </div>
+            <button className="relative inline-flex h-6 w-11 items-center rounded-full bg-primary transition-colors">
+              <span className="inline-block h-4 w-4 transform rounded-full bg-white translate-x-6" />
+            </button>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 mt-6 pt-6 border-t border-border">
+          <button className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors">
+            <Save className="w-4 h-4" />
+            Save Platform Settings
+          </button>
+          <span className="text-xs text-muted-foreground">Changes apply platform-wide</span>
         </div>
       </div>
     </div>

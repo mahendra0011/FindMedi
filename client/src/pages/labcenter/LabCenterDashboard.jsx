@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { CalendarDays, Clock, User, AlertCircle, TrendingUp, DollarSign, Beaker, FileText, Microscope } from 'lucide-react';
+import { CalendarDays, Clock, User, AlertCircle, TrendingUp, DollarSign, Beaker, FileText, Microscope, RotateCcw, Globe, Save, Building2, Users, CheckCircle } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -19,6 +19,7 @@ export default function LabCenterDashboard() {
   const { user } = useAuth();
   const [stats, setStats] = useState(null);
   const [bookings, setBookings] = useState([]);
+  const [refunds, setRefunds] = useState([]);
   const [loading, setLoading] = useState(true);
   const mounted = useRef(true);
 
@@ -30,11 +31,13 @@ export default function LabCenterDashboard() {
         const results = await Promise.allSettled([
           api.getLabStats(),
           api.getLabBookings({}),
+          api.getRefunds(),
         ]);
         if (!mounted.current) return;
-        const [s, b] = results.map(res => res.status === 'fulfilled' ? res.value : null);
+        const [s, b, rf] = results.map(res => res.status === 'fulfilled' ? res.value : null);
         setStats(s);
         setBookings(b?.bookings || []);
+        setRefunds((rf?.payments || rf?.data || []).slice(0, 5));
         const failed = results.filter(r => r.status === 'rejected');
         if (failed.length > 0) toast.error(`Failed to load ${failed.length} data source(s)`);
       } catch (e) { console.error(e); toast.error('Failed to load dashboard data'); }
@@ -49,6 +52,8 @@ export default function LabCenterDashboard() {
   const pendingReports = stats?.pending ?? bookings.filter(b => b.status === 'Pending' || b.status === 'Confirmed').length;
   const totalEarned = bookings.filter(b => b.status === 'Completed').reduce((s, b) => s + Number(b.amount || 0), 0);
   const completedTests = bookings.filter(b => b.status === 'Completed').reduce((s, b) => s + (b.tests?.length || 0), 0);
+  const totalRefunded = refunds.reduce((s, r) => s + (r.refund_amount || r.amount || 0), 0);
+  const pendingRefunds = refunds.filter(r => r.status === 'Pending' || r.status === 'pending').length;
 
   if (loading) return <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>;
 
@@ -175,6 +180,132 @@ export default function LabCenterDashboard() {
               ))}
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Refund Section */}
+      <div className="bg-card rounded-2xl border border-border/60 p-6 mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-heading text-lg font-semibold text-foreground flex items-center gap-2">
+            <RotateCcw className="w-5 h-5 text-destructive" /> Refunds
+          </h2>
+          <div className="flex items-center gap-4 text-sm">
+            <span className="text-destructive font-medium">₹{totalRefunded.toLocaleString()} Total</span>
+            <span className="text-warning font-medium">{pendingRefunds} Pending</span>
+          </div>
+        </div>
+        {refunds.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            <RotateCcw className="w-12 h-12 mx-auto mb-2 opacity-30" />
+            <p>No refunds found</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {refunds.map(r => (
+              <div key={r._id} className="flex items-center justify-between p-4 bg-muted/30 rounded-xl">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center">
+                    <RotateCcw className="w-5 h-5 text-destructive" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-foreground">{r.patientName || r.patient || '—'}</p>
+                    <p className="text-xs text-muted-foreground">{r.reason || r.description || 'Refund'}</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="font-bold text-destructive">₹{(r.refund_amount || r.amount || 0).toLocaleString()}</p>
+                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${r.status === 'Refunded' || r.status === 'refunded' ? 'bg-destructive/10 text-destructive' : 'bg-warning/10 text-warning'}`}>
+                    {r.status}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Platform Settings Section */}
+      <div className="bg-card rounded-2xl border border-border/60 p-6 mb-6">
+        <div className="flex items-center gap-2 mb-5">
+          <Globe className="w-4 h-4 text-primary" />
+          <h3 className="font-heading font-semibold text-lg text-foreground">Platform Settings</h3>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="bg-success/5 rounded-lg border border-success/20 p-4">
+            <p className="text-2xl font-bold text-success">Active</p>
+            <p className="text-xs text-muted-foreground">Platform Status</p>
+          </div>
+          <div className="bg-primary/5 rounded-lg border border-primary/20 p-4">
+            <p className="text-2xl font-bold text-primary">{stats?.total ?? '—'}</p>
+            <p className="text-xs text-muted-foreground">Total Bookings</p>
+          </div>
+          <div className="bg-info/5 rounded-lg border border-info/20 p-4">
+            <p className="text-2xl font-bold text-info">{stats?.completed ?? completedTests}</p>
+            <p className="text-xs text-muted-foreground">Completed Tests</p>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div className="flex items-center justify-between py-3 border-b border-border last:border-0">
+            <div className="flex items-start gap-3">
+              <Building2 className="w-5 h-5 text-muted-foreground mt-0.5" />
+              <div>
+                <p className="font-medium text-sm text-foreground">Auto Confirm Bookings</p>
+                <p className="text-xs text-muted-foreground">Automatically confirm bookings after payment</p>
+              </div>
+            </div>
+            <button className="relative inline-flex h-6 w-11 items-center rounded-full bg-primary transition-colors">
+              <span className="inline-block h-4 w-4 transform rounded-full bg-white translate-x-6" />
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between py-3 border-b border-border last:border-0">
+            <div className="flex items-start gap-3">
+              <Users className="w-5 h-5 text-muted-foreground mt-0.5" />
+              <div>
+                <p className="font-medium text-sm text-foreground">Patient Self-Booking</p>
+                <p className="text-xs text-muted-foreground">Allow patients to book tests without approval</p>
+              </div>
+            </div>
+            <button className="relative inline-flex h-6 w-11 items-center rounded-full bg-gray-300 transition-colors">
+              <span className="inline-block h-4 w-4 transform rounded-full bg-white translate-x-1" />
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between py-3 border-b border-border last:border-0">
+            <div className="flex items-start gap-3">
+              <CheckCircle className="w-5 h-5 text-muted-foreground mt-0.5" />
+              <div>
+                <p className="font-medium text-sm text-foreground">Report Auto-Publish</p>
+                <p className="text-xs text-muted-foreground">Automatically publish test reports after completion</p>
+              </div>
+            </div>
+            <button className="relative inline-flex h-6 w-11 items-center rounded-full bg-primary transition-colors">
+              <span className="inline-block h-4 w-4 transform rounded-full bg-white translate-x-6" />
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between py-3 border-b border-border last:border-0">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-muted-foreground mt-0.5" />
+              <div>
+                <p className="font-medium text-sm text-foreground">SMS Notifications</p>
+                <p className="text-xs text-muted-foreground">Send SMS alerts for booking confirmations and report availability</p>
+              </div>
+            </div>
+            <button className="relative inline-flex h-6 w-11 items-center rounded-full bg-primary transition-colors">
+              <span className="inline-block h-4 w-4 transform rounded-full bg-white translate-x-6" />
+            </button>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 mt-6 pt-6 border-t border-border">
+          <button className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors">
+            <Save className="w-4 h-4" />
+            Save Platform Settings
+          </button>
+          <span className="text-xs text-muted-foreground">Changes apply platform-wide</span>
         </div>
       </div>
 

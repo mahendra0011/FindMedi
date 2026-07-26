@@ -64,7 +64,7 @@ export default function ClinicTests() {
         toast.success('Test updated');
       } else {
         const res = await api.createTest(testData);
-        const newTest = res || { _id: `ct_${Date.now()}`, ...testData };
+        const newTest = res || { _id: `ct_${crypto.randomUUID()}`, ...testData };
         setTests(prev => [newTest, ...prev]);
         toast.success('Test added');
       }

@@ -255,7 +255,7 @@ export function useBookingFlow(flowType = FLOW_TYPE.MEDICINE, options = {}) {
 
     const count = extraParams.storeCount || 1;
     const orderIds = Array.from({ length: count }, (_, i) =>
-      `ORD${Date.now().toString(36).toUpperCase()}-${i + 1}`
+      `ORD${crypto.randomUUID()}-${i + 1}`
     );
 
     dispatch({ type: 'ORDER_PLACED', payload: orderIds });

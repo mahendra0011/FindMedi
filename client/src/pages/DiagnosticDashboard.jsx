@@ -54,6 +54,7 @@ const TABS = [
   { id: 'staff', label: 'Staff', icon: Users },
   { id: 'packages', label: 'Packages', icon: Gift },
   { id: 'billing', label: 'Billing', icon: CreditCard },
+  { id: 'refunds', label: 'Refunds', icon: RotateCcw },
   { id: 'reviews', label: 'Reviews', icon: Star },
   { id: 'analytics', label: 'Analytics', icon: TrendingUp },
   { id: 'settings', label: 'Settings', icon: Settings },
@@ -133,6 +134,7 @@ export default function DiagnosticDashboard() {
   const { data: packagesData } = useQuery({ queryKey: ['lab-packages'], queryFn: () => labApi.getPackages({}) });
   const { data: staffData } = useQuery({ queryKey: ['lab-staff'], queryFn: () => api.getStaff({}).catch(() => []) });
   const { data: reviewsData } = useQuery({ queryKey: ['lab-reviews'], queryFn: () => api.getReviews({}).catch(() => []) });
+  const { data: refundsData } = useQuery({ queryKey: ['lab-refunds'], queryFn: () => api.getRefunds().catch(() => ({ payments: [] })) });
 
   const orders = ordersData?.orders || [];
   const tests = testsData?.tests || testsData?.data || testsData || [];
@@ -141,6 +143,7 @@ export default function DiagnosticDashboard() {
   const packages = packagesData?.packages || packagesData?.data || [];
   const staffList = staffData?.staff || staffData?.data || staffData || [];
   const reviews = reviewsData?.reviews || reviewsData?.data || reviewsData || [];
+  const refunds = refundsData?.payments || refundsData?.data || refundsData || [];
 
   // Mutations
   const updateBookingMut = useMutation({
@@ -666,6 +669,48 @@ export default function DiagnosticDashboard() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            </>
+          )}
+
+          {/* ═══════════════════ REFUNDS ═══════════════════ */}
+          {tab === 'refunds' && (
+            <>
+              <SectionHeader title="Refund Management" subtitle={`${refunds.length} refund records · ₹${refunds.reduce((s, r) => s + (r.refund_amount || r.amount || 0), 0).toLocaleString()} total refunded`} />
+              <div className="grid md:grid-cols-3 gap-4 mb-6">
+                <div className="bg-destructive/5 rounded-xl border border-destructive/20 p-4">
+                  <p className="text-2xl font-bold text-destructive">₹{refunds.reduce((s, r) => s + (r.refund_amount || r.amount || 0), 0).toLocaleString()}</p>
+                  <p className="text-xs text-muted-foreground">Total Refunded</p>
+                </div>
+                <div className="bg-warning/5 rounded-xl border border-warning/20 p-4">
+                  <p className="text-2xl font-bold text-warning">{refunds.filter(r => r.status === 'Pending' || r.status === 'pending').length}</p>
+                  <p className="text-xs text-muted-foreground">Pending Requests</p>
+                </div>
+                <div className="bg-info/5 rounded-xl border border-info/20 p-4">
+                  <p className="text-2xl font-bold text-info">{refunds.filter(r => r.status === 'Refunded' || r.status === 'refunded').length}</p>
+                  <p className="text-xs text-muted-foreground">Processed</p>
+                </div>
+              </div>
+              <div className="space-y-3">
+                {refunds.map(r => (
+                  <div key={r._id} className="bg-card rounded-xl border p-4">
+                    <div className="flex items-start justify-between mb-2">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-semibold">{r.invoiceId || r._id || r.transaction_id}</span>
+                          <StatusBadge status={r.status} />
+                        </div>
+                        <p className="text-sm font-medium">{r.patientName || r.patient || '—'}</p>
+                        <p className="text-xs text-muted-foreground">{r.reason || r.description || 'Refund processed'}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-lg text-destructive">₹{(r.refund_amount || r.amount || 0).toLocaleString()}</p>
+                        <p className="text-xs text-muted-foreground">{r.date ? new Date(r.date).toLocaleDateString() : ''}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {refunds.length === 0 && <div className="text-center py-20"><RotateCcw className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" /><p className="text-muted-foreground">No refunds found</p></div>}
               </div>
             </>
           )}

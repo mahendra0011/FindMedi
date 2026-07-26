@@ -265,7 +265,7 @@ export default function HospitalTestBooking() {
     try {
       const { bookingId: bid, result } = await bookTestLab(
         {
-          bookingId: 'LB' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).substr(2, 4).toUpperCase(),
+          bookingId: 'LB' + crypto.randomUUID(),
           patientId: user.id,
           patientName: user.name,
           patientEmail: user.email,
@@ -293,14 +293,14 @@ export default function HospitalTestBooking() {
       );
       bookingId = bid;
       setPaymentResult(result);
-      setBookingId(bookingId || 'MED' + Date.now().toString(36).toUpperCase());
+      setBookingId(bookingId || 'MED' + crypto.randomUUID());
       setBookingConfirmed(true);
       setBookingStep(6);
       toast.success('Booking confirmed!');
     } catch (e) {
       const msg = e.response?.data?.message || e.message || '';
       if (isBookingConflictError(msg)) {
-        setBookingId(bookingId || 'MED' + Date.now().toString(36).toUpperCase());
+        setBookingId(bookingId || 'MED' + crypto.randomUUID());
         setBookingConfirmed(true);
         setBookingStep(6);
         toast.success('Booking already confirmed!');

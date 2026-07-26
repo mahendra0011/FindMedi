@@ -6,7 +6,7 @@ import {
   Pill, ShoppingCart, Upload, Search, Zap, Heart, ArrowRight, Clock, Star,
   IndianRupee, Activity, MapPinned, HelpCircle, Phone, MessageCircle, ChevronRight,
   X, Download, Users, Ambulance, Stethoscope, Syringe, CreditCard, Bookmark,
-  Smartphone, Landmark, Wallet
+  Smartphone, Landmark, Wallet, RotateCcw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -103,6 +103,7 @@ export default function PatientDashboard() {
   const [reports, setReports] = useState([]);
   const [notifs, setNotifs] = useState([]);
   const [reviews, setReviews] = useState([]);
+  const [refunds, setRefunds] = useState([]);
   const [cancelTarget, setCancelTarget] = useState(null);
   const [tipIndex, setTipIndex] = useState(0);
   const [greeting, setGreeting] = useState('');
@@ -146,11 +147,14 @@ export default function PatientDashboard() {
         ]);
         setAppointments((a?.appointments || a?.data || []).slice(0, 8));
         const rawBills = b?.bills || b?.data || [];
-        const [p] = await Promise.all([
+        const [p, rf] = await Promise.all([
           api.getPayments({ patient_id: user?.id }).catch(() => ({ data: [] })),
+          api.getRefunds({ patient_id: user?.id }).catch(() => ({ payments: [] })),
         ]);
         const rawPayments = p?.payments || p?.data || [];
         setPayments(rawPayments);
+        const rawRefunds = rf?.payments || rf?.data || [];
+        setRefunds(rawRefunds);
         // Cross-reference: mark bills as Paid if matching payment exists
         const uid = String(user?.id || '');
         const paidRefs = new Set(rawPayments.map(pay => pay.invoice_id || pay.invoiceId || pay.referenceId));
@@ -224,6 +228,8 @@ export default function PatientDashboard() {
   const activeRxCount = prescriptions.filter(r => r.status === 'Active').length;
   const activeOrders = medOrders.filter(o => o.status !== 'Delivered').length;
   const readyReportsCount = reports.filter(r => r.status === 'Ready').length;
+  const totalRefunded = refunds.reduce((s, r) => s + (r.refund_amount || r.amount || 0), 0);
+  const pendingRefunds = refunds.filter(r => r.status === 'Pending' || r.status === 'pending').length;
   const recentTests = testBookings.slice(0, 3);
   const recentOrders = medOrders.filter(o => o.status !== 'Delivered').slice(0, 3);
 
@@ -525,6 +531,47 @@ export default function PatientDashboard() {
             </Link>
           ))}
         </div>
+      </motion.div>
+
+      {/* Refund Section */}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+        className="bg-card rounded-2xl border border-border/60 p-5 mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-destructive/10 flex items-center justify-center"><RotateCcw className="w-4 h-4 text-destructive" /></div>
+            <div>
+              <h3 className="font-semibold text-foreground">Refunds</h3>
+              <p className="text-xs text-muted-foreground">{refunds.length > 0 ? `₹${totalRefunded.toLocaleString()} refunded` : 'No refunds'}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-destructive font-medium">₹{totalRefunded.toLocaleString()}</span>
+            {pendingRefunds > 0 && <span className="text-warning font-medium">{pendingRefunds} pending</span>}
+          </div>
+        </div>
+        {refunds.length > 0 ? (
+          <div className="space-y-2.5">
+            {refunds.slice(0, 3).map(rf => (
+              <div key={rf._id} className="flex items-center justify-between p-3 bg-muted/30 rounded-xl">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-foreground truncate">{rf.description || rf.reason || `${rf.serviceType || 'Refund'} payment`}</p>
+                  <p className="text-xs text-muted-foreground">{rf.date ? new Date(rf.date).toLocaleDateString('en-IN') : ''}</p>
+                </div>
+                <div className="text-right shrink-0 ml-3">
+                  <p className="text-sm font-bold text-destructive">₹{(rf.refund_amount || rf.amount || 0).toLocaleString()}</p>
+                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${rf.status === 'Refunded' || rf.status === 'refunded' ? 'bg-destructive/10 text-destructive' : 'bg-warning/10 text-warning'}`}>
+                    {rf.status}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-6">
+            <RotateCcw className="w-10 h-10 text-muted-foreground/30 mx-auto mb-2" />
+            <p className="text-sm text-muted-foreground">No refunds yet</p>
+          </div>
+        )}
       </motion.div>
 
       {/* Modals */}

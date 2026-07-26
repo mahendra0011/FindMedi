@@ -61,7 +61,7 @@ export default function ClinicFees() {
 
   const addService = () => {
     if (newService.name && newService.fee) {
-      setCustomServices(prev => [...prev, { ...newService, _id: `cs_${Date.now()}` }]);
+      setCustomServices(prev => [...prev, { ...newService, _id: `cs_${crypto.randomUUID()}` }]);
       setNewService({ name: '', fee: '' });
     }
   };

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { CalendarDays, Clock, CheckCircle, XCircle, AlertCircle, FileText, IndianRupee, Send, Plus, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { CalendarDays, Clock, CheckCircle, XCircle, AlertCircle, FileText, IndianRupee, Send, Plus, X, ChevronLeft, ChevronRight, UserCheck, Activity, Stethoscope, Hash } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
@@ -137,9 +137,21 @@ export default function ClinicAppointments() {
                 </div>
                 <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${statusColors[apt.status]}`}>{apt.status}</span>
               </div>
-              <div className="space-y-1.5 text-sm text-muted-foreground mb-4">
-                <div className="flex items-center gap-2"><CalendarDays className="w-3.5 h-3.5" /><span>{formatDisplayDate(apt.date)}</span></div>
-                <div className="flex items-center gap-2"><Clock className="w-3.5 h-3.5" /><span>{apt.time}</span></div>
+              <div className="space-y-2 text-sm text-muted-foreground mb-5">
+                <div className="flex flex-col gap-2 bg-muted/20 p-3 rounded-lg border border-border/50">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1.5"><CalendarDays className="w-3.5 h-3.5 text-primary" /><span className="font-medium text-foreground">{formatDisplayDate(apt.date)}</span></div>
+                    <div className="w-1 h-1 rounded-full bg-border"></div>
+                    <div className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 text-primary" /><span className="font-medium text-foreground">{apt.time}</span></div>
+                  </div>
+                  {apt.tokenNumber && <div className="flex items-center gap-2"><Hash className="w-3.5 h-3.5 text-primary/70" /><span>Token: <span className="font-medium text-foreground">{apt.tokenNumber}</span></span></div>}
+                  {apt.doctor && <div className="flex items-center gap-2"><UserCheck className="w-3.5 h-3.5 text-primary/70" /><span>Doctor: {apt.doctor}</span></div>}
+                  {apt.type && <div className="flex items-center gap-2"><Activity className="w-3.5 h-3.5 text-primary/70" /><span>Type: {apt.type}</span></div>}
+                  {apt.symptoms && <div className="flex items-start gap-2"><Stethoscope className="w-3.5 h-3.5 text-primary/70 mt-0.5 shrink-0" /><span className="line-clamp-2">Symptoms: {apt.symptoms}</span></div>}
+                  {apt.fees > 0 && <div className="flex items-center gap-2"><IndianRupee className="w-3.5 h-3.5 text-primary/70" /><span>Fees: ₹{apt.fees}</span></div>}
+                  {apt.transactionId && <div className="flex items-center gap-2"><FileText className="w-3.5 h-3.5 text-primary/70 shrink-0" /><span className="truncate">Txn ID: {apt.transactionId}</span></div>}
+                  {apt.invoiceId && <div className="flex items-center gap-2"><FileText className="w-3.5 h-3.5 text-primary/70 shrink-0" /><span className="truncate">Bill ID: {apt.invoiceId}</span></div>}
+                </div>
               </div>
               <div className="flex gap-2">
                 {apt.status === 'Pending' && (

@@ -183,9 +183,12 @@ export const api = {
   getPayments:    (p={})  => request('/payments?' + new URLSearchParams(p)),
   createPayment:  (body)  => request('/payments',            { method:'POST',   body: JSON.stringify(body) }),
   updatePayment:  (id,b)  => request(`/payments/${id}`,      { method:'PUT',    body: JSON.stringify(b) }),
+  refundPayment:  (id,b)  => request(`/payments/${id}/refund`, { method:'PUT',    body: JSON.stringify(b) }),
+  getRefunds:     (p={})  => request('/payments?' + new URLSearchParams({ ...p, status: 'refunded' })),
 
   getTransactions:  (p={})  => request('/transactions?' + new URLSearchParams({ ...p, _t: Date.now() })),
   payTransaction:   (body)  => request('/transactions/pay',  { method:'POST',   body: JSON.stringify(body) }),
+  verifyTransaction: (id)   => request(`/transactions/verify/${encodeURIComponent(id)}`),
 
   getHospitals:         (p={})  => request('/hospitals?' + new URLSearchParams(p)),
   getHospital:          (id)    => request(`/hospitals/${id}`),

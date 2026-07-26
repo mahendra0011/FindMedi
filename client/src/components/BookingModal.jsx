@@ -192,7 +192,7 @@ export default function BookingModal({
         setBookingStep(3);
         if (onSuccess) onSuccess();
       } else if (status === 409) {
-        toast.error('This slot is already booked. Please pick a different time.');
+        toast.error(msg || 'This slot is already booked. Please pick a different time.');
         // Force back to slot-selection step so the user can't accidentally
         // resubmit the exact same (now-confirmed) date/time again.
         setBookingTime('');

@@ -13,7 +13,7 @@ export default function PatientPreferred() {
 
   const handleAdd = () => {
     if (!newName.trim()) return toast.error('Enter a pharmacy or lab name');
-    addPharmacy({ id: `p${Date.now()}`, name: newName.trim() });
+    addPharmacy({ id: `p${crypto.randomUUID()}`, name: newName.trim() });
     setNewName('');
     setShowAdd(false);
     toast.success('Added to priority list');
