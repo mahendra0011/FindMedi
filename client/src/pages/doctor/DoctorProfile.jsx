@@ -7,6 +7,56 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
+import { Switch } from '@/components/ui/switch';
+
+function MyAutoConfirmToggle() {
+  const [value, setValue] = useState(true);
+  const [maxSlot, setMaxSlot] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    Promise.all([api.getMyAutoConfirm(), api.getMySlotCapacity()])
+      .then(([ac, sc]) => { setValue(ac.autoConfirmAppointment !== false); setMaxSlot(sc.maxBookingsPerSlot || 1); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const toggle = async () => {
+    const next = !value;
+    setSaving(true); setValue(next);
+    try { await api.updateMyAutoConfirm(next); toast.success('Setting updated'); }
+    catch { toast.error('Failed to update'); setValue(!next); }
+    setSaving(false);
+  };
+
+  const saveSlotCapacity = async (n) => {
+    setMaxSlot(n);
+    try { await api.updateMySlotCapacity(n); toast.success('Slot capacity updated'); }
+    catch { toast.error('Failed to update slot capacity'); }
+  };
+
+  if (loading) return null;
+
+  return (
+    <div className="rounded-xl border border-border bg-card p-4 space-y-4">
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <p className="font-medium text-sm text-foreground">Auto-Confirm My Appointments</p>
+          <p className="text-xs text-muted-foreground">ON par payment ke baad turant confirm; OFF par manually confirm karna hoga.</p>
+        </div>
+        <Switch checked={value} disabled={saving} onCheckedChange={toggle} />
+      </div>
+      <div className="flex items-center justify-between gap-4 pt-4 border-t border-border">
+        <div>
+          <p className="font-medium text-sm text-foreground">Patients Per Time Slot</p>
+          <p className="text-xs text-muted-foreground">Apne consultation time ke hisaab se — ek slot me kitne patients book ho sakte hain.</p>
+        </div>
+        <Input type="number" min={1} max={20} className="w-20" value={maxSlot} onChange={e => saveSlotCapacity(Number(e.target.value))} />
+      </div>
+    </div>
+  );
+}
 
 export default function DoctorProfile() {
   const { user } = useAuth();
@@ -383,6 +433,15 @@ export default function DoctorProfile() {
             <label className="text-sm font-medium text-foreground mb-1.5 block">Fee (₹)</label>
             <Input type="number" value={consultationFee} onChange={e => setConsultationFee(e.target.value)} placeholder="e.g. 500" min={0} />
           </div>
+        </div>
+
+        <hr className="border-border/60" />
+
+        <div>
+          <h3 className="font-heading text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+            <Shield className="w-5 h-5 text-primary" /> Auto-Confirm My Appointments
+          </h3>
+          <MyAutoConfirmToggle />
         </div>
       </div>
 

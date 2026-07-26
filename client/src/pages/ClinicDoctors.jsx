@@ -626,6 +626,19 @@ const loadDoctors = async () => {
                       <span className="font-bold text-lg text-primary">₹{doc.consultation_fees || doc.fees || 0}</span>
                     </div>
 
+                    {/* Slot Capacity Indicator */}
+                    {doc.maxBookingsPerSlot > 1 && (
+                      <div className="flex items-center justify-between p-2 rounded-lg bg-amber-50/50 border border-amber-200/50 mb-3">
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-2 h-2 rounded-full bg-amber-500" />
+                          <span className="text-xs text-muted-foreground">Capacity</span>
+                        </div>
+                        <span className="text-xs font-semibold text-amber-700">
+                          {doc.maxBookingsPerSlot} patients per slot
+                        </span>
+                      </div>
+                    )}
+
                     <div className="grid grid-cols-2 gap-2">
                                             <Button size="sm" className="w-full gap-1.5 rounded-xl text-[11px] h-9 shadow-lg shadow-primary/20 group/btn" disabled={!doc.available}
                         onClick={(e) => { e.stopPropagation(); setShowBooking(true); setSelectedDoctor(doc); }}>

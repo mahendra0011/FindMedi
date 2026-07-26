@@ -38,6 +38,8 @@ const navConfig = {
     { icon: Settings,        labelKey: 'nav.saIntegrations',   path: '/superadmin/integrations' },
     { icon: Bell,            labelKey: 'nav.notifications',    path: '/notifications'    },
     { icon: Settings,        labelKey: 'nav.settings',         path: '/settings'         },
+    { icon: History,         labelKey: 'nav.auditLogs',        path: '/audit-logs'       },
+    { icon: User,            labelKey: 'nav.profileSettings',  path: '/settings'         },
   ],
   admin: [
     { icon: LayoutDashboard, labelKey: 'nav.dashboard',        path: '/dashboard'        },
@@ -79,6 +81,8 @@ const navConfig = {
     { icon: Globe,           labelKey: 'nav.platformSettings',  path: '/superadmin/overview' },
     { icon: Bell,            labelKey: 'nav.notifications',    path: '/notifications'    },
     { icon: Settings,        labelKey: 'nav.settings',         path: '/settings'         },
+    { icon: History,         labelKey: 'nav.auditLogs',        path: '/audit-logs'       },
+    { icon: User,            labelKey: 'nav.profileSettings',  path: '/settings'         },
   ],
   clinic_doctor: [
     { icon: LayoutDashboard, labelKey: 'nav.dashboard',         path: '/clinic/dashboard'     },
@@ -97,6 +101,7 @@ const navConfig = {
     { icon: Bell,            labelKey: 'nav.notifications',     path: '/clinic/notifications' },
     { icon: Settings,        labelKey: 'nav.clinicSettings',    path: '/clinic/settings'      },
     { icon: Globe,           labelKey: 'nav.platformSettings',  path: '/clinic/platform-settings' },
+    { icon: History,         labelKey: 'nav.auditLogs',        path: '/audit-logs'       },
   ],
   doctor: [
     { icon: LayoutDashboard, labelKey: 'nav.dashboard',       path: '/dashboard'           },
@@ -115,6 +120,7 @@ const navConfig = {
     { icon: Bell,            labelKey: 'nav.notifications',   path: '/notifications'       },
     { icon: UserRound,       labelKey: 'nav.myProfile',       path: '/doctor/profile'      },
     { icon: Settings,        labelKey: 'nav.settings',        path: '/settings'            },
+    { icon: History,         labelKey: 'nav.auditLogs',        path: '/audit-logs'       },
   ],
   lab_owner: [
     { icon: LayoutDashboard, labelKey: 'nav.dashboard',        path: '/dashboard'              },
@@ -134,6 +140,7 @@ const navConfig = {
     { icon: Bell,            labelKey: 'nav.notifications',    path: '/notifications'          },
     { icon: Settings,        labelKey: 'nav.settings',         path: '/settings'               },
     { icon: Globe,           labelKey: 'nav.platformSettings',  path: '/superadmin/overview' },
+    { icon: History,         labelKey: 'nav.auditLogs',        path: '/audit-logs'       },
   ],
   pharmacy_owner: [
     { icon: LayoutDashboard, labelKey: 'nav.dashboard',        path: '/dashboard'                  },
@@ -151,6 +158,7 @@ const navConfig = {
     { icon: Bell,            labelKey: 'nav.notifications',    path: '/notifications'               },
     { icon: Settings,        labelKey: 'nav.settings',         path: '/settings'                    },
     { icon: Globe,           labelKey: 'nav.platformSettings',  path: '/superadmin/overview' },
+    { icon: History,         labelKey: 'nav.auditLogs',        path: '/audit-logs'       },
   ],
   patient: [
     { icon: LayoutDashboard, labelKey: 'nav.dashboard',             path: '/dashboard'                  },
@@ -169,6 +177,7 @@ const navConfig = {
     { icon: Star,            labelKey: 'nav.myReviews',             path: '/patient/reviews'            },
     { icon: User,            labelKey: 'nav.profileSettings',       path: '/patient/profile'            },
     { icon: HelpCircle,      labelKey: 'nav.support',               path: '/patient/support'            },
+    { icon: History,         labelKey: 'nav.auditLogs',        path: '/audit-logs'       },
   ],
 };
 

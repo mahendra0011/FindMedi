@@ -28,7 +28,7 @@ export default function ClinicAppointments() {
   const loadAppointments = async () => {
     setLoading(true);
     try {
-      const data = await api.getAppointments({ doctor: user?.name, status: filter });
+      const data = await api.getAppointments({ status: filter });
       setAppointments(data?.appointments || data?.data || data || []);
     } catch (e) { console.error(e); }
     setLoading(false);

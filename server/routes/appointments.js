@@ -89,10 +89,18 @@ router.get('/booked-slots', protect, async (req, res) => {
   try {
     const { doctorId, date } = req.query;
     if (!doctorId || !date) return res.status(400).json({ message: 'doctorId and date required' });
+
+    const doctorDoc = await Doctor.findById(doctorId).select('maxBookingsPerSlot').lean();
+    const capacity = doctorDoc?.maxBookingsPerSlot || 1;
+
     const filter = { doctorId, date, status: { $nin: ['Cancelled', 'Completed', 'Missed'] } };
-    if (req.user.role === 'patient') filter.patientId = req.user._id;
-    const booked = await Appointment.find(filter).select('time -_id').lean();
-    res.json(booked.map(b => b.time));
+    const appts = await Appointment.find(filter).select('time').lean();
+
+    const counts = {};
+    appts.forEach(a => { counts[a.time] = (counts[a.time] || 0) + 1; });
+    const fullSlots = Object.keys(counts).filter(t => counts[t] >= capacity);
+
+    res.json(fullSlots);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
@@ -256,7 +264,18 @@ router.post('/', protect, requireRole(['admin', 'superadmin']), validate(createA
       }
 
     }
-    
+
+    // Capacity check: alag users tab tak book kar sakte hain jab tak doctor ki maxBookingsPerSlot limit na aa jaye
+    if (doctorId) {
+      const doctorDoc2 = await Doctor.findById(doctorId).select('maxBookingsPerSlot').lean();
+      const capacity = doctorDoc2?.maxBookingsPerSlot || 1;
+      const slotFilter = { doctorId, date, time, status: { $nin: ['Cancelled', 'Completed', 'Missed'] } };
+      const existingBookings = await Appointment.find(slotFilter).select('patientId').lean();
+      if (existingBookings.length >= capacity) {
+        return res.status(409).json({ message: 'This time slot is full. Please choose a different time.' });
+      }
+    }
+
     const countToday = await Appointment.countDocuments({ date, doctor: doctor || '' });
     const tokenNumber = generateTokenNumber();
     const patientUser = await User.findById(patientId);

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Globe, Save, CheckCircle, ToggleLeft, ToggleRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
 
@@ -9,6 +10,7 @@ export default function ClinicPlatformSettings() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [autoConfirm, setAutoConfirm] = useState(true);
+  const [maxSlot, setMaxSlot] = useState(1);
 
   useEffect(() => {
     const load = async () => {
@@ -26,11 +28,17 @@ export default function ClinicPlatformSettings() {
     load();
   }, []);
 
+  useEffect(() => {
+    api.getMySlotCapacity().then(r => setMaxSlot(r.maxBookingsPerSlot || 1)).catch(() => {});
+  }, []);
+
   const handleSave = async () => {
     setSaving(true);
     setSaved(false);
     try {
       await api.updateFacilitySettings({ autoConfirmAppointment: autoConfirm });
+    await api.updateMyAutoConfirm(autoConfirm).catch(() => {});
+    await api.updateMySlotCapacity(maxSlot).catch(() => {});
       setSaved(true);
       toast.success('Settings saved successfully');
       setTimeout(() => setSaved(false), 2000);
@@ -99,6 +107,14 @@ export default function ClinicPlatformSettings() {
                 </div>
               </div>
             )}
+          </div>
+
+          <div className="flex items-center justify-between gap-4 mt-6 pt-6 border-t border-border">
+            <div>
+              <h3 className="font-semibold text-foreground">Patients Per Time Slot</h3>
+              <p className="text-sm text-muted-foreground">Apne consultation time ke hisaab se — ek slot me kitne patients book ho sakte hain.</p>
+            </div>
+            <Input type="number" min={1} max={20} className="w-20" value={maxSlot} onChange={e => setMaxSlot(Number(e.target.value))} />
           </div>
         </div>
 

@@ -28,6 +28,7 @@ export default function BookingModal({
   const [bookingNotes, setBookingNotes] = useState('');
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookedSlots, setBookedSlots] = useState([]);
+  const [slotCounts, setSlotCounts] = useState({});
   const [paymentMethod, setPaymentMethod] = useState('card');
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [bookingDetails, setBookingDetails] = useState(null);
@@ -64,15 +65,36 @@ export default function BookingModal({
     }
   }, [open, doctor, facility]);
 
-  // Doctor + date change hone par uske already-booked slots fetch karo
+  const currentDoc = selectedDoctor || doctor;
+
+  // Doctor + date change hone par uske already-booked slots fetch karo WITH COUNTS
   useEffect(() => {
-    if (!currentDoc?._id || !bookingDate) { setBookedSlots([]); return; }
+    if (!currentDoc?._id || !bookingDate) { setBookedSlots([]); setSlotCounts({}); return; }
     api.getBookedSlots({ doctorId: currentDoc._id, date: bookingDate })
-      .then(slots => setBookedSlots(Array.isArray(slots) ? slots : []))
-      .catch(() => setBookedSlots([]));
+      .then(slots => {
+        setBookedSlots(Array.isArray(slots) ? slots : []);
+        // Count bookings per slot for capacity display
+        const counts = {};
+        if (Array.isArray(slots)) {
+          slots.forEach(slot => { counts[slot] = (counts[slot] || 0) + 1; });
+        }
+        setSlotCounts(counts);
+      })
+      .catch(() => { setBookedSlots([]); setSlotCounts({}); });
   }, [currentDoc?._id, bookingDate]);
 
-  const currentDoc = selectedDoctor || doctor;
+  // Calculate remaining slots for current time selection
+  const getRemainingSlots = (time) => {
+    const capacity = currentDoc?.maxBookingsPerSlot || 1;
+    const bookedCount = slotCounts[time] || 0;
+    return Math.max(0, capacity - bookedCount);
+  };
+
+  const isSlotFull = (time) => {
+    const capacity = currentDoc?.maxBookingsPerSlot || 1;
+    const bookedCount = slotCounts[time] || 0;
+    return bookedCount >= capacity;
+  };
 
   const handleProceedToPayment = () => {
     if (processingRef.current) return;
@@ -81,6 +103,12 @@ export default function BookingModal({
     
     // Validate inputs
     if (!bookingDate || !bookingTime) { toast.error('Please select date and time'); return; }
+
+    // Check if slot is full
+    if (isSlotFull(bookingTime)) {
+      toast.error('This time slot is full. Please choose a different time.');
+      return;
+    }
 
     // consultation_fees must be a valid positive number
     const fees = Number(currentDoc.consultation_fees) || Number(currentDoc.fees);
@@ -209,6 +237,12 @@ export default function BookingModal({
                         <span className="text-xs text-muted-foreground">{doc.experience || `${doc.experienceYears || 0} yrs`}</span>
                         <span className="text-xs text-muted-foreground">•</span>
                         <span className="text-xs font-medium text-primary">₹{doc.fees || doc.consultation_fees || 0}</span>
+                        {doc.maxBookingsPerSlot > 1 && (
+                          <>
+                            <span className="text-xs text-muted-foreground">•</span>
+                            <span className="text-xs text-amber-600 font-medium">{doc.maxBookingsPerSlot}/slot</span>
+                          </>
+                        )}
                       </div>
                     </div>
                     <ChevronRight className="w-4 h-4 text-muted-foreground self-center" />
@@ -248,6 +282,14 @@ export default function BookingModal({
                 <div className="min-w-0">
                   <h3 className="font-heading font-semibold text-foreground text-sm truncate">{currentDoc?.name}</h3>
                   <p className="text-xs text-primary">{currentDoc?.specialization}</p>
+                  {currentDoc?.maxBookingsPerSlot > 1 && (
+                    <p className="text-[10px] text-amber-600 mt-0.5 font-medium">
+                      ⏱️ {currentDoc.maxBookingsPerSlot} patients per slot
+                    </p>
+                  )}
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    Auto-confirm: {currentDoc?.autoConfirmAppointment === false ? 'OFF' : currentDoc?.autoConfirmAppointment === true ? 'ON' : 'Hospital'}
+                  </p>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
@@ -257,7 +299,10 @@ export default function BookingModal({
                 </div>
                 <div className="p-2 rounded-xl bg-emerald-50 border border-emerald-200 dark:bg-emerald-500/10 text-center">
                   <p className="text-[11px] text-muted-foreground mb-0.5">Available Slot</p>
-                  <p className="font-semibold text-xs text-emerald-600">{currentDoc?.next_available_slot || 'Today'}</p>
+                  <p className="font-semibold text-xs text-emerald-600">
+                    {currentDoc?.next_available_slot || 'Today'}
+                    {currentDoc?.maxBookingsPerSlot > 1 && ` (${currentDoc.maxBookingsPerSlot}/slot)`}
+                  </p>
                 </div>
               </div>
               <div className="space-y-1.5">
@@ -268,10 +313,25 @@ export default function BookingModal({
                 <label className="text-xs font-medium text-foreground">Select Time Slot</label>
                 <select value={bookingTime} onChange={e => setBookingTime(e.target.value)} className="w-full h-9 px-3 rounded-xl border border-border bg-background text-sm">
                   <option value="">Choose time</option>
-                  {(currentDoc?.time_slots || ['09:00 AM', '10:00 AM', '11:00 AM', '02:00 PM', '03:00 PM', '04:00 PM']).map(t => (
-                    <option key={t} disabled={bookedSlots.includes(t)}>{t}{bookedSlots.includes(t) ? ' (Booked)' : ''}</option>
-                  ))}
+                  {(currentDoc?.time_slots || ['09:00 AM', '10:00 AM', '11:00 AM', '02:00 PM', '03:00 PM', '04:00 PM']).map(t => {
+                    const isFull = isSlotFull(t);
+                    const remaining = getRemainingSlots(t);
+                    const capacity = currentDoc?.maxBookingsPerSlot || 1;
+                    return (
+                      <option key={t} disabled={isFull} value={t}>
+                        {t} {isFull ? '(Full)' : `(${remaining}/${capacity} left)`}
+                      </option>
+                    );
+                  })}
                 </select>
+                {/* Remaining slots info */}
+                {bookingTime && (
+                  <div className="flex items-center gap-2 text-xs mt-1">
+                    <div className={`px-2 py-1 rounded-md ${isSlotFull(bookingTime) ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                      {isSlotFull(bookingTime) ? '⚠️ This slot is full' : `✅ ${getRemainingSlots(bookingTime)} more bookings allowed`}
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-foreground">Notes (optional)</label>
@@ -363,6 +423,21 @@ export default function BookingModal({
                 gst={0}
                 discount={0}
               />
+              
+              {/* Auto-confirm warning */}
+              {currentDoc?.autoConfirmAppointment === false && (
+                <div className="bg-amber-50/50 border border-amber-200 rounded-lg p-3">
+                  <div className="flex items-start gap-2">
+                    <div className="w-5 h-5 rounded-full bg-amber-500 flex items-center justify-center shrink-0 mt-0.5">
+                      <span className="text-[9px] text-amber-50 font-bold">!</span>
+                    </div>
+                    <div>
+                      <p className="text-xs text-amber-800 font-medium">Appointment requires manual confirmation</p>
+                      <p className="text-xs text-amber-700 mt-0.5">⚠️ You may have to wait for booking confirmation after payment</p>
+                    </div>
+                  </div>
+                </div>
+              )}
               <DialogFooter className="gap-2 sm:gap-2">
                 <Button variant="outline" size="sm" className="w-full sm:w-auto flex-1" onClick={() => onOpenChange(false)}>Cancel</Button>
                 <Button size="sm" className="w-full sm:w-auto flex-1" disabled={paymentLoading} onClick={handlePayment}>

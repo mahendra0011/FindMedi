@@ -461,6 +461,7 @@ const App = () => (
                     <Route path="/superadmin/categories" element={<RoleRoute allowedRoles={['superadmin']}><SACategories /></RoleRoute>} />
                     <Route path="/superadmin/catalog" element={<RoleRoute allowedRoles={['superadmin']}><SAGlobalCatalog /></RoleRoute>} />
                     <Route path="/superadmin/audit" element={<RoleRoute allowedRoles={['superadmin']}><SAAuditLogs /></RoleRoute>} />
+                    <Route path="/audit-logs" element={<ProtectedRoute><SAAuditLogs /></ProtectedRoute>} />
                     <Route path="/superadmin/broadcast" element={<RoleRoute allowedRoles={['superadmin']}><SABroadcast /></RoleRoute>} />
                     <Route path="/superadmin/tickets" element={<RoleRoute allowedRoles={['superadmin']}><SASupportTickets /></RoleRoute>} />
                     <Route path="/superadmin/settings" element={<RoleRoute allowedRoles={['superadmin']}><SASystemSettings /></RoleRoute>} />

@@ -117,13 +117,20 @@ export const api = {
   deleteDoctor:       (id)      => request(`/doctors/${id}`,         { method:'DELETE' }),
   updateDoctorClinicProfile: (id,body) => request(`/doctors/${id}/clinic-profile`, { method:'PUT', body: JSON.stringify({ clinicProfile: body }) }),
   updateDoctorSchedule:(id,b)  => request(`/doctors/${id}/schedule`,{ method:'PUT',    body: JSON.stringify(b) }),
-  approveDoctor:      (id)      => request(`/doctors/${id}/approve`,{ method:'PUT' }),
-  rejectDoctor:       (id)      => request(`/doctors/${id}/reject`, { method:'PUT' }),
-  uploadDoctorSignature:(id,file) => {
-    const body = new FormData();
-    body.append('signature', file);
-    return request(`/doctors/${id}/signature`, { method:'POST', body });
-  },
+   approveDoctor:      (id)      => request(`/doctors/${id}/approve`,{ method:'PUT' }),
+   rejectDoctor:       (id)      => request(`/doctors/${id}/reject`, { method:'PUT' }),
+   uploadDoctorSignature:(id,file) => {
+     const body = new FormData();
+     body.append('signature', file);
+     return request(`/doctors/${id}/signature`, { method:'POST', body });
+   },
+   getDoctorAutoConfirmList: () => request('/doctors/my-facility/auto-confirm'),
+   updateDoctorAutoConfirm: (id, value) => request(`/doctors/${id}/auto-confirm`, { method:'PUT', body: JSON.stringify({ autoConfirmAppointment: value }) }),
+   getMyAutoConfirm: () => request('/doctors/me/auto-confirm'),
+   updateMyAutoConfirm: (value) => request('/doctors/me/auto-confirm', { method:'PUT', body: JSON.stringify({ autoConfirmAppointment: value }) }),
+   getMySlotCapacity: () => request('/doctors/me/slot-capacity'),
+   updateMySlotCapacity: (n) => request('/doctors/me/slot-capacity', { method:'PUT', body: JSON.stringify({ maxBookingsPerSlot: n }) }),
+   updateDoctorSlotCapacity: (id, n) => request(`/doctors/${id}/slot-capacity`, { method:'PUT', body: JSON.stringify({ maxBookingsPerSlot: n }) }),
 
   getPatients:        (p={})    => request('/patients?' + new URLSearchParams(p)),
   createPatient:      (body)    => request('/patients',             { method:'POST',   body: JSON.stringify(body) }),
