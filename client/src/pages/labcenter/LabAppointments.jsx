@@ -5,14 +5,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
+import { getISTDateString } from '@/lib/dateUtils';
 
 const statusColors = { Scheduled: 'bg-info/10 text-info', Completed: 'bg-success/10 text-success', Cancelled: 'bg-destructive/10 text-destructive' };
 const defaultAppts = [
-  { _id: 'a1', patient: 'Ravi Kumar', modality: 'MRI Brain', date: new Date().toISOString().split('T')[0], time: '09:00 AM', status: 'Scheduled', notes: 'Contrast required' },
-  { _id: 'a2', patient: 'Priya Sharma', modality: 'CT Abdomen', date: new Date().toISOString().split('T')[0], time: '11:00 AM', status: 'Completed', notes: '' },
-  { _id: 'a3', patient: 'Amit Patel', modality: 'X-Ray Chest', date: new Date().toISOString().split('T')[0], time: '02:00 PM', status: 'Scheduled', notes: '' },
-  { _id: 'a4', patient: 'Sneha Reddy', modality: 'Ultrasound Abdomen', date: new Date().toISOString().split('T')[0], time: '03:30 PM', status: 'Scheduled', notes: 'Fasting 6 hrs' },
-  { _id: 'a5', patient: 'Vikram Singh', modality: 'ECG', date: new Date(Date.now() + 86400000).toISOString().split('T')[0], time: '10:00 AM', status: 'Scheduled', notes: '' },
+  { _id: 'a1', patient: 'Ravi Kumar', modality: 'MRI Brain', date: getISTDateString(), time: '09:00 AM', status: 'Scheduled', notes: 'Contrast required' },
+  { _id: 'a2', patient: 'Priya Sharma', modality: 'CT Abdomen', date: getISTDateString(), time: '11:00 AM', status: 'Completed', notes: '' },
+  { _id: 'a3', patient: 'Amit Patel', modality: 'X-Ray Chest', date: getISTDateString(), time: '02:00 PM', status: 'Scheduled', notes: '' },
+  { _id: 'a4', patient: 'Sneha Reddy', modality: 'Ultrasound Abdomen', date: getISTDateString(), time: '03:30 PM', status: 'Scheduled', notes: 'Fasting 6 hrs' },
+  { _id: 'a5', patient: 'Vikram Singh', modality: 'ECG', date: getISTDateString(new Date(Date.now() + 86400000)), time: '10:00 AM', status: 'Scheduled', notes: '' },
 ];
 
 export default function LabAppointments() {

@@ -6,6 +6,7 @@ import Notification from '../models/Notification.js';
 import { protect, adminOnly } from '../middleware/auth.js';
 import { validate, createMentalHealthReferralSchema } from '../utils/validate.js';
 import { generateOrderId, generateInvoiceId } from '../utils/idGenerator.js';
+import { getISTDateString } from '../utils/dateUtils.js';
 
 const mhAssessmentSchema = z.object({}).passthrough();
 const mhSessionSchema = z.object({}).passthrough();
@@ -155,7 +156,7 @@ router.post('/referrals/:id/create-billing', protect, adminOnly, validate(mhBill
       amount: amount || 800,
       source: 'mentalhealth',
       status: 'Pending',
-      date: new Date().toISOString().split('T')[0],
+      date: getISTDateString(),
     });
     
     await Notification.create({

@@ -6,6 +6,7 @@ import Notification from '../models/Notification.js';
 import { protect, adminOnly } from '../middleware/auth.js';
 import { validate, createPhysioReferralSchema } from '../utils/validate.js';
 import { generateOrderId, generateInvoiceId } from '../utils/idGenerator.js';
+import { getISTDateString } from '../utils/dateUtils.js';
 
 const physioAssessSchema = z.object({}).passthrough();
 const physioSessionSchema = z.object({}).passthrough();
@@ -113,7 +114,7 @@ router.post('/referrals/:id/create-billing', protect, adminOnly, validate(physio
       amount: amount || 500,
       source: 'physio',
       status: 'Pending',
-      date: new Date().toISOString().split('T')[0],
+      date: getISTDateString(),
       physioReferralId: referral._id,
     });
     
