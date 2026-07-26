@@ -7,3 +7,15 @@ export function getISTDateString(date = new Date()) {
   const D = String(ist.getUTCDate()).padStart(2, '0');
   return `${y}-${M}-${D}`;
 }
+
+// "2027-10-27" (YYYY-MM-DD string, jaisa <input type="date"> deta hai) ko
+// "27 Oct 2027" jaisa human-readable, consistent format me convert karta hai.
+// String ko manually parse karte hain (new Date() use nahi) taaki timezone
+// ki wajah se date ek din aage/peeche shift na ho.
+export function formatDisplayDate(dateStr) {
+  if (!dateStr) return '';
+  const [y, m, d] = String(dateStr).split('-').map(Number);
+  if (!y || !m || !d) return dateStr;
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${String(d).padStart(2, '0')} ${months[m - 1]} ${y}`;
+}

@@ -18,6 +18,7 @@ const appointmentSchema = new mongoose.Schema({
   notes: { type: String, default: '' },
   symptoms: { type: String, default: '' },
   services: [{ type: String }],
+  fees: { type: Number, default: 0 },
   queuePosition: { type: Number, default: 0 },
   estimatedWaitTime: { type: Number, default: 0 }, // minutes
   checkedInAt: { type: Date },
@@ -29,6 +30,6 @@ const appointmentSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
 });
 
-appointmentSchema.index({ patientId: 1, doctorId: 1, date: 1, time: 1 }, { unique: true, partialFilterExpression: { status: { $in: ['Pending', 'Confirmed', 'In Queue', 'Serving', 'Missed'] } } });
+appointmentSchema.index({ doctorId: 1, date: 1, time: 1 }, { unique: true, partialFilterExpression: { status: { $in: ['Pending', 'Confirmed', 'In Queue', 'Serving', 'Missed'] }, doctorId: { $type: 'objectId' } } });
 
 export default mongoose.model('Appointment', appointmentSchema);

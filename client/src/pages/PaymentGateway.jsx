@@ -100,7 +100,8 @@ export default function PaymentGateway() {
       setStep('success');
     } catch (e) {
       const msg = e.response?.data?.message || e.message || '';
-      if (msg.includes('already be completed') || msg.includes('Duplicate')) {
+      const status = e.response?.status;
+      if (status === 200 && msg.includes('already be completed')) {
         setStep('success');
         return;
       }

@@ -21,6 +21,9 @@ const BOOKING_STATUS = {
   Cancelled: { label: 'Cancelled', color: 'bg-destructive/10 text-destructive border-destructive/30', icon: XCircle },
   Pending: { label: 'Pending', color: 'bg-amber-500/10 text-amber-600 border-amber-500/30', icon: Clock },
   Processing: { label: 'Processing', color: 'bg-amber-500/10 text-amber-600 border-amber-500/30', icon: Loader2 },
+  'In Queue': { label: 'In Queue', color: 'bg-purple-500/10 text-purple-600 border-purple-500/30', icon: Clock },
+  Serving: { label: 'Serving', color: 'bg-indigo-500/10 text-indigo-600 border-indigo-500/30', icon: Activity },
+  Missed: { label: 'Missed', color: 'bg-orange-500/10 text-orange-600 border-orange-500/30', icon: AlertCircle },
 };
 
 const STATUS_FILTERS = ['All', 'Scheduled', 'Pending', 'Confirmed', 'Completed', 'Cancelled'];
@@ -36,8 +39,8 @@ function normalizeBooking(item, type) {
       amount: item.fees || item.consultation_fees || 0,
       status: item.status || 'Confirmed',
       slot: item.timeSlot || item.time || '',
-      address: item.hospitalId?.name || item.hospitalName || '',
-      phone: item.phone || '',
+      address: item.hospitalId?.name || item.hospitalId?.address || '',
+      phone: item.hospitalId?.phone || item.doctorId?.phone || '',
       _raw: item,
     };
   }
@@ -196,17 +199,19 @@ export default function PatientBookings() {
   );
 }
 
-const STATUS_FLOW = ['Pending', 'Confirmed', 'Sample Collected', 'Report Ready', 'Completed'];
+const TEST_STATUS_FLOW = ['Pending', 'Confirmed', 'Sample Collected', 'Report Ready', 'Completed'];
+const APPOINTMENT_STATUS_FLOW = ['Pending', 'Confirmed', 'In Queue', 'Serving', 'Completed'];
 
-function getStep(status) {
-  return STATUS_FLOW.indexOf(status);
+function getStep(status, flow) {
+  return flow.indexOf(status);
 }
 
 function BookingCard({ booking, index, onCancel }) {
   const navigate = useNavigate();
   const statusInfo = BOOKING_STATUS[booking.status] || BOOKING_STATUS.Pending;
   const StatusIcon = statusInfo.icon;
-  const currentStep = getStep(booking.status);
+  const STATUS_FLOW = booking.type === 'appointment' ? APPOINTMENT_STATUS_FLOW : TEST_STATUS_FLOW;
+  const currentStep = getStep(booking.status, STATUS_FLOW);
 
   return (
     <motion.div
@@ -289,7 +294,7 @@ function BookingCard({ booking, index, onCancel }) {
             <span className="font-semibold text-foreground">₹{booking.amount}</span>
           </div>
           <div className="flex gap-2">
-            {(booking.status === 'Scheduled' || booking.status === 'Confirmed') && (
+            {(booking.status === 'Scheduled' || booking.status === 'Confirmed' || booking.status === 'Pending') && (
               <Button variant="ghost" size="sm" className="text-xs h-8 text-destructive hover:text-destructive"
                 onClick={() => onCancel(booking)}>
                 <XCircle className="w-3 h-3 mr-1" /> Cancel

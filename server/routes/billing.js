@@ -311,10 +311,18 @@ router.put('/:id', protect, async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to modify this invoice' });
     }
 
-    const updatedBill = await Billing.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    // Field whitelist — patients can only update notes/status, not payment fields
+    const allowedFields = ['notes'];
+    if (req.user.role !== 'patient') {
+      allowedFields.push('status', 'paid', 'amount', 'balance', 'paymentMethod', 'transactionId', 'dueDate');
+    }
+    const update = {};
+    allowedFields.forEach(f => { if (req.body[f] !== undefined) update[f] = req.body[f]; });
+
+    const updatedBill = await Billing.findByIdAndUpdate(req.params.id, update, { new: true, runValidators: true });
 
     // Send notifications if status changed to Paid
-    if (req.body.status === 'Paid' && oldBill.status !== 'Paid') {
+    if (update.status === 'Paid' && oldBill.status !== 'Paid') {
       // Notify patient
       if (updatedBill.patientId) {
         await createNotification(updatedBill.patientId.toString(), 'Payment Successful', `Payment of Rs ${updatedBill.amount} received for ${updatedBill.invoiceId}`, 'payment');

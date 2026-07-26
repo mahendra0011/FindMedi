@@ -20,8 +20,9 @@ import { getISTDateString } from '../utils/dateUtils.js';
 
 const router = express.Router();
 
-// ── Startup: clean stale unpaid Pending appointments (older than 15 min) ──
-(async function cleanupStalePending() {
+// ── Periodic cleanup: remove stale unpaid Pending appointments (older than 15 min) ──
+// Runs once at startup, then every 5 minutes.
+async function cleanupStalePending() {
   try {
     const staleCutoff = new Date(Date.now() - 15 * 60 * 1000);
     const staleAppts = await Appointment.find({ status: 'Pending', createdAt: { $lt: staleCutoff } }).lean();
@@ -31,7 +32,9 @@ const router = express.Router();
     }
     if (staleAppts.length) console.log(`[Cleanup] Removed ${staleAppts.length} stale Pending appointments`);
   } catch (_) {}
-})();
+}
+cleanupStalePending();
+setInterval(cleanupStalePending, 5 * 60 * 1000);
 
 // GET /api/transactions — user's payment history
 router.get('/', protect, async (req, res, next) => {
@@ -82,10 +85,10 @@ router.get('/', protect, async (req, res, next) => {
                 itemCount: order.items?.length || 0,
               };
             }
-          }
-        } catch (refErr) { /* silently skip reference populate */ }
+            }
+          } catch (refErr) { /* silently skip reference populate */ }
+        }
       }
-    }
 
     res.json(result);
   } catch (err) { next(err); }
@@ -134,9 +137,13 @@ router.post('/pay', protect, async (req, res, next) => {
         }
 
         if (patientId && date && time) {
-          const dupFilter = { patientId, doctorId: doctorId || null, date, time, status: { $nin: ['Cancelled', 'Completed'] } };
-          const existing = await Appointment.findOne(dupFilter);
-          if (existing) {
+          const dupFilter = { doctorId: doctorId || null, date, time, status: { $nin: ['Cancelled', 'Completed'] } };
+          // find -> delete -> create ek saath atomic nahi hai, isliye retry loop lagaya
+          // taaki koi stray unpaid Pending row beech me reappear ho to bhi genuine fresh
+          // booking fail na ho.
+          for (let attempt = 0; attempt < 3; attempt++) {
+            const existing = await Appointment.findOne(dupFilter);
+            if (!existing) break;
             if (existing.status === 'Pending') {
               const hasCompletedPayment = await Payment.findOne({ referenceId: existing._id.toString(), status: 'completed' });
               if (hasCompletedPayment) {
@@ -145,6 +152,19 @@ router.post('/pay', protect, async (req, res, next) => {
               await Appointment.findByIdAndDelete(existing._id);
             } else {
               return res.status(409).json({ message: 'You already have an appointment with this doctor on this date and time.' });
+            }
+          }
+
+          // Doctor-level check: kisi bhi OTHER patient ne bhi ye doctor+date+time
+          // le rakha ho to block karo — warna ek hi slot pe multiple patients
+          // book ho sakte hain.
+          if (doctorId) {
+            const slotTaken = await Appointment.findOne({
+              doctorId, date, time, patientId: { $ne: patientId },
+              status: { $nin: ['Cancelled', 'Completed', 'Missed'] },
+            });
+            if (slotTaken) {
+              return res.status(409).json({ message: 'This time slot is no longer available with this doctor. Please choose a different slot.' });
             }
           }
         }
@@ -170,6 +190,7 @@ router.post('/pay', protect, async (req, res, next) => {
           priority: priority || 'Normal',
           estimatedWaitTime,
           hospitalId: hospitalId || undefined,
+          fees: Number(amount) || 0,
           status: 'Pending',
         });
 
@@ -208,7 +229,10 @@ router.post('/pay', protect, async (req, res, next) => {
     // Generate IDs using centralized utility
     const transaction_id = generateTransactionId(serviceType);
     const invoice_id = generateInvoiceId(serviceType);
-    const bill_id = generateBillId(serviceType);
+    // Billing record ke liye alag random ID generate mat karo — same invoice_id
+    // use karo, warna Billing dashboard aur patient-facing Invoice/Bill PDF me
+    // do alag numbers dikhenge same transaction ke liye.
+    const bill_id = invoice_id;
 
     const methodMap = { upi:'UPI', card:'Card', netbanking:'Online', cash:'Cash', wallet:'Wallet' };
     const sourceMap = { appointment:'appointment', test:'lab', medicine:'pharmacy' };
@@ -337,11 +361,11 @@ router.post('/pay', protect, async (req, res, next) => {
     });
   } catch (err) {
     // Cleanup: if appointment was created (via apptData) but payment failed, delete it
-    if (req.body?.appointment && req.body?.serviceType === 'appointment' && !err.message?.includes('Duplicate')) {
+    if (createdAppointment?._id) {
       try {
-        const orphan = await Appointment.findOne({ patientId: req.user._id, status: 'Pending' }).sort({ createdAt: -1 });
-        if (orphan && !(await Payment.findOne({ referenceId: orphan._id.toString() }))) {
-          await Appointment.findByIdAndDelete(orphan._id);
+        const stillUnpaid = !(await Payment.findOne({ referenceId: createdAppointment._id.toString(), status: 'completed' }));
+        if (stillUnpaid) {
+          await Appointment.findByIdAndDelete(createdAppointment._id);
         }
       } catch (_) {}
     }
