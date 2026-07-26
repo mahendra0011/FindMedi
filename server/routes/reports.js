@@ -18,7 +18,7 @@ import { validate } from '../utils/validate.js';
 import { parseExcelFile, exportToExcel, exportToCSV, validatePatientData, validateDoctorData, validateBillingData, formatPatientsForExport, formatDoctorsForExport, formatBillingForExport, formatAppointmentsForExport } from '../utils/excelUtils.js';
 import { getConfig } from '../utils/configLoader.js';
 import { generatePrescriptionPDF, generateLabReportPDF, generateDischargeSummaryPDF } from '../services/pdfService.js';
-import { generateReportId } from '../utils/idGenerator.js';
+import { generateReportId, generateInvoiceId } from '../utils/idGenerator.js';
 import { sendEmail, attachmentFromPdf } from '../services/notificationService.js';
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
@@ -417,7 +417,7 @@ router.post('/import/:type', protect, adminOnly, upload.single('file'), async (r
         const imported = [];
         for (const record of validRecords) {
           const bill = await Billing.create({
-            invoiceId: generateReportId(),
+            invoiceId: generateInvoiceId('manual'),
             patient: record.patient,
             doctor: record.doctor,
             service: record.service,

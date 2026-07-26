@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Stethoscope, Beaker, Pill, Calendar, ChevronDown, ExternalLink, Loader2, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Stethoscope, Beaker, Pill, Calendar, ChevronDown, ExternalLink, Loader2, Clock, CheckCircle, XCircle, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
+
+const timeSlots = ['9:00 AM', '9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM', '2:00 PM', '2:30 PM', '3:00 PM', '3:30 PM', '4:00 PM', '4:30 PM'];
 
 const typeFilters = ['All', 'appointment', 'test', 'medicine'];
 const dateRanges = ['All Time', 'This Month', 'Last Month', 'Last 3 Months'];
@@ -31,14 +34,38 @@ function formatShortDate(d) {
   return dt.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-export default function PatientBookingHistory() {
+export default function PatientBookingHistory({ initialType }) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [typeFilter, setTypeFilter] = useState('All');
+  const [typeFilter, setTypeFilter] = useState(initialType || 'All');
   const [dateRange, setDateRange] = useState('All Time');
   const [showDateDropdown, setShowDateDropdown] = useState(false);
+  const [cancelId, setCancelId] = useState(null);
+  const [rescheduleId, setRescheduleId] = useState(null);
+  const [newDate, setNewDate] = useState('');
+  const [newTime, setNewTime] = useState('');
+
+  const handleCancel = async () => {
+    if (!cancelId) return;
+    try {
+      await api.updateAppointment(cancelId, { status: 'Cancelled' });
+      toast.success('Appointment cancelled');
+      setCancelId(null);
+      loadData();
+    } catch (e) { toast.error('Failed to cancel appointment'); }
+  };
+
+  const handleReschedule = async () => {
+    if (!newDate || !newTime || !rescheduleId) return;
+    try {
+      await api.updateAppointment(rescheduleId, { date: newDate, time: newTime, status: 'Confirmed' });
+      toast.success('Appointment rescheduled');
+      setRescheduleId(null); setNewDate(''); setNewTime('');
+      loadData();
+    } catch (e) { toast.error('Failed to reschedule appointment'); }
+  };
 
   const loadData = async () => {
     setLoading(true);
@@ -129,8 +156,8 @@ export default function PatientBookingHistory() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-heading text-2xl font-bold text-foreground">Booking History</h1>
-        <p className="text-muted-foreground text-sm">Your appointments, lab tests, and medicine orders</p>
+        <h1 className="font-heading text-2xl font-bold text-foreground">{typeFilter === 'appointment' ? 'My Appointments' : 'Booking History'}</h1>
+        <p className="text-muted-foreground text-sm">{typeFilter === 'appointment' ? 'View and manage your appointments' : 'Your appointments, lab tests, and medicine orders'}</p>
       </div>
 
       {/* Stats */}
@@ -167,14 +194,16 @@ export default function PatientBookingHistory() {
       {/* Filters */}
       <div className="flex flex-col gap-3">
         {/* Row 1: Type */}
-        <div className="flex gap-1.5 flex-wrap">
-          {typeFilters.map(f => (
-            <button key={f} onClick={() => setTypeFilter(f)}
-              className={`px-3.5 py-2 rounded-lg text-xs font-medium transition-all ${typeFilter === f ? 'bg-primary text-primary-foreground shadow-sm' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>
-              {f === 'All' ? 'All' : f === 'appointment' ? 'Appointments' : f === 'test' ? 'Lab Tests' : 'Medicines'}
-            </button>
-          ))}
-        </div>
+        {!initialType && (
+          <div className="flex gap-1.5 flex-wrap">
+            {typeFilters.map(f => (
+              <button key={f} onClick={() => setTypeFilter(f)}
+                className={`px-3.5 py-2 rounded-lg text-xs font-medium transition-all ${typeFilter === f ? 'bg-primary text-primary-foreground shadow-sm' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>
+                {f === 'All' ? 'All' : f === 'appointment' ? 'Appointments' : f === 'test' ? 'Lab Tests' : 'Medicines'}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Row 2: Date range */}
         <div className="relative inline-block self-start">
@@ -248,7 +277,7 @@ export default function PatientBookingHistory() {
             if (isMed) detail = `${formatShortDate(booking.orderDate || booking.createdAt)}`;
 
             const secondBtn = isAppt
-              ? { label: 'View Details', onClick: () => navigate('/patient/appointments') }
+              ? null
               : isTest
                 ? { label: 'Track Booking', onClick: () => navigate('/patient/bookings') }
                 : { label: 'Track Order', onClick: () => booking._id && navigate(`/order-tracking/${booking._id}`) };
@@ -287,9 +316,20 @@ export default function PatientBookingHistory() {
                   {/* Divider */}
                   <div className="border-t border-border/40 my-3" />
 
-                  {/* Bottom: action button */}
-                  <div className="flex items-end justify-end">
-                    {secondBtn && (
+                  {/* Bottom: action buttons */}
+                  <div className="flex items-end justify-end gap-2">
+                    {isAppt && (booking.status === 'Confirmed' || booking.status === 'Pending') ? (
+                      <>
+                        <Button size="sm" variant="outline" className="gap-1.5 rounded-xl h-9 text-xs text-destructive hover:text-destructive"
+                          onClick={(e) => { e.stopPropagation(); setCancelId(booking._id); }}>
+                          <XCircle className="w-3.5 h-3.5" /> Cancel
+                        </Button>
+                        <Button size="sm" variant="outline" className="gap-1.5 rounded-xl h-9 text-xs"
+                          onClick={(e) => { e.stopPropagation(); setRescheduleId(booking._id); }}>
+                          <RefreshCw className="w-3.5 h-3.5" /> Reschedule
+                        </Button>
+                      </>
+                    ) : secondBtn && (
                       <Button size="sm" variant="outline" className="gap-1.5 rounded-xl h-9 text-xs"
                         onClick={(e) => { e.stopPropagation(); secondBtn.onClick(); }}>
                         <ExternalLink className="w-3.5 h-3.5" /> {secondBtn.label}
@@ -300,6 +340,58 @@ export default function PatientBookingHistory() {
               </motion.div>
             );
           })}
+        </div>
+      )}
+
+      {/* Cancel Confirmation Modal */}
+      {cancelId && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setCancelId(null)}>
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+            className="bg-card rounded-2xl border border-border w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
+            <div className="text-center">
+              <XCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
+              <h3 className="font-heading text-lg font-bold text-foreground mb-2">Cancel Appointment?</h3>
+              <p className="text-sm text-muted-foreground mb-6">This action cannot be undone. Are you sure you want to cancel this appointment?</p>
+            </div>
+            <div className="flex gap-3">
+              <Button variant="outline" className="flex-1" onClick={() => setCancelId(null)}>Keep Appointment</Button>
+              <Button className="flex-1 bg-destructive hover:bg-destructive/90" onClick={handleCancel}>Yes, Cancel</Button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Reschedule Modal */}
+      {rescheduleId && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setRescheduleId(null)}>
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+            className="bg-card rounded-2xl border border-border w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
+            <h3 className="font-heading text-lg font-bold text-foreground mb-4">Reschedule Appointment</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-foreground mb-1.5 block">New Date</label>
+                <Input type="date" value={newDate} onChange={e => setNewDate(e.target.value)} min={new Date().toISOString().split('T')[0]} />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-foreground mb-1.5 block">New Time</label>
+                <div className="grid grid-cols-4 gap-2">
+                  {timeSlots.map(t => (
+                    <button key={t} onClick={() => setNewTime(t)}
+                      className={`px-2 py-1.5 rounded-lg text-xs font-medium transition-colors ${newTime === t ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mt-3 bg-warning/10 p-2 rounded-lg">
+              <AlertCircle className="w-3 h-3 inline mr-1" /> All slots shown may not reflect real-time availability. The clinic will confirm after review.
+            </p>
+            <div className="flex gap-3 mt-4">
+              <Button variant="outline" className="flex-1" onClick={() => setRescheduleId(null)}>Cancel</Button>
+              <Button className="flex-1" onClick={handleReschedule} disabled={!newDate || !newTime}>Confirm</Button>
+            </div>
+          </motion.div>
         </div>
       )}
     </div>

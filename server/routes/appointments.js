@@ -256,7 +256,7 @@ router.post('/', protect, validate(createAppointmentSchema), async (req, res) =>
         priority: priority || 'Normal',
         estimatedWaitTime,
         hospitalId: hospitalId || undefined,
-        status: req.body.status || 'Confirmed'
+        status: req.body.status || 'Pending'
       });
       
       await auditLog('create_appointment', req.user._id, { recordId: appointment._id, ip: req.ip, userAgent: req.get('user-agent') });

@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
+import { bookTestLab, isBookingConflictError } from '@/lib/testBooking';
 import { useAuth } from '@/context/AuthContext';
 
 const DEPARTMENTS = [
@@ -261,48 +262,42 @@ export default function HospitalTestBooking() {
     const total = cartTotal + (collectionMode === 'home' ? 50 : 0);
     let bookingId = '';
     try {
-      // 1. Create lab booking
-      const res = await api.createLabBooking({
-        bookingId: 'LB' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).substr(2, 4).toUpperCase(),
-        patientId: user.id,
-        patientName: user.name,
-        patientEmail: user.email,
-        patientPhone: user.phone || '',
-        hospitalId: activeId,
-        tests: cartItems.map(t => t.name), // Array of test names (strings)
-        testIds: cartItems.map(t => t.id), // Array of test IDs
-        totalAmount: total,
-        bookingDate: selectedDate ? new Date(selectedDate) : new Date(), // Convert to Date object
-        timeSlot: selectedSlot,
-        visitType: collectionMode === 'home' ? 'Home Collection' : 'Walk-in',
-        homeCollectionFee: collectionMode === 'home' ? 50 : 0,
-        homeCollectionAddress: collectionMode === 'home' ? (user.address || '') : '',
-        prescriptionUrl: prescriptionFile ? 'uploaded' : '', // Will be updated after file upload
-        status: 'Pending',
-        paymentStatus: 'Pending',
-      });
-      bookingId = res?.booking?._id || res?._id || '';
-
-      // 2. Process payment via unified gateway (cash/upi/card all go through payTransaction)
-      const result = await api.payTransaction({
-        serviceType: 'test',
-        referenceId: bookingId,
-        amount: total,
-        method: paymentMethod === 'cod' ? 'cash' : paymentMethod,
-        description: `Lab Test - ${cartItems.map(t => t.name).join(', ')}`,
-        provider: displayHospital?.name || 'Lab',
-        lineItems: cartItems.map(t => ({ name: t.name, price: t.price, qty: t.qty })),
-      });
-      if (!result?.success) throw new Error('Payment failed');
-
-      const newId = bookingId || 'MED' + Date.now().toString(36).toUpperCase();
-      setBookingId(newId);
+      const { bookingId: bid } = await bookTestLab(
+        {
+          bookingId: 'LB' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).substr(2, 4).toUpperCase(),
+          patientId: user.id,
+          patientName: user.name,
+          patientEmail: user.email,
+          patientPhone: user.phone || '',
+          hospitalId: activeId,
+          tests: cartItems.map(t => t.name),
+          testIds: cartItems.map(t => t.id),
+          totalAmount: total,
+          bookingDate: selectedDate ? new Date(selectedDate) : new Date(),
+          timeSlot: selectedSlot,
+          visitType: collectionMode === 'home' ? 'Home Collection' : 'Walk-in',
+          homeCollectionFee: collectionMode === 'home' ? 50 : 0,
+          homeCollectionAddress: collectionMode === 'home' ? (user.address || '') : '',
+          prescriptionUrl: prescriptionFile ? 'uploaded' : '',
+          status: 'Pending',
+          paymentStatus: 'Pending',
+        },
+        {
+          amount: total,
+          method: paymentMethod === 'cod' ? 'cash' : paymentMethod,
+          description: `Lab Test - ${cartItems.map(t => t.name).join(', ')}`,
+          provider: displayHospital?.name || 'Lab',
+          lineItems: cartItems.map(t => ({ name: t.name, price: t.price, qty: t.qty })),
+        }
+      );
+      bookingId = bid;
+      setBookingId(bookingId || 'MED' + Date.now().toString(36).toUpperCase());
       setBookingConfirmed(true);
       setBookingStep(6);
       toast.success('Booking confirmed!');
     } catch (e) {
       const msg = e.response?.data?.message || e.message || '';
-      if (msg.includes('already be completed') || msg.includes('Duplicate')) {
+      if (isBookingConflictError(msg)) {
         setBookingId(bookingId || 'MED' + Date.now().toString(36).toUpperCase());
         setBookingConfirmed(true);
         setBookingStep(6);

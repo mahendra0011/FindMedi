@@ -204,13 +204,47 @@ export default function Checkout() {
       setConfirmDialog({
         title: 'Items Out of Stock',
         message: `Some items are out of stock:\n${noAltOos.map(e => `- ${e.item.name}`).join('\n')}\n\nThese will be removed. Continue with remaining items?`,
-        onConfirm: () => {
+        onConfirm: async () => {
           setConfirmDialog(null);
-          const orderIds = stores.map((st, i) => `ORD${Date.now().toString(36).toUpperCase()}-${i + 1}`);
-          const params = new URLSearchParams({ stores: stores.map(s => s.storeId).join(','), orderIds: orderIds.join(','), rx: hasRxItems ? 'true' : 'false' });
+          const remaining = entries.filter(e => !noAltOos.some(oos => oos.key === e.key));
           noAltOos.forEach(e => removeItem(e.key));
-          if (payOnDelivery) { navigate(`/order-confirmation?${params}`); }
-          else { params.set('total', grandTotal.toString()); params.set('method', paymentMethod); navigate(`/payment-gateway?${params}`); }
+          if (remaining.length === 0) return;
+          try {
+            const orderPayload = {
+              patientId: user.id,
+              patientName: user.name,
+              email: user.email,
+              phone: user.phone || '',
+              address: selectedAddress?.address || '',
+              items: remaining.map(e => ({
+                medicineId: e.item._id || e.item.id,
+                medicineName: e.item.name,
+                quantity: e.qty,
+                price: e.item.price,
+                storeId: e.storeId,
+                rx: e.item.rx || false,
+              })),
+              total: remaining.reduce((s, e) => s + e.item.price * e.qty, 0),
+              deliveryMode,
+              deliverySlot,
+              paymentMethod: payOnDelivery ? 'cod' : paymentMethod,
+              status: payOnDelivery ? 'Confirmed' : 'Pending',
+            };
+            const res = await api.createPharmacyOrder(orderPayload);
+            const orderIds = Array.isArray(res?.orders) ? res.orders.map(o => o._id) : [res?.order?._id || res?._id];
+            const orderIdStr = orderIds.join(',');
+            const params = new URLSearchParams({ stores: stores.map(s => s.storeId).join(','), orderIds: orderIdStr, rx: hasRxItems ? 'true' : 'false' });
+            clearCart();
+            if (payOnDelivery) {
+              navigate(`/order-confirmation?${params}`);
+            } else {
+              params.set('total', remaining.reduce((s, e) => s + e.item.price * e.qty, 0).toString());
+              params.set('method', paymentMethod);
+              navigate(`/payment-gateway?${params}`);
+            }
+          } catch (e) {
+            toast.error(e.response?.data?.message || e.message || 'Failed to place order');
+          }
         },
         onCancel: () => setConfirmDialog(null),
       });

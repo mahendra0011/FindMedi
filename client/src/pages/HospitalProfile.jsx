@@ -26,6 +26,7 @@ import BookingModal from '@/components/BookingModal';
 import { ChevronLeft } from 'lucide-react';
 const ChevronRightIcon = ChevronRight;
 import { api } from '@/lib/api';
+import { bookTestLab, isBookingConflictError } from '@/lib/testBooking';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
@@ -232,39 +233,35 @@ export default function HospitalProfile() {
     const total = cartTotal + (testCollectionMode === 'home' ? 50 : 0);
     if (total <= 0) { toast.error('Cart is empty'); return; }
     setTestPaymentLoading(true);
-    let bookingId = '';
     try {
-      const booking = await api.createLabBooking({
-        patientId: user?.id,
-        patientName: user?.name || 'Patient',
-        tests: cartItems.map(t => t.name),
-        testIds: cartItems.map(t => t.id),
-        totalAmount: total,
-        bookingDate: testSelectedDate,
-        timeSlot: testSelectedSlot,
-        visitType: testCollectionMode === 'home' ? 'Home Collection' : 'Walk-in',
-        homeCollectionAddress: testCollectionMode === 'home' ? 'Home' : '',
-        homeCollectionFee: testCollectionMode === 'home' ? 50 : 0,
-        status: 'Pending',
-      });
-      bookingId = booking?._id || booking?.booking?._id || '';
-      const result = await api.payTransaction({
-        serviceType: 'test',
-        referenceId: bookingId,
-        amount: total,
-        method: testPaymentMethod === 'cod' ? 'cash' : testPaymentMethod,
-        description: `Lab Test - ${cartItems.map(t => t.name).join(', ')}`,
-        provider: hospital?.name || 'Lab',
-        lineItems: cartItems.map(t => ({ name: t.name, price: t.price, qty: t.qty })),
-      });
-      if (result?.success) {
-        setTestPaymentResult(result);
-        setTestBookingStep(6);
-        toast.success('Payment successful! Test booking confirmed.');
-      }
+      const { result } = await bookTestLab(
+        {
+          patientId: user?.id,
+          patientName: user?.name || 'Patient',
+          tests: cartItems.map(t => t.name),
+          testIds: cartItems.map(t => t.id),
+          totalAmount: total,
+          bookingDate: testSelectedDate,
+          timeSlot: testSelectedSlot,
+          visitType: testCollectionMode === 'home' ? 'Home Collection' : 'Walk-in',
+          homeCollectionAddress: testCollectionMode === 'home' ? 'Home' : '',
+          homeCollectionFee: testCollectionMode === 'home' ? 50 : 0,
+          status: 'Pending',
+        },
+        {
+          amount: total,
+          method: testPaymentMethod === 'cod' ? 'cash' : testPaymentMethod,
+          description: `Lab Test - ${cartItems.map(t => t.name).join(', ')}`,
+          provider: hospital?.name || 'Lab',
+          lineItems: cartItems.map(t => ({ name: t.name, price: t.price, qty: t.qty })),
+        }
+      );
+      setTestPaymentResult(result);
+      setTestBookingStep(6);
+      toast.success('Payment successful! Test booking confirmed.');
     } catch (e) {
       const msg = e.response?.data?.message || e.message || '';
-      if (msg.includes('already be completed') || msg.includes('Duplicate')) {
+      if (isBookingConflictError(msg)) {
         setTestBookingStep(6);
         toast.success('Booking already confirmed!');
         return;
