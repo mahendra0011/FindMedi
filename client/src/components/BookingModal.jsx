@@ -147,10 +147,14 @@ export default function BookingModal({
 
     } catch (e) {
       const msg = e.response?.data?.message || e.message || '';
-      if (msg.includes('already be completed') || msg.includes('Duplicate')) {
-        toast.success('Appointment booked successfully');
+      const status = e.response?.status;
+      // Already-paid idempotency case — treat as success
+      if (status === 200 && msg.includes('already be completed')) {
+        toast.success('Appointment already booked');
         setBookingStep(3);
         if (onSuccess) onSuccess();
+      } else if (msg.includes('already booked this slot') || msg.includes('already book this slot')) {
+        toast.error('This slot is already booked. Please try a different date or time.');
       } else {
         toast.error(msg || 'Booking failed');
         if (apptId) {

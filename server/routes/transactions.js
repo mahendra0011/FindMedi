@@ -19,6 +19,19 @@ import { generateTransactionId, generateInvoiceId, generateBillId, generateToken
 
 const router = express.Router();
 
+// ── Startup: clean stale unpaid Pending appointments (older than 15 min) ──
+(async function cleanupStalePending() {
+  try {
+    const staleCutoff = new Date(Date.now() - 15 * 60 * 1000);
+    const staleAppts = await Appointment.find({ status: 'Pending', createdAt: { $lt: staleCutoff } }).lean();
+    for (const appt of staleAppts) {
+      const hasPayment = await Payment.findOne({ referenceId: appt._id.toString(), status: 'completed' }).lean();
+      if (!hasPayment) await Appointment.findByIdAndDelete(appt._id);
+    }
+    if (staleAppts.length) console.log(`[Cleanup] Removed ${staleAppts.length} stale Pending appointments`);
+  } catch (_) {}
+})();
+
 // GET /api/transactions — user's payment history
 router.get('/', protect, async (req, res, next) => {
   try {
@@ -96,6 +109,20 @@ router.post('/pay', protect, async (req, res, next) => {
         const { doctorId, doctor, doctorName, department, date, time, notes, type, symptoms, priority, facilityId } = apptData;
         const patientName = req.user.name;
         const patientId = req.user._id;
+
+        // Clean up stale Pending appointments (unpaid, older than 15 min) for this patient
+        try {
+          const staleCutoff = new Date(Date.now() - 15 * 60 * 1000);
+          const staleAppts = await Appointment.find({
+            patientId, status: 'Pending', createdAt: { $lt: staleCutoff },
+          }).lean();
+          for (const stale of staleAppts) {
+            const hasPayment = await Payment.findOne({ referenceId: stale._id.toString(), status: 'completed' }).lean();
+            if (!hasPayment) {
+              await Appointment.findByIdAndDelete(stale._id);
+            }
+          }
+        } catch (_) { /* best-effort cleanup */ }
 
         let hospitalId = null;
         if (doctorId) {
