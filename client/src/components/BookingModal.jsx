@@ -25,6 +25,7 @@ export default function BookingModal({
   const [bookingDate, setBookingDate] = useState('');
   const [bookingTime, setBookingTime] = useState('');
   const [bookingNotes, setBookingNotes] = useState('');
+  const [appointmentType, setAppointmentType] = useState('Consultation');
   const [bookingLoading, setBookingLoading] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('card');
   const [paymentLoading, setPaymentLoading] = useState(false);
@@ -43,6 +44,7 @@ export default function BookingModal({
       setBookingDate(new Date().toISOString().split('T')[0]);
       setBookingTime('');
       setBookingNotes('');
+      setAppointmentType('Consultation');
       setPaymentMethod('card');
       setBookingDetails(null);
       
@@ -98,60 +100,51 @@ export default function BookingModal({
       if (!fees || fees <= 0) {
         throw new Error('Doctor consultation fee is not set. Please contact support.');
       }
-      
-      // 1. Create Appointment
-      const apptResult = await api.createAppointment({
-        doctorId: currentDoc._id,
-        doctor: currentDoc.name,
-        doctorName: currentDoc.name,
-        department: currentDoc.specialization || 'General',
-        facilityId: facility?._id || currentDoc.clinicProfile?.clinic_id,
-        patient: user.name || 'Patient',
-        patientId: user.id,
-        email: user.email,
-        phone: user.phone || '',
-        date: bookingDate,
-        time: bookingTime,
-        notes: bookingNotes,
-        type: 'Consultation',
-        status: 'Pending',
-      });
 
-      // Extract appointment ID — try all possible response shapes
-      const appointmentData = apptResult?.appointment || apptResult?.data?.appointment || apptResult;
-      apptId = (
-        appointmentData?._id?.toString?.() ||
-        appointmentData?._id ||
-        apptResult?.appointment?._id?.toString?.() ||
-        apptResult?._id?.toString?.() ||
-        ''
-      ).trim();
-
-      if (!apptId) {
-        throw new Error('Failed to get appointment ID. Please try again.');
-      }
-
-      // 2. Pay Transaction
-      console.log('[BookingModal] Calling payTransaction with apptId:', apptId, 'fees:', fees);
+      console.log('[BookingModal] Creating appointment + payment in single call');
       const payResult = await api.payTransaction({
         serviceType: 'appointment',
-        referenceId: apptId,
+        appointment: {
+          doctorId: currentDoc._id,
+          doctor: currentDoc.name,
+          doctorName: currentDoc.name,
+          department: currentDoc.specialization || 'General',
+          facilityId: facility?._id || currentDoc.clinicProfile?.clinic_id,
+          date: bookingDate,
+          time: bookingTime,
+          notes: bookingNotes,
+          type: appointmentType,
+        },
         amount: fees,
         method: paymentMethod,
         description: `Consultation with ${currentDoc.name}`,
         provider: facility?.name || currentDoc.name,
         lineItems: [{ name: 'Consultation Fee', price: fees, qty: 1 }],
       });
-      
+
       console.log('[BookingModal] Payment result:', payResult);
-      
+
       if (!payResult?.success) {
         throw new Error(payResult?.message || 'Payment failed');
       }
 
-      toast.success('Payment successful! Appointment booked.');
-      setBookingDetails({ ...appointmentData, doctor: currentDoc.name, specialization: currentDoc.specialization, date: bookingDate, time: bookingTime, fees, transactionId: payResult.transaction_id, invoiceId: payResult.invoice_id });
-      setBookingStep(3); // Go to Success Screen
+      const appointmentStatus = payResult.appointmentStatus || 'Confirmed';
+      const appointmentData = payResult.appointment || {};
+      apptId = appointmentData._id || '';
+
+      toast.success(appointmentStatus === 'Confirmed' ? 'Payment successful! Appointment confirmed.' : 'Payment successful! Awaiting clinic confirmation.');
+      setBookingDetails({
+        ...appointmentData,
+        doctor: currentDoc.name,
+        specialization: currentDoc.specialization,
+        date: bookingDate,
+        time: bookingTime,
+        fees,
+        transactionId: payResult.transaction_id,
+        invoiceId: payResult.invoice_id,
+        appointmentStatus,
+      });
+      setBookingStep(3);
       if (onSuccess) onSuccess();
 
     } catch (e) {
@@ -163,7 +156,7 @@ export default function BookingModal({
       } else {
         toast.error(msg || 'Booking failed');
         if (apptId) {
-          try { await api.deleteAppointment(apptId); } catch (_) { /* best-effort cleanup */ }
+          try { await api.deleteAppointment(apptId); } catch (_) {}
         }
       }
     }
@@ -266,6 +259,15 @@ export default function BookingModal({
                   {(currentDoc?.time_slots || ['09:00 AM', '10:00 AM', '11:00 AM', '02:00 PM', '03:00 PM', '04:00 PM']).map(t => (
                     <option key={t}>{t}</option>
                   ))}
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-foreground">Appointment Type</label>
+                <select value={appointmentType} onChange={e => setAppointmentType(e.target.value)} className="w-full h-9 px-3 rounded-xl border border-border bg-background text-sm">
+                  <option value="Consultation">Consultation</option>
+                  <option value="Follow-up">Follow-up</option>
+                  <option value="Check-up">Check-up</option>
+                  <option value="Emergency">Emergency</option>
                 </select>
               </div>
               <div className="space-y-1.5">
@@ -378,9 +380,11 @@ export default function BookingModal({
             >
               <CheckCircle2 className="w-10 h-10 text-primary-foreground" />
             </motion.div>
-            <h3 className="text-lg font-bold text-primary mb-2">Booking Confirmed!</h3>
+            <h3 className="text-lg font-bold text-primary mb-2">
+              {bookingDetails?.appointmentStatus === 'Pending' ? 'Payment Received — Pending Confirmation' : 'Booking Confirmed!'}
+            </h3>
             <p className="text-sm text-muted-foreground mb-4">
-              Appointment booked for {currentDoc?.name}
+              {bookingDetails?.appointmentStatus === 'Pending' ? 'Clinic will confirm your appointment shortly' : `Appointment booked for ${currentDoc?.name}`}
             </p>
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 border border-primary/20">
               <CalendarDays className="w-4 h-4 text-primary" />

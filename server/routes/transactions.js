@@ -2,6 +2,8 @@ import express from 'express';
 import crypto from 'crypto';
 import Billing from '../models/Billing.js';
 import Payment from '../models/Payment.js';
+import User from '../models/User.js';
+import Doctor from '../models/Doctor.js';
 import Facility from '../models/Facility.js';
 import Appointment from '../models/Appointment.js';
 import LabBooking from '../models/LabBooking.js';
@@ -14,7 +16,7 @@ import { protect } from '../middleware/auth.js';
 import { validate, createPaymentSchema } from '../utils/validate.js';
 import { auditLog } from '../middleware/audit.js';
 import { paginatedResults } from '../utils/pagination.js';
-import { generateTransactionId, generateInvoiceId, generateBillId } from '../utils/idGenerator.js';
+import { generateTransactionId, generateInvoiceId, generateBillId, generateTokenNumber } from '../utils/idGenerator.js';
 
 const router = express.Router();
 
@@ -76,15 +78,92 @@ router.get('/', protect, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// POST /api/transactions/pay — unified payment + confirm (idempotent, atomic)
+// POST /api/transactions/pay — unified payment + confirm (idempotent)
+// Can also accept appointment data to create appointment + payment atomically
 router.post('/pay', protect, async (req, res, next) => {
   try {
-    const { serviceType, referenceId, amount, method, description, provider, lineItems } = req.body;
+    let { serviceType, referenceId, amount, method, description, provider, lineItems, appointment: apptData } = req.body;
     if (!serviceType || !amount || !method) {
       return res.status(400).json({ message: 'serviceType, amount, and method are required' });
     }
     if (Number(amount) <= 0) {
       return res.status(400).json({ message: 'Payment amount must be greater than 0. Please check doctor consultation fee.' });
+    }
+
+    // ── If appointment data is provided, create appointment first (atomic flow) ──
+    let createdAppointment = null;
+    if (apptData && serviceType === 'appointment') {
+      try {
+        const { doctorId, doctor, doctorName, department, date, time, notes, type, symptoms, priority, facilityId } = apptData;
+        const patientName = req.user.name;
+        const patientId = req.user._id;
+
+        let hospitalId = null;
+        if (doctorId) {
+          const doctorDoc = await Doctor.findById(doctorId);
+          if (doctorDoc && doctorDoc.hospitalId) {
+            hospitalId = doctorDoc.hospitalId;
+          }
+        }
+
+        if (patientId && date && time) {
+          const existing = await Appointment.findOne({ patientId, date, time, status: { $nin: ['Cancelled', 'Completed'] } });
+          if (existing) {
+            return res.status(409).json({ message: 'You have already booked this slot. Please try another slot.' });
+          }
+        }
+
+        const tokenNumber = generateTokenNumber();
+        const patientUser = await User.findById(patientId);
+        const countToday = await Appointment.countDocuments({ date, doctor: doctor || '' });
+        const estimatedWaitTime = countToday * 10; // simple estimate
+
+        createdAppointment = await Appointment.create({
+          tokenNumber,
+          uhid: patientUser?.uhid || '',
+          patient: patientName,
+          patientId,
+          doctor: doctor || doctorName || '',
+          doctorId: doctorId || null,
+          department: department || 'General',
+          date,
+          time,
+          type: type || 'Consultation',
+          symptoms: symptoms || '',
+          notes: notes || '',
+          priority: priority || 'Normal',
+          estimatedWaitTime,
+          hospitalId: hospitalId || undefined,
+          status: 'Pending',
+        });
+
+        referenceId = createdAppointment._id.toString();
+
+        await createdAppointment.populate('doctorId', 'name specialization');
+
+        try {
+          await auditLog('create_appointment', req.user._id, { recordId: createdAppointment._id, ip: req.ip, userAgent: req.get('user-agent') });
+        } catch (_) {}
+
+        if (doctorId) {
+          try {
+            const notifModule = await import('../models/Notification.js');
+            const NotificationModel = notifModule.default;
+            await NotificationModel.create({
+              userId: doctorId.toString(),
+              title: 'New Appointment',
+              message: `New ${type || 'Consultation'} appointment from ${patientName} for ${date} at ${time}`,
+              type: 'appointment',
+              date: new Date().toISOString().split('T')[0],
+            });
+          } catch (_) {}
+        }
+      } catch (apptErr) {
+        if (createdAppointment) {
+          try { await Appointment.findByIdAndDelete(createdAppointment._id); } catch (_) {}
+        }
+        throw apptErr;
+      }
     }
 
     // ── Idempotency: if payment already completed for this referenceId, return it as success ──
@@ -96,6 +175,8 @@ router.post('/pay', protect, async (req, res, next) => {
           transaction_id: existingPayment.transaction_id,
           invoice_id: existingPayment.invoice_id,
           payment: existingPayment,
+          appointment: createdAppointment,
+          appointmentStatus: createdAppointment?.status || null,
           alreadyPaid: true,
         });
       }
@@ -172,6 +253,10 @@ router.post('/pay', protect, async (req, res, next) => {
       }]);
 
     } catch (txErr) {
+      // If appointment was newly created but payment failed, clean up
+      if (req.body?.appointment && createdAppointment?._id) {
+        try { await Appointment.findByIdAndDelete(createdAppointment._id); } catch (_) {}
+      }
       throw txErr;
     }
 
@@ -194,13 +279,32 @@ router.post('/pay', protect, async (req, res, next) => {
       console.error('Failed to create audit log:', auditErr.message);
     }
 
+    let finalStatus = null;
+    if (referenceId && serviceType === 'appointment') {
+      try {
+        const appt = await Appointment.findById(referenceId).select('status').lean();
+        if (appt) finalStatus = appt.status;
+      } catch (_) {}
+    }
+
     res.status(201).json({
       success: true,
       transaction_id,
       invoice_id,
       payment,
+      appointment: createdAppointment,
+      appointmentStatus: finalStatus,
     });
   } catch (err) {
+    // Cleanup: if appointment was created (via apptData) but payment failed, delete it
+    if (req.body?.appointment && req.body?.serviceType === 'appointment' && !err.message?.includes('Duplicate')) {
+      try {
+        const orphan = await Appointment.findOne({ patientId: req.user._id, status: 'Pending' }).sort({ createdAt: -1 });
+        if (orphan && !(await Payment.findOne({ referenceId: orphan._id.toString() }))) {
+          await Appointment.findByIdAndDelete(orphan._id);
+        }
+      } catch (_) {}
+    }
     if (err.code === 11000 && req.body.referenceId) {
       try {
         const existing = await Payment.findOne({ referenceId: req.body.referenceId, status: 'completed' });
