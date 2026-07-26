@@ -12,7 +12,7 @@ const appointmentSchema = new mongoose.Schema({
   department: { type: String, required: true },
   date: { type: Date, required: true },
   time: { type: String, required: true },
-  status: { type: String, enum: ['Confirmed', 'Pending', 'Cancelled', 'Completed', 'In Queue', 'Serving', 'Missed'], default: 'Pending' },
+  status: { type: String, enum: ['Confirmed', 'Cancelled', 'Completed', 'In Queue', 'Serving', 'Missed'], default: 'Confirmed' },
   priority: { type: String, enum: ['Normal', 'Urgent', 'Emergency'], default: 'Normal' },
   type: { type: String, enum: ['Consultation', 'Follow-up', 'Check-up', 'Emergency'], default: 'Consultation' },
   notes: { type: String, default: '' },

@@ -122,7 +122,7 @@ export default function PatientServices() {
     try {
       const today = new Date().toISOString().split('T')[0];
       const booking = await api.createLabBooking({
-        patientId: user?._id,
+        patientId: user?.id,
         patientName: user?.name || 'Patient',
         tests: selectedServices.map(s => s.name),
         testIds: selectedServices.map(s => s.id),

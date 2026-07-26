@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { generateTimestampedId } from '../utils/idGenerator.js';
 
 const purchaseOrderSchema = new mongoose.Schema({
   poNumber: { type: String, required: true, unique: true },
@@ -31,7 +32,7 @@ const purchaseOrderSchema = new mongoose.Schema({
 purchaseOrderSchema.pre('save', async function (next) {
   this.updatedAt = new Date();
   if (!this.poNumber) {
-    this.poNumber = `PO-${new Date().getFullYear()}-${Date.now().toString(36).slice(-6).toUpperCase()}${Math.floor(Math.random() * 36).toString(36).toUpperCase()}`;
+    this.poNumber = generateTimestampedId('PO');
   }
   next();
 });

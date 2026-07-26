@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  CalendarDays, User, FileText, TestTube, Bell, AlertTriangle, ClipboardList,
+  CalendarDays, Calendar, User, FileText, TestTube, Bell, AlertTriangle, ClipboardList,
   Pill, ShoppingCart, Upload, Search, Zap, Heart, ArrowRight, Clock, Star,
   IndianRupee, Activity, MapPinned, HelpCircle, Phone, MessageCircle, ChevronRight,
   X, Download, Users, Ambulance, Stethoscope, Syringe, CreditCard, Bookmark,
@@ -135,7 +135,7 @@ export default function PatientDashboard() {
   const showToast = (msg, type = 'success') => { setToast({ msg, type }); setTimeout(() => setToast(null), 3000); };
 
   useEffect(() => {
-    if (!user?._id) return;
+     if (!user?.id) return;
     const load = async () => {
       try {
         const [a, r, b] = await Promise.all([
@@ -146,12 +146,12 @@ export default function PatientDashboard() {
         setAppointments((a?.appointments || a?.data || []).slice(0, 8));
         const rawBills = b?.bills || b?.data || [];
         const [p] = await Promise.all([
-          api.getPayments({ patient_id: user?._id }).catch(() => ({ data: [] })),
+          api.getPayments({ patient_id: user?.id }).catch(() => ({ data: [] })),
         ]);
         const rawPayments = p?.payments || p?.data || [];
         setPayments(rawPayments);
         // Cross-reference: mark bills as Paid if matching payment exists
-        const uid = String(user?._id || '');
+        const uid = String(user?.id || '');
         const paidRefs = new Set(rawPayments.map(pay => pay.invoice_id || pay.invoiceId || pay.referenceId));
         const paidSignatures = new Set(rawPayments.map(pay => `${String(pay.patient_id || pay.patientId || '')}:${pay.amount}`));
         setBills(rawBills.map(bill => {
@@ -169,7 +169,7 @@ export default function PatientDashboard() {
         if (rx?.prescriptions?.length) setPrescriptions(rx.prescriptions);
         const notifList = n?.notifications || n?.data || n || [];
         if (notifList.length) setNotifs(notifList);
-        const revData = await api.getReviews({ patientId: user?._id }).catch(() => []);
+        const revData = await api.getReviews({ patientId: user?.id }).catch(() => []);
         if (revData?.reviews?.length) setReviews(revData.reviews);
         else if (Array.isArray(revData) && revData.length) setReviews(revData);
 
@@ -203,14 +203,14 @@ export default function PatientDashboard() {
       } catch (e) { console.error(e); showToast('Failed to load dashboard data', 'error'); }
     };
     load();
-  }, [user?._id]);
+  }, [user?.id]);
 
   const today = new Date().toISOString().split('T')[0];
   const upcomingAppts = appointments.filter(a => a.date >= today && a.status !== 'Completed');
   const unreadNotifs = notifs.filter(n => !n.read).length;
   const isBillPaid = (bill) => {
     if (bill.status === 'Paid') return true;
-    const uid = String(user?._id || '');
+    const uid = String(user?.id || '');
     return payments.some(p =>
       p.invoice_id === bill.invoiceId ||
       p.invoiceId === bill.invoiceId ||
@@ -438,8 +438,8 @@ export default function PatientDashboard() {
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center"><FileText className="w-4 h-4 text-primary" /></div>
               <div>
-                <h3 className="font-semibold text-foreground">Recent History</h3>
-                <p className="text-xs text-muted-foreground">{payments.length > 0 ? `Last ${Math.min(payments.length, 3)} transactions` : 'No transactions yet'}</p>
+                <h3 className="font-semibold text-foreground">Payment History</h3>
+                <p className="text-xs text-muted-foreground">{payments.length > 0 ? `Last ${Math.min(payments.length, 3)} payments` : 'No payments yet'}</p>
               </div>
             </div>
             <Button variant="ghost" size="sm" className="gap-1 text-primary" onClick={() => navigate('/patient/history')}>View All<ChevronRight className="w-3.5 h-3.5" /></Button>
@@ -474,10 +474,29 @@ export default function PatientDashboard() {
           ) : (
             <div className="text-center py-8">
               <FileText className="w-10 h-10 text-muted-foreground/30 mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">No transactions yet</p>
+              <p className="text-sm text-muted-foreground">No payments yet</p>
               <p className="text-xs text-muted-foreground mt-1">Your payment history will appear here</p>
             </div>
           )}
+        </div>
+
+        {/* Booking History */}
+        <div className="bg-card rounded-2xl border border-border/60 p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-blue-500/10 flex items-center justify-center"><Calendar className="w-4 h-4 text-blue-500" /></div>
+              <div>
+                <h3 className="font-semibold text-foreground">Booking History</h3>
+                <p className="text-xs text-muted-foreground">Appointments, tests & medicines</p>
+              </div>
+            </div>
+            <Button variant="ghost" size="sm" className="gap-1 text-primary" onClick={() => navigate('/patient/booking-history')}>View All<ChevronRight className="w-3.5 h-3.5" /></Button>
+          </div>
+          <div className="text-center py-8">
+            <Calendar className="w-10 h-10 text-muted-foreground/30 mx-auto mb-2" />
+            <p className="text-sm text-muted-foreground">Your booking history</p>
+            <Button size="sm" className="mt-3" onClick={() => navigate('/patient/booking-history')}>View History</Button>
+          </div>
         </div>
       </div>
 

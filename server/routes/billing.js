@@ -8,6 +8,7 @@ import { protect } from '../middleware/auth.js';
 import { generateInvoicePDF } from '../services/pdfService.js';
 import { validate, createBillSchema } from '../utils/validate.js';
 import { auditLog } from '../middleware/audit.js';
+import { generateInvoiceId, generateBillId, generateTransactionId } from '../utils/idGenerator.js';
 import logger from '../config/logger.js';
 import { paginatedResults } from '../utils/pagination.js';
 
@@ -77,7 +78,10 @@ router.get('/', protect, async (req, res) => {
     }
     
     if (req.user.role === 'patient') {
-      filter.patientId = req.user._id;
+      filter.$or = [
+        { patientId: req.user._id },
+        { patientId: { $exists: false }, patient: req.user.name },
+      ];
     } else if (req.user.role === 'doctor') {
       filter.doctorId = req.user.doctorProfileId;
     }
@@ -130,10 +134,8 @@ router.post('/', protect, validate(createBillSchema), async (req, res) => {
       physio: 'PHY', diet: 'DIE', ipd: 'IPD', ot: 'OT',
       radiology: 'RAD', manual: 'GEN',
     };
-    const year = new Date().getFullYear();
     const invPrefix = prefixMap[source] || 'GEN';
-    const rndBase = `${Date.now()}${Math.floor(Math.random() * 10**9)}`;
-    const invoiceId = `INV-${invPrefix}-${year}-${rndBase.slice(-16)}`;
+    const invoiceId = generateInvoiceId(source || 'general');
     
     let finalPatientId;
     let finalPatient = patient || req.user.name;
@@ -274,7 +276,7 @@ router.post('/:id/pay', protect, async (req, res) => {
     }
     
     const { paymentMethod } = req.body;
-    const transactionId = `TXN-${Date.now()}`;
+    const transactionId = generateTransactionId();
     
     bill.paid = bill.amount;
     bill.status = 'Paid';

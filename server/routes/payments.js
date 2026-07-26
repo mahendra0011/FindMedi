@@ -4,6 +4,7 @@ import Notification from '../models/Notification.js';
 import { protect, adminOnly } from '../middleware/auth.js';
 import { validate, createPaymentSchema, updatePaymentSchema, refundPaymentSchema } from '../utils/validate.js';
 import { auditLog } from '../middleware/audit.js';
+import { generateTransactionId } from '../utils/idGenerator.js';
 
 const router = express.Router();
 
@@ -23,7 +24,7 @@ router.get('/', protect, async (req, res) => {
 
 router.post('/', protect, validate(createPaymentSchema), async (req, res) => {
   try {
-    const transaction_id = `TXN-${Date.now()}`;
+    const transaction_id = generateTransactionId();
     const patient_id = req.user.role === 'patient' ? req.user._id.toString() : req.body.patient_id;
     const payment = await Payment.create({
       ...req.body,

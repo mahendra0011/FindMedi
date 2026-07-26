@@ -47,9 +47,11 @@ const patientSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
 });
 
+import { generateUHID } from '../utils/idGenerator.js';
+
 patientSchema.pre('save', async function (next) {
   if (!this.uhid) {
-    this.uhid = `UHID${Date.now()}${Math.floor(Math.random() * 1000)}`;
+    this.uhid = generateUHID();
   }
   next();
 });

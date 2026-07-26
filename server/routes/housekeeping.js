@@ -7,6 +7,7 @@ import Notification from '../models/Notification.js';
 import { protect, adminOnly } from '../middleware/auth.js';
 import { validate, createHousekeepingSchema } from '../utils/validate.js';
 import { auditLog } from '../middleware/audit.js';
+import { generateTimestampedId } from '../utils/idGenerator.js';
 
 const hkAutoCreateSchema = z.object({ admissionId: z.string().min(1), bedNumber: z.string().min(1), ward: z.string().optional(), room: z.string().optional(), isInfectionCase: z.boolean().optional() });
 const hkAssignSchema = z.object({ assignedTo: z.string().optional(), assignedById: z.string().optional() });
@@ -15,7 +16,7 @@ const hkChecklistSchema = z.object({ checklist: z.any() });
 
 const router = express.Router();
 
-const genId = () => `HSK-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+const genId = () => generateTimestampedId('HSK');
 
 // Auto-create housekeeping task when patient is discharged
 router.post('/auto-create-on-discharge', protect, adminOnly, validate(hkAutoCreateSchema), async (req, res) => {

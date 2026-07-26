@@ -2,12 +2,11 @@ import express from 'express';
 import SupportTicket from '../models/SupportTicket.js';
 import { protect, superadminOnly } from '../middleware/auth.js';
 import { validate, createSupportTicketSchema } from '../utils/validate.js';
+import { generateTimestampedId } from '../utils/idGenerator.js';
 
 const router = express.Router();
 
-const generateTicketId = async () => {
-  return `TKT-${Date.now().toString(36).slice(-5).toUpperCase()}${Math.floor(Math.random() * 36).toString(36).toUpperCase()}`;
-};
+const generateTicketId = async () => generateTimestampedId('TKT');
 
 router.post('/', protect, validate(createSupportTicketSchema), async (req, res) => {
   try {

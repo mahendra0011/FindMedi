@@ -10,6 +10,7 @@ import Notification from '../models/Notification.js';
 import { protect, adminOnly } from '../middleware/auth.js';
 import { validate, createLabOrderSchema } from '../utils/validate.js';
 import { auditLog } from '../middleware/audit.js';
+import { generateOrderId, generateSampleId, generateTimestampedId } from '../utils/idGenerator.js';
 
 const labRegisterSampleSchema = z.object({ testIndex: z.number().int().nonnegative(), sampleType: z.string().optional() });
 const labCollectSampleSchema = z.object({ testIndex: z.number().int().nonnegative(), rejectionReason: z.string().optional() });
@@ -22,10 +23,6 @@ const labPackageSchema = z.object({}).passthrough();
 
 const router = express.Router();
 
-const generateOrderId = () => `LAB-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
-
-const generateSampleId = () => `SMP-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-
 // ─── Doctor: Create Lab Order ──────────────────────────────────────────────
 router.post('/orders', protect, validate(createLabOrderSchema), async (req, res) => {
   try {
@@ -34,7 +31,7 @@ router.post('/orders', protect, validate(createLabOrderSchema), async (req, res)
       return res.status(400).json({ message: 'Patient and at least one test required' });
     }
 
-const orderId = generateOrderId();
+const orderId = generateOrderId('LAB');
     const order = await LabOrder.create({
       orderId, patientId, patientName,
       doctorId: req.user.doctorProfileId || req.user._id, doctorName: req.user.name,
@@ -273,7 +270,12 @@ router.get('/bookings', protect, async (req, res) => {
   try {
     const { status, date, search } = req.query;
     const filter = {};
-    if (req.user.role === 'patient') filter.patientId = req.user._id;
+    if (req.user.role === 'patient') {
+      filter.$or = [
+        { patientId: req.user._id },
+        { patientId: { $exists: false }, patientName: req.user.name },
+      ];
+    }
     if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
     if ((req.user.facilityId || req.user.hospitalId) && req.user.role !== 'superadmin') filter.facilityId = req.user.facilityId || req.user.hospitalId;
     if (status && status !== 'All') filter.status = status;
@@ -294,7 +296,7 @@ router.post('/bookings', protect, validate(labBookingSchema), async (req, res) =
         return res.status(400).json({ message: `Prescription required for test(s): ${rxTests.map(t => t.name).join(', ')}` });
       }
     }
-    const bookingId = `BK-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+    const bookingId = generateTimestampedId('BK');
     const booking = await LabBooking.create({ ...req.body, bookingId, hospitalId: req.user.hospitalId || undefined, facilityId: req.user.facilityId || req.user.hospitalId || undefined, createdBy: req.user._id });
     await auditLog('create_lab_booking', req.user._id, { recordId: booking._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.status(201).json(booking);

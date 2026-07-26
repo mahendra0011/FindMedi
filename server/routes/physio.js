@@ -5,6 +5,7 @@ import Billing from '../models/Billing.js';
 import Notification from '../models/Notification.js';
 import { protect, adminOnly } from '../middleware/auth.js';
 import { validate, createPhysioReferralSchema } from '../utils/validate.js';
+import { generateOrderId, generateInvoiceId } from '../utils/idGenerator.js';
 
 const physioAssessSchema = z.object({}).passthrough();
 const physioSessionSchema = z.object({}).passthrough();
@@ -14,13 +15,11 @@ const physioCompleteSchema = z.object({}).passthrough();
 
 const router = express.Router();
 
-const genId = () => `PHY-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
-
 router.post('/referrals', protect, adminOnly, validate(createPhysioReferralSchema), async (req, res) => {
   try {
     const { patientId, patientName, diagnosis, treatmentPlan } = req.body;
     if (!patientId) return res.status(400).json({ message: 'Patient required' });
-    const referralId = genId();
+    const referralId = generateOrderId('PHY');
     const r = await Physiotherapy.create({ 
       referralId, patientId, patientName, diagnosis, treatmentPlan,
       doctorId: req.user.doctorProfileId || req.user._id, doctorName: req.user.name, hospitalId: req.user.hospitalId || undefined, createdBy: req.user._id 
@@ -104,9 +103,7 @@ router.post('/referrals/:id/create-billing', protect, adminOnly, validate(physio
     
     const { amount, description, sessionType } = req.body;
     
-    const year = new Date().getFullYear();
-    const rndBase = `${Date.now()}${Math.floor(Math.random() * 10**9)}`;
-    const invoiceId = `INV-PHY-${year}-${rndBase.slice(-16)}`;
+    const invoiceId = generateInvoiceId('physio');
     
     const billing = await Billing.create({
       invoiceId,

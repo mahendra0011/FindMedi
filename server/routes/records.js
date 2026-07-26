@@ -28,7 +28,10 @@ router.get('/', protect, async (req, res) => {
     const filter = {};
     
     if (req.user.role === 'patient') {
-      filter.patientId = req.user._id;
+      filter.$or = [
+        { patientId: req.user._id },
+        { patientId: { $exists: false }, patient: req.user.name },
+      ];
     } else if (req.user.role === 'doctor') {
       filter.doctorId = req.user.doctorProfileId;
       if (req.user.hospitalId) filter.hospitalId = req.user.hospitalId;

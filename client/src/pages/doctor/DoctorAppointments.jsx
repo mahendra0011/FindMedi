@@ -7,8 +7,8 @@ import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 
-const statusColors = { Confirmed: 'bg-success/10 text-success', Pending: 'bg-warning/10 text-warning', Cancelled: 'bg-destructive/10 text-destructive', Completed: 'bg-info/10 text-info' };
-const filters = ['All', 'Confirmed', 'Pending', 'Cancelled', 'Completed'];
+const statusColors = { Confirmed: 'bg-success/10 text-success', Cancelled: 'bg-destructive/10 text-destructive', Completed: 'bg-info/10 text-info' };
+const filters = ['All', 'Confirmed', 'Cancelled', 'Completed'];
 const billServices = {
   'Consultation': 500,
   'Follow-up': 300,
@@ -82,7 +82,7 @@ export default function DoctorAppointments() {
   const handleReschedule = async () => {
     if (!newDate || !newTime || !rescheduleId) return;
     try {
-      await api.updateAppointment(rescheduleId, { date: newDate, time: newTime, status: 'Pending' });
+      await api.updateAppointment(rescheduleId, { date: newDate, time: newTime, status: 'Confirmed' });
       toast.success('Appointment rescheduled');
       setRescheduleId(null); setNewDate(''); setNewTime('');
       loadAppointments();
@@ -266,7 +266,7 @@ export default function DoctorAppointments() {
         service: `${apt.type} - ${apt.department}`,
         amount: billAmount,
         date: new Date().toISOString().split('T')[0],
-        status: 'Pending',
+        status: 'Confirmed',
       });
       await api.createNotification({
         title: 'New Invoice',
@@ -322,15 +322,10 @@ export default function DoctorAppointments() {
               </div>
               {apt.notes && <p className="text-xs text-muted-foreground bg-muted/30 rounded-lg p-2 mb-3">Notes: {apt.notes}</p>}
               <div className="flex gap-2">
-                {apt.status === 'Pending' && (
-                  <>
-                    <Button size="sm" className="flex-1 gap-1" onClick={() => handleStatus(apt._id, 'Confirmed')}>
-                      <CheckCircle className="w-3.5 h-3.5" /> Accept
-                    </Button>
-                    <Button variant="outline" size="sm" className="flex-1 gap-1 text-destructive hover:text-destructive" onClick={() => { if (confirm('Reject this appointment?')) handleStatus(apt._id, 'Cancelled'); }}>
-                      <XCircle className="w-3.5 h-3.5" /> Reject
-                    </Button>
-                  </>
+                {apt.status === 'Confirmed' && (
+                  <Button variant="outline" size="sm" className="flex-1 gap-1 text-destructive hover:text-destructive" onClick={() => { if (confirm('Cancel this appointment?')) handleStatus(apt._id, 'Cancelled'); }}>
+                    <XCircle className="w-3.5 h-3.5" /> Cancel
+                  </Button>
                 )}
                 {apt.status === 'Confirmed' && (
                   <>

@@ -72,8 +72,14 @@ export default function BookingModal({
     // Validate inputs
     if (!bookingDate || !bookingTime) { toast.error('Please select date and time'); return; }
 
-    const fees = currentDoc.consultation_fees || currentDoc.fees || 0;
+    // consultation_fees must be a valid positive number
+    const fees = Number(currentDoc.consultation_fees) || Number(currentDoc.fees);
+    if (!fees || fees <= 0) {
+      toast.error('Doctor consultation fee is not set. Please contact support.');
+      return;
+    }
     setBookingDetails({ doctor: currentDoc.name, specialization: currentDoc.specialization, date: bookingDate, time: bookingTime, fees });
+    
     setBookingStep(1); // Go to Payment Method
   };
 
@@ -86,7 +92,10 @@ export default function BookingModal({
     setPaymentLoading(true);
 
     try {
-      const fees = currentDoc.consultation_fees || currentDoc.fees || 0;
+      const fees = Number(currentDoc.consultation_fees) || Number(currentDoc.fees);
+      if (!fees || fees <= 0) {
+        throw new Error('Doctor consultation fee is not set. Please contact support.');
+      }
       
       // 1. Create Appointment
       const apptResult = await api.createAppointment({
@@ -96,35 +105,52 @@ export default function BookingModal({
         department: currentDoc.specialization || 'General',
         facilityId: facility?._id || currentDoc.clinicProfile?.clinic_id,
         patient: user.name || 'Patient',
-        patientId: user._id,
+        patientId: user.id,
         email: user.email,
         phone: user.phone || '',
         date: bookingDate,
         time: bookingTime,
         notes: bookingNotes,
         type: 'Consultation',
+        status: 'Confirmed',
       });
-      const appointmentData = apptResult?.appointment || apptResult?.data?.appointment || apptResult;
 
-      // 2. Pay Transaction
-      if (fees > 0) {
-        const refId = appointmentData?._id?.toString?.() || appointmentData?._id || '';
-        const payResult = await api.payTransaction({
-          serviceType: 'appointment',
-          referenceId: refId,
-          amount: fees,
-          method: paymentMethod,
-          description: `Consultation with ${currentDoc.name}`,
-          provider: facility?.name || currentDoc.name,
-          lineItems: [{ name: 'Consultation Fee', price: fees, qty: 1 }],
-        });
-        
-        if (!payResult?.success) {
-          throw new Error(payResult?.message || 'Payment failed');
-        }
+      // Extract appointment ID — try all possible response shapes
+      const appointmentData = apptResult?.appointment || apptResult?.data?.appointment || apptResult;
+      const apptId = (
+        appointmentData?._id?.toString?.() ||
+        appointmentData?._id ||
+        apptResult?.appointment?._id?.toString?.() ||
+        apptResult?._id?.toString?.() ||
+        ''
+      ).trim();
+
+      if (!apptId) {
+        throw new Error('Failed to get appointment ID. Please try again.');
       }
 
-      toast.success(fees > 0 ? 'Payment successful! Appointment confirmed.' : 'Appointment confirmed successfully.');
+      // 2. Pay Transaction
+      console.log('[BookingModal] Calling payTransaction with apptId:', apptId, 'fees:', fees);
+      const payResult = await api.payTransaction({
+        serviceType: 'appointment',
+        referenceId: apptId,
+        amount: fees,
+        method: paymentMethod,
+        description: `Consultation with ${currentDoc.name}`,
+        provider: facility?.name || currentDoc.name,
+        lineItems: [{ name: 'Consultation Fee', price: fees, qty: 1 }],
+      });
+      
+      console.log('[BookingModal] Payment result:', payResult);
+      
+      if (!payResult?.success) {
+        throw new Error(payResult?.message || 'Payment failed');
+      }
+
+      // Confirm appointment (backup — server already does it via transactions/pay)
+      await api.updateAppointment(apptId, { status: 'Confirmed' }).catch(() => {});
+
+      toast.success('Payment successful! Appointment confirmed.');
       setBookingDetails({ ...appointmentData, doctor: currentDoc.name, specialization: currentDoc.specialization, date: bookingDate, time: bookingTime, fees });
       setBookingStep(3); // Go to Success Screen
       if (onSuccess) onSuccess();
@@ -132,7 +158,7 @@ export default function BookingModal({
     } catch (e) {
       const msg = e.response?.data?.message || e.message || '';
       if (msg.includes('already be completed') || msg.includes('Duplicate')) {
-        toast.success('Payment already completed!');
+        toast.success('Appointment booked successfully');
         setBookingStep(3);
         if (onSuccess) onSuccess();
       } else {
@@ -220,7 +246,7 @@ export default function BookingModal({
               <div className="grid grid-cols-2 gap-2">
                 <div className="p-2 rounded-xl bg-primary/5 border border-primary/10 text-center">
                   <p className="text-[11px] text-muted-foreground mb-0.5">Consultation Fee</p>
-                  <p className="font-bold text-sm text-primary">₹{currentDoc?.fees || currentDoc?.consultation_fees || 0}</p>
+                  <p className="font-bold text-sm text-primary">₹{Number(currentDoc?.consultation_fees) || Number(currentDoc?.fees) || 0}</p>
                 </div>
                 <div className="p-2 rounded-xl bg-emerald-50 border border-emerald-200 dark:bg-emerald-500/10 text-center">
                   <p className="text-[11px] text-muted-foreground mb-0.5">Available Slot</p>
@@ -321,11 +347,11 @@ export default function BookingModal({
             </DialogHeader>
             <div className="py-3 space-y-3">
               <BillCheckout
-                amount={currentDoc?.fees || currentDoc?.consultation_fees || 0}
+                amount={Number(currentDoc?.consultation_fees) || Number(currentDoc?.fees) || 0}
                 serviceType="appointment"
                 provider={facility?.name || currentDoc?.name}
                 details={{ doctor: currentDoc?.name, specialization: currentDoc?.specialization, date: bookingDate, time: bookingTime, type: 'Consultation' }}
-                lineItems={[{ name: 'Consultation Fee', price: currentDoc?.fees || currentDoc?.consultation_fees || 0, qty: 1 }]}
+                lineItems={[{ name: 'Consultation Fee', price: Number(currentDoc?.consultation_fees) || Number(currentDoc?.fees) || 0, qty: 1 }]}
                 platformFee={0}
                 gst={0}
                 discount={0}
@@ -333,7 +359,7 @@ export default function BookingModal({
               <DialogFooter className="gap-2 sm:gap-2">
                 <Button variant="outline" size="sm" className="w-full sm:w-auto flex-1" onClick={() => onOpenChange(false)}>Cancel</Button>
                 <Button size="sm" className="w-full sm:w-auto flex-1" disabled={paymentLoading} onClick={handlePayment}>
-                  {paymentLoading ? <>Processing…</> : <>Pay ₹{currentDoc?.fees || currentDoc?.consultation_fees || 0}</>}
+                  {paymentLoading ? <>Processing…</> : <>Pay ₹{Number(currentDoc?.consultation_fees) || Number(currentDoc?.fees) || 0}</>}
                 </Button>
               </DialogFooter>
             </div>
@@ -363,7 +389,7 @@ export default function BookingModal({
             <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20">
               <CheckCircle className="w-4 h-4 text-emerald-600" />
               <span className="text-xs font-medium text-emerald-600">
-                Payment of ₹{currentDoc?.fees || currentDoc?.consultation_fees || 0} via {paymentMethod === 'upi' ? 'UPI' : paymentMethod === 'netbanking' ? 'Net Banking' : paymentMethod === 'wallet' ? 'Wallet' : 'Card'} successful
+                Payment of ₹{Number(currentDoc?.consultation_fees) || Number(currentDoc?.fees) || 0} via {paymentMethod === 'upi' ? 'UPI' : paymentMethod === 'netbanking' ? 'Net Banking' : paymentMethod === 'wallet' ? 'Wallet' : 'Card'} successful
               </span>
             </div>
             <div className="mt-6 flex justify-center gap-2">

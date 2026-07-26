@@ -5,6 +5,7 @@ import Notification from '../models/Notification.js';
 import User from '../models/User.js';
 import { protect, adminOnly } from '../middleware/auth.js';
 import { validate, createTriageSchema } from '../utils/validate.js';
+import { generateEmergencyId, generateMLCNumber } from '../utils/idGenerator.js';
 
 const triageUpdateSchema = z.object({}).passthrough();
 const triageAssignSchema = z.object({ doctorId: z.string().optional(), doctorName: z.string().optional() });
@@ -13,21 +14,13 @@ const triageNoteSchema = z.object({ text: z.string().min(1) });
 
 const router = express.Router();
 
-const generateEmergencyId = async () => {
-  return `ER-${new Date().getFullYear()}-${Date.now().toString(36).slice(-6).toUpperCase()}${Math.floor(Math.random() * 36).toString(36).toUpperCase()}`;
-};
-
-const generateMlcNumber = async () => {
-  return `MLC-${new Date().getFullYear()}-${Date.now().toString(36).slice(-6).toUpperCase()}${Math.floor(Math.random() * 36).toString(36).toUpperCase()}`;
-};
-
 router.post('/', protect, adminOnly, validate(createTriageSchema), async (req, res) => {
   try {
     const { patientName, age, gender, phone, arrivalMode, broughtBy, chiefComplaint, triageLevel, triageNotes, vitals, isMLCO, patientId } = req.body;
     if (!patientName || !chiefComplaint || !triageLevel) {
       return res.status(400).json({ message: 'Patient name, chief complaint, and triage level required' });
     }
-    const emergencyId = await generateEmergencyId();
+    const emergencyId = generateEmergencyId();
     const entry = await Triage.create({
       emergencyId, patientName, age, gender, phone, patientId,
       hospitalId: req.user.hospitalId || undefined,
@@ -114,7 +107,7 @@ router.put('/:id/mlc', protect, adminOnly, validate(triageMlcSchema), async (req
     if (req.user.hospitalId && req.user.role !== 'superadmin' && entry.hospitalId?.toString() !== req.user.hospitalId.toString()) {
       return res.status(403).json({ message: 'Access denied' });
     }
-    const mlcNumber = entry.mlcNumber || await generateMlcNumber();
+    const mlcNumber = entry.mlcNumber || generateMLCNumber();
     entry.isMLCO = true; entry.mlcNumber = mlcNumber;
     entry.mlc = { ...req.body, reportedAt: new Date() };
     await entry.save();

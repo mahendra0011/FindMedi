@@ -7,9 +7,9 @@ import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
 
-const statusColors = { Confirmed: 'bg-success/10 text-success', Pending: 'bg-warning/10 text-warning', Cancelled: 'bg-destructive/10 text-destructive', Completed: 'bg-info/10 text-info' };
-const statusIcons = { Confirmed: CheckCircle, Pending: AlertCircle, Cancelled: XCircle, Completed: CheckCircle };
-const filters = ['All', 'Confirmed', 'Pending', 'Cancelled', 'Completed'];
+const statusColors = { Confirmed: 'bg-success/10 text-success', Cancelled: 'bg-destructive/10 text-destructive', Completed: 'bg-info/10 text-info' };
+const statusIcons = { Confirmed: CheckCircle, Cancelled: XCircle, Completed: CheckCircle };
+const filters = ['All', 'Confirmed', 'Cancelled', 'Completed'];
 
 export default function PatientAppointments() {
   const { user } = useAuth();
@@ -26,14 +26,14 @@ export default function PatientAppointments() {
   const loadAppointments = async () => {
     setLoading(true);
     try {
-      const res = await api.getAppointments({ patientId: user?._id, status: filter });
+      const res = await api.getAppointments({ patientId: user?.id, status: filter });
       setAppointments(res?.appointments || res?.data || res || []);
     } catch (e) { console.error(e); toast.error('Failed to load appointments'); }
     setLoading(false);
   };
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { loadAppointments(); }, [filter, user?._id]);
+  useEffect(() => { loadAppointments(); }, [filter, user?.id]);
 
   const handleCancel = async () => {
     if (!cancelId) return;
@@ -48,7 +48,7 @@ export default function PatientAppointments() {
   const handleReschedule = async () => {
     if (!newDate || !newTime || !rescheduleId) return;
     try {
-      await api.updateAppointment(rescheduleId, { date: newDate, time: newTime, status: 'Pending' });
+      await api.updateAppointment(rescheduleId, { date: newDate, time: newTime, status: 'Confirmed' });
       toast.success('Appointment rescheduled');
       setRescheduleId(null); setNewDate(''); setNewTime('');
       loadAppointments();
@@ -86,7 +86,8 @@ export default function PatientAppointments() {
               <h2 className="font-heading text-lg font-semibold text-foreground mb-3">Upcoming</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {upcoming.map((apt, i) => {
-                  const StatusIcon = statusIcons[apt.status] || AlertCircle;
+                  const displayStatus = apt.status === 'Pending' ? 'Confirmed' : apt.status;
+                  const StatusIcon = statusIcons[displayStatus] || CalendarDays;
                   return (
                     <motion.div key={apt._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
                       className="bg-card rounded-2xl border border-border/60 p-5 hover:shadow-lg transition-all">
@@ -95,8 +96,8 @@ export default function PatientAppointments() {
                           <h3 className="font-heading font-semibold text-foreground">{apt.doctor}</h3>
                           <p className="text-sm text-primary">{apt.department}</p>
                         </div>
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1 ${statusColors[apt.status]}`}>
-                          <StatusIcon className="w-3 h-3" /> {apt.status}
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1 ${statusColors[displayStatus]}`}>
+                          <StatusIcon className="w-3 h-3" /> {displayStatus}
                         </span>
                       </div>
                       <div className="space-y-1.5 text-sm text-muted-foreground mb-4">
@@ -123,7 +124,8 @@ export default function PatientAppointments() {
               <h2 className="font-heading text-lg font-semibold text-foreground mb-3">Past</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {past.map((apt, i) => {
-                  const StatusIcon = statusIcons[apt.status] || AlertCircle;
+                  const displayStatus = apt.status === 'Pending' ? 'Confirmed' : apt.status;
+                  const StatusIcon = statusIcons[displayStatus] || CalendarDays;
                   return (
                     <motion.div key={apt._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
                       className="bg-card rounded-2xl border border-border/60 p-5 opacity-75">
@@ -132,8 +134,8 @@ export default function PatientAppointments() {
                           <h3 className="font-heading font-semibold text-foreground">{apt.doctor}</h3>
                           <p className="text-sm text-primary">{apt.department}</p>
                         </div>
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1 ${statusColors[apt.status]}`}>
-                          <StatusIcon className="w-3 h-3" /> {apt.status}
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1 ${statusColors[displayStatus]}`}>
+                          <StatusIcon className="w-3 h-3" /> {displayStatus}
                         </span>
                       </div>
                       <div className="space-y-1.5 text-sm text-muted-foreground">

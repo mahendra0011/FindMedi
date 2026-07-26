@@ -5,6 +5,7 @@ import Billing from '../models/Billing.js';
 import Notification from '../models/Notification.js';
 import { protect, adminOnly } from '../middleware/auth.js';
 import { validate, createMentalHealthReferralSchema } from '../utils/validate.js';
+import { generateOrderId, generateInvoiceId } from '../utils/idGenerator.js';
 
 const mhAssessmentSchema = z.object({}).passthrough();
 const mhSessionSchema = z.object({}).passthrough();
@@ -15,13 +16,11 @@ const mhBillingSchema = z.object({ amount: z.number().optional(), description: z
 
 const router = express.Router();
 
-const genId = () => `MH-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
-
 router.post('/referrals', protect, validate(createMentalHealthReferralSchema), async (req, res) => {
   try {
     const { patientId, patientName, referralSource, referrerName } = req.body;
     if (!patientId) return res.status(400).json({ message: 'Patient required' });
-    const referralId = genId();
+    const referralId = generateOrderId('MH');
     const r = await MentalHealth.create({ referralId, patientId, patientName, referralSource: referralSource || 'Doctor', referrerName: referrerName || req.user.name, hospitalId: req.user.hospitalId || undefined, createdBy: req.user._id });
     res.status(201).json(r);
   } catch (err) { res.status(400).json({ message: err.message }); }
@@ -146,9 +145,7 @@ router.post('/referrals/:id/create-billing', protect, adminOnly, validate(mhBill
     
     const { amount, description, sessionType } = req.body;
     
-    const year = new Date().getFullYear();
-    const rndBase = `${Date.now()}${Math.floor(Math.random() * 10**9)}`;
-    const invoiceId = `INV-MHT-${year}-${rndBase.slice(-16)}`;
+    const invoiceId = generateInvoiceId('mentalhealth');
     
     const billing = await Billing.create({
       invoiceId,

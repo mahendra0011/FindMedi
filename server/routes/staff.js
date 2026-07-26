@@ -5,6 +5,7 @@ import Billing from '../models/Billing.js';
 import Notification from '../models/Notification.js';
 import { protect, adminOnly } from '../middleware/auth.js';
 import { validate, createStaffSchema, updateStaffSchema } from '../utils/validate.js';
+import { generateTimestampedId } from '../utils/idGenerator.js';
 
 const attendanceSchema = z.object({ staffId: z.string().min(1), date: z.string().optional(), status: z.string().optional() });
 const bulkAttendanceSchema = z.object({ date: z.string().min(1), attendance: z.array(z.object({ staffId: z.string().min(1), status: z.string().optional() })).min(1) });
@@ -14,7 +15,7 @@ const overtimeSchema = z.object({ staffId: z.string().min(1), date: z.string().o
 
 const router = express.Router();
 
-const genId = () => `EMP-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+const genId = () => generateTimestampedId('EMP');
 
 router.post('/', protect, adminOnly, validate(createStaffSchema), async (req, res) => {
   try {

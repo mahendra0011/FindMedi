@@ -5,6 +5,7 @@ import Notification from '../models/Notification.js';
 import User from '../models/User.js';
 import { protect, adminOnly } from '../middleware/auth.js';
 import { validate, createSurgerySchema } from '../utils/validate.js';
+import { generateTimestampedId } from '../utils/idGenerator.js';
 
 const otCompleteSchema = z.object({ findings: z.string().optional(), procedure: z.string().optional(), complications: z.string().optional(), postOpInstructions: z.string().optional(), instrumentsAfter: z.number().optional(), spongesAfter: z.number().optional() });
 const otRecoverySchema = z.object({ recoveryNotes: z.string().optional(), vitals: z.any().optional() });
@@ -14,9 +15,7 @@ const otInstrumentsSchema = z.object({ instrumentsBefore: z.number().optional(),
 
 const router = express.Router();
 
-const generateOTId = async () => {
-  return `OT-${new Date().getFullYear()}-${Date.now().toString(36).slice(-6).toUpperCase()}${Math.floor(Math.random() * 36).toString(36).toUpperCase()}`;
-};
+const generateOTId = async () => generateTimestampedId('OT');
 
 router.post('/surgeries', protect, adminOnly, validate(createSurgerySchema), async (req, res) => {
   try {

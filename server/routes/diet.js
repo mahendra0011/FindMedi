@@ -7,6 +7,7 @@ import Billing from '../models/Billing.js';
 import { protect, adminOnly } from '../middleware/auth.js';
 import { validate, createDietOrderSchema } from '../utils/validate.js';
 import { auditLog } from '../middleware/audit.js';
+import { generateOrderId, generateInvoiceId } from '../utils/idGenerator.js';
 
 const dietDeliverMealSchema = z.object({ mealType: z.string().optional(), items: z.any().optional() });
 const dietConfirmMealSchema = z.object({ mealIndex: z.number().int().nonnegative(), feedback: z.string().optional(), feedbackNote: z.string().optional() });
@@ -14,13 +15,11 @@ const dietBillingSchema = z.object({ amount: z.number().optional(), description:
 
 const router = express.Router();
 
-const generateOrderId = () => `DIET-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
-
 router.post('/orders', protect, adminOnly, validate(createDietOrderSchema), async (req, res) => {
   try {
     const { patientId, patientName, admissionId, ward, bedNumber, dietType, mealTimes, instructions, allergies } = req.body;
     if (!patientId || !dietType) return res.status(400).json({ message: 'Patient and diet type required' });
-    const orderId = generateOrderId();
+    const orderId = generateOrderId('DIET');
 const order = await DietOrder.create({
        orderId, patientId, patientName, admissionId, ward, bedNumber,
        doctorId: req.user.doctorProfileId || req.user._id, doctorName: req.user.name,
@@ -175,9 +174,7 @@ router.post('/orders/:id/create-billing', protect, adminOnly, validate(dietBilli
       return res.status(400).json({ message: 'Billing already created for this order' });
     }
     
-    const year = new Date().getFullYear();
-    const rndBase = `${Date.now()}${Math.floor(Math.random() * 10**9)}`;
-    const invoiceId = `INV-DIE-${year}-${rndBase.slice(-16)}`;
+    const invoiceId = generateInvoiceId('diet');
     
     const billing = await Billing.create({
       invoiceId,

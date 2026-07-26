@@ -129,7 +129,8 @@ export const api = {
   deletePatient:      (id)      => request(`/patients/${id}`,       { method:'DELETE' }),
 
   getAppointments:    (p={})    => request('/appointments?' + new URLSearchParams(p)),
-  getMyAppointments:  (p={})    => request('/appointments/my-appointments?' + new URLSearchParams(p)),
+  getMyAppointments:  (p={})    => request('/appointments/my-appointments?' + new URLSearchParams({ ...p, _t: Date.now() })),
+  getAppointmentsHistory: ()    => request('/appointments/history-with-payments?_t=' + Date.now()),
   getBookedSlots:     (p={})    => request('/appointments/booked-slots?' + new URLSearchParams(p)),
   createAppointment:  (body)    => request('/appointments',         { method:'POST',   body: JSON.stringify(body) }),
   updateAppointment:  (id,b)    => request(`/appointments/${id}`,   { method:'PUT',    body: JSON.stringify(b) }),
@@ -174,7 +175,7 @@ export const api = {
   createPayment:  (body)  => request('/payments',            { method:'POST',   body: JSON.stringify(body) }),
   updatePayment:  (id,b)  => request(`/payments/${id}`,      { method:'PUT',    body: JSON.stringify(b) }),
 
-  getTransactions:  (p={})  => request('/transactions?' + new URLSearchParams(p)),
+  getTransactions:  (p={})  => request('/transactions?' + new URLSearchParams({ ...p, _t: Date.now() })),
   payTransaction:   (body)  => request('/transactions/pay',  { method:'POST',   body: JSON.stringify(body) }),
 
   getHospitals:         (p={})  => request('/hospitals?' + new URLSearchParams(p)),

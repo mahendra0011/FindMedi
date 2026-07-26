@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { BloodUnit, BloodRequest } from '../models/BloodBank.js';
 import { protect, adminOnly } from '../middleware/auth.js';
 import { validate, createBloodUnitSchema, createBloodRequestSchema } from '../utils/validate.js';
+import { generateTimestampedId } from '../utils/idGenerator.js';
 
 const bloodIssueSchema = z.object({ unitIds: z.array(z.string()).optional() });
 const bloodTransfuseSchema = z.object({ endTime: z.string().optional(), vitals: z.any().optional() });
@@ -12,8 +13,8 @@ const bloodCrossmatchSchema = z.object({ unitIds: z.array(z.string()).optional()
 
 const router = express.Router();
 
-const genUnitId = () => `BLD-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
-const genReqId = () => `BRQ-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+const genUnitId = () => generateTimestampedId('BLD');
+const genReqId = () => generateTimestampedId('BRQ');
 
 router.get('/units', protect, async (req, res) => {
   try {

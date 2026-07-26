@@ -18,6 +18,7 @@ import { validate } from '../utils/validate.js';
 import { parseExcelFile, exportToExcel, exportToCSV, validatePatientData, validateDoctorData, validateBillingData, formatPatientsForExport, formatDoctorsForExport, formatBillingForExport, formatAppointmentsForExport } from '../utils/excelUtils.js';
 import { getConfig } from '../utils/configLoader.js';
 import { generatePrescriptionPDF, generateLabReportPDF, generateDischargeSummaryPDF } from '../services/pdfService.js';
+import { generateReportId } from '../utils/idGenerator.js';
 import { sendEmail, attachmentFromPdf } from '../services/notificationService.js';
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
@@ -32,7 +33,7 @@ const reportGenerateSchema = z.object({
 
 const router = express.Router();
 
-const genId = () => `RPT-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+const genId = () => generateReportId();
 
 // Generate actual report data based on type
 const generateReportData = async (reportType, dateFrom, dateTo, department, hospitalId) => {
@@ -416,7 +417,7 @@ router.post('/import/:type', protect, adminOnly, upload.single('file'), async (r
         const imported = [];
         for (const record of validRecords) {
           const bill = await Billing.create({
-            invoiceId: `IMP-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
+            invoiceId: generateReportId(),
             patient: record.patient,
             doctor: record.doctor,
             service: record.service,

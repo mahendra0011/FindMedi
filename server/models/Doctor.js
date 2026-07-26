@@ -1,6 +1,8 @@
 import mongoose from 'mongoose';
+import { generate16DigitId } from '../utils/idGenerator.js';
 
 const doctorSchema = new mongoose.Schema({
+  doctorId: { type: String, unique: true, sparse: true, index: true },
   name: { type: String, required: true },
   specialization: { type: String, required: true },
   experience: { type: String, default: '1 year' },
@@ -67,6 +69,13 @@ const doctorSchema = new mongoose.Schema({
   slotDuration: { type: Number, default: 15 },
   bufferPerHour: { type: Number, default: 1 },
   createdAt: { type: Date, default: Date.now },
+});
+
+doctorSchema.pre('save', async function (next) {
+  if (!this.doctorId) {
+    this.doctorId = generate16DigitId();
+  }
+  next();
 });
 
 export default mongoose.model('Doctor', doctorSchema);
