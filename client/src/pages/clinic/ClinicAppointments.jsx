@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
+import { toast } from 'sonner';
 
 const statusColors = { Pending: 'bg-amber-50 text-amber-600 border border-amber-200', Confirmed: 'bg-success/10 text-success', Cancelled: 'bg-destructive/10 text-destructive', Completed: 'bg-info/10 text-info' };
 const filters = ['All', 'Pending', 'Confirmed', 'Cancelled', 'Completed'];
@@ -36,7 +37,7 @@ export default function ClinicAppointments() {
   useEffect(() => { loadAppointments(); }, [filter, user?.name]);
 
   const handleStatus = async (id, status) => {
-    try { await api.updateAppointment(id, { status }); loadAppointments(); } catch (e) { console.error(e); }
+    try { await api.updateAppointment(id, { status }); loadAppointments(); } catch (e) { console.error(e); toast.error(e.response?.data?.message || 'Failed to update appointment'); }
   };
 
   const handleGenerateBill = async () => {

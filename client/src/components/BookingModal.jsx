@@ -354,7 +354,7 @@ export default function BookingModal({
                 amount={Number(currentDoc?.consultation_fees) || Number(currentDoc?.fees) || 0}
                 serviceType="appointment"
                 provider={facility?.name || currentDoc?.name}
-                details={{ doctor: currentDoc?.name, specialization: currentDoc?.specialization, date: bookingDate, time: bookingTime, type: 'Consultation' }}
+                details={{ doctor: currentDoc?.name, specialization: currentDoc?.specialization, date: bookingDate, time: bookingTime, type: appointmentType }}
                 lineItems={[{ name: 'Consultation Fee', price: Number(currentDoc?.consultation_fees) || Number(currentDoc?.fees) || 0, qty: 1 }]}
                 platformFee={0}
                 gst={0}
