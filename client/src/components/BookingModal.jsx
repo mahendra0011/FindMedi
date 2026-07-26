@@ -65,8 +65,6 @@ export default function BookingModal({
     }
   }, [open, doctor, facility]);
 
-  const currentDoc = selectedDoctor || doctor;
-
   // Doctor + date change hone par uske already-booked slots fetch karo WITH COUNTS
   useEffect(() => {
     if (!currentDoc?._id || !bookingDate) { setBookedSlots([]); setSlotCounts({}); return; }
@@ -82,6 +80,8 @@ export default function BookingModal({
       })
       .catch(() => { setBookedSlots([]); setSlotCounts({}); });
   }, [currentDoc?._id, bookingDate]);
+
+  const currentDoc = selectedDoctor || doctor;
 
   // Calculate remaining slots for current time selection
   const getRemainingSlots = (time) => {
@@ -192,7 +192,21 @@ export default function BookingModal({
         setBookingStep(3);
         if (onSuccess) onSuccess();
       } else if (status === 409) {
-        toast.error('This slot is already booked. Please try a different date or time.');
+        toast.error('This slot is already booked. Please pick a different time.');
+        setBookingTime('');
+        setBookingStep(0);
+        if (currentDoc?._id && bookingDate) {
+          api.getBookedSlots({ doctorId: currentDoc._id, date: bookingDate })
+            .then(slots => {
+              setBookedSlots(Array.isArray(slots) ? slots : []);
+              const counts = {};
+              if (Array.isArray(slots)) {
+                slots.forEach(slot => { counts[slot] = (counts[slot] || 0) + 1; });
+              }
+              setSlotCounts(counts);
+            })
+            .catch(() => { setBookedSlots([]); setSlotCounts({}); });
+        }
       } else {
         toast.error(msg || 'Booking failed');
         if (apptId) {

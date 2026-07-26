@@ -39,7 +39,6 @@ const navConfig = {
     { icon: Bell,            labelKey: 'nav.notifications',    path: '/notifications'    },
     { icon: Settings,        labelKey: 'nav.settings',         path: '/settings'         },
     { icon: History,         labelKey: 'nav.auditLogs',        path: '/audit-logs'       },
-    { icon: User,            labelKey: 'nav.profileSettings',  path: '/settings'         },
   ],
   admin: [
     { icon: LayoutDashboard, labelKey: 'nav.dashboard',        path: '/dashboard'        },
@@ -82,7 +81,6 @@ const navConfig = {
     { icon: Bell,            labelKey: 'nav.notifications',    path: '/notifications'    },
     { icon: Settings,        labelKey: 'nav.settings',         path: '/settings'         },
     { icon: History,         labelKey: 'nav.auditLogs',        path: '/audit-logs'       },
-    { icon: User,            labelKey: 'nav.profileSettings',  path: '/settings'         },
   ],
   clinic_doctor: [
     { icon: LayoutDashboard, labelKey: 'nav.dashboard',         path: '/clinic/dashboard'     },
