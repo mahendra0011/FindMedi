@@ -10,7 +10,7 @@ import BillCheckout from './BillCheckout';
 import { api, downloadPaymentInvoice, downloadBillPdf } from '@/lib/api';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
-import { getISTDateString } from '@/lib/dateUtils';
+import { getISTDateString, formatDisplayDate } from '@/lib/dateUtils';
 
 export default function BookingModal({
   open,
@@ -27,6 +27,7 @@ export default function BookingModal({
   const [bookingTime, setBookingTime] = useState('');
   const [bookingNotes, setBookingNotes] = useState('');
   const [bookingLoading, setBookingLoading] = useState(false);
+  const [bookedSlots, setBookedSlots] = useState([]);
   const [paymentMethod, setPaymentMethod] = useState('card');
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [bookingDetails, setBookingDetails] = useState(null);
@@ -62,6 +63,14 @@ export default function BookingModal({
       }
     }
   }, [open, doctor, facility]);
+
+  // Doctor + date change hone par uske already-booked slots fetch karo
+  useEffect(() => {
+    if (!currentDoc?._id || !bookingDate) { setBookedSlots([]); return; }
+    api.getBookedSlots({ doctorId: currentDoc._id, date: bookingDate })
+      .then(slots => setBookedSlots(Array.isArray(slots) ? slots : []))
+      .catch(() => setBookedSlots([]));
+  }, [currentDoc?._id, bookingDate]);
 
   const currentDoc = selectedDoctor || doctor;
 
@@ -154,7 +163,7 @@ export default function BookingModal({
         toast.success('Appointment already booked');
         setBookingStep(3);
         if (onSuccess) onSuccess();
-      } else if (msg.includes('already booked this slot') || msg.includes('already book this slot')) {
+      } else if (status === 409) {
         toast.error('This slot is already booked. Please try a different date or time.');
       } else {
         toast.error(msg || 'Booking failed');
@@ -260,7 +269,7 @@ export default function BookingModal({
                 <select value={bookingTime} onChange={e => setBookingTime(e.target.value)} className="w-full h-9 px-3 rounded-xl border border-border bg-background text-sm">
                   <option value="">Choose time</option>
                   {(currentDoc?.time_slots || ['09:00 AM', '10:00 AM', '11:00 AM', '02:00 PM', '03:00 PM', '04:00 PM']).map(t => (
-                    <option key={t}>{t}</option>
+                    <option key={t} disabled={bookedSlots.includes(t)}>{t}{bookedSlots.includes(t) ? ' (Booked)' : ''}</option>
                   ))}
                 </select>
               </div>
@@ -348,7 +357,7 @@ export default function BookingModal({
                 amount={Number(currentDoc?.consultation_fees) || Number(currentDoc?.fees) || 0}
                 serviceType="appointment"
                 provider={facility?.name || currentDoc?.name}
-                details={{ doctor: currentDoc?.name, specialization: currentDoc?.specialization, date: bookingDate, time: bookingTime, type: 'Consultation' }}
+                details={{ doctor: currentDoc?.name, specialization: currentDoc?.specialization, date: formatDisplayDate(bookingDate), time: bookingTime, type: 'Consultation' }}
                 lineItems={[{ name: 'Consultation Fee', price: Number(currentDoc?.consultation_fees) || Number(currentDoc?.fees) || 0, qty: 1 }]}
                 platformFee={0}
                 gst={0}
@@ -383,7 +392,7 @@ export default function BookingModal({
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 border border-primary/20">
               <CalendarDays className="w-4 h-4 text-primary" />
               <p className="text-xs font-medium text-primary">
-                {bookingDate && new Date(bookingDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} • {bookingTime}
+                {formatDisplayDate(bookingDate)} • {bookingTime}
               </p>
             </div>
             <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20">

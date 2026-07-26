@@ -51,11 +51,21 @@ billingSchema.pre('findOneAndUpdate', function (next) {
   this.set({ updatedAt: new Date() });
   const update = this.getUpdate();
   if (update.amount !== undefined || update.paid !== undefined) {
-    const amount = update.amount || 0;
-    const paid = update.paid || 0;
-    this.set({ balance: amount - paid });
+    const self = this;
+    this.model.findOne(this.getQuery()).then(currentDoc => {
+      const amount = update.amount !== undefined ? update.amount : (currentDoc?.amount || 0);
+      const paid = update.paid !== undefined ? update.paid : (currentDoc?.paid || 0);
+      self.set({ balance: amount - paid });
+      next();
+    }).catch(() => {
+      const amount = update.amount || 0;
+      const paid = update.paid || 0;
+      self.set({ balance: amount - paid });
+      next();
+    });
+  } else {
+    next();
   }
-  next();
 });
 
 export default mongoose.model('Billing', billingSchema);

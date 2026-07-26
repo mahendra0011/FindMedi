@@ -139,7 +139,7 @@ router.get('/history-with-payments', protect, async (req, res) => {
     
     const appointments = await Appointment.find(filter)
       .populate('doctorId', 'name specialization')
-      .populate('hospitalId', 'name')
+      .populate('hospitalId', 'name phone address')
       .sort({ createdAt: -1 })
       .lean();
     
@@ -190,7 +190,13 @@ router.get('/history-with-payments', protect, async (req, res) => {
       })
     );
     
-    res.json({ data: enrichedAppointments, total: enrichedAppointments.length });
+    // Unpaid "Pending" appointment matlab payment kabhi complete nahi hua
+    // (abandoned/failed checkout) — ye history me kabhi dikhna hi nahi chahiye.
+    const visibleAppointments = enrichedAppointments.filter(
+      a => !(a.status === 'Pending' && !a.transaction_id)
+    );
+
+    res.json({ data: visibleAppointments, total: visibleAppointments.length });
   } catch (err) {
     console.error('[appointments/history-with-payments] ERROR:', err);
     res.status(500).json({ message: err.message });
@@ -229,7 +235,7 @@ router.post('/', protect, validate(createAppointmentSchema), async (req, res) =>
     }
     
     if (patientId && date && time) {
-      const dupFilter = { patientId, doctorId: doctorId || null, date, time, status: { $nin: ['Cancelled', 'Completed'] } };
+      const dupFilter = { doctorId: doctorId || null, date, time, status: { $nin: ['Cancelled', 'Completed'] } };
       const existing = await Appointment.findOne(dupFilter);
       if (existing) {
         if (existing.status === 'Pending') {
@@ -357,7 +363,23 @@ router.put('/:id', protect, validate(updateAppointmentSchema), async (req, res) 
     }
     
     const updates = { ...req.body };
-    
+
+    // Reschedule me naya date/time doctor ke liye already taken ho sakta hai —
+    // check karo warna double-booking ho jayegi.
+    if ((updates.date || updates.time) && (appointment.doctorId || updates.doctorId)) {
+      const checkDate = updates.date || appointment.date;
+      const checkTime = updates.time || appointment.time;
+      const conflict = await Appointment.findOne({
+        _id: { $ne: appointment._id },
+        doctorId: updates.doctorId || appointment.doctorId,
+        date: checkDate, time: checkTime,
+        status: { $nin: ['Cancelled', 'Completed', 'Missed'] },
+      });
+      if (conflict) {
+        return res.status(409).json({ message: 'This time slot is already taken with this doctor. Please choose a different slot.' });
+      }
+    }
+
 const updated = await Appointment.findByIdAndUpdate(req.params.id, updates, { new: true, runValidators: true })
        .populate('patientId', 'name email')
        .populate('doctorId', 'name');
@@ -373,8 +395,13 @@ const updated = await Appointment.findByIdAndUpdate(req.params.id, updates, { ne
      }
      await auditLog('update_appointment', req.user._id, { recordId: updated._id, ip: req.ip, userAgent: req.get('user-agent') });
      
-     res.json(updated);
-  } catch (err) { res.status(400).json({ message: err.message }); }
+      res.json(updated);
+  } catch (err) {
+    if (err.code === 11000) {
+      return res.status(409).json({ message: 'This time slot is already taken with this doctor. Please choose a different slot.' });
+    }
+    res.status(400).json({ message: err.message });
+  }
 });
 
 router.delete('/:id', protect, async (req, res) => {

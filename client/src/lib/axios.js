@@ -43,6 +43,9 @@ apiClient.interceptors.response.use(
       const enhanced = new Error(message);
       enhanced.status = status;
       enhanced.data = data;
+      // App me kayi jagah e.response?.data?.message / e.response?.status use hota
+      // hai — .response field bina bane wo sab silently undefined padh rahe the.
+      enhanced.response = { status, data };
       return Promise.reject(enhanced);
     }
 

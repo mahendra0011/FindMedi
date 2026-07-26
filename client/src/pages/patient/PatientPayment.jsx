@@ -52,21 +52,15 @@ export default function PatientPayment() {
 
   const handlePay = async (bill) => {
     try {
-      await api.createPayment({
-        patientId: user?.id,
-        patient_id: user?.id,
-        patient_name: user?.name,
+      await api.payBill(bill._id, {
         amount: (bill.amount || 0) - (bill.paid || 0),
         method: payMethod,
-        invoice_id: bill.invoiceId || bill._id,
-        status: 'completed',
       });
-      await api.updateBill(bill._id, { paid: bill.amount, status: 'Paid' });
       setPaySuccess(true);
       setTimeout(() => { setPaySuccess(false); setPayingBill(null); loadData(); }, 2000);
     } catch (e) {
       console.error(e);
-      toast.error('Payment failed');
+      toast.error(e.response?.data?.message || 'Payment failed');
     }
   };
 
