@@ -65,6 +65,8 @@ export default function BookingModal({
     }
   }, [open, doctor, facility]);
 
+  const currentDoc = selectedDoctor || doctor;
+
   // Doctor + date change hone par uske already-booked slots fetch karo WITH COUNTS
   useEffect(() => {
     if (!currentDoc?._id || !bookingDate) { setBookedSlots([]); setSlotCounts({}); return; }
@@ -80,8 +82,6 @@ export default function BookingModal({
       })
       .catch(() => { setBookedSlots([]); setSlotCounts({}); });
   }, [currentDoc?._id, bookingDate]);
-
-  const currentDoc = selectedDoctor || doctor;
 
   // Calculate remaining slots for current time selection
   const getRemainingSlots = (time) => {
@@ -193,19 +193,21 @@ export default function BookingModal({
         if (onSuccess) onSuccess();
       } else if (status === 409) {
         toast.error('This slot is already booked. Please pick a different time.');
+        // Force back to slot-selection step so the user can't accidentally
+        // resubmit the exact same (now-confirmed) date/time again.
         setBookingTime('');
         setBookingStep(0);
+        // Refresh booked slots for this doctor/date so the taken slot
+        // shows as disabled immediately, instead of only failing on submit.
         if (currentDoc?._id && bookingDate) {
           api.getBookedSlots({ doctorId: currentDoc._id, date: bookingDate })
             .then(slots => {
               setBookedSlots(Array.isArray(slots) ? slots : []);
               const counts = {};
-              if (Array.isArray(slots)) {
-                slots.forEach(slot => { counts[slot] = (counts[slot] || 0) + 1; });
-              }
+              if (Array.isArray(slots)) slots.forEach(s => { counts[s] = (counts[s] || 0) + 1; });
               setSlotCounts(counts);
             })
-            .catch(() => { setBookedSlots([]); setSlotCounts({}); });
+            .catch(() => {});
         }
       } else {
         toast.error(msg || 'Booking failed');
