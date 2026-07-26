@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
+import { getISTDateString } from '@/lib/dateUtils';
 
 const EXPORTS = [
   { id: 'users', label: 'Users Export', icon: Users, desc: 'All platform users with role, status, contact info', endpoint: 'users' },
@@ -34,7 +35,7 @@ export default function DataExport() {
       const blob = await res.blob();
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = `${type}-${new Date().toISOString().split('T')[0]}.csv`;
+      a.download = `${type}-${getISTDateString()}.csv`;
       a.click();
       URL.revokeObjectURL(a.href);
       toast.success(`${type} exported successfully`);

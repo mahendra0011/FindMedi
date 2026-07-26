@@ -9,6 +9,7 @@ import { generateInvoicePDF } from '../services/pdfService.js';
 import { validate, createBillSchema } from '../utils/validate.js';
 import { auditLog } from '../middleware/audit.js';
 import { generateInvoiceId, generateBillId, generateTransactionId } from '../utils/idGenerator.js';
+import { getISTDateString } from '../utils/dateUtils.js';
 import logger from '../config/logger.js';
 import { paginatedResults } from '../utils/pagination.js';
 
@@ -26,7 +27,7 @@ const createNotification = async (userId, title, message, type = 'payment') => {
     if (doctor && doctor.user_id) {
       finalUserId = doctor.user_id;
     }
-    await Notification.create({ title, message, type, read: false, userId: finalUserId, date: new Date().toISOString().split('T')[0] });
+    await Notification.create({ title, message, type, read: false, userId: finalUserId, date: getISTDateString() });
 
   } catch (err) {
     logger.error('Error creating notification:', err);
@@ -199,8 +200,8 @@ router.post('/', protect, validate(createBillSchema), async (req, res) => {
       source: isLabBooking ? 'lab' : source || 'manual',
       amount: finalAmount,
       hospitalId: req.body.hospitalId || req.user.hospitalId || undefined,
-      date: date || new Date().toISOString().split('T')[0],
-      dueDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      date: date || getISTDateString(),
+      dueDate: getISTDateString(new Date(Date.now() + 15 * 24 * 60 * 60 * 1000)),
       status: 'Pending',
     });
     

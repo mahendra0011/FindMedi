@@ -5,6 +5,7 @@ import { Search, User, Stethoscope, Pill, Activity, FileText, Clock, AlertCircle
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
+import { getISTDateString } from '@/lib/dateUtils';
 
 const consultationApi = {
   getTokens: async (p) => {
@@ -175,7 +176,7 @@ export default function DoctorConsultation() {
           investigations: consultForm.investigations.filter(i => i.test.trim()),
           advice: consultForm.advice,
           followUp: consultForm.followUp,
-          date: new Date().toISOString().split('T')[0],
+          date: getISTDateString(),
         },
       });
       if (selectedPatient?._id) {

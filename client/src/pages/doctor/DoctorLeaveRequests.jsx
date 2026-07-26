@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
+import { getISTDateString } from '@/lib/dateUtils';
 
 const leaveStatusColors = {
   Pending: 'bg-warning/10 text-warning border-warning/20',
@@ -200,12 +201,12 @@ export default function DoctorLeaveRequests() {
                 <div>
                   <label className="text-sm font-medium text-foreground mb-1.5 block">Start Date *</label>
                   <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
-                    min={new Date().toISOString().split('T')[0]} />
+                    min={getISTDateString()} />
                 </div>
                 <div>
                   <label className="text-sm font-medium text-foreground mb-1.5 block">End Date *</label>
                   <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
-                    min={startDate || new Date().toISOString().split('T')[0]} />
+                    min={startDate || getISTDateString()} />
                 </div>
               </div>
 

@@ -20,6 +20,7 @@ import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import ReviewDialog from '@/components/ReviewDialog';
+import { getISTDateString } from '@/lib/dateUtils';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -950,7 +951,7 @@ export default function TechnicianDetail() {
                   <div>
                     <label className="text-sm font-medium text-foreground mb-1.5 block">Select Date</label>
                     <Input type="date" value={bookingDate} onChange={e => setBookingDate(e.target.value)}
-                      min={new Date().toISOString().split('T')[0]} className="rounded-xl" />
+                      min={getISTDateString()} className="rounded-xl" />
                   </div>
                   <div>
                     <label className="text-sm font-medium text-foreground mb-1.5 block">Select Time</label>

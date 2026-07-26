@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
+import { getISTDateString } from '@/lib/dateUtils';
 
 const initialPrescription = {
   patientName: '', age: '', gender: '', phone: '', email: '',
@@ -56,7 +57,7 @@ export default function ClinicPrescriptions() {
         patient: form.patientName, doctor: user?.name, diagnosis: form.diagnosis,
         prescription: meds.map(m => `${m.name} - ${m.dosage} - ${m.frequency} ${m.instructions ? `(${m.instructions})` : ''}`).join('\n'),
         type: 'Prescription', notes: `Chief Complaints: ${form.chiefComplaints}\nAdvice: ${form.advice}\nFollow-up: ${form.followUp}`,
-        data: { patient: { name: form.patientName, age: form.age, gender: form.gender, phone: form.phone, email: form.email }, doctor: { name: user?.name }, chiefComplaints: form.chiefComplaints, diagnosis: form.diagnosis, medications: meds, advice: form.advice, followUp: form.followUp, date: new Date().toISOString().split('T')[0] },
+        data: { patient: { name: form.patientName, age: form.age, gender: form.gender, phone: form.phone, email: form.email }, doctor: { name: user?.name }, chiefComplaints: form.chiefComplaints, diagnosis: form.diagnosis, medications: meds, advice: form.advice, followUp: form.followUp, date: getISTDateString() },
       });
       await api.createNotification({ title: 'New Prescription', message: `Prescription generated for ${form.patientName}`, type: 'records' });
       setShowForm(false);
@@ -91,7 +92,7 @@ export default function ClinicPrescriptions() {
         </div>
         <div className="bg-card rounded-xl border border-border/60 p-4 text-center">
           <Calendar className="w-6 h-6 mx-auto text-info mb-1" />
-          <p className="text-2xl font-bold">{records.filter(r => r.date === new Date().toISOString().split('T')[0]).length}</p>
+          <p className="text-2xl font-bold">{records.filter(r => r.date === getISTDateString()).length}</p>
           <p className="text-xs text-muted-foreground">Today</p>
         </div>
         <div className="bg-card rounded-xl border border-border/60 p-4 text-center">

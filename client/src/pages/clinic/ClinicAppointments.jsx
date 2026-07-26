@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
+import { getISTDateString } from '@/lib/dateUtils';
 
 const statusColors = { Pending: 'bg-amber-50 text-amber-600 border border-amber-200', Confirmed: 'bg-success/10 text-success', Cancelled: 'bg-destructive/10 text-destructive', Completed: 'bg-info/10 text-info' };
 const filters = ['All', 'Pending', 'Confirmed', 'Cancelled', 'Completed'];
@@ -51,7 +52,7 @@ export default function ClinicAppointments() {
         doctor: user?.name,
         service: `${apt.type} - ${apt.department || 'Clinic'}`,
         amount: billAmount,
-        date: new Date().toISOString().split('T')[0],
+        date: getISTDateString(),
         status: 'Confirmed',
       });
       await api.createNotification({
@@ -110,7 +111,7 @@ export default function ClinicAppointments() {
               const day = i + 1;
               const dateStr = `${calDate.getFullYear()}-${String(calDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
               const dayAppts = appointments.filter(a => a.date === dateStr);
-              const isToday = dateStr === new Date().toISOString().split('T')[0];
+              const isToday = dateStr === getISTDateString();
               return (
                 <div key={day} className={`min-h-20 rounded-lg p-1 border ${isToday ? 'border-primary bg-primary/5' : 'border-border/40'} ${dayAppts.length > 0 ? 'cursor-pointer hover:bg-muted/30' : ''}`}>
                   <p className={`text-xs font-medium ${isToday ? 'text-primary' : 'text-foreground'}`}>{day}</p>

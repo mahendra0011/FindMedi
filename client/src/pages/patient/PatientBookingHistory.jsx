@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
+import { getISTDateString } from '@/lib/dateUtils';
 
 const timeSlots = ['9:00 AM', '9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM', '2:00 PM', '2:30 PM', '3:00 PM', '3:30 PM', '4:00 PM', '4:30 PM'];
 
@@ -371,7 +372,7 @@ export default function PatientBookingHistory({ initialType }) {
             <div className="space-y-4">
               <div>
                 <label className="text-sm font-medium text-foreground mb-1.5 block">New Date</label>
-                <Input type="date" value={newDate} onChange={e => setNewDate(e.target.value)} min={new Date().toISOString().split('T')[0]} />
+                <Input type="date" value={newDate} onChange={e => setNewDate(e.target.value)} min={getISTDateString()} />
               </div>
               <div>
                 <label className="text-sm font-medium text-foreground mb-1.5 block">New Time</label>

@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
 import LicenseExpiryReminder from '@/components/LicenseExpiryReminder';
+import { getISTDateString } from '@/lib/dateUtils';
 
 const statusColors = {
   Pending: { bg: 'bg-warning/10', text: 'text-warning' },
@@ -43,7 +44,7 @@ export default function LabCenterDashboard() {
     return () => { mounted.current = false; };
   }, []);
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = getISTDateString();
   const todayBookings = bookings.filter(b => (b.bookingDate || '').startsWith(today));
   const pendingReports = stats?.pending ?? bookings.filter(b => b.status === 'Pending' || b.status === 'Confirmed').length;
   const totalEarned = bookings.filter(b => b.status === 'Completed').reduce((s, b) => s + Number(b.amount || 0), 0);

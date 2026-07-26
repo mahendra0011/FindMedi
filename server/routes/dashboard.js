@@ -5,12 +5,13 @@ import User from '../models/User.js';
 import Appointment from '../models/Appointment.js';
 import Billing from '../models/Billing.js';
 import { protect } from '../middleware/auth.js';
+import { getISTDateString } from '../utils/dateUtils.js';
 
 const router = express.Router();
 
 router.get('/stats', protect, async (req, res) => {
   try {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getISTDateString();
 
     const hospitalFilter = req.user.hospitalId && req.user.role !== 'superadmin' ? { hospitalId: req.user.hospitalId } : {};
     const billingMatch = { $match: hospitalFilter };

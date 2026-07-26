@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
+import { getISTDateString } from '@/lib/dateUtils';
 
 const typeIcons = {
   Prescription: { icon: Pill, color: 'text-success', bg: 'bg-success/10' },
@@ -54,9 +55,9 @@ export default function ClinicConsultations() {
     if (!patientName || !diagnosis) return;
     try {
       await api.createRecord({
-        patient: patientName, doctor: user?.name, date: new Date().toISOString().split('T')[0],
+        patient: patientName, doctor: user?.name, date: getISTDateString(),
         diagnosis, prescription, type: recordType, notes,
-        data: { patient: { name: patientName }, chiefComplaints, diagnosis, medications: prescription.split('\n').filter(m => m.trim()), advice, followUp, date: new Date().toISOString().split('T')[0] },
+        data: { patient: { name: patientName }, chiefComplaints, diagnosis, medications: prescription.split('\n').filter(m => m.trim()), advice, followUp, date: getISTDateString() },
       });
       setShowForm(false);
       setPatientName(''); setDiagnosis(''); setPrescription(''); setNotes('');

@@ -4,6 +4,7 @@ import { Search, Plus, Clock, X, Users, CheckCircle, AlertTriangle, User, Calend
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
+import { getISTDateString } from '@/lib/dateUtils';
 
 const staffApi = {
   getAll: (p) => api.dispatch(() => Promise.resolve({ staff: [] }), '/staff?' + new URLSearchParams(p)),
@@ -186,7 +187,7 @@ export default function Staff() {
             <p className="text-sm text-muted-foreground mb-4">{showAttendance.name}</p>
             <div className="flex gap-2 mb-4">
               {['Present', 'Late', 'Absent', 'Half Day'].map(status => (
-                <button key={status} onClick={() => attendanceMut.mutate({ id: showAttendance._id, status, date: new Date().toISOString().split('T')[0] })}
+                <button key={status} onClick={() => attendanceMut.mutate({ id: showAttendance._id, status, date: getISTDateString() })}
                   className={`px-3 py-2 rounded-lg text-xs font-medium ${status === 'Present' ? 'bg-success text-white' : status === 'Late' ? 'bg-warning text-white' : status === 'Absent' ? 'bg-destructive text-white' : 'bg-muted text-foreground'}`}>
                   {status}
                 </button>

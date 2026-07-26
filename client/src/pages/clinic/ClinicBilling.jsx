@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/AuthContext';
 import { api, downloadInvoicePdf } from '@/lib/api';
 import { toast } from 'sonner';
+import { getISTDateString } from '@/lib/dateUtils';
 
 const statusColors = { Paid: 'bg-success/10 text-success', Pending: 'bg-warning/10 text-warning', Overdue: 'bg-destructive/10 text-destructive' };
 
@@ -47,7 +48,7 @@ export default function ClinicBilling() {
     try {
       await api.createBill({
         patient: patientName, doctor: user?.name,
-        service, amount: Number(amount), date: new Date().toISOString().split('T')[0], status: 'Pending',
+        service, amount: Number(amount), date: getISTDateString(), status: 'Pending',
       });
       setShowForm(false);
       setPatientName(''); setService('Consultation'); setAmount('');

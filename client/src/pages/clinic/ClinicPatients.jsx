@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
+import { getISTDateString } from '@/lib/dateUtils';
 
 const statusColors = {
   Confirmed: 'bg-success/10 text-success', Pending: 'bg-warning/10 text-warning',
@@ -57,7 +58,7 @@ export default function ClinicPatients() {
         doctor: user?.name,
         diagnosis, prescription,
         type: recordType, notes,
-        data: { diagnosis, medications: prescription.split('\n').filter(p => p.trim()), date: new Date().toISOString().split('T')[0] },
+        data: { diagnosis, medications: prescription.split('\n').filter(p => p.trim()), date: getISTDateString() },
       });
       setSelectedPatient(null); setDiagnosis(''); setPrescription(''); setNotes('');
       loadData();

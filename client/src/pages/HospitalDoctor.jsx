@@ -23,6 +23,7 @@ import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
 import ReviewDialog from '@/components/ReviewDialog';
 import BookingModal from '@/components/BookingModal';
+import { getISTDateString } from '@/lib/dateUtils';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -118,7 +119,7 @@ export default function HospitalDoctor() {
         patientName: user?.name || 'Anonymous',
         rating: reviewRating,
         comment: reviewComment,
-        date: new Date().toISOString().split('T')[0],
+        date: getISTDateString(),
       });
       setReviewSubmitted(true);
       setShowReviewForm(false);
