@@ -1,5 +1,5 @@
 import PDFDocument from 'pdfkit';
-import { generate12DigitId, generate16DigitId } from '../utils/idGenerator.js';
+import { generate12DigitId, generate16DigitId, generateInvoiceId, generateAdmissionId, generateTimestampedId } from '../utils/idGenerator.js';
 const shortId = (v) => (v ? String(v).replace(/\D/g, '').slice(-5) : '00000');
 
 const C = {
@@ -24,7 +24,7 @@ const fmtDateTime = (d) => {
   const dt = new Date(d);
   return isNaN(dt.getTime()) ? String(d) : dt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 };
-const generateBillId = (type) => type === 'bill' ? generate12DigitId() : generate16DigitId();
+const fallbackId = () => generate16DigitId();
 
 const mkDoc = () => new PDFDocument({ size: 'A4', margin: 36, bufferPages: true });
 
@@ -61,12 +61,12 @@ export const generateAppointmentBillPDF = async (payment, reference) => collect(
   const { l, r } = { l: doc.page.margins.left, r: doc.page.margins.right };
   const pw = doc.page.width - l - r;
   const year = new Date(payment.createdAt || Date.now()).getFullYear();
-  const invoiceId = payment.invoice_id || payment.transaction_id || generateBillId('invoice');
+  const invoiceId = payment.invoice_id || payment.transaction_id || fallbackId();
 
   const patientName = reference?.patientName || reference?.patient || payment.patient_name || 'Patient';
   const patientEmail = reference?.email || '';
   const patientPhone = reference?.patientId?.phone || payment.patient_phone || '';
-  const patientId = payment.transaction_id || generateBillId('invoice');
+  const patientId = payment.transaction_id || fallbackId();
 
   const h = reference?.hospitalId && typeof reference.hospitalId === 'object' ? reference.hospitalId : {};
   const hospName = h.name || payment.provider || 'Hospital';
@@ -74,7 +74,7 @@ export const generateAppointmentBillPDF = async (payment, reference) => collect(
   const hospLic = h.licenseNo || '-';
   const docName = reference?.doctorId?.name || reference?.doctor || payment.provider || 'Doctor';
   const docSpec = reference?.doctorId?.specialization || '';
-  const docReg = reference?.doctorId?.registrationNo || `MPMC-${year}-${shortId(payment.transaction_id)}`;
+  const docReg = reference?.doctorId?.registrationNo || generateTimestampedId('MPMC');
 
   // ── Header box ──
   doc.save();
@@ -191,7 +191,7 @@ export const generateTestBillPDF = async (payment, reference) => collect((doc) =
   const { l, r } = { l: doc.page.margins.left, r: doc.page.margins.right };
   const pw = doc.page.width - l - r;
   const year = new Date(payment.createdAt || Date.now()).getFullYear();
-  const invoiceId = payment.invoice_id || `INV-TST-${year}-${shortId(payment.transaction_id)}`;
+  const invoiceId = payment.invoice_id || generateInvoiceId('test');
 
   const patientName = reference?.patientName || reference?.patient || payment.patient_name || 'Patient';
   const patientPhone = reference?.patientPhone || payment.patient_phone || '';
@@ -203,7 +203,7 @@ export const generateTestBillPDF = async (payment, reference) => collect((doc) =
   const labName = h.name || payment.provider || 'Diagnostics';
   const labAddr = [h.address, h.city, h.state, h.pincode].filter(Boolean).join(', ') || 'Address';
   const nablNo = h.nablNo || '-';
-  const bookingId = reference?.bookingId || `BK-${year}-${shortId(payment.transaction_id)}`;
+  const bookingId = reference?.bookingId || generateTimestampedId('BK');
 
   const discount = reference?.discount || reference?.discountAmount || 0;
   const discountCode = reference?.couponCode || '';
@@ -332,7 +332,7 @@ export const generateMedicineBillPDF = async (payment, reference) => collect((do
   const { l, r } = { l: doc.page.margins.left, r: doc.page.margins.right };
   const pw = doc.page.width - l - r;
   const year = new Date(payment.createdAt || Date.now()).getFullYear();
-  const invoiceId = payment.invoice_id || `INV-MED-${year}-${shortId(payment.transaction_id)}`;
+  const invoiceId = payment.invoice_id || generateInvoiceId('medicine');
 
   const patientName = reference?.patientName || reference?.patient || payment.patient_name || 'Patient';
   const patientPhone = reference?.phone || payment.patient_phone || '';
@@ -342,7 +342,7 @@ export const generateMedicineBillPDF = async (payment, reference) => collect((do
   const storeName = h.name || payment.provider || 'Pharmacy';
   const storeAddr = [h.address, h.city, h.state, h.pincode].filter(Boolean).join(', ') || 'Address';
   const storeLic = h.licenseNo || '-';
-  const orderId = reference?.orderId || `ORD-${year}-${shortId(payment.transaction_id)}`;
+  const orderId = reference?.orderId || generateTimestampedId('ORD');
   const ps = reference?.prescriptionStatus;
   const rxNote = ps === 'verified' ? 'Verified for Rx items.' : '';
 

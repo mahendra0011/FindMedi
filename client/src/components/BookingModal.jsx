@@ -112,7 +112,7 @@ export default function BookingModal({
         time: bookingTime,
         notes: bookingNotes,
         type: 'Consultation',
-        status: 'Confirmed',
+        status: 'Pending',
       });
 
       // Extract appointment ID — try all possible response shapes

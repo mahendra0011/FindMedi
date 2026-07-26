@@ -77,7 +77,7 @@ userSchema.pre('save', async function (next) {
 });
 
 userSchema.pre('save', async function (next) {
-  if (!this.uhid && this.role === 'patient') {
+  if (!this.uhid) {
     this.uhid = generate16DigitId();
   }
   next();

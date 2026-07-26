@@ -129,13 +129,7 @@ router.post('/', protect, validate(createBillSchema), async (req, res) => {
   try {
     const { doctorId, doctor, service, amount, date, patient, patientId, services, source } = req.body;
     
-    const prefixMap = {
-      appointment: 'APT', lab: 'TST', pharmacy: 'MED',
-      physio: 'PHY', diet: 'DIE', ipd: 'IPD', ot: 'OT',
-      radiology: 'RAD', manual: 'GEN',
-    };
-    const invPrefix = prefixMap[source] || 'GEN';
-    const invoiceId = generateInvoiceId(source || 'general');
+    const invoiceId = generateInvoiceId(source || 'manual');
     
     let finalPatientId;
     let finalPatient = patient || req.user.name;

@@ -37,7 +37,7 @@ export function generateInvoiceId(serviceType = 'GEN') {
   return `INV-${prefix}-${getDateParts()}-${digitId}`;
 }
 
-export function generateTransactionId() {
+export function generateTransactionId(serviceType = 'GEN') {
   return `TXN-${getDateParts()}-${generate16DigitId()}`;
 }
 

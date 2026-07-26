@@ -256,7 +256,8 @@ const drawSignature = (doc, label = 'Authorized Signatory', signatureBuffer = nu
 export const generatePrescriptionPDF = async (data) => {
   const signatureBuffer = data.doctor?.signatureUrl ? await fetchImageBuffer(data.doctor.signatureUrl) : null;
   return collectPdf((doc) => {
-    drawHeader(doc, 'Prescription', { id: data.prescriptionId || data.reportId || `RX-${Date.now()}`, date: data.date || new Date() });
+    const now = new Date(); const rxId = data.prescriptionId || data.reportId || `RX-${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}-${String(now.getHours()).padStart(2,'0')}-${String(now.getMinutes()).padStart(2,'0')}-${String(Math.floor(Math.random()*10**16)).padStart(16,'0')}`;
+    drawHeader(doc, 'Prescription', { id: rxId, date: data.date || new Date() });
     drawInfoGrid(doc, [
       {
         title: 'Patient',
@@ -304,7 +305,8 @@ export const generatePrescriptionPDF = async (data) => {
 };
  
 export const generateLabReportPDF = async (data) => collectPdf((doc) => {
-  drawHeader(doc, 'Laboratory Report', { id: data.reportId || `LAB-${Date.now()}`, date: data.reportDate || new Date() });
+  const labNow = new Date(); const labId = data.reportId || `LAB-${labNow.getFullYear()}-${String(labNow.getMonth()+1).padStart(2,'0')}-${String(labNow.getDate()).padStart(2,'0')}-${String(labNow.getHours()).padStart(2,'0')}-${String(labNow.getMinutes()).padStart(2,'0')}-${String(Math.floor(Math.random()*10**16)).padStart(16,'0')}`;
+  drawHeader(doc, 'Laboratory Report', { id: labId, date: data.reportDate || new Date() });
   drawInfoGrid(doc, [
     {
       title: 'Patient',
@@ -345,7 +347,8 @@ export const generateLabReportPDF = async (data) => collectPdf((doc) => {
 });
  
 export const generateDischargeSummaryPDF = async (data) => collectPdf((doc) => {
-  drawHeader(doc, 'Discharge Summary', { id: data.admissionId || `DS-${Date.now()}`, date: data.dischargeDate || new Date() });
+  const dsNow = new Date(); const dsId = data.admissionId || `DS-${dsNow.getFullYear()}-${String(dsNow.getMonth()+1).padStart(2,'0')}-${String(dsNow.getDate()).padStart(2,'0')}-${String(dsNow.getHours()).padStart(2,'0')}-${String(dsNow.getMinutes()).padStart(2,'0')}-${String(Math.floor(Math.random()*10**16)).padStart(16,'0')}`;
+  drawHeader(doc, 'Discharge Summary', { id: dsId, date: data.dischargeDate || new Date() });
   drawInfoGrid(doc, [
     {
       title: 'Patient',
@@ -483,11 +486,16 @@ export const generatePaymentInvoicePDF = async (payment, reference = null, user 
   const typePrefix = { appointment: 'APT', test: 'TST', medicine: 'MED' };
   const year = new Date(payment.createdAt || Date.now()).getFullYear();
   const numericPart = (payment.transaction_id || payment._id?.toString() || '00000').replace(/\D/g, '');
-  const invoiceId = payment.invoice_id || `INV-${typePrefix[payment.serviceType] || 'GEN'}-${year}-${numericPart.slice(-16).padStart(16, '0')}`;
-  const transactionId = payment.transaction_id || `TXN-${year}-${numericPart.slice(-16).padStart(16, '0')}`;
+  const digitPart = numericPart.slice(-16).padStart(16, '0');
+  const isMedicine = payment.serviceType === 'medicine';
+  const invType = typePrefix[payment.serviceType] || 'GEN';
+  const invDigit = isMedicine ? digitPart.slice(-12) : digitPart;
+  const invoiceId = payment.invoice_id || `INV-${invType}-${year}-${String(new Date().getMonth() + 1).padStart(2,'0')}-${String(new Date().getDate()).padStart(2,'0')}-${String(new Date().getHours()).padStart(2,'0')}-${String(new Date().getMinutes()).padStart(2,'0')}-${invDigit}`;
+  const transactionId = payment.transaction_id || `TXN-${year}-${digitPart}`;
 
   const isBill = documentTitle.toLowerCase().includes('bill');
-  const docId = isBill ? invoiceId.replace('INV', 'BILL') : invoiceId;
+  const billDigit = isMedicine ? digitPart.slice(-12) : digitPart.slice(-12);
+  const docId = isBill ? (payment.invoice_id || `BILL-${invType}-${year}-${String(new Date().getMonth() + 1).padStart(2,'0')}-${String(new Date().getDate()).padStart(2,'0')}-${String(new Date().getHours()).padStart(2,'0')}-${String(new Date().getMinutes()).padStart(2,'0')}-${billDigit}`) : invoiceId;
 
   drawHeader(doc, documentTitle, { id: docId, date: payment.createdAt || new Date() });
   drawStatusPill(doc, 'Paid', doc.page.width - doc.page.margins.right - 84, 118);
@@ -537,7 +545,7 @@ export const generatePaymentInvoicePDF = async (payment, reference = null, user 
   } else if (payment.serviceType === 'test') {
     serviceTitle = 'Booking Details';
     serviceRows = [
-      { label: 'Booking ID', value: reference?.bookingId || `BK-${year}-${sharedSuffix}` },
+      { label: 'Booking ID', value: reference?.bookingId || `BK-${year}-${digitPart}` },
       { label: 'Mode', value: reference?.visitType || 'Lab Visit' },
       { label: 'Slot', value: `${formatDate(reference?.bookingDate)}${reference?.timeSlot ? `, ${reference.timeSlot}` : ''}` },
       { label: 'Prescription', value: reference?.prescriptionVerified ? 'Verified' : 'Not Required' },
@@ -546,7 +554,7 @@ export const generatePaymentInvoicePDF = async (payment, reference = null, user 
     serviceTitle = 'Order Details';
     const ps = reference?.prescriptionStatus;
     serviceRows = [
-      { label: 'Order ID', value: reference?.orderId || `ORD-${year}-${sharedSuffix}` },
+      { label: 'Order ID', value: reference?.orderId || `ORD-${year}-${digitPart}` },
       { label: 'Delivery', value: reference?.deliveryMode === 'delivery' ? 'Home Delivery' : 'Store Pickup' },
       { label: 'Prescription', value: ps === 'verified' ? 'Verified' : ps === 'pending' ? 'Pending' : ps === 'rejected' ? 'Rejected' : 'Not Required' },
     ];

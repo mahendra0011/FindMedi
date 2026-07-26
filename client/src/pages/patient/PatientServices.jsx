@@ -4,6 +4,7 @@ import { Activity, TestTube, Heart, Droplets, Thermometer, Calendar, CheckCircle
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
+import { bookTestLab } from '@/lib/testBooking';
 import { toast } from 'sonner';
 
 const serviceIcons = {
@@ -120,27 +121,24 @@ export default function PatientServices() {
     if (selectedServices.length === 0) return;
     setBooking(true);
     try {
-      const today = new Date().toISOString().split('T')[0];
-      const booking = await api.createLabBooking({
-        patientId: user?.id,
-        patientName: user?.name || 'Patient',
-        tests: selectedServices.map(s => s.name),
-        testIds: selectedServices.map(s => s.id),
-        totalAmount,
-        visitType: 'Walk-in',
-        status: 'Pending',
-      });
-      const bookingId = booking?._id || booking?.booking?._id;
-      const result = await api.payTransaction({
-        serviceType: 'test',
-        referenceId: bookingId,
-        amount: totalAmount,
-        method: 'upi',
-        description: `Lab Test - ${selectedServices.map(s => s.name).join(', ')}`,
-        provider: 'Lab Services',
-        lineItems: selectedServices.map(s => ({ name: s.name, price: s.price, qty: 1 })),
-      });
-      if (!result?.success) throw new Error('Payment failed');
+      const { booking, result } = await bookTestLab(
+        {
+          patientId: user?.id,
+          patientName: user?.name || 'Patient',
+          tests: selectedServices.map(s => s.name),
+          testIds: selectedServices.map(s => s.id),
+          totalAmount,
+          visitType: 'Walk-in',
+          status: 'Pending',
+        },
+        {
+          amount: totalAmount,
+          method: 'upi',
+          description: `Lab Test - ${selectedServices.map(s => s.name).join(', ')}`,
+          provider: 'Lab Services',
+          lineItems: selectedServices.map(s => ({ name: s.name, price: s.price, qty: 1 })),
+        }
+      );
       const bookingInfo = buildLabBookings([{ ...booking, status: 'Paid', invoiceId: result.invoice_id }], services, user)[0];
       if (bookingInfo) {
         setBookedServices(current => [bookingInfo, ...current.filter(item => item.id !== bookingInfo.id)]);

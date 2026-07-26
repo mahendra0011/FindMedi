@@ -1,6 +1,8 @@
 import mongoose from 'mongoose';
+import { generate16DigitId } from '../utils/idGenerator.js';
 
 const facilitySchema = new mongoose.Schema({
+  facilityId: { type: String, unique: true, sparse: true, index: true },
   name: { type: String, required: true },
   slug: { type: String, unique: true, index: true },
   type: { type: String, enum: ['hospital', 'clinic', 'lab', 'pharmacy'], required: true, index: true },
@@ -84,6 +86,13 @@ const facilitySchema = new mongoose.Schema({
     type: Object,
     default: {},
   },
+});
+
+facilitySchema.pre('save', async function (next) {
+  if (!this.facilityId) {
+    this.facilityId = generate16DigitId();
+  }
+  next();
 });
 
 facilitySchema.index({ type: 1, status: 1 });
