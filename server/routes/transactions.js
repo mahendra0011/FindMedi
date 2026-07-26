@@ -11,7 +11,6 @@ import PharmacyOrder from '../models/PharmacyOrder.js';
 import mongoose from 'mongoose';
 import Notification from '../models/Notification.js';
 import { generatePaymentInvoicePDF } from '../services/pdfService.js';
-import Doctor from '../models/Doctor.js';
 import { protect } from '../middleware/auth.js';
 import { validate, createPaymentSchema } from '../utils/validate.js';
 import { auditLog } from '../middleware/audit.js';
