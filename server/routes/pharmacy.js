@@ -165,7 +165,7 @@ const prescriptionId = generatePrescriptionId();
     });
     await auditLog('create_prescription', req.user._id, { recordId: prescription._id, ip: req.ip, userAgent: req.get('user-agent') });
     // Notify pharmacy
-    const pharmacists = await User.find({ role: { $in: ['pharmacist', 'admin'] }, status: 'active' }).select('_id');
+    const pharmacists = await User.find({ role: { $in: ['pharmacist', 'hospital_admin'] }, status: 'active' }).select('_id');
     await Notification.insertMany(pharmacists.map(p => ({
       title: 'New Prescription', message: `Dr. ${req.user.name} prescribed ${medicines.length} medicine(s) for ${patientName}`,
       type: 'pharmacy', userId: p._id.toString(),

@@ -34,7 +34,7 @@ router.get('/stats', async (req, res) => {
 
 router.post('/', protect, scopeToHospital, validate(createTestSchema), async (req, res) => {
   try {
-    if (req.user.role !== 'superadmin' && req.user.role !== 'admin' && req.user.role !== 'clinic_doctor') {
+    if (req.user.role !== 'superadmin' && req.user.role !== 'hospital_admin' && req.user.role !== 'clinic_doctor') {
       return res.status(403).json({ message: 'Admin or clinic doctor access required' });
     }
     const data = { ...req.body, hospitalId: req.hospitalId };
@@ -46,7 +46,7 @@ router.post('/', protect, scopeToHospital, validate(createTestSchema), async (re
 
 router.put('/:id', protect, scopeToHospital, async (req, res) => {
   try {
-    if (req.user.role !== 'superadmin' && req.user.role !== 'admin' && req.user.role !== 'clinic_doctor') {
+    if (req.user.role !== 'superadmin' && req.user.role !== 'hospital_admin' && req.user.role !== 'clinic_doctor') {
       return res.status(403).json({ message: 'Admin or clinic doctor access required' });
     }
     const test = await Test.findOne({ _id: req.params.id, hospitalId: req.hospitalId });
@@ -60,7 +60,7 @@ router.put('/:id', protect, scopeToHospital, async (req, res) => {
 
 router.delete('/:id', protect, scopeToHospital, async (req, res) => {
   try {
-    if (req.user.role !== 'superadmin' && req.user.role !== 'admin' && req.user.role !== 'clinic_doctor') {
+    if (req.user.role !== 'superadmin' && req.user.role !== 'hospital_admin' && req.user.role !== 'clinic_doctor') {
       return res.status(403).json({ message: 'Admin or clinic doctor access required' });
     }
     const test = await Test.findOne({ _id: req.params.id, hospitalId: req.hospitalId });

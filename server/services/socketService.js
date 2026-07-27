@@ -1,6 +1,7 @@
 import { Server } from 'socket.io';
+import { createAdapter } from '@socket.io/redis-adapter';
 import logger from '../config/logger.js';
-import { updateDeliveryBoyLocation } from '../config/redis.js';
+import { redisPub, redisSub, updateDeliveryBoyLocation } from '../config/redis.js';
 import DeliveryPartner from '../models/DeliveryPartner.js';
 import PharmacyDelivery from '../models/PharmacyDelivery.js';
 
@@ -15,20 +16,18 @@ export function initSocket(server) {
     },
   });
 
+  io.adapter(createAdapter(redisPub, redisSub));
+
   io.on('connection', (socket) => {
     logger.info(`Socket connected: ${socket.id}`);
 
     socket.on('join', (userId) => {
-      if (userId) {
-        socket.join(`user:${userId}`);
-        logger.info(`Socket ${socket.id} joined user:${userId}`);
-      }
+      if (userId) socket.join(`user:${userId}`);
     });
 
     socket.on('order:join_tracking', (orderId) => {
       if (orderId) socket.join(`order:${orderId}`);
     });
-
     socket.on('order:leave_tracking', (orderId) => {
       if (orderId) socket.leave(`order:${orderId}`);
     });
@@ -54,12 +53,10 @@ export function initSocket(server) {
       await DeliveryPartner.findByIdAndUpdate(deliveryPartnerId, { isOnline: online, isAvailable: online });
     });
 
-    socket.on('disconnect', () => {
-      logger.info(`Socket disconnected: ${socket.id}`);
-    });
+    socket.on('disconnect', () => logger.info(`Socket disconnected: ${socket.id}`));
   });
 
-  logger.info('Socket.IO initialized');
+  logger.info('Socket.IO initialized (with Redis adapter)');
   return io;
 }
 

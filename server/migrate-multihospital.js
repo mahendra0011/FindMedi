@@ -104,7 +104,7 @@ async function migrate() {
   try {
     const User = (await import('./models/User.js')).default;
     const result = await User.updateMany(
-      { role: 'admin', $or: [{ hospitalId: { $exists: false } }, { hospitalId: null }] },
+      { role: 'hospital_admin', $or: [{ hospitalId: { $exists: false } }, { hospitalId: null }] },
       { $set: { hospitalId: defaultHospitalId } }
     );
     if (result.modifiedCount > 0) {

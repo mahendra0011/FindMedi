@@ -244,6 +244,7 @@ import platformContentRoutes from './routes/platformContent.js';
 import exportRoutes from './routes/export.js';
 import integrationRoutes from './routes/integrations.js';
 import deliveryPartnerRoutes from './routes/deliveryPartners.js';
+import aiChatRoutes from './routes/aiChat.js';
 import { connectRedis } from './config/redis.js';
 
 // Routes
@@ -304,6 +305,7 @@ app.use('/api/platform-content', platformContentRoutes);
 app.use('/api/export', exportRoutes);
 app.use('/api/integrations', integrationRoutes);
 app.use('/api/delivery-partners', deliveryPartnerRoutes);
+app.use('/api/ai-chat', aiChatRoutes);
 
 // 2FA routes
 app.use('/api/auth/2fa', twoFactorRoutes);

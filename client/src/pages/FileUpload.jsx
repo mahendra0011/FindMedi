@@ -255,33 +255,33 @@ export default function FileUpload() {
   }
 
   return (
-    <div className="space-y-8 max-w-5xl mx-auto pb-10">
+    <div className="space-y-4 max-w-5xl mx-auto pb-6">
       {/* Hero */}
-      <div className="relative overflow-hidden rounded-3xl border bg-gradient-to-br from-primary/10 via-background to-accent/30 px-6 py-10 sm:px-10 sm:py-12 shadow-sm">
+      <div className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-primary/10 via-background to-accent/30 px-5 py-5 sm:px-8 sm:py-6 shadow-sm">
         <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
         <div className="absolute -left-16 bottom-0 h-48 w-48 rounded-full bg-cyan-500/10 blur-3xl pointer-events-none" />
-        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="relative flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <div className="flex flex-wrap items-center gap-2 mb-3">
-              <Badge variant="secondary" className="gap-1 font-normal">
-                <Cloud className="w-3.5 h-3.5" />
+            <div className="flex flex-wrap items-center gap-1.5 mb-2">
+              <Badge variant="secondary" className="gap-1 font-normal text-[10px]">
+                <Cloud className="w-3 h-3" />
                 Cloudinary
               </Badge>
-              <Badge variant="outline" className="gap-1 font-normal border-primary/30">
-                <ShieldCheck className="w-3.5 h-3.5 text-primary" />
+              <Badge variant="outline" className="gap-1 font-normal border-primary/30 text-[10px]">
+                <ShieldCheck className="w-3 h-3 text-primary" />
                 Encrypted transfer
               </Badge>
             </div>
-            <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
               Medical file upload
             </h1>
-            <p className="mt-2 text-muted-foreground max-w-xl text-base leading-relaxed">
+            <p className="mt-1 text-sm text-muted-foreground max-w-xl leading-relaxed">
               Share images, X-rays, and PDFs with your care team. Files are stored securely and
               linked to your records.
             </p>
           </div>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground bg-background/60 backdrop-blur-sm rounded-xl border px-4 py-3">
-            <Sparkles className="w-4 h-4 text-primary shrink-0" />
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-background/60 backdrop-blur-sm rounded-lg border px-3 py-2 shrink-0">
+            <Sparkles className="w-3.5 h-3.5 text-primary shrink-0" />
             <span>Up to 25 MB per file</span>
           </div>
         </div>
@@ -365,16 +365,16 @@ export default function FileUpload() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="upload" className="space-y-6 mt-6">
+        <TabsContent value="upload" className="space-y-4 mt-4">
           <Card className="overflow-hidden border-muted shadow-sm">
-            <CardHeader className="space-y-1 pb-2">
-              <CardTitle className="text-xl tracking-tight">
+            <CardHeader className="space-y-0.5 pb-1">
+              <CardTitle className="text-lg tracking-tight">
                 What are you uploading?
               </CardTitle>
-              <CardDescription>Choose a category so we file it correctly in your records.</CardDescription>
+              <CardDescription className="text-xs">Choose a category so we file it correctly in your records.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-8 pt-2">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <CardContent className="space-y-4 pt-1">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 {UPLOAD_TYPES.map((t) => {
                   const Icon = t.icon;
                   const active = uploadType === t.value;
@@ -384,20 +384,20 @@ export default function FileUpload() {
                       type="button"
                       onClick={() => setUploadType(t.value)}
                       className={`
-                        relative text-left rounded-2xl border-2 p-4 transition-all duration-200
+                        relative text-left rounded-xl border-2 p-3 transition-all duration-200
                         bg-gradient-to-br ${t.accent}
-                        ${active ? `ring-2 ${t.ring} border-primary shadow-md scale-[1.02]` : 'border-border/80 hover:border-primary/40 hover:shadow-md'}
+                        ${active ? `ring-2 ${t.ring} border-primary shadow-md scale-[1.01]` : 'border-border/80 hover:border-primary/40 hover:shadow-sm'}
                       `}
                     >
                       {active && (
-                        <span className="absolute top-3 right-3 flex h-2.5 w-2.5">
+                        <span className="absolute top-2 right-2 flex h-2 w-2">
                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-40" />
-                          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary" />
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
                         </span>
                       )}
-                      <Icon className={`w-8 h-8 mb-3 ${active ? 'text-primary' : 'text-muted-foreground'}`} />
-                      <p className="font-semibold">{t.label}</p>
-                      <p className="text-xs text-muted-foreground mt-1">{t.hint}</p>
+                      <Icon className={`w-6 h-6 mb-2 ${active ? 'text-primary' : 'text-muted-foreground'}`} />
+                      <p className="font-semibold text-sm">{t.label}</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">{t.hint}</p>
                     </button>
                   );
                 })}
@@ -420,32 +420,36 @@ export default function FileUpload() {
                     onDragOver={handleDragIn}
                     onDrop={handleDrop}
                     className={`
-                      relative rounded-2xl border-2 border-dashed px-6 py-14 sm:py-16 text-center transition-all duration-300
+                      relative rounded-xl border-2 border-dashed px-6 py-8 sm:py-10 text-center transition-all duration-300
                       ${isDragging ? 'border-primary bg-primary/10 scale-[1.01]' : 'border-primary/25 bg-muted/30 hover:bg-primary/[0.06] hover:border-primary/50'}
                       ${loading ? 'pointer-events-none opacity-70' : ''}
                     `}
                   >
                     {loading && (
-                      <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-2xl bg-background/70 backdrop-blur-[2px]">
-                        <Loader2 className="w-10 h-10 animate-spin text-primary mb-2" />
-                        <p className="text-sm font-medium text-foreground">Uploading…</p>
+                      <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-xl bg-background/70 backdrop-blur-[2px]">
+                        <Loader2 className="w-8 h-8 animate-spin text-primary mb-1" />
+                        <p className="text-xs font-medium text-foreground">Uploading…</p>
                       </div>
                     )}
-                    <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/15 text-primary mb-4">
-                      <Upload className="w-8 h-8" />
+                    <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/15 text-primary mb-2">
+                      <Upload className="w-6 h-6" />
                     </div>
-                    <p className="text-lg font-semibold tracking-tight">
+                    <p className="text-base font-semibold tracking-tight">
                       Drop your file here or click to browse
                     </p>
-                    <p className="text-sm text-muted-foreground mt-2 max-w-md mx-auto">
+                    <p className="text-xs text-muted-foreground mt-1 max-w-md mx-auto">
                       {uploadType === 'xray'
                         ? 'X-ray and scan images (common formats supported).'
                         : uploadType === 'document'
                           ? 'PDFs and scanned documents or photos of documents.'
                           : 'Clear photos of prescriptions, charts, or wound care images.'}
                     </p>
-                    <p className="text-xs text-muted-foreground/80 mt-4">
-                      PDF, JPG, PNG, GIF · max 25 MB
+                    <p className="text-[11px] text-muted-foreground/80 mt-3">
+                      {uploadType === 'image'
+                        ? 'JPG, PNG, WebP · max 25 MB'
+                        : uploadType === 'xray'
+                          ? 'All image formats · max 25 MB'
+                          : 'PDF, JPG, PNG, GIF · max 25 MB'}
                     </p>
                   </div>
                 </label>
@@ -454,7 +458,7 @@ export default function FileUpload() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="myfiles" className="mt-6">
+        <TabsContent value="myfiles" className="mt-4">
           {loadingFiles ? (
             <Card className="border-muted shadow-sm">
               <CardContent className="py-16 text-center">

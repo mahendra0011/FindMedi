@@ -8,8 +8,8 @@ import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 
 const roles = [
-  { key: 'superadmin', label: 'SuperAdmin', desc: 'Platform mgmt',         icon: Shield,      color: 'text-purple-600',  bg: 'bg-purple-500/10'  },
-  { key: 'admin', label: 'Hospital Admin', desc: 'Full system & hospital access', icon: Shield, color: 'text-primary', bg: 'bg-primary/10' },
+  { key: 'superadmin', label: 'SuperAdmin', desc: 'Manage full platform',  icon: Shield,      color: 'text-purple-600',  bg: 'bg-purple-500/10'  },
+  { key: 'hospital_admin', label: 'Hospital Admin', desc: 'Manage hospital', icon: Shield, color: 'text-primary', bg: 'bg-primary/10' },
   { key: 'doctor',     label: 'Hosp Doctor', desc: 'Patient & schedule',   icon: Stethoscope, color: 'text-info',         bg: 'bg-info/10'        },
   { key: 'clinic_doctor', label: 'Clinic',     desc: 'Clinic management',     icon: Heart,       color: 'text-rose-600',    bg: 'bg-rose-500/10'    },
   { key: 'lab_owner',     label: 'Diagnostic', desc: 'Lab test mgmt',         icon: Microscope,  color: 'text-emerald-600', bg: 'bg-emerald-500/10' },
@@ -21,7 +21,7 @@ const roles = [
 export default function Login() {
   const navigate = useNavigate();
   const { user, login } = useAuth();
-  const [role, setRole] = useState('admin');
+  const [role, setRole] = useState('hospital_admin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -197,8 +197,8 @@ export default function Login() {
             <p className="text-xs font-medium text-muted-foreground mb-2">Quick Demo Login:</p>
             <div className="grid grid-cols-4 gap-1.5">
               {[
-                { key:'superadmin', label:'SuperAdmin',    desc:'Platform mgmt',          icon: Shield,      color:'text-purple-600',  bg:'bg-purple-500/10',  email:'mahendrapra0077@gmail.com', pass:'admin@123' },
-                { key:'admin',      label:'Hospital Admin',desc:'Full system & access',   icon: Shield,      color:'text-primary',     bg:'bg-primary/10',     email:'admin@medicore.com',        pass:'password' },
+                { key:'superadmin', label:'SuperAdmin',    desc:'Manage full platform',   icon: Shield,      color:'text-purple-600',  bg:'bg-purple-500/10',  email:'mahendrapra0077@gmail.com', pass:'admin@123' },
+                { key:'hospital_admin',      label:'Hospital Admin',desc:'Manage hospital',   icon: Shield,      color:'text-primary',     bg:'bg-primary/10',     email:'admin@medicore.com',        pass:'password' },
                 { key:'doctor',     label:'Hosp Doctor',   desc:'Patient & schedule',     icon: Stethoscope, color:'text-info',         bg:'bg-info/10',        email:'sarah.smith@medicore.com',  pass:'password' },
                 { key:'clinic_doctor', label:'Clinic',     desc:'Clinic management',       icon: Heart,       color:'text-rose-600',    bg:'bg-rose-500/10',    email:'clinic@medicore.com',       pass:'password' },
                 { key:'lab_owner',  label:'Diagnostic',    desc:'Lab test mgmt',           icon: Microscope,  color:'text-emerald-600', bg:'bg-emerald-500/10', email:'diagnostic@medicore.com',   pass:'password' },

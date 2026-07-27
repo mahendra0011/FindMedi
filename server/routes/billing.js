@@ -74,7 +74,7 @@ router.get('/', protect, async (req, res) => {
     const { page, limit, search, status } = req.query;
     const filter = {};
     
-    if (req.user.hospitalId && (req.user.role === 'admin' || req.user.role === 'superadmin')) {
+    if (req.user.hospitalId && (req.user.role === 'hospital_admin' || req.user.role === 'superadmin')) {
       filter.hospitalId = req.user.hospitalId;
     }
     
@@ -87,7 +87,7 @@ router.get('/', protect, async (req, res) => {
       filter.doctorId = req.user.doctorProfileId;
     }
 
-    if (req.user.hospitalId && (req.user.role === 'admin' || req.user.role === 'superadmin')) {
+    if (req.user.hospitalId && (req.user.role === 'hospital_admin' || req.user.role === 'superadmin')) {
       filter.hospitalId = req.user.hospitalId;
     }
 
@@ -242,7 +242,7 @@ router.get('/:id/invoice', protect, async (req, res) => {
       || String(bill.doctorId?.user_id || '') === String(req.user._id)
     );
 
-    const isAdminSameHospital = req.user.role === 'admin' && (
+    const isAdminSameHospital = req.user.role === 'hospital_admin' && (
       !req.user.hospitalId || !bill.hospitalId || bill.hospitalId.toString() === req.user.hospitalId.toString()
     );
 

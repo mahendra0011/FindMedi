@@ -66,6 +66,7 @@ export default function BookingModal({
   }, [open, doctor, facility]);
 
   const currentDoc = selectedDoctor || doctor;
+  const isAutoConfirm = currentDoc?.autoConfirmAppointment ?? facility?.settings?.autoConfirmAppointment ?? true;
 
   // Doctor + date change hone par uske already-booked slots fetch karo WITH COUNTS
   useEffect(() => {
@@ -303,9 +304,9 @@ export default function BookingModal({
                       ⏱️ {currentDoc.maxBookingsPerSlot} patients per slot
                     </p>
                   )}
-                  {currentDoc?.autoConfirmAppointment === true ? (
+                  {isAutoConfirm ? (
                     <p className="text-[10px] text-muted-foreground mt-1">
-                      Auto-confirm: ON
+                      Auto accept appointment is on
                     </p>
                   ) : (
                     <p className="text-[11px] text-amber-600 mt-1 font-medium">
@@ -447,7 +448,7 @@ export default function BookingModal({
               />
               
               {/* Auto-confirm warning */}
-              {currentDoc?.autoConfirmAppointment !== true && (
+              {!isAutoConfirm && (
                 <div className="bg-amber-50/50 border border-amber-200 rounded-lg p-3">
                   <div className="flex items-start gap-2">
                     <div className="w-5 h-5 rounded-full bg-amber-500 flex items-center justify-center shrink-0 mt-0.5">

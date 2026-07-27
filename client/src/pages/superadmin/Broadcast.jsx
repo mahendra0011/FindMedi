@@ -15,7 +15,7 @@ const ROLE_OPTIONS = [
   { value: 'all', label: 'All Users', icon: Users },
   { value: 'patient', label: 'Patients', icon: UserRound },
   { value: 'doctor', label: 'Doctors', icon: Stethoscope },
-  { value: 'admin', label: 'Hospital Admins', icon: Building2 },
+  { value: 'hospital_admin', label: 'Hospital Admins', icon: Building2 },
   { value: 'clinic_doctor', label: 'Clinics', icon: FlaskConical },
   { value: 'pharmacy', label: 'Pharmacies', icon: Pill },
 ];

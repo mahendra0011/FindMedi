@@ -36,7 +36,7 @@ router.get('/', protect, async (req, res) => {
     } else if (req.user.role === 'doctor') {
       filter.doctorId = req.user.doctorProfileId;
       if (req.user.hospitalId) filter.hospitalId = req.user.hospitalId;
-    } else if (req.user.role === 'admin' && req.user.hospitalId) {
+    } else if (req.user.role === 'hospital_admin' && req.user.hospitalId) {
       filter.hospitalId = req.user.hospitalId;
     }
     
@@ -74,7 +74,7 @@ router.get('/patient/:patientId', protect, async (req, res) => {
 } else if (req.user.role === 'doctor') {
       filter.doctorId = req.user.doctorProfileId;
       if (req.user.hospitalId) filter.hospitalId = req.user.hospitalId;
-    } else if (req.user.role === 'admin' && req.user.hospitalId) {
+    } else if (req.user.role === 'hospital_admin' && req.user.hospitalId) {
       filter.hospitalId = req.user.hospitalId;
     }
     
@@ -138,7 +138,7 @@ date: getISTDateString(),
     
     // Notify admins about new record created by doctor
     if (req.user.role === 'doctor') {
-      const admins = await User.find({ role: 'admin', status: 'active' }).select('_id');
+      const admins = await User.find({ role: 'hospital_admin', status: 'active' }).select('_id');
       await Notification.insertMany(admins.map(admin => ({
         title: 'New Medical Record Generated',
         message: `Dr. ${doctorName} created a ${type || 'record'} for ${patient || 'a patient'}`,

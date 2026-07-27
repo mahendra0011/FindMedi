@@ -181,7 +181,7 @@ const userResponse = async (user) => {
     entityApproved = facility?.status === 'approved';
   } else if (user.role === 'delivery_boy') {
     entityApproved = user.approvalStatus === 'approved';
-  } else if (user.role === 'admin' && user.hospitalId) {
+  } else if (user.role === 'hospital_admin' && user.hospitalId) {
     const hospital = await Hospital.findById(user.hospitalId).select('status');
     entityApproved = hospital?.status === 'approved';
   }
@@ -225,7 +225,7 @@ const userResponse = async (user) => {
 };
 
 const notifyAdmins = async ({ title, message }) => {
-  const admins = await User.find({ role: 'admin', status: 'active' }).select('_id');
+  const admins = await User.find({ role: 'hospital_admin', status: 'active' }).select('_id');
   if (!admins.length) return;
 
   const notifs = await Notification.insertMany(admins.map(admin => ({
@@ -262,7 +262,7 @@ router.post('/register', validate(registerSchema), async (req, res) => {
       consultationFee = 0,
     } = req.body;
 
-    const normalizedRole = ['admin', 'doctor', 'patient', 'technician'].includes(role) ? role : 'patient';
+    const normalizedRole = ['hospital_admin', 'doctor', 'patient', 'technician'].includes(role) ? role : 'patient';
     const lowerEmail = email.toLowerCase();
 
     if (normalizedRole === 'doctor' && (!specialization || !licenseNumber || !(qualification || qualifications))) {
@@ -592,7 +592,7 @@ router.post('/login', validate(loginSchema), async (req, res) => {
       }
     }
 
-    if (user.role === 'admin' && user.hospitalId) {
+    if (user.role === 'hospital_admin' && user.hospitalId) {
       const hospital = await Hospital.findById(user.hospitalId).select('status');
       if (hospital?.status === 'pending') {
         return res.status(403).json({

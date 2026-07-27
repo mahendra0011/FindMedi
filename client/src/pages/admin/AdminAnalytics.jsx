@@ -7,8 +7,8 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
 
 export default function AdminAnalytics() {
-  const { data: stats, isLoading: statsLoading } = useApiQuery(['admin', 'stats'], () => api.dashboardStats());
-  const { data: users = [], isLoading: usersLoading } = useApiQuery(['admin', 'users'], () => api.getUsers(), { select: (res) => res?.data || res || [] });
+  const { data: stats, isLoading: statsLoading } = useApiQuery(['hospital_admin', 'stats'], () => api.dashboardStats());
+  const { data: users = [], isLoading: usersLoading } = useApiQuery(['hospital_admin', 'users'], () => api.getUsers(), { select: (res) => res?.data || res || [] });
 
   if (statsLoading || usersLoading) return <div className="flex justify-center py-12"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>;
 
@@ -80,7 +80,7 @@ export default function AdminAnalytics() {
                 { name: 'Patients', value: users.filter(u => u.role === 'patient').length },
                 { name: 'Doctors', value: users.filter(u => u.role === 'doctor').length },
                 { name: 'Clinic Doctors', value: users.filter(u => u.role === 'clinic_doctor').length },
-                { name: 'Admins', value: users.filter(u => u.role === 'admin').length },
+                { name: 'Admins', value: users.filter(u => u.role === 'hospital_admin').length },
                 { name: 'Super Admins', value: users.filter(u => u.role === 'superadmin').length },
                 { name: 'Lab Owners', value: users.filter(u => u.role === 'lab_owner').length },
                 { name: 'Pharmacy Owners', value: users.filter(u => u.role === 'pharmacy_owner').length },

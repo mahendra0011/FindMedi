@@ -44,7 +44,7 @@ const orderId = generateOrderId('LAB');
     });
 
     await auditLog('create_lab_order', req.user._id, { recordId: order._id, ip: req.ip, userAgent: req.get('user-agent') });
-    const labStaff = await User.find({ role: { $in: ['lab_receptionist', 'lab_technician', 'admin'] }, status: 'active' }).select('_id');
+    const labStaff = await User.find({ role: { $in: ['lab_receptionist', 'lab_technician', 'hospital_admin'] }, status: 'active' }).select('_id');
     await Notification.insertMany(labStaff.map(staff => ({
       title: 'New Lab Order', message: `Dr. ${req.user.name} ordered ${tests.length} test(s) for ${patientName}`,
       type: 'lab', userId: staff._id.toString(),

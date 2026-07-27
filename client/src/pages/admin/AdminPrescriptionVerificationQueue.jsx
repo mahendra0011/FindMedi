@@ -325,7 +325,7 @@ export default function AdminPrescriptionVerificationQueue() {
                   <div className="p-3 bg-muted/20 rounded-xl text-sm">{selectedRx.verificationNotes}</div>
                   {selectedRx.verifiedAt && (
                     <p className="text-xs text-muted-foreground/70 mt-1">
-                      By: {selectedRx.verifiedBy?.name || 'Admin'} on {new Date(selectedRx.verifiedAt).toLocaleString()}
+                      By: {selectedRx.verifiedBy?.name || 'hospital_admin'} on {new Date(selectedRx.verifiedAt).toLocaleString()}
                     </p>
                   )}
                 </div>

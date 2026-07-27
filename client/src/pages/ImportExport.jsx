@@ -169,7 +169,7 @@ export default function ImportExport() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <ImportCard type="patients" title="Patients" description="Import patients from Excel" icon={Users} />
             <ImportCard type="doctors" title="Doctors" description="Import doctors from Excel" icon={Stethoscope} />
-            {user?.role === 'admin' && (
+            {user?.role === 'hospital_admin' && (
               <ImportCard type="billing" title="Billing" description="Import billing records from Excel" icon={CreditCard} />
             )}
           </div>
@@ -195,7 +195,7 @@ export default function ImportExport() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <ExportCard type="patients" title="Patients" description="Export all patient records" icon={Users} />
             <ExportCard type="doctors" title="Doctors" description="Export all doctor records" icon={Stethoscope} />
-            {user?.role === 'admin' && (
+            {user?.role === 'hospital_admin' && (
               <>
                 <ExportCard type="billing" title="Billing" description="Export billing records" icon={CreditCard} />
                 <ExportCard type="appointments" title="Appointments" description="Export appointment records" icon={CalendarDays} />

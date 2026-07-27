@@ -22,7 +22,7 @@ export default function Notifications() {
       const list = data?.data || data?.notifications || data || [];
       const userId = (user?._id || user?.id)?.toString();
       let filtered = list;
-      if (user?.role !== 'admin') {
+      if (user?.role !== 'hospital_admin') {
         filtered = list.filter(n => n.userId === userId);
       }
       setNotifications(filtered);

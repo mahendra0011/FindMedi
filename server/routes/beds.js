@@ -35,7 +35,7 @@ router.get('/stats', protect, scopeToHospital, async (req, res) => {
 
 router.post('/', protect, scopeToHospital, validate(createBedSchema), async (req, res) => {
   try {
-    if (req.user.role !== 'superadmin' && req.user.role !== 'admin') {
+    if (req.user.role !== 'superadmin' && req.user.role !== 'hospital_admin') {
       return res.status(403).json({ message: 'Admin access required' });
     }
     const data = { ...req.body, hospitalId: req.hospitalId };
@@ -46,7 +46,7 @@ router.post('/', protect, scopeToHospital, validate(createBedSchema), async (req
 
 router.put('/:id', protect, scopeToHospital, validate(updateBedSchema), async (req, res) => {
   try {
-    if (req.user.role !== 'superadmin' && req.user.role !== 'admin') {
+    if (req.user.role !== 'superadmin' && req.user.role !== 'hospital_admin') {
       return res.status(403).json({ message: 'Admin access required' });
     }
     const bed = await Bed.findOne({ _id: req.params.id, hospitalId: req.hospitalId });
@@ -58,7 +58,7 @@ router.put('/:id', protect, scopeToHospital, validate(updateBedSchema), async (r
 
 router.delete('/:id', protect, scopeToHospital, async (req, res) => {
   try {
-    if (req.user.role !== 'superadmin' && req.user.role !== 'admin') {
+    if (req.user.role !== 'superadmin' && req.user.role !== 'hospital_admin') {
       return res.status(403).json({ message: 'Admin access required' });
     }
     const bed = await Bed.findOne({ _id: req.params.id, hospitalId: req.hospitalId });

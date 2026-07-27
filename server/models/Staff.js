@@ -4,7 +4,7 @@ const staffSchema = new mongoose.Schema({
   employeeId: { type: String, required: true, unique: true },
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   name: { type: String, required: true },
-  role: { type: String, enum: ['Admin', 'Doctor', 'Nurse', 'Pharmacist', 'Lab Technician', 'Radiologist', 'Dietitian', 'Physiotherapist', 'Counselor', 'Technician', 'Helper', 'Security', 'Accountant', 'Receptionist'], required: true },
+  role: { type: String, enum: ['hospital_admin', 'Doctor', 'Nurse', 'Pharmacist', 'Lab Technician', 'Radiologist', 'Dietitian', 'Physiotherapist', 'Counselor', 'Technician', 'Helper', 'Security', 'Accountant', 'Receptionist'], required: true },
   department: { type: String },
   designation: { type: String },
   joinDate: { type: Date, required: true },

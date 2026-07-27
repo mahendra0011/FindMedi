@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
 
 const roleColors = {
   superadmin: 'bg-destructive/10 text-destructive',
@@ -16,7 +17,13 @@ const roleColors = {
 };
 const roleIcons = { superadmin: Shield, admin: Shield, doctor: Stethoscope, clinic_doctor: Stethoscope, patient: UserRound, lab_owner: Activity, pharmacy_owner: Activity };
 
+const allRoleFilters = ['All', 'superadmin', 'hospital_admin', 'doctor', 'clinic_doctor', 'patient', 'lab_owner', 'pharmacy_owner'];
+const hospitalRoleFilters = ['All', 'hospital_admin', 'doctor', 'patient', 'nurse', 'radiologist', 'dietitian', 'physiotherapist', 'counselor', 'accountant', 'security', 'technician', 'helper'];
+
 export default function AdminUsers() {
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === 'superadmin';
+  const roleFilters = isSuperAdmin ? allRoleFilters : hospitalRoleFilters;
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('All');
@@ -47,8 +54,12 @@ export default function AdminUsers() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-heading text-2xl font-bold text-foreground">Manage Users</h1>
-        <p className="text-muted-foreground">View, block, or remove user accounts</p>
+        <h1 className="font-heading text-2xl font-bold text-foreground">
+          {isSuperAdmin ? 'Manage Users' : 'Manage Hospital Staff'}
+        </h1>
+        <p className="text-muted-foreground">
+          {isSuperAdmin ? 'View, block, or remove user accounts' : 'View, block, or remove hospital staff accounts'}
+        </p>
       </div>
 
       {/* Search & Filter */}
@@ -58,7 +69,7 @@ export default function AdminUsers() {
           <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search users..." className="pl-10" />
         </div>
         <div className="flex gap-2">
-          {['All', 'superadmin', 'admin', 'doctor', 'clinic_doctor', 'patient', 'lab_owner', 'pharmacy_owner'].map(r => (
+          {roleFilters.map(r => (
             <button key={r} onClick={() => setRoleFilter(r)}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors capitalize ${roleFilter === r ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>
               {r}
@@ -71,7 +82,7 @@ export default function AdminUsers() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-card rounded-2xl border border-border/60 p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center"><Shield className="w-5 h-5 text-primary" /></div>
-          <div><p className="text-sm text-muted-foreground">Admins</p><p className="font-heading text-xl font-bold">{users.filter(u => u.role === 'admin').length}</p></div>
+          <div><p className="text-sm text-muted-foreground">Admins</p><p className="font-heading text-xl font-bold">{users.filter(u => u.role === 'hospital_admin').length}</p></div>
         </div>
         <div className="bg-card rounded-2xl border border-border/60 p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-info/10 flex items-center justify-center"><Stethoscope className="w-5 h-5 text-info" /></div>

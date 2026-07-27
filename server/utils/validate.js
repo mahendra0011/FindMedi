@@ -31,7 +31,7 @@ export const registerSchema = z.object({
   name: z.string().trim().min(2, 'Name is required'),
   email: emailSchema,
   password: passwordSchema,
-  role: z.enum(['patient', 'doctor', 'admin', 'technician']).optional().default('patient'),
+  role: z.enum(['patient', 'doctor', 'hospital_admin', 'technician']).optional().default('patient'),
   phone: phoneSchema,
   gender: z.enum(['Male', 'Female', 'Other']).optional().default(''),
   dateOfBirth: z.string().optional(),
@@ -46,7 +46,7 @@ export const registerSchema = z.object({
 export const loginSchema = z.object({
   email: emailSchema,
   password: z.string().min(1, 'Password is required'),
-  role: z.enum(['superadmin', 'admin', 'doctor', 'clinic_doctor', 'patient', 'lab_owner', 'lab_receptionist', 'lab_technician', 'pathologist', 'pharmacy_owner', 'pharmacist', 'nurse', 'radiologist', 'dietitian', 'physiotherapist', 'counselor', 'accountant', 'security', 'technician', 'helper', 'delivery_boy']).optional(),
+  role: z.enum(['superadmin', 'hospital_admin', 'doctor', 'clinic_doctor', 'patient', 'lab_owner', 'lab_receptionist', 'lab_technician', 'pathologist', 'pharmacy_owner', 'pharmacist', 'nurse', 'radiologist', 'dietitian', 'physiotherapist', 'counselor', 'accountant', 'security', 'technician', 'helper', 'delivery_boy']).optional(),
 });
 
 export const changePasswordSchema = z.object({
