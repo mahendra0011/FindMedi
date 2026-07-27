@@ -154,10 +154,10 @@ router.post('/register', validate(registerFacilitySchema), async (req, res) => {
     });
 
     const finalPassword = adminPassword || Math.random().toString(36).slice(-10);
-    const roleMap = { hospital: 'admin', clinic: 'clinic_doctor', lab: 'lab_receptionist', pharmacy: 'pharmacist' };
+    const roleMap = { hospital: 'hospital_admin', clinic: 'clinic_doctor', lab: 'lab_receptionist', pharmacy: 'pharmacist' };
     const newUser = await User.create({
       name: adminName, email: adminEmail.toLowerCase(), password: finalPassword,
-      role: roleMap[type] || 'admin', phone: adminPhone || '',
+      role: roleMap[type] || 'hospital_admin', phone: adminPhone || '',
       facilityId: facility._id, facilityType: type,
       isVerified: false, status: 'active', approvalStatus: 'not_required',
     });

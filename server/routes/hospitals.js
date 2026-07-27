@@ -102,7 +102,7 @@ router.post('/register', validate(registerHospitalSchema), async (req, res) => {
       name: adminName,
       email: adminEmail.toLowerCase(),
       password: tempPassword,
-      role: 'admin',
+      role: 'hospital_admin',
       phone: adminPhone || '',
       hospitalId: hospital._id,
       isVerified: false,
@@ -166,7 +166,7 @@ router.delete('/:id', protect, superadminOnly, async (req, res) => {
     const hospitalId = hospital._id;
 
     await Doctor.deleteMany({ hospitalId });
-    await User.deleteMany({ hospitalId, role: 'admin' });
+    await User.deleteMany({ hospitalId, role: 'hospital_admin' });
     await Hospital.findByIdAndDelete(req.params.id);
     await auditLog('delete_hospital', req.user._id, { targetHospitalId: req.params.id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json({ message: 'Hospital and related records deleted' });

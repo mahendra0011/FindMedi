@@ -31,7 +31,7 @@ const order = await DietOrder.create({
      });
      await auditLog('create_diet_order', req.user._id, { recordId: order._id, ip: req.ip, userAgent: req.get('user-agent') });
      // Notify kitchen and dietitian
-    const kitchenStaff = await User.find({ role: { $in: ['admin', 'dietitian'] }, status: 'active' }).select('_id');
+    const kitchenStaff = await User.find({ role: { $in: ['hospital_admin', 'dietitian'] }, status: 'active' }).select('_id');
     await Notification.insertMany(kitchenStaff.map(s => ({
       title: 'New Diet Order', message: `${dietType} diet for ${patientName} (${ward || 'N/A'})`,
       type: 'diet', userId: s._id.toString(),

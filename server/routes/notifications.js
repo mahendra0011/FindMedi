@@ -11,7 +11,7 @@ const router = express.Router();
 const getNotificationUserId = async (req) => {
   const role = req.user.role;
   const rawId = req.user._id.toString();
-  if (role === 'admin') {
+  if (role === 'hospital_admin') {
     return req.query.userId || null;
   }
   if (role === 'doctor') {

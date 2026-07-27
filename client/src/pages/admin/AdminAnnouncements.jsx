@@ -85,7 +85,7 @@ export default function AdminAnnouncements() {
             <div className="space-y-2">
               <Label>Send To</Label>
               <div className="flex gap-1.5 flex-wrap">
-                {['all', 'superadmin', 'admin', 'doctor', 'clinic_doctor', 'patient', 'lab_owner', 'pharmacy_owner'].map(role => (
+                {['all', 'superadmin', 'hospital_admin', 'doctor', 'clinic_doctor', 'patient', 'lab_owner', 'pharmacy_owner'].map(role => (
                   <button key={role} onClick={() => toggleRole(role)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-colors ${targetRoles.includes(role) ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>
                     {role === 'all' ? 'Everyone' : role + 's'}
@@ -125,7 +125,7 @@ export default function AdminAnnouncements() {
                     </div>
                     <p className="text-sm text-foreground mt-1.5">{a.message}</p>
                     <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1"><User className="w-3 h-3" /> {a.createdBy?.name || 'Admin'}</span>
+                      <span className="flex items-center gap-1"><User className="w-3 h-3" /> {a.createdBy?.name || 'hospital_admin'}</span>
                       <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {new Date(a.createdAt).toLocaleDateString()}</span>
                       <span>To: {(a.targetRoles || ['all']).join(', ')}</span>
                     </div>

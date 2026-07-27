@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 const paymentSchema = new mongoose.Schema({
-  transaction_id: { type: String, required: true, unique: true },
+  transaction_id: { type: String, required: true },
   patient_id: { type: String, required: true },
   patient_name: { type: String, required: true },
   amount: { type: Number, required: true },
@@ -17,6 +17,7 @@ const paymentSchema = new mongoose.Schema({
   hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
   createdAt: { type: Date, default: Date.now },
 });
+paymentSchema.index({ transaction_id: 1 }, { unique: true, sparse: true });
 paymentSchema.index({ referenceId: 1, status: 1 }, { unique: true, partialFilterExpression: { status: 'completed', referenceId: { $type: "string", $ne: "" } } });
 
 export default mongoose.model('Payment', paymentSchema);

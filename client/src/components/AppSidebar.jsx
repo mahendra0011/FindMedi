@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, UserRound, Stethoscope, CalendarDays, FileText,
   CreditCard, Percent, Settings, ChevronLeft, ChevronRight, Activity, LogOut,
-  Home, Search, Star, Users, BarChart3, Bell, Building2, Clock, Calendar, DollarSign, FileUp, Download, TestTube, AlertTriangle, Menu, X, Bed, Pill, FlaskConical, Hospital, Heart, Brain, Syringe, ClipboardList, ShieldCheck, Baby, Ambulance, IndianRupee, History, Flag, ShoppingCart, Megaphone, Settings2, Truck, Microscope, HelpCircle, MapPinned, User, Bookmark, Upload, TrendingUp, FileCheck, Tags, Headset, Shield, Tag, MapPin, Globe
+  Home, Search, Star, Users, BarChart3, Bell, Building2, Clock, Calendar, DollarSign, FileUp, Download, TestTube, AlertTriangle, Menu, X, Bed, Pill, FlaskConical, Hospital, Heart, Brain, Syringe, ClipboardList, ShieldCheck, Baby, Ambulance, IndianRupee, History, Flag, ShoppingCart, Megaphone, Settings2, Truck, Microscope, HelpCircle, MapPinned, User, Bookmark, Upload, TrendingUp, FileCheck, Tags, Headset, Shield, Tag, MapPin, Globe, Package, RotateCcw
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { t } from '@/lib/settings';
@@ -42,7 +42,7 @@ const navConfig = {
     { icon: Settings,        labelKey: 'nav.settings',         path: '/settings'         },
     { icon: History,         labelKey: 'nav.auditLogs',        path: '/audit-logs'       },
   ],
-  admin: [
+  hospital_admin: [
     { icon: LayoutDashboard, labelKey: 'nav.dashboard',        path: '/dashboard'        },
     { icon: Users,           labelKey: 'nav.manageUsers',      path: '/admin/users'      },
     { icon: Stethoscope,     labelKey: 'nav.manageDoctors',    path: '/admin/doctors'    },
@@ -181,22 +181,25 @@ const navConfig = {
     { icon: Star,            labelKey: 'nav.myReviews',             path: '/patient/reviews'            },
     { icon: User,            labelKey: 'nav.profileSettings',       path: '/patient/profile'            },
     { icon: HelpCircle,      labelKey: 'nav.support',               path: '/patient/support'            },
-    { icon: History,         labelKey: 'nav.auditLogs',        path: '/audit-logs'       },
+    { icon: Users,           labelKey: 'nav.family',                 path: '/patient/family'             },
+    { icon: RotateCcw,       labelKey: 'nav.refunds',                path: '/patient/refunds'            },
+    { icon: Settings,        labelKey: 'nav.platformSettings',       path: '/patient/settings'           },
+    { icon: History,         labelKey: 'nav.auditLogs',              path: '/audit-logs'                 },
   ],
   delivery_boy: [
-    { icon: LayoutDashboard, labelKey: 'nav.dashboard',        path: '/dashboard'           },
-    { icon: Truck,           labelKey: 'nav.myDeliveries',     path: '/delivery/deliveries' },
-    { icon: MapPin,          labelKey: 'nav.deliveryZone',     path: '/delivery/zone'       },
-    { icon: Clock,           labelKey: 'nav.availability',     path: '/delivery/availability' },
-    { icon: IndianRupee,     labelKey: 'nav.earnings',         path: '/delivery/earnings'   },
-    { icon: FileText,        labelKey: 'nav.myDocuments',      path: '/delivery/documents'  },
-    { icon: Bell,            labelKey: 'nav.notifications',    path: '/notifications'       },
-    { icon: User,            labelKey: 'nav.profileSettings',  path: '/delivery/profile'    },
-    { icon: History,         labelKey: 'nav.auditLogs',        path: '/audit-logs'       },
+    { icon: LayoutDashboard, labelKey: 'nav.dashboard',        path: '/dashboard'            },
+    { icon: Package,         labelKey: 'nav.myDeliveries',     path: '/delivery/orders'      },
+    { icon: History,         labelKey: 'nav.history',          path: '/delivery/history'     },
+    { icon: IndianRupee,     labelKey: 'nav.earnings',         path: '/delivery/earnings'    },
+    { icon: MapPin,          labelKey: 'nav.deliveryZone',     path: '/delivery/zone'        },
+    { icon: Star,            labelKey: 'nav.myReviews',        path: '/delivery/reviews'     },
+    { icon: FileText,        labelKey: 'nav.myDocuments',      path: '/delivery/documents'   },
+    { icon: Bell,            labelKey: 'nav.notifications',    path: '/notifications'        },
+    { icon: User,            labelKey: 'nav.profileSettings',  path: '/delivery/settings'    },
   ],
 };
 
-const roleBadgeColor = { admin: 'bg-primary/20 text-primary', doctor: 'bg-info/20 text-info', patient: 'bg-success/20 text-success', clinic_doctor: 'bg-warning/20 text-warning', lab_owner: 'bg-purple-500/20 text-purple-600', pharmacy_owner: 'bg-rose-500/20 text-rose-600' };
+const roleBadgeColor = { hospital_admin: 'bg-primary/20 text-primary', doctor: 'bg-info/20 text-info', patient: 'bg-success/20 text-success', clinic_doctor: 'bg-warning/20 text-warning', lab_owner: 'bg-purple-500/20 text-purple-600', pharmacy_owner: 'bg-rose-500/20 text-rose-600', delivery_boy: 'bg-blue-500/20 text-blue-600' };
 
 function SidebarContent({ collapsed, onToggleCollapse, onNavClick }) {
   const location = useLocation();

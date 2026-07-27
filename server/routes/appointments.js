@@ -63,7 +63,7 @@ router.get('/', protect, async (req, res) => {
     } else if (req.user.role === 'doctor' || req.user.role === 'clinic_doctor') {
       filter.doctorId = req.user.doctorProfileId;
       if (req.user.hospitalId) filter.hospitalId = req.user.hospitalId;
-    } else if (req.user.role === 'admin') {
+    } else if (req.user.role === 'hospital_admin') {
       if (req.user.hospitalId) filter.hospitalId = req.user.hospitalId;
     }
     
@@ -136,7 +136,7 @@ router.get('/my-appointments', protect, async (req, res) => {
     } else if (req.user.role === 'doctor' || req.user.role === 'clinic_doctor') {
       filter.doctorId = req.user.doctorProfileId;
       if (req.user.hospitalId) filter.hospitalId = req.user.hospitalId;
-    } else if (req.user.role === 'admin') {
+    } else if (req.user.role === 'hospital_admin') {
       if (req.user.hospitalId) filter.hospitalId = req.user.hospitalId;
     }
     
@@ -260,7 +260,7 @@ router.get('/:id', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/', protect, requireRole(['admin', 'superadmin']), validate(createAppointmentSchema), async (req, res) => {
+router.post('/', protect, requireRole(['hospital_admin', 'superadmin']), validate(createAppointmentSchema), async (req, res) => {
   try {
     const { doctorId, doctor, department, date, time, type, symptoms, priority } = req.body;
     

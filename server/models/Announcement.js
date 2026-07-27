@@ -5,7 +5,7 @@ const announcementSchema = new mongoose.Schema({
   title: { type: String, required: true },
   message: { type: String, required: true },
   priority: { type: String, enum: ['low', 'normal', 'high', 'urgent'], default: 'normal' },
-  targetRoles: [{ type: String, enum: ['doctor', 'nurse', 'admin', 'staff', 'all'] }],
+  targetRoles: [{ type: String, enum: ['doctor', 'nurse', 'hospital_admin', 'staff', 'all'] }],
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   createdAt: { type: Date, default: Date.now },
 });

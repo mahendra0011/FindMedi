@@ -32,7 +32,7 @@ const isAdminListRequest = async (req) => {
     const token = auth.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(decoded.id).select('role status isVerified');
-    return Boolean(user && user.role === 'admin' && user.status !== 'blocked' && user.isVerified);
+    return Boolean(user && user.role === 'hospital_admin' && user.status !== 'blocked' && user.isVerified);
   } catch {
     return false;
   }
@@ -58,7 +58,7 @@ router.get('/', async (req, res) => {
     // Non-superadmin admin/clinic_doctor ko apni hi facility ke doctors milein — query param se bypass na ho
     let effectiveHospitalId = hospitalId;
     let effectiveFacilityId = facilityId;
-    if (req.user && req.user.role !== 'superadmin' && (req.user.role === 'admin' || req.user.role === 'clinic_doctor')) {
+    if (req.user && req.user.role !== 'superadmin' && (req.user.role === 'hospital_admin' || req.user.role === 'clinic_doctor')) {
       effectiveHospitalId = req.user.hospitalId ? req.user.hospitalId.toString() : undefined;
       effectiveFacilityId = req.user.facilityId ? req.user.facilityId.toString() : undefined;
     }
@@ -121,7 +121,7 @@ router.get('/user/:userId', protect, async (req, res) => {
 
 router.get('/my-facility/auto-confirm', protect, async (req, res) => {
   try {
-    if (!['admin', 'clinic_doctor', 'superadmin'].includes(req.user.role)) {
+    if (!['hospital_admin', 'clinic_doctor', 'superadmin'].includes(req.user.role)) {
       return res.status(403).json({ message: 'Not authorized' });
     }
     const filter = {};
@@ -140,7 +140,7 @@ router.get('/my-facility/auto-confirm', protect, async (req, res) => {
 
 router.put('/:id/auto-confirm', protect, async (req, res) => {
   try {
-    if (!['admin', 'clinic_doctor', 'superadmin'].includes(req.user.role)) {
+    if (!['hospital_admin', 'clinic_doctor', 'superadmin'].includes(req.user.role)) {
       return res.status(403).json({ message: 'Not authorized' });
     }
     const doctor = await Doctor.findById(req.params.id);
@@ -207,7 +207,7 @@ router.put('/me/slot-capacity', protect, async (req, res) => {
 
 router.put('/:id/slot-capacity', protect, async (req, res) => {
   try {
-    if (!['admin', 'clinic_doctor', 'superadmin'].includes(req.user.role)) return res.status(403).json({ message: 'Not authorized' });
+    if (!['hospital_admin', 'clinic_doctor', 'superadmin'].includes(req.user.role)) return res.status(403).json({ message: 'Not authorized' });
     const doctor = await Doctor.findById(req.params.id);
     if (!doctor) return res.status(404).json({ message: 'Doctor not found' });
     if (req.user.role !== 'superadmin') {
@@ -242,7 +242,7 @@ router.get('/:id', async (req, res) => {
 
 router.post('/', protect, validate(createDoctorSchema), async (req, res) => {
   try {
-    if (req.user.role !== 'superadmin' && req.user.role !== 'admin') {
+    if (req.user.role !== 'superadmin' && req.user.role !== 'hospital_admin') {
       return res.status(403).json({ message: 'Admin access required' });
     }
     const hospitalId = req.user.hospitalId;
@@ -351,7 +351,7 @@ router.put('/:id/clinic-profile', protect, adminOnly, validate(clinicProfileSche
 
 router.put('/:id/approve', protect, async (req, res) => {
   try {
-    if (req.user.role !== 'superadmin' && req.user.role !== 'admin') {
+    if (req.user.role !== 'superadmin' && req.user.role !== 'hospital_admin') {
       return res.status(403).json({ message: 'Admin access required' });
     }
     const doctor = await Doctor.findById(req.params.id);
@@ -381,7 +381,7 @@ router.put('/:id/approve', protect, async (req, res) => {
 
 router.put('/:id/reject', protect, async (req, res) => {
   try {
-    if (req.user.role !== 'superadmin' && req.user.role !== 'admin') {
+    if (req.user.role !== 'superadmin' && req.user.role !== 'hospital_admin') {
       return res.status(403).json({ message: 'Admin access required' });
     }
     const doctor = await Doctor.findById(req.params.id);
@@ -436,7 +436,7 @@ const generateTimeSlots = (startTime, endTime, slotDuration) => {
 
 router.put('/:id/schedule', protect, validate(scheduleSchema), async (req, res) => {
   try {
-    if (req.user.role !== 'superadmin' && req.user.role !== 'admin') {
+    if (req.user.role !== 'superadmin' && req.user.role !== 'hospital_admin') {
       return res.status(403).json({ message: 'Admin access required' });
     }
     const doctor = await Doctor.findById(req.params.id);
@@ -479,7 +479,7 @@ router.post('/:id/signature', protect, upload.single('signature'), async (req, r
 
 router.delete('/:id', protect, async (req, res) => {
   try {
-    if (req.user.role !== 'superadmin' && req.user.role !== 'admin') {
+    if (req.user.role !== 'superadmin' && req.user.role !== 'hospital_admin') {
       return res.status(403).json({ message: 'Admin access required' });
     }
     const doctor = await Doctor.findById(req.params.id);

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { Stethoscope, Beaker, Pill, Calendar, ChevronDown, ExternalLink, Loader2, Clock, CheckCircle, XCircle, AlertCircle, RefreshCw } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Stethoscope, Beaker, Pill, Calendar, ChevronDown, ExternalLink, Loader2, Clock, CheckCircle, XCircle, AlertCircle, RefreshCw, CalendarDays, User, IndianRupee, TrendingUp, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
@@ -163,33 +163,36 @@ export default function PatientBookingHistory({ initialType }) {
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-card rounded-2xl border border-border/60 p-5">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Calendar className="w-5 h-5 text-primary" />
+        <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
+          className="bg-card rounded-3xl border border-border/50 p-5 shadow-sm hover:shadow-md transition-all">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shadow-sm">
+              <CalendarDays className="w-5.5 h-5.5 text-primary" />
             </div>
-            <p className="text-sm text-muted-foreground">Total Bookings</p>
+            <p className="text-sm font-medium text-muted-foreground">Total Bookings</p>
           </div>
-          <p className="font-heading text-2xl font-bold text-foreground">{totalBookings}</p>
-        </div>
-        <div className="bg-card rounded-2xl border border-border/60 p-5">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-              <CheckCircle className="w-5 h-5 text-emerald-600" />
+          <p className="font-heading text-3xl font-bold text-foreground tracking-tight">{totalBookings}</p>
+        </motion.div>
+        <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+          className="bg-card rounded-3xl border border-border/50 p-5 shadow-sm hover:shadow-md transition-all">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 flex items-center justify-center shadow-sm">
+              <CheckCircle className="w-5.5 h-5.5 text-emerald-500" />
             </div>
-            <p className="text-sm text-muted-foreground">Confirmed</p>
+            <p className="text-sm font-medium text-muted-foreground">Confirmed</p>
           </div>
-          <p className="font-heading text-2xl font-bold text-foreground">{confirmedCount}</p>
-        </div>
-        <div className="bg-card rounded-2xl border border-border/60 p-5">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center">
-              <Clock className="w-5 h-5 text-amber-600" />
+          <p className="font-heading text-3xl font-bold text-emerald-600 tracking-tight">{confirmedCount}</p>
+        </motion.div>
+        <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
+          className="bg-card rounded-3xl border border-border/50 p-5 shadow-sm hover:shadow-md transition-all">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-500/20 to-amber-500/5 flex items-center justify-center shadow-sm">
+              <Clock className="w-5.5 h-5.5 text-amber-500" />
             </div>
-            <p className="text-sm text-muted-foreground">Pending</p>
+            <p className="text-sm font-medium text-muted-foreground">Pending</p>
           </div>
-          <p className="font-heading text-2xl font-bold text-foreground">{pendingCount}</p>
-        </div>
+          <p className="font-heading text-3xl font-bold text-amber-600 tracking-tight">{pendingCount}</p>
+        </motion.div>
       </div>
 
       {/* Filters */}

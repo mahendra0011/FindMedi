@@ -14,6 +14,7 @@ import FlowingMenu from "@/components/reactbits/FlowingMenu";
 import ScrollVelocity from "@/components/reactbits/ScrollVelocity";
 import SplitText from "@/components/reactbits/SplitText";
 import BlurText from "@/components/reactbits/BlurText";
+import AIChatAssistant from "@/components/AIChatAssistant";
 
 const heroImage = "https://cdn.hms.hospital/123/01KNC4WSYHF1637VJ39K3KVJ2M.png";
 const doctorImage = "https://alliedsoftech89.wordpress.com/wp-content/uploads/2013/06/medical-doctor-jobs-in-china-expat-jobs-in-china.jpg";
@@ -208,7 +209,7 @@ const Home = () => {
   }, [countersVisible, counters]);
 
   useScroll();
-  const dashboardLabel = user?.role === 'admin'
+  const dashboardLabel = user?.role === 'hospital_admin'
     ? 'Admin Dashboard'
     : user?.role === 'doctor'
       ? 'Doctor Dashboard'
@@ -884,6 +885,7 @@ const Home = () => {
       </section>
 
       <PublicFooter />
+      <AIChatAssistant />
     </div>
   );
 };

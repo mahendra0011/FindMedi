@@ -242,7 +242,7 @@ export const sendLabResultAlert = async (patient, report) => {
 };
 
 export const sendAccountVerifiedEmail = async (user) => {
-  const dashboardLabel = user.role === 'admin'
+  const dashboardLabel = user.role === 'hospital_admin'
     ? 'Admin Dashboard'
     : user.role === 'doctor'
       ? 'Doctor Dashboard'

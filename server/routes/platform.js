@@ -65,7 +65,7 @@ router.post('/register', validate(platformRegisterSchema), async (req, res) => {
     if (existingUser) return res.status(400).json({ message: 'An account with this email already exists' });
 
     const roleMap = {
-      hospital: 'admin',
+      hospital: 'hospital_admin',
       clinic: 'clinic_doctor',
       diagnostic: 'lab_owner',
       pharmacy: 'pharmacy_owner',
@@ -105,7 +105,7 @@ router.post('/register', validate(platformRegisterSchema), async (req, res) => {
         name: account.name,
         email: account.email.toLowerCase(),
         password: hashedPassword,
-        role: 'admin',
+        role: 'hospital_admin',
         phone: account.phone,
         hospitalId: entity._id,
         isVerified: false,

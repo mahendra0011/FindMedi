@@ -76,7 +76,7 @@ export default function UserManagementTab() {
       </div>
 
       <div className="flex gap-2 flex-wrap">
-        {['All', 'superadmin', 'admin', 'doctor', 'clinic_doctor', 'patient', 'lab_owner', 'pharmacy_owner'].map(r => (
+        {['All', 'superadmin', 'hospital_admin', 'doctor', 'clinic_doctor', 'patient', 'lab_owner', 'pharmacy_owner'].map(r => (
           <button key={r} onClick={() => setRoleFilter(r)}
             className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors capitalize ${roleFilter === r ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>
             {r}
@@ -87,7 +87,7 @@ export default function UserManagementTab() {
       <div className="grid grid-cols-4 gap-4">
         <div className="bg-card rounded-xl border p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center"><Shield className="w-5 h-5 text-primary" /></div>
-          <div><p className="text-xs text-muted-foreground">Admins</p><p className="font-heading text-xl font-bold">{users.filter(u => u.role === 'admin').length}</p></div>
+          <div><p className="text-xs text-muted-foreground">Admins</p><p className="font-heading text-xl font-bold">{users.filter(u => u.role === 'hospital_admin').length}</p></div>
         </div>
         <div className="bg-card rounded-xl border p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-info/10 flex items-center justify-center"><Stethoscope className="w-5 h-5 text-info" /></div>

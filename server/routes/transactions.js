@@ -435,7 +435,7 @@ router.get('/:id/invoice', protect, async (req, res, next) => {
       ? await Payment.findById(idParam)
       : await Payment.findOne({ transaction_id: idParam });
     if (!payment) return res.status(404).json({ message: 'Transaction not found' });
-    if (payment.patient_id !== req.user._id.toString() && req.user.role !== 'admin') {
+    if (payment.patient_id !== req.user._id.toString() && req.user.role !== 'hospital_admin') {
       return res.status(403).json({ message: 'Not authorized' });
     }
 
@@ -469,7 +469,7 @@ router.get('/:id/bill', protect, async (req, res, next) => {
       ? await Payment.findById(idParam)
       : await Payment.findOne({ transaction_id: idParam });
     if (!payment) return res.status(404).json({ message: 'Transaction not found' });
-    if (payment.patient_id !== req.user._id.toString() && req.user.role !== 'admin') {
+    if (payment.patient_id !== req.user._id.toString() && req.user.role !== 'hospital_admin') {
       return res.status(403).json({ message: 'Not authorized' });
     }
 

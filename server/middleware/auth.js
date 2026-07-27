@@ -82,7 +82,7 @@ export const auditAction = async (req, action) => {
 };
 
 export const adminOnly = (req, res, next) => {
-  if (req.user?.role !== 'admin' && req.user?.role !== 'superadmin') {
+  if (req.user?.role !== 'hospital_admin' && req.user?.role !== 'superadmin') {
     return res.status(403).json({ message: 'Admin access required' });
   }
   next();
@@ -105,14 +105,14 @@ export const superadminOnly = (req, res, next) => {
 };
 
 export const hospitalAdminOnly = (req, res, next) => {
-  if (req.user?.role !== 'admin' || !req.user?.hospitalId) {
+  if (req.user?.role !== 'hospital_admin' || !req.user?.hospitalId) {
     return res.status(403).json({ message: 'Hospital admin access required' });
   }
   next();
 };
 
 export const clinicalStaffOnly = (req, res, next) => {
-  if (!['superadmin', 'admin', 'doctor', 'nurse'].includes(req.user?.role)) {
+  if (!['superadmin', 'hospital_admin', 'doctor', 'nurse'].includes(req.user?.role)) {
     return res.status(403).json({ message: 'Clinical staff access required' });
   }
   next();
@@ -162,7 +162,7 @@ export const canAccessRecord = async (req, res, next) => {
       return next();
     }
 
-    if (user.role === 'admin') {
+    if (user.role === 'hospital_admin') {
       if (user.hospitalId && record.hospitalId && record.hospitalId.toString() !== user.hospitalId.toString()) {
         return res.status(403).json({ message: 'Forbidden: this record belongs to a different hospital' });
       }
@@ -195,7 +195,7 @@ export const canAccessPatient = async (req, res, next) => {
       return next();
     }
 
-    if (user.role === 'admin') {
+    if (user.role === 'hospital_admin') {
       if (user.hospitalId && patient.hospitalId && patient.hospitalId.toString() !== user.hospitalId.toString()) {
         return res.status(403).json({ message: 'Forbidden: this patient belongs to a different hospital' });
       }

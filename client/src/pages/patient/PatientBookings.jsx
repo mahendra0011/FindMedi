@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   CalendarDays, FlaskConical, Clock, CheckCircle2, XCircle,
   AlertCircle, Loader2, Search, ChevronRight, Syringe, FileText,
-  Eye, MapPin, Phone, IndianRupee, Activity, Stethoscope
+  Eye, MapPin, Phone, IndianRupee, Activity, Stethoscope, MessageCircle, PhoneCall
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -305,10 +305,25 @@ function BookingCard({ booking, index, onCancel }) {
                 <FileText className="w-3 h-3" /> View Report
               </Button>
             )}
-            <Button variant="outline" size="sm" className="text-xs h-8 gap-1"
-              onClick={() => { window.location.href = `tel:${booking.phone}`; }}>
-              <Phone className="w-3 h-3" /> Contact
-            </Button>
+            {booking.phone ? (
+              <div className="flex gap-1">
+                <Button variant="outline" size="sm" className="text-xs h-8 gap-1.5 hover:bg-success/10 hover:text-success hover:border-success/30 transition-all group relative"
+                  onClick={() => { window.location.href = `tel:${booking.phone}`; }}
+                  title={`Call ${booking.phone}`}>
+                  <PhoneCall className="w-3.5 h-3.5 group-hover:animate-bounce" />
+                  <span>Call</span>
+                </Button>
+                <Button variant="outline" size="sm" className="text-xs h-8 gap-1.5 hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-all group relative"
+                  onClick={() => { window.open(`https://wa.me/${booking.phone.replace(/[^0-9]/g, '')}`, '_blank'); }}
+                  title={`WhatsApp ${booking.phone}`}>
+                  <MessageCircle className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
+                </Button>
+              </div>
+            ) : (
+              <Button variant="outline" size="sm" className="text-xs h-8 gap-1.5" disabled>
+                <Phone className="w-3 h-3" /> Contact
+              </Button>
+            )}
           </div>
         </div>
       </div>

@@ -27,6 +27,7 @@ import Staff from './models/Staff.js';
 import Inventory from './models/Inventory.js';
 import ClinicProfile from './models/ClinicProfile.js';
 import Review from './models/Review.js';
+import DeliveryPartner from './models/DeliveryPartner.js';
 
 const readJSON = (file) => JSON.parse(fs.readFileSync(path.join(__dirname, 'mock-data', file), 'utf-8'));
 
@@ -40,7 +41,7 @@ async function seed() {
 
     // ===== CLEAR EXISTING DATA =====
     console.log('Clearing existing data...');
-    const collections = ['hospitals', 'facilities', 'users', 'doctors', 'clinicprofiles', 'patients', 'appointments', 'reviews', 'tests', 'medicines', 'beds', 'departments', 'staffs', 'inventories'];
+    const collections = ['hospitals', 'facilities', 'users', 'doctors', 'clinicprofiles', 'patients', 'appointments', 'reviews', 'tests', 'medicines', 'beds', 'departments', 'staffs', 'inventories', 'deliverypartners'];
     for (const col of collections) {
       try { await db.collection(col).deleteMany({}); } catch {}
     }
@@ -79,19 +80,20 @@ async function seed() {
     const usersData = readJSON('users.json');
     const usersMap = {};
     for (const u of usersData) {
-      const { _id, password, hospitalId, facilityId, ...rest } = u;
+      const { _id, password, hospitalId, facilityId, pharmacyId, ...rest } = u;
       const userObj = {
         ...rest,
         password, // pass raw — pre-save hook in User model will hash it
         isVerified: true,
         status: 'active',
-        approvalStatus: (rest.role === 'doctor' || rest.role === 'clinic_doctor') ? 'approved' : 'not_required',
+        approvalStatus: (rest.role === 'doctor' || rest.role === 'clinic_doctor' || rest.role === 'delivery_boy') ? 'approved' : 'not_required',
       };
       if (hospitalId && hospitalsMap[hospitalId]) userObj.hospitalId = hospitalsMap[hospitalId];
       if (facilityId && facilitiesMap[facilityId]) {
         userObj.facilityId = facilitiesMap[facilityId];
         userObj.facilityType = rest.facilityType;
       }
+      if (pharmacyId && facilitiesMap[pharmacyId]) userObj.pharmacyId = facilitiesMap[pharmacyId];
       const inserted = await User.create(userObj);
       usersMap[_id] = inserted._id;
     }
@@ -233,6 +235,36 @@ async function seed() {
     }
     console.log(`  ${staffData.length} staff created.`);
 
+    // ===== SEED DELIVERY PARTNERS =====
+    console.log('Seeding delivery partners...');
+    const deliveryPartnerUser = usersMap['delivery-user'];
+    if (deliveryPartnerUser) {
+      const pharmacyFacility = facilitiesMap['medistore-pharmacy'];
+      await DeliveryPartner.create({
+        userId: deliveryPartnerUser,
+        name: 'Delivery Partner',
+        phone: '9876543218',
+        email: 'delivery@medicore.com',
+        gender: 'Male',
+        address: 'MediStore Pharmacy, Vijay Nagar, Jabalpur',
+        city: 'Jabalpur',
+        pincode: '482003',
+        vehicleType: 'bike',
+        vehicleNumber: 'MP 04 AB 1234',
+        aadharDoc: 'https://via.placeholder.com/150',
+        panDoc: 'https://via.placeholder.com/150',
+        status: 'approved',
+        isOnline: true,
+        isAvailable: true,
+        assignedPharmacyId: pharmacyFacility || null,
+        rating: 4.5,
+        totalDeliveries: 127,
+      });
+      console.log('  1 delivery partner created.');
+    } else {
+      console.log('  0 delivery partners (no delivery-user found).');
+    }
+
     // ===== SEED INVENTORY =====
     console.log('Seeding inventory...');
     const inventoryData = readJSON('inventory.json');
@@ -244,16 +276,17 @@ async function seed() {
     }
     console.log(`  ${inventoryData.length} inventory items created.`);
 
-    console.log('\n✅ Seed complete! 14 sections seeded.');
-    console.log('   hospitals, facilities, users, doctors, clinicprofiles, patients, appointments, reviews, tests, medicines, beds, departments, staff, inventory');
+    console.log('\n✅ Seed complete! 15 sections seeded.');
+    console.log('   hospitals, facilities, users, doctors, clinicprofiles, patients, appointments, reviews, tests, medicines, beds, departments, staff, inventory, deliverypartners');
     console.log('\nDemo Accounts:');
     console.log('  superadmin → mahendrapra0077@gmail.com / admin@123');
-    console.log('  admin      → admin@medicore.com / password');
+    console.log('  hospital_admin → admin@medicore.com / password');
     console.log('  hospital   → hospital@medicore.com / password');
     console.log('  doctor     → sarah.smith@medicore.com / password');
     console.log('  clinic     → clinic@medicore.com / password');
     console.log('  diagnostic → diagnostic@medicore.com / password');
     console.log('  pharmacy   → pharmacy@medicore.com / password');
+    console.log('  delivery   → delivery@medicore.com / password');
     console.log('  patient    → patient@medicore.com / password');
 
   } catch (err) {

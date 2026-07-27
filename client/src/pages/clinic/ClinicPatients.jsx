@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Calendar, FileText, Plus, Save, Clock, Phone, Mail, Search, Users, TrendingUp, Stethoscope, Pill, Activity, ChevronRight, ChevronDown } from 'lucide-react';
+import { User, Calendar, FileText, Plus, Save, Clock, Phone, Mail, Search, Users, TrendingUp, Stethoscope, Pill, Activity, ChevronRight, ChevronDown, Droplets, Fingerprint, MapPin, HeartPulse } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -25,6 +25,8 @@ export default function ClinicPatients() {
   const [prescription, setPrescription] = useState('');
   const [recordType, setRecordType] = useState('Prescription');
   const [notes, setNotes] = useState('');
+  const [patientDetails, setPatientDetails] = useState({});
+  const [loadingDetails, setLoadingDetails] = useState({});
 
   const loadData = async () => {
     setLoading(true);
@@ -48,6 +50,33 @@ export default function ClinicPatients() {
   const getPatientRecords = (name) => records.filter(r => r.patient === name);
   const getVisitCount = (name) => getPatientAppointments(name).length;
   const getRecordCount = (name) => getPatientRecords(name).length;
+
+  const fetchPatientDetails = async (patientName) => {
+    if (patientDetails[patientName] || loadingDetails[patientName]) return;
+    setLoadingDetails(prev => ({ ...prev, [patientName]: true }));
+    try {
+      const result = await api.getPatients({ search: patientName, limit: 5 });
+      const patients = result?.data || result?.patients || result || [];
+      const match = patients.find(p => p.name?.toLowerCase() === patientName.toLowerCase());
+      if (match) {
+        setPatientDetails(prev => ({ ...prev, [patientName]: match }));
+      } else {
+        setPatientDetails(prev => ({ ...prev, [patientName]: null }));
+      }
+    } catch (e) {
+      console.error('Failed to fetch patient details:', e);
+      setPatientDetails(prev => ({ ...prev, [patientName]: null }));
+    }
+    setLoadingDetails(prev => ({ ...prev, [patientName]: false }));
+  };
+
+  const handleExpand = (patientName) => {
+    const isExpanded = expanded === patientName;
+    setExpanded(isExpanded ? null : patientName);
+    if (!isExpanded) {
+      fetchPatientDetails(patientName);
+    }
+  };
 
   const handleSaveRecord = async () => {
     if (!selectedPatient || !diagnosis) return;
@@ -115,9 +144,11 @@ export default function ClinicPatients() {
             const isExpanded = expanded === apt.patient;
             const visitCount = getVisitCount(apt.patient);
             const recordCount = getRecordCount(apt.patient);
+            const details = patientDetails[apt.patient];
+            const isLoadingDetails = loadingDetails[apt.patient];
             return (
               <motion.div key={apt._id || apt.patient + i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}
-                onClick={() => setExpanded(isExpanded ? null : apt.patient)}
+                onClick={() => handleExpand(apt.patient)}
                 className="bg-card rounded-2xl border border-border/60 overflow-hidden cursor-pointer hover:shadow-lg transition-all">
                 <div className="p-5">
                   <div className="flex items-center gap-4">
@@ -151,6 +182,77 @@ export default function ClinicPatients() {
                   {isExpanded && (
                     <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="border-t border-border/60 bg-muted/20">
                       <div className="p-4 space-y-4">
+                        {/* Patient Details Section */}
+                        {isLoadingDetails ? (
+                          <div className="flex justify-center py-4">
+                            <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                          </div>
+                        ) : details ? (
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            {details.age && (
+                              <div className="flex items-center gap-1.5 p-2 bg-card rounded-lg">
+                                <User className="w-3.5 h-3.5 text-primary" />
+                                <span className="text-muted-foreground">Age:</span>
+                                <span className="font-medium text-foreground">{details.age} yrs</span>
+                              </div>
+                            )}
+                            {details.gender && (
+                              <div className="flex items-center gap-1.5 p-2 bg-card rounded-lg">
+                                <HeartPulse className="w-3.5 h-3.5 text-rose-500" />
+                                <span className="text-muted-foreground">Gender:</span>
+                                <span className="font-medium text-foreground">{details.gender}</span>
+                              </div>
+                            )}
+                            {details.phone && (
+                              <div className="flex items-center gap-1.5 p-2 bg-card rounded-lg">
+                                <Phone className="w-3.5 h-3.5 text-success" />
+                                <span className="text-muted-foreground">Phone:</span>
+                                <span className="font-medium text-foreground">{details.phone}</span>
+                              </div>
+                            )}
+                            {details.bloodGroup && (
+                              <div className="flex items-center gap-1.5 p-2 bg-card rounded-lg">
+                                <Droplets className="w-3.5 h-3.5 text-destructive" />
+                                <span className="text-muted-foreground">Blood:</span>
+                                <span className="font-medium text-foreground">{details.bloodGroup}</span>
+                              </div>
+                            )}
+                            {details.uhid && (
+                              <div className="flex items-center gap-1.5 p-2 bg-card rounded-lg col-span-2">
+                                <Fingerprint className="w-3.5 h-3.5 text-info" />
+                                <span className="text-muted-foreground">UHID:</span>
+                                <span className="font-medium text-foreground">{details.uhid}</span>
+                              </div>
+                            )}
+                            {details.disease && (
+                              <div className="flex items-center gap-1.5 p-2 bg-card rounded-lg col-span-2">
+                                <Activity className="w-3.5 h-3.5 text-warning" />
+                                <span className="text-muted-foreground">Disease:</span>
+                                <span className="font-medium text-foreground">{details.disease}</span>
+                              </div>
+                            )}
+                            {details.email && (
+                              <div className="flex items-center gap-1.5 p-2 bg-card rounded-lg col-span-2">
+                                <Mail className="w-3.5 h-3.5 text-primary" />
+                                <span className="text-muted-foreground">Email:</span>
+                                <span className="font-medium text-foreground truncate">{details.email}</span>
+                              </div>
+                            )}
+                            {details.address && (
+                              <div className="flex items-center gap-1.5 p-2 bg-card rounded-lg col-span-2">
+                                <MapPin className="w-3.5 h-3.5 text-muted-foreground" />
+                                <span className="text-muted-foreground">Address:</span>
+                                <span className="font-medium text-foreground truncate">{details.address}</span>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="text-center py-3 text-xs text-muted-foreground">
+                            <p>No additional details available</p>
+                          </div>
+                        )}
+
+                        {/* Visit History */}
                         <div>
                           <h4 className="text-xs font-medium text-muted-foreground mb-2">Visit History</h4>
                           <div className="space-y-2">

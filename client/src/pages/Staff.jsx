@@ -85,7 +85,7 @@ export default function Staff() {
         </div>
         <select value={deptFilter} onChange={e => setDeptFilter(e.target.value)} className="h-10 px-3 rounded-lg border border-input bg-background text-sm">
           <option value="All">All Departments</option>
-          {['Cardiology', 'Neurology', 'Orthopedics', 'Pediatrics', 'Emergency', 'ICU', 'Lab', 'Pharmacy', 'Admin'].map(d => <option key={d} value={d}>{d}</option>)}
+          {['Cardiology', 'Neurology', 'Orthopedics', 'Pediatrics', 'Emergency', 'ICU', 'Lab', 'Pharmacy', 'hospital_admin'].map(d => <option key={d} value={d}>{d}</option>)}
         </select>
         <Button onClick={() => setShowCreate(true)}><Plus className="w-4 h-4 mr-1" /> Add Staff</Button>
       </div>
@@ -273,7 +273,7 @@ export default function Staff() {
                 <div><label className="text-sm font-medium mb-1 block">Phone</label><Input value={newStaff.phone} onChange={e => setNewStaff({ ...newStaff, phone: e.target.value })} /></div>
                 <div><label className="text-sm font-medium mb-1 block">Role</label>
                   <select value={newStaff.role} onChange={e => setNewStaff({ ...newStaff, role: e.target.value })} className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm">
-                    {['Doctor', 'Nurse', 'Admin', 'Technician', 'Pharmacist', 'Lab Staff', 'Housekeeping', 'Other'].map(r => <option key={r} value={r}>{r}</option>)}
+                    {['Doctor', 'Nurse', 'hospital_admin', 'Technician', 'Pharmacist', 'Lab Staff', 'Housekeeping', 'Other'].map(r => <option key={r} value={r}>{r}</option>)}
                   </select>
                 </div>
                 <div><label className="text-sm font-medium mb-1 block">Department</label><Input value={newStaff.department} onChange={e => setNewStaff({ ...newStaff, department: e.target.value })} /></div>

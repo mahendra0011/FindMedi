@@ -89,8 +89,27 @@ router.get('/favorites', protect, async (req, res) => {
     const { type } = req.query;
     const filter = { patientId: req.user._id };
     if (type) filter.refType = type;
-    const favorites = await SavedFavorite.find(filter).sort({ createdAt: -1 });
-    res.json({ favorites });
+    const favorites = await SavedFavorite.find(filter).sort({ createdAt: -1 }).lean();
+
+    // Enrich each favorite with full profile data from the referenced model
+    const Doctor = (await import('../models/Doctor.js')).default;
+    const Facility = (await import('../models/Facility.js')).default;
+
+    const enriched = await Promise.all(favorites.map(async (fav) => {
+      let profile = null;
+      if (fav.refType === 'doctor') {
+        profile = await Doctor.findById(fav.refId).select('name specialization qualifications experience fees rating address phone image location').lean();
+      } else if (fav.refType === 'hospital') {
+        profile = await Facility.findById(fav.refId).select('name type address phone city state rating image description').lean();
+      } else if (fav.refType === 'lab') {
+        profile = await Facility.findById(fav.refId).select('name type address phone city state rating image description').lean();
+      } else if (fav.refType === 'pharmacy') {
+        profile = await Facility.findById(fav.refId).select('name type address phone city state rating image description').lean();
+      }
+      return { ...fav, profile };
+    }));
+
+    res.json({ favorites: enriched });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 

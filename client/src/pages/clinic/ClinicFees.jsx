@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { DollarSign, Save, Plus, X, Stethoscope, Home, Clock, CheckCircle, IndianRupee } from 'lucide-react';
+import { DollarSign, Save, Plus, X, Stethoscope, Home, Clock, CheckCircle, IndianRupee, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
@@ -133,31 +133,47 @@ export default function ClinicFees() {
 
       {/* Custom Services */}
       <div className="bg-card rounded-2xl border border-border/60 p-6 space-y-4">
-        <h2 className="font-heading text-lg font-semibold text-foreground">Custom Services</h2>
-        <div className="flex gap-3">
-          <Input value={newService.name} onChange={e => setNewService({ ...newService, name: e.target.value })} placeholder="Service name" className="flex-1" />
-          <div className="relative w-32">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">Rs</span>
-            <Input type="number" value={newService.fee} onChange={e => setNewService({ ...newService, fee: e.target.value })} className="pl-8" placeholder="Fee" />
+        <h2 className="font-heading text-lg font-semibold text-foreground flex items-center gap-2">
+          <Settings className="w-5 h-5 text-primary" /> Custom Services
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="text-sm font-medium text-foreground mb-1.5 block">Service name</label>
+            <Input value={newService.name} onChange={e => setNewService({ ...newService, name: e.target.value })} placeholder="e.g. Blood Test" />
           </div>
-          <Button size="sm" onClick={addService} disabled={!newService.name || !newService.fee}><Plus className="w-4 h-4" /></Button>
+          <div>
+            <label className="text-sm font-medium text-foreground mb-1.5 block">Fee</label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">Rs</span>
+              <Input type="number" value={newService.fee} onChange={e => setNewService({ ...newService, fee: e.target.value })} className="pl-10" placeholder="0" min={0} />
+            </div>
+          </div>
         </div>
+        <Button size="sm" className="gap-2" onClick={addService} disabled={!newService.name || !newService.fee}>
+          <Plus className="w-4 h-4" /> Add Service
+        </Button>
         {customServices.length > 0 ? (
-          <div className="space-y-2">
+          <div className="space-y-2 pt-2">
             {customServices.map(s => (
-              <div key={s._id} className="flex items-center justify-between p-3 bg-muted/30 rounded-xl">
-                <div>
-                  <p className="font-medium text-foreground text-sm">{s.name}</p>
-                  <p className="text-sm text-primary font-semibold">₹{s.fee}</p>
+              <div key={s._id} className="flex items-center justify-between p-4 bg-muted/30 rounded-xl border border-border/30">
+                <div className="flex-1">
+                  <p className="font-medium text-foreground">{s.name}</p>
+                  <p className="text-sm text-muted-foreground">Service fee</p>
                 </div>
-                <Button variant="ghost" size="icon" className="text-destructive" onClick={() => removeService(s._id)}>
-                  <X className="w-4 h-4" />
-                </Button>
+                <div className="flex items-center gap-4">
+                  <p className="text-lg font-semibold text-primary">₹{s.fee}</p>
+                  <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" onClick={() => removeService(s._id)}>
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">No custom services added yet</p>
+          <div className="text-center py-8 border-2 border-dashed border-border/40 rounded-xl">
+            <Settings className="w-8 h-8 text-muted-foreground/50 mx-auto mb-2" />
+            <p className="text-sm text-muted-foreground">No custom services added yet</p>
+          </div>
         )}
       </div>
 

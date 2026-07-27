@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   CalendarDays, Calendar, User, FileText, TestTube, Bell, AlertTriangle, ClipboardList,
   Pill, ShoppingCart, Upload, Search, Zap, Heart, ArrowRight, Clock, Star,
   IndianRupee, Activity, MapPinned, HelpCircle, Phone, MessageCircle, ChevronRight,
   X, Download, Users, Ambulance, Stethoscope, Syringe, CreditCard, Bookmark,
-  Smartphone, Landmark, Wallet, RotateCcw
+  Smartphone, Landmark, Wallet, RotateCcw, Sparkles, CheckCircle2, TrendingUp,
+  ExternalLink, RefreshCw, ChevronLeft
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -246,9 +247,15 @@ export default function PatientDashboard() {
   return (
     <div>
       {toast && (
-        <div className={`fixed top-4 right-4 z-[60] px-4 py-3 rounded-xl shadow-lg text-sm font-medium ${toast.type === 'success' ? 'bg-success text-success-foreground' : 'bg-destructive text-destructive-foreground'}`}>
+        <motion.div initial={{ opacity: 0, x: 50, scale: 0.95 }} animate={{ opacity: 1, x: 0, scale: 1 }}
+          className={`fixed top-4 right-4 z-[60] px-5 py-3.5 rounded-2xl shadow-2xl text-sm font-medium flex items-center gap-3 ${
+            toast.type === 'success'
+              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200/50 dark:bg-emerald-950 dark:text-emerald-200'
+              : 'bg-red-50 text-red-800 border border-red-200/50 dark:bg-red-950 dark:text-red-200'
+          }`}>
+          <div className={`w-2 h-2 rounded-full ${toast.type === 'success' ? 'bg-emerald-500' : 'bg-red-500'}`} />
           {toast.msg}
-        </div>
+        </motion.div>
       )}
 
       {/* Welcome Banner */}
@@ -298,74 +305,125 @@ export default function PatientDashboard() {
       {/* Main Content Grid */}
       <div className="grid lg:grid-cols-3 gap-6 mb-6">
         {/* Upcoming Appointments */}
-        <div className="lg:col-span-2 bg-card rounded-2xl border border-border/60 p-5">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center"><CalendarDays className="w-4 h-4 text-emerald-500" /></div>
+        <div className="lg:col-span-2 bg-card rounded-3xl border border-border/50 p-5 sm:p-6 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 flex items-center justify-center shadow-sm">
+                <CalendarDays className="w-5 h-5 text-emerald-500" />
+              </div>
               <div>
-                <h3 className="font-semibold text-foreground">Upcoming Appointments</h3>
+                <h3 className="font-heading font-semibold text-foreground">Upcoming Appointments</h3>
                 <p className="text-xs text-muted-foreground">{upcomingAppts.length > 0 ? `${upcomingAppts.length} appointment${upcomingAppts.length > 1 ? 's' : ''} scheduled` : 'No upcoming visits'}</p>
               </div>
             </div>
-            <Button variant="ghost" size="sm" className="gap-1 text-primary" onClick={() => navigate('/patient/appointments')}>View All<ChevronRight className="w-3.5 h-3.5" /></Button>
+            <Button variant="outline" size="sm" className="gap-1.5 rounded-xl text-primary border-primary/20 hover:bg-primary/5 hover:text-primary" onClick={() => navigate('/patient/appointments')}>
+              View All <ChevronRight className="w-3.5 h-3.5" />
+            </Button>
           </div>
           {upcomingAppts.slice(0, 3).length > 0 ? (
-            <div className="space-y-2.5">
+            <div className="space-y-3">
               {upcomingAppts.slice(0, 3).map(a => (
-                <div key={a._id} className="flex items-center justify-between p-3 bg-muted/30 rounded-xl hover:bg-muted/50 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <User className="w-5 h-5 text-primary" />
+                <div key={a._id} className="group flex items-center justify-between p-3.5 bg-muted/20 rounded-2xl border border-border/30 hover:bg-muted/40 hover:border-primary/20 transition-all duration-200">
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+                      <User className="w-5.5 h-5.5 text-primary" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-foreground">{a.doctor}</p>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <CalendarDays className="w-3 h-3" /><span>{a.date}</span>
-                        <Clock className="w-3 h-3 ml-1" /><span>{a.time}</span>
+                      <p className="text-sm font-semibold text-foreground">{a.doctor}</p>
+                      <div className="flex items-center gap-2.5 text-xs text-muted-foreground mt-0.5">
+                        <div className="flex items-center gap-1">
+                          <CalendarDays className="w-3 h-3" />
+                          <span>{a.date}</span>
+                        </div>
+                        <div className="w-1 h-1 rounded-full bg-muted-foreground/30" />
+                        <div className="flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          <span>{a.time}</span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                  <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => setCancelTarget(a._id)}>Cancel</Button>
+                  <Button size="sm" variant="ghost"
+                    className="text-xs h-8 text-destructive/70 hover:text-destructive hover:bg-destructive/10 rounded-xl border border-transparent hover:border-destructive/20"
+                    onClick={() => setCancelTarget(a._id)}>
+                    <X className="w-3 h-3 mr-1" /> Cancel
+                  </Button>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="text-center py-8">
-              <CalendarDays className="w-10 h-10 text-muted-foreground/30 mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">No upcoming appointments</p>
-              <Button size="sm" className="mt-3" onClick={() => navigate('/doctors')}>Book Now</Button>
+            <div className="text-center py-10">
+              <div className="w-14 h-14 rounded-2xl bg-muted/30 flex items-center justify-center mx-auto mb-3">
+                <CalendarDays className="w-7 h-7 text-muted-foreground/30" />
+              </div>
+              <p className="text-sm text-muted-foreground font-medium">No upcoming appointments</p>
+              <p className="text-xs text-muted-foreground/60 mt-1">Book a visit with your doctor</p>
+              <Button size="sm" className="mt-4 rounded-xl shadow-lg shadow-primary/20" onClick={() => navigate('/doctors')}>
+                <Stethoscope className="w-3.5 h-3.5 mr-1.5" /> Book Now
+              </Button>
             </div>
           )}
         </div>
 
-        {/* Active Prescriptions */}
-        <div className="bg-card rounded-2xl border border-border/60 p-5">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-blue-500/10 flex items-center justify-center"><ClipboardList className="w-4 h-4 text-blue-500" /></div>
+        {/* Payment History */}
+        <div className="bg-card rounded-3xl border border-border/50 p-5 sm:p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shadow-sm">
+                <IndianRupee className="w-5 h-5 text-primary" />
+              </div>
               <div>
-                <h3 className="font-semibold text-foreground">Active Prescriptions</h3>
-                <p className="text-xs text-muted-foreground">{activeRxCount > 0 ? `${activeRxCount} active` : 'No active scripts'}</p>
+                <h3 className="font-heading font-semibold text-foreground">Payment History</h3>
+                <p className="text-xs text-muted-foreground">{payments.length > 0 ? `Last ${Math.min(payments.length, 3)} payments` : 'No payments yet'}</p>
               </div>
             </div>
-            <Button variant="ghost" size="sm" className="gap-1 text-primary" onClick={() => navigate('/patient/prescriptions')}>View<ChevronRight className="w-3.5 h-3.5" /></Button>
+            <Button variant="outline" size="sm" className="gap-1.5 rounded-xl text-primary border-primary/20 hover:bg-primary/5 hover:text-primary" onClick={() => navigate('/patient/history')}>
+              View All <ChevronRight className="w-3.5 h-3.5" />
+            </Button>
           </div>
-          {prescriptions.length > 0 ? (
-            <div className="space-y-2.5">
-              {prescriptions.slice(0, 3).map(rx => (
-                <div key={rx._id} className="flex items-center justify-between p-3 bg-muted/30 rounded-xl">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">{rx.doctorName}</p>
-                    <p className="text-xs text-muted-foreground">{(rx.medicines || []).length} medicines</p>
-                  </div>
-                  <StatusBadge status={rx.status} />
-                </div>
-              ))}
+          {payments.length > 0 ? (
+            <div className="space-y-3">
+              {payments.slice(0, 3).map((txn, idx) => {
+                const MethodIcon = methodIcons[txn.method] || FileText;
+                const typeIcon = txn.serviceType === 'appointment' ? '🩺' : txn.serviceType === 'test' ? '🧪' : '💊';
+                return (
+                  <motion.div key={txn._id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }}
+                    className="group flex items-center justify-between p-3.5 bg-muted/20 rounded-2xl border border-border/30 hover:bg-muted/40 hover:border-primary/20 transition-all duration-200">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs">{typeIcon}</span>
+                        <p className="text-sm font-semibold text-foreground truncate">{txn.description || `${txn.serviceType} payment`}</p>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">{txn.provider} · {new Date(txn.createdAt).toLocaleDateString('en-IN')}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-muted/50">
+                          <MethodIcon className="w-3 h-3 text-muted-foreground" />
+                          <span className="text-[10px] text-muted-foreground capitalize font-medium">{txn.method}</span>
+                        </div>
+                        {txn.transaction_id && (
+                          <span className="text-[9px] font-mono text-muted-foreground/60 truncate max-w-[100px]">{txn.transaction_id}</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0 ml-4">
+                      <p className="text-sm font-bold text-emerald-600">₹{txn.amount?.toLocaleString('en-IN')}</p>
+                      <Button size="sm" variant="ghost"
+                        className="h-7 px-2.5 text-[11px] gap-1.5 text-primary hover:bg-primary/10 rounded-xl mt-1"
+                        onClick={() => downloadPaymentInvoice(txn._id, `${txn.invoice_id || 'invoice'}.pdf`).catch(() => {})}>
+                        <Download className="w-3 h-3" /> Invoice
+                      </Button>
+                    </div>
+                  </motion.div>
+                );
+              })}
             </div>
           ) : (
-            <div className="text-center py-8">
-              <ClipboardList className="w-10 h-10 text-muted-foreground/30 mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">No prescriptions yet</p>
+            <div className="text-center py-10">
+              <div className="w-14 h-14 rounded-2xl bg-muted/30 flex items-center justify-center mx-auto mb-3">
+                <IndianRupee className="w-7 h-7 text-muted-foreground/30" />
+              </div>
+              <p className="text-sm text-muted-foreground font-medium">No payments yet</p>
+              <p className="text-xs text-muted-foreground/60 mt-1">Your payment history will appear here</p>
             </div>
           )}
         </div>
@@ -374,160 +432,162 @@ export default function PatientDashboard() {
       {/* Second Row */}
       <div className="grid lg:grid-cols-3 gap-6 mb-6">
         {/* Recent Lab Bookings */}
-        <div className="bg-card rounded-2xl border border-border/60 p-5">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-cyan-500/10 flex items-center justify-center"><TestTube className="w-4 h-4 text-cyan-500" /></div>
+        <div className="bg-card rounded-3xl border border-border/50 p-5 sm:p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-cyan-500/5 flex items-center justify-center shadow-sm">
+                <TestTube className="w-5 h-5 text-cyan-500" />
+              </div>
               <div>
-                <h3 className="font-semibold text-foreground">Lab Tests</h3>
+                <h3 className="font-heading font-semibold text-foreground">Lab Tests</h3>
                 <p className="text-xs text-muted-foreground">{recentTests.length > 0 ? `${recentTests.length} recent` : 'No tests booked'}</p>
               </div>
             </div>
-            <Button variant="ghost" size="sm" className="gap-1 text-primary" onClick={() => navigate('/patient/bookings')}>View<ChevronRight className="w-3.5 h-3.5" /></Button>
+            <Button variant="outline" size="sm" className="gap-1.5 rounded-xl text-cyan-500 border-cyan-500/20 hover:bg-cyan-500/5 hover:text-cyan-500" onClick={() => navigate('/patient/bookings')}>
+              View <ChevronRight className="w-3.5 h-3.5" />
+            </Button>
           </div>
           {recentTests.length > 0 ? (
-            <div className="space-y-2.5">
+            <div className="space-y-3">
               {recentTests.map(t => (
-                <div key={t._id} className="flex items-center justify-between p-3 bg-muted/30 rounded-xl">
+                <div key={t._id} className="group flex items-center justify-between p-3.5 bg-muted/20 rounded-2xl border border-border/30 hover:bg-muted/40 hover:border-cyan-500/20 transition-all duration-200">
                   <div>
-                    <p className="text-sm font-medium text-foreground">{t.labName}</p>
-                    <p className="text-xs text-muted-foreground">{(t.tests || []).slice(0, 2).join(', ')}{t.tests?.length > 2 ? ` +${t.tests.length - 2}` : ''}</p>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-cyan-500" />
+                      <p className="text-sm font-semibold text-foreground">{t.labName}</p>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5 ml-4">{(t.tests || []).slice(0, 2).join(', ')}{t.tests?.length > 2 ? ` +${t.tests.length - 2}` : ''}</p>
                   </div>
                   <StatusBadge status={t.status} />
                 </div>
               ))}
             </div>
           ) : (
-            <div className="text-center py-8">
-              <TestTube className="w-10 h-10 text-muted-foreground/30 mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">Book a lab test</p>
-              <Button size="sm" className="mt-3" onClick={() => navigate('/patient/services')}>Book Now</Button>
+            <div className="text-center py-10">
+              <div className="w-14 h-14 rounded-2xl bg-muted/30 flex items-center justify-center mx-auto mb-3">
+                <TestTube className="w-7 h-7 text-muted-foreground/30" />
+              </div>
+              <p className="text-sm text-muted-foreground font-medium">No tests booked</p>
+              <p className="text-xs text-muted-foreground/60 mt-1">Schedule a lab test</p>
+              <Button size="sm" className="mt-4 rounded-xl shadow-lg shadow-cyan-500/20 bg-gradient-to-r from-cyan-500 to-cyan-600 text-white hover:from-cyan-600 hover:to-cyan-700" onClick={() => navigate('/patient/services')}>
+                <Syringe className="w-3.5 h-3.5 mr-1.5" /> Book Now
+              </Button>
             </div>
           )}
         </div>
 
         {/* Active Orders */}
-        <div className="bg-card rounded-2xl border border-border/60 p-5">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-amber-500/10 flex items-center justify-center"><ShoppingCart className="w-4 h-4 text-amber-500" /></div>
+        <div className="bg-card rounded-3xl border border-border/50 p-5 sm:p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-500/20 to-amber-500/5 flex items-center justify-center shadow-sm">
+                <ShoppingCart className="w-5 h-5 text-amber-500" />
+              </div>
               <div>
-                <h3 className="font-semibold text-foreground">Medicine Orders</h3>
+                <h3 className="font-heading font-semibold text-foreground">Medicine Orders</h3>
                 <p className="text-xs text-muted-foreground">{activeOrders > 0 ? `${activeOrders} active` : 'No active orders'}</p>
               </div>
             </div>
-            <Button variant="ghost" size="sm" className="gap-1 text-primary" onClick={() => navigate('/patient/medicine-orders')}>View<ChevronRight className="w-3.5 h-3.5" /></Button>
+            <Button variant="outline" size="sm" className="gap-1.5 rounded-xl text-amber-500 border-amber-500/20 hover:bg-amber-500/5 hover:text-amber-500" onClick={() => navigate('/patient/medicine-orders')}>
+              View <ChevronRight className="w-3.5 h-3.5" />
+            </Button>
           </div>
           {recentOrders.length > 0 ? (
-            <div className="space-y-2.5">
+            <div className="space-y-3">
               {recentOrders.map(o => (
-                <div key={o._id} className="flex items-center justify-between p-3 bg-muted/30 rounded-xl">
+                <div key={o._id} className="group flex items-center justify-between p-3.5 bg-muted/20 rounded-2xl border border-border/30 hover:bg-muted/40 hover:border-amber-500/20 transition-all duration-200">
                   <div>
-                    <p className="text-sm font-medium text-foreground">{o.orderId || `Order #${String(o._id).slice(-6)}`}</p>
-                    <p className="text-xs text-muted-foreground">₹{o.total?.toLocaleString() || 0}</p>
+                    <div className="flex items-center gap-2">
+                      <Pill className="w-3.5 h-3.5 text-amber-500" />
+                      <p className="text-sm font-semibold text-foreground">{o.orderId || `Order #${String(o._id).slice(-6)}`}</p>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5 ml-5">₹{o.total?.toLocaleString() || 0}</p>
                   </div>
                   <StatusBadge status={o.status} />
                 </div>
               ))}
             </div>
           ) : (
-            <div className="text-center py-8">
-              <ShoppingCart className="w-10 h-10 text-muted-foreground/30 mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">Order medicines</p>
-              <Button size="sm" className="mt-3" onClick={() => navigate('/pharmacy')}>Shop Now</Button>
+            <div className="text-center py-10">
+              <div className="w-14 h-14 rounded-2xl bg-muted/30 flex items-center justify-center mx-auto mb-3">
+                <ShoppingCart className="w-7 h-7 text-muted-foreground/30" />
+              </div>
+              <p className="text-sm text-muted-foreground font-medium">No active orders</p>
+              <p className="text-xs text-muted-foreground/60 mt-1">Order medicines for delivery</p>
+              <Button size="sm" className="mt-4 rounded-xl shadow-lg shadow-amber-500/20 bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600" onClick={() => navigate('/pharmacy')}>
+                <Pill className="w-3.5 h-3.5 mr-1.5" /> Shop Now
+              </Button>
             </div>
           )}
         </div>
 
-        {/* Recent History */}
-        <div className="bg-card rounded-2xl border border-border/60 p-5">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center"><FileText className="w-4 h-4 text-primary" /></div>
+        {/* Active Prescriptions */}
+        <div className="bg-card rounded-3xl border border-border/50 p-5 sm:p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-500/20 to-blue-500/5 flex items-center justify-center shadow-sm">
+                <ClipboardList className="w-5 h-5 text-blue-500" />
+              </div>
               <div>
-                <h3 className="font-semibold text-foreground">Payment History</h3>
-                <p className="text-xs text-muted-foreground">{payments.length > 0 ? `Last ${Math.min(payments.length, 3)} payments` : 'No payments yet'}</p>
+                <h3 className="font-heading font-semibold text-foreground">Active Prescriptions</h3>
+                <p className="text-xs text-muted-foreground">{activeRxCount > 0 ? `${activeRxCount} active` : 'No active scripts'}</p>
               </div>
             </div>
-            <Button variant="ghost" size="sm" className="gap-1 text-primary" onClick={() => navigate('/patient/history')}>View All<ChevronRight className="w-3.5 h-3.5" /></Button>
+            <Button variant="outline" size="sm" className="gap-1.5 rounded-xl text-blue-500 border-blue-500/20 hover:bg-blue-500/5 hover:text-blue-500" onClick={() => navigate('/patient/prescriptions')}>
+              View <ChevronRight className="w-3.5 h-3.5" />
+            </Button>
           </div>
-          {payments.length > 0 ? (
-            <div className="space-y-2.5">
-              {payments.slice(0, 3).map(txn => {
-                const MethodIcon = methodIcons[txn.method] || FileText;
-                const typeIcon = txn.serviceType === 'appointment' ? '🩺' : txn.serviceType === 'test' ? '🧪' : '💊';
-                return (
-                  <div key={txn._id} className="flex items-center justify-between p-3 bg-muted/30 rounded-xl">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-foreground truncate">{txn.description || `${txn.serviceType} payment`}</p>
-                      <p className="text-[11px] text-muted-foreground">{txn.provider} · {new Date(txn.createdAt).toLocaleDateString('en-IN')}</p>
-                      <div className="flex items-center gap-1 mt-0.5">
-                        <MethodIcon className="w-3 h-3 text-muted-foreground" />
-                        <span className="text-[10px] text-muted-foreground capitalize">{txn.method}</span>
-                        {txn.transaction_id && <span className="text-[10px] font-mono text-muted-foreground">· {txn.transaction_id}</span>}
-                      </div>
+          {prescriptions.length > 0 ? (
+            <div className="space-y-3">
+              {prescriptions.slice(0, 3).map(rx => (
+                <div key={rx._id} className="group flex items-center justify-between p-3.5 bg-muted/20 rounded-2xl border border-border/30 hover:bg-muted/40 hover:border-blue-500/20 transition-all duration-200">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-blue-500" />
+                      <p className="text-sm font-semibold text-foreground">{rx.doctorName}</p>
                     </div>
-                    <div className="text-right shrink-0 ml-3">
-                      <p className="text-sm font-bold text-emerald-600">₹{txn.amount?.toLocaleString('en-IN')}</p>
-                      <Button size="sm" variant="ghost" className="h-7 px-2 text-xs gap-1 text-primary"
-                        onClick={() => downloadPaymentInvoice(txn._id, `${txn.invoice_id || 'invoice'}.pdf`).catch(() => {})}>
-                        <Download className="w-3 h-3" /> Invoice
-                      </Button>
-                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5 ml-4">{(rx.medicines || []).length} medicines prescribed</p>
                   </div>
-                );
-              })}
+                  <StatusBadge status={rx.status} />
+                </div>
+              ))}
             </div>
           ) : (
-            <div className="text-center py-8">
-              <FileText className="w-10 h-10 text-muted-foreground/30 mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">No payments yet</p>
-              <p className="text-xs text-muted-foreground mt-1">Your payment history will appear here</p>
+            <div className="text-center py-10">
+              <div className="w-14 h-14 rounded-2xl bg-muted/30 flex items-center justify-center mx-auto mb-3">
+                <ClipboardList className="w-7 h-7 text-muted-foreground/30" />
+              </div>
+              <p className="text-sm text-muted-foreground font-medium">No prescriptions yet</p>
+              <p className="text-xs text-muted-foreground/60 mt-1">Visit a doctor to get one</p>
             </div>
           )}
-        </div>
-
-        {/* Booking History */}
-        <div className="bg-card rounded-2xl border border-border/60 p-5">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-blue-500/10 flex items-center justify-center"><Calendar className="w-4 h-4 text-blue-500" /></div>
-              <div>
-                <h3 className="font-semibold text-foreground">Booking History</h3>
-                <p className="text-xs text-muted-foreground">Appointments, tests & medicines</p>
-              </div>
-            </div>
-            <Button variant="ghost" size="sm" className="gap-1 text-primary" onClick={() => navigate('/patient/booking-history')}>View All<ChevronRight className="w-3.5 h-3.5" /></Button>
-          </div>
-          <div className="text-center py-8">
-            <Calendar className="w-10 h-10 text-muted-foreground/30 mx-auto mb-2" />
-            <p className="text-sm text-muted-foreground">Your booking history</p>
-            <Button size="sm" className="mt-3" onClick={() => navigate('/patient/booking-history')}>View History</Button>
-          </div>
         </div>
       </div>
 
       {/* Quick Actions */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
-        className="bg-card rounded-2xl border border-border/60 p-5 mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center"><Zap className="w-4 h-4 text-primary" /></div>
+        className="bg-card rounded-3xl border border-border/50 p-5 sm:p-6 mb-6 shadow-sm">
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-500/20 to-amber-500/5 flex items-center justify-center shadow-sm">
+              <Zap className="w-5 h-5 text-amber-500" />
+            </div>
             <div>
-              <h3 className="font-semibold text-foreground">Quick Actions</h3>
-              <p className="text-xs text-muted-foreground">Common tasks at your fingertips</p>
+              <h3 className="font-heading font-semibold text-foreground">Quick Actions</h3>
+              <p className="text-xs text-muted-foreground">Tasks at your fingertips</p>
             </div>
           </div>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
           {quickActions.map(a => (
             <Link key={a.label} to={a.link}
-              className="flex flex-col items-center gap-2 p-4 rounded-xl border border-border/60 bg-muted/20 hover:bg-muted/40 hover:border-primary/30 transition-all group">
-              <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform">
-                <a.icon className="w-5 h-5 text-primary" />
+              className="group relative flex flex-col items-center gap-2.5 p-5 rounded-2xl border border-border/40 bg-gradient-to-br from-muted/10 to-muted/5 hover:from-primary/5 hover:to-primary/10 hover:border-primary/30 hover:shadow-md transition-all duration-300">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center shadow-sm group-hover:scale-110 group-hover:shadow-md transition-all duration-300">
+                <a.icon className="w-6 h-6 text-primary" />
               </div>
-              <span className="text-sm font-medium text-foreground">{a.label}</span>
-              <span className="text-[10px] text-muted-foreground -mt-1">{a.desc}</span>
+              <span className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">{a.label}</span>
+              <span className="text-[10px] text-muted-foreground text-center leading-tight">{a.desc}</span>
+              <div className="absolute inset-0 rounded-2xl ring-1 ring-inset ring-border/0 group-hover:ring-primary/20 transition-all" />
             </Link>
           ))}
         </div>

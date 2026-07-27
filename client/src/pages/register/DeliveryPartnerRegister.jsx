@@ -25,16 +25,9 @@ export default function DeliveryPartnerRegister() {
 
   const submit = async () => {
     try {
-      const { photo, drivingLicenseDoc, vehicleRcDoc, aadharDoc, panDoc, ...textFields } = form;
-      await api.post('/delivery-partners/register', textFields);
-      const hasFiles = photo || drivingLicenseDoc || vehicleRcDoc || aadharDoc || panDoc;
-      if (hasFiles) {
-        toast.success('Submitted! Upload your documents to complete verification.');
-        navigate('/delivery/documents');
-      } else {
-        toast.success('Submitted for verification');
-        navigate('/delivery/documents');
-      }
+      await api.post('/delivery-partners/register', form);
+      toast.success('Submitted for verification');
+      navigate('/delivery/documents');
     } catch (err) {
       toast.error(err.message || 'Submission failed');
     }

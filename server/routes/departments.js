@@ -17,7 +17,7 @@ router.get('/', async (req, res) => {
 
 router.post('/', protect, scopeToHospital, validate(createDepartmentSchema), async (req, res) => {
   try {
-    if (req.user.role !== 'superadmin' && req.user.role !== 'admin') {
+    if (req.user.role !== 'superadmin' && req.user.role !== 'hospital_admin') {
       return res.status(403).json({ message: 'Admin access required' });
     }
     const data = { ...req.body, hospitalId: req.hospitalId };
@@ -28,7 +28,7 @@ router.post('/', protect, scopeToHospital, validate(createDepartmentSchema), asy
 
 router.put('/:id', protect, scopeToHospital, validate(updateDepartmentSchema), async (req, res) => {
   try {
-    if (req.user.role !== 'superadmin' && req.user.role !== 'admin') {
+    if (req.user.role !== 'superadmin' && req.user.role !== 'hospital_admin') {
       return res.status(403).json({ message: 'Admin access required' });
     }
     const dept = await Department.findOne({ _id: req.params.id, hospitalId: req.hospitalId });
@@ -40,7 +40,7 @@ router.put('/:id', protect, scopeToHospital, validate(updateDepartmentSchema), a
 
 router.delete('/:id', protect, scopeToHospital, async (req, res) => {
   try {
-    if (req.user.role !== 'superadmin' && req.user.role !== 'admin') {
+    if (req.user.role !== 'superadmin' && req.user.role !== 'hospital_admin') {
       return res.status(403).json({ message: 'Admin access required' });
     }
     const dept = await Department.findOne({ _id: req.params.id, hospitalId: req.hospitalId });

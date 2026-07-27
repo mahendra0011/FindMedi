@@ -33,7 +33,7 @@ export default function DeliveryTrackingMap({ orderId, pickup, drop, partner }) 
       position: position || pickup, map,
       icon: { url: '/icons/scooter.svg', scaledSize: new window.google.maps.Size(32, 32) },
     });
-  }, [pickup, drop, position]);
+  }, []);
 
   return (
     <div className="rounded-2xl border overflow-hidden">

@@ -117,6 +117,9 @@ const PatientRecords = lazy(() => import('./pages/patient/PatientRecords'));
 const PatientReviews = lazy(() => import('./pages/patient/PatientReviews'));
 const PatientHistory = lazy(() => import('./pages/patient/PatientHistory'));
 const PatientBookingHistory = lazy(() => import('./pages/patient/PatientBookingHistory'));
+const PatientFamily = lazy(() => import('./pages/patient/PatientFamily'));
+const PatientRefunds = lazy(() => import('./pages/patient/PatientRefunds'));
+const PatientSettings = lazy(() => import('./pages/patient/PatientSettings'));
 const PatientReports = lazy(() => import('./pages/patient/PatientReports'));
 const PatientServices = lazy(() => import('./pages/patient/PatientServices'));
 const PatientEmergency = lazy(() => import('./pages/patient/PatientEmergency'));
@@ -159,10 +162,14 @@ const ClinicStaff = lazy(() => import('./pages/clinic/ClinicStaff'));
 const ClinicNotifications = lazy(() => import('./pages/clinic/ClinicNotifications'));
 const ClinicPlatformSettings = lazy(() => import('./pages/clinic/ClinicPlatformSettings'));
 
-const DeliveryPartnerDashboard = lazy(() => import('./pages/delivery/DeliveryPartnerDashboard'));
-const MyDeliveries = lazy(() => import('./pages/delivery/MyDeliveries'));
-const DeliveryEarnings = lazy(() => import('./pages/delivery/Earnings'));
-const DeliveryDocuments = lazy(() => import('./pages/delivery/Documents'));
+const DeliveryDashboard = lazy(() => import('./pages/delivery/DeliveryDashboard'));
+const DeliveryOrders = lazy(() => import('./pages/delivery/DeliveryOrders'));
+const DeliveryHistory = lazy(() => import('./pages/delivery/DeliveryHistory'));
+const DeliveryEarnings = lazy(() => import('./pages/delivery/DeliveryEarnings'));
+const DeliveryZone = lazy(() => import('./pages/delivery/DeliveryZone'));
+const DeliveryReviews = lazy(() => import('./pages/delivery/DeliveryReviews'));
+const DeliveryDocuments = lazy(() => import('./pages/delivery/DeliveryDocuments'));
+const DeliverySettings = lazy(() => import('./pages/delivery/DeliverySettings'));
 const DeliveryPartnerRegister = lazy(() => import('./pages/register/DeliveryPartnerRegister'));
 const SuperAdminDeliveryPartners = lazy(() => import('./pages/superadmin/DeliveryPartners'));
 
@@ -307,7 +314,7 @@ function getDefaultDashboardPath(user) {
   if (value === 'overview') return '';
 
   const paths = {
-    admin: {
+    hospital_admin: {
       reports: '/reports',
       billing: '/billing',
       emergency: '/admin/emergency',
@@ -352,8 +359,8 @@ function RoleDashboard() {
   if (user?.role === 'superadmin') return <Navigate to="/superadmin/overview" replace />;
   if (user?.role === 'doctor') return <DoctorDashboard />;
   if (user?.role === 'clinic_doctor') return <ClinicDashboard />;
-  if (user?.role === 'admin') return <Dashboard />;
-  if (user?.role === 'delivery_boy') return <DeliveryPartnerDashboard />;
+  if (user?.role === 'hospital_admin') return <Dashboard />;
+  if (user?.role === 'delivery_boy') return <DeliveryDashboard />;
   return <PatientDashboard />;
 }
 
@@ -486,50 +493,50 @@ const App = () => (
                     <Route path="/superadmin/integrations" element={<RoleRoute allowedRoles={['superadmin']}><SAIntegrations /></RoleRoute>} />
 
                     {/* Admin routes */}
-                    <Route path="/admin/users" element={<RoleRoute allowedRoles={['admin', 'superadmin']}><AdminUsers /></RoleRoute>} />
-                    <Route path="/admin/doctors" element={<RoleRoute allowedRoles={['admin']}><AdminDoctors /></RoleRoute>} />
-                     <Route path="/admin/prescription-verification" element={<RoleRoute allowedRoles={['admin']}><AdminPrescriptionVerificationQueue /></RoleRoute>} />
-                    <Route path="/admin/analytics" element={<RoleRoute allowedRoles={['admin']}><AdminAnalytics /></RoleRoute>} />
-                    <Route path="/admin/departments" element={<RoleRoute allowedRoles={['admin']}><AdminDepartments /></RoleRoute>} />
-                    <Route path="/admin/emergency" element={<RoleRoute allowedRoles={['admin']}><AdminEmergency /></RoleRoute>} />
-                    <Route path="/admin/reviews" element={<RoleRoute allowedRoles={['admin']}><AdminReviews /></RoleRoute>} />
-                    <Route path="/admin/beds" element={<RoleRoute allowedRoles={['admin']}><AdminBedManagement /></RoleRoute>} />
-                    <Route path="/admin/test-catalog" element={<RoleRoute allowedRoles={['admin']}><AdminTestCatalog /></RoleRoute>} />
-                    <Route path="/admin/hospital-settings" element={<RoleRoute allowedRoles={['admin']}><AdminHospitalSettings /></RoleRoute>} />
-                    <Route path="/admin/clinic-settings" element={<RoleRoute allowedRoles={['admin', 'clinic_doctor']}><AdminClinicSettings /></RoleRoute>} />
-                    <Route path="/admin/lab-settings" element={<RoleRoute allowedRoles={['admin', 'lab_owner']}><AdminLabSettings /></RoleRoute>} />
-                    <Route path="/admin/pharmacy-settings" element={<RoleRoute allowedRoles={['admin', 'pharmacy_owner']}><AdminPharmacySettings /></RoleRoute>} />
-                    <Route path="/admin/announcements" element={<RoleRoute allowedRoles={['admin']}><AdminAnnouncements /></RoleRoute>} />
-                    <Route path="/admin/leave-requests" element={<RoleRoute allowedRoles={['admin']}><AdminLeaveRequests /></RoleRoute>} />
-                    <Route path="/admin/diagnostic" element={<RoleRoute allowedRoles={['admin', 'doctor', 'lab_receptionist', 'lab_technician', 'pathologist']}><DiagnosticDashboard /></RoleRoute>} />
-                    <Route path="/doctors" element={<RoleRoute allowedRoles={['admin']}><Doctors /></RoleRoute>} />
-                    <Route path="/patients" element={<RoleRoute allowedRoles={['admin']}><Patients /></RoleRoute>} />
-                    <Route path="/appointments" element={<RoleRoute allowedRoles={['admin']}><Appointments /></RoleRoute>} />
-                    <Route path="/records" element={<RoleRoute allowedRoles={['admin']}><MedicalRecords /></RoleRoute>} />
-                    <Route path="/billing" element={<RoleRoute allowedRoles={['admin']}><Billing /></RoleRoute>} />
-                    <Route path="/verify-transaction" element={<RoleRoute allowedRoles={['admin', 'superadmin', 'doctor', 'clinic_doctor', 'lab_owner', 'pharmacy_owner', 'patient']}><VerifyTransaction /></RoleRoute>} />
-                    <Route path="/reports" element={<RoleRoute allowedRoles={['admin', 'doctor']}><PDFReports /></RoleRoute>} />
-                    <Route path="/import-export" element={<RoleRoute allowedRoles={['admin']}><ImportExport /></RoleRoute>} />
-                    <Route path="/lab" element={<RoleRoute allowedRoles={['admin', 'doctor', 'lab_receptionist', 'lab_technician', 'pathologist']}><Lab /></RoleRoute>} />
-                    <Route path="/pharmacy" element={<RoleRoute allowedRoles={['admin', 'doctor', 'pharmacist']}><Pharmacy /></RoleRoute>} />
-                    <Route path="/ipd" element={<RoleRoute allowedRoles={['admin', 'doctor', 'nurse']}><IPD /></RoleRoute>} />
-                    <Route path="/triage" element={<RoleRoute allowedRoles={['admin', 'doctor', 'nurse']}><TriagePage /></RoleRoute>} />
-                    <Route path="/nursing" element={<RoleRoute allowedRoles={['admin', 'doctor', 'nurse']}><NursingCharts /></RoleRoute>} />
-                    <Route path="/radiology" element={<RoleRoute allowedRoles={['admin', 'doctor', 'radiologist']}><Radiology /></RoleRoute>} />
-                    <Route path="/insurance" element={<RoleRoute allowedRoles={['admin', 'doctor', 'patient']}><Insurance /></RoleRoute>} />
-                    <Route path="/diet" element={<RoleRoute allowedRoles={['admin', 'doctor', 'nurse']}><DietKitchen /></RoleRoute>} />
-                    <Route path="/ot" element={<RoleRoute allowedRoles={['admin', 'doctor']}><OperationTheatre /></RoleRoute>} />
-                    <Route path="/bloodbank" element={<RoleRoute allowedRoles={['admin', 'doctor', 'nurse']}><BloodBank /></RoleRoute>} />
-                    <Route path="/physio" element={<RoleRoute allowedRoles={['admin', 'doctor', 'nurse']}><Physiotherapy /></RoleRoute>} />
-                    <Route path="/mentalhealth" element={<RoleRoute allowedRoles={['admin', 'doctor', 'nurse']}><MentalHealth /></RoleRoute>} />
-                    <Route path="/analytics-reports" element={<RoleRoute allowedRoles={['admin', 'doctor']}><Reports /></RoleRoute>} />
-                    <Route path="/staff" element={<RoleRoute allowedRoles={['admin']}><Staff /></RoleRoute>} />
-                    <Route path="/inventory" element={<RoleRoute allowedRoles={['admin']}><Inventory /></RoleRoute>} />
-                    <Route path="/housekeeping" element={<RoleRoute allowedRoles={['admin']}><Housekeeping /></RoleRoute>} />
-                    <Route path="/opd-token" element={<RoleRoute allowedRoles={['admin', 'doctor', 'nurse']}><OPDToken /></RoleRoute>} />
-                    <Route path="/opd-registration" element={<RoleRoute allowedRoles={['admin', 'doctor', 'nurse']}><OPDRegistration /></RoleRoute>} />
-                    <Route path="/patient-registration" element={<RoleRoute allowedRoles={['admin', 'nurse']}><PatientRegistration /></RoleRoute>} />
-                    <Route path="/doctor-consultation" element={<RoleRoute allowedRoles={['admin', 'doctor', 'nurse']}><DoctorConsultation /></RoleRoute>} />
+                    <Route path="/admin/users" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin']}><AdminUsers /></RoleRoute>} />
+                    <Route path="/admin/doctors" element={<RoleRoute allowedRoles={['hospital_admin']}><AdminDoctors /></RoleRoute>} />
+                     <Route path="/admin/prescription-verification" element={<RoleRoute allowedRoles={['hospital_admin']}><AdminPrescriptionVerificationQueue /></RoleRoute>} />
+                    <Route path="/admin/analytics" element={<RoleRoute allowedRoles={['hospital_admin']}><AdminAnalytics /></RoleRoute>} />
+                    <Route path="/admin/departments" element={<RoleRoute allowedRoles={['hospital_admin']}><AdminDepartments /></RoleRoute>} />
+                    <Route path="/admin/emergency" element={<RoleRoute allowedRoles={['hospital_admin']}><AdminEmergency /></RoleRoute>} />
+                    <Route path="/admin/reviews" element={<RoleRoute allowedRoles={['hospital_admin']}><AdminReviews /></RoleRoute>} />
+                    <Route path="/admin/beds" element={<RoleRoute allowedRoles={['hospital_admin']}><AdminBedManagement /></RoleRoute>} />
+                    <Route path="/admin/test-catalog" element={<RoleRoute allowedRoles={['hospital_admin']}><AdminTestCatalog /></RoleRoute>} />
+                    <Route path="/admin/hospital-settings" element={<RoleRoute allowedRoles={['hospital_admin']}><AdminHospitalSettings /></RoleRoute>} />
+                    <Route path="/admin/clinic-settings" element={<RoleRoute allowedRoles={['hospital_admin', 'clinic_doctor']}><AdminClinicSettings /></RoleRoute>} />
+                    <Route path="/admin/lab-settings" element={<RoleRoute allowedRoles={['hospital_admin', 'lab_owner']}><AdminLabSettings /></RoleRoute>} />
+                    <Route path="/admin/pharmacy-settings" element={<RoleRoute allowedRoles={['hospital_admin', 'pharmacy_owner']}><AdminPharmacySettings /></RoleRoute>} />
+                    <Route path="/admin/announcements" element={<RoleRoute allowedRoles={['hospital_admin']}><AdminAnnouncements /></RoleRoute>} />
+                    <Route path="/admin/leave-requests" element={<RoleRoute allowedRoles={['hospital_admin']}><AdminLeaveRequests /></RoleRoute>} />
+                    <Route path="/admin/diagnostic" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'lab_receptionist', 'lab_technician', 'pathologist']}><DiagnosticDashboard /></RoleRoute>} />
+                    <Route path="/doctors" element={<RoleRoute allowedRoles={['hospital_admin']}><Doctors /></RoleRoute>} />
+                    <Route path="/patients" element={<RoleRoute allowedRoles={['hospital_admin']}><Patients /></RoleRoute>} />
+                    <Route path="/appointments" element={<RoleRoute allowedRoles={['hospital_admin']}><Appointments /></RoleRoute>} />
+                    <Route path="/records" element={<RoleRoute allowedRoles={['hospital_admin']}><MedicalRecords /></RoleRoute>} />
+                    <Route path="/billing" element={<RoleRoute allowedRoles={['hospital_admin']}><Billing /></RoleRoute>} />
+                    <Route path="/verify-transaction" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin', 'doctor', 'clinic_doctor', 'lab_owner', 'pharmacy_owner', 'patient']}><VerifyTransaction /></RoleRoute>} />
+                    <Route path="/reports" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor']}><PDFReports /></RoleRoute>} />
+                    <Route path="/import-export" element={<RoleRoute allowedRoles={['hospital_admin']}><ImportExport /></RoleRoute>} />
+                    <Route path="/lab" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'lab_receptionist', 'lab_technician', 'pathologist']}><Lab /></RoleRoute>} />
+                    <Route path="/pharmacy" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'pharmacist']}><Pharmacy /></RoleRoute>} />
+                    <Route path="/ipd" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'nurse']}><IPD /></RoleRoute>} />
+                    <Route path="/triage" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'nurse']}><TriagePage /></RoleRoute>} />
+                    <Route path="/nursing" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'nurse']}><NursingCharts /></RoleRoute>} />
+                    <Route path="/radiology" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'radiologist']}><Radiology /></RoleRoute>} />
+                    <Route path="/insurance" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'patient']}><Insurance /></RoleRoute>} />
+                    <Route path="/diet" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'nurse']}><DietKitchen /></RoleRoute>} />
+                    <Route path="/ot" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor']}><OperationTheatre /></RoleRoute>} />
+                    <Route path="/bloodbank" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'nurse']}><BloodBank /></RoleRoute>} />
+                    <Route path="/physio" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'nurse']}><Physiotherapy /></RoleRoute>} />
+                    <Route path="/mentalhealth" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'nurse']}><MentalHealth /></RoleRoute>} />
+                    <Route path="/analytics-reports" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor']}><Reports /></RoleRoute>} />
+                    <Route path="/staff" element={<RoleRoute allowedRoles={['hospital_admin']}><Staff /></RoleRoute>} />
+                    <Route path="/inventory" element={<RoleRoute allowedRoles={['hospital_admin']}><Inventory /></RoleRoute>} />
+                    <Route path="/housekeeping" element={<RoleRoute allowedRoles={['hospital_admin']}><Housekeeping /></RoleRoute>} />
+                    <Route path="/opd-token" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'nurse']}><OPDToken /></RoleRoute>} />
+                    <Route path="/opd-registration" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'nurse']}><OPDRegistration /></RoleRoute>} />
+                    <Route path="/patient-registration" element={<RoleRoute allowedRoles={['hospital_admin', 'nurse']}><PatientRegistration /></RoleRoute>} />
+                    <Route path="/doctor-consultation" element={<RoleRoute allowedRoles={['hospital_admin', 'doctor', 'nurse']}><DoctorConsultation /></RoleRoute>} />
 
                     {/* Patient routes */}
                     <Route path="/patient/appointments" element={<RoleRoute allowedRoles={['patient']}><PatientAppointments /></RoleRoute>} />
@@ -539,6 +546,9 @@ const App = () => (
                     <Route path="/patient/reviews/write" element={<RoleRoute allowedRoles={['patient']}><PatientWriteReview /></RoleRoute>} />
                     <Route path="/patient/history" element={<RoleRoute allowedRoles={['patient']}><PatientHistory /></RoleRoute>} />
                     <Route path="/patient/booking-history" element={<RoleRoute allowedRoles={['patient']}><PatientBookingHistory /></RoleRoute>} />
+                    <Route path="/patient/family" element={<RoleRoute allowedRoles={['patient']}><PatientFamily /></RoleRoute>} />
+                    <Route path="/patient/refunds" element={<RoleRoute allowedRoles={['patient']}><PatientRefunds /></RoleRoute>} />
+                    <Route path="/patient/settings" element={<RoleRoute allowedRoles={['patient']}><PatientSettings /></RoleRoute>} />
                     <Route path="/patient/prescriptions" element={<RoleRoute allowedRoles={['patient']}><PatientPrescriptions /></RoleRoute>} />
                     <Route path="/patient/medicine-orders" element={<RoleRoute allowedRoles={['patient']}><PatientMedicineOrders /></RoleRoute>} />
                     <Route path="/patient/services" element={<RoleRoute allowedRoles={['patient']}><PatientServices /></RoleRoute>} />
@@ -579,14 +589,17 @@ const App = () => (
                     <Route path="/clinic/platform-settings" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicPlatformSettings /></RoleRoute>} />
                     <Route path="/clinic/staff" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicStaff /></RoleRoute>} />
                      <Route path="/clinic/notifications" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicNotifications /></RoleRoute>} />
-                   </Route>
 
-                   {/* Delivery Partner routes */}
-                   <Route path="/delivery/dashboard" element={<RoleRoute allowedRoles={['delivery_boy']}><DeliveryPartnerDashboard /></RoleRoute>} />
-                   <Route path="/delivery/deliveries" element={<RoleRoute allowedRoles={['delivery_boy']}><MyDeliveries /></RoleRoute>} />
-                   <Route path="/delivery/earnings" element={<RoleRoute allowedRoles={['delivery_boy']}><DeliveryEarnings /></RoleRoute>} />
-                   <Route path="/delivery/documents" element={<RoleRoute allowedRoles={['delivery_boy']}><DeliveryDocuments /></RoleRoute>} />
-                   <Route path="/delivery/profile" element={<RoleRoute allowedRoles={['delivery_boy']}><Settings /></RoleRoute>} />
+                    {/* Delivery Partner routes */}
+                    <Route path="/delivery/orders" element={<RoleRoute allowedRoles={['delivery_boy']}><DeliveryOrders /></RoleRoute>} />
+                    <Route path="/delivery/history" element={<RoleRoute allowedRoles={['delivery_boy']}><DeliveryHistory /></RoleRoute>} />
+                    <Route path="/delivery/earnings" element={<RoleRoute allowedRoles={['delivery_boy']}><DeliveryEarnings /></RoleRoute>} />
+                    <Route path="/delivery/zone" element={<RoleRoute allowedRoles={['delivery_boy']}><DeliveryZone /></RoleRoute>} />
+                    <Route path="/delivery/reviews" element={<RoleRoute allowedRoles={['delivery_boy']}><DeliveryReviews /></RoleRoute>} />
+                    <Route path="/delivery/documents" element={<RoleRoute allowedRoles={['delivery_boy']}><DeliveryDocuments /></RoleRoute>} />
+                    <Route path="/delivery/settings" element={<RoleRoute allowedRoles={['delivery_boy']}><DeliverySettings /></RoleRoute>} />
+                    </Route>
+
                    <Route path="/register/delivery-partner" element={<DeliveryPartnerRegister />} />
 
                    {/* Super Admin Delivery Oversight */}

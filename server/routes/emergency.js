@@ -70,7 +70,7 @@ router.post('/', protect, validate(createEmergencySchema), async (req, res) => {
     });
     
     // Notify all admins about new emergency
-    const admins = await User.find({ role: 'admin' });
+    const admins = await User.find({ role: 'hospital_admin' });
     for (const admin of admins) {
       await createNotification(admin._id, 'New Emergency Case', `${severity || 'Serious'} emergency: ${condition}`, 'system');
     }

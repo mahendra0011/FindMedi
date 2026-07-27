@@ -29,7 +29,7 @@ router.post('/orders', protect, adminOnly, validate(createRadiologyOrderSchema),
       priority: priority || 'Routine', createdBy: req.user._id,
     });
     // Notify radiology staff
-    const staff = await User.find({ role: { $in: ['radiologist', 'admin'] }, status: 'active' }).select('_id');
+    const staff = await User.find({ role: { $in: ['radiologist', 'hospital_admin'] }, status: 'active' }).select('_id');
     await Notification.insertMany(staff.map(s => ({
       title: 'New Radiology Order', message: `Dr. ${req.user.name} ordered ${modality} for ${patientName}`,
       type: 'radiology', userId: s._id.toString(),
