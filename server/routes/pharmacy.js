@@ -10,7 +10,7 @@ import PharmacyReturn from '../models/PharmacyReturn.js';
 import PharmacyStaff from '../models/PharmacyStaff.js';
 import Notification from '../models/Notification.js';
 import User from '../models/User.js';
-import { protect } from '../middleware/auth.js';
+import { protect, adminOnly } from '../middleware/auth.js';
 import { validate, createMedicineSchema } from '../utils/validate.js';
 import { auditLog } from '../middleware/audit.js';
 import { generatePrescriptionId, generateTimestampedId } from '../utils/idGenerator.js';
@@ -176,25 +176,26 @@ const prescriptionId = generatePrescriptionId();
 
 router.get('/prescriptions', protect, async (req, res) => {
   try {
-    const { status, patientId, doctorId, search } = req.query;
-    const filter = {};
-    if (req.user.role === 'patient') {
-      filter.$or = [
-        { patientId: req.user._id },
-        { patientId: { $exists: false }, patientName: req.user.name },
-      ];
-    } else if (patientId) {
-      filter.patientId = patientId;
-    }
-    if (req.user.role === 'doctor') {
-      filter.doctorId = req.user.doctorProfileId;
-    } else if (doctorId) {
-      filter.doctorId = doctorId;
-    }
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
-    if ((req.user.facilityId || req.user.hospitalId) && req.user.role !== 'superadmin') filter.facilityId = req.user.facilityId || req.user.hospitalId;
-    if (status && status !== 'All') filter.status = status;
-    if (search) {
+     const { status, patientId, doctorId, search, verificationStatus } = req.query;
+     const filter = {};
+     if (req.user.role === 'patient') {
+       filter.$or = [
+         { patientId: req.user._id },
+         { patientId: { $exists: false }, patientName: req.user.name },
+       ];
+     } else if (patientId) {
+       filter.patientId = patientId;
+     }
+     if (req.user.role === 'doctor') {
+       filter.doctorId = req.user.doctorProfileId;
+     } else if (doctorId) {
+       filter.doctorId = doctorId;
+     }
+     if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+     if ((req.user.facilityId || req.user.hospitalId) && req.user.role !== 'superadmin') filter.facilityId = req.user.facilityId || req.user.hospitalId;
+     if (status && status !== 'All') filter.status = status;
+     if (verificationStatus && verificationStatus !== 'All') filter.verificationStatus = verificationStatus;
+     if (search) {
       filter.$or = [
         { prescriptionId: new RegExp(search, 'i') },
         { patientName: new RegExp(search, 'i') },
@@ -281,6 +282,56 @@ router.put('/prescriptions/:id/dispense', protect, validate(pharmacyDispenseSche
     med.dispensedBy = req.user.name;
     await prescription.save();
     await auditLog('dispense_prescription', req.user._id, { recordId: prescription._id, ip: req.ip, userAgent: req.get('user-agent') });
+    res.json(prescription);
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+// ─── Admin: Verify Prescription ─────────────────────────────────────────────
+const prescriptionVerifySchema = z.object({
+  action: z.enum(['verify', 'reject']),
+  notes: z.string().optional(),
+});
+
+router.put('/prescriptions/:id/verify', protect, adminOnly, validate(prescriptionVerifySchema), async (req, res) => {
+  try {
+    const { action, notes } = req.body;
+    const prescription = await Prescription.findById(req.params.id)
+      .populate('patientId', 'name email phone allergies')
+      .populate('doctorId', 'name email');
+    if (!prescription) return res.status(404).json({ message: 'Prescription not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && prescription.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    if (action === 'verify') {
+      prescription.verificationStatus = 'verified';
+      prescription.verifiedBy = req.user._id;
+      prescription.verifiedAt = new Date();
+      prescription.verificationNotes = notes || '';
+    } else {
+      prescription.verificationStatus = 'rejected';
+      prescription.verifiedBy = req.user._id;
+      prescription.verifiedAt = new Date();
+      prescription.verificationNotes = notes || '';
+      prescription.status = 'Cancelled';
+    }
+
+    await prescription.save();
+    await auditLog(action === 'verify' ? 'verify_prescription' : 'reject_prescription', req.user._id, { recordId: prescription._id, ip: req.ip, userAgent: req.get('user-agent') });
+
+    // Notify patient
+    const patientId = prescription.patientId?._id || prescription.patientId;
+    if (patientId) {
+      await Notification.create({
+        title: action === 'verify' ? 'Prescription Verified' : 'Prescription Rejected',
+        message: action === 'verify'
+          ? `Your prescription #${prescription.prescriptionId} has been verified and is ready for dispensing.`
+          : `Your prescription #${prescription.prescriptionId} has been rejected. Reason: ${notes || 'No reason provided'}`,
+        type: 'prescription',
+        userId: patientId.toString(),
+      });
+    }
+
     res.json(prescription);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });

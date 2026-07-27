@@ -303,9 +303,15 @@ export default function BookingModal({
                       ⏱️ {currentDoc.maxBookingsPerSlot} patients per slot
                     </p>
                   )}
-                  <p className="text-[10px] text-muted-foreground mt-1">
-                    Auto-confirm: {currentDoc?.autoConfirmAppointment === false ? 'OFF' : currentDoc?.autoConfirmAppointment === true ? 'ON' : 'Hospital'}
-                  </p>
+                  {currentDoc?.autoConfirmAppointment === true ? (
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      Auto-confirm: ON
+                    </p>
+                  ) : (
+                    <p className="text-[11px] text-amber-600 mt-1 font-medium">
+                      ⚠️ You may have to wait for booking confirmation
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
@@ -441,7 +447,7 @@ export default function BookingModal({
               />
               
               {/* Auto-confirm warning */}
-              {currentDoc?.autoConfirmAppointment === false && (
+              {currentDoc?.autoConfirmAppointment !== true && (
                 <div className="bg-amber-50/50 border border-amber-200 rounded-lg p-3">
                   <div className="flex items-start gap-2">
                     <div className="w-5 h-5 rounded-full bg-amber-500 flex items-center justify-center shrink-0 mt-0.5">

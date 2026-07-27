@@ -95,6 +95,8 @@ export const requireRole = (roles) => (req, res, next) => {
   next();
 };
 
+export const roleOnly = requireRole;
+
 export const superadminOnly = (req, res, next) => {
   if (req.user?.role !== 'superadmin') {
     return res.status(403).json({ message: 'Superadmin access required' });
