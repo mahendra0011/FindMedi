@@ -1,16 +1,21 @@
 import { useState, useEffect } from 'react';
-import { Globe, Save, CheckCircle, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Globe, Save, CheckCircle, ToggleLeft, ToggleRight, Upload, Camera, Pen, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
 
 export default function ClinicPlatformSettings() {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [autoConfirm, setAutoConfirm] = useState(true);
   const [maxSlot, setMaxSlot] = useState(1);
+  const [doctorId, setDoctorId] = useState(null);
+  const [signatureUrl, setSignatureUrl] = useState('');
+  const [signatureUploading, setSignatureUploading] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -27,6 +32,22 @@ export default function ClinicPlatformSettings() {
     };
     load();
   }, []);
+
+  useEffect(() => {
+    const loadDoctor = async () => {
+      try {
+        const doctors = (await api.getDoctors())?.data || [];
+        const myDoc = doctors.find(d => d.email === user?.email) || doctors.find(d => d.name?.includes(user?.name)) || null;
+        if (myDoc) {
+          setDoctorId(myDoc._id);
+          setSignatureUrl(myDoc.signatureUrl || '');
+        }
+      } catch (err) {
+        console.error('Failed to load doctor:', err);
+      }
+    };
+    if (user?.email) loadDoctor();
+  }, [user?.email, user?.name]);
 
   useEffect(() => {
     api.getMySlotCapacity().then(r => setMaxSlot(r.maxBookingsPerSlot || 1)).catch(() => {});
@@ -47,6 +68,24 @@ export default function ClinicPlatformSettings() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleSignatureUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !doctorId) return;
+    setSignatureUploading(true);
+    try {
+      const res = await api.uploadDoctorSignature(doctorId, file);
+      setSignatureUrl(res.signatureUrl);
+      toast.success('Signature uploaded successfully');
+    } catch (err) {
+      toast.error(err.message || 'Failed to upload signature');
+    }
+    setSignatureUploading(false);
+  };
+
+  const handleRemoveSignature = () => {
+    setSignatureUrl('');
   };
 
   if (loading) {
@@ -115,6 +154,49 @@ export default function ClinicPlatformSettings() {
               <p className="text-sm text-muted-foreground">Apne consultation time ke hisaab se — ek slot me kitne patients book ho sakte hain.</p>
             </div>
             <Input type="number" min={1} max={20} className="w-20" value={maxSlot} onChange={e => setMaxSlot(Number(e.target.value))} />
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-border bg-card p-6">
+          <h3 className="font-semibold text-foreground text-lg mb-4 flex items-center gap-2">
+            <Pen className="w-5 h-5 text-primary" /> Digital Signature
+          </h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Upload your signature — yeh prescription PDF, bill PDF, aur invoice PDF mein dikhai dega.
+          </p>
+          <div className="flex flex-col sm:flex-row items-start gap-6">
+            <div className="w-48 h-20 rounded-xl border-2 border-dashed border-border flex items-center justify-center bg-muted/20 overflow-hidden">
+              {signatureUrl ? (
+                <img src={signatureUrl} alt="Signature" className="max-w-full max-h-full object-contain" />
+              ) : (
+                <span className="text-xs text-muted-foreground">No signature</span>
+              )}
+            </div>
+            <div className="flex-1 space-y-3">
+              <div className="flex gap-3">
+                <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors">
+                  <Upload className="w-4 h-4" />
+                  {signatureUploading ? 'Uploading...' : signatureUrl ? 'Replace Signature' : 'Upload from Image'}
+                  <input type="file" accept="image/png,image/jpeg" className="hidden" onChange={handleSignatureUpload} disabled={signatureUploading} />
+                </label>
+                <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-secondary text-secondary-foreground text-sm font-medium hover:bg-secondary/80 transition-colors">
+                  <Camera className="w-4 h-4" />
+                  {signatureUploading ? 'Capturing...' : 'Capture with Camera'}
+                  <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleSignatureUpload} disabled={signatureUploading} />
+                </label>
+                {signatureUrl && (
+                  <button
+                    onClick={handleRemoveSignature}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-destructive/10 text-destructive text-sm font-medium hover:bg-destructive/20 transition-colors"
+                  >
+                    <X className="w-4 h-4" /> Remove
+                  </button>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Supports PNG and JPG. Signature will appear on all prescription, bill, and invoice PDFs.
+              </p>
+            </div>
           </div>
         </div>
 

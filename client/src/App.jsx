@@ -159,8 +159,16 @@ const ClinicStaff = lazy(() => import('./pages/clinic/ClinicStaff'));
 const ClinicNotifications = lazy(() => import('./pages/clinic/ClinicNotifications'));
 const ClinicPlatformSettings = lazy(() => import('./pages/clinic/ClinicPlatformSettings'));
 
+const DeliveryPartnerDashboard = lazy(() => import('./pages/delivery/DeliveryPartnerDashboard'));
+const MyDeliveries = lazy(() => import('./pages/delivery/MyDeliveries'));
+const DeliveryEarnings = lazy(() => import('./pages/delivery/Earnings'));
+const DeliveryDocuments = lazy(() => import('./pages/delivery/Documents'));
+const DeliveryPartnerRegister = lazy(() => import('./pages/register/DeliveryPartnerRegister'));
+const SuperAdminDeliveryPartners = lazy(() => import('./pages/superadmin/DeliveryPartners'));
+
 const AdminUsers = lazy(() => import('./pages/admin/AdminUsers'));
 const AdminPrescriptionQueue = lazy(() => import('./pages/admin/AdminPrescriptionQueue'));
+const AdminPrescriptionVerificationQueue = lazy(() => import('./pages/admin/AdminPrescriptionVerificationQueue'));
 const AdminDoctors = lazy(() => import('./pages/admin/AdminDoctors'));
 const AdminAnalytics = lazy(() => import('./pages/admin/AdminAnalytics'));
 const AdminDepartments = lazy(() => import('./pages/admin/AdminDepartments'));
@@ -271,6 +279,9 @@ function ProtectedRoute({ children, allowedRoles }) {
   if ((user.role === 'doctor' || user.role === 'clinic_doctor') && !user.doctorApproved) {
     return <Navigate to={`/pending-approval?email=${encodeURIComponent(user.email)}&status=${user.approvalStatus === 'rejected' ? 'rejected' : 'pending'}`} replace />;
   }
+  if (user.role === 'delivery_boy' && user.approvalStatus !== 'approved') {
+    return <Navigate to="/delivery/documents" replace />;
+  }
   if (allowedRoles && !allowedRoles.includes(user.role)) return <Navigate to="/dashboard" replace />;
   return children;
 }
@@ -342,6 +353,7 @@ function RoleDashboard() {
   if (user?.role === 'doctor') return <DoctorDashboard />;
   if (user?.role === 'clinic_doctor') return <ClinicDashboard />;
   if (user?.role === 'admin') return <Dashboard />;
+  if (user?.role === 'delivery_boy') return <DeliveryPartnerDashboard />;
   return <PatientDashboard />;
 }
 
@@ -476,7 +488,7 @@ const App = () => (
                     {/* Admin routes */}
                     <Route path="/admin/users" element={<RoleRoute allowedRoles={['admin', 'superadmin']}><AdminUsers /></RoleRoute>} />
                     <Route path="/admin/doctors" element={<RoleRoute allowedRoles={['admin']}><AdminDoctors /></RoleRoute>} />
-                    <Route path="/admin/prescriptions" element={<RoleRoute allowedRoles={['admin']}><AdminPrescriptionQueue /></RoleRoute>} />
+                     <Route path="/admin/prescription-verification" element={<RoleRoute allowedRoles={['admin']}><AdminPrescriptionVerificationQueue /></RoleRoute>} />
                     <Route path="/admin/analytics" element={<RoleRoute allowedRoles={['admin']}><AdminAnalytics /></RoleRoute>} />
                     <Route path="/admin/departments" element={<RoleRoute allowedRoles={['admin']}><AdminDepartments /></RoleRoute>} />
                     <Route path="/admin/emergency" element={<RoleRoute allowedRoles={['admin']}><AdminEmergency /></RoleRoute>} />
@@ -566,10 +578,21 @@ const App = () => (
                     <Route path="/clinic/settings" element={<RoleRoute allowedRoles={['clinic_doctor']}><AdminClinicSettings /></RoleRoute>} />
                     <Route path="/clinic/platform-settings" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicPlatformSettings /></RoleRoute>} />
                     <Route path="/clinic/staff" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicStaff /></RoleRoute>} />
-                    <Route path="/clinic/notifications" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicNotifications /></RoleRoute>} />
-                  </Route>
+                     <Route path="/clinic/notifications" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicNotifications /></RoleRoute>} />
+                   </Route>
 
-                  <Route path="*" element={<NotFound />} />
+                   {/* Delivery Partner routes */}
+                   <Route path="/delivery/dashboard" element={<RoleRoute allowedRoles={['delivery_boy']}><DeliveryPartnerDashboard /></RoleRoute>} />
+                   <Route path="/delivery/deliveries" element={<RoleRoute allowedRoles={['delivery_boy']}><MyDeliveries /></RoleRoute>} />
+                   <Route path="/delivery/earnings" element={<RoleRoute allowedRoles={['delivery_boy']}><DeliveryEarnings /></RoleRoute>} />
+                   <Route path="/delivery/documents" element={<RoleRoute allowedRoles={['delivery_boy']}><DeliveryDocuments /></RoleRoute>} />
+                   <Route path="/delivery/profile" element={<RoleRoute allowedRoles={['delivery_boy']}><Settings /></RoleRoute>} />
+                   <Route path="/register/delivery-partner" element={<DeliveryPartnerRegister />} />
+
+                   {/* Super Admin Delivery Oversight */}
+                   <Route path="/superadmin/delivery-partners" element={<RoleRoute allowedRoles={['superadmin']}><SuperAdminDeliveryPartners /></RoleRoute>} />
+
+                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </Suspense>
               </AppMotion>

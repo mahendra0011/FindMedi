@@ -80,6 +80,10 @@ export async function downloadBillPdf(txnId, filename = 'bill.pdf') {
 
 export const api = {
   dispatch,
+  post:               (path, body) => request(path, { method:'POST', body: JSON.stringify(body) }),
+  get:                (path)      => request(path),
+  put:                (path, body) => request(path, { method:'PUT', body: JSON.stringify(body) }),
+  del:                (path)      => request(path, { method:'DELETE' }),
   login:              (body)    => request('/auth/login',            { method:'POST', body: JSON.stringify(body) }),
   googleAuth:         (body)    => request('/auth/google',           { method:'POST', body: JSON.stringify(body) }),
   setDoctorPassword:  (body)    => request('/auth/doctor-setup',     { method:'POST', body: JSON.stringify(body) }),
@@ -202,6 +206,20 @@ export const api = {
   getMyHospital:        ()      => request('/hospitals/admin/mine'),
   registerPlatform:     (body)  => request('/platform/register', { method:'POST', body: JSON.stringify(body) }),
 
+  registerDeliveryBoy:  (body)  => request('/delivery-boy/register', { method:'POST', body: JSON.stringify(body) }),
+  uploadDeliveryDocs:   (userId, docs) => {
+    const body = new FormData();
+    Object.entries(docs).forEach(([key, file]) => { if (file) body.append(key, file); });
+    return request(`/delivery-boy/upload-docs/${userId}`, { method:'POST', body });
+  },
+  getPendingDeliveryBoys: () => request('/delivery-boy/pending'),
+  getAllDeliveryBoys:   ()  => request('/delivery-boy/all'),
+  approveDeliveryBoy:   (id, body) => request(`/delivery-boy/approve/${id}`, { method:'PUT', body: JSON.stringify(body) }),
+  updateDeliveryLocation: (id, body) => request(`/delivery-boy/location/${id}`, { method:'PUT', body: JSON.stringify(body) }),
+  getNearbyDeliveryBoys: (lat, lng, radius) => request(`/delivery-boy/nearby?lat=${lat}&lng=${lng}&radius=${radius || 10}`),
+  getDeliveryProfile:   (id) => request(`/delivery-boy/profile/${id}`),
+  updateDeliveryProfile: (id, body) => request(`/delivery-boy/profile/${id}`, { method:'PUT', body: JSON.stringify(body) }),
+
   getBeds:        (p={})  => request('/beds?' + new URLSearchParams(p)),
   getBedStats:    ()      => request('/beds/stats'),
   createBed:      (body)  => request('/beds',              { method:'POST',   body: JSON.stringify(body) }),
@@ -260,7 +278,8 @@ export const api = {
   getPharmacyDeliveries:  (p={})    => request('/pharmacy/deliveries?' + new URLSearchParams(p)),
   getPharmacyPrescriptions: (p={})  => request('/pharmacy/prescriptions?' + new URLSearchParams(p)),
   getPharmacyPrescription:  (id)    => request(`/pharmacy/prescriptions/${id}`),
-  dispensePharmacyMedicine: (id,b)  => request(`/pharmacy/prescriptions/${id}/dispense`, { method:'PUT', body: JSON.stringify(b) }),
+   dispensePharmacyMedicine: (id,b)  => request(`/pharmacy/prescriptions/${id}/dispense`, { method:'PUT', body: JSON.stringify(b) }),
+   verifyPrescription:       (id,b)  => request(`/pharmacy/prescriptions/${id}/verify`, { method:'PUT', body: JSON.stringify(b) }),
 
   getLabStats:        ()        => request('/lab/stats'),
   getLabBookings:     (p={})    => request('/lab/bookings?' + new URLSearchParams(p)),

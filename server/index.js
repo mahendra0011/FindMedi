@@ -243,6 +243,8 @@ import cityRoutes from './routes/cities.js';
 import platformContentRoutes from './routes/platformContent.js';
 import exportRoutes from './routes/export.js';
 import integrationRoutes from './routes/integrations.js';
+import deliveryPartnerRoutes from './routes/deliveryPartners.js';
+import { connectRedis } from './config/redis.js';
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -301,6 +303,7 @@ app.use('/api/cities', cityRoutes);
 app.use('/api/platform-content', platformContentRoutes);
 app.use('/api/export', exportRoutes);
 app.use('/api/integrations', integrationRoutes);
+app.use('/api/delivery-partners', deliveryPartnerRoutes);
 
 // 2FA routes
 app.use('/api/auth/2fa', twoFactorRoutes);
@@ -329,6 +332,9 @@ logger.info('   URI: ' + redactMongoUri(MONGO_URI));
 if (process.env.NODE_ENV !== 'test') {
   const server = http.createServer(app);
   initSocket(server);
+  if (process.env.REDIS_URL) {
+    connectRedis().catch((err) => logger.error(`Redis connection failed: ${err.message}`));
+  }
   mongoose.connect(MONGO_URI, mongooseOptions)
     .then(() => {
       logger.info('✅ MongoDB connected successfully');

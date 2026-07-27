@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Navigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Activity, ArrowRight, Shield, Stethoscope, UserRound, Building2, Hospital, Microscope, Pill, Heart, Eye, EyeOff } from 'lucide-react';
+import { Activity, ArrowRight, Shield, Stethoscope, UserRound, Building2, Hospital, Microscope, Pill, Heart, Eye, EyeOff, Truck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
@@ -14,6 +14,7 @@ const roles = [
   { key: 'clinic_doctor', label: 'Clinic',     desc: 'Clinic management',     icon: Heart,       color: 'text-rose-600',    bg: 'bg-rose-500/10'    },
   { key: 'lab_owner',     label: 'Diagnostic', desc: 'Lab test mgmt',         icon: Microscope,  color: 'text-emerald-600', bg: 'bg-emerald-500/10' },
   { key: 'pharmacy_owner',label: 'Pharmacy',   desc: 'Medicine store',        icon: Pill,        color: 'text-amber-600',   bg: 'bg-amber-500/10'   },
+  { key: 'delivery_boy',  label: 'Delivery',    desc: 'Medicine delivery',      icon: Truck,       color: 'text-blue-600',    bg: 'bg-blue-500/10'    },
   { key: 'patient',    label: 'Patient',    desc: 'Appointments & records', icon: UserRound,   color: 'text-success',     bg: 'bg-success/10'     },
 ];
 
@@ -202,6 +203,7 @@ export default function Login() {
                 { key:'clinic_doctor', label:'Clinic',     desc:'Clinic management',       icon: Heart,       color:'text-rose-600',    bg:'bg-rose-500/10',    email:'clinic@medicore.com',       pass:'password' },
                 { key:'lab_owner',  label:'Diagnostic',    desc:'Lab test mgmt',           icon: Microscope,  color:'text-emerald-600', bg:'bg-emerald-500/10', email:'diagnostic@medicore.com',   pass:'password' },
                 { key:'pharmacy_owner', label:'Pharmacy',  desc:'Medicine store',          icon: Pill,        color:'text-amber-600',   bg:'bg-amber-500/10',   email:'pharmacy@medicore.com',     pass:'password' },
+                { key:'delivery_boy',  label:'Delivery',    desc:'Medicine delivery',      icon: Truck,       color:'text-blue-600',    bg:'bg-blue-500/10',    email:'delivery@medicore.com',     pass:'password' },
                 { key:'patient',    label:'Patient',       desc:'Appointments & records', icon: UserRound,   color:'text-success',     bg:'bg-success/10',     email:'patient@medicore.com',      pass:'password' },
               ].map(({ key, label, desc, icon: Icon, color, bg, email, pass }) => (
                 <button key={key} type="button" onClick={() => { setRole(key); setEmail(email); setPassword(pass); setError(''); }}

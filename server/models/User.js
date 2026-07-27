@@ -6,7 +6,7 @@ const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true, lowercase: true, index: true },
   password: { type: String, required: true, select: false },
-  role: { type: String, enum: ['superadmin', 'admin', 'doctor', 'clinic_doctor', 'patient', 'lab_owner', 'lab_receptionist', 'lab_technician', 'pathologist', 'pharmacy_owner', 'pharmacist', 'nurse', 'radiologist', 'dietitian', 'physiotherapist', 'counselor', 'accountant', 'security', 'technician', 'helper'], default: 'patient', index: true },
+  role: { type: String, enum: ['superadmin', 'admin', 'doctor', 'clinic_doctor', 'patient', 'lab_owner', 'lab_receptionist', 'lab_technician', 'pathologist', 'pharmacy_owner', 'pharmacist', 'nurse', 'radiologist', 'dietitian', 'physiotherapist', 'counselor', 'accountant', 'security', 'technician', 'helper', 'delivery_boy'], default: 'patient', index: true },
   hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
   facilityId: { type: mongoose.Schema.Types.ObjectId, ref: 'Facility', index: true },
   facilityType: { type: String, enum: ['hospital', 'clinic', 'lab', 'pharmacy', ''], default: '' },
@@ -68,6 +68,45 @@ const userSchema = new mongoose.Schema({
       dataSharing: false,
       profileVisibility: 'care_team',
     }),
+  },
+
+  // Delivery Boy fields
+  vehicleType: { type: String, enum: ['bike', 'scooter', 'bicycle', 'on-foot', ''], default: '' },
+  vehicleNumber: { type: String, default: '' },
+  drivingLicenseNumber: { type: String, default: '' },
+  docs: {
+    aadharFront: { type: String, default: '' },
+    aadharBack: { type: String, default: '' },
+    panCard: { type: String, default: '' },
+    photo: { type: String, default: '' },
+    drivingLicense: { type: String, default: '' },
+    rc: { type: String, default: '' },
+    addressProof: { type: String, default: '' },
+  },
+  bankDetails: {
+    accountNumber: { type: String, default: '' },
+    ifsc: { type: String, default: '' },
+    accountHolderName: { type: String, default: '' },
+    upiId: { type: String, default: '' },
+  },
+  pharmacyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Facility', index: true },
+  currentLocation: {
+    lat: { type: Number, default: null },
+    lng: { type: Number, default: null },
+  },
+  isOnline: { type: Boolean, default: false },
+  deliveryZone: [{ type: String }],
+  workingHours: {
+    type: Object,
+    default: () => ({
+      availability: 'full-time',
+      startTime: '',
+      endTime: '',
+    }),
+  },
+  emergencyContact: {
+    name: { type: String, default: '' },
+    phone: { type: String, default: '' },
   },
   createdAt: { type: Date, default: Date.now, index: true },
 });

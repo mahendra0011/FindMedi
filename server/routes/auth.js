@@ -179,6 +179,8 @@ const userResponse = async (user) => {
   } else if (user.role === 'clinic_doctor' || user.role === 'lab_owner' || user.role === 'pharmacy_owner') {
     const facility = user.facilityId ? await Facility.findById(user.facilityId).select('status') : null;
     entityApproved = facility?.status === 'approved';
+  } else if (user.role === 'delivery_boy') {
+    entityApproved = user.approvalStatus === 'approved';
   } else if (user.role === 'admin' && user.hospitalId) {
     const hospital = await Hospital.findById(user.hospitalId).select('status');
     entityApproved = hospital?.status === 'approved';
@@ -187,29 +189,39 @@ const userResponse = async (user) => {
     ? (doctorProfile?.approved ? 'approved' : user.approvalStatus || 'pending')
     : entityApproved ? 'approved' : user.approvalStatus || 'pending';
 
-  return {
-    id: user._id,
-    name: user.name,
-    email: user.email,
-    role: user.role,
-    avatar: user.avatar,
-    phone: user.phone,
-    address: user.address,
-    gender: user.gender,
-    dateOfBirth: user.dateOfBirth,
-    specialization: user.specialization,
-    experience: user.experience,
-    qualification: user.qualification,
-    licenseNumber: user.licenseNumber,
-    consultationFee: user.consultationFee,
-    isVerified: user.isVerified,
-    status: user.status,
-    approvalStatus: approval,
-    doctorApproved: entityApproved,
-    doctorProfileId: doctorProfile?._id,
-    hospitalId: user.hospitalId || null,
-    settings: user.settings || {},
-  };
+   return {
+     id: user._id,
+     name: user.name,
+     email: user.email,
+     role: user.role,
+     avatar: user.avatar,
+     phone: user.phone,
+     address: user.address,
+     gender: user.gender,
+     dateOfBirth: user.dateOfBirth,
+     specialization: user.specialization,
+     experience: user.experience,
+     qualification: user.qualification,
+     licenseNumber: user.licenseNumber,
+     consultationFee: user.consultationFee,
+     isVerified: user.isVerified,
+     status: user.status,
+     approvalStatus: approval,
+     doctorApproved: entityApproved,
+     doctorProfileId: doctorProfile?._id,
+     hospitalId: user.hospitalId || null,
+     settings: user.settings || {},
+     ...(user.role === 'delivery_boy' && {
+       vehicleType: user.vehicleType,
+       vehicleNumber: user.vehicleNumber,
+       pharmacyId: user.pharmacyId || null,
+       isOnline: user.isOnline,
+       currentLocation: user.currentLocation,
+       deliveryZone: user.deliveryZone,
+       workingHours: user.workingHours,
+       emergencyContact: user.emergencyContact,
+     }),
+   };
 };
 
 const notifyAdmins = async ({ title, message }) => {
@@ -524,7 +536,7 @@ router.post('/login', validate(loginSchema), async (req, res) => {
       });
     }
 
-    const requiresApproval = ['doctor', 'clinic_doctor', 'lab_owner', 'pharmacy_owner'];
+    const requiresApproval = ['doctor', 'clinic_doctor', 'lab_owner', 'pharmacy_owner', 'delivery_boy'];
     if (requiresApproval.includes(user.role)) {
       if (user.role === 'doctor') {
         const doctorProfile = await getDoctorProfile(user);
@@ -545,6 +557,21 @@ router.post('/login', validate(loginSchema), async (req, res) => {
         if (user.approvalStatus !== 'approved') {
           user.approvalStatus = 'approved';
           await user.save();
+        }
+      } else if (user.role === 'delivery_boy') {
+        if (user.approvalStatus === 'rejected') {
+          return res.status(403).json({
+            message: 'Your delivery partner account was not approved. Contact administrator.',
+            approvalRejected: true,
+            email: user.email,
+          });
+        }
+        if (user.approvalStatus !== 'approved') {
+          return res.status(403).json({
+            message: 'Your delivery partner account is pending admin approval.',
+            approvalPending: true,
+            email: user.email,
+          });
         }
       } else {
         const facility = user.facilityId ? await Facility.findById(user.facilityId).select('status') : null;
