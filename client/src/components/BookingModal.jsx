@@ -1,8 +1,8 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { BadgeCheck, CalendarDays, CheckCircle, CheckCircle2, ChevronRight, CreditCard, Landmark, Smartphone, Wallet, ArrowLeft, Users, FileDown } from 'lucide-react';
+import { BadgeCheck, CalendarDays, CheckCircle, CheckCircle2, ChevronRight, CreditCard, Landmark, Smartphone, Wallet, ArrowLeft, Users, FileDown, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -29,6 +29,10 @@ export default function BookingModal({
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookedSlots, setBookedSlots] = useState([]);
   const [slotCounts, setSlotCounts] = useState({});
+  const [dateDisabledSlots, setDateDisabledSlots] = useState([]);
+  const [pendingDisabledSlots, setPendingDisabledSlots] = useState([]);
+  const [bookingWindow, setBookingWindow] = useState(null);
+  const [selectedHour, setSelectedHour] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState('card');
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [bookingDetails, setBookingDetails] = useState(null);
@@ -45,6 +49,10 @@ export default function BookingModal({
       setBookingStep(doc ? 0 : -1);
       setBookingDate(getISTDateString());
       setBookingTime('');
+      setSelectedHour(null);
+      setDateDisabledSlots([]);
+      setPendingDisabledSlots([]);
+      setBookingWindow(null);
       setBookingNotes('');
       setPaymentMethod('card');
       setBookingDetails(null);
@@ -70,31 +78,34 @@ export default function BookingModal({
 
   // Doctor + date change hone par uske already-booked slots fetch karo WITH COUNTS
   useEffect(() => {
-    if (!currentDoc?._id || !bookingDate) { setBookedSlots([]); setSlotCounts({}); return; }
+    if (!currentDoc?._id || !bookingDate) { setBookedSlots([]); setSlotCounts({}); setDateDisabledSlots([]); setPendingDisabledSlots([]); setBookingWindow(null); return; }
     api.getBookedSlots({ doctorId: currentDoc._id, date: bookingDate })
-      .then(slots => {
-        setBookedSlots(Array.isArray(slots) ? slots : []);
-        // Count bookings per slot for capacity display
-        const counts = {};
-        if (Array.isArray(slots)) {
-          slots.forEach(slot => { counts[slot] = (counts[slot] || 0) + 1; });
+      .then(res => {
+        // New shape: { counts, capacity, fullSlots, dateDisabled, bookingWindow, pendingDisabledSlots }. Legacy shape: ["10:00 AM", ...]
+        if (res && typeof res === 'object' && !Array.isArray(res) && res.counts) {
+          setSlotCounts(res.counts || {});
+          setBookedSlots(res.fullSlots || Object.keys(res.counts || {}));
+          setDateDisabledSlots(res.dateDisabled || []);
+          setPendingDisabledSlots(res.pendingDisabledSlots || []);
+          setBookingWindow(res.bookingWindow || null);
+        } else {
+          const arr = Array.isArray(res) ? res : [];
+          setBookedSlots(arr);
+          const counts = {};
+          arr.forEach(s => { counts[s] = (counts[s] || 0) + 1; });
+          setSlotCounts(counts);
+          setDateDisabledSlots([]);
+          setPendingDisabledSlots([]);
+          setBookingWindow(null);
         }
-        setSlotCounts(counts);
       })
-      .catch(() => { setBookedSlots([]); setSlotCounts({}); });
-  }, [currentDoc?._id, bookingDate]);
-
-  // Calculate remaining slots for current time selection
-  const getRemainingSlots = (time) => {
-    const capacity = currentDoc?.maxBookingsPerSlot || 1;
-    const bookedCount = slotCounts[time] || 0;
-    return Math.max(0, capacity - bookedCount);
-  };
+      .catch(() => { setBookedSlots([]); setSlotCounts({}); setDateDisabledSlots([]); setPendingDisabledSlots([]); setBookingWindow(null); });
+  }, [currentDoc?._id, bookingDate, currentDoc?.maxBookingsPerSlot]);
 
   const isSlotFull = (time) => {
-    const capacity = currentDoc?.maxBookingsPerSlot || 1;
+    // Per sub-slot, only 1 booking is allowed (15 min = 1 patient treatment)
     const bookedCount = slotCounts[time] || 0;
-    return bookedCount >= capacity;
+    return bookedCount >= 1;
   };
 
   const handleProceedToPayment = () => {
@@ -133,6 +144,23 @@ export default function BookingModal({
     let apptId = null;
 
     try {
+      // Pre-check: confirm slot is still available before processing payment
+      try {
+        const slotCheck = await api.getBookedSlots({ doctorId: currentDoc._id, date: bookingDate });
+        const counts = (slotCheck && slotCheck.counts) ? slotCheck.counts : {};
+        if ((counts[bookingTime] || 0) >= 1) {
+          toast.error('This slot is already booked. Please try another slot.');
+          setBookingTime('');
+          setBookingStep(0);
+          setSlotCounts(counts);
+          setBookedSlots(slotCheck.fullSlots || Object.keys(counts));
+          setDateDisabledSlots(slotCheck.dateDisabled || []);
+          setBookingLoading(false);
+          processingRef.current = false;
+          return;
+        }
+      } catch (_) { /* proceed even if check fails — server will catch duplicates */ }
+
       const fees = Number(currentDoc.consultation_fees) || Number(currentDoc.fees);
       if (!fees || fees <= 0) {
         throw new Error('Doctor consultation fee is not set. Please contact support.');
@@ -202,11 +230,22 @@ export default function BookingModal({
         // shows as disabled immediately, instead of only failing on submit.
         if (currentDoc?._id && bookingDate) {
           api.getBookedSlots({ doctorId: currentDoc._id, date: bookingDate })
-            .then(slots => {
-              setBookedSlots(Array.isArray(slots) ? slots : []);
-              const counts = {};
-              if (Array.isArray(slots)) slots.forEach(s => { counts[s] = (counts[s] || 0) + 1; });
-              setSlotCounts(counts);
+            .then(res => {
+                if (res && typeof res === 'object' && !Array.isArray(res) && res.counts) {
+                  setSlotCounts(res.counts || {});
+                  setBookedSlots(res.fullSlots || Object.keys(res.counts || {}));
+                  setDateDisabledSlots(res.dateDisabled || []);
+                  setPendingDisabledSlots(res.pendingDisabledSlots || []);
+                  setBookingWindow(res.bookingWindow || null);
+                } else {
+                  const arr = Array.isArray(res) ? res : [];
+                  setBookedSlots(arr);
+                  const counts = {};
+                  arr.forEach(s => { counts[s] = (counts[s] || 0) + 1; });
+                  setSlotCounts(counts);
+                  setDateDisabledSlots([]);
+                  setPendingDisabledSlots([]);
+                }
             })
             .catch(() => {});
         }
@@ -219,6 +258,95 @@ export default function BookingModal({
     }
     setPaymentLoading(false);
     processingRef.current = false;
+  };
+
+  // ─── Slot helpers: group flat time_slots into hours + build time ranges ───
+  const slotDuration = currentDoc?.slotDuration || 15;
+
+  // Max bookable date from doctor's booking window (e.g. 2 weeks from today)
+  const maxBookableDate = useMemo(() => {
+    const bw = bookingWindow;
+    if (!bw || typeof bw.value !== 'number' || bw.value <= 0 || !bw.unit) return null;
+    const d = new Date();
+    switch (bw.unit) {
+      case 'hours': d.setHours(d.getHours() + bw.value); break;
+      case 'days': d.setDate(d.getDate() + bw.value); break;
+      case 'weeks': d.setDate(d.getDate() + bw.value * 7); break;
+      case 'months': d.setMonth(d.getMonth() + bw.value); break;
+      default: return null;
+    }
+    const yy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yy}-${mm}-${dd}`;
+  }, [bookingWindow]);
+
+  // "09:15 AM" -> minutes since midnight (e.g. 555)
+  const slotToMinutes = (t) => {
+    const m = t?.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+    if (!m) return null;
+    let h = parseInt(m[1], 10) % 12;
+    if (/PM/i.test(m[3])) h += 12;
+    return h * 60 + parseInt(m[2], 10);
+  };
+
+  // minutes since midnight -> "9:15 AM"
+  const minutesToSlot = (mins) => {
+    let h = Math.floor(mins / 60) % 24;
+    const mm = mins % 60;
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    let h12 = h % 12; if (h12 === 0) h12 = 12;
+    return `${h12}:${String(mm).padStart(2, '0')} ${ampm}`;
+  };
+
+  // minutes -> short "9:00" for range display
+  const minutesToShort = (mins) => {
+    let h = Math.floor(mins / 60) % 24;
+    const mm = mins % 60;
+    let h12 = h % 12; if (h12 === 0) h12 = 12;
+    return `${h12}:${String(mm).padStart(2, '0')}`;
+  };
+
+  // Is a slot disabled for this specific date by the doctor in My Schedule?
+  const isSlotDisabled = (slotStr) => dateDisabledSlots.includes(slotStr);
+
+  // Is a slot pending removal (doctor requested to disable it, awaiting admin approval)?
+  const isSlotPendingUpdate = (slotStr) => pendingDisabledSlots.includes(slotStr);
+
+  // Group all time_slots (enabled + date-disabled + pending-disabled) into hours.
+  const hourGroups = useMemo(() => {
+    const enabledSlots = currentDoc?.time_slots || [];
+    const allSlots = [...enabledSlots,
+      ...dateDisabledSlots.filter(s => !enabledSlots.includes(s)),
+      ...pendingDisabledSlots.filter(s => !enabledSlots.includes(s) && !dateDisabledSlots.includes(s))];
+    // Fallback if nothing
+    const slots = allSlots.length > 0 ? allSlots : ['09:00 AM', '10:00 AM', '11:00 AM', '02:00 PM', '03:00 PM', '04:00 PM'];
+    const groups = {};
+    slots.forEach(t => {
+      const mins = slotToMinutes(t);
+      if (mins == null) return;
+      const h24 = Math.floor(mins / 60) % 24;
+      let h12 = h24 % 12; if (h12 === 0) h12 = 12;
+      const key = `${h12} ${h24 >= 12 ? 'PM' : 'AM'}`;
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(t);
+    });
+    return Object.entries(groups).sort((a, b) => slotToMinutes(a[1][0]) - slotToMinutes(b[1][0]));
+  }, [currentDoc?.time_slots, dateDisabledSlots]);
+
+  // Range string for a slot: "9:00–9:15"
+  const rangeFor = (slotStr) => {
+    const start = slotToMinutes(slotStr);
+    if (start == null) return slotStr;
+    const end = start + slotDuration;
+    return `${minutesToShort(start)}–${minutesToShort(end)}`;
+  };
+
+  const fullRangeFor = (slotStr) => {
+    const start = slotToMinutes(slotStr);
+    if (start == null) return slotStr;
+    const end = start + slotDuration;
+    return `${minutesToSlot(start)} – ${minutesToSlot(end)}`;
   };
 
   return (
@@ -254,12 +382,6 @@ export default function BookingModal({
                         <span className="text-xs text-muted-foreground">{doc.experience || `${doc.experienceYears || 0} yrs`}</span>
                         <span className="text-xs text-muted-foreground">•</span>
                         <span className="text-xs font-medium text-primary">₹{doc.fees || doc.consultation_fees || 0}</span>
-                        {doc.maxBookingsPerSlot > 1 && (
-                          <>
-                            <span className="text-xs text-muted-foreground">•</span>
-                            <span className="text-xs text-amber-600 font-medium">{doc.maxBookingsPerSlot}/slot</span>
-                          </>
-                        )}
                       </div>
                     </div>
                     <ChevronRight className="w-4 h-4 text-muted-foreground self-center" />
@@ -299,11 +421,6 @@ export default function BookingModal({
                 <div className="min-w-0">
                   <h3 className="font-heading font-semibold text-foreground text-sm truncate">{currentDoc?.name}</h3>
                   <p className="text-xs text-primary">{currentDoc?.specialization}</p>
-                  {currentDoc?.maxBookingsPerSlot > 1 && (
-                    <p className="text-[10px] text-amber-600 mt-0.5 font-medium">
-                      ⏱️ {currentDoc.maxBookingsPerSlot} patients per slot
-                    </p>
-                  )}
                   {isAutoConfirm ? (
                     <p className="text-[10px] text-muted-foreground mt-1">
                       Auto accept appointment is on
@@ -321,37 +438,95 @@ export default function BookingModal({
                   <p className="font-bold text-sm text-primary">₹{Number(currentDoc?.consultation_fees) || Number(currentDoc?.fees) || 0}</p>
                 </div>
                 <div className="p-2 rounded-xl bg-emerald-50 border border-emerald-200 dark:bg-emerald-500/10 text-center">
-                  <p className="text-[11px] text-muted-foreground mb-0.5">Available Slot</p>
+                  <p className="text-[11px] text-muted-foreground mb-0.5">Avg Treatment Time</p>
                   <p className="font-semibold text-xs text-emerald-600">
-                    {currentDoc?.next_available_slot || 'Today'}
-                    {currentDoc?.maxBookingsPerSlot > 1 && ` (${currentDoc.maxBookingsPerSlot}/slot)`}
+                    {currentDoc?.slotDuration || 15} mins
                   </p>
                 </div>
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-foreground">Select Date</label>
-                <Input type="date" className="w-full" value={bookingDate} onChange={e => setBookingDate(e.target.value)} min={getISTDateString()} />
+                <Input type="date" className="w-full" value={bookingDate} onChange={e => setBookingDate(e.target.value)} min={getISTDateString()} max={maxBookableDate || undefined} />
+                {maxBookableDate && bookingWindow && (
+                  <p className="text-[10px] text-muted-foreground">
+                    📅 You can book up to <strong>{bookingWindow.value} {bookingWindow.unit}</strong> in advance ({maxBookableDate})
+                  </p>
+                )}
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-foreground">Select Time Slot</label>
-                <select value={bookingTime} onChange={e => setBookingTime(e.target.value)} className="w-full h-9 px-3 rounded-xl border border-border bg-background text-sm">
-                  <option value="">Choose time</option>
-                  {(currentDoc?.time_slots || ['09:00 AM', '10:00 AM', '11:00 AM', '02:00 PM', '03:00 PM', '04:00 PM']).map(t => {
-                    const isFull = isSlotFull(t);
-                    const remaining = getRemainingSlots(t);
-                    const capacity = currentDoc?.maxBookingsPerSlot || 1;
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-medium text-foreground">Select Time Slot</label>
+                  <span className="inline-flex items-center gap-1 text-[10px] font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-md">
+                    <Clock className="w-3 h-3" /> Avg {slotDuration} mins
+                  </span>
+                </div>
+
+                {/* Step A: Hour selector dropdown */}
+                <select value={selectedHour || ''} onChange={e => { setSelectedHour(e.target.value); setBookingTime(''); }} className="w-full h-9 px-3 rounded-xl border border-border bg-background text-sm">
+                  <option value="">Choose hour</option>
+                  {hourGroups.map(([hourLabel, hourSlots]) => {
+                    const allUnavailable = hourSlots.every(s => isSlotFull(s) || isSlotDisabled(s) || isSlotPendingUpdate(s));
+                    const avail = hourSlots.filter(s => !isSlotFull(s) && !isSlotDisabled(s) && !isSlotPendingUpdate(s)).length;
                     return (
-                      <option key={t} disabled={isFull} value={t}>
-                        {t} {isFull ? '(Full)' : `(${remaining}/${capacity} left)`}
+                      <option key={hourLabel} value={hourLabel} disabled={allUnavailable}>
+                        {hourLabel}{allUnavailable ? ' (Full)' : ''}
                       </option>
                     );
                   })}
                 </select>
-                {/* Remaining slots info */}
+
+                {/* Step B: Sub-slot boxes for selected hour */}
+                {selectedHour && (
+                  <div className="space-y-2">
+                    <p className="text-[11px] text-muted-foreground">
+                      {(() => {
+                        const hs = hourGroups.find(([h]) => h === selectedHour)?.[1] || [];
+                        const unavailableCount = hs.filter(s => isSlotFull(s) || isSlotDisabled(s) || isSlotPendingUpdate(s)).length;
+                        return `${hs.length - unavailableCount} of ${hs.length} slots available in ${selectedHour}`;
+                      })()}
+                    </p>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                      {(hourGroups.find(([h]) => h === selectedHour)?.[1] || []).map(t => {
+                        const disabled = isSlotDisabled(t);
+                        const pendingUpdate = isSlotPendingUpdate(t);
+                        const full = isSlotFull(t);
+                        const unavailable = disabled || full || pendingUpdate;
+                        const selected = bookingTime === t;
+                        return (
+                          <button
+                            key={t}
+                            type="button"
+                            disabled={unavailable}
+                            onClick={() => setBookingTime(t)}
+                            className={`flex flex-col items-center gap-0.5 px-1.5 py-2 rounded-lg border text-center transition-all ${
+                              selected
+                                ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+                                : unavailable
+                                ? (pendingUpdate
+                                    ? 'border-red-300 bg-red-50 text-red-600 cursor-not-allowed'
+                                    : 'border-red-300 bg-red-50 text-red-600 cursor-not-allowed')
+                                : 'border-border bg-card text-foreground hover:border-primary/50 hover:bg-primary/5'
+                            }`}
+                          >
+                            <span className="text-xs font-semibold">{rangeFor(t)}</span>
+                            <span className={`text-[9px] leading-none ${selected ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
+                              {disabled ? 'Not Available (Disabled)' : pendingUpdate ? 'Pending — may not be available' : full ? 'Booked' : 'Available'}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Selected slot confirmation pill with full range */}
                 {bookingTime && (
                   <div className="flex items-center gap-2 text-xs mt-1">
                     <div className={`px-2 py-1 rounded-md ${isSlotFull(bookingTime) ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'}`}>
-                      {isSlotFull(bookingTime) ? '⚠️ This slot is full' : `✅ ${getRemainingSlots(bookingTime)} more bookings allowed`}
+                      {isSlotFull(bookingTime) ? '⚠️ This slot is full' : '✅ Slot Available'}
+                    </div>
+                    <div className="px-2 py-1 rounded-md bg-primary/10 text-primary font-medium">
+                      {fullRangeFor(bookingTime)}
                     </div>
                   </div>
                 )}
@@ -490,7 +665,7 @@ export default function BookingModal({
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 border border-primary/20">
               <CalendarDays className="w-4 h-4 text-primary" />
               <p className="text-xs font-medium text-primary">
-                {formatDisplayDate(bookingDate)} • {bookingTime}
+                {formatDisplayDate(bookingDate)} • {fullRangeFor(bookingTime)}
               </p>
             </div>
             <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20">

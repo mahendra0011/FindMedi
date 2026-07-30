@@ -70,6 +70,19 @@ const doctorSchema = new mongoose.Schema({
   bufferPerHour: { type: Number, default: 1 },
   autoConfirmAppointment: { type: Boolean, default: null },
   maxBookingsPerSlot: { type: Number, default: 1, min: 1 },
+  disabled_time_slots: { type: [String], default: [] },
+  breakTime: {
+    start: { type: String, default: '' },
+    end: { type: String, default: '' },
+  },
+  // Per-date disabled slots: { "2026-07-27": ["09:00 AM", "09:15 AM"], ... }
+  dateDisabledSlots: { type: Object, default: {} },
+  // Booking window: patients can only book within this range from today.
+  // unit: 'hours' | 'days' | 'weeks' | 'months', value: number
+  bookingWindow: {
+    unit: { type: String, enum: ['hours', 'days', 'weeks', 'months'], default: 'weeks' },
+    value: { type: Number, default: 2, min: 0 },
+  },
   createdAt: { type: Date, default: Date.now },
 });
 

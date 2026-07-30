@@ -109,8 +109,11 @@ router.get('/booked-slots', protect, async (req, res) => {
     const { doctorId, date } = req.query;
     if (!doctorId || !date) return res.status(400).json({ message: 'doctorId and date required' });
 
-    const doctorDoc = await Doctor.findById(doctorId).select('maxBookingsPerSlot').lean();
+    const doctorDoc = await Doctor.findById(doctorId).select('maxBookingsPerSlot dateDisabledSlots bookingWindow').lean();
     const capacity = doctorDoc?.maxBookingsPerSlot || 1;
+    // Date-specific disabled slots (per-date toggle from My Schedule)
+    const dateDisabled = (doctorDoc?.dateDisabledSlots && doctorDoc.dateDisabledSlots[date]) || [];
+    const bookingWindow = doctorDoc?.bookingWindow || { unit: 'weeks', value: 2 };
 
     const filter = { doctorId, date, status: { $nin: ['Cancelled', 'Completed', 'Missed'] } };
     const appts = await Appointment.find(filter).select('time').lean();
@@ -119,7 +122,25 @@ router.get('/booked-slots', protect, async (req, res) => {
     appts.forEach(a => { counts[a.time] = (counts[a.time] || 0) + 1; });
     const fullSlots = Object.keys(counts).filter(t => counts[t] >= capacity);
 
-    res.json(fullSlots);
+    // Pending slot removals: slots the doctor requested to disable (pending approval)
+    // that are NOT already disabled in the live schedule. Patients see these as
+    // "Pending Update" (grey, not selectable) so they don't book a slot that may
+    // be removed once the admin approves.
+    let pendingDisabledSlots = [];
+    try {
+      const ScheduleChangeRequest = (await import('../models/ScheduleChangeRequest.js')).default;
+      const pendingReq = await ScheduleChangeRequest.findOne({
+        doctorId,
+        status: 'Pending',
+      }).sort({ createdAt: -1 }).lean();
+      if (pendingReq?.requestedChanges?.dateDisabledSlots?.[date]) {
+        const pendingSlots = pendingReq.requestedChanges.dateDisabledSlots[date] || [];
+        const liveDisabled = new Set(dateDisabled);
+        pendingDisabledSlots = pendingSlots.filter(s => !liveDisabled.has(s));
+      }
+    } catch (_) {}
+
+    res.json({ counts, capacity, fullSlots, dateDisabled, bookingWindow, pendingDisabledSlots });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 

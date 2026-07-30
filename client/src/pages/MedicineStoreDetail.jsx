@@ -20,6 +20,7 @@ import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import ServiceLocationMap from '@/components/maps/ServiceLocationMap';
 import ReviewDialog from '@/components/ReviewDialog';
+import PharmacyCard from '@/components/PharmacyCard';
 
 
 
@@ -56,6 +57,31 @@ function mapFacilityToStore(f) {
     offers: f.offers || [],
     policies: f.policies || { return: '', cancel: '', rxValidity: '' },
     city: f.city || 'Jabalpur',
+  };
+}
+
+// Adapter: mapFacilityToStore shape → PharmacyCard props shape
+function storeToPharmacyCard(s) {
+  return {
+    _id: s.id,
+    name: s.name,
+    logo: s.photo || '',
+    image: s.cover || s.photo || '',
+    address: s.address,
+    city: s.city || '',
+    state: '',
+    pincode: '',
+    phone: s.phone,
+    rating: s.rating || 0,
+    reviewsCount: s.reviews || 0,
+    workingHours: s.workingHours || s.timing || '',
+    amenities: {
+      homeDelivery: s.tags?.includes('Home Delivery') || s.deliveryAvailable,
+      cardPayment: false,
+      prescriptionUpload: false,
+    },
+    description: s.description || '',
+    distance: (s.distance || '').replace?.(' km', '') || undefined,
   };
 }
 
@@ -910,38 +936,7 @@ export default function MedicineStoreDetail() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {suggestedStores.filter(s => s.id !== storeId).slice(0, 4).map((s, _i) => (
-              <motion.div key={s.id} variants={fadeUp}
-                className="bg-card rounded-2xl border border-border/50 overflow-hidden hover:shadow-lg hover:border-primary/20 transition-all group cursor-pointer"
-                onClick={() => { navigate(`/buy-medicine/${s.id}`); window.scrollTo(0, 0); }}>
-                <div className="relative h-36 overflow-hidden">
-                  <img src={s.photo} alt="" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                  <div className="absolute top-3 right-3">
-                    <span className={cn('px-2 py-0.5 rounded-full text-[10px] font-semibold border', s.open ? 'bg-emerald-500 text-white border-emerald-400' : 'bg-red-500 text-white border-red-400')}>
-                      {s.open ? 'Open' : 'Closed'}
-                    </span>
-                  </div>
-                  <div className="absolute bottom-3 left-3 right-3">
-                    <h3 className="font-heading font-bold text-white text-sm drop-shadow-sm">{s.name}</h3>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <div className="flex items-center gap-0.5">
-                        {[1,2,3,4,5].map(si => <Star key={si} className={cn('w-2.5 h-2.5', si <= Math.round(s.rating) ? 'text-amber-400 fill-amber-400' : 'text-white/30')} />)}
-                      </div>
-                      <span className="text-[10px] text-white/80">{s.rating}</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="p-3 flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <Truck className="w-3 h-3 text-primary" />
-                    {s.deliveryTime}
-                  </div>
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <MapPin className="w-3 h-3 text-primary" />
-                    {s.distance || '0.8 km'}
-                  </div>
-                </div>
-              </motion.div>
+              <PharmacyCard key={s.id} pharmacy={storeToPharmacyCard(s)} index={_i} />
             ))}
           </div>
         </motion.div>

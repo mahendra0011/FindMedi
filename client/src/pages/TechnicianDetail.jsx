@@ -20,6 +20,7 @@ import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import ReviewDialog from '@/components/ReviewDialog';
+import TechnicianCard from '@/components/TechnicianCard';
 import { getISTDateString } from '@/lib/dateUtils';
 
 const fadeUp = {
@@ -825,25 +826,8 @@ export default function TechnicianDetail() {
                     Other Technicians Nearby
                   </h2>
                   <div className="grid sm:grid-cols-3 gap-3">
-                    {RELATED_TECHS.map(r => (
-                      <div key={r.id} className="p-4 rounded-xl bg-muted/20 border border-border/30 hover:border-primary/30 cursor-pointer transition-all" onClick={() => navigate(`/technician/${r._id || r.id}`)}>
-                        <div className="flex items-center gap-3 mb-2">
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0">
-                            {getInitials(r.name)}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-sm font-semibold text-foreground truncate">{r.name}</p>
-                            <p className="text-xs text-muted-foreground">{r.role}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <div className="flex items-center gap-0.5">{renderStars(r.rating, 'w-3 h-3')}</div>
-                          <span>·</span>
-                          <span>{r.exp}</span>
-                          <span>·</span>
-                          <span>{r.distance} · {r.area}</span>
-                        </div>
-                      </div>
+                    {RELATED_TECHS.map((r, _i) => (
+                      <TechnicianCard key={r.id} technician={r} index={_i} />
                     ))}
                   </div>
                 </CardContent>

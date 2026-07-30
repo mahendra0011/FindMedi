@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 
 const savedFavoriteSchema = new mongoose.Schema({
   patientId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
-  refType: { type: String, enum: ['doctor', 'hospital', 'lab', 'pharmacy'], required: true },
+  refType: { type: String, enum: ['doctor', 'hospital', 'clinic', 'lab', 'pharmacy', 'technician'], required: true },
   refId: { type: String, required: true },
   refName: { type: String },
   notes: { type: String },

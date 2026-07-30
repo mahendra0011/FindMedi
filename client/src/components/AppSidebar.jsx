@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, UserRound, Stethoscope, CalendarDays, FileText,
   CreditCard, Percent, Settings, ChevronLeft, ChevronRight, Activity, LogOut,
-  Home, Search, Star, Users, BarChart3, Bell, Building2, Clock, Calendar, DollarSign, FileUp, Download, TestTube, AlertTriangle, Menu, X, Bed, Pill, FlaskConical, Hospital, Heart, Brain, Syringe, ClipboardList, ShieldCheck, Baby, Ambulance, IndianRupee, History, Flag, ShoppingCart, Megaphone, Settings2, Truck, Microscope, HelpCircle, MapPinned, User, Bookmark, Upload, TrendingUp, FileCheck, Tags, Headset, Shield, Tag, MapPin, Globe, Package, RotateCcw
+  Home, Search, Star, Users, BarChart3, Bell, Building2, Clock, Calendar, CalendarClock, DollarSign, FileUp, Download, TestTube, AlertTriangle, Menu, X, Bed, Pill, FlaskConical, Hospital, Heart, Brain, Syringe, ClipboardList, ShieldCheck, Baby, Ambulance, IndianRupee, History, Flag, ShoppingCart, Megaphone, Settings2, Truck, Microscope, HelpCircle, MapPinned, User, Bookmark, Upload, TrendingUp, FileCheck, Tags, Headset, Shield, Tag, MapPin, Globe, Package, RotateCcw
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { t } from '@/lib/settings';
@@ -79,6 +79,7 @@ const navConfig = {
     { icon: Settings2,       labelKey: 'nav.hospitalSettings', path: '/admin/hospital-settings' },
     { icon: Megaphone,       labelKey: 'nav.announcements',    path: '/admin/announcements' },
     { icon: Calendar,        labelKey: 'nav.leaveManagement',  path: '/admin/leave-requests' },
+    { icon: CalendarClock,   labelKey: 'nav.scheduleManage',   path: '/admin/schedule-manage' },
     { icon: Globe,           labelKey: 'nav.platformSettings',  path: '/superadmin/overview' },
     { icon: Bell,            labelKey: 'nav.notifications',    path: '/notifications'    },
     { icon: Settings,        labelKey: 'nav.settings',         path: '/settings'         },
@@ -86,7 +87,8 @@ const navConfig = {
   ],
   clinic_doctor: [
     { icon: LayoutDashboard, labelKey: 'nav.dashboard',         path: '/clinic/dashboard'     },
-    { icon: CalendarDays,    labelKey: 'nav.myAppointments',    path: '/clinic/appointments'  },
+    { icon: CalendarDays,    labelKey: 'nav.todayAppointments',   path: '/clinic/appointments'  },
+    { icon: FileCheck,       labelKey: 'nav.approveAppointments', path: '/clinic/appointments/approve' },
     { icon: Clock,           labelKey: 'nav.mySchedule',        path: '/clinic/schedule'      },
     { icon: IndianRupee,     labelKey: 'nav.feesPricing',       path: '/clinic/fees'          },
     { icon: UserRound,       labelKey: 'nav.myPatients',        path: '/clinic/patients'      },
@@ -106,7 +108,8 @@ const navConfig = {
   ],
   doctor: [
     { icon: LayoutDashboard, labelKey: 'nav.dashboard',       path: '/dashboard'           },
-    { icon: CalendarDays,    labelKey: 'nav.myAppointments',  path: '/doctor/appointments' },
+    { icon: CalendarDays,    labelKey: 'nav.todayAppointments',   path: '/doctor/appointments'  },
+    { icon: FileCheck,       labelKey: 'nav.approveAppointments', path: '/doctor/appointments/approve' },
     { icon: UserRound,       labelKey: 'nav.myPatients',      path: '/doctor/patients'     },
     { icon: FileText,        labelKey: 'nav.consultations',   path: '/doctor/consultations'},
     { icon: Pill,            labelKey: 'nav.prescriptions',   path: '/doctor/prescriptions'},

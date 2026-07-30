@@ -271,7 +271,7 @@ export default function DiagnosticCenterCard({ clinic, index = 0 }) {
           <Button
             variant="outline"
             className="gap-1.5 rounded-xl h-10 text-xs font-semibold"
-            onClick={() => navigate(`/lab/${_id}/details`)}
+            onClick={() => navigate(`/lab/${_id}`)}
           >
             <Eye className="w-3.5 h-3.5" />
             View Lab

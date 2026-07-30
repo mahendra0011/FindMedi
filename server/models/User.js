@@ -46,6 +46,9 @@ const userSchema = new mongoose.Schema({
   twoFactorBackupCodes: [{ type: String }], // Hashed backup codes
   twoFactorTempSecret: { type: String, default: '' }, // Temp secret during setup
 
+  // Google Drive OAuth tokens (for secure personal file storage)
+  driveTokens: { type: Object, default: null },
+
   settings: {
     type: Object,
     default: () => ({

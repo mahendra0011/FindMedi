@@ -136,6 +136,24 @@ export default function StoreMedicines() {
     { key: 'items', label: 'General Items', filter: (m) => !m.rx && (m.category === 'Devices' || m.category === 'Baby Care' || m.category === 'Vitamins') },
   ];
 
+  if (!store) {
+    return (
+      <div className="min-h-screen bg-background pb-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <button onClick={() => navigate(`/buy-medicine/${storeId}`)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-4 transition-colors">
+            <ArrowLeft className="w-4 h-4" /> Back to Store Details
+          </button>
+          <div className="text-center py-16 bg-card rounded-2xl border border-border/50">
+            <Store className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-foreground mb-1">Store not found</h3>
+            <p className="text-sm text-muted-foreground mb-4">The store you are looking for does not exist or could not be loaded.</p>
+            <Button variant="outline" onClick={() => navigate('/buy-medicine')}>Go back to all stores</Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background pb-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
