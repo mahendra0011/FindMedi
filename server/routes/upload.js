@@ -3,8 +3,10 @@ import multer from 'multer';
 import path from 'path';
 import Record from '../models/Record.js';
 import Notification from '../models/Notification.js';
+import User from '../models/User.js';
 import { protect } from '../middleware/auth.js';
 import { uploadFileToCloudinary } from '../services/cloudinaryService.js';
+import { uploadFileToDrive, isConfigured as isDriveConfigured } from '../services/driveService.js';
 import { getISTDateString } from '../utils/dateUtils.js';
 
 const router = express.Router();
@@ -64,18 +66,96 @@ router.post('/', protect, upload.single('file'), async (req, res, next) => {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
+    const storedIn = req.body?.storedIn || 'cloudinary';
+    const clientUploadType = req.body?.uploadType;
+    const detectRecordType = (type) => {
+      if (type && ['prescription', 'lab_report', 'medical_image', 'xray', 'bill_invoice', 'discharge_summary', 'document'].includes(type)) {
+        return type;
+      }
+      // Fallback by mimetype
+      let fallback = 'prescription';
+      if (req.file.mimetype.startsWith('image/')) {
+        fallback = 'lab_report';
+      } else if (req.file.mimetype === 'application/pdf') {
+        fallback = 'discharge_summary';
+      }
+      return fallback;
+    };
+
+    // ─── Upload to user's Google Drive ──────────────────────────────────────
+    if (storedIn === 'drive') {
+      if (!isDriveConfigured()) {
+        return res.status(503).json({ error: 'Google Drive is not configured on the server.' });
+      }
+
+      const user = await User.findById(req.user.id).select('driveTokens');
+      if (!user?.driveTokens?.refresh_token) {
+        return res.status(400).json({ error: 'Google Drive is not connected. Connect it first.' });
+      }
+
+      const driveResult = await uploadFileToDrive(
+        user.driveTokens,
+        req.file.buffer,
+        req.file.originalname,
+        req.file.mimetype
+      );
+
+      const recordType = detectRecordType(clientUploadType);
+
+      const record = await Record.create({
+        patient: req.user.name,
+        patientId: req.user._id,
+        doctor: 'Self Upload',
+        date: getISTDateString(),
+        diagnosis: `Uploaded ${req.file.originalname}`,
+        type: recordType,
+        notes: `File: ${req.file.originalname}`,
+        data: {
+          patient: { name: req.user.name },
+          doctor: { name: 'Self Upload' },
+          uploadedFile: {
+            filename: driveResult.filename,
+            url: driveResult.url,
+            fileId: driveResult.fileId,
+            size: driveResult.size,
+            format: driveResult.format,
+            mimeType: driveResult.mimeType,
+            storedIn: 'drive',
+          },
+          date: getISTDateString(),
+        },
+      });
+
+      await Notification.create({
+        title: 'File Uploaded',
+        message: `Your file "${req.file.originalname}" has been saved to your Google Drive`,
+        type: 'records',
+        read: false,
+        userId: req.user._id,
+        date: getISTDateString(),
+      });
+
+      return res.json({
+        success: true,
+        url: driveResult.url,
+        filename: driveResult.filename,
+        size: driveResult.size,
+        format: driveResult.format,
+        fileId: driveResult.fileId,
+        storedIn: 'drive',
+        uploadType: recordType,
+        recordId: record._id,
+      });
+    }
+
+    // ─── Upload to Cloudinary (default) ─────────────────────────────────────
     const cloudResult = await uploadFileToCloudinary(
       req.file.buffer,
       req.file.originalname,
       req.file.mimetype
     );
 
-    let recordType = 'prescription';
-    if (req.file.mimetype.startsWith('image/')) {
-      recordType = 'lab_report';
-    } else if (req.file.mimetype === 'application/pdf') {
-      recordType = 'discharge_summary';
-    }
+    const recordType = detectRecordType(clientUploadType);
 
     const record = await Record.create({
       patient: req.user.name,
@@ -118,6 +198,7 @@ router.post('/', protect, upload.single('file'), async (req, res, next) => {
       format: path.extname(req.file.originalname).replace('.', '') || cloudResult.format,
       fileId: cloudResult.fileId,
       storedIn: 'cloudinary',
+      uploadType: recordType,
     });
   } catch (error) {
     next(error);

@@ -165,8 +165,35 @@ router.post('/pay', protect, async (req, res, next) => {
 
         // Capacity check: alag users tab tak book kar sakte hain jab tak doctor ki maxBookingsPerSlot limit na aa jaye
         if (doctorId) {
-          const doctorDoc2 = await Doctor.findById(doctorId).select('maxBookingsPerSlot').lean();
+          const doctorDoc2 = await Doctor.findById(doctorId).select('maxBookingsPerSlot dateDisabledSlots bookingWindow workingHours breakTime').lean();
           const capacity = doctorDoc2?.maxBookingsPerSlot || 1;
+
+          // ── Booking window restriction ──
+          // Patient sirf aaj se window ke andar book kar sakta hai (e.g. 2 weeks)
+          const bw = doctorDoc2?.bookingWindow;
+          if (bw && typeof bw.value === 'number' && bw.value > 0 && bw.unit) {
+            const now = new Date();
+            const maxDate = new Date(now);
+            switch (bw.unit) {
+              case 'hours': maxDate.setHours(maxDate.getHours() + bw.value); break;
+              case 'days': maxDate.setDate(maxDate.getDate() + bw.value); break;
+              case 'weeks': maxDate.setDate(maxDate.getDate() + bw.value * 7); break;
+              case 'months': maxDate.setMonth(maxDate.getMonth() + bw.value); break;
+            }
+            const apptDate = new Date(`${date}T23:59:59`);
+            if (apptDate > maxDate) {
+              return res.status(400).json({
+                message: `Appointments can only be booked within ${bw.value} ${bw.unit} from today.`
+              });
+            }
+          }
+
+          // ── Date-specific disabled slot check ──
+          const dateDisabled = (doctorDoc2?.dateDisabledSlots && doctorDoc2.dateDisabledSlots[date]) || [];
+          if (dateDisabled.includes(time)) {
+            return res.status(400).json({ message: 'This time slot is not available for the selected date.' });
+          }
+
           const slotFilter = { doctorId, date, time, status: { $nin: ['Cancelled', 'Completed', 'Missed'] } };
           const existingBookings = await Appointment.find(slotFilter).select('patientId').lean();
           if (existingBookings.length >= capacity) {

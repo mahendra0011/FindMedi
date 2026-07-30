@@ -357,8 +357,15 @@ export const api = {
 
   getLeaveRequests:       (p={})    => request('/leave-requests?' + new URLSearchParams(p)),
   createLeaveRequest:     (body)    => request('/leave-requests', { method:'POST', body: JSON.stringify(body) }),
-  updateLeaveRequestStatus: (id,b) => request(`/leave-requests/${id}/status`, { method:'PUT', body: JSON.stringify(b) }),
+  updateLeaveRequestStatus: (id,b)  => request(`/leave-requests/${id}/status`, { method:'PUT', body: JSON.stringify(b) }),
   getPendingLeaveRequests: ()       => request('/leave-requests/pending'),
+
+  // Schedule change requests (doctor → admin approval workflow)
+  getScheduleChangeRequests:    (p={}) => request('/schedule-change-requests?' + new URLSearchParams(p)),
+  createScheduleChangeRequest:  (body) => request('/schedule-change-requests', { method:'POST', body: JSON.stringify(body) }),
+  getPendingScheduleChangeRequests: () => request('/schedule-change-requests/pending'),
+  decideScheduleChangeRequest:  (id, body) => request(`/schedule-change-requests/${id}/decision`, { method:'PUT', body: JSON.stringify(body) }),
+  cancelScheduleChangeRequest:  (id) => request(`/schedule-change-requests/${id}/cancel`, { method:'PUT' }),
 
   getPreferredPharmacies:       ()      => request('/patient/preferred-pharmacies'),
   addPreferredPharmacy:         (body)  => request('/patient/preferred-pharmacies', { method:'POST', body: JSON.stringify(body) }),
@@ -467,4 +474,13 @@ export const api = {
   getWebhooks:               (p)       => request(`/integrations/${p}/webhooks`),
   createWebhook:             (p,b)     => request(`/integrations/${p}/webhooks`, { method:'POST', body: JSON.stringify(b) }),
   deleteWebhook:             (p,w)     => request(`/integrations/${p}/webhooks/${w}`, { method:'DELETE' }),
+
+  getDriveStatus:           ()        => request('/drive/status'),
+  getDriveAuthUrl:          ()        => request('/drive/auth-url'),
+  disconnectDrive:          ()        => request('/drive/disconnect', { method:'DELETE' }),
+  uploadToDrive:            (file)    => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return request('/drive/upload', { method:'POST', body: formData });
+  },
 };

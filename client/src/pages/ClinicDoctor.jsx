@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import BookingModal from '@/components/BookingModal';
+import DoctorCard from '@/components/DoctorCard';
 import BillCheckout from '@/components/BillCheckout';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
@@ -974,35 +975,7 @@ export default function ClinicDoctor() {
                         <TabsContent value="same-hospital">
                           <div className="grid sm:grid-cols-2 gap-4">
                             {relatedDoctors.map((doc, _i) => (
-                              <motion.div key={doc._id} variants={fadeUp}
-                                className="bg-card rounded-xl border border-border/50 p-4 hover:shadow-lg hover:border-primary/20 transition-all cursor-pointer group"
-                                onClick={() => navigate(`/clinic-doctors/${doc._id}`)}
-                              >
-                                <div className="flex items-start gap-3 mb-3">
-                                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-primary font-bold text-base overflow-hidden shrink-0 border border-border/40 group-hover:border-primary/30">
-                                    {doc.profile_photo
-                                      ? <img src={doc.profile_photo} alt="" className="w-full h-full object-cover" />
-                                      : getInitials(doc.name)
-                                    }
-                                  </div>
-                                  <div className="min-w-0 flex-1">
-                                    <h3 className="font-semibold text-foreground text-sm truncate group-hover:text-primary">{doc.name}</h3>
-                                    <p className="text-xs text-primary font-medium">{doc.specialization}</p>
-                                    <div className="flex items-center gap-1 mt-1">
-                                      <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
-                                      <span className="text-xs text-muted-foreground">{doc.rating || 0}</span>
-                                    </div>
-                                  </div>
-                                </div>
-                                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                  <span className="flex items-center gap-1"><Award className="w-3 h-3 text-primary" />{doc.experience}</span>
-                                  <Button size="sm" variant="ghost" className="h-7 px-3 rounded-lg gap-1"
-                                    onClick={(e) => { e.stopPropagation(); navigate(`/clinic-doctors/${doc._id}`); }}
-                                  >
-                                    View <ChevronRight className="w-3 h-3" />
-                                  </Button>
-                                </div>
-                              </motion.div>
+                              <DoctorCard key={doc._id} doctor={{ ...doc, doctor_type: 'clinic' }} index={_i} />
                             ))}
                           </div>
                         </TabsContent>
@@ -1012,35 +985,7 @@ export default function ClinicDoctor() {
                         <TabsContent value="same-department">
                           <div className="grid sm:grid-cols-2 gap-4">
                             {departmentDoctors.map((doc, _i) => (
-                              <motion.div key={doc._id} variants={fadeUp}
-                                className="bg-card rounded-xl border border-border/50 p-4 hover:shadow-lg hover:border-primary/20 transition-all cursor-pointer group"
-                                onClick={() => navigate(`/clinic-doctors/${doc._id}`)}
-                              >
-                                <div className="flex items-start gap-3 mb-3">
-                                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-primary font-bold text-base overflow-hidden shrink-0 border border-border/40 group-hover:border-primary/30">
-                                    {doc.profile_photo
-                                      ? <img src={doc.profile_photo} alt="" className="w-full h-full object-cover" />
-                                      : getInitials(doc.name)
-                                    }
-                                  </div>
-                                  <div className="min-w-0 flex-1">
-                                    <h3 className="font-semibold text-foreground text-sm truncate group-hover:text-primary">{doc.name}</h3>
-                                    <p className="text-xs text-primary font-medium">{doc.specialization}</p>
-                                    <div className="flex items-center gap-1 mt-1">
-                                      <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
-                                      <span className="text-xs text-muted-foreground">{doc.rating || 0}</span>
-                                    </div>
-                                  </div>
-                                </div>
-                                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                  <span className="flex items-center gap-1"><Award className="w-3 h-3 text-primary" />{doc.experience}</span>
-                                  <Button size="sm" variant="ghost" className="h-7 px-3 rounded-lg gap-1"
-                                    onClick={(e) => { e.stopPropagation(); navigate(`/clinic-doctors/${doc._id}`); }}
-                                  >
-                                    View <ChevronRight className="w-3 h-3" />
-                                  </Button>
-                                </div>
-                              </motion.div>
+                              <DoctorCard key={doc._id} doctor={{ ...doc, doctor_type: 'clinic' }} index={_i} />
                             ))}
                           </div>
                         </TabsContent>

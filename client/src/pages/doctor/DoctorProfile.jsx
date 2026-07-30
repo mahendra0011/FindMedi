@@ -395,7 +395,7 @@ export default function DoctorProfile() {
           </h3>
           <textarea value={bio} onChange={e => setBio(e.target.value)}
             placeholder="Write a short professional bio..."
-            className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm resize-none h-24" />
+            className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm resize-none h-24"></textarea>
         </div>
 
         <hr className="border-border/60" />
@@ -426,6 +426,7 @@ export default function DoctorProfile() {
                   <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleSignatureUpload} disabled={signatureUploading} />
                 </label>
               </div>
+            </div>
           </div>
         </div>
 

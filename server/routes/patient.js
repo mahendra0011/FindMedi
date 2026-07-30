@@ -95,17 +95,21 @@ router.get('/favorites', protect, async (req, res) => {
     const Doctor = (await import('../models/Doctor.js')).default;
     const Facility = (await import('../models/Facility.js')).default;
 
+    // Full-card selects so the favorites page can reuse the listing-page cards
+    const DOCTOR_SELECT = 'name specialization qualifications experience consultation_fees rating reviews_count patients available phone email location profile_photo bio languages areas_of_expertise education department doctor_type';
+    const FACILITY_SELECT = 'name type slug email phone address city state pincode logo image description specialties status rating reviewsCount establishedYear totalDoctors accreditations hospitalType emergency24x7 bedAvailability ambulanceService workingHours nablNumber aerbNumber technicianName technicianRole technicianQualification technicianExperience amenities';
+
     const enriched = await Promise.all(favorites.map(async (fav) => {
       let profile = null;
-      if (fav.refType === 'doctor') {
-        profile = await Doctor.findById(fav.refId).select('name specialization qualifications experience fees rating address phone image location').lean();
-      } else if (fav.refType === 'hospital') {
-        profile = await Facility.findById(fav.refId).select('name type address phone city state rating image description').lean();
-      } else if (fav.refType === 'lab') {
-        profile = await Facility.findById(fav.refId).select('name type address phone city state rating image description').lean();
-      } else if (fav.refType === 'pharmacy') {
-        profile = await Facility.findById(fav.refId).select('name type address phone city state rating image description').lean();
-      }
+      try {
+        if (fav.refType === 'doctor') {
+          profile = await Doctor.findById(fav.refId).select(DOCTOR_SELECT).lean();
+        } else if (['hospital', 'clinic', 'lab', 'pharmacy'].includes(fav.refType)) {
+          const fac = await Facility.findById(fav.refId).select(FACILITY_SELECT).lean();
+          // Only attach if the facility type matches the saved refType (clinics stay clinics, etc.)
+          if (fac) profile = fac;
+        }
+      } catch { profile = null; }
       return { ...fav, profile };
     }));
 
@@ -115,9 +119,16 @@ router.get('/favorites', protect, async (req, res) => {
 
 router.post('/favorites', protect, validate(favoriteSchema), async (req, res) => {
   try {
+    // Normalize legacy payloads: detail pages send targetId/targetType/name.
+    const refType = req.body.refType || req.body.targetType;
+    const refId = req.body.refId || req.body.targetId;
+    const refName = req.body.refName || req.body.name;
+    if (!refType || !refId) {
+      return res.status(400).json({ message: 'refType and refId are required' });
+    }
     const fav = await SavedFavorite.findOneAndUpdate(
-      { patientId: req.user._id, refType: req.body.refType, refId: req.body.refId },
-      { ...req.body, patientId: req.user._id },
+      { patientId: req.user._id, refType, refId },
+      { patientId: req.user._id, refType, refId, refName, notes: req.body.notes },
       { upsert: true, new: true },
     );
     res.status(201).json(fav);
@@ -126,7 +137,15 @@ router.post('/favorites', protect, validate(favoriteSchema), async (req, res) =>
 
 router.delete('/favorites/:id', protect, async (req, res) => {
   try {
-    await SavedFavorite.findOneAndDelete({ _id: req.params.id, patientId: req.user._id });
+    // Accept either the favorite _id (from the favorites page) or a refId
+    // (detail pages only know the referenced entity's id).
+    const { id } = req.params;
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(id);
+    if (isObjectId) {
+      await SavedFavorite.findOneAndDelete({ _id: id, patientId: req.user._id });
+    } else {
+      await SavedFavorite.deleteMany({ refId: id, patientId: req.user._id });
+    }
     res.json({ message: 'Removed from favorites' });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });

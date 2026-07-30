@@ -416,33 +416,61 @@ const scheduleSchema = z.object({
   slotDuration: z.number().optional(),
   bufferPerHour: z.number().optional(),
   workingHours: z.object({ start: z.string(), end: z.string() }).optional(),
+  breakTime: z.object({ start: z.string(), end: z.string() }).optional(),
+  dateDisabledSlots: z.any().optional(),
+  bookingWindow: z.object({
+    unit: z.enum(['hours', 'days', 'weeks', 'months']),
+    value: z.number().min(0),
+  }).optional(),
 });
 
-const generateTimeSlots = (startTime, endTime, slotDuration) => {
+// "HH:MM" 24h -> minutes since midnight
+const timeStrToMins = (t) => {
+  if (!t || typeof t !== 'string') return null;
+  const [h, m] = t.split(':').map(Number);
+  if (isNaN(h) || isNaN(m)) return null;
+  return h * 60 + m;
+};
+
+const generateTimeSlots = (startTime, endTime, slotDuration, breakTime = {}) => {
   const slots = [];
-  const [sh, sm] = startTime.split(':').map(Number);
-  const [eh, em] = endTime.split(':').map(Number);
-  let h = sh, m = sm;
-  while (h < eh || (h === eh && m < em)) {
+  const startMins = timeStrToMins(startTime);
+  const endMins = timeStrToMins(endTime);
+  const breakStart = breakTime?.start ? timeStrToMins(breakTime.start) : null;
+  const breakEnd = breakTime?.end ? timeStrToMins(breakTime.end) : null;
+  if (startMins == null || endMins == null) return slots;
+
+  let mins = startMins;
+  while (mins < endMins) {
+    const h = Math.floor(mins / 60) % 24;
+    const m = mins % 60;
     const hour = h > 12 ? h - 12 : h;
     const ampm = h >= 12 ? 'PM' : 'AM';
     const time = `${String(hour).padStart(2, '0')}:${String(m).padStart(2, '0')} ${ampm}`;
-    slots.push(time);
-    m += slotDuration;
-    while (m >= 60) { m -= 60; h++; }
+    const slotEnd = mins + slotDuration;
+    // Skip slots that fall inside break window
+    const inBreak = breakStart != null && breakEnd != null &&
+      !(slotEnd <= breakStart || mins >= breakEnd);
+    if (!inBreak) slots.push(time);
+    mins += slotDuration;
   }
   return slots;
 };
 
 router.put('/:id/schedule', protect, validate(scheduleSchema), async (req, res) => {
   try {
-    if (req.user.role !== 'superadmin' && req.user.role !== 'hospital_admin') {
-      return res.status(403).json({ message: 'Admin access required' });
+    if (!['superadmin', 'hospital_admin', 'clinic_doctor'].includes(req.user.role)) {
+      return res.status(403).json({ message: 'Not authorized' });
     }
     const doctor = await Doctor.findById(req.params.id);
     if (!doctor) return res.status(404).json({ message: 'Doctor not found' });
-    if (doctor.hospitalId?.toString() !== req.user.hospitalId?.toString() && req.user.role !== 'superadmin') {
-      return res.status(403).json({ message: 'Not your hospital' });
+    if (req.user.role !== 'superadmin') {
+      const sameHospital = req.user.hospitalId && doctor.hospitalId?.toString() === req.user.hospitalId.toString();
+      const sameFacility = req.user.facilityId && doctor.facilityId?.toString() === req.user.facilityId.toString();
+      // clinic_doctor ko apni hi facility ke doctor chahiye; admin ko apni hi hospital ke
+      if (!sameHospital && !sameFacility) {
+        return res.status(403).json({ message: 'Not authorized for this doctor' });
+      }
     }
     const update = {};
     if (req.body.time_slots) update.time_slots = req.body.time_slots;
@@ -451,11 +479,17 @@ router.put('/:id/schedule', protect, validate(scheduleSchema), async (req, res) 
     if (req.body.slotDuration !== undefined) update.slotDuration = req.body.slotDuration;
     if (req.body.bufferPerHour !== undefined) update.bufferPerHour = req.body.bufferPerHour;
     if (req.body.workingHours) update.workingHours = req.body.workingHours;
+    if (req.body.breakTime !== undefined) update.breakTime = req.body.breakTime;
+    if (req.body.dateDisabledSlots !== undefined) update.dateDisabledSlots = req.body.dateDisabledSlots;
+    if (req.body.bookingWindow !== undefined) update.bookingWindow = req.body.bookingWindow;
 
-    if (req.body.workingHours || req.body.slotDuration !== undefined) {
+    // Regenerate slots whenever workingHours, slotDuration, or breakTime changes.
+    // Break window ke slots kabhi generate hi nahi hote — kahin bhi show nahi honge.
+    if (req.body.workingHours || req.body.slotDuration !== undefined || req.body.breakTime !== undefined) {
       const wh = req.body.workingHours || doctor.workingHours;
       const sd = req.body.slotDuration !== undefined ? req.body.slotDuration : doctor.slotDuration;
-      update.time_slots = generateTimeSlots(wh.start, wh.end, sd);
+      const bt = req.body.breakTime !== undefined ? req.body.breakTime : doctor.breakTime;
+      update.time_slots = generateTimeSlots(wh.start, wh.end, sd, bt);
     }
 
     const updated = await Doctor.findByIdAndUpdate(req.params.id, update, { new: true });

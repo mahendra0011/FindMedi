@@ -233,6 +233,7 @@ import commissionRoutes from './routes/commission.js';
 import disputeRoutes from './routes/disputes.js';
 import supportTicketRoutes from './routes/supportTickets.js';
 import leaveRequestRoutes from './routes/leaveRequests.js';
+import scheduleChangeRequestRoutes from './routes/scheduleChangeRequests.js';
 import categoryRoutes from './routes/categories.js';
 import licenseRoutes from './routes/licenses.js';
 import announcementRoutes from './routes/announcements.js';
@@ -245,6 +246,7 @@ import exportRoutes from './routes/export.js';
 import integrationRoutes from './routes/integrations.js';
 import deliveryPartnerRoutes from './routes/deliveryPartners.js';
 import aiChatRoutes from './routes/aiChat.js';
+import driveRoutes from './routes/drive.js';
 import { connectRedis } from './config/redis.js';
 
 // Routes
@@ -294,6 +296,7 @@ app.use('/api/commission', commissionRoutes);
 app.use('/api/disputes', disputeRoutes);
 app.use('/api/support-tickets', supportTicketRoutes);
 app.use('/api/leave-requests', leaveRequestRoutes);
+app.use('/api/schedule-change-requests', scheduleChangeRequestRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/licenses', licenseRoutes);
 app.use('/api/announcements', announcementRoutes);
@@ -306,6 +309,7 @@ app.use('/api/export', exportRoutes);
 app.use('/api/integrations', integrationRoutes);
 app.use('/api/delivery-partners', deliveryPartnerRoutes);
 app.use('/api/ai-chat', aiChatRoutes);
+app.use('/api/drive', driveRoutes);
 
 // 2FA routes
 app.use('/api/auth/2fa', twoFactorRoutes);
