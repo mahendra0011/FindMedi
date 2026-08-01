@@ -374,27 +374,6 @@ export const updateLeaveStatusSchema = z.object({
   adminNotes: z.string().optional().default(''),
 });
 
-// ─── Schedule Change Request Schemas ─────────────────────────────────────────
-export const createScheduleChangeRequestSchema = z.object({
-  requestedChanges: z.object({
-    slotDuration: z.number().optional(),
-    workingHours: z.object({ start: z.string(), end: z.string() }).optional(),
-    breakTime: z.object({ start: z.string(), end: z.string() }).optional(),
-    bookingWindow: z.object({ unit: z.enum(['hours', 'days', 'weeks', 'months']), value: z.number().min(0) }).optional(),
-    weekly_schedule: z.any().optional(),
-    leaves: z.any().optional(),
-    dateDisabledSlots: z.any().optional(),
-    bufferPerHour: z.number().optional(),
-  }).passthrough(),
-});
-
-export const updateScheduleChangeStatusSchema = z.object({
-  appliedFields: z.array(z.string()).optional().default([]),
-  adminNote: z.string().optional().default(''),
-  rejectionNote: z.string().optional().default(''),
-  decision: z.enum(['approve', 'reject']),
-});
-
 // ─── Payment Schemas ─────────────────────────────────────────────────────────
 export const createPaymentSchema = z.object({
   patient_id: z.string().min(1, 'Patient ID is required'),

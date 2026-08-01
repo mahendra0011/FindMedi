@@ -29,8 +29,8 @@ export default function BookingModal({
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookedSlots, setBookedSlots] = useState([]);
   const [slotCounts, setSlotCounts] = useState({});
+  const [slotCapacity, setSlotCapacity] = useState(1);
   const [dateDisabledSlots, setDateDisabledSlots] = useState([]);
-  const [pendingDisabledSlots, setPendingDisabledSlots] = useState([]);
   const [bookingWindow, setBookingWindow] = useState(null);
   const [selectedHour, setSelectedHour] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState('card');
@@ -51,7 +51,6 @@ export default function BookingModal({
       setBookingTime('');
       setSelectedHour(null);
       setDateDisabledSlots([]);
-      setPendingDisabledSlots([]);
       setBookingWindow(null);
       setBookingNotes('');
       setPaymentMethod('card');
@@ -78,15 +77,15 @@ export default function BookingModal({
 
   // Doctor + date change hone par uske already-booked slots fetch karo WITH COUNTS
   useEffect(() => {
-    if (!currentDoc?._id || !bookingDate) { setBookedSlots([]); setSlotCounts({}); setDateDisabledSlots([]); setPendingDisabledSlots([]); setBookingWindow(null); return; }
+    if (!currentDoc?._id || !bookingDate) { setBookedSlots([]); setSlotCounts({}); setSlotCapacity(currentDoc?.maxBookingsPerSlot || 1); setDateDisabledSlots([]); setBookingWindow(null); return; }
     api.getBookedSlots({ doctorId: currentDoc._id, date: bookingDate })
       .then(res => {
-        // New shape: { counts, capacity, fullSlots, dateDisabled, bookingWindow, pendingDisabledSlots }. Legacy shape: ["10:00 AM", ...]
+        // New shape: { counts, capacity, fullSlots, dateDisabled, bookingWindow }. Legacy shape: ["10:00 AM", ...]
         if (res && typeof res === 'object' && !Array.isArray(res) && res.counts) {
           setSlotCounts(res.counts || {});
+          setSlotCapacity(res.capacity || currentDoc?.maxBookingsPerSlot || 1);
           setBookedSlots(res.fullSlots || Object.keys(res.counts || {}));
           setDateDisabledSlots(res.dateDisabled || []);
-          setPendingDisabledSlots(res.pendingDisabledSlots || []);
           setBookingWindow(res.bookingWindow || null);
         } else {
           const arr = Array.isArray(res) ? res : [];
@@ -94,18 +93,25 @@ export default function BookingModal({
           const counts = {};
           arr.forEach(s => { counts[s] = (counts[s] || 0) + 1; });
           setSlotCounts(counts);
+          setSlotCapacity(currentDoc?.maxBookingsPerSlot || 1);
           setDateDisabledSlots([]);
-          setPendingDisabledSlots([]);
           setBookingWindow(null);
         }
       })
-      .catch(() => { setBookedSlots([]); setSlotCounts({}); setDateDisabledSlots([]); setPendingDisabledSlots([]); setBookingWindow(null); });
+      .catch(() => { setBookedSlots([]); setSlotCounts({}); setSlotCapacity(currentDoc?.maxBookingsPerSlot || 1); setDateDisabledSlots([]); setBookingWindow(null); });
   }, [currentDoc?._id, bookingDate, currentDoc?.maxBookingsPerSlot]);
 
-  const isSlotFull = (time) => {
-    // Per sub-slot, only 1 booking is allowed (15 min = 1 patient treatment)
+  // Calculate remaining slots for current time selection
+  const getRemainingSlots = (time) => {
+    const capacity = slotCapacity || currentDoc?.maxBookingsPerSlot || 1;
     const bookedCount = slotCounts[time] || 0;
-    return bookedCount >= 1;
+    return Math.max(0, capacity - bookedCount);
+  };
+
+  const isSlotFull = (time) => {
+    const capacity = slotCapacity || currentDoc?.maxBookingsPerSlot || 1;
+    const bookedCount = slotCounts[time] || 0;
+    return bookedCount >= capacity;
   };
 
   const handleProceedToPayment = () => {
@@ -144,23 +150,6 @@ export default function BookingModal({
     let apptId = null;
 
     try {
-      // Pre-check: confirm slot is still available before processing payment
-      try {
-        const slotCheck = await api.getBookedSlots({ doctorId: currentDoc._id, date: bookingDate });
-        const counts = (slotCheck && slotCheck.counts) ? slotCheck.counts : {};
-        if ((counts[bookingTime] || 0) >= 1) {
-          toast.error('This slot is already booked. Please try another slot.');
-          setBookingTime('');
-          setBookingStep(0);
-          setSlotCounts(counts);
-          setBookedSlots(slotCheck.fullSlots || Object.keys(counts));
-          setDateDisabledSlots(slotCheck.dateDisabled || []);
-          setBookingLoading(false);
-          processingRef.current = false;
-          return;
-        }
-      } catch (_) { /* proceed even if check fails — server will catch duplicates */ }
-
       const fees = Number(currentDoc.consultation_fees) || Number(currentDoc.fees);
       if (!fees || fees <= 0) {
         throw new Error('Doctor consultation fee is not set. Please contact support.');
@@ -231,21 +220,20 @@ export default function BookingModal({
         if (currentDoc?._id && bookingDate) {
           api.getBookedSlots({ doctorId: currentDoc._id, date: bookingDate })
             .then(res => {
-                if (res && typeof res === 'object' && !Array.isArray(res) && res.counts) {
-                  setSlotCounts(res.counts || {});
-                  setBookedSlots(res.fullSlots || Object.keys(res.counts || {}));
-                  setDateDisabledSlots(res.dateDisabled || []);
-                  setPendingDisabledSlots(res.pendingDisabledSlots || []);
-                  setBookingWindow(res.bookingWindow || null);
-                } else {
-                  const arr = Array.isArray(res) ? res : [];
-                  setBookedSlots(arr);
-                  const counts = {};
-                  arr.forEach(s => { counts[s] = (counts[s] || 0) + 1; });
-                  setSlotCounts(counts);
-                  setDateDisabledSlots([]);
-                  setPendingDisabledSlots([]);
-                }
+              if (res && typeof res === 'object' && !Array.isArray(res) && res.counts) {
+                setSlotCounts(res.counts || {});
+                setSlotCapacity(res.capacity || currentDoc?.maxBookingsPerSlot || 1);
+                setBookedSlots(res.fullSlots || Object.keys(res.counts || {}));
+                setDateDisabledSlots(res.dateDisabled || []);
+                setBookingWindow(res.bookingWindow || null);
+              } else {
+                const arr = Array.isArray(res) ? res : [];
+                setBookedSlots(arr);
+                const counts = {};
+                arr.forEach(s => { counts[s] = (counts[s] || 0) + 1; });
+                setSlotCounts(counts);
+                setDateDisabledSlots([]);
+              }
             })
             .catch(() => {});
         }
@@ -310,15 +298,10 @@ export default function BookingModal({
   // Is a slot disabled for this specific date by the doctor in My Schedule?
   const isSlotDisabled = (slotStr) => dateDisabledSlots.includes(slotStr);
 
-  // Is a slot pending removal (doctor requested to disable it, awaiting admin approval)?
-  const isSlotPendingUpdate = (slotStr) => pendingDisabledSlots.includes(slotStr);
-
-  // Group all time_slots (enabled + date-disabled + pending-disabled) into hours.
+  // Group all time_slots (enabled + date-disabled) into hours.
   const hourGroups = useMemo(() => {
     const enabledSlots = currentDoc?.time_slots || [];
-    const allSlots = [...enabledSlots,
-      ...dateDisabledSlots.filter(s => !enabledSlots.includes(s)),
-      ...pendingDisabledSlots.filter(s => !enabledSlots.includes(s) && !dateDisabledSlots.includes(s))];
+    const allSlots = [...enabledSlots, ...dateDisabledSlots.filter(s => !enabledSlots.includes(s))];
     // Fallback if nothing
     const slots = allSlots.length > 0 ? allSlots : ['09:00 AM', '10:00 AM', '11:00 AM', '02:00 PM', '03:00 PM', '04:00 PM'];
     const groups = {};
@@ -382,6 +365,12 @@ export default function BookingModal({
                         <span className="text-xs text-muted-foreground">{doc.experience || `${doc.experienceYears || 0} yrs`}</span>
                         <span className="text-xs text-muted-foreground">•</span>
                         <span className="text-xs font-medium text-primary">₹{doc.fees || doc.consultation_fees || 0}</span>
+                        {doc.maxBookingsPerSlot > 1 && (
+                          <>
+                            <span className="text-xs text-muted-foreground">•</span>
+                            <span className="text-xs text-amber-600 font-medium">{doc.maxBookingsPerSlot}/slot</span>
+                          </>
+                        )}
                       </div>
                     </div>
                     <ChevronRight className="w-4 h-4 text-muted-foreground self-center" />
@@ -421,6 +410,11 @@ export default function BookingModal({
                 <div className="min-w-0">
                   <h3 className="font-heading font-semibold text-foreground text-sm truncate">{currentDoc?.name}</h3>
                   <p className="text-xs text-primary">{currentDoc?.specialization}</p>
+                  {currentDoc?.maxBookingsPerSlot > 1 && (
+                    <p className="text-[10px] text-amber-600 mt-0.5 font-medium">
+                      ⏱️ {currentDoc.maxBookingsPerSlot} patients per slot
+                    </p>
+                  )}
                   {isAutoConfirm ? (
                     <p className="text-[10px] text-muted-foreground mt-1">
                       Auto accept appointment is on
@@ -465,11 +459,11 @@ export default function BookingModal({
                 <select value={selectedHour || ''} onChange={e => { setSelectedHour(e.target.value); setBookingTime(''); }} className="w-full h-9 px-3 rounded-xl border border-border bg-background text-sm">
                   <option value="">Choose hour</option>
                   {hourGroups.map(([hourLabel, hourSlots]) => {
-                    const allUnavailable = hourSlots.every(s => isSlotFull(s) || isSlotDisabled(s) || isSlotPendingUpdate(s));
-                    const avail = hourSlots.filter(s => !isSlotFull(s) && !isSlotDisabled(s) && !isSlotPendingUpdate(s)).length;
+                    const allFull = hourSlots.every(s => isSlotFull(s) || isSlotDisabled(s));
+                    const avail = hourSlots.filter(s => !isSlotFull(s) && !isSlotDisabled(s)).length;
                     return (
-                      <option key={hourLabel} value={hourLabel} disabled={allUnavailable}>
-                        {hourLabel}{allUnavailable ? ' (Full)' : ''}
+                      <option key={hourLabel} value={hourLabel} disabled={allFull}>
+                        {hourLabel}{allFull ? ' (Full)' : ''}
                       </option>
                     );
                   })}
@@ -481,16 +475,16 @@ export default function BookingModal({
                     <p className="text-[11px] text-muted-foreground">
                       {(() => {
                         const hs = hourGroups.find(([h]) => h === selectedHour)?.[1] || [];
-                        const unavailableCount = hs.filter(s => isSlotFull(s) || isSlotDisabled(s) || isSlotPendingUpdate(s)).length;
+                        const unavailableCount = hs.filter(s => isSlotFull(s) || isSlotDisabled(s)).length;
                         return `${hs.length - unavailableCount} of ${hs.length} slots available in ${selectedHour}`;
                       })()}
                     </p>
                     <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                       {(hourGroups.find(([h]) => h === selectedHour)?.[1] || []).map(t => {
                         const disabled = isSlotDisabled(t);
-                        const pendingUpdate = isSlotPendingUpdate(t);
                         const full = isSlotFull(t);
-                        const unavailable = disabled || full || pendingUpdate;
+                        const unavailable = disabled || full;
+                        const remaining = getRemainingSlots(t);
                         const selected = bookingTime === t;
                         return (
                           <button
@@ -502,15 +496,13 @@ export default function BookingModal({
                               selected
                                 ? 'border-primary bg-primary text-primary-foreground shadow-sm'
                                 : unavailable
-                                ? (pendingUpdate
-                                    ? 'border-red-300 bg-red-50 text-red-600 cursor-not-allowed'
-                                    : 'border-red-300 bg-red-50 text-red-600 cursor-not-allowed')
+                                ? 'border-red-300 bg-red-50 text-red-600 cursor-not-allowed'
                                 : 'border-border bg-card text-foreground hover:border-primary/50 hover:bg-primary/5'
                             }`}
                           >
                             <span className="text-xs font-semibold">{rangeFor(t)}</span>
                             <span className={`text-[9px] leading-none ${selected ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
-                              {disabled ? 'Not Available (Disabled)' : pendingUpdate ? 'Pending — may not be available' : full ? 'Booked' : 'Available'}
+                              {disabled ? 'Not Available (Disabled)' : full ? 'Not Available (Already Booked)' : 'Available'}
                             </span>
                           </button>
                         );
@@ -523,7 +515,7 @@ export default function BookingModal({
                 {bookingTime && (
                   <div className="flex items-center gap-2 text-xs mt-1">
                     <div className={`px-2 py-1 rounded-md ${isSlotFull(bookingTime) ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'}`}>
-                      {isSlotFull(bookingTime) ? '⚠️ This slot is full' : '✅ Slot Available'}
+                      {isSlotFull(bookingTime) ? '⚠️ This slot is full' : `✅ ${getRemainingSlots(bookingTime)} more bookings allowed`}
                     </div>
                     <div className="px-2 py-1 rounded-md bg-primary/10 text-primary font-medium">
                       {fullRangeFor(bookingTime)}

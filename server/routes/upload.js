@@ -67,20 +67,6 @@ router.post('/', protect, upload.single('file'), async (req, res, next) => {
     }
 
     const storedIn = req.body?.storedIn || 'cloudinary';
-    const clientUploadType = req.body?.uploadType;
-    const detectRecordType = (type) => {
-      if (type && ['prescription', 'lab_report', 'medical_image', 'xray', 'bill_invoice', 'discharge_summary', 'document'].includes(type)) {
-        return type;
-      }
-      // Fallback by mimetype
-      let fallback = 'prescription';
-      if (req.file.mimetype.startsWith('image/')) {
-        fallback = 'lab_report';
-      } else if (req.file.mimetype === 'application/pdf') {
-        fallback = 'discharge_summary';
-      }
-      return fallback;
-    };
 
     // ─── Upload to user's Google Drive ──────────────────────────────────────
     if (storedIn === 'drive') {
@@ -100,7 +86,12 @@ router.post('/', protect, upload.single('file'), async (req, res, next) => {
         req.file.mimetype
       );
 
-      const recordType = detectRecordType(clientUploadType);
+      let recordType = 'prescription';
+      if (req.file.mimetype.startsWith('image/')) {
+        recordType = 'lab_report';
+      } else if (req.file.mimetype === 'application/pdf') {
+        recordType = 'discharge_summary';
+      }
 
       const record = await Record.create({
         patient: req.user.name,
@@ -143,7 +134,6 @@ router.post('/', protect, upload.single('file'), async (req, res, next) => {
         format: driveResult.format,
         fileId: driveResult.fileId,
         storedIn: 'drive',
-        uploadType: recordType,
         recordId: record._id,
       });
     }
@@ -155,7 +145,12 @@ router.post('/', protect, upload.single('file'), async (req, res, next) => {
       req.file.mimetype
     );
 
-    const recordType = detectRecordType(clientUploadType);
+    let recordType = 'prescription';
+    if (req.file.mimetype.startsWith('image/')) {
+      recordType = 'lab_report';
+    } else if (req.file.mimetype === 'application/pdf') {
+      recordType = 'discharge_summary';
+    }
 
     const record = await Record.create({
       patient: req.user.name,
@@ -198,7 +193,6 @@ router.post('/', protect, upload.single('file'), async (req, res, next) => {
       format: path.extname(req.file.originalname).replace('.', '') || cloudResult.format,
       fileId: cloudResult.fileId,
       storedIn: 'cloudinary',
-      uploadType: recordType,
     });
   } catch (error) {
     next(error);
