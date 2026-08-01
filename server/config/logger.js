@@ -2,9 +2,19 @@ import winston from 'winston';
 import fs from 'fs';
 import path from 'path';
 
+const isProd = process.env.NODE_ENV === 'production';
+
 const logDir = path.resolve('logs');
-if (!fs.existsSync(logDir)) {
+if (isProd && !fs.existsSync(logDir)) {
   fs.mkdirSync(logDir, { recursive: true });
+}
+
+const transports = [];
+if (isProd) {
+  transports.push(
+    new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
+    new winston.transports.File({ filename: 'logs/combined.log' })
+  );
 }
 
 const logger = winston.createLogger({
@@ -15,13 +25,10 @@ const logger = winston.createLogger({
     winston.format.json()
   ),
   defaultMeta: { service: 'medicore-api' },
-  transports: [
-    new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
-    new winston.transports.File({ filename: 'logs/combined.log' }),
-  ],
+  transports,
 });
 
-if (process.env.NODE_ENV !== 'production') {
+if (!isProd) {
   logger.add(new winston.transports.Console({
     format: winston.format.combine(
       winston.format.colorize(),

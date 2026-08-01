@@ -247,7 +247,6 @@ import integrationRoutes from './routes/integrations.js';
 import deliveryPartnerRoutes from './routes/deliveryPartners.js';
 import aiChatRoutes from './routes/aiChat.js';
 import driveRoutes from './routes/drive.js';
-import { connectRedis } from './config/redis.js';
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -337,10 +336,7 @@ logger.info('   URI: ' + redactMongoUri(MONGO_URI));
 
 if (process.env.NODE_ENV !== 'test') {
   const server = http.createServer(app);
-  initSocket(server);
-  if (process.env.REDIS_URL) {
-    connectRedis().catch((err) => logger.error(`Redis connection failed: ${err.message}`));
-  }
+  initSocket(server).catch((err) => logger.error(`Socket.IO init failed: ${err.message}`));
   mongoose.connect(MONGO_URI, mongooseOptions)
     .then(() => {
       logger.info('✅ MongoDB connected successfully');

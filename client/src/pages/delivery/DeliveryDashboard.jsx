@@ -6,9 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
-import { io } from 'socket.io-client';
-
-const socket = io(import.meta.env.VITE_API_URL);
+import { getSocket, joinRoom } from '@/lib/socket';
 
 export default function DeliveryDashboard() {
   const { user } = useAuth();
@@ -17,10 +15,13 @@ export default function DeliveryDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!user?.id) return;
     loadData();
-    socket.emit('join', user?._id);
-    return () => socket.off('delivery:new_assignment');
-  }, []);
+    // Shared socket — join har (re)connect par dobara fire hota hai.
+    // Pehle module-level socket + user?._id (hamesha undefined) se join
+    // kabhi na hota tha.
+    return joinRoom('join', user.id);
+  }, [user?.id]);
 
   const loadData = async () => {
     try {
@@ -30,7 +31,7 @@ export default function DeliveryDashboard() {
       ]);
       setProfile(prof);
       setDeliveries(dels);
-    } catch (e) {
+    } catch {
       toast.error('Failed to load dashboard');
     }
     setLoading(false);
@@ -40,7 +41,7 @@ export default function DeliveryDashboard() {
     try {
       await api.put(`/delivery-partners/profile/${profile._id}`, { isOnline: online, isAvailable: online });
       setProfile((p) => ({ ...p, isOnline: online, isAvailable: online }));
-      socket.emit('deliveryboy:online', { deliveryPartnerId: profile._id, online });
+      getSocket().emit('deliveryboy:online', { deliveryPartnerId: profile._id, online });
       toast.success(online ? 'You are now online' : 'You are now offline');
     } catch {
       toast.error('Failed to update status');

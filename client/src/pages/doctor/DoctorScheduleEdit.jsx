@@ -1,10 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { io } from 'socket.io-client';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
+import { getSocket, joinRoom } from '@/lib/socket';
 import ClinicSchedule from '@/pages/clinic/ClinicSchedule';
-
-const SOCKET_URL = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'http://localhost:5001';
 
 /**
  * Wrapper page for hospital doctors at /doctor/schedule.
@@ -27,7 +25,6 @@ export default function DoctorScheduleEdit() {
   // Bumped when a pending request transitions to a reviewed state —
   // triggers ClinicSchedule to re-fetch the doctor's live schedule.
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const socketRef = useRef(null);
   // Ref to always call the latest loadRequests from the socket listener
   // without causing the socket connection to reconnect on every status change
   const loadRequestsRef = useRef(null);
@@ -74,26 +71,26 @@ export default function DoctorScheduleEdit() {
 
   // WebSocket: listen for admin review events — auto-remove blur + render highlights
   useEffect(() => {
-    if (!user) return;
+    if (!user?.id) return;
 
-    const socket = io(SOCKET_URL, { transports: ['websocket', 'polling'] });
-    socketRef.current = socket;
+    const socket = getSocket();
+    // Shared socket — room join har (re)connect par dobara hota hai
+    const cleanupJoin = joinRoom('join', user.id);
 
-    socket.on('connect', () => {
-      socket.emit('join', user.id);
-    });
-
-    // Fired by the backend when admin approves/rejects/cancels a request
-    socket.on('schedule-request-updated', () => {
-      // Use ref to always call the latest loadRequests without reconnecting
+    // Fired by the backend when admin approves/rejects/cancels a request.
+    // Ref se latest loadRequests call hota hai bina socket reconnect kiye.
+    const onScheduleUpdated = () => {
       loadRequestsRef.current();
-    });
+    };
+    socket.on('schedule-request-updated', onScheduleUpdated);
 
     return () => {
-      socket.disconnect();
-      socketRef.current = null;
+      socket.off('schedule-request-updated', onScheduleUpdated);
+      cleanupJoin();
     };
-  }, [user]);
+    // Sirf user.id par depend karo — user object reference change par
+    // socket teardown/reconnect hota tha, events miss ho jaate the.
+  }, [user?.id]);
 
   if (loading) {
     return (

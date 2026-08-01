@@ -15,66 +15,77 @@ export const protect = async (req, res, next) => {
     token = auth.split(' ')[1];
   }
 
+  let decoded;
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.id).select('-password');
+    decoded = jwt.verify(token, process.env.JWT_SECRET);
+  } catch {
+    // Siraf asli token failure (invalid/expired) ko auth failure banao
+    return res.status(401).json({ message: 'Token invalid or expired' });
+  }
 
-    if (!user) {
-      return res.status(401).json({ message: 'User not found' });
-    }
-
-    if (user.status === 'blocked') {
-      return res.status(403).json({ message: 'Your account has been blocked. Contact administrator.' });
-    }
-
-    if (!user.isVerified) {
-      return res.status(403).json({
-        message: 'Please verify your email before continuing.',
-        requiresVerification: true,
-        email: user.email,
-      });
-    }
-
-    let doctor = null;
-    if (user.role === 'doctor' || user.role === 'clinic_doctor') {
+  let user;
+  let doctor = null;
+  try {
+    user = await User.findById(decoded.id).select('-password');
+    if (user?.role === 'doctor' || user?.role === 'clinic_doctor') {
       doctor = await Doctor.findOne({
         $or: [
           { user_id: user._id.toString() },
           { email: user.email },
         ],
       });
+    }
+  } catch {
+    // DB hiccup (reconnect/restart) auth failure nahi hai — 503 bhejo taaki
+    // client network-error jaisa retry kare, logout na ho.
+    return res.status(503).json({ message: 'Service temporarily unavailable. Please try again.' });
+  }
 
-      if (user.approvalStatus === 'rejected') {
-        return res.status(403).json({
-          message: 'Your doctor account was not approved. Contact administrator.',
-          approvalRejected: true,
-        });
-      }
+  if (!user) {
+    return res.status(401).json({ message: 'User not found' });
+  }
 
-      if (!doctor?.approved && user.approvalStatus !== 'approved') {
-        return res.status(403).json({
-          message: 'Your account is pending admin approval.',
-          approvalPending: true,
-        });
-      }
+  if (user.status === 'blocked') {
+    return res.status(403).json({ message: 'Your account has been blocked. Contact administrator.' });
+  }
+
+  if (!user.isVerified) {
+    return res.status(403).json({
+      message: 'Please verify your email before continuing.',
+      requiresVerification: true,
+      email: user.email,
+    });
+  }
+
+  if (user.role === 'doctor' || user.role === 'clinic_doctor') {
+    if (user.approvalStatus === 'rejected') {
+      return res.status(403).json({
+        message: 'Your doctor account was not approved. Contact administrator.',
+        approvalRejected: true,
+      });
     }
 
-    req.user = {
-      id: user._id.toString(),
-      _id: user._id,
-      role: user.role,
-      name: user.name,
-      email: user.email,
-      hospitalId: user.hospitalId || null,
-      facilityId: user.facilityId || null,
-      facilityType: user.facilityType || '',
-      doctorProfileId: (user.role === 'doctor' || user.role === 'clinic_doctor') ? (doctor?._id || null) : null,
-    };
-    req.authUser = user;
-    next();
-  } catch {
-    res.status(401).json({ message: 'Token invalid or expired' });
+    if (!doctor?.approved && user.approvalStatus !== 'approved') {
+      return res.status(403).json({
+        message: 'Your account is pending admin approval.',
+        approvalPending: true,
+      });
+    }
   }
+
+  req.user = {
+    id: user._id.toString(),
+    _id: user._id,
+    role: user.role,
+    name: user.name,
+    email: user.email,
+    hospitalId: user.hospitalId || null,
+    facilityId: user.facilityId || null,
+    facilityType: user.facilityType || '',
+    doctorProfileId: (user.role === 'doctor' || user.role === 'clinic_doctor') ? (doctor?._id || null) : null,
+  };
+  req.authUser = user;
+  next();
 };
 
 export const auditAction = async (req, action) => {

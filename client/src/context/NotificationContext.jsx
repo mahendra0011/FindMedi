@@ -1,10 +1,8 @@
-import { createContext, useContext, useEffect, useCallback, useRef } from 'react';
+import { createContext, useContext, useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { io } from 'socket.io-client';
 import { useAuth } from '@/context/AuthContext';
 import { fetchNotifications, selectNotificationCount, addNotification } from '@/store/slices/notificationsSlice';
-
-const SOCKET_URL = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'http://localhost:5001';
+import { getSocket, joinRoom, disconnectSocket } from '@/lib/socket';
 
 const NotificationContext = createContext(null);
 
@@ -12,7 +10,6 @@ export function NotificationProvider({ children }) {
   const dispatch = useDispatch();
   const count = useSelector(selectNotificationCount);
   const { user } = useAuth();
-  const socketRef = useRef(null);
 
   const refreshCount = useCallback(async () => {
     if (!user) return;
@@ -27,31 +24,26 @@ export function NotificationProvider({ children }) {
 
   useEffect(() => {
     if (!user) {
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-        socketRef.current = null;
-      }
+      disconnectSocket();
       return;
     }
 
-    const socket = io(SOCKET_URL, {
-      transports: ['websocket', 'polling'],
-    });
-    socketRef.current = socket;
+    const socket = getSocket();
+    // Shared socket — room join har (re)connect par dobara hota hai
+    const cleanupJoin = joinRoom('join', user.id);
 
-    socket.on('connect', () => {
-      socket.emit('join', user.id);
-    });
-
-    socket.on('notification', (notification) => {
+    const onNotification = (notification) => {
       dispatch(addNotification(notification));
-    });
+    };
+    socket.on('notification', onNotification);
 
     return () => {
-      socket.disconnect();
-      socketRef.current = null;
+      socket.off('notification', onNotification);
+      cleanupJoin();
     };
-  }, [user, dispatch]);
+    // Sirf user.id par depend karo — user object har profile/settings update par
+    // naya reference banata hai, jisse socket needless reconnect hota tha.
+  }, [user?.id, dispatch]);
 
   return (
     <NotificationContext.Provider value={{ count, refreshCount }}>

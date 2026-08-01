@@ -6,9 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
-import { io } from 'socket.io-client';
-
-const socket = io(import.meta.env.VITE_API_URL);
+import { getSocket, joinRoom } from '@/lib/socket';
 
 export default function DeliveryOrders() {
   const { user } = useAuth();
@@ -18,18 +16,25 @@ export default function DeliveryOrders() {
   const [activeTab, setActiveTab] = useState('active');
 
   useEffect(() => {
+    if (!user?.id) return;
     loadData();
-    socket.emit('join', user?._id);
-    socket.on('delivery:new_assignment', () => loadData());
-    socket.on('delivery:status', () => loadData());
+    const socket = getSocket();
+    // Shared socket — join har (re)connect par dobara fire hota hai
+    const cleanupJoin = joinRoom('join', user.id);
+    const onNew = () => loadData();
+    const onStatus = () => loadData();
+    socket.on('delivery:new_assignment', onNew);
+    socket.on('delivery:status', onStatus);
     return () => {
-      socket.off('delivery:new_assignment');
-      socket.off('delivery:status');
+      socket.off('delivery:new_assignment', onNew);
+      socket.off('delivery:status', onStatus);
+      cleanupJoin();
     };
-  }, []);
+  }, [user?.id]);
 
   useEffect(() => {
     if (!profile?._id || !deliveries.active[0]) return;
+    const socket = getSocket();
     const watchId = navigator.geolocation.watchPosition(
       (pos) => {
         socket.emit('deliveryboy:location', {

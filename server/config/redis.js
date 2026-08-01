@@ -9,6 +9,8 @@ export const redisPub = redisClient.duplicate();
 export const redisSub = redisClient.duplicate();
 
 redisClient.on('error', (err) => logger.error(`Redis error: ${err.message}`));
+redisPub.on('error', (err) => logger.error(`Redis pub error: ${err.message}`));
+redisSub.on('error', (err) => logger.error(`Redis sub error: ${err.message}`));
 
 export async function connectRedis() {
   await redisClient.connect();
