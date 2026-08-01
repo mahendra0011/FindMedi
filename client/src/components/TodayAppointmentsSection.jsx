@@ -421,7 +421,7 @@ export default function TodayAppointmentsSection({
               placeholder="Search completed…"
               value={completedSearch}
               onChange={e => setCompletedSearch(e.target.value)}
-              className="pl-8 h-8 text-xs"
+              className="pl-8 h-8 text-xs w-full md:w-1/4 min-w-[140px]"
             />
           </div>
         </div>

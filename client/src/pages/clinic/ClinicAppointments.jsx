@@ -24,6 +24,7 @@ import {
   AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel, AlertDialogFooter,
 } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useAppointmentRealtime } from '@/lib/useAppointmentRealtime';
 
 const timeSlots = ['9:00 AM', '9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM', '2:00 PM', '2:30 PM', '3:00 PM', '3:30 PM', '4:00 PM', '4:30 PM'];
 
@@ -78,6 +79,9 @@ export default function ClinicAppointments() {
   }, []);
 
   useEffect(() => { loadAppointments(); }, [loadAppointments]);
+
+  // Realtime — naye bookings/status changes turant dikhein (30s polling fallback bhi hai)
+  useAppointmentRealtime(loadAppointments);
 
   // Auto-refresh — naye bookings (walk-in/online) bina manual reload ke dikhein
   useEffect(() => {
@@ -388,7 +392,7 @@ export default function ClinicAppointments() {
           )}
           <div className="ml-auto relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input type="text" placeholder="Search by patient, phone, or ID..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-80 lg:w-[380px] h-9 pl-9 transition-all focus:lg:w-[420px]" aria-label="Global search" />
+            <Input type="text" placeholder="Search by patient, phone, or ID..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-44 h-9 pl-9" aria-label="Global search" />
           </div>
       </div>
 

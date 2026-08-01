@@ -88,8 +88,8 @@ const navConfig = {
   clinic_doctor: [
     { icon: LayoutDashboard, labelKey: 'nav.dashboard',         path: '/clinic/dashboard'     },
     { icon: CalendarDays,    labelKey: 'nav.todayAppointments',   path: '/clinic/appointments'  },
-    { icon: History,         labelKey: 'nav.appointmentHistory',  path: '/clinic/appointments/history' },
     { icon: FileCheck,       labelKey: 'nav.approveAppointments', path: '/clinic/appointments/approve' },
+    { icon: History,         labelKey: 'nav.appointmentHistory',  path: '/clinic/appointments/history' },
     { icon: Clock,           labelKey: 'nav.mySchedule',        path: '/clinic/schedule'      },
     { icon: IndianRupee,     labelKey: 'nav.feesPricing',       path: '/clinic/fees'          },
     { icon: UserRound,       labelKey: 'nav.myPatients',        path: '/clinic/patients'      },
@@ -110,8 +110,8 @@ const navConfig = {
   doctor: [
     { icon: LayoutDashboard, labelKey: 'nav.dashboard',       path: '/dashboard'           },
     { icon: CalendarDays,    labelKey: 'nav.todayAppointments',   path: '/doctor/appointments'  },
-    { icon: History,         labelKey: 'nav.appointmentHistory',  path: '/doctor/appointments/history' },
     { icon: FileCheck,       labelKey: 'nav.approveAppointments', path: '/doctor/appointments/approve' },
+    { icon: History,         labelKey: 'nav.appointmentHistory',  path: '/doctor/appointments/history' },
     { icon: UserRound,       labelKey: 'nav.myPatients',      path: '/doctor/patients'     },
     { icon: FileText,        labelKey: 'nav.consultations',   path: '/doctor/consultations'},
     { icon: Pill,            labelKey: 'nav.prescriptions',   path: '/doctor/prescriptions'},

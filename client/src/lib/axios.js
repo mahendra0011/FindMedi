@@ -64,23 +64,37 @@ const refreshSession = async () => {
   throw lastErr;
 };
 
+// Endpoints jo session par depend nahi karte — in par kabhi auto-refresh nahi karna.
+// (/auth/me session-validated hai aur ISKO refresh karna zaroori hai, warna access
+// token expire hone par HMR reload / page reload turant logout kar deta tha.)
+const NO_AUTO_REFRESH_PATHS = [
+  '/auth/login', '/auth/register', '/auth/google', '/auth/verify-otp',
+  '/auth/resend-otp', '/auth/forgot-password', '/auth/reset-password',
+  '/auth/doctor-setup', '/auth/refresh', '/auth/logout',
+];
+
+const isNoAutoRefresh = (url = '') => NO_AUTO_REFRESH_PATHS.some(p => url.startsWith(p));
+
 // ─── Response Interceptor: Unified error handling + auto-refresh ───────────
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     const original = error.config || {};
     const attempt = original._retryCount || 0;
+    const method = (original.method || 'get').toLowerCase();
 
     // 1) Transient network errors (backend restart / brief hiccup) → silent retry.
-    //    Yeh logouts aur "Failed to load" toasts ki sabse badi wajah hai.
-    if (!error.response && !original._skipRetry && attempt < 3) {
+    //    Sirf GET/HEAD retry karo — POST/PUT/DELETE ko retry karne se double-booking
+    //    ya "slot already booked" jaisi galat errors aati thi (server ne request process
+    //    kar li thi, sirf response kho gaya tha).
+    if (!error.response && !original._skipRetry && (method === 'get' || method === 'head') && attempt < 5) {
       original._retryCount = attempt + 1;
-      await delay(600 * (attempt + 1));
+      await delay(400 * (attempt + 1));
       return apiClient(original);
     }
 
     // 2) Access token expired → refresh via httpOnly refreshToken cookie, then retry.
-    if (error.response?.status === 401 && !original._retried && !original.url?.includes('/auth/')) {
+    if (error.response?.status === 401 && !original._retried && !isNoAutoRefresh(original.url)) {
       original._retried = true;
 
       // Another request is already refreshing — wait for it and then retry.

@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { CalendarDays, Clock, User, CheckCircle, AlertCircle, Star, DollarSign, Stethoscope, Activity, Users, FlaskConical, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
+import { useAppointmentRealtime } from '@/lib/useAppointmentRealtime';
 import LicenseExpiryReminder from '@/components/LicenseExpiryReminder';
 import { getISTDateString } from '@/lib/dateUtils';
 
@@ -25,58 +26,62 @@ export default function DoctorDashboard() {
   const [loading, setLoading] = useState(true);
   const mounted = useRef(true);
 
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const results = await Promise.allSettled([
+        api.getAppointments(),
+        api.getReviews(),
+        api.getBilling(),
+        api.getRecords(),
+        api.getRefunds(),
+      ]);
+      if (!mounted.current) return;
+      const [a, r, b, records, rf] = results.map(res => res.status === 'fulfilled' ? res.value : []);
+      const docName = user?.name?.toLowerCase();
+      const appts = a?.data || a || [];
+      const myAppointments = appts?.filter(apt => 
+        apt.doctor?.toLowerCase() === docName
+      ) || [];
+      setAppointments(myAppointments);
+      setReviews(r?.filter(rv => rv.doctorName === user?.name) || []);
+      
+      const billsArray = b?.data || b?.bills || b || [];
+      const myBills = billsArray?.filter(bill => 
+        bill.doctor?.toLowerCase() === docName
+      ) || [];
+      setBills(myBills);
+
+      const allRecords = records?.data || records?.records || records || [];
+      const myLabReports = allRecords
+        .filter(rec => rec.type === 'lab_report')
+        .slice(-10)
+        .reverse();
+      setLabReports(myLabReports);
+
+      const refundArray = rf?.payments || rf?.data || rf || [];
+      const myRefunds = refundArray.filter(rf =>
+        rf.doctor?.toLowerCase() === docName ||
+        rf.patient?.toLowerCase().includes(docName)
+      ) || [];
+      setRefunds(myRefunds);
+
+      const failed = results.filter(r => r.status === 'rejected');
+      if (failed.length > 0) {
+        toast.error(`Failed to load ${failed.length} data source(s)`);
+      }
+    } catch (e) { console.error(e); toast.error('Failed to load dashboard data'); }
+    if (mounted.current) setLoading(false);
+  }, [user?.name]);
+
   useEffect(() => {
     mounted.current = true;
-    const load = async () => {
-      setLoading(true);
-      try {
-        const results = await Promise.allSettled([
-          api.getAppointments(),
-          api.getReviews(),
-          api.getBilling(),
-          api.getRecords(),
-          api.getRefunds(),
-        ]);
-        if (!mounted.current) return;
-        const [a, r, b, records, rf] = results.map(res => res.status === 'fulfilled' ? res.value : []);
-        const docName = user?.name?.toLowerCase();
-        const appts = a?.data || a || [];
-        const myAppointments = appts?.filter(apt => 
-          apt.doctor?.toLowerCase() === docName
-        ) || [];
-        setAppointments(myAppointments);
-        setReviews(r?.filter(rv => rv.doctorName === user?.name) || []);
-        
-        const billsArray = b?.data || b?.bills || b || [];
-        const myBills = billsArray?.filter(bill => 
-          bill.doctor?.toLowerCase() === docName
-        ) || [];
-        setBills(myBills);
-
-        const allRecords = records?.data || records?.records || records || [];
-        const myLabReports = allRecords
-          .filter(rec => rec.type === 'lab_report')
-          .slice(-10)
-          .reverse();
-        setLabReports(myLabReports);
-
-        const refundArray = rf?.payments || rf?.data || rf || [];
-        const myRefunds = refundArray.filter(rf =>
-          rf.doctor?.toLowerCase() === docName ||
-          rf.patient?.toLowerCase().includes(docName)
-        ) || [];
-        setRefunds(myRefunds);
-
-        const failed = results.filter(r => r.status === 'rejected');
-        if (failed.length > 0) {
-          toast.error(`Failed to load ${failed.length} data source(s)`);
-        }
-      } catch (e) { console.error(e); toast.error('Failed to load dashboard data'); }
-      if (mounted.current) setLoading(false);
-    };
     load();
     return () => { mounted.current = false; };
-  }, [user?.name]);
+  }, [load]);
+
+  // Realtime — naya booking/status change turant dikhein
+  useAppointmentRealtime(load);
 
   const today = getISTDateString();
   const todayAppts = appointments.filter(a => a.date === today);

@@ -38,13 +38,18 @@ export default function AppMotion({ children }) {
 
     let sequence = 0;
     let frameId = 0;
+    const revealTimers = new Set();
+
+    const reveal = (element) => {
+      element.classList.add('is-visible');
+      revealObserver.unobserve(element);
+    };
 
     const revealObserver = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (!entry.isIntersecting) return;
-          entry.target.classList.add('is-visible');
-          revealObserver.unobserve(entry.target);
+          reveal(entry.target);
         });
       },
       {
@@ -52,6 +57,27 @@ export default function AppMotion({ children }) {
         threshold: 0.12,
       }
     );
+
+    const isInViewport = (element) => {
+      const rect = element.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) return false;
+      const vh = window.innerHeight || document.documentElement.clientHeight;
+      const visibleBottom = vh * 0.92;
+      const visibleTop = 0;
+      return rect.top < visibleBottom && rect.bottom > visibleTop;
+    };
+
+    const forceReveal = (element) => {
+      if (revealTimers.has(element)) return;
+      revealTimers.add(element);
+      const timer = window.setTimeout(() => {
+        if (element.isConnected && !element.classList.contains('is-visible')) {
+          reveal(element);
+        }
+        revealTimers.delete(element);
+      }, 1500);
+      revealTimers.add(timer);
+    };
 
     const prepareElements = () => {
       frameId = 0;
@@ -64,6 +90,11 @@ export default function AppMotion({ children }) {
         element.style.setProperty('--motion-index', String(sequence % 8));
         element.classList.add('motion-reveal');
         revealObserver.observe(element);
+        if (isInViewport(element)) {
+          reveal(element);
+        } else {
+          forceReveal(element);
+        }
         sequence += 1;
       });
     };
@@ -79,6 +110,10 @@ export default function AppMotion({ children }) {
 
     return () => {
       if (frameId) window.cancelAnimationFrame(frameId);
+      revealTimers.forEach((t) => {
+        if (typeof t === 'number') window.clearTimeout(t);
+      });
+      revealTimers.clear();
       mutationObserver.disconnect();
       revealObserver.disconnect();
     };
