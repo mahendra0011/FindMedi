@@ -20,6 +20,7 @@ import { auditLog } from '../middleware/audit.js';
 import { paginatedResults } from '../utils/pagination.js';
 import { generateTransactionId, generateInvoiceId, generateBillId, generateTokenNumber } from '../utils/idGenerator.js';
 import { getISTDateString } from '../utils/dateUtils.js';
+import { emitAppointmentUpdate } from '../services/socketService.js';
 
 const router = express.Router();
 
@@ -333,6 +334,12 @@ router.post('/pay', protect, async (req, res, next) => {
           } catch (_) { /* default to confirm on error */ }
           if (shouldConfirm) {
             await Appointment.findByIdAndUpdate(referenceId, { status: 'Confirmed' });
+          }
+          try {
+            const appt = await Appointment.findById(referenceId);
+            if (appt) await emitAppointmentUpdate(appt);
+          } catch (emitErr) {
+            logger.error(`[transactions/pay] socket emit failed: ${emitErr.message}`);
           }
         } else if (serviceType === 'test') {
           await LabBooking.findByIdAndUpdate(referenceId, { status: 'Confirmed', paymentStatus: 'Paid' });

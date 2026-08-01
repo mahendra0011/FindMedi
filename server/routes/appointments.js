@@ -14,6 +14,7 @@ import { paginatedResults } from '../utils/pagination.js';
 import { generateTokenNumber } from '../utils/idGenerator.js';
 import Payment from '../models/Payment.js';
 import { getISTDateString } from '../utils/dateUtils.js';
+import { emitAppointmentUpdate } from '../services/socketService.js';
 
 const router = express.Router();
 
@@ -367,6 +368,7 @@ router.post('/walk-in', protect, requireRole(['doctor', 'clinic_doctor', 'clinic
     });
 
     await auditLog('create_appointment', req.user._id, { recordId: appointment._id, ip: req.ip, userAgent: req.get('user-agent') });
+    await emitAppointmentUpdate(appointment);
     res.status(201).json({ appointment, patient: p });
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -453,6 +455,7 @@ router.post('/', protect, requireRole(['hospital_admin', 'superadmin']), validat
     const doctorDisplay = doctor ? (doctor.match(/^dr\.?\s/i) ? doctor : `Dr. ${doctor}`) : 'Doctor';
     await createNotification(patientId, 'Appointment Created', `Your appointment with ${doctorDisplay} on ${date} at ${time} has been created. Token: ${tokenNumber}`, 'appointment');
     
+    await emitAppointmentUpdate(appointment);
     res.status(201).json({ appointment });
   } catch (err) {
     if (err.code === 11000) {
@@ -484,6 +487,7 @@ router.put('/:id/checkin', protect, async (req, res) => {
     
     await appointment.save();
     await auditLog('checkin_appointment', req.user._id, { recordId: appointment._id, ip: req.ip, userAgent: req.get('user-agent') });
+    await emitAppointmentUpdate(appointment);
     res.json(appointment);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -530,6 +534,7 @@ router.put('/:id/intake', protect, async (req, res) => {
     };
     
     await appointment.save();
+    await emitAppointmentUpdate(appointment);
     res.json(appointment);
   } catch (err) { 
     res.status(500).json({ message: err.message }); 
@@ -603,8 +608,9 @@ const updated = await Appointment.findByIdAndUpdate(req.params.id, updates, { ne
        }
      }
      await auditLog('update_appointment', req.user._id, { recordId: updated._id, ip: req.ip, userAgent: req.get('user-agent') });
-     
-      res.json(updated);
+     await emitAppointmentUpdate(updated);
+      
+       res.json(updated);
   } catch (err) {
     if (err.code === 11000) {
       return res.status(409).json({ message: 'This time slot is already taken with this doctor. Please choose a different slot.' });
@@ -628,6 +634,7 @@ router.delete('/:id', protect, async (req, res) => {
     }
     await Appointment.findByIdAndDelete(req.params.id);
     await auditLog('delete_appointment', req.user._id, { recordId: req.params.id, ip: req.ip, userAgent: req.get('user-agent') });
+    await emitAppointmentUpdate({ _id: req.params.id, doctorId: appointment.doctorId, patientId: appointment.patientId });
     res.json({ message: 'Appointment removed' });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
+import { useAppointmentRealtime } from '@/lib/useAppointmentRealtime';
 
 const BOOKING_STATUS = {
   Scheduled: { label: 'Scheduled', color: 'bg-blue-500/10 text-blue-600 border-blue-500/30', icon: Clock },
@@ -76,26 +77,28 @@ export default function PatientBookings() {
   });
   const [submittingIntake, setSubmittingIntake] = useState(false);
 
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      try {
-        const [appts, labBks] = await Promise.all([
-          api.getMyAppointments(),
-          api.getLabBookings({})
-        ]);
-        const normalized = [
-          ...((appts?.data || appts || [])).map(a => normalizeBooking(a, 'appointment')),
-          ...((labBks?.bookings || labBks?.data || [])).map(b => normalizeBooking(b, 'test')),
-        ];
-        setBookings(normalized);
-      } catch {
-        setLoadError('Failed to load bookings');
-      }
-      setLoading(false);
-    };
-    load();
+  const loadBookings = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [appts, labBks] = await Promise.all([
+        api.getMyAppointments(),
+        api.getLabBookings({})
+      ]);
+      const normalized = [
+        ...((appts?.data || appts || [])).map(a => normalizeBooking(a, 'appointment')),
+        ...((labBks?.bookings || labBks?.data || [])).map(b => normalizeBooking(b, 'test')),
+      ];
+      setBookings(normalized);
+    } catch {
+      setLoadError('Failed to load bookings');
+    }
+    setLoading(false);
   }, []);
+
+  useEffect(() => { loadBookings(); }, [loadBookings]);
+
+  // Realtime — doctor/clinic status change hone par turant dikhein
+  useAppointmentRealtime(loadBookings);
 
   const filtered = bookings.filter(b => {
     if (statusFilter !== 'All' && b.status !== statusFilter) return false;
