@@ -958,6 +958,7 @@ router.post('/logout', async (req, res) => {
 
 // POST /api/auth/refresh
 router.post('/refresh', async (req, res) => {
+  let newRefreshTokenDoc = null;
   try {
     const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
     if (!refreshToken) {
@@ -974,41 +975,53 @@ router.post('/refresh', async (req, res) => {
       return res.status(401).json({ message: 'Refresh token expired. Please login again.' });
     }
 
-    jwt.verify(refreshToken, process.env.JWT_SECRET, async (err, decoded) => {
-      if (err) {
-        await RefreshToken.deleteOne({ _id: stored._id });
-        return res.status(401).json({ message: 'Invalid refresh token' });
-      }
-
-      const user = await User.findById(decoded.id).select('-password');
-      if (!user) {
-        await RefreshToken.deleteOne({ _id: stored._id });
-        return res.status(401).json({ message: 'User not found' });
-      }
-
-      if (user.status === 'blocked') {
-        return res.status(403).json({ message: 'Account blocked' });
-      }
-
+    // jwt.verify ka callback async tha → uske andar jo errors throw hote the
+    // (User.findById fail, etc.) wo swallow ho jaate the aur response kabhi
+    // hang kar deta tha → client timeout → logout. Isliye verifySync use karke
+    // await-safe flow banate hain.
+    let decoded;
+    try {
+      decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
+    } catch {
       await RefreshToken.deleteOne({ _id: stored._id });
+      return res.status(401).json({ message: 'Invalid refresh token' });
+    }
 
-      const newAccessToken = signAccessToken(user);
-      const newRefreshToken = signRefreshToken(user);
+    const user = await User.findById(decoded.id).select('-password');
+    if (!user) {
+      await RefreshToken.deleteOne({ _id: stored._id });
+      return res.status(401).json({ message: 'User not found' });
+    }
 
-      await RefreshToken.create({
-        userId: user._id,
-        token: newRefreshToken,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      });
+    if (user.status === 'blocked') {
+      return res.status(403).json({ message: 'Account blocked' });
+    }
 
-      setAuthCookies(res, newAccessToken, newRefreshToken);
-      res.json({
-        token: newAccessToken,
-        refreshToken: newRefreshToken,
-      });
+    await RefreshToken.deleteOne({ _id: stored._id });
+
+    const newAccessToken = signAccessToken(user);
+    const newRefreshToken = signRefreshToken(user);
+
+    newRefreshTokenDoc = await RefreshToken.create({
+      userId: user._id,
+      token: newRefreshToken,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    });
+
+    setAuthCookies(res, newAccessToken, newRefreshToken);
+    res.json({
+      token: newAccessToken,
+      refreshToken: newRefreshToken,
     });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    // Cleanup partial refresh token if created mid-failure
+    if (newRefreshTokenDoc) {
+      try { await RefreshToken.deleteOne({ _id: newRefreshTokenDoc._id }); } catch {}
+    }
+    logger.error(`[auth/refresh] error: ${err.message}`);
+    // DB hiccup → 503 (not 401) so client retries instead of logging out.
+    // Genuine auth failures already handled above with explicit 401/400/403.
+    res.status(503).json({ message: 'Service temporarily unavailable. Please try again.' });
   }
 });
 

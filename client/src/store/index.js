@@ -21,4 +21,18 @@ export const store = configureStore({
   middleware: (getDefaultMiddleware) => getDefaultMiddleware(),
 });
 
+// ─── Vite HMR boundary ─────────────────────────────────────────────────────
+// Bina iske har slice/store edit Vite ko full page reload karwata tha →
+// initializeAuth dobara chalta tha → access token expire ho to logout.
+// HMR accept karne se Redux state memory me preserve rehta hai, sirf reducer
+// hot-swap hota hai. User logged-in hi rehta hai code change par.
+if (import.meta.hot) {
+  import.meta.hot.accept((newModule) => {
+    if (newModule && newModule.rootReducer) {
+      store.replaceReducer(newModule.rootReducer);
+    }
+  });
+}
+
+export { rootReducer };
 export default store;

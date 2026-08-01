@@ -14,6 +14,7 @@ import { api, downloadPaymentInvoice } from '@/lib/api';
 import { getISTDateString, formatDisplayDate } from '@/lib/dateUtils';
 import { useAppointmentRealtime } from '@/lib/useAppointmentRealtime';
 import LicenseExpiryReminder from '@/components/LicenseExpiryReminder';
+import EarningsAnalytics from '@/components/EarningsAnalytics';
 
 const StatusBadge = ({ status }) => {
   const colors = {
@@ -26,13 +27,6 @@ const StatusBadge = ({ status }) => {
 };
 
 const methodIcons = { card: CreditCard, upi: Smartphone, netbanking: Landmark, cash: Wallet };
-
-const statusConfig = {
-  Confirmed: { label: 'Confirmed', color: 'bg-success/10 text-success' },
-  Pending: { label: 'Pending', color: 'bg-warning/10 text-warning' },
-  Completed: { label: 'Completed', color: 'bg-success/10 text-success' },
-  Cancelled: { label: 'Cancelled', color: 'bg-destructive/10 text-destructive' },
-};
 
 // 7-card stats grid — mirrors PatientDashboard's clickable colored tiles
 const statCards = [
@@ -141,7 +135,6 @@ export default function ClinicDashboard() {
   const pendingAppts = appointments.filter(a => a.status === 'Pending');
   const completedAppts = appointments.filter(a => a.status === 'Completed');
   const todayRevenue = bills.filter(b => b.date === today && b.status === 'Paid').reduce((s, b) => s + (b.paid || b.amount || 0), 0);
-  const totalEarned = bills.reduce((s, b) => s + (b.paid || 0), 0);
   const totalRefunded = refunds.reduce((s, r) => s + (r.refund_amount || r.amount || 0), 0);
   const pendingRefunds = refunds.filter(r => r.status === 'pending' || r.status === 'Pending').length;
   const activeRxCount = prescriptions.filter(p => p.status === 'Active').length;
@@ -455,6 +448,9 @@ export default function ClinicDashboard() {
           )}
         </div>
       </div>
+
+      {/* Earnings Analytics */}
+      <EarningsAnalytics bills={bills} payments={payments} title="Earnings Analytics" />
 
       {/* Quick Actions — mirrors PatientDashboard grid */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}

@@ -1,7 +1,7 @@
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { HashRouter, Route, Routes, Navigate, Outlet } from 'react-router-dom';
-import { useEffect, lazy, Suspense } from 'react';
+import { useEffect, useRef, lazy, Suspense } from 'react';
 import { Provider } from 'react-redux';
 import { Toaster as Sonner } from '@/components/ui/sonner';
 import { Toaster } from '@/components/ui/toaster';
@@ -21,6 +21,7 @@ import PublicLayout from './components/PublicLayout';
 import AppMotion from './components/AppMotion';
 import { LenisScroll } from './components/LenisScroll';
 import ErrorBoundary from './components/ErrorBoundary';
+import { useProactiveTokenRefresh } from '@/lib/useProactiveTokenRefresh';
 
 // Keep layouts that are always needed
 const Home = lazy(() => import('./pages/Home'));
@@ -233,6 +234,11 @@ function AuthInitializer({ children }) {
   useEffect(() => {
     dispatch(initializeAuth());
   }, [dispatch]);
+  // Proactive silent token refresh — access token (15m) expire hone se pehle
+  // background me refresh karta hai. Iske bina code change / HMR reload ke waqt
+  // expired access token → 401 → refresh → agar koi hiccup to logout ho jata tha.
+  // Yeh real-world me "logout na hona" ki guarantee deta hai.
+  useProactiveTokenRefresh();
   return children;
 }
 
@@ -267,8 +273,15 @@ function SettingsInitializer() {
 
 function BlockedAccountRedirect() {
   const { logout } = useAuth();
+  // logout() ek baar hi chalna chahiye. AuthContext me logout stable reference
+  // nahi hai (har render pe naya function), isliye [logout] dep effect ko
+  // dobara chala sakta hai. Ref guard lagate hain taaki StrictMode double-invoke
+  // aur re-renders se double logout (double /auth/logout call) na ho.
+  const didLogoutRef = useRef(false);
 
   useEffect(() => {
+    if (didLogoutRef.current) return;
+    didLogoutRef.current = true;
     logout();
   }, [logout]);
 
