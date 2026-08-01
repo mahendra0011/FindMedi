@@ -18,6 +18,7 @@ const paymentSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
 });
 paymentSchema.index({ transaction_id: 1 }, { unique: true, sparse: true });
-paymentSchema.index({ referenceId: 1, status: 1 }, { unique: true, partialFilterExpression: { status: 'completed', referenceId: { $type: "string", $ne: "" } } });
+// Partial index me $ne supported nahi hai ($not me compile hota hai) — $gt: '' use karo.
+paymentSchema.index({ referenceId: 1, status: 1 }, { unique: true, partialFilterExpression: { status: 'completed', referenceId: { $type: 'string', $gt: '' } } });
 
 export default mongoose.model('Payment', paymentSchema);

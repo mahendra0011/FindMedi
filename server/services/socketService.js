@@ -84,3 +84,12 @@ export function notifyUsers(userIds, notification) {
 export function emitDeliveryStatus(orderId, status, extra = {}) {
   if (io) io.to(`order:${orderId}`).emit('delivery:status', { status, ...extra, timestamp: Date.now() });
 }
+
+/**
+ * Notify a doctor (by their user ID) that a schedule change request was reviewed.
+ * The doctor's My Schedule page listens for this event to auto-remove the blur
+ * and render blue/red highlights without requiring a page refresh.
+ */
+export function emitScheduleRequestUpdate(doctorUserId, payload) {
+  if (io) io.to(`user:${doctorUserId}`).emit('schedule-request-updated', payload);
+}
