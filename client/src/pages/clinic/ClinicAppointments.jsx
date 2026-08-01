@@ -390,9 +390,9 @@ export default function ClinicAppointments() {
               <Plus className="w-3.5 h-3.5" /> Walk-in
             </Button>
           )}
-          <div className="ml-auto relative">
+          <div className="ml-3 relative flex-1 max-w-xl">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input type="text" placeholder="Search by patient, phone, or ID..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-44 h-9 pl-9" aria-label="Global search" />
+            <Input type="text" placeholder="Search by patient, phone, or ID..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full h-9 pl-9" aria-label="Global search" />
           </div>
       </div>
 

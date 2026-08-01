@@ -242,62 +242,7 @@ export default function AppointmentHistorySection({ appointments }) {
           </div>
         </div>
 
-        <div className="bg-card rounded-2xl border border-border/60 p-4 shadow-sm flex-1 min-h-0 flex flex-col">
-          <h4 className="font-heading text-sm font-semibold text-foreground mb-3 flex items-center gap-2 shrink-0">
-            <User className="w-4 h-4 text-primary" />
-            Patients on {formatDisplayDate(selectedDate) || selectedDate}
-          </h4>
-          <div className="space-y-2 min-h-0 flex-1 overflow-y-auto scrollbar-thin">
-            {completedForDate.length === 0 ? (
-              <p className="text-xs text-muted-foreground text-center py-6">
-                No completed appointments for this date.
-              </p>
-            ) : (
-              completedForDate.map((a, i) => {
-                return (
-                  <button
-                    key={a._id || i}
-                    onClick={() => {
-                      // Note: In history, we just scroll to it if it has an id
-                      document.getElementById(`history-card-${a._id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }}
-                    className="w-full flex items-center gap-3 p-2.5 rounded-xl text-left transition-colors hover:bg-muted/50 border border-transparent"
-                  >
-                    <div className="w-9 h-9 rounded-full bg-success/10 flex items-center justify-center text-xs font-bold text-success shrink-0">
-                      {(a.patient || '?').slice(0, 2).toUpperCase()}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">{a.patient}</p>
-                      <p className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Clock className="w-3 h-3" /> {a.time} {subSlotFor(a.time) ? `· ${subSlotFor(a.time)}` : ''}
-                      </p>
-                    </div>
-                    <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-semibold bg-success/10 text-success whitespace-nowrap shrink-0">
-                      <CheckCircle className="w-3 h-3" />
-                      {completionLabel(a)}
-                    </span>
-                  </button>
-                );
-              })
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* ════════════ MIDDLE: Search + History cards (internal scroll) ════════════ */}
-      <div className="space-y-4 flex flex-col md:min-h-0">
-        {/* Date header */}
-        <div className="flex items-center justify-between shrink-0">
-          <h4 className="font-heading text-base font-semibold text-foreground flex items-center gap-2">
-            <CalendarDays className="w-4 h-4 text-primary" />
-            {formatDisplayDate(selectedDate) || selectedDate}
-          </h4>
-          <span className="text-xs text-muted-foreground">
-            {slotAppointments.length} completed appointment{slotAppointments.length !== 1 ? 's' : ''}
-          </span>
-        </div>
-
-        {/* Hour slot boxes — horizontal scroll (sticky filters) */}
+        {/* Hour slot boxes + sub-slots — under the calendar */}
         <div className="bg-card rounded-2xl border border-border/60 p-4 shadow-sm shrink-0">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Select Time</p>
           <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
@@ -315,9 +260,7 @@ export default function AppointmentHistorySection({ appointments }) {
                 >
                   {h}
                   {count > 0 && (
-                    <span className={`absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full text-[8px] font-bold flex items-center justify-center ${
-                      selectedHour === h ? 'bg-primary-foreground text-primary' : 'bg-primary text-primary-foreground'
-                    }`}>{count}</span>
+                    <span className={`ml-1 text-[10px] font-bold ${selectedHour === h ? 'text-primary-foreground/90' : 'text-primary'}`}>{count}</span>
                   )}
                 </button>
               );
@@ -341,12 +284,26 @@ export default function AppointmentHistorySection({ appointments }) {
                 >
                   {s}
                   {count > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full text-[7px] font-bold flex items-center justify-center bg-success text-white">{count}</span>
+                    <span className="ml-1 text-[10px] font-bold text-success">{count}</span>
                   )}
                 </button>
               );
             })}
           </div>
+        </div>
+      </div>
+
+      {/* ════════════ MIDDLE: Search + History cards (internal scroll) ════════════ */}
+      <div className="space-y-4 flex flex-col md:min-h-0">
+        {/* Date header */}
+        <div className="flex items-center justify-between shrink-0">
+          <h4 className="font-heading text-base font-semibold text-foreground flex items-center gap-2">
+            <CalendarDays className="w-4 h-4 text-primary" />
+            {formatDisplayDate(selectedDate) || selectedDate}
+          </h4>
+          <span className="text-xs text-muted-foreground">
+            {slotAppointments.length} completed appointment{slotAppointments.length !== 1 ? 's' : ''}
+          </span>
         </div>
 
         {/* Completed appointments list */}
@@ -384,7 +341,7 @@ export default function AppointmentHistorySection({ appointments }) {
           <h4 className="font-heading text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
             <BarChart3 className="w-4 h-4 text-primary" /> Status Overview
           </h4>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             <StatusTile icon={Clock} label="Today" value={todayCount} />
             <StatusTile icon={CalendarDays} label="Last 7 Days" value={last7Count} />
             <StatusTile icon={CalendarCheck2} label="This Week" value={weekCount} tone="success" />
