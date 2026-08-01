@@ -47,13 +47,11 @@ router.get('/status', protect, async (req, res, next) => {
 router.get('/auth-url', protect, (req, res, next) => {
   try {
     if (!isConfigured()) {
-      console.error('[Drive] Not configured — CLIENT_ID:', process.env.GOOGLE_CLIENT_ID ? 'SET' : 'MISSING', 'CLIENT_SECRET:', process.env.GOOGLE_CLIENT_SECRET ? 'SET' : 'MISSING');
       return res.status(503).json({ error: 'Google Drive is not configured on the server.' });
     }
     const url = getAuthUrl();
     res.json({ url });
   } catch (error) {
-    console.error('[Drive] auth-url error:', error);
     next(error);
   }
 });
@@ -105,11 +103,8 @@ router.post('/upload', protect, upload.single('file'), async (req, res, next) =>
       req.file.mimetype
     );
 
-    const clientUploadType = req.body?.uploadType;
     let recordType = 'prescription';
-    if (clientUploadType && ['prescription', 'lab_report', 'medical_image', 'xray', 'bill_invoice', 'discharge_summary', 'document'].includes(clientUploadType)) {
-      recordType = clientUploadType;
-    } else if (req.file.mimetype.startsWith('image/')) {
+    if (req.file.mimetype.startsWith('image/')) {
       recordType = 'lab_report';
     } else if (req.file.mimetype === 'application/pdf') {
       recordType = 'discharge_summary';
@@ -156,7 +151,6 @@ router.post('/upload', protect, upload.single('file'), async (req, res, next) =>
       format: driveResult.format,
       fileId: driveResult.fileId,
       storedIn: 'drive',
-      uploadType: recordType,
       recordId: record._id,
     });
   } catch (error) {

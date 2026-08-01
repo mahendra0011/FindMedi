@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Clock, Calendar, Save, Plus, X, XCircle, Settings, CheckCircle, Info, Users, Coffee, Loader2 } from 'lucide-react';
+import { Clock, Calendar, Save, Plus, X, Settings, CheckCircle, Info, Users, Coffee } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -7,7 +7,6 @@ import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { getISTDateString } from '@/lib/dateUtils';
 import { toast } from 'sonner';
-import ScheduleFieldHighlight, { formatFieldValue } from '@/components/ScheduleFieldHighlight';
 
 const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
@@ -41,15 +40,12 @@ function generateTimeSlots(startTime, endTime, slotDuration, breakTime = {}) {
   return slots;
 }
 
-export default function ClinicSchedule({ adminMode, doctorId, requestMode, rejectedRequest, pendingRequest, latestRequest, onRequestCancelled, onRequestCreated, refreshTrigger }) {
+export default function ClinicSchedule() {
   const { user } = useAuth();
   const [doctor, setDoctor] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [cancelling, setCancelling] = useState(false);
-  // Track dismissed reviewed request so highlights/banners hide after clicking "OK, Got it"
-  const [dismissedRequestId, setDismissedRequestId] = useState(null);
   const [selectedSlots, setSelectedSlots] = useState([]);
   const [schedule, setSchedule] = useState({});
   const [leaves, setLeaves] = useState([]);
@@ -89,16 +85,8 @@ export default function ClinicSchedule({ adminMode, doctorId, requestMode, rejec
     const load = async () => {
       setLoading(true);
       try {
-        let myDoc = null;
-        if (adminMode && doctorId) {
-          // Admin mode: load specific doctor by ID
-          const doctors = (await api.getDoctors({ includeAll: 'true' }))?.data || [];
-          myDoc = doctors.find(d => d._id === doctorId) || null;
-        } else {
-          // Clinic doctor mode: load own profile
-          const doctors = (await api.getDoctors())?.data || [];
-          myDoc = doctors.find(d => d.email === user?.email) || doctors.find(d => d.name?.includes(user?.name)) || null;
-        }
+        const doctors = (await api.getDoctors())?.data || [];
+        const myDoc = doctors.find(d => d.email === user?.email) || doctors.find(d => d.name?.includes(user?.name)) || null;
         if (myDoc) {
           setDoctor(myDoc);
           setSelectedSlots(myDoc.time_slots || []);
@@ -118,7 +106,7 @@ export default function ClinicSchedule({ adminMode, doctorId, requestMode, rejec
       setLoading(false);
     };
     load();
-  }, [user?.email, user?.name, adminMode, doctorId, refreshTrigger]);
+  }, [user?.email, user?.name]);
 
   // Keep selectedSlots in sync with generated slots
   useEffect(() => {
@@ -175,50 +163,12 @@ export default function ClinicSchedule({ adminMode, doctorId, requestMode, rejec
     });
   };
 
-  // Build a per-field status map from the latest request (approved → blue, rejected → red).
-  // Only relevant on the doctor's own page (requestMode), driven by latestRequest.
-  // If the doctor already dismissed this request, hide all highlights.
-  const fieldStatus = useMemo(() => {
-    const map = {}; // { bookingWindow: 'approved'|'rejected', slotDuration: ... }
-    if (!requestMode || !latestRequest) return map;
-    if (dismissedRequestId === latestRequest._id) return map;
-    const status = (latestRequest.status || '').toLowerCase();
-    if (status !== 'approved' && status !== 'rejected') return map;
-    const rc = latestRequest.requestedChanges || {};
-    const applied = latestRequest.appliedFields || [];
-    Object.keys(rc).forEach((key) => {
-      if (rc[key] == null) return;
-      if (status === 'approved') {
-        map[key] = applied.includes(key) ? 'approved' : 'rejected';
-      } else {
-        map[key] = 'rejected';
-      }
-    });
-    return map;
-  }, [requestMode, latestRequest, dismissedRequestId]);
-
-  const latestStatus = (latestRequest?.status || '').toLowerCase();
-  const isPendingBlur = requestMode && latestStatus === 'pending';
-
-  const handleCancelRequest = async () => {
-    if (!latestRequest?._id) return;
-    setCancelling(true);
-    try {
-      await api.cancelScheduleChangeRequest(latestRequest._id);
-      toast.success('Change request cancelled');
-      onRequestCancelled?.();
-    } catch (e) {
-      console.error(e);
-      toast.error(e.response?.data?.message || 'Failed to cancel request');
-    }
-    setCancelling(false);
-  };
-
   const handleSave = async () => {
     if (!doctor) return;
     setSaving(true);
     try {
-      const payload = {
+      await api.updateDoctorSchedule(doctor._id, {
+        time_slots: selectedSlots,
         weekly_schedule: schedule,
         leaves,
         slotDuration: parseInt(slotDuration),
@@ -227,25 +177,10 @@ export default function ClinicSchedule({ adminMode, doctorId, requestMode, rejec
         breakTime,
         dateDisabledSlots,
         bookingWindow,
-      };
-
-      if (requestMode) {
-        // Doctor request flow — don't write directly, create a change request
-        await api.createScheduleChangeRequest({ requestedChanges: payload });
-        toast.success('Change request submitted — awaiting admin approval');
-        setSaved(true);
-        setTimeout(() => setSaved(false), 3500);
-        // Reset dismissal so a fresh review cycle shows the banner/highlights again
-        setDismissedRequestId(null);
-        // Tell the wrapper to reload requests so the blur + cancel button appear immediately
-        onRequestCreated?.();
-      } else {
-        // Direct save (admin / clinic_doctor)
-        await api.updateDoctorSchedule(doctor._id, { time_slots: selectedSlots, ...payload });
-        setSaved(true);
-        toast.success('Schedule saved');
-        setTimeout(() => setSaved(false), 2500);
-      }
+      });
+      setSaved(true);
+      toast.success('Schedule saved');
+      setTimeout(() => setSaved(false), 2500);
     } catch (e) {
       console.error(e);
       toast.error(e.response?.data?.message || 'Failed to save schedule');
@@ -255,15 +190,6 @@ export default function ClinicSchedule({ adminMode, doctorId, requestMode, rejec
 
   // Slots disabled for the selected date
   const selectedDateDisabled = selectedDate ? (dateDisabledSlots[selectedDate] || []) : [];
-
-  // Slots pending disable (in a pending request but not yet live) for the selected date
-  const pendingDateDisabled = useMemo(() => {
-    if (!requestMode || !latestRequest || latestRequest.status !== 'Pending') return [];
-    if (!selectedDate) return [];
-    const pendingSlots = latestRequest.requestedChanges?.dateDisabledSlots?.[selectedDate] || [];
-    const liveDisabled = new Set(selectedDateDisabled);
-    return pendingSlots.filter(s => !liveDisabled.has(s));
-  }, [requestMode, latestRequest, selectedDate, selectedDateDisabled]);
 
   const rangeFor = (slot) => {
     const m = slot?.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
@@ -283,96 +209,14 @@ export default function ClinicSchedule({ adminMode, doctorId, requestMode, rejec
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          {adminMode && (
-            <button onClick={() => window.history.back()} className="text-xs text-muted-foreground hover:text-primary mb-1 flex items-center gap-1">
-              ← Back to doctors list
-            </button>
-          )}
-          <h1 className="font-heading text-2xl font-bold text-foreground">
-            {adminMode ? `${doctor?.name || 'Doctor'}'s Schedule` : 'My Schedule & Availability'}
-          </h1>
-          <p className="text-muted-foreground">
-            {requestMode
-              ? 'Edit your schedule and request changes — admin will review'
-              : adminMode
-                ? `Managing schedule for ${doctor?.specialization || 'doctor'}`
-                : 'Full control over your clinic timing and availability'}
-          </p>
+          <h1 className="font-heading text-2xl font-bold text-foreground">My Schedule & Availability</h1>
+          <p className="text-muted-foreground">Full control over your clinic timing and availability</p>
         </div>
         <Button className="gap-2" onClick={handleSave} disabled={saving}>
-          <Save className="w-4 h-4" /> {saving ? 'Submitting...' : requestMode ? 'Request for Save' : 'Save Schedule'}
+          <Save className="w-4 h-4" /> {saving ? 'Saving...' : 'Save Schedule'}
           {saved && <CheckCircle className="w-4 h-4 text-success" />}
         </Button>
       </div>
-
-      {/* Rejection banner — shown when last request was rejected or partially applied */}
-      {requestMode && rejectedRequest && dismissedRequestId !== rejectedRequest._id && (
-        <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-2xl p-4">
-          <p className="text-sm font-semibold text-red-700 dark:text-red-400 flex items-center gap-2">
-            <Info className="w-4 h-4" /> Your last request was {rejectedRequest.status}
-          </p>
-          {rejectedRequest.rejectionNote && (
-            <p className="text-xs text-red-600 dark:text-red-400/80 mt-1">{rejectedRequest.rejectionNote}</p>
-          )}
-          {rejectedRequest.appliedFields?.length > 0 && (
-            <p className="text-xs text-emerald-600 dark:text-emerald-400/80 mt-1">
-              ✓ Applied: {rejectedRequest.appliedFields.join(', ')}
-            </p>
-          )}
-        </div>
-      )}
-
-      {/* Pending banner — shown when a request is awaiting review */}
-      {requestMode && pendingRequest && (
-        <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-2xl p-4">
-          <p className="text-sm font-semibold text-amber-700 dark:text-amber-400 flex items-center gap-2">
-            <Clock className="w-4 h-4" /> A change request is pending admin review
-          </p>
-          <p className="text-xs text-amber-600 dark:text-amber-400/80 mt-1">
-            Submitted on {pendingRequest.createdAt ? new Date(pendingRequest.createdAt).toLocaleDateString() : ''}. You'll be notified once reviewed.
-          </p>
-        </div>
-      )}
-
-      {/* Reviewed banner — shown after admin approves/rejects, dismissed by clicking "OK, Got it" */}
-      {requestMode && latestRequest && dismissedRequestId !== latestRequest._id && (latestStatus === 'approved' || latestStatus === 'rejected') && (
-        <div className={`rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 ${
-          latestStatus === 'approved'
-            ? 'bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30'
-            : 'bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30'
-        }`}>
-          <div>
-            <p className={`text-sm font-semibold flex items-center gap-2 ${
-              latestStatus === 'approved' ? 'text-blue-700 dark:text-blue-400' : 'text-red-700 dark:text-red-400'
-            }`}>
-              {latestStatus === 'approved'
-                ? <><CheckCircle className="w-4 h-4" /> Your schedule change request was approved</>
-                : <><XCircle className="w-4 h-4" /> Your schedule change request was rejected</>
-              }
-            </p>
-            {latestRequest.appliedFields?.length > 0 && (
-              <p className="text-xs text-emerald-600 dark:text-emerald-400/80 mt-1">
-                ✓ Applied: {latestRequest.appliedFields.join(', ')}
-              </p>
-            )}
-            {latestRequest.rejectionNote && (
-              <p className={`text-xs mt-1 ${latestStatus === 'approved' ? 'text-blue-600/80 dark:text-blue-400/80' : 'text-red-600/80 dark:text-red-400/80'}`}>
-                {latestRequest.rejectionNote}
-              </p>
-            )}
-            <p className="text-xs text-muted-foreground mt-1">
-              See the highlighted changes below for details.
-            </p>
-          </div>
-          <Button variant="outline" className="shrink-0 gap-2" onClick={() => setDismissedRequestId(latestRequest._id)}>
-            <CheckCircle className="w-4 h-4" /> OK, Got it
-          </Button>
-        </div>
-      )}
-
-      {/* Editable schedule area — blurred while a request is pending, with a centered Cancel button */}
-      <div className="relative">
-        <div className={isPendingBlur ? 'pointer-events-none select-none blur-sm' : ''}>
 
       {/* Slot Settings */}
       <div className="bg-card rounded-2xl border border-border/60 p-6">
@@ -385,14 +229,6 @@ export default function ClinicSchedule({ adminMode, doctorId, requestMode, rejec
           <div>
             <label className="text-xs text-muted-foreground mb-1 block">Working Hours Start</label>
             <Input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} className="w-full" />
-            {fieldStatus.workingHours && (
-              <ScheduleFieldHighlight
-                status={fieldStatus.workingHours}
-                label="Working Hours"
-                oldText={formatFieldValue('workingHours', latestRequest?.oldValues?.workingHours)}
-                newText={formatFieldValue('workingHours', latestRequest?.requestedChanges?.workingHours)}
-              />
-            )}
           </div>
           <div>
             <label className="text-xs text-muted-foreground mb-1 block">Working Hours End</label>
@@ -408,14 +244,6 @@ export default function ClinicSchedule({ adminMode, doctorId, requestMode, rejec
               <option value="45">45 min</option>
               <option value="60">60 min</option>
             </select>
-            {fieldStatus.slotDuration && (
-              <ScheduleFieldHighlight
-                status={fieldStatus.slotDuration}
-                label="Slot Duration"
-                oldText={formatFieldValue('slotDuration', latestRequest?.oldValues?.slotDuration)}
-                newText={formatFieldValue('slotDuration', latestRequest?.requestedChanges?.slotDuration)}
-              />
-            )}
           </div>
           <div>
             <label className="text-xs text-muted-foreground mb-1 block">Buffer Slots Per Hour</label>
@@ -424,14 +252,6 @@ export default function ClinicSchedule({ adminMode, doctorId, requestMode, rejec
               <option value="1">1 slot</option>
               <option value="2">2 slots</option>
             </select>
-            {fieldStatus.bufferPerHour && (
-              <ScheduleFieldHighlight
-                status={fieldStatus.bufferPerHour}
-                label="Buffer"
-                oldText={formatFieldValue('bufferPerHour', latestRequest?.oldValues?.bufferPerHour)}
-                newText={formatFieldValue('bufferPerHour', latestRequest?.requestedChanges?.bufferPerHour)}
-              />
-            )}
           </div>
         </div>
 
@@ -449,16 +269,6 @@ export default function ClinicSchedule({ adminMode, doctorId, requestMode, rejec
             <label className="text-xs text-muted-foreground mb-1 block">Break End</label>
             <Input type="time" value={breakTime.end} onChange={e => setBreakTime(p => ({ ...p, end: e.target.value }))} className="w-full" />
           </div>
-          {fieldStatus.breakTime && (
-            <div className="sm:col-span-4">
-              <ScheduleFieldHighlight
-                status={fieldStatus.breakTime}
-                label="Break Time"
-                oldText={formatFieldValue('breakTime', latestRequest?.oldValues?.breakTime)}
-                newText={formatFieldValue('breakTime', latestRequest?.requestedChanges?.breakTime)}
-              />
-            </div>
-          )}
         </div>
 
         {/* Booking Window — restrict how far in advance patients can book */}
@@ -480,16 +290,6 @@ export default function ClinicSchedule({ adminMode, doctorId, requestMode, rejec
               <option value="months">Months</option>
             </select>
           </div>
-          {fieldStatus.bookingWindow && (
-            <div className="sm:col-span-4">
-              <ScheduleFieldHighlight
-                status={fieldStatus.bookingWindow}
-                label="Booking Window"
-                oldText={formatFieldValue('bookingWindow', latestRequest?.oldValues?.bookingWindow)}
-                newText={formatFieldValue('bookingWindow', latestRequest?.requestedChanges?.bookingWindow)}
-              />
-            </div>
-          )}
         </div>
 
         <div className="flex flex-wrap gap-4 text-xs text-muted-foreground bg-muted/30 rounded-xl px-4 py-3">
@@ -539,28 +339,24 @@ export default function ClinicSchedule({ adminMode, doctorId, requestMode, rejec
               {allSlots.map(slot => {
                 const isReserved = bookedSlots.includes(slot);
                 const isDisabled = selectedDateDisabled.includes(slot);
-                const isPending = pendingDateDisabled.includes(slot);
                 // Reserved slots are read-only — no toggle, no click
                 if (isReserved) {
                   return (
                     <div key={slot}
                       className="px-3 py-2 rounded-lg text-sm font-semibold text-center bg-gray-900 text-white border border-gray-800 shadow-sm opacity-90 cursor-not-allowed">
                       <span className="block">{rangeFor(slot)}</span>
-                      <span className="block text-[9px] font-normal opacity-80">Booked</span>
+                      <span className="block text-[9px] font-normal opacity-80">Slot Reserved</span>
                     </div>
                   );
                 }
                 return (
                   <button key={slot} onClick={() => toggleDateSlot(slot)}
-                    className={`px-3 py-2 rounded-lg text-sm font-semibold transition-all hover:opacity-80 ${
+                    className={`px-3 py-2 rounded-lg text-sm font-semibold transition-all cursor-pointer hover:opacity-80 ${
                       isDisabled
                         ? 'bg-red-100 text-red-600 border border-red-300 shadow-sm'
-                        : isPending
-                        ? 'bg-red-100 text-red-700 border border-red-300 shadow-sm'
                         : 'bg-primary text-primary-foreground shadow-md'
                     }`}>
-                    <span className="block">{rangeFor(slot)}</span>
-                    {isPending && <span className="block text-[9px] font-normal">Pending</span>}
+                    {rangeFor(slot)}
                   </button>
                 );
               })}
@@ -573,10 +369,7 @@ export default function ClinicSchedule({ adminMode, doctorId, requestMode, rejec
                 <span className="inline-block w-3 h-3 rounded bg-red-100 border border-red-300" /> Disabled for this date only
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="inline-block w-3 h-3 rounded bg-amber-100 border border-amber-300" /> Pending (awaiting admin approval)
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="inline-block w-3 h-3 rounded bg-gray-900" /> Booked (already reserved)
+                <span className="inline-block w-3 h-3 rounded bg-gray-900" /> Slot Reserved (already booked)
               </span>
             </p>
           </>
@@ -599,16 +392,6 @@ export default function ClinicSchedule({ adminMode, doctorId, requestMode, rejec
             </button>
           ))}
         </div>
-        {fieldStatus.weekly_schedule && (
-          <div className="mt-3">
-            <ScheduleFieldHighlight
-              status={fieldStatus.weekly_schedule}
-              label="Weekly Schedule"
-              oldText={formatFieldValue('weekly_schedule', latestRequest?.oldValues?.weekly_schedule)}
-              newText={formatFieldValue('weekly_schedule', latestRequest?.requestedChanges?.weekly_schedule)}
-            />
-          </div>
-        )}
       </div>
 
       {/* Leaves / Holidays */}
@@ -630,47 +413,6 @@ export default function ClinicSchedule({ adminMode, doctorId, requestMode, rejec
                 <button onClick={() => removeLeave(leave)} className="hover:text-destructive/70"><X className="w-3 h-3" /></button>
               </span>
             ))}
-          </div>
-        )}
-        {fieldStatus.leaves && (
-          <div className="mt-3">
-            <ScheduleFieldHighlight
-              status={fieldStatus.leaves}
-              label="Leaves"
-              oldText={formatFieldValue('leaves', latestRequest?.oldValues?.leaves)}
-              newText={formatFieldValue('leaves', latestRequest?.requestedChanges?.leaves)}
-            />
-          </div>
-        )}
-        {fieldStatus.dateDisabledSlots && (
-          <div className="mt-2">
-            <ScheduleFieldHighlight
-              status={fieldStatus.dateDisabledSlots}
-              label="Date Disabled Slots"
-              oldText={formatFieldValue('dateDisabledSlots', latestRequest?.oldValues?.dateDisabledSlots)}
-              newText={formatFieldValue('dateDisabledSlots', latestRequest?.requestedChanges?.dateDisabledSlots)}
-            />
-          </div>
-        )}
-      </div>
-        </div>{/* end blur wrapper */}
-
-        {/* Centered Cancel Request overlay (only while pending) */}
-        {isPendingBlur && (
-          <div className="absolute inset-0 z-20 flex items-start justify-center pt-24">
-            <div className="bg-card border border-amber-300 shadow-2xl rounded-2xl p-6 max-w-sm w-[90%] text-center">
-              <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-3">
-                <Clock className="w-6 h-6 text-amber-600" />
-              </div>
-              <h3 className="font-heading text-lg font-bold text-foreground mb-1">Request Pending Review</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Your schedule change request is awaiting admin approval. Editing is locked until it's reviewed.
-              </p>
-              <Button variant="destructive" className="w-full gap-2" onClick={handleCancelRequest} disabled={cancelling}>
-                {cancelling ? <Loader2 className="w-4 h-4 animate-spin" /> : <X className="w-4 h-4" />}
-                {cancelling ? 'Cancelling...' : 'Cancel Request'}
-              </Button>
-            </div>
           </div>
         )}
       </div>
