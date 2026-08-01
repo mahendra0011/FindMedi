@@ -5,7 +5,8 @@ const getCookieOptions = () => ({
   secure: process.env.NODE_ENV === 'production',
   sameSite: 'lax',
   path: '/',
-  maxAge: 24 * 60 * 60 * 1000,
+  // Refresh token (7d) jitna hi rakho — warna 24h baad har POST fail ho kar session girti thi
+  maxAge: 7 * 24 * 60 * 60 * 1000,
 });
 
 export const csrfProtection = (req, res, next) => {

@@ -146,7 +146,9 @@ export const api = {
   getAppointmentsHistory: ()    => request('/appointments/history-with-payments?_t=' + Date.now()),
   getBookedSlots:     (p={})    => request('/appointments/booked-slots?' + new URLSearchParams(p)),
   createAppointment:  (body)    => request('/appointments',         { method:'POST',   body: JSON.stringify(body) }),
+  walkInAppointment:  (body)    => request('/appointments/walk-in', { method:'POST',   body: JSON.stringify(body) }),
   updateAppointment:  (id,b)    => request(`/appointments/${id}`,   { method:'PUT',    body: JSON.stringify(b) }),
+  submitIntakeForm:   (id,b)    => request(`/appointments/${id}/intake`, { method:'PUT', body: JSON.stringify(b) }),
   deleteAppointment:  (id)      => request(`/appointments/${id}`,   { method:'DELETE' }),
 
   getRecords:         (p={})    => request('/records?' + new URLSearchParams(p)),
