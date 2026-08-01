@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { io } from 'socket.io-client';
 import { Phone, Bike } from 'lucide-react';
-
-const socket = io(import.meta.env.VITE_API_URL);
+import { getSocket, joinRoom } from '@/lib/socket';
 
 export default function DeliveryTrackingMap({ orderId, pickup, drop, partner }) {
   const mapRef = useRef(null);
@@ -11,16 +9,24 @@ export default function DeliveryTrackingMap({ orderId, pickup, drop, partner }) 
   const [status, setStatus] = useState('Assigned');
 
   useEffect(() => {
-    socket.emit('order:join_tracking', orderId);
-    socket.on('location:updated', ({ lat, lng }) => {
+    if (!orderId) return;
+    const socket = getSocket();
+    // Shared socket — order room join har (re)connect par dobara fire hota hai
+    const cleanupJoin = joinRoom('order:join_tracking', orderId);
+
+    const onLocation = ({ lat, lng }) => {
       setPosition({ lat, lng });
       if (markerRef.current) markerRef.current.setPosition({ lat, lng });
-    });
-    socket.on('delivery:status', ({ status }) => setStatus(status));
+    };
+    const onStatus = ({ status }) => setStatus(status);
+    socket.on('location:updated', onLocation);
+    socket.on('delivery:status', onStatus);
+
     return () => {
       socket.emit('order:leave_tracking', orderId);
-      socket.off('location:updated');
-      socket.off('delivery:status');
+      socket.off('location:updated', onLocation);
+      socket.off('delivery:status', onStatus);
+      cleanupJoin();
     };
   }, [orderId]);
 

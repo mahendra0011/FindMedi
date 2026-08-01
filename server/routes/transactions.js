@@ -207,25 +207,32 @@ router.post('/pay', protect, async (req, res, next) => {
         const countToday = await Appointment.countDocuments({ date, doctor: doctor || '' });
         const estimatedWaitTime = countToday * 10; // simple estimate
 
-        createdAppointment = await Appointment.create({
-          tokenNumber,
-          uhid: patientUser?.uhid || '',
-          patient: patientName,
-          patientId,
-          doctor: doctor || doctorName || '',
-          doctorId: doctorId || null,
-          department: department || 'General',
-          date,
-          time,
-          type: type || 'Consultation',
-          symptoms: symptoms || '',
-          notes: notes || '',
-          priority: priority || 'Normal',
-          estimatedWaitTime,
-          hospitalId: hospitalId || undefined,
-          fees: Number(amount) || 0,
-          status: 'Pending',
-        });
+        try {
+          createdAppointment = await Appointment.create({
+            tokenNumber,
+            uhid: patientUser?.uhid || '',
+            patient: patientName,
+            patientId,
+            doctor: doctor || doctorName || '',
+            doctorId: doctorId || null,
+            department: department || 'General',
+            date,
+            time,
+            type: type || 'Consultation',
+            symptoms: symptoms || '',
+            notes: notes || '',
+            priority: priority || 'Normal',
+            estimatedWaitTime,
+            hospitalId: hospitalId || undefined,
+            fees: Number(amount) || 0,
+            status: 'Pending',
+          });
+        } catch (err) {
+          if (err.code === 11000) {
+            return res.status(409).json({ message: 'This slot was just booked by someone else. Please pick another time.' });
+          }
+          throw err;
+        }
 
         referenceId = createdAppointment._id.toString();
 

@@ -1,7 +1,7 @@
 import { Server } from 'socket.io';
 import { createAdapter } from '@socket.io/redis-adapter';
 import logger from '../config/logger.js';
-import { redisPub, redisSub, updateDeliveryBoyLocation } from '../config/redis.js';
+import { redisPub, redisSub, connectRedis, updateDeliveryBoyLocation } from '../config/redis.js';
 import DeliveryPartner from '../models/DeliveryPartner.js';
 import PharmacyDelivery from '../models/PharmacyDelivery.js';
 import Doctor from '../models/Doctor.js';
@@ -10,7 +10,7 @@ import User from '../models/User.js';
 
 let io = null;
 
-export function initSocket(server) {
+export async function initSocket(server) {
   io = new Server(server, {
     cors: {
       origin: process.env.CLIENT_URL || 'http://localhost:5173',
@@ -19,7 +19,21 @@ export function initSocket(server) {
     },
   });
 
-  io.adapter(createAdapter(redisPub, redisSub));
+  // Redis adapter sirf tab lagao jab REDIS_URL set ho aur connect ho sake.
+  // Locally (bina Redis) default in-memory adapter use hota hai — warna har emit
+  // ek kabhi-connected-na-huye pub/sub client par atak kar silently fail ho jaata
+  // tha (real-time updates kabhi nahi pahunchte the).
+  if (process.env.REDIS_URL) {
+    try {
+      await connectRedis();
+      io.adapter(createAdapter(redisPub, redisSub));
+      logger.info('Socket.IO initialized (with Redis adapter)');
+    } catch (err) {
+      logger.warn(`Redis unavailable (${err.message}) — falling back to in-memory Socket.IO adapter`);
+    }
+  } else {
+    logger.info('Socket.IO initialized (in-memory adapter — single instance mode)');
+  }
 
   io.on('connection', (socket) => {
     logger.info(`Socket connected: ${socket.id}`);
@@ -37,7 +51,12 @@ export function initSocket(server) {
 
     socket.on('deliveryboy:location', async ({ deliveryPartnerId, orderId, lat, lng }) => {
       try {
-        await updateDeliveryBoyLocation(deliveryPartnerId, lat, lng);
+        // Redis cache best-effort hai — fail hone par DB updates ko skip mat karo
+        try {
+          await updateDeliveryBoyLocation(deliveryPartnerId, lat, lng);
+        } catch (redisErr) {
+          logger.warn(`Delivery location Redis cache skipped: ${redisErr.message}`);
+        }
         await DeliveryPartner.findByIdAndUpdate(deliveryPartnerId, {
           currentLocation: { lat, lng, updatedAt: new Date() },
         });
@@ -59,7 +78,7 @@ export function initSocket(server) {
     socket.on('disconnect', () => logger.info(`Socket disconnected: ${socket.id}`));
   });
 
-  logger.info('Socket.IO initialized (with Redis adapter)');
+  logger.info('Socket.IO ready');
   return io;
 }
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import {   DollarSign, Save, Plus, X, Stethoscope, Home, CheckCircle, IndianRupee, Settings } from 'lucide-react';
+import { Save, Stethoscope, Home, CheckCircle, IndianRupee } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
@@ -15,8 +15,6 @@ export default function ClinicFees() {
   const [consultationFee, setConsultationFee] = useState('');
   const [homeVisitFee, setHomeVisitFee] = useState('');
   const [emergencyFee, setEmergencyFee] = useState('');
-  const [customServices, setCustomServices] = useState([]);
-  const [newService, setNewService] = useState({ name: '', fee: '' });
 
   useEffect(() => {
     const load = async () => {
@@ -30,7 +28,6 @@ export default function ClinicFees() {
           setHomeVisitFee(myDoc.home_visit_fee || '');
 
           setEmergencyFee(myDoc.emergency_fee || '');
-          setCustomServices(myDoc.custom_services || []);
         }
       } catch (e) { console.error(e); }
       setLoading(false);
@@ -47,23 +44,11 @@ export default function ClinicFees() {
         home_visit_fee: homeVisitFee,
 
         emergency_fee: emergencyFee,
-        custom_services: customServices,
       });
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch (e) { console.error(e); }
     setSaving(false);
-  };
-
-  const addService = () => {
-    if (newService.name && newService.fee) {
-      setCustomServices(prev => [...prev, { ...newService, _id: `cs_${crypto.randomUUID()}` }]);
-      setNewService({ name: '', fee: '' });
-    }
-  };
-
-  const removeService = (id) => {
-    setCustomServices(prev => prev.filter(s => s._id !== id));
   };
 
   if (loading) return <div className="flex justify-center py-12"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>;
@@ -88,7 +73,7 @@ export default function ClinicFees() {
         {/* Summary (moved to top, under header) */}
         <div className="bg-gradient-to-r from-primary/5 to-primary/10 rounded-2xl border border-primary/20 p-5">
           <h3 className="font-heading font-semibold text-foreground mb-3">Current Pricing Summary</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
             <div className="bg-card rounded-xl p-4 text-center border border-border/40">
               <p className="text-xl font-bold text-primary">₹{consultationFee || '-'}</p>
               <p className="text-xs text-muted-foreground">Consultation</p>
@@ -100,10 +85,6 @@ export default function ClinicFees() {
             <div className="bg-card rounded-xl p-4 text-center border border-border/40">
               <p className="text-xl font-bold text-primary">₹{emergencyFee || '-'}</p>
               <p className="text-xs text-muted-foreground">Emergency</p>
-            </div>
-            <div className="bg-card rounded-xl p-4 text-center border border-border/40">
-              <p className="text-xl font-bold text-primary">{customServices.length}</p>
-              <p className="text-xs text-muted-foreground">Custom Services</p>
             </div>
           </div>
         </div>
@@ -120,54 +101,6 @@ export default function ClinicFees() {
          </div>
        </div>
 
-       {/* Custom Services */}
-       <div className="bg-card rounded-2xl border border-border/60 p-5 shadow-sm">
-         <h2 className="font-heading text-lg font-semibold text-foreground flex items-center gap-2 mb-4">
-           <Settings className="w-5 h-5 text-primary" /> Custom Services
-         </h2>
-         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-           <div>
-             <label className="text-sm font-medium text-foreground mb-1.5 block">Service name</label>
-             <Input value={newService.name} onChange={e => setNewService({ ...newService, name: e.target.value })} placeholder="e.g. Blood Test" />
-           </div>
-           <div>
-             <label className="text-sm font-medium text-foreground mb-1.5 block">Fee</label>
-             <div className="relative">
-               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">Rs</span>
-               <Input type="number" value={newService.fee} onChange={e => setNewService({ ...newService, fee: e.target.value })} className="pl-10" placeholder="0" min={0} />
-             </div>
-           </div>
-         </div>
-         <div className="flex items-center justify-between pt-3">
-           <Button size="sm" className="gap-2" onClick={addService} disabled={!newService.name || !newService.fee}>
-             <Plus className="w-4 h-4" /> Add Service
-           </Button>
-           <p className="text-xs text-muted-foreground">{customServices.length} service{customServices.length !== 1 ? 's' : ''} added</p>
-         </div>
-         {customServices.length > 0 ? (
-           <div className="space-y-2 pt-2">
-             {customServices.map(s => (
-               <div key={s._id} className="flex items-center justify-between p-3.5 bg-muted/30 rounded-xl border border-border/30">
-                 <div className="flex-1">
-                   <p className="font-medium text-foreground">{s.name}</p>
-                   <p className="text-sm text-muted-foreground">Service fee</p>
-                 </div>
-                 <div className="flex items-center gap-4">
-                   <p className="text-lg font-semibold text-primary">₹{s.fee}</p>
-                   <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" onClick={() => removeService(s._id)}>
-                     <X className="w-4 h-4" />
-                   </Button>
-                 </div>
-               </div>
-             ))}
-           </div>
-         ) : (
-           <div className="text-center py-8 border-2 border-dashed border-border/40 rounded-xl">
-             <Settings className="w-8 h-8 text-muted-foreground/50 mx-auto mb-2" />
-             <p className="text-sm text-muted-foreground">No custom services added yet</p>
-           </div>
-         )}
-        </div>
       </div>
     );
   }
