@@ -167,7 +167,7 @@ router.put('/:id/complete', protect, adminOnly, async (req, res) => {
 
     // Update appointment if linked
     if (token.appointmentId) {
-      await Appointment.findByIdAndUpdate(token.appointmentId, { status: 'Completed' });
+      await Appointment.findByIdAndUpdate(token.appointmentId, { status: 'Completed', consultationEndTime: new Date() });
     }
 
     res.json(token);

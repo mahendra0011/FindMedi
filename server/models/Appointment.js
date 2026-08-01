@@ -17,6 +17,40 @@ const appointmentSchema = new mongoose.Schema({
   type: { type: String, enum: ['Consultation', 'Follow-up', 'Check-up', 'Emergency'], default: 'Consultation' },
   notes: { type: String, default: '' },
   symptoms: { type: String, default: '' },
+  preConsultationDetails: {
+    chiefComplaint: { type: String, default: '' },
+    chiefComplaintOther: { type: String, default: '' },
+    symptomsDuration: { type: String, default: '' },
+    pastMedicalHistory: {
+      hasHistory: { type: Boolean, default: false },
+      details: { type: String, default: '' }
+    },
+    currentTreatment: {
+      hasPastTreatment: { type: Boolean, default: false },
+      doctorName: { type: String, default: '' },
+      cityState: { type: String, default: '' },
+      when: { type: String, default: '' },
+      prescriptionFile: { type: String, default: '' },
+      takingMedicines: { type: Boolean, default: false }
+    },
+    testReports: {
+      hasReports: { type: Boolean, default: false },
+      reportFile: { type: String, default: '' }
+    },
+    currentMedications: {
+      hasMedications: { type: Boolean, default: false },
+      details: { type: String, default: '' }
+    },
+    allergies: {
+      hasAllergies: { type: Boolean, default: false },
+      details: { type: String, default: '' }
+    },
+    familyHistory: {
+      hasHistory: { type: Boolean, default: false },
+      details: { type: String, default: '' }
+    },
+    filledAt: { type: Date }
+  },
   services: [{ type: String }],
   fees: { type: Number, default: 0 },
   queuePosition: { type: Number, default: 0 },
@@ -31,5 +65,8 @@ const appointmentSchema = new mongoose.Schema({
 });
 
 appointmentSchema.index({ doctorId: 1, patientId: 1, date: 1, time: 1 }, { unique: true, partialFilterExpression: { status: { $in: ['Pending', 'Confirmed', 'In Queue', 'Serving'] }, doctorId: { $type: 'objectId' } } });
+
+// createdAt/updatedAt auto-maintained (updatedAt fallback for completion time)
+appointmentSchema.set('timestamps', true);
 
 export default mongoose.model('Appointment', appointmentSchema);

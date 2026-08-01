@@ -8,6 +8,9 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
@@ -67,6 +70,11 @@ export default function PatientBookings() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [typeFilter, setTypeFilter] = useState('All');
+  const [intakeModal, setIntakeModal] = useState(null);
+  const [intakeData, setIntakeData] = useState({
+    chiefComplaint: '', symptomsDuration: '', pastMedicalHistory: '', currentMedications: '', allergies: ''
+  });
+  const [submittingIntake, setSubmittingIntake] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -114,6 +122,36 @@ export default function PatientBookings() {
     } catch {
       toast.error('Failed to cancel booking');
     }
+  };
+
+  const handleOpenIntake = (booking) => {
+    setIntakeModal(booking);
+    if (booking._raw?.preConsultationDetails) {
+      setIntakeData({
+        chiefComplaint: booking._raw.preConsultationDetails.chiefComplaint || '',
+        symptomsDuration: booking._raw.preConsultationDetails.symptomsDuration || '',
+        pastMedicalHistory: booking._raw.preConsultationDetails.pastMedicalHistory || '',
+        currentMedications: booking._raw.preConsultationDetails.currentMedications || '',
+        allergies: booking._raw.preConsultationDetails.allergies || ''
+      });
+    } else {
+      setIntakeData({ chiefComplaint: '', symptomsDuration: '', pastMedicalHistory: '', currentMedications: '', allergies: '' });
+    }
+  };
+
+  const handleIntakeSubmit = async (e) => {
+    e.preventDefault();
+    if (!intakeModal) return;
+    setSubmittingIntake(true);
+    try {
+      const res = await api.submitIntakeForm(intakeModal.id, intakeData);
+      setBookings(prev => prev.map(b => b.id === intakeModal.id ? { ...b, _raw: { ...b._raw, preConsultationDetails: res.preConsultationDetails } } : b));
+      toast.success('Intake form saved successfully');
+      setIntakeModal(null);
+    } catch {
+      toast.error('Failed to save intake form');
+    }
+    setSubmittingIntake(false);
   };
 
   if (loading) return <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
@@ -164,7 +202,7 @@ export default function PatientBookings() {
           </h2>
           <div className="space-y-4">
             {activeBookings.map((booking, i) => (
-              <BookingCard key={booking.id} booking={booking} index={i} onCancel={handleCancel} />
+              <BookingCard key={booking.id} booking={booking} index={i} onCancel={handleCancel} onOpenIntake={handleOpenIntake} />
             ))}
           </div>
         </div>
@@ -179,7 +217,7 @@ export default function PatientBookings() {
           </h2>
           <div className="space-y-4">
             {pastBookings.map((booking, i) => (
-              <BookingCard key={booking.id} booking={booking} index={i} onCancel={handleCancel} />
+              <BookingCard key={booking.id} booking={booking} index={i} onCancel={handleCancel} onOpenIntake={handleOpenIntake} />
             ))}
           </div>
         </div>
@@ -195,6 +233,47 @@ export default function PatientBookings() {
           </Button>
         </div>
       )}
+
+      {/* Intake Form Modal */}
+      <Dialog open={!!intakeModal} onOpenChange={(val) => !val && setIntakeModal(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Pre-Consultation Form</DialogTitle>
+            <DialogDescription>
+              Fill out your details before seeing the doctor to save time during your appointment.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleIntakeSubmit} className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Chief Complaint / Main Symptom</Label>
+              <Input required value={intakeData.chiefComplaint} onChange={e => setIntakeData({...intakeData, chiefComplaint: e.target.value})} placeholder="e.g. Headache, Fever" />
+            </div>
+            <div className="space-y-2">
+              <Label>Duration of Symptoms</Label>
+              <Input value={intakeData.symptomsDuration} onChange={e => setIntakeData({...intakeData, symptomsDuration: e.target.value})} placeholder="e.g. 3 days" />
+            </div>
+            <div className="space-y-2">
+              <Label>Past Medical History (Optional)</Label>
+              <Textarea value={intakeData.pastMedicalHistory} onChange={e => setIntakeData({...intakeData, pastMedicalHistory: e.target.value})} placeholder="Any chronic conditions (e.g. Diabetes, Asthma)" className="resize-none" rows={2} />
+            </div>
+            <div className="space-y-2">
+              <Label>Current Medications (Optional)</Label>
+              <Input value={intakeData.currentMedications} onChange={e => setIntakeData({...intakeData, currentMedications: e.target.value})} placeholder="e.g. Paracetamol" />
+            </div>
+            <div className="space-y-2">
+              <Label>Allergies (Optional)</Label>
+              <Input value={intakeData.allergies} onChange={e => setIntakeData({...intakeData, allergies: e.target.value})} placeholder="Any food or drug allergies" />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIntakeModal(null)}>Cancel</Button>
+              <Button type="submit" disabled={submittingIntake}>
+                {submittingIntake && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Save Details
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -206,7 +285,7 @@ function getStep(status, flow) {
   return flow.indexOf(status);
 }
 
-function BookingCard({ booking, index, onCancel }) {
+function BookingCard({ booking, index, onCancel, onOpenIntake }) {
   const navigate = useNavigate();
   const statusInfo = BOOKING_STATUS[booking.status] || BOOKING_STATUS.Pending;
   const StatusIcon = statusInfo.icon;
@@ -294,6 +373,13 @@ function BookingCard({ booking, index, onCancel }) {
             <span className="font-semibold text-foreground">₹{booking.amount}</span>
           </div>
           <div className="flex gap-2">
+            {(booking.status === 'Scheduled' || booking.status === 'Confirmed' || booking.status === 'Pending') && booking.type === 'appointment' && (
+              <Button size="sm" variant="outline" className="text-xs h-8 text-primary border-primary/30 hover:bg-primary/10"
+                onClick={() => onOpenIntake(booking)}>
+                <FileText className="w-3 h-3 mr-1" />
+                {booking._raw?.preConsultationDetails?.filledAt ? 'Edit Intake' : 'Fill Intake'}
+              </Button>
+            )}
             {(booking.status === 'Scheduled' || booking.status === 'Confirmed' || booking.status === 'Pending') && (
               <Button variant="ghost" size="sm" className="text-xs h-8 text-destructive hover:text-destructive"
                 onClick={() => onCancel(booking)}>

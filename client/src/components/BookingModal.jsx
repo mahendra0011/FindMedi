@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { BadgeCheck, CalendarDays, CheckCircle, CheckCircle2, ChevronRight, CreditCard, Landmark, Smartphone, Wallet, ArrowLeft, Users, FileDown, Clock } from 'lucide-react';
+import { BadgeCheck, CalendarDays, CheckCircle, CheckCircle2, ChevronRight, CreditCard, Landmark, Smartphone, Wallet, ArrowLeft, Users, FileDown, Clock, User, UserPlus, Heart, Phone } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -11,6 +11,7 @@ import { api, downloadPaymentInvoice, downloadBillPdf } from '@/lib/api';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { getISTDateString, formatDisplayDate } from '@/lib/dateUtils';
+import IntakeFormStep from './IntakeFormStep';
 
 export default function BookingModal({
   open,
@@ -29,14 +30,30 @@ export default function BookingModal({
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookedSlots, setBookedSlots] = useState([]);
   const [slotCounts, setSlotCounts] = useState({});
-  const [slotCapacity, setSlotCapacity] = useState(1);
   const [dateDisabledSlots, setDateDisabledSlots] = useState([]);
+  const [pendingDisabledSlots, setPendingDisabledSlots] = useState([]);
   const [bookingWindow, setBookingWindow] = useState(null);
   const [selectedHour, setSelectedHour] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState('card');
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [bookingDetails, setBookingDetails] = useState(null);
+  const [intakeFormData, setIntakeFormData] = useState({
+    chiefComplaint: '', chiefComplaintOther: '', symptomsDuration: '',
+    pastMedicalHistory: { hasHistory: null, details: '' },
+    currentTreatment: { hasPastTreatment: null, doctorName: '', cityState: '', when: '', prescriptionFile: '', takingMedicines: null },
+    testReports: { hasReports: null, reportFile: '' },
+    currentMedications: { hasMedications: null, details: '' },
+    allergies: { hasAllergies: null, details: '' },
+    familyHistory: { hasHistory: null, details: '' },
+  });
   const processingRef = useRef(false);
+
+  // Booking target: 'self' | 'family' | 'other'
+  const [bookingFor, setBookingFor] = useState('self');
+  const [selectedFamilyMember, setSelectedFamilyMember] = useState(null);
+  const [familyMembers, setFamilyMembers] = useState([]);
+  const [fetchingFamily, setFetchingFamily] = useState(false);
+  const [otherPatient, setOtherPatient] = useState({ name: '', gender: 'Male', phone: '', age: '', bloodGroup: '' });
 
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -51,10 +68,32 @@ export default function BookingModal({
       setBookingTime('');
       setSelectedHour(null);
       setDateDisabledSlots([]);
+      setPendingDisabledSlots([]);
       setBookingWindow(null);
       setBookingNotes('');
       setPaymentMethod('card');
       setBookingDetails(null);
+      setIntakeFormData({
+        chiefComplaint: '', chiefComplaintOther: '', symptomsDuration: '',
+        pastMedicalHistory: { hasHistory: null, details: '' },
+        currentTreatment: { hasPastTreatment: null, doctorName: '', cityState: '', when: '', prescriptionFile: '', takingMedicines: null },
+        testReports: { hasReports: null, reportFile: '' },
+        currentMedications: { hasMedications: null, details: '' },
+        allergies: { hasAllergies: null, details: '' },
+        familyHistory: { hasHistory: null, details: '' },
+      });
+      setBookingFor('self');
+      setSelectedFamilyMember(null);
+      setOtherPatient({ name: '', gender: 'Male', phone: '', age: '', bloodGroup: '' });
+
+      // Fetch family members
+      if (user) {
+        setFetchingFamily(true);
+        api.dispatch(null, '/patient/family')
+          .then(res => setFamilyMembers(res?.members || []))
+          .catch(() => setFamilyMembers([]))
+          .finally(() => setFetchingFamily(false));
+      }
       
       if (!doc && facility && (!facility.doctors || facility.doctors.length === 0)) {
         setFetchingDoctors(true);
@@ -77,15 +116,15 @@ export default function BookingModal({
 
   // Doctor + date change hone par uske already-booked slots fetch karo WITH COUNTS
   useEffect(() => {
-    if (!currentDoc?._id || !bookingDate) { setBookedSlots([]); setSlotCounts({}); setSlotCapacity(currentDoc?.maxBookingsPerSlot || 1); setDateDisabledSlots([]); setBookingWindow(null); return; }
+    if (!currentDoc?._id || !bookingDate) { setBookedSlots([]); setSlotCounts({}); setDateDisabledSlots([]); setPendingDisabledSlots([]); setBookingWindow(null); return; }
     api.getBookedSlots({ doctorId: currentDoc._id, date: bookingDate })
       .then(res => {
-        // New shape: { counts, capacity, fullSlots, dateDisabled, bookingWindow }. Legacy shape: ["10:00 AM", ...]
+        // New shape: { counts, capacity, fullSlots, dateDisabled, bookingWindow, pendingDisabledSlots }. Legacy shape: ["10:00 AM", ...]
         if (res && typeof res === 'object' && !Array.isArray(res) && res.counts) {
           setSlotCounts(res.counts || {});
-          setSlotCapacity(res.capacity || currentDoc?.maxBookingsPerSlot || 1);
           setBookedSlots(res.fullSlots || Object.keys(res.counts || {}));
           setDateDisabledSlots(res.dateDisabled || []);
+          setPendingDisabledSlots(res.pendingDisabledSlots || []);
           setBookingWindow(res.bookingWindow || null);
         } else {
           const arr = Array.isArray(res) ? res : [];
@@ -93,25 +132,18 @@ export default function BookingModal({
           const counts = {};
           arr.forEach(s => { counts[s] = (counts[s] || 0) + 1; });
           setSlotCounts(counts);
-          setSlotCapacity(currentDoc?.maxBookingsPerSlot || 1);
           setDateDisabledSlots([]);
+          setPendingDisabledSlots([]);
           setBookingWindow(null);
         }
       })
-      .catch(() => { setBookedSlots([]); setSlotCounts({}); setSlotCapacity(currentDoc?.maxBookingsPerSlot || 1); setDateDisabledSlots([]); setBookingWindow(null); });
+      .catch(() => { setBookedSlots([]); setSlotCounts({}); setDateDisabledSlots([]); setPendingDisabledSlots([]); setBookingWindow(null); });
   }, [currentDoc?._id, bookingDate, currentDoc?.maxBookingsPerSlot]);
 
-  // Calculate remaining slots for current time selection
-  const getRemainingSlots = (time) => {
-    const capacity = slotCapacity || currentDoc?.maxBookingsPerSlot || 1;
-    const bookedCount = slotCounts[time] || 0;
-    return Math.max(0, capacity - bookedCount);
-  };
-
   const isSlotFull = (time) => {
-    const capacity = slotCapacity || currentDoc?.maxBookingsPerSlot || 1;
+    // Per sub-slot, only 1 booking is allowed (15 min = 1 patient treatment)
     const bookedCount = slotCounts[time] || 0;
-    return bookedCount >= capacity;
+    return bookedCount >= 1;
   };
 
   const handleProceedToPayment = () => {
@@ -136,7 +168,7 @@ export default function BookingModal({
     }
     setBookingDetails({ doctor: currentDoc.name, specialization: currentDoc.specialization, date: bookingDate, time: bookingTime, fees });
     
-    setBookingStep(1); // Go to Payment Method
+    setBookingStep(1); // Go to "Who is this for?" step
   };
 
   const handlePayment = async () => {
@@ -150,6 +182,23 @@ export default function BookingModal({
     let apptId = null;
 
     try {
+      // Pre-check: confirm slot is still available before processing payment
+      try {
+        const slotCheck = await api.getBookedSlots({ doctorId: currentDoc._id, date: bookingDate });
+        const counts = (slotCheck && slotCheck.counts) ? slotCheck.counts : {};
+        if ((counts[bookingTime] || 0) >= 1) {
+          toast.error('This slot is already booked. Please try another slot.');
+          setBookingTime('');
+          setBookingStep(0);
+          setSlotCounts(counts);
+          setBookedSlots(slotCheck.fullSlots || Object.keys(counts));
+          setDateDisabledSlots(slotCheck.dateDisabled || []);
+          setBookingLoading(false);
+          processingRef.current = false;
+          return;
+        }
+      } catch (_) { /* proceed even if check fails — server will catch duplicates */ }
+
       const fees = Number(currentDoc.consultation_fees) || Number(currentDoc.fees);
       if (!fees || fees <= 0) {
         throw new Error('Doctor consultation fee is not set. Please contact support.');
@@ -168,6 +217,11 @@ export default function BookingModal({
           time: bookingTime,
           notes: bookingNotes,
           type: 'Consultation',
+          bookingFor: bookingFor,
+          familyMemberId: bookingFor === 'family' ? selectedFamilyMember?._id : undefined,
+          familyMemberName: bookingFor === 'family' ? selectedFamilyMember?.name : undefined,
+          otherPatientDetails: bookingFor === 'other' ? otherPatient : undefined,
+          preConsultationDetails: intakeFormData,
         },
         amount: fees,
         method: paymentMethod,
@@ -198,7 +252,7 @@ export default function BookingModal({
         invoiceId: payResult.invoice_id,
         appointmentStatus,
       });
-      setBookingStep(3);
+      setBookingStep(5);
       if (onSuccess) onSuccess();
 
     } catch (e) {
@@ -207,7 +261,7 @@ export default function BookingModal({
       // Already-paid idempotency case — treat as success
       if (status === 200 && msg.includes('already be completed')) {
         toast.success('Appointment already booked');
-        setBookingStep(3);
+        setBookingStep(5);
         if (onSuccess) onSuccess();
       } else if (status === 409) {
         toast.error(msg || 'This slot is already booked. Please pick a different time.');
@@ -220,20 +274,21 @@ export default function BookingModal({
         if (currentDoc?._id && bookingDate) {
           api.getBookedSlots({ doctorId: currentDoc._id, date: bookingDate })
             .then(res => {
-              if (res && typeof res === 'object' && !Array.isArray(res) && res.counts) {
-                setSlotCounts(res.counts || {});
-                setSlotCapacity(res.capacity || currentDoc?.maxBookingsPerSlot || 1);
-                setBookedSlots(res.fullSlots || Object.keys(res.counts || {}));
-                setDateDisabledSlots(res.dateDisabled || []);
-                setBookingWindow(res.bookingWindow || null);
-              } else {
-                const arr = Array.isArray(res) ? res : [];
-                setBookedSlots(arr);
-                const counts = {};
-                arr.forEach(s => { counts[s] = (counts[s] || 0) + 1; });
-                setSlotCounts(counts);
-                setDateDisabledSlots([]);
-              }
+                if (res && typeof res === 'object' && !Array.isArray(res) && res.counts) {
+                  setSlotCounts(res.counts || {});
+                  setBookedSlots(res.fullSlots || Object.keys(res.counts || {}));
+                  setDateDisabledSlots(res.dateDisabled || []);
+                  setPendingDisabledSlots(res.pendingDisabledSlots || []);
+                  setBookingWindow(res.bookingWindow || null);
+                } else {
+                  const arr = Array.isArray(res) ? res : [];
+                  setBookedSlots(arr);
+                  const counts = {};
+                  arr.forEach(s => { counts[s] = (counts[s] || 0) + 1; });
+                  setSlotCounts(counts);
+                  setDateDisabledSlots([]);
+                  setPendingDisabledSlots([]);
+                }
             })
             .catch(() => {});
         }
@@ -298,10 +353,15 @@ export default function BookingModal({
   // Is a slot disabled for this specific date by the doctor in My Schedule?
   const isSlotDisabled = (slotStr) => dateDisabledSlots.includes(slotStr);
 
-  // Group all time_slots (enabled + date-disabled) into hours.
+  // Is a slot pending removal (doctor requested to disable it, awaiting admin approval)?
+  const isSlotPendingUpdate = (slotStr) => pendingDisabledSlots.includes(slotStr);
+
+  // Group all time_slots (enabled + date-disabled + pending-disabled) into hours.
   const hourGroups = useMemo(() => {
     const enabledSlots = currentDoc?.time_slots || [];
-    const allSlots = [...enabledSlots, ...dateDisabledSlots.filter(s => !enabledSlots.includes(s))];
+    const allSlots = [...enabledSlots,
+      ...dateDisabledSlots.filter(s => !enabledSlots.includes(s)),
+      ...pendingDisabledSlots.filter(s => !enabledSlots.includes(s) && !dateDisabledSlots.includes(s))];
     // Fallback if nothing
     const slots = allSlots.length > 0 ? allSlots : ['09:00 AM', '10:00 AM', '11:00 AM', '02:00 PM', '03:00 PM', '04:00 PM'];
     const groups = {};
@@ -365,12 +425,6 @@ export default function BookingModal({
                         <span className="text-xs text-muted-foreground">{doc.experience || `${doc.experienceYears || 0} yrs`}</span>
                         <span className="text-xs text-muted-foreground">•</span>
                         <span className="text-xs font-medium text-primary">₹{doc.fees || doc.consultation_fees || 0}</span>
-                        {doc.maxBookingsPerSlot > 1 && (
-                          <>
-                            <span className="text-xs text-muted-foreground">•</span>
-                            <span className="text-xs text-amber-600 font-medium">{doc.maxBookingsPerSlot}/slot</span>
-                          </>
-                        )}
                       </div>
                     </div>
                     <ChevronRight className="w-4 h-4 text-muted-foreground self-center" />
@@ -410,11 +464,6 @@ export default function BookingModal({
                 <div className="min-w-0">
                   <h3 className="font-heading font-semibold text-foreground text-sm truncate">{currentDoc?.name}</h3>
                   <p className="text-xs text-primary">{currentDoc?.specialization}</p>
-                  {currentDoc?.maxBookingsPerSlot > 1 && (
-                    <p className="text-[10px] text-amber-600 mt-0.5 font-medium">
-                      ⏱️ {currentDoc.maxBookingsPerSlot} patients per slot
-                    </p>
-                  )}
                   {isAutoConfirm ? (
                     <p className="text-[10px] text-muted-foreground mt-1">
                       Auto accept appointment is on
@@ -459,11 +508,11 @@ export default function BookingModal({
                 <select value={selectedHour || ''} onChange={e => { setSelectedHour(e.target.value); setBookingTime(''); }} className="w-full h-9 px-3 rounded-xl border border-border bg-background text-sm">
                   <option value="">Choose hour</option>
                   {hourGroups.map(([hourLabel, hourSlots]) => {
-                    const allFull = hourSlots.every(s => isSlotFull(s) || isSlotDisabled(s));
-                    const avail = hourSlots.filter(s => !isSlotFull(s) && !isSlotDisabled(s)).length;
+                    const allUnavailable = hourSlots.every(s => isSlotFull(s) || isSlotDisabled(s) || isSlotPendingUpdate(s));
+                    const avail = hourSlots.filter(s => !isSlotFull(s) && !isSlotDisabled(s) && !isSlotPendingUpdate(s)).length;
                     return (
-                      <option key={hourLabel} value={hourLabel} disabled={allFull}>
-                        {hourLabel}{allFull ? ' (Full)' : ''}
+                      <option key={hourLabel} value={hourLabel} disabled={allUnavailable}>
+                        {hourLabel}{allUnavailable ? ' (Full)' : ''}
                       </option>
                     );
                   })}
@@ -475,16 +524,16 @@ export default function BookingModal({
                     <p className="text-[11px] text-muted-foreground">
                       {(() => {
                         const hs = hourGroups.find(([h]) => h === selectedHour)?.[1] || [];
-                        const unavailableCount = hs.filter(s => isSlotFull(s) || isSlotDisabled(s)).length;
+                        const unavailableCount = hs.filter(s => isSlotFull(s) || isSlotDisabled(s) || isSlotPendingUpdate(s)).length;
                         return `${hs.length - unavailableCount} of ${hs.length} slots available in ${selectedHour}`;
                       })()}
                     </p>
                     <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                       {(hourGroups.find(([h]) => h === selectedHour)?.[1] || []).map(t => {
                         const disabled = isSlotDisabled(t);
+                        const pendingUpdate = isSlotPendingUpdate(t);
                         const full = isSlotFull(t);
-                        const unavailable = disabled || full;
-                        const remaining = getRemainingSlots(t);
+                        const unavailable = disabled || full || pendingUpdate;
                         const selected = bookingTime === t;
                         return (
                           <button
@@ -496,13 +545,15 @@ export default function BookingModal({
                               selected
                                 ? 'border-primary bg-primary text-primary-foreground shadow-sm'
                                 : unavailable
-                                ? 'border-red-300 bg-red-50 text-red-600 cursor-not-allowed'
+                                ? (pendingUpdate
+                                    ? 'border-red-300 bg-red-50 text-red-600 cursor-not-allowed'
+                                    : 'border-red-300 bg-red-50 text-red-600 cursor-not-allowed')
                                 : 'border-border bg-card text-foreground hover:border-primary/50 hover:bg-primary/5'
                             }`}
                           >
                             <span className="text-xs font-semibold">{rangeFor(t)}</span>
                             <span className={`text-[9px] leading-none ${selected ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
-                              {disabled ? 'Not Available (Disabled)' : full ? 'Not Available (Already Booked)' : 'Available'}
+                              {disabled ? 'Not Available (Disabled)' : pendingUpdate ? 'Pending — may not be available' : full ? 'Booked' : 'Available'}
                             </span>
                           </button>
                         );
@@ -515,7 +566,7 @@ export default function BookingModal({
                 {bookingTime && (
                   <div className="flex items-center gap-2 text-xs mt-1">
                     <div className={`px-2 py-1 rounded-md ${isSlotFull(bookingTime) ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'}`}>
-                      {isSlotFull(bookingTime) ? '⚠️ This slot is full' : `✅ ${getRemainingSlots(bookingTime)} more bookings allowed`}
+                      {isSlotFull(bookingTime) ? '⚠️ This slot is full' : '✅ Slot Available'}
                     </div>
                     <div className="px-2 py-1 rounded-md bg-primary/10 text-primary font-medium">
                       {fullRangeFor(bookingTime)}
@@ -529,9 +580,8 @@ export default function BookingModal({
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Cancel</Button>
-              <Button size="sm" disabled={!bookingDate || !bookingTime || bookingLoading} onClick={handleProceedToPayment}>
-                <>Next: Payment <ChevronRight className="w-3.5 h-3.5 ml-1" /></>
+              <Button size="sm" className="w-full" disabled={!bookingDate || !bookingTime || bookingLoading} onClick={handleProceedToPayment}>
+                <>Next: Who is this for? <ChevronRight className="w-3.5 h-3.5 ml-1" /></>
               </Button>
             </DialogFooter>
           </>
@@ -542,6 +592,181 @@ export default function BookingModal({
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Button variant="ghost" size="icon" className="w-7 h-7 -ml-1" onClick={() => setBookingStep(0)}>
+                  <ArrowLeft className="w-4 h-4" />
+                </Button>
+                Who is this appointment for?
+              </DialogTitle>
+              <DialogDescription>
+                Select who you're booking this appointment for
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-2 space-y-3">
+              {/* Self */}
+              <motion.div
+                whileHover={{ scale: 1.01 }}
+                onClick={() => { setBookingFor('self'); setSelectedFamilyMember(null); }}
+                className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                  bookingFor === 'self' ? 'border-primary bg-primary/5 shadow-sm' : 'border-border/60 hover:border-primary/30 bg-card'
+                }`}
+              >
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${bookingFor === 'self' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+                  <User className="w-5 h-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm text-foreground">Myself</p>
+                  <p className="text-xs text-muted-foreground">{user?.name || 'Book for yourself'}</p>
+                </div>
+                {bookingFor === 'self' && <CheckCircle className="w-5 h-5 text-primary shrink-0" />}
+              </motion.div>
+
+              {/* Family Members */}
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                  <Heart className="w-3 h-3" /> My Family
+                </p>
+                {fetchingFamily ? (
+                  <div className="text-center text-sm text-muted-foreground py-4">Loading family members...</div>
+                ) : familyMembers.length === 0 ? (
+                  <div className="text-center p-4 bg-muted/20 rounded-xl border border-dashed border-border/40">
+                    <Users className="w-6 h-6 text-muted-foreground/30 mx-auto mb-1.5" />
+                    <p className="text-xs text-muted-foreground">No family members added yet</p>
+                    <Button size="sm" variant="outline" className="mt-2 h-7 text-xs gap-1" onClick={() => { onOpenChange(false); navigate('/patient/family'); }}>
+                      <UserPlus className="w-3 h-3" /> Add Family Member
+                    </Button>
+                  </div>
+                ) : (
+                  familyMembers.map((m) => (
+                    <motion.div
+                      key={m._id}
+                      whileHover={{ scale: 1.01 }}
+                      onClick={() => { setBookingFor('family'); setSelectedFamilyMember(m); }}
+                      className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                        bookingFor === 'family' && selectedFamilyMember?._id === m._id ? 'border-primary bg-primary/5 shadow-sm' : 'border-border/60 hover:border-primary/30 bg-card'
+                      }`}
+                    >
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${bookingFor === 'family' && selectedFamilyMember?._id === m._id ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary'}`}>
+                        <User className="w-5 h-5" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm text-foreground truncate">{m.name}</p>
+                        <p className="text-xs text-muted-foreground">{m.relation} · {m.gender}{m.bloodGroup ? ` · ${m.bloodGroup}` : ''}</p>
+                      </div>
+                      {bookingFor === 'family' && selectedFamilyMember?._id === m._id && <CheckCircle className="w-5 h-5 text-primary shrink-0" />}
+                    </motion.div>
+                  ))
+                )}
+              </div>
+
+              {/* Other */}
+              <div className="space-y-2">
+                <motion.div
+                  whileHover={{ scale: 1.01 }}
+                  onClick={() => { setBookingFor('other'); setSelectedFamilyMember(null); }}
+                  className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                    bookingFor === 'other' ? 'border-primary bg-primary/5 shadow-sm' : 'border-border/60 hover:border-primary/30 bg-card'
+                  }`}
+                >
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${bookingFor === 'other' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+                    <UserPlus className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm text-foreground">Other</p>
+                    <p className="text-xs text-muted-foreground">Book for someone else</p>
+                  </div>
+                  {bookingFor === 'other' && <CheckCircle className="w-5 h-5 text-primary shrink-0" />}
+                </motion.div>
+
+                {bookingFor === 'other' && (
+                  <div className="space-y-3 p-3 bg-muted/20 rounded-xl border border-border/40 animate-in fade-in slide-in-from-top-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground mb-1 block">Full Name *</label>
+                        <Input value={otherPatient.name} onChange={e => setOtherPatient({ ...otherPatient, name: e.target.value })} placeholder="Patient name" className="h-8 text-sm" />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground mb-1 block">Gender</label>
+                        <select value={otherPatient.gender} onChange={e => setOtherPatient({ ...otherPatient, gender: e.target.value })}
+                          className="w-full h-8 px-2 rounded-lg border border-input bg-background text-sm">
+                          {['Male', 'Female', 'Other'].map(g => <option key={g} value={g}>{g}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground mb-1 block">Phone</label>
+                        <Input value={otherPatient.phone} onChange={e => setOtherPatient({ ...otherPatient, phone: e.target.value })} placeholder="Phone number" className="h-8 text-sm" />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground mb-1 block">Age</label>
+                        <Input type="number" value={otherPatient.age} onChange={e => setOtherPatient({ ...otherPatient, age: e.target.value })} placeholder="Age" className="h-8 text-sm" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Blood Group</label>
+                      <Input value={otherPatient.bloodGroup} onChange={e => setOtherPatient({ ...otherPatient, bloodGroup: e.target.value })} placeholder="e.g. A+" className="h-8 text-sm" />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" size="sm" onClick={() => setBookingStep(0)}>Back</Button>
+              <Button size="sm" onClick={() => {
+                if (bookingFor === 'family' && !selectedFamilyMember) {
+                  toast.error('Please select a family member');
+                  return;
+                }
+                if (bookingFor === 'other' && !otherPatient.name) {
+                  toast.error('Please enter the patient name');
+                  return;
+                }
+                setBookingStep(2);
+              }}>
+                Next: Intake Form <ChevronRight className="w-3.5 h-3.5 ml-1" />
+              </Button>
+            </DialogFooter>
+          </>
+        )}
+
+        {bookingStep === 2 && (
+          <>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Button variant="ghost" size="icon" className="w-7 h-7 -ml-1" onClick={() => setBookingStep(1)}>
+                  <ArrowLeft className="w-4 h-4" />
+                </Button>
+                Patient Intake Form
+              </DialogTitle>
+              <DialogDescription>
+                Please provide some details before we proceed
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-2">
+              <IntakeFormStep 
+                formData={intakeFormData} 
+                setFormData={setIntakeFormData} 
+              />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" size="sm" onClick={() => setBookingStep(1)}>Back</Button>
+              <Button size="sm" onClick={() => {
+                if (!intakeFormData.chiefComplaint) {
+                  toast.error('Please select your chief complaint or main symptom');
+                  return;
+                }
+                setBookingStep(3);
+              }}>
+                Review & Pay <ChevronRight className="w-3.5 h-3.5 ml-1" />
+              </Button>
+            </DialogFooter>
+          </>
+        )}
+
+        {bookingStep === 3 && (
+          <>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Button variant="ghost" size="icon" className="w-7 h-7 -ml-1" onClick={() => setBookingStep(2)}>
                   <ArrowLeft className="w-4 h-4" />
                 </Button>
                 Payment Method
@@ -581,19 +806,19 @@ export default function BookingModal({
               ))}
             </div>
             <DialogFooter>
-              <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Cancel</Button>
-              <Button size="sm" onClick={() => setBookingStep(2)}>
+              <Button variant="outline" size="sm" onClick={() => setBookingStep(2)}>Back</Button>
+              <Button size="sm" onClick={() => setBookingStep(4)}>
                 Next: Review Bill <ChevronRight className="w-3.5 h-3.5 ml-1" />
               </Button>
             </DialogFooter>
           </>
         )}
 
-        {bookingStep === 2 && (
+        {bookingStep === 4 && (
           <>
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <Button variant="ghost" size="icon" className="w-7 h-7 -ml-1" onClick={() => setBookingStep(1)}>
+                <Button variant="ghost" size="icon" className="w-7 h-7 -ml-1" onClick={() => setBookingStep(3)}>
                   <ArrowLeft className="w-4 h-4" />
                 </Button>
                 Review & Confirm
@@ -629,7 +854,7 @@ export default function BookingModal({
                 </div>
               )}
               <DialogFooter className="gap-2 sm:gap-2">
-                <Button variant="outline" size="sm" className="w-full sm:w-auto flex-1" onClick={() => onOpenChange(false)}>Cancel</Button>
+                <Button variant="outline" size="sm" className="w-full sm:w-auto flex-1" onClick={() => setBookingStep(3)}>Back</Button>
                 <Button size="sm" className="w-full sm:w-auto flex-1" disabled={paymentLoading} onClick={handlePayment}>
                   {paymentLoading ? <>Processing…</> : <>Pay ₹{Number(currentDoc?.consultation_fees) || Number(currentDoc?.fees) || 0}</>}
                 </Button>
@@ -638,7 +863,7 @@ export default function BookingModal({
           </>
         )}
 
-        {bookingStep === 3 && (
+        {bookingStep === 5 && (
           <div className="py-8 text-center">
             <motion.div
               initial={{ scale: 0, opacity: 0 }}

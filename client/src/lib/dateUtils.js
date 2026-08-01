@@ -19,3 +19,13 @@ export function formatDisplayDate(dateStr) {
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   return `${String(d).padStart(2, '0')} ${months[m - 1]} ${y}`;
 }
+
+// "2026-07-31" → "31/7/26"  (DD/M/YY — compact date for dashboard headers)
+// Manually parsed to avoid JS Date timezone shifting the day.
+export function formatShortDate(dateStr) {
+  if (!dateStr) return '';
+  const [y, m, d] = String(dateStr).split('-').map(Number);
+  if (!y || !m || !d) return dateStr;
+  const yy = String(y).slice(-2);
+  return `${d}/${m}/${yy}`;
+}

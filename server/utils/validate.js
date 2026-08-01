@@ -134,6 +134,29 @@ export const createAppointmentSchema = z.object({
   priority: z.string().optional(),
 });
 
+// ─── Walk-in Booking Schema (doctor/clinic se: patient + appointment ek saath) ──
+export const walkInSchema = z.object({
+  patient: z.object({
+    name: z.string().trim().min(2, 'Patient name is required'),
+    age: positiveNumber.optional(),
+    gender: z.enum(['Male', 'Female', 'Other']).optional(),
+    phone: z.string().optional(),
+    email: z.string().optional(),
+    bloodGroup: z.string().optional(),
+    address: z.string().optional(),
+  }).refine(d => d.phone || d.email, { message: 'Phone or Email is required' }),
+  doctorId: z.string().optional(),
+  doctor: z.string().optional(),
+  department: z.string().optional(),
+  date: z.string().min(1, 'Date is required'),
+  time: z.string().min(1, 'Time is required'),
+  type: z.string().optional(),
+  symptoms: z.string().optional(),
+  priority: z.string().optional(),
+  fees: z.number().optional(),
+  notes: z.string().optional(),
+});
+
 export const updateAppointmentSchema = z.object({
   status: z.enum(['Pending', 'Confirmed', 'Completed', 'Cancelled', 'Rescheduled']).optional(),
   date: z.string().optional(),
@@ -372,6 +395,27 @@ export const createLeaveRequestSchema = z.object({
 export const updateLeaveStatusSchema = z.object({
   status: z.enum(['Approved', 'Rejected']),
   adminNotes: z.string().optional().default(''),
+});
+
+// ─── Schedule Change Request Schemas ─────────────────────────────────────────
+export const createScheduleChangeRequestSchema = z.object({
+  requestedChanges: z.object({
+    slotDuration: z.number().optional(),
+    workingHours: z.object({ start: z.string(), end: z.string() }).optional(),
+    breakTime: z.object({ start: z.string(), end: z.string() }).optional(),
+    bookingWindow: z.object({ unit: z.enum(['hours', 'days', 'weeks', 'months']), value: z.number().min(0) }).optional(),
+    weekly_schedule: z.any().optional(),
+    leaves: z.any().optional(),
+    dateDisabledSlots: z.any().optional(),
+    bufferPerHour: z.number().optional(),
+  }).passthrough(),
+});
+
+export const updateScheduleChangeStatusSchema = z.object({
+  appliedFields: z.array(z.string()).optional().default([]),
+  adminNote: z.string().optional().default(''),
+  rejectionNote: z.string().optional().default(''),
+  decision: z.enum(['approve', 'reject']),
 });
 
 // ─── Payment Schemas ─────────────────────────────────────────────────────────

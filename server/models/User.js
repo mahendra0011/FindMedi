@@ -15,6 +15,7 @@ const userSchema = new mongoose.Schema({
   address: { type: String, default: '' },
   uhid: { type: String, unique: true, sparse: true, index: true },
   gender: { type: String, enum: ['', 'Male', 'Female', 'Other'], default: '' },
+  bloodGroup: { type: String, default: '' },
   dateOfBirth: { type: Date },
 
   // Allergies for patients
