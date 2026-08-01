@@ -77,8 +77,8 @@ export default function PatientBookings() {
   });
   const [submittingIntake, setSubmittingIntake] = useState(false);
 
-  const loadBookings = useCallback(async () => {
-    setLoading(true);
+  const loadBookings = useCallback(async (isRetry = false) => {
+    if (!isRetry) setLoading(true);
     try {
       const [appts, labBks] = await Promise.all([
         api.getMyAppointments(),
@@ -89,8 +89,19 @@ export default function PatientBookings() {
         ...((labBks?.bookings || labBks?.data || [])).map(b => normalizeBooking(b, 'test')),
       ];
       setBookings(normalized);
-    } catch {
-      setLoadError('Failed to load bookings');
+      setLoadError(null); // clear any previous error on success
+    } catch (e) {
+      // Transient errors (503 / network) ko error screen me convert mat karo —
+      // axios interceptor already GET retry karta hai, aur realtime hook +
+      // manual retry se data aa jayega. Sirf genuine server error (4xx, auth
+      // failures) par hi error dikhao.
+      const status = e?.status || e?.response?.status;
+      if (status === 503 || !status) {
+        // transient — keep last good data, don't overwrite with error screen
+        setLoadError(prev => prev); // no change
+      } else {
+        setLoadError('Failed to load bookings');
+      }
     }
     setLoading(false);
   }, []);

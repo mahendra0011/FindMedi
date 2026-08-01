@@ -78,6 +78,25 @@ export async function downloadBillPdf(txnId, filename = 'bill.pdf') {
   }
 }
 
+export async function downloadPrescriptionPdf(recordId, filename = 'prescription.pdf') {
+  try {
+    const response = await apiClient.get(`/records/${recordId}/prescription-pdf`, {
+      responseType: 'blob',
+    });
+    const blob = new Blob([response.data]);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    throw new Error(error.message || 'Unable to download prescription');
+  }
+}
+
 export const api = {
   dispatch,
   post:               (path, body) => request(path, { method:'POST', body: JSON.stringify(body) }),

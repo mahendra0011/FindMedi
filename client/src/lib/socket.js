@@ -15,7 +15,29 @@ let socket = null;
  */
 export function getSocket() {
   if (!socket) {
-    socket = io(SOCKET_URL, { transports: ['websocket', 'polling'] });
+    socket = io(SOCKET_URL, {
+      transports: ['websocket', 'polling'],
+      // Explicit reconnection config — server restart / network drop hone par
+      // socket khud reconnect karega. Default bhi true hai, par explicit rakhne
+      // se kabhi kisi dependency update me default change ho jaye to break na ho.
+      reconnection: true,
+      reconnectionAttempts: Infinity,   // hamesha try karte raho
+      reconnectionDelay: 1000,           // pehla retry 1s baad
+      reconnectionDelayMax: 5000,        // max 5s between retries
+      timeout: 20000,
+    });
+    // Connection lifecycle logging — warn level, taaki console me dikhe bina
+    // crash kiye. connect_error bahut important hai: agar URL galat ho ya
+    // server namespace na de, yahan reason milta hai.
+    socket.on('connect_error', (err) => {
+      console.warn('[Socket] connect error:', err.message);
+    });
+    socket.on('disconnect', (reason) => {
+      console.warn('[Socket] disconnected:', reason);
+    });
+    socket.on('reconnect', (attempt) => {
+      console.info('[Socket] reconnected after', attempt, 'attempts');
+    });
   }
   return socket;
 }

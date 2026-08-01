@@ -7,6 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { useAppointmentRealtime } from '@/lib/useAppointmentRealtime';
 import LicenseExpiryReminder from '@/components/LicenseExpiryReminder';
+import EarningsAnalytics from '@/components/EarningsAnalytics';
 import { getISTDateString } from '@/lib/dateUtils';
 
 const statusColors = {
@@ -153,6 +154,9 @@ export default function DoctorDashboard() {
           <p className="text-sm text-muted-foreground">Total Earned</p>
         </motion.div>
       </div>
+
+      {/* Earnings Analytics */}
+      <EarningsAnalytics bills={bills} title="Earnings Analytics" />
 
       {/* Two Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

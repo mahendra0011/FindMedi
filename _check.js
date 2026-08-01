@@ -1,0 +1,1 @@
+const fs=require('fs');let f=fs.readFileSync('client/src/App.jsx','utf8');const search="const DoctorProfile = lazy(() =>";const idx=f.indexOf(search);if(idx at',idx);const lineEnd=f.indexOf(String.fromCharCode(10),idx);console.log('Line: '+f.slice(idx,lineEnd));}else{console.log('Not found');}  

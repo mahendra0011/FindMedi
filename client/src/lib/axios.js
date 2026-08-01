@@ -83,11 +83,14 @@ apiClient.interceptors.response.use(
     const attempt = original._retryCount || 0;
     const method = (original.method || 'get').toLowerCase();
 
-    // 1) Transient network errors (backend restart / brief hiccup) → silent retry.
+    // 1) Transient errors (backend restart / DB hiccup / brief network drop) → silent retry.
+    //    - !error.response  → pure network failure (server down / restarting)
+    //    - status 503       → "Service temporarily unavailable" (protect middleware DB hiccup)
     //    Sirf GET/HEAD retry karo — POST/PUT/DELETE ko retry karne se double-booking
     //    ya "slot already booked" jaisi galat errors aati thi (server ne request process
     //    kar li thi, sirf response kho gaya tha).
-    if (!error.response && !original._skipRetry && (method === 'get' || method === 'head') && attempt < 5) {
+    const isTransient = !error.response || error.response?.status === 503;
+    if (isTransient && !original._skipRetry && (method === 'get' || method === 'head') && attempt < 5) {
       original._retryCount = attempt + 1;
       await delay(400 * (attempt + 1));
       return apiClient(original);
@@ -150,3 +153,22 @@ apiClient.interceptors.response.use(
 );
 
 export default apiClient;
+
+// ─── Proactive token refresh ───────────────────────────────────────────────
+// Real-world apps access token expire hone se pehle hi background me refresh
+// karte hain (reactive 401-trigger refresh nahi). Isse page reload / HMR reload
+// ke waqt access token hamesha fresh rehta hai → /auth/me turant 200 deta hai
+// → logout kabhi nahi hota code change par.
+export async function refreshAccessToken() {
+  try {
+    const res = await apiClient.post('/auth/refresh');
+    return res.status === 200;
+  } catch (err) {
+    // Network error / 5xx → transient, koi logout nahi
+    // 401/400/403 → refresh token bhi dead, genuine logout (caller handle karega)
+    if (err.response && [401, 400, 403].includes(err.response.status)) {
+      return false;
+    }
+    return null; // transient failure — try again next cycle
+  }
+}
