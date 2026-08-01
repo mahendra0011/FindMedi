@@ -32,10 +32,88 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// ─── Response Interceptor: Unified error handling ──────────────────────────
+// ─── Auto token refresh (401 → /auth/refresh → retry) ──────────────────────
+let isRefreshing = false;
+let refreshQueue = [];
+
+const subscribeRefresh = (resolve, reject) => refreshQueue.push({ resolve, reject });
+const onRefreshed = () => {
+  refreshQueue.forEach(q => q.resolve());
+  refreshQueue = [];
+};
+const onRefreshFailed = () => {
+  refreshQueue.forEach(q => q.reject(new Error('Session refresh failed')));
+  refreshQueue = [];
+};
+
+const delay = (ms) => new Promise(r => setTimeout(r, ms));
+
+// Refresh with built-in retry — transient failures (backend restarting) are retried silently.
+const refreshSession = async () => {
+  let lastErr;
+  for (let i = 0; i < 3; i++) {
+    try {
+      const res = await apiClient.post('/auth/refresh');
+      return res.status === 200;
+    } catch (err) {
+      lastErr = err;
+      if (err.response) throw err; // server answered → session is really dead, no retry
+      await delay(700 * (i + 1));
+    }
+  }
+  throw lastErr;
+};
+
+// ─── Response Interceptor: Unified error handling + auto-refresh ───────────
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const original = error.config || {};
+    const attempt = original._retryCount || 0;
+
+    // 1) Transient network errors (backend restart / brief hiccup) → silent retry.
+    //    Yeh logouts aur "Failed to load" toasts ki sabse badi wajah hai.
+    if (!error.response && !original._skipRetry && attempt < 3) {
+      original._retryCount = attempt + 1;
+      await delay(600 * (attempt + 1));
+      return apiClient(original);
+    }
+
+    // 2) Access token expired → refresh via httpOnly refreshToken cookie, then retry.
+    if (error.response?.status === 401 && !original._retried && !original.url?.includes('/auth/')) {
+      original._retried = true;
+
+      // Another request is already refreshing — wait for it and then retry.
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          subscribeRefresh(resolve, reject);
+        });
+      }
+
+      isRefreshing = true;
+      try {
+        const ok = await refreshSession();
+        if (ok) {
+          onRefreshed();
+          return apiClient(original);
+        }
+        throw new Error('Refresh failed');
+      } catch (refreshErr) {
+        onRefreshFailed(); // release waiting requests so nothing hangs forever
+        // Server ne session ko invalid bataya → hi logout/login redirect karo.
+        // Network error par kabhi logout nahi — backend restart hote waqt session preserve rahega.
+        if (refreshErr.response && (refreshErr.response.status === 401 || refreshErr.response.status === 400 || refreshErr.response.status === 403)) {
+          try { apiClient.post('/auth/logout'); } catch { /* ignore */ }
+          if (!window.location.pathname.startsWith('/login')) {
+            window.location.href = '/login';
+          }
+        }
+        return Promise.reject(error);
+      } finally {
+        isRefreshing = false;
+      }
+    }
+
     if (error.response) {
       const { status, data } = error.response;
       const message = data?.message || data?.error || 'Request failed';

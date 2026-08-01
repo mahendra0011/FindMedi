@@ -88,6 +88,7 @@ const navConfig = {
   clinic_doctor: [
     { icon: LayoutDashboard, labelKey: 'nav.dashboard',         path: '/clinic/dashboard'     },
     { icon: CalendarDays,    labelKey: 'nav.todayAppointments',   path: '/clinic/appointments'  },
+    { icon: History,         labelKey: 'nav.appointmentHistory',  path: '/clinic/appointments/history' },
     { icon: FileCheck,       labelKey: 'nav.approveAppointments', path: '/clinic/appointments/approve' },
     { icon: Clock,           labelKey: 'nav.mySchedule',        path: '/clinic/schedule'      },
     { icon: IndianRupee,     labelKey: 'nav.feesPricing',       path: '/clinic/fees'          },
@@ -109,6 +110,7 @@ const navConfig = {
   doctor: [
     { icon: LayoutDashboard, labelKey: 'nav.dashboard',       path: '/dashboard'           },
     { icon: CalendarDays,    labelKey: 'nav.todayAppointments',   path: '/doctor/appointments'  },
+    { icon: History,         labelKey: 'nav.appointmentHistory',  path: '/doctor/appointments/history' },
     { icon: FileCheck,       labelKey: 'nav.approveAppointments', path: '/doctor/appointments/approve' },
     { icon: UserRound,       labelKey: 'nav.myPatients',      path: '/doctor/patients'     },
     { icon: FileText,        labelKey: 'nav.consultations',   path: '/doctor/consultations'},
@@ -219,9 +221,7 @@ function SidebarContent({ collapsed, onToggleCollapse, onNavClick }) {
     <div className={`flex flex-col h-full bg-sidebar text-sidebar-foreground ${collapsed ? 'w-[72px]' : 'w-64'}`}>
       {/* Logo */}
       <div className={`flex items-center gap-3 px-4 py-5 border-b border-sidebar-border ${collapsed ? 'justify-center' : ''}`}>
-        <div className="w-9 h-9 rounded-xl bg-sidebar-primary flex items-center justify-center flex-shrink-0 shadow-lg shadow-sidebar-primary/30">
-          <Activity className="w-5 h-5 text-sidebar-primary-foreground" />
-        </div>
+        <img src="/favicon.svg" alt="MediCore Logo" className="w-12 h-12 object-contain drop-shadow-md flex-shrink-0" />
         {!collapsed && (
           <div>
             <h1 className="font-heading text-base font-bold text-sidebar-primary-foreground leading-none">MediCore</h1>

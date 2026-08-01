@@ -5,8 +5,9 @@ import Notification from '../models/Notification.js';
 import Doctor from '../models/Doctor.js';
 import User from '../models/User.js';
 import Hospital from '../models/Hospital.js';
+import Patient from '../models/Patient.js';
 import { protect, scopeToHospital, requireRole } from '../middleware/auth.js';
-import { validate, createAppointmentSchema, updateAppointmentSchema } from '../utils/validate.js';
+import { validate, createAppointmentSchema, updateAppointmentSchema, walkInSchema } from '../utils/validate.js';
 import logger from '../config/logger.js';
 import { auditLog } from '../middleware/audit.js';
 import { paginatedResults } from '../utils/pagination.js';
@@ -77,7 +78,7 @@ router.get('/', protect, async (req, res) => {
       page, limit,
       sort: { createdAt: -1 },
       populate: [
-        { path: 'patientId', select: 'name email phone' },
+        { path: 'patientId', select: 'name email phone gender address dateOfBirth bloodGroup' },
         { path: 'doctorId', select: 'name specialization' },
       ],
     });
@@ -164,7 +165,7 @@ router.get('/my-appointments', protect, async (req, res) => {
     if (status && status !== 'All') filter.status = status;
     
     const appointments = await Appointment.find(filter)
-      .populate('patientId', 'name email phone')
+      .populate('patientId', 'name email phone gender address dateOfBirth bloodGroup')
       .populate('doctorId', 'name specialization')
       .sort({ date: -1, createdAt: 1 })
       .lean();
@@ -268,7 +269,7 @@ router.get('/history-with-payments', protect, async (req, res) => {
 router.get('/:id', protect, async (req, res) => {
   try {
     const a = await Appointment.findById(req.params.id)
-      .populate('patientId', 'name email phone')
+      .populate('patientId', 'name email phone gender address dateOfBirth bloodGroup')
       .populate('doctorId', 'name specialization');
     if (!a) return res.status(404).json({ message: 'Appointment not found' });
     if (req.user.role === 'patient' && a.patientId?._id?.toString() !== req.user._id.toString()) {
@@ -279,6 +280,95 @@ router.get('/:id', protect, async (req, res) => {
     }
     res.json(a);
   } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// ─── Walk-in Booking (doctor/clinic/staff se: patient register + appointment ek saath) ───
+router.post('/walk-in', protect, requireRole(['doctor', 'clinic_doctor', 'clinic_admin', 'hospital_admin', 'superadmin']), validate(walkInSchema), async (req, res) => {
+  try {
+    const { patient, doctorId, doctor, department, date, time, type, symptoms, priority, fees, notes } = req.body;
+
+    // 1. Patient register — pehle se same phone/email ka patient ho to reuse karo
+    //    (timeout → client retry karne par duplicate patient na bane)
+    let p = null;
+    if (patient.phone) p = await Patient.findOne({ phone: patient.phone });
+    else if (patient.email) p = await Patient.findOne({ email: patient.email });
+    if (!p) {
+      p = await Patient.create({
+        name: patient.name,
+        age: patient.age !== undefined ? Number(patient.age) : 0,
+        gender: patient.gender || 'Other',
+        phone: patient.phone || '',
+        email: patient.email || '',
+        bloodGroup: patient.bloodGroup || '',
+        address: patient.address || '',
+        hospitalId: req.user.hospitalId || undefined,
+      });
+    }
+
+    // 2. Doctor resolve (doctor role ke liye khud ka profile, warna body wala)
+    let targetDoctorId = doctorId || req.user.doctorProfileId || null;
+    let targetDoctorName = doctor || req.user.name || '';
+    let hospitalId = req.user.hospitalId || undefined;
+    if (targetDoctorId) {
+      const doctorDoc = await Doctor.findById(targetDoctorId);
+      if (doctorDoc) {
+        targetDoctorName = targetDoctorName || doctorDoc.name;
+        if (doctorDoc.hospitalId) hospitalId = doctorDoc.hospitalId;
+      }
+    }
+
+    // 2b. Duplicate-booking guard (idempotency) — same patient + doctor + slot
+    //     agla request pehle hi ban chuka ho to naya banaane ki bajaye wahi return karo
+    if (targetDoctorId && p) {
+      const dup = await Appointment.findOne({
+        patientId: p._id,
+        doctorId: targetDoctorId,
+        date,
+        time,
+        status: { $nin: ['Cancelled', 'Completed', 'Missed'] },
+      });
+      if (dup) {
+        return res.status(201).json({ appointment: dup, patient: p, duplicate: true });
+      }
+    }
+
+    // 3. Capacity check
+    if (targetDoctorId) {
+      const doctorDoc2 = await Doctor.findById(targetDoctorId).select('maxBookingsPerSlot').lean();
+      const capacity = doctorDoc2?.maxBookingsPerSlot || 1;
+      const slotFilter = { doctorId: targetDoctorId, date, time, status: { $nin: ['Cancelled', 'Completed', 'Missed'] } };
+      const existingBookings = await Appointment.find(slotFilter).select('patientId').lean();
+      if (existingBookings.length >= capacity) {
+        return res.status(409).json({ message: 'This time slot is full. Please choose a different time.' });
+      }
+    }
+
+    // 4. Appointment create (Confirmed)
+    const tokenNumber = generateTokenNumber();
+    const estimatedWaitTime = await calculateEstimatedWaitTime(department || 'General', priority);
+    const appointment = await Appointment.create({
+      tokenNumber,
+      uhid: p.uhid || undefined,
+      patient: p.name,
+      patientId: p._id,
+      doctor: targetDoctorName || 'Doctor',
+      doctorId: targetDoctorId,
+      department: department || 'General',
+      date,
+      time,
+      type: type || 'Consultation',
+      symptoms: symptoms || '',
+      notes: notes || '',
+      priority: priority || 'Normal',
+      fees: fees || 0,
+      estimatedWaitTime,
+      hospitalId,
+      status: 'Confirmed',
+    });
+
+    await auditLog('create_appointment', req.user._id, { recordId: appointment._id, ip: req.ip, userAgent: req.get('user-agent') });
+    res.status(201).json({ appointment, patient: p });
+  } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
 router.post('/', protect, requireRole(['hospital_admin', 'superadmin']), validate(createAppointmentSchema), async (req, res) => {
@@ -337,7 +427,7 @@ router.post('/', protect, requireRole(['hospital_admin', 'superadmin']), validat
     const estimatedWaitTime = await calculateEstimatedWaitTime(department, priority);
     const appointment = await Appointment.create({
         tokenNumber,
-        uhid: patientUser?.uhid || '',
+        uhid: !!hospitalId ? (patientUser?.uhid || '') : undefined,
         patient: patientName,
         patientId,
         doctor: doctor || '',
@@ -411,6 +501,40 @@ router.get('/queue/:department', protect, async (req, res) => {
     res.json({ queue });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
+router.put('/:id/intake', protect, async (req, res) => {
+  try {
+    const {
+      chiefComplaint, chiefComplaintOther, symptomsDuration,
+      pastMedicalHistory, currentTreatment, testReports,
+      currentMedications, allergies, familyHistory,
+    } = req.body;
+    const appointment = await Appointment.findById(req.params.id);
+    
+    if (!appointment) return res.status(404).json({ message: 'Appointment not found' });
+    
+    if (req.user.role === 'patient' && appointment.patientId?.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to modify this appointment' });
+    }
+    
+    appointment.preConsultationDetails = {
+      chiefComplaint,
+      chiefComplaintOther,
+      symptomsDuration,
+      pastMedicalHistory,
+      currentTreatment,
+      testReports,
+      currentMedications,
+      allergies,
+      familyHistory,
+      filledAt: new Date()
+    };
+    
+    await appointment.save();
+    res.json(appointment);
+  } catch (err) { 
+    res.status(500).json({ message: err.message }); 
+  }
+});
 
 router.put('/:id', protect, validate(updateAppointmentSchema), async (req, res) => {
   try {
@@ -424,7 +548,7 @@ router.put('/:id', protect, validate(updateAppointmentSchema), async (req, res) 
     if (req.user.hospitalId && appointment.hospitalId && appointment.hospitalId.toString() !== req.user.hospitalId.toString()) {
       return res.status(403).json({ message: 'Not authorized to modify this appointment' });
     }
-    if ((req.user.role === 'doctor' || req.user.role === 'clinic_doctor') && appointment.doctorId?.toString() !== req.user.doctorProfileId?.toString()) {
+    if ((req.user.role === 'doctor' || req.user.role === 'clinic_doctor') && appointment.doctorId && appointment.doctorId.toString() !== req.user.doctorProfileId?.toString()) {
       return res.status(403).json({ message: 'Not authorized to modify this appointment' });
     }
     
@@ -445,6 +569,10 @@ router.put('/:id', protect, validate(updateAppointmentSchema), async (req, res) 
     
     const updates = { ...req.body };
 
+    if (status === 'Completed' && oldStatus !== 'Completed') {
+      updates.consultationEndTime = new Date();
+    }
+
     // Reschedule me naya date/time doctor ke liye already taken ho sakta hai —
     // check karo warna double-booking ho jayegi.
     if ((updates.date || updates.time) && (appointment.doctorId || updates.doctorId)) {
@@ -462,7 +590,7 @@ router.put('/:id', protect, validate(updateAppointmentSchema), async (req, res) 
     }
 
 const updated = await Appointment.findByIdAndUpdate(req.params.id, updates, { new: true, runValidators: true })
-       .populate('patientId', 'name email')
+       .populate('patientId', 'name email phone gender address dateOfBirth bloodGroup')
        .populate('doctorId', 'name');
      
      if (status && status !== oldStatus) {

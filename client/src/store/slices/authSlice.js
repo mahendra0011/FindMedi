@@ -43,17 +43,28 @@ export const selectUserSettings = (state) => state.auth.user?.settings;
 
 // Async thunk: initialize auth from httpOnly cookie (auto-sent by browser)
 export const initializeAuth = () => async (dispatch) => {
-  try {
-    const user = await api.me();
-    const mergedUser = {
-      ...user,
-      settings: mergeSettings(readStoredSettings(), user.settings),
-    };
-    dispatch(setUser(mergedUser));
-  } catch {
-    dispatch(setUser(null));
-    dispatch(setLoading(false));
+  // Backend restart / HMR reload ke waqt request transiently fail hoti hai —
+  // turant logout mat karo, retry karo. Sirf tab logout jab server 401/400 de.
+  for (let attempt = 0; attempt < 5; attempt++) {
+    try {
+      const user = await api.me();
+      const mergedUser = {
+        ...user,
+        settings: mergeSettings(readStoredSettings(), user.settings),
+      };
+      dispatch(setUser(mergedUser));
+      return;
+    } catch (err) {
+      const status = err?.response?.status;
+      if (status === 401 || status === 400 || status === 403) {
+        break; // session genuinely invalid → logout
+      }
+      // Network error / 5xx → backend maybe restarting, wait and retry
+      await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)));
+    }
   }
+  dispatch(setUser(null));
+  dispatch(setLoading(false));
 };
 
 // Async thunk: login
