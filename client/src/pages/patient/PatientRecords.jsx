@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
-import { api } from '@/lib/api';
+import { api, resolveFileUrl } from '@/lib/api';
 
 const categoryConfig = {
   prescription:     { icon: Pill,         color: 'text-success',     bg: 'bg-success/10',     label: 'Prescriptions' },
@@ -231,8 +231,8 @@ export default function PatientRecords() {
                                 </div>
                                 {rec.prescription && <p className="text-xs text-muted-foreground line-clamp-2 ml-7">Rx: {rec.prescription}</p>}
                                   <div className="flex gap-1 ml-7 mt-1">
-                                    {(rec.attachments?.length > 0 || rec.data?.fileUrl || rec.fileUrl) && (
-                                      <Button variant="ghost" size="sm" className="h-6 text-xs gap-1" onClick={() => window.open(rec.attachments?.[0]?.url || rec.data?.fileUrl || rec.fileUrl, '_blank')}>
+                                    {(rec.attachments?.length > 0 || rec.data?.fileUrl || rec.data?.uploadedFile?.url || rec.fileUrl) && (
+                                      <Button variant="ghost" size="sm" className="h-6 text-xs gap-1" onClick={() => window.open(resolveFileUrl(rec.attachments?.[0]?.url || rec.data?.fileUrl || rec.data?.uploadedFile?.url || rec.fileUrl || ''), '_blank')}>
                                         <FileText className="w-3 h-3" /> View Document
                                       </Button>
                                     )}
@@ -325,8 +325,8 @@ export default function PatientRecords() {
                   </div>
                 </div>
               )}
-              {(viewRecord.attachments?.length > 0 || viewRecord.data?.fileUrl || viewRecord.fileUrl) && (
-                <Button className="w-full gap-2" onClick={() => window.open(viewRecord.attachments?.[0]?.url || viewRecord.data?.fileUrl || viewRecord.fileUrl, '_blank')}>
+              {(viewRecord.attachments?.length > 0 || viewRecord.data?.fileUrl || viewRecord.data?.uploadedFile?.url || viewRecord.fileUrl) && (
+                <Button className="w-full gap-2" onClick={() => window.open(resolveFileUrl(viewRecord.attachments?.[0]?.url || viewRecord.data?.fileUrl || viewRecord.data?.uploadedFile?.url || viewRecord.fileUrl || ''), '_blank')}>
                   <Download className="w-4 h-4" /> Download Document
                 </Button>
               )}

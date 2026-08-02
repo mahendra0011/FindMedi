@@ -113,7 +113,7 @@ router.post('/register', validate(registerHospitalSchema), async (req, res) => {
     try {
       const { sendHostNotificationEmail } = await import('../services/notificationService.js');
       await sendHostNotificationEmail({
-        subject: 'MediCore Hospital Registration',
+        subject: 'FindMedi Hospital Registration',
         text: `Hospital "${name}" registered by ${adminName} (${adminEmail}).\n\nTemporary password: ${tempPassword}\n\nAdmin can login with this password and will be prompted to change it.`,
       });
     } catch {

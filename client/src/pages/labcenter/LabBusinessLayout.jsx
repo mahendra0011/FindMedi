@@ -39,7 +39,7 @@ function SidebarContent({ collapsed, onToggleCollapse, onNavClick }) {
         </div>
         {!collapsed && (
           <div>
-            <h1 className="font-heading text-base font-bold text-sidebar-primary-foreground leading-none">MediCore</h1>
+            <h1 className="font-heading text-base font-bold text-sidebar-primary-foreground leading-none">FindMedi</h1>
             <p className="text-[10px] text-sidebar-foreground/50 mt-0.5">Lab</p>
           </div>
         )}

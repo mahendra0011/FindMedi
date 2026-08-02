@@ -43,7 +43,8 @@ async function seed() {
     console.log('Clearing existing data...');
     const collections = ['hospitals', 'facilities', 'users', 'doctors', 'clinicprofiles', 'patients', 'appointments', 'reviews', 'tests', 'medicines', 'beds', 'departments', 'staffs', 'inventories', 'deliverypartners'];
     for (const col of collections) {
-      try { await db.collection(col).deleteMany({}); } catch {}
+      const res = await db.collection(col).deleteMany({});
+      console.log(`  cleared ${col} (${res.deletedCount})`);
     }
     console.log('Cleared.');
 
@@ -244,7 +245,7 @@ async function seed() {
         userId: deliveryPartnerUser,
         name: 'Delivery Partner',
         phone: '9876543218',
-        email: 'delivery@medicore.com',
+        email: 'delivery@findmedi.com',
         gender: 'Male',
         address: 'MediStore Pharmacy, Vijay Nagar, Jabalpur',
         city: 'Jabalpur',
@@ -280,14 +281,14 @@ async function seed() {
     console.log('   hospitals, facilities, users, doctors, clinicprofiles, patients, appointments, reviews, tests, medicines, beds, departments, staff, inventory, deliverypartners');
     console.log('\nDemo Accounts:');
     console.log('  superadmin → mahendrapra0077@gmail.com / admin@123');
-    console.log('  hospital_admin → admin@medicore.com / password');
-    console.log('  hospital   → hospital@medicore.com / password');
-    console.log('  doctor     → sarah.smith@medicore.com / password');
-    console.log('  clinic     → clinic@medicore.com / password');
-    console.log('  diagnostic → diagnostic@medicore.com / password');
-    console.log('  pharmacy   → pharmacy@medicore.com / password');
-    console.log('  delivery   → delivery@medicore.com / password');
-    console.log('  patient    → patient@medicore.com / password');
+    console.log('  hospital_admin → admin@findmedi.com / password');
+    console.log('  hospital   → hospital@findmedi.com / password');
+    console.log('  doctor     → sarah.smith@findmedi.com / password');
+    console.log('  clinic     → clinic@findmedi.com / password');
+    console.log('  diagnostic → diagnostic@findmedi.com / password');
+    console.log('  pharmacy   → pharmacy@findmedi.com / password');
+    console.log('  delivery   → delivery@findmedi.com / password');
+    console.log('  patient    → patient@findmedi.com / password');
 
   } catch (err) {
     console.error('Seed failed:', err);

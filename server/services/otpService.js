@@ -84,11 +84,11 @@ export const createAndSendOTP = async ({ userId, email, type = 'email', phone = 
     // Send OTP via email only (SMS removed)
     const isPasswordReset = type === 'password_reset';
     const subject = isPasswordReset
-      ? 'Reset Your MediCore Password'
-      : 'Your OTP Verification - MediCore Hospital';
+      ? 'Reset Your FindMedi Password'
+      : 'Your OTP Verification - FindMedi Hospital';
     const intro = isPasswordReset
-      ? 'Use this code to reset your MediCore password.'
-      : 'Use this code to verify your MediCore account.';
+      ? 'Use this code to reset your FindMedi password.'
+      : 'Use this code to verify your FindMedi account.';
     const template = {
       title: isPasswordReset ? 'Reset your password' : 'Verify your email',
       subtitle: intro,
@@ -104,7 +104,7 @@ export const createAndSendOTP = async ({ userId, email, type = 'email', phone = 
       ],
       note: "If you didn't request this code, you can safely ignore this email.",
       tone: isPasswordReset ? 'warning' : 'default',
-      preheader: `Your MediCore verification code is ${otpPlain}.`,
+      preheader: `Your FindMedi verification code is ${otpPlain}.`,
     };
 
     const sendResult = await sendEmail({

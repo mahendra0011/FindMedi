@@ -486,9 +486,9 @@ router.post('/email/prescription', protect, adminOnly, async (req, res) => {
     const pdfBuffer = await generatePrescriptionPDF(data || req.body);
     const emailRes = await sendEmail({
       to: patient.email,
-      subject: 'Your Prescription - MediCore Hospital',
+      subject: 'Your Prescription - FindMedi Hospital',
       text: `Dear ${patient.name}, please find your prescription attached.`,
-      html: `<p>Dear ${patient.name},</p><p>Please find your prescription attached to this email.</p><p>Thank you,<br>MediCore Hospital</p>`,
+      html: `<p>Dear ${patient.name},</p><p>Please find your prescription attached to this email.</p><p>Thank you,<br>FindMedi Hospital</p>`,
       attachments: [attachmentFromPdf(`prescription-${Date.now()}.pdf`, pdfBuffer)],
     });
 
@@ -505,9 +505,9 @@ router.post('/email/lab-result', protect, adminOnly, async (req, res) => {
     const pdfBuffer = await generateLabReportPDF(data || req.body);
     const emailRes = await sendEmail({
       to: patient.email,
-      subject: 'Your Lab Report - MediCore Hospital',
+      subject: 'Your Lab Report - FindMedi Hospital',
       text: `Dear ${patient.name}, please find your lab report attached.`,
-      html: `<p>Dear ${patient.name},</p><p>Please find your lab report attached to this email.</p><p>Thank you,<br>MediCore Hospital</p>`,
+      html: `<p>Dear ${patient.name},</p><p>Please find your lab report attached to this email.</p><p>Thank you,<br>FindMedi Hospital</p>`,
       attachments: [attachmentFromPdf(`lab-report-${Date.now()}.pdf`, pdfBuffer)],
     });
 
@@ -524,9 +524,9 @@ router.post('/email/discharge-summary', protect, adminOnly, async (req, res) => 
     const pdfBuffer = await generateDischargeSummaryPDF(data || req.body);
     const emailRes = await sendEmail({
       to: patient.email,
-      subject: 'Your Discharge Summary - MediCore Hospital',
+      subject: 'Your Discharge Summary - FindMedi Hospital',
       text: `Dear ${patient.name}, please find your discharge summary attached.`,
-      html: `<p>Dear ${patient.name},</p><p>Please find your discharge summary attached to this email.</p><p>Thank you,<br>MediCore Hospital</p>`,
+      html: `<p>Dear ${patient.name},</p><p>Please find your discharge summary attached to this email.</p><p>Thank you,<br>FindMedi Hospital</p>`,
       attachments: [attachmentFromPdf(`discharge-summary-${Date.now()}.pdf`, pdfBuffer)],
     });
 

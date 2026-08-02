@@ -100,7 +100,7 @@ export default function DiagnosticDashboard() {
   const [appointmentForm, setAppointmentForm] = useState({ patientName: '', patientPhone: '', bookingDate: '', timeSlot: '', testName: '' });
 
   // Settings
-  const [centerSettings, setCenterSettings] = useState({ name: 'MediCore Diagnostic Center', type: 'Pathology Lab', address: '123 Healthcare Ave, New York', phone: '+1 234-567-8900', email: 'lab@medicore.com', licenseNo: 'LAB-LIC-001', nablCertified: true, nablCertNo: 'NABL-MC-2024-001', aerbCertified: false, timings: '7:00 AM - 9:00 PM', homeCollectionAvailable: true, reportDeliveryModes: ['Email', 'SMS', 'Portal'] });
+  const [centerSettings, setCenterSettings] = useState({ name: 'FindMedi Diagnostic Center', type: 'Pathology Lab', address: '123 Healthcare Ave, New York', phone: '+1 234-567-8900', email: 'lab@findmedi.com', licenseNo: 'LAB-LIC-001', nablCertified: true, nablCertNo: 'NABL-MC-2024-001', aerbCertified: false, timings: '7:00 AM - 9:00 PM', homeCollectionAvailable: true, reportDeliveryModes: ['Email', 'SMS', 'Portal'] });
 
   const showToast = (msg, type = 'success') => { setToast({ msg, type }); setTimeout(() => setToast(null), 3000); };
   const exportBillingCsv = () => {

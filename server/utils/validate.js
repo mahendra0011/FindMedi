@@ -158,7 +158,7 @@ export const walkInSchema = z.object({
 });
 
 export const updateAppointmentSchema = z.object({
-  status: z.enum(['Pending', 'Confirmed', 'Completed', 'Cancelled', 'Rescheduled']).optional(),
+  status: z.enum(['Pending', 'Confirmed', 'Completed', 'Cancelled', 'Rescheduled', 'In Queue', 'Serving', 'Missed']).optional(),
   date: z.string().optional(),
   time: z.string().optional(),
   notes: z.string().optional(),

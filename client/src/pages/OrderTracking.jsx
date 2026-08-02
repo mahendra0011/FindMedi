@@ -347,7 +347,7 @@ export default function OrderTracking() {
               <Truck className="w-5 h-5 text-primary mt-0.5 shrink-0" />
               <div>
                 <h4 className="font-semibold text-sm text-foreground">Delivery Partner</h4>
-                <p className="text-sm text-muted-foreground mt-1">{orderData?.deliveryPartner || 'MediCore Logistics'} {orderData?.deliveryPartnerId ? `· Partner ID: ${orderData.deliveryPartnerId}` : ''}</p>
+                <p className="text-sm text-muted-foreground mt-1">{orderData?.deliveryPartner || 'FindMedi Logistics'} {orderData?.deliveryPartnerId ? `· Partner ID: ${orderData.deliveryPartnerId}` : ''}</p>
               </div>
             </div>
           </div>

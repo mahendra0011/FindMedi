@@ -706,7 +706,7 @@ export default function Checkout() {
                     { value:'upi', label:'UPI', icon: Wallet, desc:'Google Pay, PhonePe, Paytm' },
                     { value:'card', label:'Debit / Credit Card', icon: CreditCard, desc:'Visa, MasterCard, RuPay' },
                     { value:'netbanking', label:'Net Banking', icon: Building, desc:'All major banks' },
-                    { value:'wallet', label:'MediCore Wallet', icon: Wallet, desc:'Balance: ₹0' },
+                    { value:'wallet', label:'FindMedi Wallet', icon: Wallet, desc:'Balance: ₹0' },
                   ].map(m => (
                     <Label key={m.value} htmlFor={m.value}
                       className={cn('flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all', paymentMethod === m.value ? 'border-primary bg-primary/5 shadow-sm' : 'border-border/60 hover:border-muted-foreground/30')}>
@@ -870,11 +870,15 @@ export default function Checkout() {
               <p className="text-sm font-medium text-foreground mb-1">Tap to upload</p>
               <p className="text-xs text-muted-foreground">JPG, PNG, PDF</p>
               <input ref={fileInputRef} type="file" accept="image/*,.pdf" className="absolute inset-0 opacity-0 cursor-pointer"
-                onChange={(e) => {
+                onChange={async (e) => {
                   const file = e.target.files?.[0];
-                  if (file) {
-                    setUploadedFiles(p => ({ ...p, all: file.name }));
+                  if (!file) return;
+                  try {
+                    const res = await api.uploadFile(file);
+                    setUploadedFiles(p => ({ ...p, all: file.name, allUrl: res?.url || '' }));
                     toast.success(`Uploaded: ${file.name}`);
+                  } catch {
+                    toast.error('Upload failed. Please try again.');
                   }
                 }} />
             </div>
@@ -889,7 +893,7 @@ export default function Checkout() {
                 <div className="space-y-1.5">
                   {savedPrescriptions.slice(-3).reverse().map((rx, i) => (
                     <button key={i} onClick={() => {
-                      setUploadedFiles(p => ({ ...p, all: rx.name }));
+                      setUploadedFiles(p => ({ ...p, all: rx.name, allUrl: rx.url || '' }));
                       toast.info(`Selected: ${rx.name}`);
                     }}
                       className={cn('w-full text-left p-2 rounded-lg border text-xs transition-all', uploadedFiles.all === rx.name ? 'border-primary bg-primary/5' : 'border-border/60 hover:border-primary/30')}>
@@ -914,7 +918,7 @@ export default function Checkout() {
                  const rxEntries = entries.filter(e => e.item.rx);
 
                  // Save prescription to history
-                 const saved = [...savedPrescriptions, { name: uploadedFiles.all, date: new Date().toISOString() }];
+                 const saved = [...savedPrescriptions, { name: uploadedFiles.all, date: new Date().toISOString(), url: uploadedFiles.allUrl || '' }];
                  setSavedPrescriptions(saved);
                  localStorage.setItem(SAVED_PRESCRIPTIONS_KEY, JSON.stringify(saved));
 
@@ -932,9 +936,10 @@ export default function Checkout() {
                    const res = await api.dispatch(null, '/pharmacy/orders/verify-prescriptions', {
                      method: 'POST',
                      body: JSON.stringify({
-                       entries: rxEntries.map(e => ({ medicineId: e.item._id || e.item.id, medicineName: e.item.name })),
-                       file: uploadedFiles.all,
-                     })
+                        entries: rxEntries.map(e => ({ medicineId: e.item._id || e.item.id, medicineName: e.item.name, quantity: e.qty || 1 })),
+                        facilityId: rxEntries[0]?.storeId,
+                        file: uploadedFiles.allUrl || uploadedFiles.all,
+                      })
                    });
 
                    if (res?.verified) {

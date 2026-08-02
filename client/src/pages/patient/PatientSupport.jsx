@@ -118,7 +118,7 @@ export default function PatientSupport() {
               Our support team is available 24/7 to assist you with any platform-related issues.
             </p>
             <div className="space-y-2">
-              <p className="text-sm font-medium">Email: support@medicore.com</p>
+              <p className="text-sm font-medium">Email: support@findmedi.com</p>
               <p className="text-sm font-medium">Phone: 1800-123-4567</p>
             </div>
           </div>

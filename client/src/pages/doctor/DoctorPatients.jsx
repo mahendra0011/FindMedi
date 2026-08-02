@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Search, Users } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
-import { api } from '@/lib/api';
+import { api, resolveFileUrl } from '@/lib/api';
 import { subSlotFor } from '@/lib/timeSlots';
 import { CompletedCard } from '@/components/TodayAppointmentsSection';
 import { toast } from 'sonner';
@@ -103,7 +103,7 @@ export default function DoctorPatients() {
                 <CompletedCard
                   apt={latestAppt || apt}
                   subSlotFor={subSlotFor}
-                  onViewFile={(url) => url && window.open(url, '_blank')}
+                  onViewFile={(url) => url && window.open(resolveFileUrl(url), '_blank')}
                   stats={{ visits: visitCount, records: recordCount }}
                 />
               </motion.div>

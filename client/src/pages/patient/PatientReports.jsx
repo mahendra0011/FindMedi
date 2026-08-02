@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { FileText, Download, Calendar, User, Stethoscope, Loader2, Pill, TestTube, FlaskConical, HeartPulse, Eye, ChevronRight, Sparkles } from 'lucide-react';
-import { api } from '@/lib/api';
+import { api, resolveFileUrl } from '@/lib/api';
 import { toast } from 'sonner';
 
 const UPLOAD_BASE = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'http://localhost:5001';
@@ -42,7 +42,7 @@ export default function MyReports() {
   const downloadReport = async (report) => {
     try {
       if (report.reportUrl) {
-        window.open(report.reportUrl, '_blank');
+        window.open(resolveFileUrl(report.reportUrl), '_blank');
       } else if (report.type === 'prescription') {
         navigate('/patient/prescriptions');
       } else if (report.type === 'lab_report') {
@@ -166,7 +166,7 @@ export default function MyReports() {
     </motion.div>
   );
 
-  const EmptyState = ({ type, icon: Icon, color }) => (
+  const EmptyState = ({ type, icon: Icon }) => (
     <div className="text-center py-12">
       <div className="w-16 h-16 rounded-3xl bg-muted/30 flex items-center justify-center mx-auto mb-3">
         <Icon className="w-8 h-8 text-muted-foreground/30" />

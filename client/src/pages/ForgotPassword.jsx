@@ -111,9 +111,9 @@ export default function ForgotPassword() {
       >
         <div className="mb-8 flex items-center gap-3">
           <div className="w-12 h-12 flex items-center justify-center rounded-xl overflow-hidden shadow-sm">
-            <img src="/logo.png" alt="MediCore Logo" className="w-full h-full object-cover" />
+            <img src="/logo.png" alt="FindMedi Logo" className="w-full h-full object-cover" />
           </div>
-          <h1 className="font-heading text-xl font-bold text-foreground">MediCore HMS</h1>
+          <h1 className="font-heading text-xl font-bold text-foreground">FindMedi</h1>
         </div>
 
         <div className="bg-card border border-border/60 rounded-2xl p-8 shadow-xl">

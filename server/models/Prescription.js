@@ -28,6 +28,7 @@ const prescriptionSchema = new mongoose.Schema({
    verifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
    verifiedAt: { type: Date },
    isEmergency: { type: Boolean, default: false },
+  prescriptionFile: { type: String, default: '' }, // Patient-uploaded prescription scan/photo
   hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   createdAt: { type: Date, default: Date.now },

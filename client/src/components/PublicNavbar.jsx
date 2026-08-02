@@ -53,9 +53,9 @@ export default function PublicNavbar() {
         <div className="flex items-center gap-3 xl:gap-5 min-w-0">
           <Link to="/" className="flex items-center gap-2 font-heading font-bold text-xl text-foreground shrink-0">
             <div className="w-10 h-10 flex items-center justify-center shrink-0 rounded-lg overflow-hidden shadow-sm">
-              <img src="/logo.png" alt="MediCore Logo" className="w-full h-full object-cover" />
+              <img src="/logo.png" alt="FindMedi Logo" className="w-full h-full object-cover" />
             </div>
-            <span className="whitespace-nowrap">MediCore</span>
+            <span className="whitespace-nowrap">FindMedi</span>
           </Link>
 
           <nav className="hidden xl:flex items-center gap-0.5">

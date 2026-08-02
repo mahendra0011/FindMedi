@@ -106,9 +106,9 @@ export default function Login() {
         <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 25% 25%, hsl(174,62%,48%) 0%, transparent 50%), radial-gradient(circle at 75% 75%, hsl(210,80%,55%) 0%, transparent 50%)' }} />
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }} className="relative z-10 text-center max-w-md">
           <div className="w-24 h-24 flex items-center justify-center mx-auto mb-6 rounded-2xl overflow-hidden shadow-lg">
-            <img src="/logo.png" alt="MediCore Logo" className="w-full h-full object-cover" />
+            <img src="/logo.png" alt="FindMedi Logo" className="w-full h-full object-cover" />
           </div>
-          <h1 className="font-heading text-4xl font-bold text-sidebar-primary-foreground mb-4">MediCore HMS</h1>
+          <h1 className="font-heading text-4xl font-bold text-sidebar-primary-foreground mb-4">FindMedi</h1>
           <p className="text-sidebar-foreground/70 text-lg leading-relaxed mb-10">
             Complete hospital management solution. Manage patients, doctors, appointments, and billing — all in one place.
           </p>
@@ -121,9 +121,9 @@ export default function Login() {
         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }} className="w-full max-w-md">
           <div className="lg:hidden flex items-center gap-3 mb-8">
             <div className="w-12 h-12 flex items-center justify-center rounded-xl overflow-hidden shadow-sm">
-              <img src="/logo.png" alt="MediCore Logo" className="w-full h-full object-cover" />
+              <img src="/logo.png" alt="FindMedi Logo" className="w-full h-full object-cover" />
             </div>
-            <h1 className="font-heading text-xl font-bold text-foreground">MediCore HMS</h1>
+            <h1 className="font-heading text-xl font-bold text-foreground">FindMedi</h1>
           </div>
 
           <h2 className="font-heading text-2xl font-bold text-foreground mb-1">Welcome back</h2>
@@ -198,13 +198,13 @@ export default function Login() {
             <div className="grid grid-cols-4 gap-1.5">
               {[
                 { key:'superadmin', label:'SuperAdmin',    desc:'Manage full platform',   icon: Shield,      color:'text-purple-600',  bg:'bg-purple-500/10',  email:'mahendrapra0077@gmail.com', pass:'admin@123' },
-                { key:'hospital_admin',      label:'Hospital Admin',desc:'Manage hospital',   icon: Shield,      color:'text-primary',     bg:'bg-primary/10',     email:'admin@medicore.com',        pass:'password' },
-                { key:'doctor',     label:'Hosp Doctor',   desc:'Patient & schedule',     icon: Stethoscope, color:'text-info',         bg:'bg-info/10',        email:'sarah.smith@medicore.com',  pass:'password' },
-                { key:'clinic_doctor', label:'Clinic',     desc:'Clinic management',       icon: Heart,       color:'text-rose-600',    bg:'bg-rose-500/10',    email:'clinic@medicore.com',       pass:'password' },
-                { key:'lab_owner',  label:'Diagnostic',    desc:'Lab test mgmt',           icon: Microscope,  color:'text-emerald-600', bg:'bg-emerald-500/10', email:'diagnostic@medicore.com',   pass:'password' },
-                { key:'pharmacy_owner', label:'Pharmacy',  desc:'Medicine store',          icon: Pill,        color:'text-amber-600',   bg:'bg-amber-500/10',   email:'pharmacy@medicore.com',     pass:'password' },
-                { key:'delivery_boy',  label:'Delivery',    desc:'Medicine delivery',      icon: Truck,       color:'text-blue-600',    bg:'bg-blue-500/10',    email:'delivery@medicore.com',     pass:'password' },
-                { key:'patient',    label:'Patient',       desc:'Appointments & records', icon: UserRound,   color:'text-success',     bg:'bg-success/10',     email:'patient@medicore.com',      pass:'password' },
+                { key:'hospital_admin',      label:'Hospital Admin',desc:'Manage hospital',   icon: Shield,      color:'text-primary',     bg:'bg-primary/10',     email:'admin@findmedi.com',        pass:'password' },
+                { key:'doctor',     label:'Hosp Doctor',   desc:'Patient & schedule',     icon: Stethoscope, color:'text-info',         bg:'bg-info/10',        email:'sarah.smith@findmedi.com',  pass:'password' },
+                { key:'clinic_doctor', label:'Clinic',     desc:'Clinic management',       icon: Heart,       color:'text-rose-600',    bg:'bg-rose-500/10',    email:'clinic@findmedi.com',       pass:'password' },
+                { key:'lab_owner',  label:'Diagnostic',    desc:'Lab test mgmt',           icon: Microscope,  color:'text-emerald-600', bg:'bg-emerald-500/10', email:'diagnostic@findmedi.com',   pass:'password' },
+                { key:'pharmacy_owner', label:'Pharmacy',  desc:'Medicine store',          icon: Pill,        color:'text-amber-600',   bg:'bg-amber-500/10',   email:'pharmacy@findmedi.com',     pass:'password' },
+                { key:'delivery_boy',  label:'Delivery',    desc:'Medicine delivery',      icon: Truck,       color:'text-blue-600',    bg:'bg-blue-500/10',    email:'delivery@findmedi.com',     pass:'password' },
+                { key:'patient',    label:'Patient',       desc:'Appointments & records', icon: UserRound,   color:'text-success',     bg:'bg-success/10',     email:'patient@findmedi.com',      pass:'password' },
               ].map(({ key, label, desc, icon: Icon, color, bg, email, pass }) => (
                 <button key={key} type="button" onClick={() => { setRole(key); setEmail(email); setPassword(pass); setError(''); }}
                   className="p-1.5 rounded-lg border text-center transition-all border-border hover:border-primary/30 hover:bg-muted/50">

@@ -299,10 +299,10 @@ router.post('/', protect, validate(createDoctorSchema), async (req, res) => {
     const setupUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/#/doctor-setup?token=${setupToken}`;
     await sendEmail({
       to: email.toLowerCase(),
-      subject: 'Welcome to MediCore — Set up your doctor account',
+      subject: 'Welcome to FindMedi — Set up your doctor account',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px;">
-          <h2 style="color: #0b8a72;">Welcome to MediCore, ${name}!</h2>
+          <h2 style="color: #0b8a72;">Welcome to FindMedi, ${name}!</h2>
           <p>An admin has created a doctor account for you. Please set up your password to get started.</p>
           <a href="${setupUrl}" style="display: inline-block; padding: 12px 24px; background: #0b8a72; color: white; text-decoration: none; border-radius: 6px; font-size: 16px;">
             Set Up My Account
@@ -310,7 +310,7 @@ router.post('/', protect, validate(createDoctorSchema), async (req, res) => {
           <p style="margin-top: 24px; color: #666;">This link expires in 48 hours. If you did not expect this invitation, please ignore this email.</p>
         </div>
       `,
-      text: `Welcome to MediCore! An admin has created a doctor account for you. Set up your password here: ${setupUrl}`,
+      text: `Welcome to FindMedi! An admin has created a doctor account for you. Set up your password here: ${setupUrl}`,
     });
 
     res.status(201).json({

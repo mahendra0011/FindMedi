@@ -177,7 +177,7 @@ router.post('/register', validate(platformRegisterSchema), async (req, res) => {
     if (doctors?.length) {
       for (const doc of doctors) {
         if (!doc.name || !doc.specialization) continue;
-        const docEmail = doc.email || `${doc.name.toLowerCase().replace(/\s+/g, '.')}@${slug}.medicore.app`;
+        const docEmail = doc.email || `${doc.name.toLowerCase().replace(/\s+/g, '.')}@${slug}.findmedi.app`;
         const tempPassword = Math.random().toString(36).slice(-10);
         const docUser = await User.create({
           name: doc.name,
@@ -211,8 +211,8 @@ router.post('/register', validate(platformRegisterSchema), async (req, res) => {
 
         sendEmail({
           to: docEmail.toLowerCase(),
-          subject: 'Your MediCore Doctor Account Credentials',
-          text: `Hi ${doc.name},\n\nYou have been registered on MediCore by ${account.name}.\n\nLogin: ${docEmail.toLowerCase()}\nTemporary Password: ${tempPassword}\n\nPlease login and change your password.\n\nRegards,\nMediCore Team`,
+          subject: 'Your FindMedi Doctor Account Credentials',
+          text: `Hi ${doc.name},\n\nYou have been registered on FindMedi by ${account.name}.\n\nLogin: ${docEmail.toLowerCase()}\nTemporary Password: ${tempPassword}\n\nPlease login and change your password.\n\nRegards,\nFindMedi Team`,
         }).catch(() => {});
       }
     }

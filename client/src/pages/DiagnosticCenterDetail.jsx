@@ -18,7 +18,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
-import { api } from '@/lib/api';
+import { api, resolveFileUrl } from '@/lib/api';
 import { useCart } from '@/context/CartContext';
 import { toast } from 'sonner';
 import ServiceLocationMap from '@/components/maps/ServiceLocationMap';
@@ -112,7 +112,7 @@ export default function DiagnosticCenterDetail() {
   const [facility, setFacility] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showRx, setShowRx] = useState(false);
-  const [_uploadedRx, setUploadedRx] = useState(null);
+  const [uploadedRx, setUploadedRx] = useState(null);
   const [copiedCode, setCopiedCode] = useState(null);
   const [labSectionTab, setLabSectionTab] = useState('tests');
   const [medSearch, setMedSearch] = useState('');
@@ -232,7 +232,7 @@ export default function DiagnosticCenterDetail() {
   } : {
     _id: clinicId,
     id: clinicId,
-    name: 'MediCore Diagnostic Center',
+    name: 'FindMedi Diagnostic Center',
     type: 'Diagnostic Center',
     rating: 4.5,
     reviewsCount: 156,
@@ -244,7 +244,7 @@ export default function DiagnosticCenterDetail() {
     reportTime: 'Within 6 hrs',
     distance: '1.2 km',
     phone: '+91 761 123 4567',
-    email: 'info@medicore.com',
+    email: 'info@medi.com',
     address: 'M.G. Road, Jabalpur, MP',
     workingHours: '8:00 AM - 8:00 PM',
     startingPrice: 350,
@@ -869,7 +869,7 @@ export default function DiagnosticCenterDetail() {
                         <p className="text-sm font-semibold text-foreground mb-1">Upload your prescription</p>
                         <p className="text-xs text-muted-foreground">JPG, PNG, PDF (max 5MB)</p>
                         <input id="rx-upload" type="file" accept="image/*,.pdf" className="hidden"
-                          onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; try { const res = await api.uploadFile(f); setUploadedRx(res?.data?.uploadedFile?.url || res?._id || 'uploaded'); toast.success('Prescription uploaded'); } catch { toast.error('Upload failed'); } }} />
+                          onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; try { const res = await api.uploadFile(f); setUploadedRx({ url: res?.url || '', name: f.name }); toast.success('Prescription uploaded'); } catch { toast.error('Upload failed'); } }} />
                       </div>
                       <div className="flex gap-3 mt-3">
                         <Button variant="outline" size="sm" className="flex-1 gap-1.5 rounded-lg text-xs"
@@ -894,6 +894,12 @@ export default function DiagnosticCenterDetail() {
                           <Clock className="w-3 h-3 text-primary" /> Saved Prescriptions
                         </h5>
                         <div className="space-y-1.5">
+                          {uploadedRx?.url && (
+                            <button onClick={() => window.open(resolveFileUrl(uploadedRx.url), '_blank')} className="w-full flex items-center gap-2 p-2 rounded-lg hover:bg-primary/10 transition-colors text-left">
+                              <span className="text-xs text-primary font-semibold truncate flex-1">{uploadedRx.name}</span>
+                              <Eye className="w-3.5 h-3.5 text-primary shrink-0" />
+                            </button>
+                          )}
                           {['Prescription - 12 Jun 2026', 'Prescription - 28 May 2026'].map((item, i) => (
                             <label key={i} className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
                               <input type="radio" name="saved-rx" className="w-3.5 h-3.5 accent-primary" />
@@ -1430,7 +1436,7 @@ export default function DiagnosticCenterDetail() {
               <p className="text-sm font-semibold text-foreground mb-1">Tap to upload prescription</p>
               <p className="text-xs text-muted-foreground">JPG, PNG, PDF (max 5MB)</p>
               <input id="rx-modal-upload" type="file" accept="image/*,.pdf" className="hidden"
-                onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; try { const res = await api.uploadFile(f); setUploadedRx(res?.data?.uploadedFile?.url || res?._id || 'uploaded'); toast.success('Prescription uploaded'); setShowRx(false); } catch { toast.error('Upload failed'); } }} />
+                onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; try { const res = await api.uploadFile(f); setUploadedRx({ url: res?.url || '', name: f.name }); toast.success('Prescription uploaded'); setShowRx(false); } catch { toast.error('Upload failed'); } }} />
             </div>
             <div className="grid grid-cols-2 gap-3 mb-5">
               <Button variant="outline" className="gap-2 rounded-xl py-6" onClick={() => document.getElementById('rx-modal-upload')?.click()}>

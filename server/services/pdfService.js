@@ -3,11 +3,11 @@ import fetch from 'node-fetch';
 import { v4 as uuidv4 } from 'uuid';
  
 const HOSPITAL = {
-  name: 'MediCore Hospital',
+  name: 'FindMedi Hospital',
   tagline: 'Hospital Management System',
   address: '123 Medical Center Drive, Healthcare City',
   phone: '+1 (555) 123-4567',
-  email: 'info@medicorehospital.com',
+  email: 'info@findmedihospital.com',
 };
  
 const COLORS = {
@@ -105,7 +105,7 @@ const drawFooter = (doc) => {
     const width = doc.page.width - left - right;
     doc.strokeColor(COLORS.border).lineWidth(0.5).moveTo(left, y).lineTo(left + width, y).stroke();
     doc.fillColor(COLORS.muted).font('Helvetica').fontSize(8);
-    doc.text('Computer-generated document. Please contact MediCore Hospital for corrections.', left, y + 10, { width: width * 0.72 });
+    doc.text('Computer-generated document. Please contact FindMedi Hospital for corrections.', left, y + 10, { width: width * 0.72 });
     doc.text(`Page ${i + 1} of ${pages.count}`, left, y + 10, { width, align: 'right' });
   }
 };
@@ -474,7 +474,7 @@ export const generateInvoicePDF = async (bill) => collectPdf((doc) => {
 drawSectionTitle(doc, 'Payment Notes');
 drawTextBlock(doc, 'Instructions', outstanding > 0
   ? 'Please clear the outstanding amount by the due date. Keep this invoice for your records.'
-  : 'Payment received. Thank you for choosing MediCore Hospital.');
+  : 'Payment received. Thank you for choosing FindMedi Hospital.');
 if (bill.transactionId) {
   drawTextBlock(doc, 'Transaction ID', bill.transactionId);
 }
@@ -519,7 +519,7 @@ export const generatePaymentInvoicePDF = async (payment, reference = null, user 
     }
   }
 
-  let providerName = payment.provider || 'MediCore';
+  let providerName = payment.provider || 'FindMedi';
   let providerAddr = '';
   let providerLic = '';
   if (reference?.hospitalId && typeof reference.hospitalId === 'object') {

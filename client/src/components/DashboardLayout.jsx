@@ -7,6 +7,7 @@ export default function DashboardLayout({ children }) {
   const mainRef = useRef(null);
   const location = useLocation();
   const isMobile = useIsMobile();
+  const isAIChat = location.pathname === '/ai-chat';
 
   useEffect(() => {
     mainRef.current?.scrollTo({ top: 0, left: 0, behavior: 'auto' });

@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+﻿import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -15,18 +15,18 @@ async function migrate() {
   const Hospital = (await import('./models/Hospital.js')).default;
 
   // 1. Create default hospital
-  let defaultHospital = await Hospital.findOne({ name: 'MediCore Demo Hospital' });
+  let defaultHospital = await Hospital.findOne({ name: 'FindMedi Demo Hospital' });
   if (!defaultHospital) {
     defaultHospital = await Hospital.create({
-      name: 'MediCore Demo Hospital',
-      slug: 'medicore-demo-hospital',
-      email: 'hospital@medicore.com',
+      name: 'FindMedi Demo Hospital',
+      slug: 'findmedi-demo-hospital',
+      email: 'hospital@findmedi.com',
       phone: '+1-800-MEDICORE',
       address: '123 Healthcare Avenue, Medical District',
       city: 'New York',
       state: 'NY',
       licenseNumber: 'LIC-MC-2024-001',
-      description: 'MediCore multi-specialty hospital providing comprehensive healthcare services.',
+      description: 'FindMedi multi-specialty hospital providing comprehensive healthcare services.',
       specialties: ['Cardiology', 'Neurology', 'Orthopedics', 'Pediatrics', 'Emergency'],
       status: 'approved',
     });

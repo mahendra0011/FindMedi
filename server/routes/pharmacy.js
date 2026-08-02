@@ -15,11 +15,6 @@ import { validate, createMedicineSchema } from '../utils/validate.js';
 import { auditLog } from '../middleware/audit.js';
 import { generatePrescriptionId, generateTimestampedId } from '../utils/idGenerator.js';
 
-import { getConfig } from '../utils/configLoader.js';
-
-async function getRejectionReasons() {
-  return await getConfig('pharmacyRejectionReasons');
-}
 const medicineUpdateSchema = z.object({}).passthrough();
 const pharmacyStockSchema = z.object({ quantity: z.number(), type: z.enum(['add', 'deduct']) });
 const prescriptionSchema = z.object({}).passthrough();
@@ -623,12 +618,82 @@ router.post('/coupons/validate', protect, async (req, res) => {
 router.post('/orders/verify-prescriptions', protect, async (req, res) => {
   try {
     const { entries, file } = req.body;
-    // For demo purposes, simulate 40% approval rate
-    if (Math.random() < 0.4) {
-      res.json({ verified: true });
-    } else {
-      const reasons = await getRejectionReasons(); res.json({ verified: false, reason: reasons[Math.floor(Math.random() * reasons.length)] });
+    if (!Array.isArray(entries) || entries.length === 0) {
+      return res.status(400).json({ verified: false, reason: 'No medicines provided for verification' });
     }
+
+    // Load the cart medicines to run real checks
+    const ids = entries.map(e => e.medicineId).filter(Boolean);
+    const medicines = ids.length ? await Medicine.find({ _id: { $in: ids }, isActive: true }) : [];
+    const medMap = new Map(medicines.map(m => [m._id.toString(), m]));
+    const names = entries.map(e => (e.medicineName || medMap.get(String(e.medicineId))?.name || '').toLowerCase());
+
+    for (const entry of entries) {
+      const med = medMap.get(String(entry.medicineId));
+      if (!med) {
+        return res.json({ verified: false, reason: `${entry.medicineName || 'This medicine'} is not available at this pharmacy` });
+      }
+      const qty = Number(entry.quantity) || 1;
+      if (med.currentStock < qty) {
+        return res.json({ verified: false, reason: `Insufficient stock for ${med.name}. Available: ${med.currentStock}` });
+      }
+      for (const interaction of med.interactions || []) {
+        if (names.includes(interaction?.toLowerCase())) {
+          return res.json({ verified: false, reason: `Drug interaction warning: ${med.name} interacts with ${interaction}` });
+        }
+      }
+      for (const allergy of req.user.allergies || []) {
+        if (allergy?.allergen && med.name.toLowerCase().includes(allergy.allergen.toLowerCase())) {
+          return res.json({ verified: false, reason: `Patient is allergic to ${med.name}. Reaction: ${allergy.reaction || 'Unknown'}` });
+        }
+      }
+    }
+
+    // All automated checks passed → persist so it lands in the pharmacist queue
+    const prescriptionId = generatePrescriptionId();
+    const facilityId = req.body.facilityId || req.user.facilityId || req.user.hospitalId || undefined;
+    const prescription = await Prescription.create({
+      prescriptionId,
+      patientId: req.user._id,
+      patientName: req.user.name,
+      doctorId: req.user._id,
+      doctorName: 'Patient Uploaded',
+      medicines: entries.map(e => {
+        const med = medMap.get(String(e.medicineId));
+        return {
+          medicineId: med?._id,
+          medicineName: e.medicineName || med?.name || 'Medicine',
+          dosage: 'As per uploaded prescription',
+          frequency: 'As per uploaded prescription',
+          duration: 'As per uploaded prescription',
+          quantity: Number(e.quantity) || 1,
+          isDispensed: false,
+        };
+      }),
+      status: 'Active',
+      verificationStatus: 'verified',
+      verificationNotes: 'Auto-verified (stock, interactions, allergies)',
+      verifiedBy: req.user._id,
+      verifiedAt: new Date(),
+      isEmergency: false,
+      hospitalId: req.user.hospitalId,
+      facilityId,
+      prescriptionFile: file || '',
+      clinicalNotes: 'Uploaded by patient during checkout',
+      createdBy: req.user._id,
+    });
+    await auditLog('verify_prescription', req.user._id, { recordId: prescription._id, ip: req.ip, userAgent: req.get('user-agent') });
+
+    // Notify pharmacy staff
+    const pharmacists = await User.find({ role: { $in: ['pharmacist', 'hospital_admin'] }, status: 'active' }).select('_id');
+    await Notification.insertMany(pharmacists.map(p => ({
+      title: 'New Prescription',
+      message: `${req.user.name} uploaded a prescription (${entries.length} medicine(s)) — auto-verified, ready for dispensing`,
+      type: 'pharmacy',
+      userId: p._id.toString(),
+    })));
+
+    res.json({ verified: true, prescription: { _id: prescription._id, prescriptionId } });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 

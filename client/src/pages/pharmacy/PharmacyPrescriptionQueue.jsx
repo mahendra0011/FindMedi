@@ -7,7 +7,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { api } from '@/lib/api';
+import { api, resolveFileUrl } from '@/lib/api';
 import { toast } from 'sonner';
 
 // SLA helpers
@@ -213,6 +213,11 @@ export default function PharmacyPrescriptionQueue() {
                   <div className="flex flex-col items-end gap-2">
                     {rx.isEmergency && <Badge className="bg-destructive/10 text-destructive">Emergency</Badge>}
                     {statusBadge(rx.status)}
+                    {rx.prescriptionFile && (
+                      <Button variant="outline" size="sm" className="gap-1 text-primary" onClick={() => window.open(resolveFileUrl(rx.prescriptionFile), '_blank')}>
+                        <Eye className="w-3.5 h-3.5" /> View Uploaded Rx
+                      </Button>
+                    )}
                     <Button variant="ghost" size="sm" className="gap-1" onClick={() => setSelectedRx(rx)}>
                       <Eye className="w-3.5 h-3.5" /> View Details
                     </Button>

@@ -9,9 +9,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
-import { api, downloadInvoicePdf } from '@/lib/api';
+import { api, downloadInvoicePdf, resolveFileUrl } from '@/lib/api';
 import { toast } from 'sonner';
-import { getISTDateString, formatDisplayDate } from '@/lib/dateUtils';
+import { getISTDateString } from '@/lib/dateUtils';
 import AppointmentDetailsModal from '@/components/AppointmentDetailsModal';
 import TodayAppointmentsSection from '@/components/TodayAppointmentsSection';
 import AppointmentHistorySection from '@/components/AppointmentHistorySection';
@@ -27,6 +27,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { useAppointmentRealtime } from '@/lib/useAppointmentRealtime';
 
 const timeSlots = ['9:00 AM', '9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM', '2:00 PM', '2:30 PM', '3:00 PM', '3:30 PM', '4:00 PM', '4:30 PM'];
+
+const prescriptionInitialState = {
+  patientName: '', age: '', gender: '', phone: '', email: '', address: '',
+  doctorName: '', specialization: '',
+  chiefComplaints: '', diagnosis: '',
+  medications: [{ name: '', dosage: '', frequency: '', instructions: '' }],
+  advice: '', followUp: '',
+};
 
 export default function ClinicAppointments() {
   const { user } = useAuth();
@@ -52,13 +60,6 @@ export default function ClinicAppointments() {
 
   // Prescription modal state
   const [showPrescriptionModal, setShowPrescriptionModal] = useState(false);
-  const prescriptionInitialState = {
-    patientName: '', age: '', gender: '', phone: '', email: '', address: '',
-    doctorName: '', specialization: '',
-    chiefComplaints: '', diagnosis: '',
-    medications: [{ name: '', dosage: '', frequency: '', instructions: '' }],
-    advice: '', followUp: '',
-  };
   const [prescriptionData, setPrescriptionData] = useState(prescriptionInitialState);
 
   const getDaysInMonth = (date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
@@ -123,8 +124,6 @@ export default function ClinicAppointments() {
   const today = getISTDateString();
   const pendingAppointments = appointments.filter(a => (a.status || '').toLowerCase() === 'pending');
   const todayAppointments = appointments.filter(a => a.date === today);
-  const dayAppointments = appointments.filter(a => a.date === selectedDate);
-  const approveAppointments = dayAppointments.filter(a => (a.status || '').toLowerCase() === 'pending');
 
   const handleStatus = async (id, status, extra = {}) => {
     try { await api.updateAppointment(id, { status, ...extra }); loadAppointments(); } catch (e) { console.error(e); toast.error('Failed to update appointment'); }
@@ -146,8 +145,7 @@ export default function ClinicAppointments() {
       ...prescriptionInitialState,
       patientName: apt.patient,
       doctorName: user?.name,
-      specialization: user?.specialization || '',
-    });
+      specialization: user?.specialization || '',    });
     setShowPrescriptionModal(true);
   }, [user?.name, user?.specialization]);
 
@@ -236,8 +234,9 @@ export default function ClinicAppointments() {
       const rx = recs.find(r => r.type === 'prescription');
       if (!rx) { toast.info('No prescription record found'); return; }
       toast.success('Opening prescription…');
-      if (rx.attachments && rx.attachments[0]) {
-        window.open(rx.attachments[0].url || rx.attachments[0], '_blank');
+      const att = rx.attachments?.[0];
+      if (att?.url) {
+        window.open(resolveFileUrl(att.url), '_blank');
       } else {
         toast.message(`Prescription: ${rx.diagnosis || 'N/A'}`, {
           description: (rx.prescription || '').slice(0, 120),
@@ -422,7 +421,7 @@ export default function ClinicAppointments() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {appointments.map((apt, i) => (
+              {appointments.map((apt) => (
                 <div key={apt._id}>
                   <CompletedCard
                     apt={apt}
@@ -430,7 +429,7 @@ export default function ClinicAppointments() {
                     onDownloadPrescription={handleDownloadPrescription}
                     onDownloadInvoice={(a) => a.invoiceId && downloadInvoicePdf(a.invoiceId, `invoice-${a.patient}.pdf`)}
                     onViewDetails={(a) => setDetailsApt(a)}
-                    onViewFile={(url) => window.open(url, '_blank')}
+                    onViewFile={(url) => window.open(resolveFileUrl(url), '_blank')}
                     subSlotFor={subSlotFor}
                   />
                 </div>
