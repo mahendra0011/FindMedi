@@ -69,7 +69,17 @@ export default function DoctorDashboard() {
 
       const failed = results.filter(r => r.status === 'rejected');
       if (failed.length > 0) {
-        toast.error(`Failed to load ${failed.length} data source(s)`);
+        // Transient errors (503/network) par "Failed to load" toast mat dikhao —
+        // axios interceptor already retry karta hai, aur dashboard baar baar
+        // load hota hai (realtime hook + 30s interval). Sirf genuine errors par.
+        const hasGenuineError = failed.some(r => {
+          const err = r.reason;
+          const status = err?.status || err?.response?.status;
+          return status && status !== 503;
+        });
+        if (hasGenuineError) {
+          toast.error(`Failed to load ${failed.length} data source(s)`);
+        }
       }
     } catch (e) { console.error(e); toast.error('Failed to load dashboard data'); }
     if (mounted.current) setLoading(false);

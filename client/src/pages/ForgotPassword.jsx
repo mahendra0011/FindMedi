@@ -110,8 +110,8 @@ export default function ForgotPassword() {
         className="w-full max-w-md"
       >
         <div className="mb-8 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-            <Activity className="w-5 h-5 text-primary-foreground" />
+          <div className="w-12 h-12 flex items-center justify-center rounded-xl overflow-hidden shadow-sm">
+            <img src="/logo.png" alt="MediCore Logo" className="w-full h-full object-cover" />
           </div>
           <h1 className="font-heading text-xl font-bold text-foreground">MediCore HMS</h1>
         </div>

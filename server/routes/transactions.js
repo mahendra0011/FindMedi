@@ -41,16 +41,45 @@ cleanupStalePending();
 setInterval(cleanupStalePending, 5 * 60 * 1000);
 
 // GET /api/transactions — user's payment history
+// Patient: sees own payments. Doctor/clinic_doctor: sees payments for their clinic.
 router.get('/', protect, async (req, res, next) => {
   try {
     const { page, limit, serviceType } = req.query;
-    const filter = { patient_id: req.user._id.toString() };
+    const isDoctor = req.user.role === 'doctor' || req.user.role === 'clinic_doctor';
+    let filter = {};
+    if (isDoctor) {
+      // Doctors see payments where provider matches their name
+      filter = { provider: { $regex: req.user.name, $options: 'i' } };
+    } else {
+      filter = { patient_id: req.user._id.toString() };
+    }
     if (serviceType) filter.serviceType = serviceType;
     const result = await paginatedResults(Payment, filter, { page, limit, sort: { createdAt: -1 } });
 
-    // Populate reference data for richer history card display
+    // Populate reference data + patient details for richer history card display
     if (result.data?.length) {
       for (const payment of result.data) {
+        // ── Patient full profile for doctor view ──
+        try {
+          const patientUser = await User.findById(payment.patient_id)
+            .select('name phone email address gender bloodGroup dateOfBirth uhid city state')
+            .lean();
+          if (patientUser) {
+            payment._doc.patient = {
+              name: patientUser.name || payment.patient_name || '',
+              phone: patientUser.phone || '',
+              email: patientUser.email || '',
+              address: patientUser.address || '',
+              city: patientUser.city || '',
+              state: patientUser.state || '',
+              gender: patientUser.gender || '',
+              bloodGroup: patientUser.bloodGroup || '',
+              dateOfBirth: patientUser.dateOfBirth || null,
+              uhid: patientUser.uhid || '',
+            };
+          }
+        } catch (patientErr) { /* skip patient populate */ }
+
         if (!payment.referenceId) continue;
         try {
           if (payment.serviceType === 'appointment') {
@@ -64,6 +93,8 @@ router.get('/', protect, async (req, res, next) => {
                 appointmentDate: appt.date,
                 appointmentTime: appt.time,
                 appointmentType: appt.type,
+                tokenNumber: appt.tokenNumber || '',
+                appointmentId: appt._id.toString(),
               };
             }
           } else if (payment.serviceType === 'test') {
@@ -76,6 +107,7 @@ router.get('/', protect, async (req, res, next) => {
                 timeSlot: booking.timeSlot || '',
                 tests: booking.tests || [],
                 testDetails: (booking.testIds || []).map(t => t?.name).filter(Boolean),
+                bookingId: booking.bookingId || '',
               };
             }
           } else if (payment.serviceType === 'medicine') {
@@ -87,6 +119,7 @@ router.get('/', protect, async (req, res, next) => {
                 deliveryMode: order.deliveryMode || 'delivery',
                 items: (order.items || []).map(i => i.medicineName || i.medicineId?.name || ''),
                 itemCount: order.items?.length || 0,
+                orderId: order.orderId || '',
               };
             }
             }

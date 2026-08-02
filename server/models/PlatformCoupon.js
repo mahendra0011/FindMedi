@@ -17,6 +17,8 @@ const platformCouponSchema = new mongoose.Schema({
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 }, { timestamps: true });
 
-platformCouponSchema.index({ code: 1 });
+// { code: 1 } index hata diya — `unique: true` (line 4) pehle se hi ek index
+// banata hai, isliye manual index duplicate warning deta tha (MONGOOSE Warning:
+// Duplicate schema index on {"code":1} found).
 platformCouponSchema.index({ isActive: 1, validFrom: 1, validUntil: 1 });
 export default mongoose.model('PlatformCoupon', platformCouponSchema);

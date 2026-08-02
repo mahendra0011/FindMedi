@@ -36,6 +36,12 @@ apiClient.interceptors.request.use(
 let isRefreshing = false;
 let refreshQueue = [];
 
+// Cross-origin (localhost:5173 → localhost:5001) me httpOnly cookie kabhi-kabhi
+// store/send nahi hoti → /auth/refresh 400 "Refresh token is required" → logout.
+// Isliye login/otp/refresh response ka refreshToken yahan memory me cache karte
+// hain aur body me bhejte hain (server req.body?.refreshToken bhi check karta hai).
+let refreshTokenCache = null;
+
 const subscribeRefresh = (resolve, reject) => refreshQueue.push({ resolve, reject });
 const onRefreshed = () => {
   refreshQueue.forEach(q => q.resolve());
@@ -53,7 +59,9 @@ const refreshSession = async () => {
   let lastErr;
   for (let i = 0; i < 3; i++) {
     try {
-      const res = await apiClient.post('/auth/refresh');
+      const res = await apiClient.post('/auth/refresh', refreshTokenCache
+        ? { refreshToken: refreshTokenCache }
+        : undefined);
       return res.status === 200;
     } catch (err) {
       lastErr = err;
@@ -76,8 +84,20 @@ const NO_AUTO_REFRESH_PATHS = [
 const isNoAutoRefresh = (url = '') => NO_AUTO_REFRESH_PATHS.some(p => url.startsWith(p));
 
 // ─── Response Interceptor: Unified error handling + auto-refresh ───────────
+// Capture refreshToken from login/otp/refresh responses so it can be sent in
+// the request body as a fallback when the httpOnly cookie isn't delivered
+// cross-origin (localhost:5173 → localhost:5001).
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    const url = response.config?.url || '';
+    if (url.startsWith('/auth/login') || url.startsWith('/auth/verify-otp') ||
+        url.startsWith('/auth/google') || url.startsWith('/auth/refresh')) {
+      if (response.data?.refreshToken) {
+        refreshTokenCache = response.data.refreshToken;
+      }
+    }
+    return response;
+  },
   async (error) => {
     const original = error.config || {};
     const attempt = original._retryCount || 0;
@@ -154,6 +174,11 @@ apiClient.interceptors.response.use(
 
 export default apiClient;
 
+// Logout pe cached refresh token clear kar do taaki stale token reuse na ho.
+export function clearRefreshTokenCache() {
+  refreshTokenCache = null;
+}
+
 // ─── Proactive token refresh ───────────────────────────────────────────────
 // Real-world apps access token expire hone se pehle hi background me refresh
 // karte hain (reactive 401-trigger refresh nahi). Isse page reload / HMR reload
@@ -161,7 +186,9 @@ export default apiClient;
 // → logout kabhi nahi hota code change par.
 export async function refreshAccessToken() {
   try {
-    const res = await apiClient.post('/auth/refresh');
+    const res = await apiClient.post('/auth/refresh', refreshTokenCache
+      ? { refreshToken: refreshTokenCache }
+      : undefined);
     return res.status === 200;
   } catch (err) {
     // Network error / 5xx → transient, koi logout nahi

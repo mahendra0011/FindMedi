@@ -119,6 +119,9 @@ export const logoutUser = () => async (dispatch) => {
   } catch {
     console.warn('Logout request failed, clearing local session');
   }
+  // Cached refresh token clear kar do taaki next login tak purana token
+  // reuse na ho (cross-origin cookie fallback cache).
+  try { (await import('@/lib/axios')).clearRefreshTokenCache?.(); } catch { /* ignore */ }
   dispatch(logout());
 };
 

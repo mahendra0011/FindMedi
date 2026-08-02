@@ -148,6 +148,8 @@ const DoctorPrescriptions = lazy(() => import('./pages/doctor/DoctorPrescription
 const DoctorLeaveRequests = lazy(() => import('./pages/doctor/DoctorLeaveRequests'));
 const DoctorProfile = lazy(() => import('./pages/doctor/DoctorProfile'));
 
+const AIChatPage = lazy(() => import('./pages/AIChatPage'));
+
 const ClinicDashboard = lazy(() => import('./pages/clinic/ClinicDashboard'));
 const ClinicAppointments = lazy(() => import('./pages/clinic/ClinicAppointments'));
 const ClinicSchedule = lazy(() => import('./pages/clinic/ClinicSchedule'));
@@ -155,10 +157,13 @@ const ClinicFees = lazy(() => import('./pages/clinic/ClinicFees'));
 const ClinicPatients = lazy(() => import('./pages/clinic/ClinicPatients'));
 const ClinicPrescriptions = lazy(() => import('./pages/clinic/ClinicPrescriptions'));
 const ClinicTests = lazy(() => import('./pages/clinic/ClinicTests'));
+const ClinicTestRequests = lazy(() => import('./pages/clinic/ClinicTestRequests'));
 const ClinicConsultations = lazy(() => import('./pages/clinic/ClinicConsultations'));
 const ClinicManagement = lazy(() => import('./pages/clinic/ClinicManagement'));
 const ClinicBilling = lazy(() => import('./pages/clinic/ClinicBilling'));
+const ClinicPaymentHistory = lazy(() => import('./pages/clinic/ClinicPaymentHistory'));
 const ClinicEarnings = lazy(() => import('./pages/clinic/ClinicEarnings'));
+const ClinicAnalytics = lazy(() => import('./pages/clinic/ClinicAnalytics'));
 const ClinicReviews = lazy(() => import('./pages/clinic/ClinicReviews'));
 const ClinicStaff = lazy(() => import('./pages/clinic/ClinicStaff'));
 const ClinicNotifications = lazy(() => import('./pages/clinic/ClinicNotifications'));
@@ -478,6 +483,7 @@ const App = () => (
                   {/* Authenticated dashboard shell */}
                   <Route element={<DashboardShell />}>
                     <Route path="/dashboard" element={<RoleDashboard />} />
+                    <Route path="/ai-chat" element={<AIChatPage />} />
                     <Route path="/notifications" element={<Notifications />} />
                     <Route path="/settings" element={<Settings />} />
                     <Route path="/upload" element={<FileUpload />} />
@@ -609,6 +615,9 @@ const App = () => (
                     <Route path="/clinic/platform-settings" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicPlatformSettings /></RoleRoute>} />
                     <Route path="/clinic/staff" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicStaff /></RoleRoute>} />
                      <Route path="/clinic/notifications" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicNotifications /></RoleRoute>} />
+                     <Route path="/clinic/test-requests" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicTestRequests /></RoleRoute>} />
+                     <Route path="/clinic/payment-history" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicPaymentHistory /></RoleRoute>} />
+                     <Route path="/clinic/analytics" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicAnalytics /></RoleRoute>} />
 
                     {/* Delivery Partner routes */}
                     <Route path="/delivery/orders" element={<RoleRoute allowedRoles={['delivery_boy']}><DeliveryOrders /></RoleRoute>} />
