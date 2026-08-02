@@ -2,6 +2,16 @@ import apiClient from './axios';
 
 const BASE = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
+// Server se relative path milne par (e.g. "/uploads/documents/x.jpg" — local
+// storage fallback) use API origin se prefix karo; Cloudinary/absolute URL
+// ko waise hi chhodo. Nahin to doctor view me "View File" 404 deta hai.
+export function resolveFileUrl(url) {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) return url;
+  if (url.startsWith('/')) return BASE.replace(/\/api\/?$/, '') + url;
+  return url;
+}
+
 export function dispatch(_fallback, path, options = {}) {
   return request(path, options);
 }
@@ -123,8 +133,7 @@ export const api = {
     const body = new FormData();
     body.append('file', file);
     return request('/upload', { method:'POST', body });
-  },
-  changePassword:     (body)    => request('/auth/change-password',  { method:'PUT', body: JSON.stringify(body) }),
+  },  changePassword:     (body)    => request('/auth/change-password',  { method:'PUT', body: JSON.stringify(body) }),
   dashboardStats:     ()        => request('/dashboard/stats'),
 
   getUsers:           (p={})    => request('/users?' + new URLSearchParams(p)),

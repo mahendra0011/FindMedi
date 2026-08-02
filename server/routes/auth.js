@@ -316,7 +316,7 @@ router.post('/register', validate(registerSchema), async (req, res) => {
       });
 
       await sendHostNotificationEmail({
-        subject: 'New MediCore Doctor Registration',
+        subject: 'New FindMedi Doctor Registration',
         text: `${name} (${lowerEmail}) registered as a doctor with license ${licenseNumber}.`,
       });
     }

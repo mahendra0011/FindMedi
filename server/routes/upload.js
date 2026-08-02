@@ -19,13 +19,13 @@ if (!fs.existsSync(UPLOAD_DIR)) {
 }
 
 // Save file locally (fallback when Cloudinary fails)
-const saveFileLocally = (file) => {
+const saveFileLocally = (file, baseUrl) => {
   const ext = path.extname(file.originalname).replace(/[^a-zA-Z0-9.]/g, '') || '.bin';
   const filename = `${Date.now()}-${Math.random().toString(36).substring(2, 10)}${ext}`;
   const filepath = path.join(UPLOAD_DIR, filename);
   fs.writeFileSync(filepath, file.buffer);
   return {
-    url: `/uploads/documents/${filename}`,
+    url: `${baseUrl}/uploads/documents/${filename}`,
     filename: file.originalname,
     fileId: filename,
     size: file.size,
@@ -184,7 +184,7 @@ router.post('/', protect, upload.single('file'), async (req, res, next) => {
       );
     } catch (cloudErr) {
       console.warn('Cloudinary upload failed, using local storage:', cloudErr.message);
-      cloudResult = saveFileLocally(req.file);
+      cloudResult = saveFileLocally(req.file, `${req.protocol}://${req.get('host')}`);
     }
 
     const recordType = detectRecordType(clientUploadType);

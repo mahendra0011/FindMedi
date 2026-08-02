@@ -7,7 +7,6 @@ import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { api, downloadPaymentInvoice, downloadBillPdf } from '@/lib/api';
-import { useAuth } from '@/context/AuthContext';
 import BillCheckout from '@/components/BillCheckout';
 
 const UPI_APPS = ['Google Pay', 'PhonePe', 'Paytm', 'BHIM', 'CRED'];
@@ -16,7 +15,7 @@ const PAYMENT_METHODS = {
   upi: { label:'UPI', icon: Smartphone },
   card: { label:'Debit / Credit Card', icon: CreditCard },
   netbanking: { label:'Net Banking', icon: Building },
-  wallet: { label:'MediCore Wallet', icon: Wallet },
+  wallet: { label:'FindMedi Wallet', icon: Wallet },
 };
 
 export default function PaymentGateway() {
@@ -42,7 +41,6 @@ export default function PaymentGateway() {
   const [order, setOrder] = useState(null);
   const [orderLoading, setOrderLoading] = useState(true);
   const [payResult, setPayResult] = useState(null);
-  const { user } = useAuth();
   useEffect(() => {
     if (storeIds.length === 0) return;
     const load = async () => {
@@ -81,7 +79,7 @@ export default function PaymentGateway() {
 
   const methodInfo = PAYMENT_METHODS[method] || PAYMENT_METHODS.upi;
   const MethodIcon = methodInfo.icon;
-  const upiQrUpiId = 'medicore@upi';
+  const upiQrUpiId = 'findmedi@upi';
 
   const handlePay = async () => {
     setPaying(true);
@@ -134,7 +132,7 @@ export default function PaymentGateway() {
             <Lock className="w-8 h-8 text-primary" />
           </div>
           <h1 className="font-heading text-2xl font-bold text-foreground">Complete Payment</h1>
-          <p className="text-muted-foreground text-sm mt-1">Secure payment powered by MediCore</p>
+          <p className="text-muted-foreground text-sm mt-1">Secure payment powered by FindMedi</p>
         </div>
 
         {/* Order Summary Card */}
@@ -255,7 +253,7 @@ export default function PaymentGateway() {
 
               {method === 'wallet' && (
                 <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20">
-                  <p className="text-sm text-amber-700 dark:text-amber-300">MediCore Wallet Balance: <strong>₹0</strong></p>
+                  <p className="text-sm text-amber-700 dark:text-amber-300">FindMedi Wallet Balance: <strong>₹0</strong></p>
                   <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">Insufficient balance. Please add funds or use another payment method.</p>
                 </div>
               )}
@@ -265,7 +263,7 @@ export default function PaymentGateway() {
                   <label className="flex items-start gap-2 cursor-pointer">
                     <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)}
                       className="w-4 h-4 mt-0.5 rounded border-border text-primary focus:ring-primary" />
-                    <span className="text-xs text-muted-foreground">I agree to the <button className="text-primary underline">Terms & Conditions</button> and authorize MediCore to charge ₹{total}</span>
+                    <span className="text-xs text-muted-foreground">I agree to the <button className="text-primary underline">Terms & Conditions</button> and authorize FindMedi to charge ₹{total}</span>
                   </label>
                   <Button className="w-full h-14 text-base font-bold gap-3 rounded-2xl shadow-xl shadow-primary/30"
                     onClick={handlePay} disabled={!agreed}>

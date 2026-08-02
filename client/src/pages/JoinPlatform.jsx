@@ -326,7 +326,7 @@ export default function JoinPlatform() {
           <div className="w-20 h-20 rounded-2xl bg-white/10 flex items-center justify-center mx-auto mb-8 backdrop-blur-sm border border-white/10">
             {selectedType ? <selectedType.icon className="w-10 h-10 text-white" /> : <Building2 className="w-10 h-10 text-white" />}
           </div>
-          <h1 className="font-heading text-3xl font-bold text-white mb-4">Join MediCore</h1>
+          <h1 className="font-heading text-3xl font-bold text-white mb-4">Join FindMedi</h1>
           <p className="text-white/60 text-lg leading-relaxed mb-8">List your healthcare facility and reach patients in your area.</p>
           <div className="space-y-3 text-left">
             {[
@@ -370,7 +370,7 @@ export default function JoinPlatform() {
            {/* Step 1: Select Facility Type */}
            {step === 1 && (
              <motion.div key="s1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
-               {stepHeader('Choose Your Facility Type', 'Select the type of healthcare facility you want to register on MediCore')}
+               {stepHeader('Choose Your Facility Type', 'Select the type of healthcare facility you want to register on FindMedi')}
                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                  {PLATFORM_TYPES.map(pt => {
                    const Icon = pt.icon;
@@ -806,7 +806,7 @@ export default function JoinPlatform() {
                    <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} className="mt-0.5 w-4 h-4 rounded border-border accent-primary" />
                    <div>
                      <p className="text-sm font-medium text-foreground">I confirm that all provided information is accurate</p>
-                     <p className="text-xs text-muted-foreground mt-0.5">By submitting, you agree to MediCore's <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link> and <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>. Your registration will be reviewed by our team.</p>
+                     <p className="text-xs text-muted-foreground mt-0.5">By submitting, you agree to FindMedi's <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link> and <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>. Your registration will be reviewed by our team.</p>
                    </div>
                  </label>
                </div>
@@ -1294,7 +1294,7 @@ export default function JoinPlatform() {
                   <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} className="mt-0.5 w-4 h-4 rounded border-border accent-primary" />
                   <div>
                     <p className="text-sm font-medium text-foreground">I confirm that all provided information is accurate</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">By submitting, you agree to MediCore's <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link> and <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>. Your registration will be reviewed by our team.</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">By submitting, you agree to FindMedi's <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link> and <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>. Your registration will be reviewed by our team.</p>
                   </div>
                 </label>
               </div>

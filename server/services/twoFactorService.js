@@ -21,7 +21,7 @@ export function generateSecret() {
  * @param {string} email - User email (for label)
  * @param {string} issuer - App name
  */
-export function generateOtpAuthUrl(secret, email, issuer = 'MediCore') {
+export function generateOtpAuthUrl(secret, email, issuer = 'FindMedi') {
   return `otpauth://totp/${encodeURIComponent(issuer)}:${encodeURIComponent(email)}?secret=${secret}&issuer=${encodeURIComponent(issuer)}&algorithm=SHA1&digits=6&period=30`;
 }
 

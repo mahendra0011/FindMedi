@@ -5,6 +5,7 @@ import {
   XCircle, AlertTriangle, FileText, Info, Phone, Mail, MapPin, Droplet,
 } from 'lucide-react';
 import { getISTDateString, formatDisplayDate } from '@/lib/dateUtils';
+import { resolveFileUrl } from '@/lib/api';
 import {
   parseTime, subSlotFor, getHourSlots, getSubSlotsForHour, hourBoxFor,
 } from '@/lib/timeSlots';
@@ -263,7 +264,7 @@ export default function ApproveAppointmentSection({ appointments, onConfirm, onR
                   <ApproveCard
                     apt={apt}
                     subSlotFor={subSlotFor}
-                    onViewFile={(url) => window.open(url, '_blank')}
+                    onViewFile={(url) => window.open(resolveFileUrl(url), '_blank')}
                     onConfirm={onConfirm}
                     onRejectClick={(a) => setRejectTarget(a)}
                   />
@@ -347,7 +348,7 @@ export default function ApproveAppointmentSection({ appointments, onConfirm, onR
                           <ApproveCard
                             apt={apt}
                             subSlotFor={subSlotFor}
-                            onViewFile={(url) => window.open(url, '_blank')}
+                            onViewFile={(url) => window.open(resolveFileUrl(url), '_blank')}
                             onConfirm={onConfirm}
                             onRejectClick={(a) => setRejectTarget(a)}
                           />

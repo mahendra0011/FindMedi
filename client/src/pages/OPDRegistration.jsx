@@ -133,7 +133,7 @@ export default function OPDRegistration() {
         <div id="print-card-wrapper" style={{ display: 'none' }}>
           <div className="border-2 border-primary rounded-2xl p-6 max-w-sm mx-auto mt-20">
             <div className="text-center mb-4 border-b pb-3">
-              <h2 className="text-xl font-bold text-primary">mediCore</h2>
+              <h2 className="text-xl font-bold text-primary">FindMedi</h2>
               <p className="text-xs text-gray-500">Patient ID Card</p>
             </div>
             <div className="space-y-2 text-sm">

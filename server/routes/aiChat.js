@@ -7,15 +7,15 @@ const router = express.Router();
 
 
 
-const SYSTEM_PROMPT = `You are MediCore AI, a helpful health assistant. Your role:
+const SYSTEM_PROMPT = `You are FindMedi AI, a helpful health assistant. Your role:
 - Answer health-related questions only (symptoms, diseases, medicines, fitness, nutrition, mental health)
-- For specific diseases/symptoms, suggest visiting relevant clinics or hospitals and recommend consulting a doctor
+- For specific diseases/symptoms, recommend consulting a doctor
 - NEVER give definitive medical diagnoses — always advise consulting a healthcare professional
 - Keep responses concise, helpful, and empathetic (2-3 paragraphs max)
 - If asked non-health questions, politely redirect to health topics
-- You can recommend general wellness tips, first aid, and when to see a doctor
-- When users describe symptoms, suggest which type of specialist they should consult
-- DO NOT invent or name specific hospitals or clinics yourself, as we will provide a list from our own database automatically.`;
+- You MUST respond in strictly valid JSON format with exactly two fields:
+  1. "reply": Your complete conversational response string.
+  2. "specialty": A single string representing the primary medical specialty needed for this condition (e.g., "Cardiology", "Neurology", "Orthopedics", "Dermatology", "General Medicine", "Pediatrics"). If the user is just saying hello or asking a non-medical question, set this to null.`;
 
 router.post('/', async (req, res) => {
   try {
@@ -72,8 +72,9 @@ router.post('/', async (req, res) => {
         systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
         contents,
         generationConfig: {
-          maxOutputTokens: 500,
+          maxOutputTokens: 800,
           temperature: 0.7,
+          responseMimeType: "application/json"
         },
       }),
     });
@@ -85,26 +86,37 @@ router.post('/', async (req, res) => {
     }
 
     const data = await response.json();
-    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'I apologize, but I could not generate a response. Please try rephrasing your question.';
+    const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    
+    let reply = 'I apologize, but I could not generate a response. Please try rephrasing your question.';
+    let specialty = null;
 
-    const diseaseKeywords = ['symptom', 'disease', 'pain', 'ache', 'fever', 'infection', 'diagnos', 'treatment', 'doctor', 'specialist', 'clinic', 'hospital', 'consult'];
-    const mentionsHealthIssue = diseaseKeywords.some((kw) => message.toLowerCase().includes(kw));
+    try {
+      if (rawText) {
+        const parsed = JSON.parse(rawText);
+        reply = parsed.reply || reply;
+        specialty = parsed.specialty || null;
+      }
+    } catch (e) {
+      logger.error('Failed to parse Gemini JSON', e);
+      reply = rawText || reply;
+    }
 
     let suggestions = null;
-    if (mentionsHealthIssue) {
+    if (specialty) {
+      const regex = new RegExp(specialty, 'i');
       const [hospitals, facilities] = await Promise.all([
-        Hospital.find({ status: 'approved' }).select('name city address phone specialties').limit(3),
-        Facility.find({ type: 'clinic', status: 'approved' }).select('name city address phone specialties').limit(3),
+        Hospital.find({ status: 'approved', specialties: regex }).select('name city address phone specialties').limit(3),
+        Facility.find({ type: 'clinic', status: 'approved', specialties: regex }).select('name city address phone specialties').limit(3),
       ]);
-      if (hospitals.length > 0 || facilities.length > 0) {
-        suggestions = [...hospitals, ...facilities].slice(0, 4).map((f) => ({
-          name: f.name,
-          city: f.city,
-          address: f.address,
-          phone: f.phone,
-          type: f.constructor.modelName,
-        }));
-      }
+      
+      suggestions = [...hospitals, ...facilities].slice(0, 4).map((f) => ({
+        name: f.name,
+        city: f.city,
+        address: f.address,
+        phone: f.phone,
+        type: f.constructor.modelName,
+      }));
     }
 
     res.json({ reply, suggestions });

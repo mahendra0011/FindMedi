@@ -2,10 +2,10 @@
   {
     "_id": "doctor-sarah",
     "user_id": "doctor-user",
-    "hospitalId": "medicore-hospital",
+    "hospitalId": "findmedi-hospital",
     "doctor_type": "hospital",
     "name": "Dr. Sarah Smith",
-    "email": "sarah.smith@medicore.com",
+    "email": "sarah.smith@findmedi.com",
     "specialization": "Cardiology",
     "experience": "12 years",
     "qualifications": "MD, DM Cardiology (AIIMS)",
@@ -13,7 +13,7 @@
     "consultation_fees": 1500,
     "phone": "9876543213",
     "profile_photo": "https://i.pravatar.cc/150?u=doctor-sarah",
-    "location": "MediCore Hospital, Napier Town, Jabalpur",
+    "location": "FindMedi Hospital, Napier Town, Jabalpur",
     "department": "Cardiology",
     "initials": "SS",
     "rating": 4.8,
@@ -33,12 +33,12 @@
       { "degree": "DM Cardiology", "college": "AIIMS Delhi", "year": 2014 }
     ],
     "work_experience": [
-      { "hospital": "MediCore Hospital, Jabalpur", "role": "Senior Cardiologist & HOD", "period": "2016 – Present" },
-      { "hospital": "Johns Hopkins Hospital, USA", "role": "Clinical Fellow", "period": "2014 – 2016" },
-      { "hospital": "AIIMS Delhi", "role": "Senior Resident", "period": "2011 – 2014" }
+      { "hospital": "FindMedi Hospital, Jabalpur", "role": "Senior Cardiologist & HOD", "period": "2016 â€“ Present" },
+      { "hospital": "Johns Hopkins Hospital, USA", "role": "Clinical Fellow", "period": "2014 â€“ 2016" },
+      { "hospital": "AIIMS Delhi", "role": "Senior Resident", "period": "2011 â€“ 2014" }
     ],
     "memberships": ["Cardiological Society of India (CSI)", "American College of Cardiology (ACC)"],
-    "awards": ["CSI Young Cardiologist Award 2017", "Best Research Paper – AIIMS Convocation 2014"],
+    "awards": ["CSI Young Cardiologist Award 2017", "Best Research Paper â€“ AIIMS Convocation 2014"],
     "registrations": { "council": "Madhya Pradesh Medical Council", "number": "MPMC-2011-01567" },
     "walk_in_accepted": false,
     "in_house_pharmacy": true,
@@ -47,15 +47,15 @@
     "emergency_consultation": true,
     "surgery_available": true,
     "payment_modes": ["Cash", "UPI", "Card", "Net Banking", "Insurance"],
-    "opd_timings": "9:00 AM – 4:00 PM"
+    "opd_timings": "9:00 AM â€“ 4:00 PM"
   },
   {
     "_id": "doctor-vikram",
     "user_id": null,
-    "hospitalId": "medicore-hospital",
+    "hospitalId": "findmedi-hospital",
     "doctor_type": "hospital",
     "name": "Dr. Vikram Mehta",
-    "email": "vikram.mehta@medicore.com",
+    "email": "vikram.mehta@findmedi.com",
     "specialization": "Neurology",
     "experience": "15 years",
     "qualifications": "MBBS, MD, DM Neurology (PGI Chandigarh)",
@@ -63,7 +63,7 @@
     "consultation_fees": 2000,
     "phone": "9876543218",
     "profile_photo": "https://i.pravatar.cc/150?u=doctor-vikram",
-    "location": "MediCore Hospital, Napier Town, Jabalpur",
+    "location": "FindMedi Hospital, Napier Town, Jabalpur",
     "department": "Neurology",
     "initials": "VM",
     "rating": 4.9,
@@ -83,8 +83,8 @@
       { "degree": "DM Neurology", "college": "PGI Chandigarh", "year": 2012 }
     ],
     "work_experience": [
-      { "hospital": "MediCore Hospital, Jabalpur", "role": "Senior Neurologist", "period": "2014 – Present" },
-      { "hospital": "NIMHANS Bangalore", "role": "Associate Consultant", "period": "2012 – 2014" }
+      { "hospital": "FindMedi Hospital, Jabalpur", "role": "Senior Neurologist", "period": "2014 â€“ Present" },
+      { "hospital": "NIMHANS Bangalore", "role": "Associate Consultant", "period": "2012 â€“ 2014" }
     ],
     "memberships": ["Neurological Society of India (NSI)", "Indian Stroke Association (ISA)"],
     "awards": ["NSI Young Neurologist Award 2018", "30+ Research Publications"],
@@ -96,15 +96,15 @@
     "emergency_consultation": true,
     "surgery_available": false,
     "payment_modes": ["Cash", "UPI", "Card", "Insurance"],
-    "opd_timings": "10:00 AM – 4:00 PM"
+    "opd_timings": "10:00 AM â€“ 4:00 PM"
   },
   {
     "_id": "doctor-priya",
     "user_id": null,
-    "hospitalId": "medicore-hospital",
+    "hospitalId": "findmedi-hospital",
     "doctor_type": "hospital",
     "name": "Dr. Priya Patel",
-    "email": "priya.patel@medicore.com",
+    "email": "priya.patel@findmedi.com",
     "specialization": "Pediatrics",
     "experience": "9 years",
     "qualifications": "MBBS, MD Pediatrics, Fellowship in Neonatology",
@@ -112,7 +112,7 @@
     "consultation_fees": 1000,
     "phone": "9876543219",
     "profile_photo": "https://i.pravatar.cc/150?u=doctor-priya",
-    "location": "MediCore Hospital, Napier Town, Jabalpur",
+    "location": "FindMedi Hospital, Napier Town, Jabalpur",
     "department": "Pediatrics",
     "initials": "PP",
     "rating": 4.7,
@@ -132,9 +132,9 @@
       { "degree": "Fellowship in Neonatology", "college": "KK Women's & Children's Hospital, Singapore", "year": 2016 }
     ],
     "work_experience": [
-      { "hospital": "MediCore Hospital, Jabalpur", "role": "Consultant Pediatrician", "period": "2017 – Present" },
-      { "hospital": "KK Women's & Children's Hospital, Singapore", "role": "Clinical Fellow", "period": "2016 – 2017" },
-      { "hospital": "Wadia Hospital, Mumbai", "role": "Senior Resident", "period": "2014 – 2016" }
+      { "hospital": "FindMedi Hospital, Jabalpur", "role": "Consultant Pediatrician", "period": "2017 â€“ Present" },
+      { "hospital": "KK Women's & Children's Hospital, Singapore", "role": "Clinical Fellow", "period": "2016 â€“ 2017" },
+      { "hospital": "Wadia Hospital, Mumbai", "role": "Senior Resident", "period": "2014 â€“ 2016" }
     ],
     "memberships": ["Indian Academy of Pediatrics (IAP)", "National Neonatology Forum (NNF)"],
     "awards": ["IAP Best Clinical Paper 2019"],
@@ -146,7 +146,7 @@
     "emergency_consultation": true,
     "surgery_available": false,
     "payment_modes": ["Cash", "UPI", "Card"],
-    "opd_timings": "9:00 AM – 3:00 PM"
+    "opd_timings": "9:00 AM â€“ 3:00 PM"
   },
   {
     "_id": "doctor-rajesh",
@@ -155,7 +155,7 @@
     "facilityType": "clinic",
     "doctor_type": "clinic",
     "name": "Dr. Rajesh Kumar",
-    "email": "clinic@medicore.com",
+    "email": "clinic@findmedi.com",
     "specialization": "General Medicine",
     "experience": "8 years",
     "qualifications": "MBBS, MD General Medicine",
@@ -183,8 +183,8 @@
       { "degree": "MD General Medicine", "college": "Seth GS Medical College, Mumbai", "year": 2016 }
     ],
     "work_experience": [
-      { "hospital": "Green Clinic & Diagnostics", "role": "Senior Consultant & Owner", "period": "2018 – Present" },
-      { "hospital": "Jabalpur Hospital & Research Centre", "role": "Junior Consultant", "period": "2016 – 2018" }
+      { "hospital": "Green Clinic & Diagnostics", "role": "Senior Consultant & Owner", "period": "2018 â€“ Present" },
+      { "hospital": "Jabalpur Hospital & Research Centre", "role": "Junior Consultant", "period": "2016 â€“ 2018" }
     ],
     "memberships": ["Indian Medical Association (IMA)", "Association of Physicians of India (API)"],
     "awards": ["Best Young Physician Award 2020", "IMA Excellence in Healthcare 2022"],
@@ -193,7 +193,7 @@
     "walk_in_accepted": true,
     "home_visit": true,
     "payment_modes": ["Cash", "UPI", "Card", "Net Banking"],
-    "opd_timings": "9:00 AM – 5:00 PM"
+    "opd_timings": "9:00 AM â€“ 5:00 PM"
   },
   {
     "_id": "doctor-anita",
@@ -229,9 +229,9 @@
       { "degree": "Fellowship in Joint Replacement", "college": "Medanta Medicity, Gurgaon", "year": 2015 }
     ],
     "work_experience": [
-      { "hospital": "City Care Hospital, Jabalpur", "role": "Senior Orthopedic Surgeon", "period": "2016 – Present" },
-      { "hospital": "Medanta Medicity, Gurgaon", "role": "Clinical Fellow", "period": "2015 – 2016" },
-      { "hospital": "Sir JJ Hospital, Mumbai", "role": "Junior Resident", "period": "2013 – 2015" }
+      { "hospital": "City Care Hospital, Jabalpur", "role": "Senior Orthopedic Surgeon", "period": "2016 â€“ Present" },
+      { "hospital": "Medanta Medicity, Gurgaon", "role": "Clinical Fellow", "period": "2015 â€“ 2016" },
+      { "hospital": "Sir JJ Hospital, Mumbai", "role": "Junior Resident", "period": "2013 â€“ 2015" }
     ],
     "memberships": ["Indian Orthopaedic Association (IOA)", "Indian Society of Hip & Knee Surgeons (ISHKS)"],
     "awards": ["IOA Best Clinical Paper 2018"],
@@ -243,7 +243,7 @@
     "emergency_consultation": false,
     "surgery_available": true,
     "payment_modes": ["Cash", "UPI", "Card", "Net Banking"],
-    "opd_timings": "9:00 AM – 5:00 PM"
+    "opd_timings": "9:00 AM â€“ 5:00 PM"
   },
   {
     "_id": "doctor-meera",
@@ -278,17 +278,17 @@
       { "degree": "MD Dermatology", "college": "BHU Institute of Medical Sciences, Varanasi", "year": 2017 }
     ],
     "work_experience": [
-      { "hospital": "Meera Skin & Hair Clinic", "role": "Consultant Dermatologist & Owner", "period": "2019 – Present" },
-      { "hospital": "AIIMS Delhi", "role": "Senior Resident", "period": "2017 – 2019" }
+      { "hospital": "Meera Skin & Hair Clinic", "role": "Consultant Dermatologist & Owner", "period": "2019 â€“ Present" },
+      { "hospital": "AIIMS Delhi", "role": "Senior Resident", "period": "2017 â€“ 2019" }
     ],
     "memberships": ["Indian Association of Dermatologists (IADVL)"],
-    "awards": ["Best Poster Presentation – IADVL National Conference 2018"],
+    "awards": ["Best Poster Presentation â€“ IADVL National Conference 2018"],
     "registrations": { "council": "Madhya Pradesh Medical Council", "number": "MPMC-2017-03892" },
     "clinic_reception_phone": "0761-4033221",
     "walk_in_accepted": true,
     "home_visit": true,
     "payment_modes": ["Cash", "UPI", "Card"],
-    "opd_timings": "10:00 AM – 6:00 PM"
+    "opd_timings": "10:00 AM â€“ 6:00 PM"
   },
   {
     "_id": "doctor-sunil",
@@ -324,8 +324,8 @@
       { "degree": "Fellowship in Neonatology", "college": "AIIMS Delhi", "year": 2015 }
     ],
     "work_experience": [
-      { "hospital": "Sunil Child Care Centre", "role": "Senior Pediatrician & Owner", "period": "2016 – Present" },
-      { "hospital": "Bombay Hospital, Mumbai", "role": "Consultant Pediatrician", "period": "2015 – 2016" }
+      { "hospital": "Sunil Child Care Centre", "role": "Senior Pediatrician & Owner", "period": "2016 â€“ Present" },
+      { "hospital": "Bombay Hospital, Mumbai", "role": "Consultant Pediatrician", "period": "2015 â€“ 2016" }
     ],
     "memberships": ["Indian Academy of Pediatrics (IAP)", "National Neonatology Forum (NNF)"],
     "awards": ["IAP Best Paper Award 2021", "Excellence in Child Healthcare 2019"],
@@ -334,7 +334,7 @@
     "walk_in_accepted": true,
     "home_visit": true,
     "payment_modes": ["Cash", "UPI", "Card", "Net Banking"],
-    "opd_timings": "9:00 AM – 6:00 PM"
+    "opd_timings": "9:00 AM â€“ 6:00 PM"
   },
   {
     "_id": "doctor-neha",
@@ -370,8 +370,8 @@
       { "degree": "Fellowship in Reproductive Medicine", "college": "Nova IVI Fertility, Bangalore", "year": 2016 }
     ],
     "work_experience": [
-      { "hospital": "Neha Women's Health Clinic", "role": "Consultant Gynecologist & Owner", "period": "2019 – Present" },
-      { "hospital": "Lilavati Hospital, Mumbai", "role": "Associate Consultant", "period": "2016 – 2019" }
+      { "hospital": "Neha Women's Health Clinic", "role": "Consultant Gynecologist & Owner", "period": "2019 â€“ Present" },
+      { "hospital": "Lilavati Hospital, Mumbai", "role": "Associate Consultant", "period": "2016 â€“ 2019" }
     ],
     "memberships": ["Federation of Obstetric & Gynaecological Societies of India (FOGSI)"],
     "awards": ["FOGSI Young Gynecologist Award 2020"],
@@ -380,7 +380,7 @@
     "walk_in_accepted": true,
     "home_visit": true,
     "payment_modes": ["Cash", "UPI", "Card"],
-    "opd_timings": "10:00 AM – 5:00 PM"
+    "opd_timings": "10:00 AM â€“ 5:00 PM"
   },
   {
     "_id": "doctor-arjun",
@@ -417,8 +417,8 @@
       { "degree": "DNB Orthopedics", "college": "National Board of Examinations", "year": 2015 }
     ],
     "work_experience": [
-      { "hospital": "Arjun Ortho & Physio Clinic", "role": "Consultant Orthopedic Surgeon & Owner", "period": "2017 – Present" },
-      { "hospital": "Apollo Hospitals, Delhi", "role": "Junior Consultant", "period": "2015 – 2017" }
+      { "hospital": "Arjun Ortho & Physio Clinic", "role": "Consultant Orthopedic Surgeon & Owner", "period": "2017 â€“ Present" },
+      { "hospital": "Apollo Hospitals, Delhi", "role": "Junior Consultant", "period": "2015 â€“ 2017" }
     ],
     "memberships": ["Indian Orthopaedic Association (IOA)", "Indian Society of Sports Orthopedics (ISSO)"],
     "awards": ["IOA Best Clinical Paper 2019"],
@@ -426,7 +426,7 @@
     "clinic_reception_phone": "0761-4065432",
     "walk_in_accepted": true,
     "payment_modes": ["Cash", "UPI", "Card", "Net Banking"],
-    "opd_timings": "8:00 AM – 6:00 PM"
+    "opd_timings": "8:00 AM â€“ 6:00 PM"
   },
   {
     "_id": "doctor-rohit",
@@ -462,8 +462,8 @@
       { "degree": "Fellowship in Cosmetic Dermatology", "college": "American Academy of Aesthetic Medicine", "year": 2018 }
     ],
     "work_experience": [
-      { "hospital": "City Care Hospital, Jabalpur", "role": "Consultant Dermatologist", "period": "2018 – Present" },
-      { "hospital": "Max Healthcare, Delhi", "role": "Senior Resident", "period": "2016 – 2018" }
+      { "hospital": "City Care Hospital, Jabalpur", "role": "Consultant Dermatologist", "period": "2018 â€“ Present" },
+      { "hospital": "Max Healthcare, Delhi", "role": "Senior Resident", "period": "2016 â€“ 2018" }
     ],
     "memberships": ["Indian Association of Dermatologists (IADVL)"],
     "awards": ["IADVL Best Poster 2019"],
@@ -475,6 +475,6 @@
     "emergency_consultation": true,
     "surgery_available": false,
     "payment_modes": ["Cash", "UPI", "Card"],
-    "opd_timings": "10:00 AM – 5:00 PM"
+    "opd_timings": "10:00 AM â€“ 5:00 PM"
   }
 ]

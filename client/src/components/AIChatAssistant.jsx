@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 
-const SYSTEM_PROMPT = `You are MediCore AI, a helpful health assistant. Your role:
+const SYSTEM_PROMPT = `You are FindMedi AI, a helpful health assistant. Your role:
 - Answer health-related questions only (symptoms, diseases, medicines, fitness, nutrition, mental health)
 - For specific diseases/symptoms, suggest visiting relevant clinics or hospitals and recommend consulting a doctor
 - NEVER give definitive medical diagnoses — always advise consulting a healthcare professional
@@ -48,7 +48,7 @@ export default function AIChatAssistant() {
     if (saved) {
       try {
         setChatSessions(JSON.parse(saved));
-      } catch (e) {
+      } catch {
         console.error("Failed to parse chat history");
       }
     }
@@ -217,7 +217,7 @@ export default function AIChatAssistant() {
                   <span className="absolute bottom-0 right-0 w-3 h-3 bg-success rounded-full border-2 border-card shadow-sm" />
                 </div>
                 <div>
-                  <p className="font-heading font-bold text-base text-foreground leading-tight">MediCore AI</p>
+                  <p className="font-heading font-bold text-base text-foreground leading-tight">FindMedi AI</p>
                   <p className="text-xs text-muted-foreground font-medium flex items-center gap-1">
                     <span className="inline-block w-1.5 h-1.5 rounded-full bg-success" />
                     Health Assistant · Online
@@ -337,7 +337,7 @@ export default function AIChatAssistant() {
                     </div>
                     <span className="absolute bottom-1 right-1 w-4 h-4 bg-success rounded-full border-2 border-card shadow-sm" />
                   </div>
-                  <p className="font-heading text-lg font-bold text-foreground">MediCore AI</p>
+                  <p className="font-heading text-lg font-bold text-foreground">FindMedi AI</p>
                   <p className="text-xs text-primary font-semibold uppercase tracking-wide mt-0.5">Advanced Health Assistant</p>
                   <p className="text-sm text-muted-foreground mt-3 max-w-[280px] leading-relaxed">
                     Ask me about symptoms, diseases, medicines, nutrition, or general health tips. I'll help guide you to the right care.
@@ -439,7 +439,7 @@ export default function AIChatAssistant() {
                   <ImagePlus className="w-4 h-4" />
                 </button>
                 <Input value={input} onChange={(e) => setInput(e.target.value)}
-                  placeholder="Message MediCore AI..."
+                  placeholder="Message FindMedi AI..."
                   onKeyDown={(e) => { if (e.key === 'Enter') sendMessage(); }}
                   className="flex-1 bg-background border-border/50 focus-visible:ring-primary/30"
                 />
@@ -449,7 +449,7 @@ export default function AIChatAssistant() {
               </div>
               <p className="text-[10px] text-muted-foreground mt-2 text-center flex items-center justify-center gap-1.5">
                 <Sparkles className="w-2.5 h-2.5" />
-                MediCore AI can make mistakes. Always consult a healthcare professional for medical advice.
+                FindMedi AI can make mistakes. Always consult a healthcare professional for medical advice.
               </p>
             </div>
               </>

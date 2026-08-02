@@ -44,8 +44,8 @@ async function getValidAccessToken(tokens) {
   return result.token;
 }
 
-async function getOrCreateMedicoreFolder(accessToken) {
-  const query = encodeURIComponent("name='Medicore' and mimeType='application/vnd.google-apps.folder' and trashed=false");
+async function getOrCreateFindMediFolder(accessToken) {
+  const query = encodeURIComponent("name='FindMedi' and mimeType='application/vnd.google-apps.folder' and trashed=false");
   const searchRes = await fetch(
     `https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id,name)`,
     {
@@ -65,7 +65,7 @@ async function getOrCreateMedicoreFolder(accessToken) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      name: 'Medicore',
+      name: 'FindMedi',
       mimeType: 'application/vnd.google-apps.folder',
     }),
   });
@@ -79,11 +79,11 @@ async function uploadFileToDrive(tokens, fileBuffer, filename, mimeType) {
   }
 
   const accessToken = await getValidAccessToken(tokens);
-  const folderId = await getOrCreateMedicoreFolder(accessToken);
+  const folderId = await getOrCreateFindMediFolder(accessToken);
 
-  const boundary = `medicore_${Date.now()}`;
+  const boundary = `findmedi_${Date.now()}`;
   const metadata = {
-    name: `Medicore_${filename}`,
+    name: `FindMedi_${filename}`,
     parents: [folderId],
   };
 

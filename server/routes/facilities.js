@@ -179,8 +179,8 @@ router.post('/register', validate(registerFacilitySchema), async (req, res) => {
     try {
       await sendEmail({
         to: adminEmail,
-        subject: `MediCore - ${type} registration received`,
-        html: `<h2>Registration Received</h2><p>Dear ${adminName},</p><p>Your ${type} <strong>${name}</strong> has been registered on MediCore. Our team will review and approve it within 24-48 hours.</p><p>You will receive a notification once approved.</p>`,
+        subject: `FindMedi - ${type} registration received`,
+        html: `<h2>Registration Received</h2><p>Dear ${adminName},</p><p>Your ${type} <strong>${name}</strong> has been registered on FindMedi. Our team will review and approve it within 24-48 hours.</p><p>You will receive a notification once approved.</p>`,
       });
     } catch (emailErr) {
       logger.error('Facility registration confirmation email failed:', emailErr.message);

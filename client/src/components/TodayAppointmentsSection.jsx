@@ -3,12 +3,13 @@ import {
   Clock, Phone, Mail, MapPin, Droplet, User, CalendarDays,
   ChevronDown, ChevronUp, FileText, Stethoscope, CheckCircle,
   ArrowLeft, Download, Receipt, RotateCcw, Search, Info, X,
+  UserX, Ban,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { api, downloadInvoicePdf } from '@/lib/api';
+import { api, downloadInvoicePdf, resolveFileUrl } from '@/lib/api';
 import {
   getHourSlots, getSubSlotsForHour, hourBoxFor, subSlotFor, parseTime,
 } from '@/lib/timeSlots';
@@ -69,6 +70,22 @@ export default function TodayAppointmentsSection({
     () => todays.filter(a => (a.status || '').toLowerCase() === 'completed'),
     [todays]
   );
+  const absentAppointments = useMemo(
+    () => todays.filter(a => (a.status || '').toLowerCase() === 'missed'),
+    [todays]
+  );
+  const [rightTab, setRightTab] = useState('completed');
+  const [completedSearch, setCompletedSearch] = useState('');
+  const shownRightAppointments = rightTab === 'completed' ? completedAppointments : absentAppointments;
+  const filteredCompleted = useMemo(() => {
+    if (!completedSearch.trim()) return shownRightAppointments;
+    const q = completedSearch.toLowerCase();
+    return shownRightAppointments.filter(a =>
+      (a.patient || '').toLowerCase().includes(q) ||
+      (a.patientId?.name || '').toLowerCase().includes(q) ||
+      (a.patientId?.phone || '').toLowerCase().includes(q)
+    );
+  }, [shownRightAppointments, completedSearch]);
 
   // Hour filter (null = show all hours of the day). Sub-slot filter (null = all sub-slots).
   const [selectedHour, setSelectedHour] = useState(null);
@@ -94,15 +111,12 @@ export default function TodayAppointmentsSection({
   }, [hourAppointments, selectedSubSlot]);
 
   // Highlighted patient in the left panel list (cards are always all visible in the middle)
-  const [selectedAptId, setSelectedAptId] = useState(null);
+  const [, setSelectedAptId] = useState(null);
 
   // History modal
   const [historyPatient, setHistoryPatient] = useState(null);
   // File viewer popup
   const [fileViewerUrl, setFileViewerUrl] = useState(null);
-
-  // Completed-section search
-  const [completedSearch, setCompletedSearch] = useState('');
 
   // Visit-number for history button visibility (2nd+ visit)
   const pastVisitCountFor = useCallback((apt) => {
@@ -114,16 +128,6 @@ export default function TodayAppointmentsSection({
       String(a.patientId?._id || a.patientId) === String(pid)
     ).length;
   }, [appointments, selectedDate]);
-
-  const filteredCompleted = useMemo(() => {
-    if (!completedSearch.trim()) return completedAppointments;
-    const q = completedSearch.toLowerCase();
-    return completedAppointments.filter(a =>
-      (a.patient || '').toLowerCase().includes(q) ||
-      (a.patientId?.name || '').toLowerCase().includes(q) ||
-      (a.patientId?.phone || '').toLowerCase().includes(q)
-    );
-  }, [completedAppointments, completedSearch]);
 
   // ── Handlers ──────────────────────────────────────────────
   const handleHourClick = (h) => {
@@ -208,8 +212,9 @@ export default function TodayAppointmentsSection({
       if (!rx) { toast.info('No prescription record found'); return; }
       toast.success('Opening prescription…');
       // Open any attachment if present, else show a toast with details
-      if (rx.attachments && rx.attachments[0]) {
-        window.open(rx.attachments[0].url || rx.attachments[0], '_blank');
+      const att = rx.attachments?.[0];
+      if (att?.url) {
+        window.open(resolveFileUrl(att.url), '_blank');
       } else {
         toast.message(`Prescription: ${rx.diagnosis || 'N/A'}`, {
           description: (rx.prescription || '').slice(0, 120),
@@ -301,7 +306,10 @@ export default function TodayAppointmentsSection({
                     onConfirmComplete={handleConfirmComplete}
                     onOpenHistory={openHistory}
                     onWritePrescription={handleWritePrescription}
-                    onViewFile={setFileViewerUrl}
+                      onViewFile={(url) => setFileViewerUrl(resolveFileUrl(url))}
+                    onRefresh={onRefresh}
+                    user={user}
+                    selectedDate={selectedDate}
                   />
                 </div>
               ))}
@@ -310,32 +318,56 @@ export default function TodayAppointmentsSection({
         </div>
       </div>
 
-      {/* ════════════ RIGHT PANEL: Completed Today ════════════ */}
+      {/* ════════════ RIGHT PANEL: Completed / Absent ════════════ */}
       <div className="space-y-4 flex flex-col md:min-h-0">
         <div className="bg-card rounded-2xl border border-border/60 p-4 shadow-sm shrink-0">
           <div className="flex items-center justify-between mb-3">
-            <h4 className="font-heading text-sm font-semibold text-foreground flex items-center gap-2">
-              <CheckCircle className="w-4 h-4 text-success" />
-              Completed Today
-              {completedAppointments.length > 0 && (
-                <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-success/10 text-success">
-                  {completedAppointments.length}
+            {/* Completed / Absent Toggle — LEFT side */}
+            <div className="flex bg-muted/50 p-0.5 rounded-lg border border-border/40">
+              <button
+                onClick={() => setRightTab('completed')}
+                className={`px-2.5 py-1 rounded-md text-[10px] font-semibold transition-all ${rightTab === 'completed' ? 'bg-card shadow-sm text-success' : 'text-muted-foreground hover:text-foreground'}`}
+              >
+                Completed
+              </button>
+              <button
+                onClick={() => setRightTab('absent')}
+                className={`px-2.5 py-1 rounded-md text-[10px] font-semibold transition-all ${rightTab === 'absent' ? 'bg-card shadow-sm text-destructive' : 'text-muted-foreground hover:text-foreground'}`}
+              >
+                Absent
+              </button>
+            </div>
+
+            {/* Title — CENTERED, no wrap */}
+            <h4 className="font-heading text-sm font-semibold text-foreground flex items-center gap-1.5 flex-1 justify-center whitespace-nowrap">
+              {rightTab === 'completed' ? (
+                <CheckCircle className="w-4 h-4 text-success" />
+              ) : (
+                <UserX className="w-4 h-4 text-destructive" />
+              )}
+              {rightTab === 'completed' ? 'Completed Today' : 'Absent Today'}
+              {shownRightAppointments.length > 0 && (
+                <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${rightTab === 'completed' ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}`}>
+                  {shownRightAppointments.length}
                 </span>
               )}
             </h4>
+
+            {/* Spacer to balance the layout */}
+            <div className="w-[100px]" />
           </div>
 
           {/* Compact hour boxes (smaller) */}
           <div className="flex gap-1.5 overflow-x-auto pb-2 scrollbar-thin">
             {hourSlots.map(h => {
-              const count = completedAppointments.filter(a => hourBoxFor(a.time) === h).length;
+              const count = shownRightAppointments.filter(a => hourBoxFor(a.time) === h).length;
               return (
                 <button
                   key={h}
                   className={`shrink-0 px-2.5 py-1 rounded-md text-[11px] font-medium ${
-                    count > 0 ? 'bg-success/15 text-success' : 'bg-muted/40 text-muted-foreground/60'
+                    count > 0 ? (rightTab === 'completed' ? 'bg-success/15 text-success' : 'bg-destructive/15 text-destructive') : 'bg-muted/40 text-muted-foreground/60'
                   }`}
-                  title={`${h} — ${count} completed`}
+                  title={`${h} — ${count} ${rightTab}`}
                 >
                   {h.replace(/ (AM|PM)/, '')}
                 </button>
@@ -343,14 +375,14 @@ export default function TodayAppointmentsSection({
             })}
           </div>
 
-          {/* Sub-slots row — show all unique sub-slots from completed appointments */}
+          {/* Sub-slots row — show all unique sub-slots from shown appointments */}
           <div className="flex gap-1.5 overflow-x-auto pb-2 mt-1 scrollbar-thin">
             {(() => {
-              const completedSubSlots = [...new Set(completedAppointments.map(a => subSlotFor(a.time)).filter(Boolean))];
-              if (completedSubSlots.length === 0) {
+              const subSlotsList = [...new Set(shownRightAppointments.map(a => subSlotFor(a.time)).filter(Boolean))];
+              if (subSlotsList.length === 0) {
                 return <span className="text-[10px] text-muted-foreground/50 px-1">No slots</span>;
               }
-              return completedSubSlots.map(s => (
+              return subSlotsList.map(s => (
                 <span key={s} className="shrink-0 px-2 py-0.5 rounded text-[10px] font-medium bg-muted/50 text-muted-foreground">
                   {s}
                 </span>
@@ -362,7 +394,7 @@ export default function TodayAppointmentsSection({
           <div className="relative mt-2 w-full">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
             <Input
-              placeholder="Search completed…"
+              placeholder={rightTab === 'completed' ? 'Search completed…' : 'Search absent…'}
               value={completedSearch}
               onChange={e => setCompletedSearch(e.target.value)}
               className="pl-8 h-8 text-xs w-full"
@@ -370,14 +402,18 @@ export default function TodayAppointmentsSection({
           </div>
         </div>
 
-        {/* Completed cards — fill panel height, scroll inside the section */}
+        {/* Cards — fill panel height, scroll inside the section */}
         <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pr-1 scrollbar-thin flex flex-col">
           {filteredCompleted.length === 0 ? (
             <div className="bg-card rounded-2xl border border-border/60 p-6 text-center flex-1 flex flex-col items-center justify-center">
-              <CheckCircle className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
+              {rightTab === 'completed' ? (
+                <CheckCircle className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
+              ) : (
+                <UserX className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
+              )}
               <p className="text-sm text-muted-foreground">
-                {completedAppointments.length === 0
-                  ? 'No completed appointments today.'
+                {shownRightAppointments.length === 0
+                  ? (rightTab === 'completed' ? 'No completed appointments today.' : 'No absent patients today.')
                   : 'No results match your search.'}
               </p>
             </div>
@@ -385,15 +421,19 @@ export default function TodayAppointmentsSection({
             <div className="space-y-3 flex flex-col min-h-full">
               {filteredCompleted.map(apt => (
                 <div key={apt._id} className="flex-1 flex flex-col">
-                  <CompletedCard
-                    apt={apt}
-                    onRevert={handleRevert}
-                    onDownloadPrescription={handleDownloadPrescription}
-                    onDownloadInvoice={(a) => a.invoiceId && downloadInvoicePdf(a.invoiceId, `invoice-${a.patient}.pdf`)}
-                    onViewDetails={onViewDetails}
-                    subSlotFor={subSlotFor}
-                    onViewFile={setFileViewerUrl}
-                  />
+                  {rightTab === 'completed' ? (
+                    <CompletedCard
+                      apt={apt}
+                      onRevert={handleRevert}
+                      onDownloadPrescription={handleDownloadPrescription}
+                      onDownloadInvoice={(a) => a.invoiceId && downloadInvoicePdf(a.invoiceId, `invoice-${a.patient}.pdf`)}
+                      onViewDetails={onViewDetails}
+                      subSlotFor={subSlotFor}
+                    onViewFile={(url) => setFileViewerUrl(resolveFileUrl(url))}
+                    />
+                  ) : (
+                    <AbsentCard apt={apt} subSlotFor={subSlotFor} />
+                  )}
                 </div>
               ))}
             </div>
@@ -444,6 +484,7 @@ export default function TodayAppointmentsSection({
 function PatientDetailCard({
   apt, pastVisitCount,
   onConfirmComplete, onOpenHistory, onWritePrescription, onViewFile,
+  onRefresh, user, selectedDate,
 }) {
   const patient = apt.patientId;
   const intake = apt.preConsultationDetails;
@@ -454,6 +495,9 @@ function PatientDetailCard({
 
   // "Complete" flow state
   const [completing, setCompleting] = useState(false);
+  // "Absent" flow state
+  const [markingAbsent, setMarkingAbsent] = useState(false);
+  const [absentNote, setAbsentNote] = useState('');
   const [quickNote, setQuickNote] = useState('');
 
   const handleConfirmComplete = async () => {
@@ -487,9 +531,69 @@ function PatientDetailCard({
           className="min-h-[120px] mb-4"
         />
         <div className="flex gap-2">
-          <Button variant="outline" className="flex-1" onClick={() => setCompleting(false)}>Back</Button>
+          <Button variant="outline" className="flex-1" onClick={() => setCompleting(false)}>Cancel</Button>
           <Button className="flex-1 gap-2" onClick={handleConfirmComplete}>
             <CheckCircle className="w-4 h-4" /> Confirm
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (markingAbsent) {
+    return (
+      <div className="bg-card rounded-2xl border border-destructive/30 p-5 shadow-sm flex-1 flex flex-col">
+        <button
+          onClick={() => setMarkingAbsent(false)}
+          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-4"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back
+        </button>
+        <h3 className="font-heading text-base font-bold text-foreground mb-1 flex items-center gap-2">
+          <UserX className="w-5 h-5 text-destructive" /> Mark Patient as Absent
+        </h3>
+        <p className="text-xs text-muted-foreground mb-4">
+          Add a note about why the patient was absent (optional). This will help track no-shows.
+        </p>
+        <Textarea
+          placeholder="Type reason for absence…"
+          value={absentNote}
+          onChange={e => setAbsentNote(e.target.value)}
+          className="min-h-[120px] mb-4"
+        />
+        <div className="flex gap-2">
+          <Button variant="outline" className="flex-1" onClick={() => setMarkingAbsent(false)}>Cancel</Button>
+          <Button
+            className="flex-1 gap-2 bg-destructive/10 text-destructive border border-destructive/30 hover:bg-destructive/20"
+            onClick={async () => {
+              try {
+                await api.updateAppointment(apt._id, { status: 'Missed' });
+                if (absentNote.trim()) {
+                  const pid = apt.patientId?._id || apt.patientId;
+                  try {
+                    await api.createRecord({
+                      patient: apt.patient,
+                      patientId: pid,
+                      doctor: user?.name,
+                      diagnosis: 'Absent Note',
+                      type: 'Diagnosis',
+                      notes: absentNote.trim(),
+                      data: { date: selectedDate, note: absentNote.trim(), reason: 'absent' },
+                    });
+                  } catch (noteErr) {
+                    console.error('Absent note save failed:', noteErr);
+                  }
+                }
+                toast.success('Patient marked as absent');
+                setMarkingAbsent(false);
+                setAbsentNote('');
+                onRefresh?.();
+              } catch (e) {
+                toast.error(e.message || 'Failed to mark absent');
+              }
+            }}
+          >
+            <UserX className="w-4 h-4" /> Confirm Absent
           </Button>
         </div>
       </div>
@@ -554,14 +658,8 @@ function PatientDetailCard({
         </div>
       )}
 
-      {/* 4 action buttons */}
+      {/* Row 1: Previous · Prescription · Intake Details · Details — one line */}
       <div className="grid grid-cols-4 gap-1.5 mb-1.5">
-        <Button
-          variant="outline" size="sm" className="gap-1 text-[10px] px-2 py-1 h-7"
-          onClick={() => setShowDetails(!showDetails)}
-        >
-          <FileText className="w-3 h-3" /> Details
-        </Button>
         {pastVisitCount > 0 ? (
           <Button
             variant="outline" size="sm" className="gap-1 text-[10px] px-2 py-1 h-7"
@@ -569,7 +667,15 @@ function PatientDetailCard({
           >
             <CalendarDays className="w-3 h-3" /> Previous
           </Button>
-        ) : <div />}
+        ) : (
+          <Button
+            variant="outline" size="sm" disabled
+            className="gap-1 text-[10px] px-2 py-1 h-7 border-destructive/30 text-destructive/40 cursor-not-allowed opacity-60"
+            title="No previous visit history"
+          >
+            <Ban className="w-3 h-3" /> Previous
+          </Button>
+        )}
         <Button
           variant="outline" size="sm" className="gap-1 text-[10px] px-2 py-1 h-7"
           onClick={() => onWritePrescription(apt)}
@@ -577,19 +683,34 @@ function PatientDetailCard({
           <Stethoscope className="w-3 h-3" /> Prescription
         </Button>
         <Button
-          size="sm" className="gap-1 text-[10px] px-2 py-1 h-7 bg-success hover:bg-success/90"
-          onClick={() => setCompleting(true)}
+          variant="outline" size="sm" className="gap-1 text-[10px] px-2 py-1 h-7"
+          onClick={() => setShowIntake(!showIntake)}
         >
-          <CheckCircle className="w-3 h-3" /> Complete
+          <FileText className="w-3 h-3" /> Intake
+        </Button>
+        <Button
+          variant="outline" size="sm" className="gap-1 text-[10px] px-2 py-1 h-7"
+          onClick={() => setShowDetails(!showDetails)}
+        >
+          <FileText className="w-3 h-3" /> Details
         </Button>
       </div>
 
-      <Button
-        variant="outline" size="sm" className="w-full gap-1 text-[10px] px-2 py-1 h-7 border-dashed border-border/80 hover:bg-muted/30"
-        onClick={() => setShowIntake(!showIntake)}
-      >
-        <FileText className="w-3 h-3 text-muted-foreground" /> Intake Details
-      </Button>
+      {/* Row 2: Mark as Absent | Mark as Complete — side by side */}
+      <div className="grid grid-cols-2 gap-1.5">
+        <Button
+          size="sm" className="gap-1 text-[10px] px-2 py-1 h-7 bg-destructive/10 text-destructive border border-destructive/30 hover:bg-destructive/20"
+          onClick={() => setMarkingAbsent(true)}
+        >
+          <UserX className="w-3 h-3" /> Mark Absent
+        </Button>
+        <Button
+          size="sm" className="gap-1 text-[10px] px-2 py-1 h-7 bg-success hover:bg-success/90"
+          onClick={() => setCompleting(true)}
+        >
+          <CheckCircle className="w-3 h-3" /> Mark Complete
+        </Button>
+      </div>
 
       {/* View Details dropdown — appears below the buttons */}
       {showDetails && (
@@ -698,7 +819,7 @@ function PatientDetailCard({
  * Completed appointment card (right panel)
  * Shows patient info, intake details, and small action buttons.
  * ════════════════════════════════════════════════════════════ */
-export function CompletedCard({ apt, subSlotFor, onRevert, onDownloadPrescription, onDownloadInvoice, onViewDetails, onViewFile, stats }) {
+export function CompletedCard({ apt, subSlotFor, onRevert, onDownloadPrescription, onDownloadInvoice, onViewFile, stats }) {
   const patient = apt.patientId;
   const intake = apt.preConsultationDetails;
 
@@ -894,6 +1015,155 @@ export function CompletedCard({ apt, subSlotFor, onRevert, onDownloadPrescriptio
         </div>
       )}
 
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════
+ * Absent appointment card (right panel - absent tab)
+ * Shows patient info with red "Missed" badge and revert button.
+ * ════════════════════════════════════════════════════════════ */
+function AbsentCard({ apt, subSlotFor }) {
+  const patient = apt.patientId;
+  const intake = apt.preConsultationDetails;
+  const [showDetails, setShowDetails] = useState(false);
+  const [showIntake, setShowIntake] = useState(false);
+
+  return (
+    <div className="bg-card rounded-2xl border border-destructive/30 p-5 shadow-sm flex-1 flex flex-col mb-3">
+      {/* Time + slot highlight banner — red for absent */}
+      <div className="mb-3 rounded-xl bg-gradient-to-r from-destructive via-red-500 to-destructive px-3 py-2 flex items-center justify-center gap-1.5 shadow-sm">
+        <Clock className="w-3.5 h-3.5 text-white" />
+        <span className="text-sm font-bold text-white tracking-wide">
+          {apt.time} {subSlotFor && `· ${subSlotFor(apt.time)}`}
+        </span>
+      </div>
+
+      {/* Header: photo + name */}
+      <div className="flex items-start gap-3 mb-4">
+        <div className="w-14 h-14 rounded-full bg-destructive/10 flex items-center justify-center text-lg font-bold text-destructive shrink-0 overflow-hidden">
+          {patient?.avatar ? (
+            <img src={patient.avatar} alt={apt.patient} className="w-full h-full object-cover" />
+          ) : (
+            (apt.patient || '?').slice(0, 2).toUpperCase()
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="font-heading text-base font-bold text-foreground truncate">{apt.patient}</h3>
+          <div className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full font-semibold bg-destructive/10 text-destructive text-[10px]">
+            <UserX className="w-3 h-3" />
+            Absent / Missed
+          </div>
+        </div>
+      </div>
+
+      {/* Personal details grid */}
+      <div className="grid grid-cols-2 gap-2 text-sm mb-4">
+        {patient?.dateOfBirth && (
+          <Detail icon={User} label="Age" value={`${Math.floor((new Date() - new Date(patient.dateOfBirth)) / 31557600000)} yrs`} />
+        )}
+        {patient?.phone && (
+          <Detail icon={Phone} label="Phone" value={patient.phone} />
+        )}
+        {patient?.email && (
+          <Detail icon={Mail} label="Email" value={patient.email} />
+        )}
+        {patient?.gender && (
+          <Detail icon={User} label="Gender" value={patient.gender} />
+        )}
+        {patient?.address && (
+          <div className="col-span-2">
+            <Detail icon={MapPin} label="Address" value={patient.address} />
+          </div>
+        )}
+        {patient?.bloodGroup && (
+          <Detail icon={Droplet} label="Blood" value={patient.bloodGroup} />
+        )}
+      </div>
+
+      {/* Action buttons */}
+      <div className="grid grid-cols-2 gap-1.5 mb-1.5">
+        <Button
+          variant="outline" size="sm" className="gap-1 text-[10px] px-2 py-1 h-7 text-warning hover:text-warning"
+          onClick={async () => {
+            try {
+              await api.updateAppointment(apt._id, { status: 'Confirmed' });
+              toast.success('Appointment reverted to Confirmed');
+            } catch {
+              toast.error('Failed to revert appointment');
+            }
+          }}
+        >
+          <RotateCcw className="w-3 h-3" /> Revert
+        </Button>
+        <Button
+          variant="outline" size="sm" className="gap-1 text-[10px] px-2 py-1 h-7 text-primary hover:text-primary"
+          onClick={() => setShowDetails(!showDetails)}
+        >
+          <Info className="w-3 h-3" /> Details
+        </Button>
+      </div>
+
+      <Button
+        variant="outline" size="sm" className="w-full gap-1 text-[10px] px-2 py-1 h-7 border-dashed border-border/80 hover:bg-muted/30"
+        onClick={() => setShowIntake(!showIntake)}
+      >
+        <FileText className="w-3 h-3 text-muted-foreground" /> Intake Details
+      </Button>
+
+      {/* View Details dropdown */}
+      {showDetails && (
+        <div className="mt-3 bg-muted/20 rounded-xl p-4 border border-border/40">
+          <h4 className="text-sm font-bold text-foreground mb-3 flex items-center gap-1.5">
+            <FileText className="w-3.5 h-3.5 text-primary" /> Appointment Details
+          </h4>
+          <div className="space-y-2.5">
+            <div className="flex justify-between items-center pb-2 border-b border-border/50">
+               <span className="text-sm font-bold">{apt.patient}</span>
+               <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-destructive/10 text-destructive flex items-center gap-1">
+                 <UserX className="w-3 h-3" /> Missed
+               </span>
+            </div>
+            <IntakeRow label="Date" value={formatDisplayDate(apt.date)} />
+            <IntakeRow label="Time" value={apt.time} />
+            <IntakeRow label="Fee" value={`₹${apt.fees || 0}`} />
+            {apt.transactionId && <IntakeRow label="Transaction" value={apt.transactionId} />}
+            {apt.invoiceId && <IntakeRow label="Invoice" value={apt.invoiceId} />}
+            <div className="pt-2 border-t border-border/50 mt-2">
+               <h5 className="text-xs font-bold text-foreground mb-2">Patient Contact</h5>
+               <IntakeRow label="Phone" value={patient?.phone || 'N/A'} />
+               <IntakeRow label="Email" value={patient?.email || 'N/A'} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Intake Form dropdown */}
+      {showIntake && (
+        <div className="mt-3 bg-muted/20 rounded-xl p-4 border border-border/40">
+          <h4 className="text-sm font-bold text-foreground mb-3 flex items-center gap-1.5">
+            <FileText className="w-3.5 h-3.5 text-primary" /> Quick Intake Form
+          </h4>
+          {intake ? (
+            <div className="space-y-2.5">
+              <IntakeRow label="Chief Complaint" value={
+                intake.chiefComplaint === 'Other' ? intake.chiefComplaintOther : intake.chiefComplaint
+              } />
+              {intake.symptomsDuration && <IntakeRow label="Duration" value={intake.symptomsDuration} />}
+              <IntakeRow label="Past Medical History" value={
+                intake.pastMedicalHistory?.hasHistory === false ? 'No' :
+                intake.pastMedicalHistory?.hasHistory === true ? (intake.pastMedicalHistory?.details || 'Yes') : '—'
+              } />
+              <IntakeRow label="Allergies" value={
+                intake.allergies?.hasAllergies === false ? 'No' :
+                intake.allergies?.hasAllergies === true ? (intake.allergies?.details || 'Yes') : '—'
+              } danger={intake.allergies?.hasAllergies === true} />
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground italic">No pre-consultation details available.</p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

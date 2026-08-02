@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
 import { Settings, Bell, Lock, Globe, Moon, Sun, Monitor, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -31,7 +30,7 @@ export default function PatientSettings() {
     <div className="space-y-6">
       <div>
         <h1 className="font-heading text-2xl font-bold text-foreground">Platform Settings</h1>
-        <p className="text-muted-foreground text-sm">Customize your mediCore experience</p>
+        <p className="text-muted-foreground text-sm">Customize your FindMedi experience</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -75,7 +74,7 @@ export default function PatientSettings() {
         <div className="space-y-4">
           <div className="bg-card rounded-3xl border border-border/50 p-5 shadow-sm">
             <h3 className="font-heading font-semibold text-foreground mb-2">Platform</h3>
-            <p className="text-xs text-muted-foreground">mediCore v1.0</p>
+            <p className="text-xs text-muted-foreground">FindMedi v1.0</p>
             <p className="text-xs text-muted-foreground mt-1">Connected to: <span className="text-foreground font-medium">Production</span></p>
           </div>
         </div>

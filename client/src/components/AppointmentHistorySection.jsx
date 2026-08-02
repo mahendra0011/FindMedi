@@ -2,10 +2,11 @@ import { useState, useMemo } from 'react';
 import {
   CalendarDays, ChevronLeft, ChevronRight, Clock, Search, CheckCircle,
   Phone, Mail, FileText, History, CalendarCheck2, TrendingUp, User,
-  BarChart3, Award, Trophy,
+  BarChart3, Award, Trophy, UserX, ChevronUp, ChevronDown,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { getISTDateString, formatDisplayDate } from '@/lib/dateUtils';
+import { resolveFileUrl } from '@/lib/api';
 import { 
   parseTime, subSlotFor, getHourSlots, getSubSlotsForHour, hourBoxFor 
 } from '@/lib/timeSlots';
@@ -19,21 +20,40 @@ import { CompletedCard } from '@/components/TodayAppointmentsSection';
  * Props:
  *  - appointments: all appointments for the doctor (completed are derived)
  */
+
+// Count appointments across time ranges (used for the Status Overview panel)
+const countStats = (list, today) => {
+  const [y, m, d] = today.split('-').map(Number);
+  const ago7 = new Date(y, m - 1, d - 6);
+  const ago7Str = `${ago7.getFullYear()}-${String(ago7.getMonth() + 1).padStart(2, '0')}-${String(ago7.getDate()).padStart(2, '0')}`;
+  const ago6m = new Date(y, m - 6, 1);
+  const ago6mStr = `${ago6m.getFullYear()}-${String(ago6m.getMonth() + 1).padStart(2, '0')}`;
+  return {
+    today: list.filter(a => a.date === today).length,
+    last7: list.filter(a => (a.date || '') >= ago7Str).length,
+    month: list.filter(a => (a.date || '').startsWith(today.slice(0, 7))).length,
+    last6m: list.filter(a => (a.date || '') >= ago6mStr).length,
+    year: list.filter(a => (a.date || '').startsWith(today.slice(0, 4))).length,
+    all: list.length,
+  };
+};
 export default function AppointmentHistorySection({ appointments }) {
   const [calDate, setCalDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(getISTDateString());
+  const [viewMode, setViewMode] = useState('complete'); // 'complete' | 'absent'
+  const [showMore, setShowMore] = useState(false);
 
   const today = getISTDateString();
 
   const getDaysInMonth = (date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
   const getFirstDay = (date) => new Date(date.getFullYear(), date.getMonth(), 1).getDay();
 
-  // All completed appointments for the selected date
-  const completedForDate = useMemo(
-    () => appointments.filter(a => a.date === selectedDate && (a.status || '').toLowerCase() === 'completed'),
-    [appointments, selectedDate]
+  // All completed (or absent) appointments for the selected date — switch ke hisaab se
+  const modeForDate = useMemo(
+    () => appointments.filter(a => a.date === selectedDate && (a.status || '').toLowerCase() === (viewMode === 'complete' ? 'completed' : 'missed')),
+    [appointments, selectedDate, viewMode]
   );
-  const filtered = completedForDate;
+  const filtered = modeForDate;
 
   // Most recently completed first (by consultation end time, fallback to slot time)
   const sorted = useMemo(
@@ -78,57 +98,18 @@ export default function AppointmentHistorySection({ appointments }) {
   const dayName = selDateObj.toLocaleDateString('en-US', { weekday: 'long' });
   const dateLabel = selDateObj.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
 
-  // Summary stats
-  const monthTotal = useMemo(() => {
-    const y = selectedDate.slice(0, 4);
-    const m = selectedDate.slice(5, 7);
-    return appointments.filter(a =>
-      (a.date || '').startsWith(`${y}-${m}`) && (a.status || '').toLowerCase() === 'completed'
-    ).length;
-  }, [appointments, selectedDate]);
-
-  // ── Status overview (all completed appointments, any date) ──
+  // ── Status overview (BOTH completed and absent counts, independent of switch) ──
   const completedAll = useMemo(
     () => appointments.filter(a => (a.status || '').toLowerCase() === 'completed'),
     [appointments]
   );
-
-  const todayCount = useMemo(
-    () => completedAll.filter(a => a.date === today).length,
-    [completedAll, today]
+  const absentAll = useMemo(
+    () => appointments.filter(a => (a.status || '').toLowerCase() === 'missed'),
+    [appointments]
   );
 
-  // Monday start of the current week (Sun → treats it as end of previous week)
-  const weekStart = useMemo(() => {
-    const [y, m, d] = today.split('-').map(Number);
-    const wd = new Date(y, m - 1, d).getDay();
-    const monday = new Date(y, m - 1, d - (wd === 0 ? 6 : wd - 1));
-    return `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
-  }, [today]);
-
-  const weekCount = useMemo(
-    () => completedAll.filter(a => (a.date || '') >= weekStart).length,
-    [completedAll, weekStart]
-  );
-
-  const last7Count = useMemo(() => {
-    const [y, m, d] = today.split('-').map(Number);
-    const ago = new Date(y, m - 1, d - 6);
-    const agoStr = `${ago.getFullYear()}-${String(ago.getMonth() + 1).padStart(2, '0')}-${String(ago.getDate()).padStart(2, '0')}`;
-    return completedAll.filter(a => (a.date || '') >= agoStr).length;
-  }, [completedAll, today]);
-
-  const monthCount = useMemo(
-    () => completedAll.filter(a => (a.date || '').startsWith(today.slice(0, 7))).length,
-    [completedAll, today]
-  );
-
-  const yearCount = useMemo(
-    () => completedAll.filter(a => (a.date || '').startsWith(today.slice(0, 4))).length,
-    [completedAll, today]
-  );
-
-  const allTimeCount = completedAll.length;
+  const completedStats = useMemo(() => countStats(completedAll, today), [completedAll, today]);
+  const absentStats = useMemo(() => countStats(absentAll, today), [absentAll, today]);
 
   // Average completed per active day since the first completed appointment
   const avgPerDay = useMemo(() => {
@@ -155,9 +136,9 @@ export default function AppointmentHistorySection({ appointments }) {
 
   const recent = useMemo(() => {
     return [...appointments]
-      .filter(a => (a.status || '').toLowerCase() === 'completed' && a.date !== selectedDate)
+      .filter(a => (a.status || '').toLowerCase() === (viewMode === 'complete' ? 'completed' : 'missed') && a.date !== selectedDate)
       .sort((a, b) => (b.date || '').localeCompare(a.date || '') || parseTime(b.time) - parseTime(a.time));
-  }, [appointments, selectedDate]);
+  }, [appointments, selectedDate, viewMode]);
   const handleHourClick = (h) => {
     setSelectedHour(selectedHour === h ? null : h); // toggle
     setSelectedSubSlot(null);
@@ -180,14 +161,14 @@ export default function AppointmentHistorySection({ appointments }) {
                 <p className="text-xs text-muted-foreground">{dateLabel}</p>
               </div>
               <div className="text-right">
-                <p className="font-heading text-2xl font-bold text-primary leading-none">{completedForDate.length}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Completed</p>
+                <p className="font-heading text-2xl font-bold text-primary leading-none">{modeForDate.length}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">{viewMode === 'complete' ? 'Completed' : 'Absent'}</p>
               </div>
             </div>
-            {completedForDate.length > 0 && (
+            {modeForDate.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mt-2.5">
-                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-success/10 text-success">
-                  <span className="w-1.5 h-1.5 rounded-full bg-success" /> Completed {completedForDate.length}
+                <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${viewMode === 'complete' ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${viewMode === 'complete' ? 'bg-success' : 'bg-destructive'}`} /> {viewMode === 'complete' ? 'Completed' : 'Absent'} {modeForDate.length}
                 </span>
               </div>
             )}
@@ -224,7 +205,7 @@ export default function AppointmentHistorySection({ appointments }) {
               const dateStr = `${calDate.getFullYear()}-${String(calDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
               const isSelected = dateStr === selectedDate;
               const isToday = dateStr === today;
-              const hasCompleted = appointments.some(a => a.date === dateStr && (a.status || '').toLowerCase() === 'completed');
+              const hasCompleted = appointments.some(a => a.date === dateStr && (a.status || '').toLowerCase() === (viewMode === 'complete' ? 'completed' : 'missed'));
               return (
                 <button
                   key={day}
@@ -234,7 +215,7 @@ export default function AppointmentHistorySection({ appointments }) {
                 >
                   {day}
                   {hasCompleted && !isSelected && (
-                    <span className="absolute bottom-1 w-1 h-1 rounded-full bg-success" />
+                    <span className={`absolute bottom-1 w-1 h-1 rounded-full ${viewMode === 'complete' ? 'bg-success' : 'bg-destructive'}`} />
                   )}
                 </button>
               );
@@ -295,6 +276,31 @@ export default function AppointmentHistorySection({ appointments }) {
 
       {/* ════════════ MIDDLE: Search + History cards (internal scroll) ════════════ */}
       <div className="space-y-4 flex flex-col md:min-h-0">
+        {/* Complete / Absent switch */}
+        <div className="flex items-center justify-between shrink-0 gap-3">
+          <div className="flex gap-1 bg-muted/50 rounded-xl p-1 w-fit">
+            <button
+              onClick={() => setViewMode('complete')}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                viewMode === 'complete' ? 'bg-card text-success shadow-sm' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <CheckCircle className="w-3.5 h-3.5" /> Complete
+            </button>
+            <button
+              onClick={() => setViewMode('absent')}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                viewMode === 'absent' ? 'bg-card text-destructive shadow-sm' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <UserX className="w-3.5 h-3.5" /> Absent
+            </button>
+          </div>
+          <span className={`text-[10px] font-semibold px-2 py-1 rounded-full ${viewMode === 'complete' ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}`}>
+            {viewMode === 'complete' ? 'Completed patients' : 'Missed appointments'}
+          </span>
+        </div>
+
         {/* Date header */}
         <div className="flex items-center justify-between shrink-0">
           <h4 className="font-heading text-base font-semibold text-foreground flex items-center gap-2">
@@ -302,7 +308,7 @@ export default function AppointmentHistorySection({ appointments }) {
             {formatDisplayDate(selectedDate) || selectedDate}
           </h4>
           <span className="text-xs text-muted-foreground">
-            {slotAppointments.length} completed appointment{slotAppointments.length !== 1 ? 's' : ''}
+            {slotAppointments.length} {viewMode === 'complete' ? 'completed' : 'absent'} appointment{slotAppointments.length !== 1 ? 's' : ''}
           </span>
         </div>
 
@@ -310,10 +316,12 @@ export default function AppointmentHistorySection({ appointments }) {
         <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pr-1 scrollbar-thin flex flex-col">
           {slotAppointments.length === 0 ? (
             <div className="bg-card rounded-2xl border border-border/60 p-8 text-center flex-1 flex flex-col items-center justify-center">
-              <CheckCircle className="w-10 h-10 text-muted-foreground/30 mx-auto mb-2" />
+              {viewMode === 'complete'
+                ? <CheckCircle className="w-10 h-10 text-muted-foreground/30 mx-auto mb-2" />
+                : <UserX className="w-10 h-10 text-muted-foreground/30 mx-auto mb-2" />}
               <p className="text-sm text-muted-foreground">
-                {completedForDate.length === 0
-                  ? 'No completed appointments for this date.'
+                {modeForDate.length === 0
+                  ? (viewMode === 'complete' ? 'No completed appointments for this date.' : 'No absent patients for this date.')
                   : 'No results match your time filter.'}
               </p>
             </div>
@@ -323,7 +331,7 @@ export default function AppointmentHistorySection({ appointments }) {
                 <div key={apt._id || i} id={`history-card-${apt._id}`} className="scroll-mt-4">
                   <CompletedCard 
                     apt={apt} 
-                    onViewFile={(url) => window.open(url, '_blank')}
+                    onViewFile={(url) => window.open(resolveFileUrl(url), '_blank')}
                     subSlotFor={subSlotFor}
                   />
                 </div>
@@ -336,19 +344,58 @@ export default function AppointmentHistorySection({ appointments }) {
       {/* ════════════ RIGHT: Status overview + Recent (internal scroll) ════════════ */}
       <div className="space-y-4 flex flex-col md:min-h-0">
 
-        {/* Status overview — completed patients by time range */}
+        {/* Status overview — completed + absent counts (both shown together) */}
         <div className="bg-card rounded-2xl border border-border/60 p-4 shadow-sm shrink-0">
           <h4 className="font-heading text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
             <BarChart3 className="w-4 h-4 text-primary" /> Status Overview
           </h4>
-          <div className="grid grid-cols-3 gap-2">
-            <StatusTile icon={Clock} label="Today" value={todayCount} />
-            <StatusTile icon={CalendarDays} label="Last 7 Days" value={last7Count} />
-            <StatusTile icon={CalendarCheck2} label="This Week" value={weekCount} tone="success" />
-            <StatusTile icon={TrendingUp} label="This Month" value={monthCount} tone="success" />
-            <StatusTile icon={Award} label="This Year" value={yearCount} tone="warning" />
-            <StatusTile icon={History} label="All Time" value={allTimeCount} tone="warning" />
+
+          {/* Completed group */}
+          <div className="flex items-center gap-1.5 mb-2">
+            <CheckCircle className="w-3.5 h-3.5 text-success" />
+            <span className="text-[10px] font-bold uppercase tracking-wider text-success">Completed</span>
           </div>
+          <div className="grid grid-cols-3 gap-2">
+            <StatusTile icon={Clock} label="Today Appointments" value={completedStats.today} />
+            <StatusTile icon={CalendarDays} label="Last 7 Days Appointments" value={completedStats.last7} />
+            <StatusTile icon={CalendarCheck2} label="This Month Appointments" value={completedStats.month} tone="success" />
+            {showMore && (
+              <>
+                <StatusTile icon={History} label="Last 6 Months Appointments" value={completedStats.last6m} tone="warning" />
+                <StatusTile icon={Award} label="This Year Appointments" value={completedStats.year} tone="warning" />
+                <StatusTile icon={BarChart3} label="All Appointments" value={completedStats.all} tone="warning" />
+              </>
+            )}
+          </div>
+
+          {/* Absent group */}
+          <div className="flex items-center gap-1.5 mt-4 mb-2">
+            <UserX className="w-3.5 h-3.5 text-destructive" />
+            <span className="text-[10px] font-bold uppercase tracking-wider text-destructive">Absent</span>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <StatusTile icon={Clock} label="Today Absent" value={absentStats.today} tone="danger" />
+            <StatusTile icon={CalendarDays} label="Last 7 Days Absent" value={absentStats.last7} tone="danger" />
+            <StatusTile icon={CalendarCheck2} label="This Month Absent" value={absentStats.month} tone="danger" />
+            {showMore && (
+              <>
+                <StatusTile icon={History} label="Absent 6 Months" value={absentStats.last6m} tone="danger" />
+                <StatusTile icon={Award} label="This Year Absents" value={absentStats.year} tone="danger" />
+                <StatusTile icon={BarChart3} label="All Absents" value={absentStats.all} tone="danger" />
+              </>
+            )}
+          </div>
+
+          <button
+            onClick={() => setShowMore(!showMore)}
+            className="mt-4 w-full flex items-center justify-center gap-1 text-[11px] font-semibold text-primary hover:text-primary/80 py-1.5 rounded-lg hover:bg-primary/5 transition-colors"
+          >
+            {showMore ? (
+              <><ChevronUp className="w-3.5 h-3.5" /> Show Less</>
+            ) : (
+              <><ChevronDown className="w-3.5 h-3.5" /> More</>
+            )}
+          </button>
           <div className="mt-3 pt-2.5 border-t border-border/40 space-y-1.5">
             <div className="flex items-center justify-between text-[11px]">
               <span className="text-muted-foreground">Avg / Day</span>
@@ -365,16 +412,23 @@ export default function AppointmentHistorySection({ appointments }) {
           </div>
         </div>
 
-        {/* Recent completed (fills to bottom) */}
+        {/* Recent completed/absent (fills to bottom) */}
         <div className="bg-card rounded-2xl border border-border/60 p-4 shadow-sm flex-1 min-h-0 flex flex-col">
           <h4 className="font-heading text-sm font-semibold text-foreground mb-3 flex items-center gap-2 shrink-0">
-            <TrendingUp className="w-4 h-4 text-primary" /> Recent Completed
+            {viewMode === 'complete'
+              ? <TrendingUp className="w-4 h-4 text-primary" />
+              : <UserX className="w-4 h-4 text-destructive" />}
+            {viewMode === 'complete' ? 'Recent Completed' : 'Recent Absent'}
           </h4>
           <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-1 scrollbar-thin">
             {recent.length === 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center h-full text-center">
-                <CheckCircle className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
-                <p className="text-xs text-muted-foreground">No other completed appointments yet.</p>
+                {viewMode === 'complete'
+                  ? <CheckCircle className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
+                  : <UserX className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />}
+                <p className="text-xs text-muted-foreground">
+                  {viewMode === 'complete' ? 'No other completed appointments yet.' : 'No absent patients yet.'}
+                </p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -389,7 +443,7 @@ export default function AppointmentHistorySection({ appointments }) {
                     }}
                     className="w-full flex items-center gap-3 p-2.5 rounded-xl text-left transition-colors hover:bg-muted/50 border border-transparent hover:border-border/40"
                   >
-                    <div className="w-9 h-9 rounded-full bg-success/10 flex items-center justify-center text-xs font-bold text-success shrink-0">
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${viewMode === 'complete' ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}`}>
                       {(apt.patient || '?').slice(0, 2).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -403,9 +457,11 @@ export default function AppointmentHistorySection({ appointments }) {
                         {formatDisplayDate(apt.date) || apt.date}
                       </p>
                     </div>
-                    <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-semibold bg-success/10 text-success whitespace-nowrap shrink-0">
-                      <CheckCircle className="w-3 h-3" />
-                      {completionLabel(apt)}
+                    <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-semibold whitespace-nowrap shrink-0 ${viewMode === 'complete' ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}`}>
+                      {viewMode === 'complete'
+                        ? <CheckCircle className="w-3 h-3" />
+                        : <UserX className="w-3 h-3" />}
+                      {viewMode === 'complete' ? completionLabel(apt) : 'Absent'}
                     </span>
                   </button>
                 ))}

@@ -12,7 +12,7 @@ export default function PublicFooter() {
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
                 <Activity className="w-4 h-4 text-primary-foreground" />
               </div>
-              MediCore
+              FindMedi
             </Link>
             <p className="text-sm text-muted-foreground leading-relaxed">
               Revolutionizing healthcare management with cutting-edge automation and interconnected modules for a seamless experience.
@@ -24,7 +24,7 @@ export default function PublicFooter() {
               </div>
               <div className="flex items-center gap-2">
                 <Mail className="w-4 h-4 text-primary" />
-                <span>contact@medicore.in</span>
+                <span>contact@findmedi.in</span>
               </div>
               <div className="flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-primary" />
@@ -69,7 +69,7 @@ export default function PublicFooter() {
 
         {/* Bottom Bar */}
         <div className="mt-10 pt-6 border-t border-border/60 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-          <p>&copy; 2026 MediCore Healthcare. All rights reserved.</p>
+          <p>&copy; 2026 FindMedi Healthcare. All rights reserved.</p>
           <div className="flex items-center gap-4">
             <Link to="/" className="hover:text-primary transition-colors">Privacy Policy</Link>
             <Link to="/" className="hover:text-primary transition-colors">Terms of Service</Link>

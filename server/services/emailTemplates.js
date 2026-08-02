@@ -1,5 +1,5 @@
 const BRAND = {
-  name: 'MediCore Hospital',
+  name: 'FindMedi Hospital',
   primary: '#25998f',
   primaryDark: '#176b64',
   navy: '#142433',
@@ -87,7 +87,7 @@ const renderCta = (cta) => {
 export const renderEmailTemplate = ({
   title,
   subtitle = '',
-  badge = 'MediCore Update',
+  badge = 'FindMedi Update',
   greeting = '',
   paragraphs = [],
   details = [],
@@ -119,7 +119,7 @@ export const renderEmailTemplate = ({
                   <tr>
                     <td style="vertical-align:middle;">
                       <div style="display:inline-block;width:42px;height:42px;border-radius:13px;background:${BRAND.primary};vertical-align:middle;text-align:center;line-height:42px;color:#fff;font-weight:900;font-size:20px;">M</div>
-                      <span style="display:inline-block;margin-left:10px;vertical-align:middle;color:${BRAND.navy};font-size:20px;font-weight:900;letter-spacing:-.02em;">MediCore</span>
+                      <span style="display:inline-block;margin-left:10px;vertical-align:middle;color:${BRAND.navy};font-size:20px;font-weight:900;letter-spacing:-.02em;">FindMedi</span>
                     </td>
                     <td align="right" style="vertical-align:middle;color:${BRAND.slate};font-size:12px;font-weight:700;">
                       Hospital Management System
@@ -154,7 +154,7 @@ export const renderEmailTemplate = ({
             </tr>
             <tr>
               <td align="center" style="padding:18px 18px 0;color:#708090;font-size:12px;line-height:1.6;">
-                <strong style="color:${BRAND.navy};">MediCore Hospital</strong><br>
+                <strong style="color:${BRAND.navy};">FindMedi Hospital</strong><br>
                 Secure care, digital records, and connected hospital workflows.<br>
                 This is an automated message. Please do not reply to this email.
               </td>
@@ -183,7 +183,7 @@ export const renderPlainText = ({
   ...details
     .filter(item => item?.label && item?.value !== undefined && item?.value !== null && item?.value !== '')
     .map(item => `${item.label}: ${item.value}`),
-  cta?.url ? `${cta.label || 'Open MediCore'}: ${cta.url}` : '',
+  cta?.url ? `${cta.label || 'Open FindMedi'}: ${cta.url}` : '',
   note,
-  'MediCore Hospital',
+  'FindMedi Hospital',
 ].filter(Boolean).join('\n\n');

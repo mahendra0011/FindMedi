@@ -103,7 +103,7 @@ export default function Pharmacy() {
   const [reportPeriod, setReportPeriod] = useState('7d');
 
 // Settings
-  const [storeSettings, setStoreSettings] = useState({ name: 'MediCore Pharmacy', address: '123 Healthcare Ave, New York', phone: '+1 234-567-8900', email: 'pharmacy@medicore.com', licenseNo: 'PH-LIC-001', timing: '8:00 AM - 10:00 PM', deliveryRadius: '10 km', minOrderAmt: '100', deliveryFee: '30', gst: '18', autoRetry: true });
+  const [storeSettings, setStoreSettings] = useState({ name: 'FindMedi Pharmacy', address: '123 Healthcare Ave, New York', phone: '+1 234-567-8900', email: 'pharmacy@findmedi.com', licenseNo: 'PH-LIC-001', timing: '8:00 AM - 10:00 PM', deliveryRadius: '10 km', minOrderAmt: '100', deliveryFee: '30', gst: '18', autoRetry: true });
 
   const showToast = (msg, type = 'success') => { setToast({ msg, type }); setTimeout(() => setToast(null), 3000); };
 

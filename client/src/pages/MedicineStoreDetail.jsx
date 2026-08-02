@@ -7,7 +7,7 @@ import {
   Navigation, Percent, Tag, AlertCircle, X, Image, FileText, Zap, Info,
   Copy, CheckCircle2, Stethoscope, CalendarDays, Award, Search, Plus, Minus,
   Lock, Home, Users, Sparkles, Building2, ClipboardList, Heart, Bookmark,
-  HelpCircle, CreditCard, ChevronLeft, ChevronDown, Globe, Loader2
+  HelpCircle, CreditCard, ChevronLeft, ChevronDown, Globe, Loader2, Eye
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { useCart } from '@/context/CartContext';
-import { api } from '@/lib/api';
+import { api, resolveFileUrl } from '@/lib/api';
 import { toast } from 'sonner';
 import ServiceLocationMap from '@/components/maps/ServiceLocationMap';
 import ReviewDialog from '@/components/ReviewDialog';
@@ -96,6 +96,7 @@ export default function MedicineStoreDetail() {
   const [allMeds, setAllMeds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showRx, setShowRx] = useState(false);
+  const [uploadedRx, setUploadedRx] = useState(null);
   const [copiedCode, setCopiedCode] = useState(null);
   const medicinesRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -250,7 +251,7 @@ export default function MedicineStoreDetail() {
         {/* Breadcrumb */}
         <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground mb-5">
           <button onClick={() => navigate('/buy-medicine')} className="hover:text-foreground transition-colors flex items-center gap-1.5 group">
-            <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" /> Find Medicine
+            <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" /> FindMedi
           </button>
           <span className="text-muted-foreground/30">/</span>
           <span className="text-foreground font-medium truncate">{store.name}</span>
@@ -425,7 +426,7 @@ export default function MedicineStoreDetail() {
                         <p className="text-sm font-semibold text-foreground mb-1">Upload your prescription</p>
                         <p className="text-xs text-muted-foreground">JPG, PNG, PDF (max 5MB)</p>
                         <input ref={fileInputRef} type="file" accept="image/*,.pdf" className="hidden"
-                          onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; try { await api.uploadFile(f); toast.success('Prescription uploaded'); } catch { toast.error('Upload failed'); } }} />
+                          onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; try { const res = await api.uploadFile(f); setUploadedRx({ url: res?.url || '', name: f.name }); toast.success('Prescription uploaded'); } catch { toast.error('Upload failed'); } }} />
                       </div>
                       <div className="flex gap-3 mt-3">
                         <Button variant="outline" size="sm" className="flex-1 gap-1.5 rounded-lg text-xs"
@@ -450,6 +451,12 @@ export default function MedicineStoreDetail() {
                           <Clock className="w-3 h-3 text-primary" /> Saved Prescriptions
                         </h5>
                         <div className="space-y-1.5">
+                          {uploadedRx?.url && (
+                            <button onClick={() => window.open(resolveFileUrl(uploadedRx.url), '_blank')} className="w-full flex items-center gap-2 p-2 rounded-lg hover:bg-primary/10 transition-colors text-left">
+                              <span className="text-xs text-primary font-semibold truncate flex-1">{uploadedRx.name}</span>
+                              <Eye className="w-3.5 h-3.5 text-primary shrink-0" />
+                            </button>
+                          )}
                           {['Prescription - 12 Jun 2026', 'Prescription - 28 May 2026'].map((item, i) => (
                             <label key={i} className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
                               <input type="radio" name="saved-rx" className="w-3.5 h-3.5 accent-primary" />
@@ -965,7 +972,7 @@ export default function MedicineStoreDetail() {
                 onChange={async (e) => {
                   const file = e.target.files?.[0];
                   if (!file) return;
-                  try { await api.uploadFile(file); toast.success(`Uploaded: ${file.name}`); } catch { toast.error('Upload failed'); }
+                  try { const res = await api.uploadFile(file); setUploadedRx({ url: res?.url || '', name: file.name }); toast.success(`Uploaded: ${file.name}`); } catch { toast.error('Upload failed'); }
                 }} />
             </div>
             <div className="grid grid-cols-2 gap-3 mb-5">

@@ -137,7 +137,7 @@ export default function OTPVerification() {
             <div className="relative mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-xl shadow-primary/25">
               <ShieldCheck className="h-8 w-8" />
             </div>
-            <p className="relative font-heading text-xl font-bold text-foreground">MediCore Verification</p>
+            <p className="relative font-heading text-xl font-bold text-foreground">FindMedi Verification</p>
             <p className="relative mt-1 text-xs font-medium uppercase tracking-[0.28em] text-primary">Secure email OTP</p>
           </div>
 

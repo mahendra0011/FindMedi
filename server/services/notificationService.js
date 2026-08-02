@@ -44,15 +44,15 @@ export const sendEmail = async ({ to, subject, text, html, attachments }) => {
   }
 
   try {
-    const safeText = text || subject || 'MediCore Hospital notification';
+    const safeText = text || subject || 'FindMedi Hospital notification';
     const safeHtml = html || renderEmailTemplate({
-      title: subject || 'MediCore Hospital',
-      badge: 'MediCore Notification',
+      title: subject || 'FindMedi Hospital',
+      badge: 'FindMedi Notification',
       paragraphs: [safeText],
     });
 
     const payload = {
-      sender: { email: BREVO_SENDER_EMAIL, name: 'MediCore Hospital' },
+      sender: { email: BREVO_SENDER_EMAIL, name: 'FindMedi Hospital' },
       to: [{ email: to }],
       subject,
       textContent: safeText,
@@ -106,10 +106,10 @@ export const sendEmail = async ({ to, subject, text, html, attachments }) => {
 
 export const sendAppointmentReminder = async (appointment) => {
   const { patient, doctor, date, time } = appointment;
-  const subject = 'Appointment Reminder - MediCore Hospital';
+  const subject = 'Appointment Reminder - FindMedi Hospital';
   const email = templateEmail({
     title: 'Your appointment is coming up',
-    subtitle: 'We have reserved your consultation slot in the MediCore system.',
+    subtitle: 'We have reserved your consultation slot in the FindMedi system.',
     badge: 'Appointment Reminder',
     greeting: `Hi ${patient.name},`,
     paragraphs: [
@@ -131,7 +131,7 @@ export const sendAppointmentReminder = async (appointment) => {
 
 export const sendPrescriptionEmail = async (patient, prescription, pdfBuffer) => {
   const doctorName = doctorLabel(prescription.doctorName);
-  const subject = 'Your Prescription - MediCore Hospital';
+  const subject = 'Your Prescription - FindMedi Hospital';
   const email = templateEmail({
     title: 'Prescription attached',
     subtitle: 'Your prescription PDF is ready and attached to this email.',
@@ -147,8 +147,8 @@ export const sendPrescriptionEmail = async (patient, prescription, pdfBuffer) =>
       { label: 'Document', value: 'Prescription PDF' },
     ],
     cta: { label: 'View Records', url: dashboardUrl('/patient/records') },
-    note: 'The attached PDF uses the professional MediCore report format.',
-    preheader: 'Your MediCore prescription PDF is attached.',
+    note: 'The attached PDF uses the professional FindMedi report format.',
+    preheader: 'Your FindMedi prescription PDF is attached.',
   });
 
   return sendEmail({
@@ -161,7 +161,7 @@ export const sendPrescriptionEmail = async (patient, prescription, pdfBuffer) =>
 
 export const sendLabReportEmail = async (patient, report, pdfBuffer) => {
   const reportId = report.reportId || report.id || '';
-  const subject = 'Your Lab Report - MediCore Hospital';
+  const subject = 'Your Lab Report - FindMedi Hospital';
   const email = templateEmail({
     title: 'Lab report attached',
     subtitle: 'Your diagnostic report is ready for review.',
@@ -178,7 +178,7 @@ export const sendLabReportEmail = async (patient, report, pdfBuffer) => {
     ],
     cta: { label: 'Open Reports', url: dashboardUrl('/patient/reports') },
     note: 'For urgent or critical findings, please contact the hospital care team immediately.',
-    preheader: reportId ? `Your lab report ${reportId} is attached.` : 'Your MediCore lab report is attached.',
+    preheader: reportId ? `Your lab report ${reportId} is attached.` : 'Your FindMedi lab report is attached.',
   });
 
   return sendEmail({
@@ -191,7 +191,7 @@ export const sendLabReportEmail = async (patient, report, pdfBuffer) => {
 
 export const sendDischargeSummaryEmail = async (patient, summary, pdfBuffer) => {
   const admissionId = summary.admissionId || '';
-  const subject = 'Your Discharge Summary - MediCore Hospital';
+  const subject = 'Your Discharge Summary - FindMedi Hospital';
   const email = templateEmail({
     title: 'Discharge summary attached',
     subtitle: 'Your discharge document is ready for your records.',
@@ -208,7 +208,7 @@ export const sendDischargeSummaryEmail = async (patient, summary, pdfBuffer) => 
     ],
     cta: { label: 'Open Reports', url: dashboardUrl('/patient/reports') },
     note: 'If symptoms return or worsen, contact emergency care immediately.',
-    preheader: admissionId ? `Discharge summary for admission ${admissionId} is attached.` : 'Your MediCore discharge summary is attached.',
+    preheader: admissionId ? `Discharge summary for admission ${admissionId} is attached.` : 'Your FindMedi discharge summary is attached.',
   });
 
   return sendEmail({
@@ -220,10 +220,10 @@ export const sendDischargeSummaryEmail = async (patient, summary, pdfBuffer) => 
 };
 
 export const sendLabResultAlert = async (patient, report) => {
-  const subject = 'Lab Results Available - MediCore Hospital';
+  const subject = 'Lab Results Available - FindMedi Hospital';
   const email = templateEmail({
     title: 'Your lab results are available',
-    subtitle: 'A new lab result has been added to your MediCore records.',
+    subtitle: 'A new lab result has been added to your FindMedi records.',
     badge: 'Results Ready',
     greeting: `Hi ${patient.name},`,
     paragraphs: [
@@ -255,7 +255,7 @@ export const sendAccountVerifiedEmail = async (user) => {
     badge: 'Account Verified',
     greeting: `Hi ${user.name},`,
     paragraphs: [
-      'Your MediCore email address has been verified successfully.',
+      'Your FindMedi email address has been verified successfully.',
       isDoctor
         ? 'The admin team will review your doctor profile and notify you after approval.'
         : `You can now access your ${dashboardLabel} securely.`,
@@ -267,12 +267,12 @@ export const sendAccountVerifiedEmail = async (user) => {
     ],
     cta: !isDoctor ? { label: `Open ${dashboardLabel}`, url: dashboardUrl('/dashboard') } : undefined,
     tone: 'success',
-    preheader: 'Your MediCore email has been verified.',
+    preheader: 'Your FindMedi email has been verified.',
   });
 
   return sendEmail({
     to: user.email,
-    subject: 'Your MediCore Email Is Verified',
+    subject: 'Your FindMedi Email Is Verified',
     ...email,
   });
 };
@@ -293,12 +293,12 @@ export const sendDoctorPendingReviewEmail = async (doctorUser) => {
     ],
     note: 'Dashboard access will be enabled after admin approval.',
     tone: 'warning',
-    preheader: 'Your doctor profile is pending MediCore admin approval.',
+    preheader: 'Your doctor profile is pending FindMedi admin approval.',
   });
 
   return sendEmail({
     to: doctorUser.email,
-    subject: 'MediCore Doctor Account Pending Approval',
+    subject: 'FindMedi Doctor Account Pending Approval',
     ...email,
   });
 };
@@ -306,7 +306,7 @@ export const sendDoctorPendingReviewEmail = async (doctorUser) => {
 export const sendDoctorApprovalEmail = async (doctorUser) => {
   const email = templateEmail({
     title: 'Doctor account approved',
-    subtitle: 'Your MediCore Doctor Dashboard is now active.',
+    subtitle: 'Your FindMedi Doctor Dashboard is now active.',
     badge: 'Approval Complete',
     greeting: `Hi ${doctorUser.name},`,
     paragraphs: [
@@ -319,12 +319,12 @@ export const sendDoctorApprovalEmail = async (doctorUser) => {
     ],
     cta: { label: 'Open Doctor Dashboard', url: dashboardUrl('/dashboard') },
     tone: 'success',
-    preheader: 'Your MediCore doctor account is approved.',
+    preheader: 'Your FindMedi doctor account is approved.',
   });
 
   return sendEmail({
     to: doctorUser.email,
-    subject: 'Your MediCore Doctor Account Is Approved',
+    subject: 'Your FindMedi Doctor Account Is Approved',
     ...email,
   });
 };
@@ -344,12 +344,12 @@ export const sendDoctorRejectionEmail = async (doctorUser) => {
       { label: 'Status', value: 'Not approved' },
     ],
     tone: 'danger',
-    preheader: 'Your MediCore doctor account review has been updated.',
+    preheader: 'Your FindMedi doctor account review has been updated.',
   });
 
   return sendEmail({
     to: doctorUser.email,
-    subject: 'MediCore Doctor Account Review Update',
+    subject: 'FindMedi Doctor Account Review Update',
     ...email,
   });
 };
@@ -357,11 +357,11 @@ export const sendDoctorRejectionEmail = async (doctorUser) => {
 export const sendAccountBlockedEmail = async (user) => {
   const email = templateEmail({
     title: 'Account access blocked',
-    subtitle: 'Your MediCore dashboard access has been restricted.',
+    subtitle: 'Your FindMedi dashboard access has been restricted.',
     badge: 'Security Notice',
     greeting: `Hi ${user.name},`,
     paragraphs: [
-      'Your MediCore account has been blocked by an administrator.',
+      'Your FindMedi account has been blocked by an administrator.',
       'If you believe this is a mistake, please contact the hospital administrator for assistance.',
     ],
     details: [
@@ -369,12 +369,12 @@ export const sendAccountBlockedEmail = async (user) => {
       { label: 'Status', value: 'Blocked' },
     ],
     tone: 'danger',
-    preheader: 'Your MediCore account access has been blocked.',
+    preheader: 'Your FindMedi account access has been blocked.',
   });
 
   return sendEmail({
     to: user.email,
-    subject: 'MediCore Account Access Blocked',
+    subject: 'FindMedi Account Access Blocked',
     ...email,
   });
 };
@@ -387,7 +387,7 @@ export const sendHostNotificationEmail = async ({ subject, text, html }) => {
       title: subject,
       badge: 'Host Notification',
       paragraphs: [text || subject],
-      details: [{ label: 'Recipient', value: 'MediCore host/admin' }],
+      details: [{ label: 'Recipient', value: 'FindMedi host/admin' }],
       preheader: subject,
     });
 
@@ -401,7 +401,7 @@ export const sendHostNotificationEmail = async ({ subject, text, html }) => {
 export const sendPasswordChangedEmail = async (user) => {
   const email = templateEmail({
     title: 'Password updated',
-    subtitle: 'Your MediCore account password was changed successfully.',
+    subtitle: 'Your FindMedi account password was changed successfully.',
     badge: 'Security Notice',
     greeting: `Hi ${user.name},`,
     paragraphs: [
@@ -413,12 +413,12 @@ export const sendPasswordChangedEmail = async (user) => {
       { label: 'Status', value: 'Password changed' },
     ],
     tone: 'warning',
-    preheader: 'Your MediCore password was updated.',
+    preheader: 'Your FindMedi password was updated.',
   });
 
   return sendEmail({
     to: user.email,
-    subject: 'Your MediCore Password Was Updated',
+    subject: 'Your FindMedi Password Was Updated',
     ...email,
   });
 };

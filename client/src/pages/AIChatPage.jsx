@@ -35,7 +35,7 @@ export default function AIChatPage() {
     if (saved) {
       try {
         setChatSessions(JSON.parse(saved));
-      } catch (e) {
+      } catch {
         console.error("Failed to parse chat history");
       }
     }
@@ -243,7 +243,7 @@ export default function AIChatPage() {
             <img src="/chatbot-icon.png" alt="Bot" className="w-full h-full object-contain drop-shadow-md" />
           </div>
           <div>
-            <h1 className="font-heading font-bold text-lg text-foreground">MediCore AI</h1>
+            <h1 className="font-heading font-bold text-lg text-foreground">FindMedi AI</h1>
             <p className="text-sm text-muted-foreground font-medium">Advanced Health Assistant</p>
           </div>
         </div>
@@ -341,7 +341,7 @@ export default function AIChatPage() {
               </div>
               <div className="bg-muted/50 border border-border/50 rounded-2xl rounded-tl-sm px-5 py-4 shadow-sm flex items-center gap-3">
                 <Loader2 className="w-5 h-5 animate-spin text-primary" />
-                <span className="text-sm text-muted-foreground font-medium animate-pulse">MediCore AI is thinking...</span>
+                <span className="text-sm text-muted-foreground font-medium animate-pulse">FindMedi AI is thinking...</span>
               </div>
             </div>
           )}
@@ -376,7 +376,7 @@ export default function AIChatPage() {
               <Input 
                 value={input} 
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Message MediCore AI..."
+                placeholder="Message FindMedi AI..."
                 onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
                 className="flex-1 border-0 bg-transparent shadow-none focus-visible:ring-0 text-base"
               />
@@ -386,7 +386,7 @@ export default function AIChatPage() {
               </Button>
             </div>
             <p className="text-xs text-muted-foreground text-center mt-3 font-medium">
-              MediCore AI can make mistakes. Always consult a healthcare professional for medical advice.
+              FindMedi AI can make mistakes. Always consult a healthcare professional for medical advice.
             </p>
           </div>
         </div>

@@ -73,7 +73,7 @@ export default function Signup() {
         name, email, password, role: 'patient', phone, gender, dateOfBirth,
       });
       // Navigate to OTP verification page
-      const params = new URLSearchParams({ email, role });
+      const params = new URLSearchParams({ email, role: 'patient' });
       if (data?.emailDeliveryFailed || data?.otpWarning) params.set('delivery', 'failed');
       if (data?.sentTo) params.set('sentTo', data.sentTo);
       navigate(`/verify-otp?${params.toString()}`);
@@ -93,7 +93,7 @@ export default function Signup() {
           <div className="w-20 h-20 rounded-2xl bg-sidebar-primary flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-sidebar-primary/30">
             <Activity className="w-10 h-10 text-sidebar-primary-foreground" />
           </div>
-          <h1 className="font-heading text-4xl font-bold text-sidebar-primary-foreground mb-4">Join MediCore HMS</h1>
+          <h1 className="font-heading text-4xl font-bold text-sidebar-primary-foreground mb-4">Join FindMedi</h1>
           <p className="text-sidebar-foreground/70 text-lg leading-relaxed mb-10">
             Create your account and start managing healthcare efficiently. Choose your role to get started.
           </p>
@@ -108,7 +108,7 @@ export default function Signup() {
             <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
               <Activity className="w-5 h-5 text-primary-foreground" />
             </div>
-            <h1 className="font-heading text-xl font-bold text-foreground">MediCore HMS</h1>
+            <h1 className="font-heading text-xl font-bold text-foreground">FindMedi</h1>
           </div>
 
           <h2 className="font-heading text-2xl font-bold text-foreground mb-1">Create Account</h2>

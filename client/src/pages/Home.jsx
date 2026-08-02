@@ -138,7 +138,7 @@ const featureSections = [
 
 const testimonials = [
   { name: "Sarah Johnson", role: "Patient", image: "https://i.pravatar.cc/100?img=5", content: "The care I received was exceptional. The doctors took time to explain everything and made me feel comfortable throughout my treatment.", rating: 5 },
-  { name: "Mike Chen", role: "Patient", image: "https://i.pravatar.cc/100?img=11", content: "Outstanding service! The booking process was smooth and the doctor was incredibly knowledgeable. Highly recommend MediCore.", rating: 5 },
+  { name: "Mike Chen", role: "Patient", image: "https://i.pravatar.cc/100?img=11", content: "Outstanding service! The booking process was smooth and the doctor was incredibly knowledgeable. Highly recommend FindMedi.", rating: 5 },
   { name: "Emily Williams", role: "Patient", image: "https://i.pravatar.cc/100?img=9", content: "From scheduling to follow-up, every step was handled with professionalism. The team truly cares about patient well-being.", rating: 5 },
 ];
 
@@ -259,7 +259,7 @@ const Home = () => {
               <h1 className="font-heading text-4xl sm:text-5xl lg:text-6xl font-extrabold text-foreground leading-[1.1] tracking-tight">
                 <SplitText
                   tag="span"
-                  text="MediCore"
+                  text="FindMedi"
                   className="block"
                   delay={34}
                   duration={0.72}
@@ -345,7 +345,7 @@ const Home = () => {
               <div className="relative overflow-hidden rounded-[28px] shadow-2xl">
                 <img
                   src={heroImage}
-                  alt="MediCore Healthcare"
+                  alt="FindMedi Healthcare"
                   className="w-full h-[400px] object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
@@ -557,7 +557,7 @@ const Home = () => {
                 <Zap className="w-4 h-4" />
                 Why Choose Us
               </div>
-              <h2 className="font-heading text-3xl sm:text-4xl font-bold text-foreground">The MediCore Difference</h2>
+              <h2 className="font-heading text-3xl sm:text-4xl font-bold text-foreground">The FindMedi Difference</h2>
               <p className="text-muted-foreground mt-3 max-w-2xl mx-auto">
                 We combine cutting-edge automation with interconnected modules to deliver a secure, efficient, and next-generation healthcare management experience.
               </p>
@@ -765,7 +765,7 @@ const Home = () => {
               Testimonials
             </div>
             <h2 className="font-heading text-3xl sm:text-4xl font-bold text-foreground">What Our Patients Say</h2>
-            <p className="text-muted-foreground mt-3">Real stories from real patients about their experience with MediCore</p>
+            <p className="text-muted-foreground mt-3">Real stories from real patients about their experience with FindMedi</p>
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -844,7 +844,7 @@ const Home = () => {
               Ready to Experience Modern Healthcare?
             </h2>
             <p className="text-white/80 text-lg max-w-xl mx-auto mb-8">
-              Join 20,000+ patients who trust MediCore for their healthcare needs. Book appointments, manage records, and access 20+ integrated hospital modules — all in one place.
+              Join 20,000+ patients who trust FindMedi for their healthcare needs. Book appointments, manage records, and access 20+ integrated hospital modules — all in one place.
             </p>
             <Button size="lg" className="group gap-2 text-base px-10 h-12 bg-white text-primary hover:bg-white/90 shadow-xl"
               onClick={() => navigate(primaryActionPath)}>

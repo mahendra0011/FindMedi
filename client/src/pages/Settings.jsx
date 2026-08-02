@@ -390,7 +390,7 @@ export default function Settings() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'medicore-account-data.json';
+    a.download = 'findmedi-account-data.json';
     document.body.appendChild(a);
     a.click();
     a.remove();

@@ -48,7 +48,7 @@ export default function PendingApproval() {
         </h1>
         <p className="text-sm text-muted-foreground leading-relaxed">
           {rejected
-            ? `Your ${roleLabel} account was not approved. Please contact the MediCore administrator for details.`
+            ? `Your ${roleLabel} account was not approved. Please contact the FindMedi administrator for details.`
             : `Your email is verified. An administrator must approve your ${roleLabel} profile before dashboard access is enabled.`}
         </p>
 
@@ -59,7 +59,7 @@ export default function PendingApproval() {
           </div>
         )}
 
-        <a href={`mailto:support@medicore.com?subject=Approval%20Query%20-%20${roleLabel}&body=Account%20email%3A%20${encodeURIComponent(email)}%0A%0ARole%3A%20${roleLabel}%0AStatus%3A%20${status}`}
+        <a href={`mailto:support@findmedi.com?subject=Approval%20Query%20-%20${roleLabel}&body=Account%20email%3A%20${encodeURIComponent(email)}%0A%0ARole%3A%20${roleLabel}%0AStatus%3A%20${status}`}
           className="mt-4 inline-flex items-center gap-1.5 text-sm text-primary font-medium hover:underline">
           <ExternalLink className="w-4 h-4" /> Contact Administrator
         </a>
