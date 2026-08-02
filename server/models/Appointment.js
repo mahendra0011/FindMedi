@@ -66,6 +66,15 @@ const appointmentSchema = new mongoose.Schema({
 
 appointmentSchema.index({ doctorId: 1, patientId: 1, date: 1, time: 1 }, { unique: true, partialFilterExpression: { status: { $in: ['Pending', 'Confirmed', 'In Queue', 'Serving'] }, doctorId: { $type: 'objectId' } } });
 
+// Query performance indexes — terminal me 3-8 second slow queries aa rahe
+// the kyunki doctorId, date, status, patientId individually indexed nahi the.
+// Atlas free-tier + bina index ke collection scan = har appointment list slow.
+appointmentSchema.index({ doctorId: 1, date: -1 });     // doctor/clinic appointment list
+appointmentSchema.index({ patientId: 1, date: -1 });     // patient my-appointments
+appointmentSchema.index({ hospitalId: 1, date: -1 });    // hospital admin dashboard
+appointmentSchema.index({ status: 1, createdAt: -1 });   // stale pending cleanup + status filters
+appointmentSchema.index({ date: -1 });                    // date-based queries
+
 // createdAt/updatedAt auto-maintained (updatedAt fallback for completion time)
 appointmentSchema.set('timestamps', true);
 

@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, UserRound, Stethoscope, CalendarDays, FileText,
   CreditCard, Percent, Settings, ChevronLeft, ChevronRight, Activity, LogOut,
-  Home, Search, Star, Users, BarChart3, Bell, Building2, Clock, Calendar, CalendarClock, DollarSign, FileUp, Download, TestTube, AlertTriangle, Menu, X, Bed, Pill, FlaskConical, Hospital, Heart, Brain, Syringe, ClipboardList, ShieldCheck, Baby, Ambulance, IndianRupee, History, Flag, ShoppingCart, Megaphone, Settings2, Truck, Microscope, HelpCircle, MapPinned, User, Bookmark, Upload, TrendingUp, FileCheck, Tags, Headset, Shield, Tag, MapPin, Globe, Package, RotateCcw
+  Home, Search, Star, Users, BarChart3, Bell, Building2, Clock, Calendar, CalendarClock, DollarSign, FileUp, Download, TestTube, AlertTriangle, Menu, X, Bed, Pill, FlaskConical, Hospital, Heart, Brain, Syringe, ClipboardList, ShieldCheck, Baby, Ambulance, IndianRupee, History, Flag, ShoppingCart, Megaphone, Settings2, Truck, Microscope, HelpCircle, MapPinned, User, Bookmark, Upload, TrendingUp, FileCheck, Tags, Headset, Shield, Tag, MapPin, Globe, Package, RotateCcw, Bot
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { t } from '@/lib/settings';
@@ -14,6 +14,7 @@ import NotificationBell from './NotificationBell';
 const navConfig = {
   superadmin: [
     { icon: LayoutDashboard, labelKey: 'nav.dashboard',        path: '/dashboard'        },
+    { icon: Bot, labelKey: 'nav.chatWithAI', path: '/ai-chat' },
     { icon: ShieldCheck,     labelKey: 'nav.superAdminPanel',  path: '/superadmin'       },
     { icon: TrendingUp,      labelKey: 'nav.saOverview',       path: '/superadmin/overview' },
     { icon: Clock,           labelKey: 'nav.saPending',        path: '/superadmin/pending' },
@@ -44,6 +45,7 @@ const navConfig = {
   ],
   hospital_admin: [
     { icon: LayoutDashboard, labelKey: 'nav.dashboard',        path: '/dashboard'        },
+    { icon: Bot, labelKey: 'nav.chatWithAI', path: '/ai-chat' },
     { icon: Users,           labelKey: 'nav.manageUsers',      path: '/admin/users'      },
     { icon: Stethoscope,     labelKey: 'nav.manageDoctors',    path: '/admin/doctors'    },
     { icon: UserRound,       labelKey: 'nav.managePatients',   path: '/patients'         },
@@ -87,6 +89,7 @@ const navConfig = {
   ],
   clinic_doctor: [
     { icon: LayoutDashboard, labelKey: 'nav.dashboard',         path: '/clinic/dashboard'     },
+    { icon: Bot, labelKey: 'nav.chatWithAI', path: '/ai-chat' },
     { icon: CalendarDays,    labelKey: 'nav.todayAppointments',   path: '/clinic/appointments'  },
     { icon: FileCheck,       labelKey: 'nav.approveAppointments', path: '/clinic/appointments/approve' },
     { icon: History,         labelKey: 'nav.appointmentHistory',  path: '/clinic/appointments/history' },
@@ -95,9 +98,10 @@ const navConfig = {
     { icon: UserRound,       labelKey: 'nav.myPatients',        path: '/clinic/patients'      },
     { icon: Pill,            labelKey: 'nav.prescriptions',     path: '/clinic/prescriptions' },
     { icon: FlaskConical,    labelKey: 'nav.clinicTests',       path: '/clinic/tests'         },
+    { icon: TestTube,        labelKey: 'nav.testRequests',      path: '/clinic/test-requests' },
     { icon: FileText,        labelKey: 'nav.consultations',     path: '/clinic/consultations' },
     { icon: Hospital,        labelKey: 'nav.clinicManagement',  path: '/clinic/management'    },
-    { icon: CreditCard,      labelKey: 'nav.billing',           path: '/clinic/billing'       },
+    { icon: CreditCard,      labelKey: 'nav.paymentHistory',    path: '/clinic/payment-history' },
     { icon: FileCheck,       labelKey: 'nav.verifyTransaction', path: '/verify-transaction' },
     { icon: DollarSign,      labelKey: 'nav.myEarnings',        path: '/clinic/earnings'      },
     { icon: Star,            labelKey: 'nav.myReviews',         path: '/clinic/reviews'       },
@@ -109,6 +113,7 @@ const navConfig = {
   ],
   doctor: [
     { icon: LayoutDashboard, labelKey: 'nav.dashboard',       path: '/dashboard'           },
+    { icon: Bot, labelKey: 'nav.chatWithAI', path: '/ai-chat' },
     { icon: CalendarDays,    labelKey: 'nav.todayAppointments',   path: '/doctor/appointments'  },
     { icon: FileCheck,       labelKey: 'nav.approveAppointments', path: '/doctor/appointments/approve' },
     { icon: History,         labelKey: 'nav.appointmentHistory',  path: '/doctor/appointments/history' },
@@ -131,6 +136,7 @@ const navConfig = {
   ],
   lab_owner: [
     { icon: LayoutDashboard, labelKey: 'nav.dashboard',        path: '/dashboard'              },
+    { icon: Bot, labelKey: 'nav.chatWithAI', path: '/ai-chat' },
     { icon: CalendarDays,    labelKey: 'nav.appointments',     path: '/lab-business/appointments' },
     { icon: TestTube,        labelKey: 'nav.labBookings',      path: '/lab-business/bookings'  },
     { icon: Pill,            labelKey: 'nav.prescriptionQueue',path: '/lab-business/prescriptions' },
@@ -152,6 +158,7 @@ const navConfig = {
   ],
   pharmacy_owner: [
     { icon: LayoutDashboard, labelKey: 'nav.dashboard',        path: '/dashboard'                  },
+    { icon: Bot, labelKey: 'nav.chatWithAI', path: '/ai-chat' },
     { icon: Pill,            labelKey: 'nav.inventory',        path: '/pharmacy-business/inventory' },
     { icon: ShoppingCart,    labelKey: 'nav.pharmacyOrders',   path: '/pharmacy-business/orders'    },
     { icon: FileText,        labelKey: 'nav.prescriptionQueue',path: '/pharmacy-business/prescriptions' },
@@ -171,6 +178,7 @@ const navConfig = {
   ],
   patient: [
     { icon: LayoutDashboard, labelKey: 'nav.dashboard',             path: '/dashboard'                  },
+    { icon: Bot, labelKey: 'nav.chatWithAI', path: '/ai-chat' },
     { icon: CalendarDays,    labelKey: 'nav.myAppointments',        path: '/patient/appointments'       },
     { icon: TestTube,        labelKey: 'nav.myTestBookings',        path: '/patient/bookings'           },
     { icon: ShoppingCart,    labelKey: 'nav.myMedicineOrders',      path: '/patient/medicine-orders'    },
@@ -193,6 +201,7 @@ const navConfig = {
   ],
   delivery_boy: [
     { icon: LayoutDashboard, labelKey: 'nav.dashboard',        path: '/dashboard'            },
+    { icon: Bot, labelKey: 'nav.chatWithAI', path: '/ai-chat' },
     { icon: Package,         labelKey: 'nav.myDeliveries',     path: '/delivery/orders'      },
     { icon: History,         labelKey: 'nav.history',          path: '/delivery/history'     },
     { icon: IndianRupee,     labelKey: 'nav.earnings',         path: '/delivery/earnings'    },

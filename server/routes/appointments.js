@@ -84,17 +84,28 @@ router.get('/', protect, async (req, res) => {
       ],
     });
 
+    // Batch payment lookup — N+1 query fix. Pehle har appointment ke liye
+    // alag Payment.findOne() chalta tha (50 appts = 50 DB calls = 8 seconds).
+    // Ab ek hi $in query me saare payments nikaal ke map me attach karte hain.
     try {
       const Payment = (await import('../models/Payment.js')).default;
-      for (const appt of result.data || []) {
-        const payment = await Payment.findOne({ referenceId: appt._id.toString(), status: 'completed' }).lean();
-        if (payment) {
-          if (appt._doc) {
-            appt._doc.transactionId = payment.transaction_id;
-            appt._doc.invoiceId = payment.invoice_id;
-          } else {
-            appt.transactionId = payment.transaction_id;
-            appt.invoiceId = payment.invoice_id;
+      const apptIds = (result.data || []).map(a => a._id.toString());
+      if (apptIds.length) {
+        const payments = await Payment.find({
+          referenceId: { $in: apptIds },
+          status: 'completed',
+        }).select('referenceId transaction_id invoice_id').lean();
+        const paymentMap = new Map(payments.map(p => [p.referenceId, p]));
+        for (const appt of result.data || []) {
+          const payment = paymentMap.get(appt._id.toString());
+          if (payment) {
+            if (appt._doc) {
+              appt._doc.transactionId = payment.transaction_id;
+              appt._doc.invoiceId = payment.invoice_id;
+            } else {
+              appt.transactionId = payment.transaction_id;
+              appt.invoiceId = payment.invoice_id;
+            }
           }
         }
       }
@@ -171,13 +182,23 @@ router.get('/my-appointments', protect, async (req, res) => {
       .sort({ date: -1, createdAt: 1 })
       .lean();
 
+    // Batch payment lookup — N+1 fix (same as GET / above). 50 appts = 1 query,
+    // na ki 50 alag Payment.findOne() calls.
     try {
       const Payment = (await import('../models/Payment.js')).default;
-      for (const appt of appointments) {
-        const payment = await Payment.findOne({ referenceId: appt._id.toString(), status: 'completed' }).lean();
-        if (payment) {
-          appt.transactionId = payment.transaction_id;
-          appt.invoiceId = payment.invoice_id;
+      const apptIds = appointments.map(a => a._id.toString());
+      if (apptIds.length) {
+        const payments = await Payment.find({
+          referenceId: { $in: apptIds },
+          status: 'completed',
+        }).select('referenceId transaction_id invoice_id').lean();
+        const paymentMap = new Map(payments.map(p => [p.referenceId, p]));
+        for (const appt of appointments) {
+          const payment = paymentMap.get(appt._id.toString());
+          if (payment) {
+            appt.transactionId = payment.transaction_id;
+            appt.invoiceId = payment.invoice_id;
+          }
         }
       }
     } catch (e) {
@@ -207,14 +228,21 @@ router.get('/history-with-payments', protect, async (req, res) => {
       .sort({ createdAt: -1 })
       .lean();
     
-    // For each appointment, try to find its payment record
-    const enrichedAppointments = await Promise.all(
-      appointments.map(async (apt) => {
-        const payment = await Payment.findOne({
+    // Batch payment lookup — N+1 fix. Promise.all bhi N parallel queries thi,
+    // ab ek hi $in query me saare payments.
+    const apptIds = appointments.map(a => a._id.toString());
+    const payments = apptIds.length
+      ? await Payment.find({
           serviceType: 'appointment',
-          referenceId: apt._id.toString(),
+          referenceId: { $in: apptIds },
           patient_id: req.user._id.toString(),
-        }).lean();
+        }).lean()
+      : [];
+    const paymentMap = new Map(payments.map(p => [p.referenceId, p]));
+
+    // For each appointment, attach its payment record from the map
+    const enrichedAppointments = appointments.map((apt) => {
+        const payment = paymentMap.get(apt._id.toString());
         
         return {
           _id: apt._id,
@@ -251,8 +279,7 @@ router.get('/history-with-payments', protect, async (req, res) => {
             appointmentType: apt.type,
           },
         };
-      })
-    );
+      });
     
     // Unpaid "Pending" appointment matlab payment kabhi complete nahi hua
     // (abandoned/failed checkout) — ye history me kabhi dikhna hi nahi chahiye.

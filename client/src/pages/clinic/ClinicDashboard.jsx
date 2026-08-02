@@ -28,15 +28,16 @@ const StatusBadge = ({ status }) => {
 
 const methodIcons = { card: CreditCard, upi: Smartphone, netbanking: Landmark, cash: Wallet };
 
-// 7-card stats grid — mirrors PatientDashboard's clickable colored tiles
+// 8-card stats grid — mirrors PatientDashboard's clickable colored tiles
 const statCards = [
   { icon: CalendarDays, label: "Today's Appts", color: 'text-emerald-500', bg: 'bg-emerald-500/10', link: '/clinic/appointments' },
   { icon: CheckCircle, label: 'Completed', color: 'text-blue-500', bg: 'bg-blue-500/10', link: '/clinic/appointments' },
+  { icon: Clock, label: 'Not Completed', color: 'text-violet-500', bg: 'bg-violet-500/10', link: '/clinic/appointments' },
   { icon: AlertCircle, label: 'Pending', color: 'text-amber-500', bg: 'bg-amber-500/10', link: '/clinic/appointments' },
-  { icon: Users, label: 'Patients', color: 'text-violet-500', bg: 'bg-violet-500/10', link: '/clinic/patients' },
   { icon: IndianRupee, label: "Today's Revenue", color: 'text-orange-500', bg: 'bg-orange-500/10', link: '/clinic/billing' },
-  { icon: ClipboardList, label: 'Prescriptions', color: 'text-cyan-500', bg: 'bg-cyan-500/10', link: '/clinic/prescriptions' },
-  { icon: Star, label: 'Reviews', color: 'text-yellow-500', bg: 'bg-yellow-500/10', link: '/clinic/reviews' },
+  { icon: Calendar, label: 'Week Appts', color: 'text-cyan-500', bg: 'bg-cyan-500/10', link: '/clinic/appointments' },
+  { icon: TrendingUp, label: 'Week Revenue', color: 'text-purple-500', bg: 'bg-purple-500/10', link: '/clinic/billing' },
+  { icon: TestTube, label: 'Test Requests', color: 'text-rose-500', bg: 'bg-rose-500/10', link: '/clinic/test-requests' },
 ];
 
 const quickActions = [
@@ -65,6 +66,7 @@ export default function ClinicDashboard() {
   const [refunds, setRefunds] = useState([]);
   const [patients, setPatients] = useState([]);
   const [prescriptions, setPrescriptions] = useState([]);
+  const [testRequests, setTestRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tipIndex, setTipIndex] = useState(0);
   const [greeting, setGreeting] = useState('');
@@ -94,9 +96,10 @@ export default function ClinicDashboard() {
         api.getPayments({ status: 'refunded' }),
         api.getPayments({ status: 'pending' }),
         api.getPayments({}),
+        api.getLabBookings(),
       ]);
       if (!mounted.current) return;
-      const [a, b, r, rf, pf, allP] = results.map(res => res.status === 'fulfilled' ? res.value : []);
+      const [a, b, r, rf, pf, allP, lb] = results.map(res => res.status === 'fulfilled' ? res.value : []);
       const appts = a?.data || a || [];
       const myAppts = appts?.filter(apt => apt.doctor?.toLowerCase().includes(user?.name?.toLowerCase())) || [];
       setAppointments(myAppts);
@@ -109,6 +112,8 @@ export default function ClinicDashboard() {
       const allPayments = allP?.payments || allP?.data || allP || [];
       setPayments(allPayments);
       setPatients(Array.from(new Set(myAppts.map(apt => apt.patient).filter(Boolean))));
+      const labBookingsArray = lb?.bookings || lb?.data || lb || [];
+      setTestRequests(labBookingsArray);
       // best-effort prescriptions load
       try {
         const rx = await api.getPharmacyPrescriptions?.({}).catch(() => ({ prescriptions: [] }));
@@ -134,7 +139,13 @@ export default function ClinicDashboard() {
   const upcomingAppts = appointments.filter(a => a.date >= today && a.status !== 'Completed' && a.status !== 'Cancelled');
   const pendingAppts = appointments.filter(a => a.status === 'Pending');
   const completedAppts = appointments.filter(a => a.status === 'Completed');
+  const notCompletedAppts = appointments.filter(a => a.status === 'Confirmed' || a.status === 'Approved');
   const todayRevenue = bills.filter(b => b.date === today && b.status === 'Paid').reduce((s, b) => s + (b.paid || b.amount || 0), 0);
+  const weekStart = new Date();
+  weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+  const weekStartStr = weekStart.toISOString().split('T')[0];
+  const weekAppts = appointments.filter(a => a.date >= weekStartStr && a.date <= today);
+  const weekRevenue = bills.filter(b => b.date >= weekStartStr && b.date <= today && b.status === 'Paid').reduce((s, b) => s + (b.paid || b.amount || 0), 0);
   const totalRefunded = refunds.reduce((s, r) => s + (r.refund_amount || r.amount || 0), 0);
   const pendingRefunds = refunds.filter(r => r.status === 'pending' || r.status === 'Pending').length;
   const activeRxCount = prescriptions.filter(p => p.status === 'Active').length;
@@ -143,11 +154,12 @@ export default function ClinicDashboard() {
   const statValues = {
     "Today's Appts": todayAppts.length,
     'Completed': completedAppts.length,
+    'Not Completed': notCompletedAppts.length,
     'Pending': pendingAppts.length,
-    'Patients': patients.length,
     "Today's Revenue": `₹${todayRevenue.toLocaleString('en-IN')}`,
-    'Prescriptions': activeRxCount,
-    'Reviews': reviews.length,
+    'Week Appts': weekAppts.length,
+    'Week Revenue': `₹${weekRevenue.toLocaleString('en-IN')}`,
+    'Test Requests': testRequests.length,
   };
 
   if (loading) return (
@@ -186,7 +198,7 @@ export default function ClinicDashboard() {
 
       {/* Stats Grid — 7 clickable colored tiles */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 mb-6">
           {statCards.map((s, i) => {
             const val = statValues[s.label];
             return (
@@ -451,6 +463,60 @@ export default function ClinicDashboard() {
 
       {/* Earnings Analytics */}
       <EarningsAnalytics bills={bills} payments={payments} title="Earnings Analytics" />
+
+      {/* Test Requests */}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
+        className="bg-card rounded-3xl border border-border/50 p-5 sm:p-6 mb-6 shadow-sm">
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-rose-500/20 to-rose-500/5 flex items-center justify-center shadow-sm">
+              <TestTube className="w-5 h-5 text-rose-500" />
+            </div>
+            <div>
+              <h3 className="font-heading font-semibold text-foreground">Test Requests</h3>
+              <p className="text-xs text-muted-foreground">{testRequests.length > 0 ? `${testRequests.length} request${testRequests.length > 1 ? 's' : ''}` : 'No test requests'}</p>
+            </div>
+          </div>
+          <Button variant="outline" size="sm" className="gap-1.5 rounded-xl text-rose-500 border-rose-500/20 hover:bg-rose-500/5 hover:text-rose-500" onClick={() => navigate('/clinic/test-requests')}>
+            View All <ChevronRight className="w-3.5 h-3.5" />
+          </Button>
+        </div>
+        {testRequests.length > 0 ? (
+          <div className="space-y-3">
+            {testRequests.slice(0, 4).map(req => {
+              const testNames = req.tests?.join(', ') || req.testName || 'Test';
+              const status = req.status || 'Pending';
+              const amount = req.discountedAmount || req.totalAmount || 0;
+              return (
+                <div key={req._id || req.bookingId} className="group flex items-center justify-between p-3.5 bg-muted/20 rounded-2xl border border-border/30 hover:bg-muted/40 hover:border-rose-500/20 transition-all duration-200">
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-rose-500/20 to-rose-500/5 flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform shrink-0">
+                      <TestTube className="w-5 h-5 text-rose-500" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-foreground truncate">{req.patientName || 'Patient'}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{testNames}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-sm font-bold text-foreground">₹{amount.toLocaleString('en-IN')}</span>
+                    <StatusBadge status={status} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="text-center py-10">
+            <div className="w-14 h-14 rounded-2xl bg-muted/30 flex items-center justify-center mx-auto mb-3">
+              <TestTube className="w-7 h-7 text-muted-foreground/30" />
+            </div>
+            <p className="text-sm text-muted-foreground font-medium">No test requests yet</p>
+            <p className="text-xs text-muted-foreground/60 mt-1">When patients book tests, they will appear here</p>
+          </div>
+        )}
+      </motion.div>
+
 
       {/* Quick Actions — mirrors PatientDashboard grid */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}

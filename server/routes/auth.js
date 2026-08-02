@@ -117,7 +117,7 @@ const sign = (user) => {
     token: refreshToken,
     expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
   }).catch(err => logger.error('Failed to save refresh token:', err.message));
-  return accessToken;
+  return { accessToken, refreshToken };
 };
 
 const setAuthCookies = (res, accessToken, refreshToken) => {
@@ -425,11 +425,12 @@ router.post('/verify-otp', validate(verifyOtpSchema), async (req, res) => {
       }
     }
 
-    const accessToken = sign(user);
-    setAuthCookies(res, accessToken);
+    const { accessToken, refreshToken } = sign(user);
+    setAuthCookies(res, accessToken, refreshToken);
     res.json({
       message: 'OTP verified successfully',
       token: accessToken,
+      refreshToken,
       user: await userResponse(user),
     });
   } catch (err) {
@@ -616,10 +617,15 @@ router.post('/login', validate(loginSchema), async (req, res) => {
       logger.error('Audit error:', err);
     }
 
-    const accessToken = sign(user);
-    setAuthCookies(res, accessToken);
+    const { accessToken, refreshToken } = sign(user);
+    setAuthCookies(res, accessToken, refreshToken);
     return res.json({
       token: accessToken,
+      // refreshToken body me bhi do — cross-origin me cookies kabhi-kabhi
+      // store/send nahi hoti (localhost:5173 → localhost:5001). Client is
+      // refresh token ko memory me rakh kar /auth/refresh body me bhejega,
+      // taaki cookie fail hone par bhi session survive kare (koi logout nahi).
+      refreshToken,
       user: await userResponse(user),
     });
   } catch (err) {
@@ -782,10 +788,11 @@ router.post('/google', async (req, res) => {
       return res.status(403).json({ message: 'Your account has been blocked. Contact administrator.' });
     }
 
-    const accessToken = sign(user);
-    setAuthCookies(res, accessToken);
+    const { accessToken, refreshToken } = sign(user);
+    setAuthCookies(res, accessToken, refreshToken);
     res.json({
       token: accessToken,
+      refreshToken,
       user: await userResponse(user),
       googleUser: {
         name: googleName,
@@ -944,7 +951,7 @@ router.put('/profile', protect, async (req, res) => {
 // POST /api/auth/logout
 router.post('/logout', async (req, res) => {
   try {
-    const refreshToken = req.cookies?.refreshToken;
+    const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
     if (refreshToken) {
       await RefreshToken.deleteOne({ token: refreshToken });
     }

@@ -161,6 +161,7 @@ const en = {
   'nav.bookTests': 'Book Tests',
   'nav.myTestBookings': 'My Test Bookings',
   'nav.support': 'Support',
+  'nav.chatWithAI': 'Chat with AI',
   'nav.saOverview': 'Platform KPIs',
   'nav.saPending': 'Pending Approvals',
   'nav.saFacilities': 'All Facilities',

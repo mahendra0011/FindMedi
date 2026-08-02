@@ -105,8 +105,8 @@ export default function Login() {
       <div className="hidden lg:flex lg:w-1/2 bg-sidebar items-center justify-center p-12 relative overflow-hidden">
         <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 25% 25%, hsl(174,62%,48%) 0%, transparent 50%), radial-gradient(circle at 75% 75%, hsl(210,80%,55%) 0%, transparent 50%)' }} />
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }} className="relative z-10 text-center max-w-md">
-          <div className="w-20 h-20 rounded-2xl bg-sidebar-primary flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-sidebar-primary/30">
-            <Activity className="w-10 h-10 text-sidebar-primary-foreground" />
+          <div className="w-24 h-24 flex items-center justify-center mx-auto mb-6 rounded-2xl overflow-hidden shadow-lg">
+            <img src="/logo.png" alt="MediCore Logo" className="w-full h-full object-cover" />
           </div>
           <h1 className="font-heading text-4xl font-bold text-sidebar-primary-foreground mb-4">MediCore HMS</h1>
           <p className="text-sidebar-foreground/70 text-lg leading-relaxed mb-10">
@@ -120,8 +120,8 @@ export default function Login() {
       <div className="flex-1 flex items-center justify-center p-4 sm:p-8">
         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }} className="w-full max-w-md">
           <div className="lg:hidden flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-              <Activity className="w-5 h-5 text-primary-foreground" />
+            <div className="w-12 h-12 flex items-center justify-center rounded-xl overflow-hidden shadow-sm">
+              <img src="/logo.png" alt="MediCore Logo" className="w-full h-full object-cover" />
             </div>
             <h1 className="font-heading text-xl font-bold text-foreground">MediCore HMS</h1>
           </div>

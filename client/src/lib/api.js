@@ -504,4 +504,10 @@ export const api = {
     formData.append('file', file);
     return request('/drive/upload', { method:'POST', body: formData });
   },
+
+  getDoctorAnalytics:       (params)  => {
+    const query = new URLSearchParams();
+    if (params?.doctorId) query.append('doctorId', params.doctorId);
+    return request(`/analytics/doctor?${query.toString()}`);
+  }
 };
