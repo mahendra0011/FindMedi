@@ -111,8 +111,31 @@ export default function HospitalTestBooking() {
         }
         setHospital(entityData);
 
-        const entityTestId = entityData?._id || activeId;
-        const params = entityType === 'hospital' ? { hospitalId: entityTestId } : {};
+        // Link can point at a doctor's _id (Find Clinic → Book Test). Resolve the
+        // doctor → their clinic (facilityId, clinicProfile or doctor fields).
+        let testScopeId = entityData?._id || '';
+        if (!testScopeId && !entityData) {
+          try {
+            const doc = await api.getDoctor(activeId);
+            if (doc) {
+              const cp = doc.clinicProfile || {};
+              const docFacilityId = doc.facilityId?._id || doc.facilityId;
+              testScopeId = docFacilityId || doc.hospitalId || doc._id || '';
+              entityType = 'clinic';
+              setHospital({
+                _id: docFacilityId || doc._id,
+                name: cp.clinic_name || doc.facilityId?.name || doc.name || 'Clinic',
+                address: cp.clinic_address || doc.facilityId?.address || doc.location || '',
+                city: cp.clinic_city || (cp.clinic_address || doc.location || '').split(',').pop()?.trim() || '',
+                rating: doc.rating || 0,
+                verified: doc.approved || false,
+              });
+            }
+          } catch { /* id is not a doctor either */ }
+        }
+        if (!testScopeId && entityType === 'hospital') testScopeId = activeId;
+
+        const params = testScopeId ? { hospitalId: testScopeId } : {};
         const testsRes = await api.getTests(params).catch(() => []);
         const list = Array.isArray(testsRes) ? testsRes : testsRes?.tests || [];
         const mapped = list.map(t => ({

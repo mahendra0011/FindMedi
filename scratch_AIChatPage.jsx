@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { MessageCircle, Send, Sparkles, Bot, User, Loader2, Camera, ImagePlus, History, Plus, MoreVertical, Trash2, X, Stethoscope, Edit2, Check, Search } from 'lucide-react';
+import { MessageCircle, Send, Sparkles, Bot, User, Loader2, Camera, ImagePlus, History, Plus, MoreVertical, Trash2, X, Stethoscope, Edit2, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -17,8 +17,6 @@ export default function AIChatPage() {
   const [currentSessionId, setCurrentSessionId] = useState(null);
   const [editingSessionId, setEditingSessionId] = useState(null);
   const [editTitle, setEditTitle] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
   const cameraInputRef = useRef(null);
@@ -143,145 +141,113 @@ export default function AIChatPage() {
       localStorage.setItem('medicore_ai_history', JSON.stringify(newSessions));
 
     } catch {
-      setMessages((prev) => [...prev, { role: 'assistant', content: 'Sorry, I encountered an error. Please try again.' }]);
+      setMessages((prev) => [...prev, { role: 'assistant', content: 'Oops, something went wrong on my end! Could you please try again?' }]);
     }
     setLoading(false);
   };
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-4rem)] md:h-screen w-full bg-card relative overflow-hidden">
-      {/* Header */}
-      <div className="h-14 border-b bg-background flex items-center justify-between px-4 shrink-0 z-10 shadow-sm relative">
-        <div className="flex items-center gap-2 relative"
-          onMouseEnter={() => setIsHistoryOpen(true)}
-          onMouseLeave={() => setIsHistoryOpen(false)}
-        >
-          <Button 
-            variant="outline" 
-            className="flex items-center gap-2 font-semibold hover:bg-muted"
-            onClick={() => setIsHistoryOpen(!isHistoryOpen)}
-          >
+    <div className="flex h-[calc(100vh-8rem)] bg-background rounded-xl border overflow-hidden shadow-sm">
+      {/* Sidebar History */}
+      <div className="w-80 border-r flex flex-col bg-muted/30">
+        <div className="p-4 border-b flex items-center justify-between">
+          <h2 className="font-semibold text-foreground flex items-center gap-2">
             <History className="w-4 h-4 text-primary" />
             Chat History
+          </h2>
+          <Button size="icon" variant="ghost" onClick={startNewChat} className="h-8 w-8 rounded-full">
+            <Plus className="w-4 h-4" />
           </Button>
-          
-          {/* History Popover */}
-          {isHistoryOpen && (
-            <>
-              <div className="fixed inset-0 z-40 bg-black/5" onClick={() => setIsHistoryOpen(false)} />
-              <div className="absolute top-full left-0 pt-2 w-80">
-              <div className="bg-background border rounded-xl shadow-xl overflow-hidden z-50 flex flex-col max-h-[60vh] animate-in fade-in slide-in-from-top-2">
-                <div className="p-3 border-b flex items-center gap-2 bg-muted/30">
-                  <div className="relative flex-1">
-                    <Search className="w-4 h-4 absolute left-2.5 top-2.5 text-muted-foreground" />
+        </div>
+        <div className="flex-1 overflow-y-auto p-3 space-y-1">
+          {chatSessions.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground text-sm">
+              <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-20" />
+              <p>No previous chats</p>
+            </div>
+          ) : (
+            chatSessions.map(session => (
+              <div 
+                key={session.id} 
+                onClick={() => {
+                  setCurrentSessionId(session.id);
+                  setMessages(session.messages);
+                }}
+                className={`flex items-center gap-3 px-3 py-3 rounded-xl cursor-pointer transition-colors group ${currentSessionId === session.id ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-muted text-foreground'}`}
+              >
+                <MessageCircle className={`w-4 h-4 shrink-0 ${currentSessionId === session.id ? 'text-primary' : 'text-muted-foreground'}`} />
+                {editingSessionId === session.id ? (
+                  <div className="flex-1 flex items-center gap-1" onClick={e => e.stopPropagation()}>
                     <input 
-                      type="text" 
-                      placeholder="Search history..." 
-                      className="w-full bg-background border rounded-lg pl-9 pr-3 py-1.5 text-sm outline-none focus:border-primary/50"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
+                      autoFocus
+                      className="flex-1 bg-background text-sm rounded px-1.5 py-0.5 border border-primary/50 outline-none w-full"
+                      value={editTitle}
+                      onChange={e => setEditTitle(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') {
+                          const updated = chatSessions.map(s => s.id === session.id ? { ...s, title: editTitle || 'Untitled Chat' } : s);
+                          setChatSessions(updated);
+                          localStorage.setItem('medicore_ai_history', JSON.stringify(updated));
+                          setEditingSessionId(null);
+                        } else if (e.key === 'Escape') {
+                          setEditingSessionId(null);
+                        }
+                      }}
                     />
+                    <Button size="icon" variant="ghost" className="h-6 w-6 text-green-500 hover:bg-green-100 hover:text-green-600 rounded-full" onClick={(e) => {
+                      e.stopPropagation();
+                      const updated = chatSessions.map(s => s.id === session.id ? { ...s, title: editTitle || 'Untitled Chat' } : s);
+                      setChatSessions(updated);
+                      localStorage.setItem('medicore_ai_history', JSON.stringify(updated));
+                      setEditingSessionId(null);
+                    }}>
+                      <Check className="w-3.5 h-3.5" />
+                    </Button>
                   </div>
-                  <Button size="icon" variant="ghost" onClick={() => { startNewChat(); setIsHistoryOpen(false); }} className="h-8 w-8 shrink-0 rounded-full bg-primary/10 hover:bg-primary/20 text-primary">
-                    <Plus className="w-4 h-4" />
-                  </Button>
-                </div>
-                
-                <div className="flex-1 overflow-y-auto p-2 space-y-1">
-                  {chatSessions.filter(s => s.title.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground text-sm">
-                      <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-20" />
-                      <p>No chats found</p>
+                ) : (
+                  <>
+                    <p className="text-sm truncate flex-1">{session.title}</p>
+                    <div className="flex items-center opacity-0 group-hover:opacity-100 -mr-1">
+                      <Button size="icon" variant="ghost" className="h-6 w-6 rounded-full" onClick={(e) => {
+                        e.stopPropagation();
+                        setEditTitle(session.title);
+                        setEditingSessionId(session.id);
+                      }}>
+                        <Edit2 className="w-3.5 h-3.5 text-muted-foreground" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-6 w-6 rounded-full" onClick={(e) => {
+                        e.stopPropagation();
+                        const updated = chatSessions.filter(s => s.id !== session.id);
+                        setChatSessions(updated);
+                        localStorage.setItem('medicore_ai_history', JSON.stringify(updated));
+                        if (currentSessionId === session.id) {
+                          setCurrentSessionId(null);
+                          setMessages([]);
+                        }
+                      }}>
+                        <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                      </Button>
                     </div>
-                  ) : (
-                    chatSessions.filter(s => s.title.toLowerCase().includes(searchQuery.toLowerCase())).map(session => (
-                      <div 
-                        key={session.id} 
-                        onClick={() => {
-                          setCurrentSessionId(session.id);
-                          setMessages(session.messages);
-                          setIsHistoryOpen(false);
-                        }}
-                        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors group ${currentSessionId === session.id ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-muted text-foreground'}`}
-                      >
-                        <MessageCircle className={`w-4 h-4 shrink-0 ${currentSessionId === session.id ? 'text-primary' : 'text-muted-foreground'}`} />
-                        {editingSessionId === session.id ? (
-                          <div className="flex-1 flex items-center gap-1" onClick={e => e.stopPropagation()}>
-                            <input 
-                              autoFocus
-                              className="flex-1 bg-background text-sm rounded px-1.5 py-0.5 border border-primary/50 outline-none w-full"
-                              value={editTitle}
-                              onChange={e => setEditTitle(e.target.value)}
-                              onKeyDown={e => {
-                                if (e.key === 'Enter') {
-                                  const updated = chatSessions.map(s => s.id === session.id ? { ...s, title: editTitle || 'Untitled Chat' } : s);
-                                  setChatSessions(updated);
-                                  localStorage.setItem('medicore_ai_history', JSON.stringify(updated));
-                                  setEditingSessionId(null);
-                                } else if (e.key === 'Escape') {
-                                  setEditingSessionId(null);
-                                }
-                              }}
-                            />
-                            <Button size="icon" variant="ghost" className="h-6 w-6 text-green-500 hover:bg-green-100 hover:text-green-600 rounded-full" onClick={(e) => {
-                              e.stopPropagation();
-                              const updated = chatSessions.map(s => s.id === session.id ? { ...s, title: editTitle || 'Untitled Chat' } : s);
-                              setChatSessions(updated);
-                              localStorage.setItem('medicore_ai_history', JSON.stringify(updated));
-                              setEditingSessionId(null);
-                            }}>
-                              <Check className="w-3.5 h-3.5" />
-                            </Button>
-                          </div>
-                        ) : (
-                          <>
-                            <p className="text-sm truncate flex-1">{session.title}</p>
-                            <div className="flex items-center opacity-0 group-hover:opacity-100 -mr-1">
-                              <Button size="icon" variant="ghost" className="h-6 w-6 rounded-full" onClick={(e) => {
-                                e.stopPropagation();
-                                setEditTitle(session.title);
-                                setEditingSessionId(session.id);
-                              }}>
-                                <Edit2 className="w-3.5 h-3.5 text-muted-foreground" />
-                              </Button>
-                              <Button size="icon" variant="ghost" className="h-6 w-6 rounded-full" onClick={(e) => {
-                                e.stopPropagation();
-                                const updated = chatSessions.filter(s => s.id !== session.id);
-                                setChatSessions(updated);
-                                localStorage.setItem('medicore_ai_history', JSON.stringify(updated));
-                                if (currentSessionId === session.id) {
-                                  setCurrentSessionId(null);
-                                  setMessages([]);
-                                }
-                              }}>
-                                <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                              </Button>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    ))
-                  )}
-                </div>
+                  </>
+                )}
               </div>
-              </div>
-            </>
+            ))
           )}
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex flex-col items-end">
-            <span className="text-sm font-bold text-foreground">FindMedi AI</span>
-            <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Advanced Health Assistant</span>
+      </div>
+
+      {/* Main Chat Area */}
+      <div className="flex-1 flex flex-col relative bg-card">
+        {/* Header */}
+        <div className="px-6 py-4 border-b bg-gradient-to-r from-primary/5 to-blue-500/5 flex items-center gap-4">
+          <div className="w-12 h-12 flex items-center justify-center overflow-hidden">
+            <img src="/chatbot-icon.png" alt="Bot" className="w-full h-full object-contain drop-shadow-md" />
           </div>
-          <div className="w-14 h-14 flex items-center justify-center p-1.5">
-            <img src="/chatbot-icon.png" alt="Bot" className="w-full h-full object-contain" />
+          <div>
+            <h1 className="font-heading font-bold text-lg text-foreground">FindMedi AI</h1>
+            <p className="text-sm text-muted-foreground font-medium">Advanced Health Assistant</p>
           </div>
         </div>
-      </div>
-      
-      <div className="flex-1 flex flex-col relative bg-card">
-
-        
 
         {/* Camera Overlay */}
         {isCameraOpen && (
@@ -379,14 +345,13 @@ export default function AIChatPage() {
           ))}
           
           {loading && (
-            <div className="flex gap-4 max-w-4xl mx-auto items-center">
+            <div className="flex gap-4 max-w-4xl mx-auto">
               <div className="w-10 h-10 flex items-center justify-center shrink-0">
                 <img src="/chatbot-icon.png" alt="Bot" className="w-full h-full object-contain drop-shadow-sm" />
               </div>
-              <div className="bg-muted/50 border border-border/50 rounded-2xl rounded-tl-sm px-5 py-4 shadow-sm flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: '0ms' }} />
-                <span className="w-2.5 h-2.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: '150ms' }} />
-                <span className="w-2.5 h-2.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: '300ms' }} />
+              <div className="bg-muted/50 border border-border/50 rounded-2xl rounded-tl-sm px-5 py-4 shadow-sm flex items-center gap-3">
+                <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                <span className="text-sm text-muted-foreground font-medium animate-pulse">FindMedi AI is thinking...</span>
               </div>
             </div>
           )}
@@ -396,39 +361,40 @@ export default function AIChatPage() {
         {/* Input Area */}
         <div className="p-4 px-6 border-t bg-background">
           <div className="max-w-4xl mx-auto">
-            {selectedImage && (
-              <div className="relative inline-block mb-4">
-                <img src={selectedImage} alt="Preview" className="h-20 w-20 object-cover rounded-xl border shadow-sm" />
-                <button onClick={() => setSelectedImage(null)} className="absolute -top-2 -right-2 w-6 h-6 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center shadow-md hover:scale-110 transition-transform">
-                  <X className="w-3.5 h-3.5" />
-                </button>
+            <div className="bg-muted/50 p-1.5 rounded-3xl border shadow-sm focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all">
+              {selectedImage && (
+                <div className="relative inline-block mb-2 ml-4 mt-2 self-start">
+                  <img src={selectedImage} alt="Preview" className="h-16 w-16 object-cover rounded-xl border shadow-sm" />
+                  <button onClick={() => setSelectedImage(null)} className="absolute -top-2 -right-2 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center shadow-md hover:scale-110 transition-transform">
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              )}
+              <div className="flex items-center gap-2">
+                <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleImageSelect} />
+                <input type="file" accept="image/*" capture="environment" className="hidden" ref={cameraInputRef} onChange={handleImageSelect} />
+                
+                <TooltipProvider delayDuration={300}>
+                  <Button variant="ghost" size="icon" onClick={startCamera} className="rounded-xl text-muted-foreground hover:text-primary shrink-0">
+                    <Camera className="w-5 h-5" />
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} className="rounded-xl text-muted-foreground hover:text-primary shrink-0">
+                    <ImagePlus className="w-5 h-5" />
+                  </Button>
+                </TooltipProvider>
+  
+                <Input 
+                  value={input} 
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder="Message FindMedi AI..."
+                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+                  className="flex-1 border-0 bg-transparent shadow-none focus-visible:ring-0 text-base min-w-0"
+                />
+                
+                <Button size="icon" onClick={sendMessage} disabled={(!input.trim() && !selectedImage) || loading} className="rounded-xl w-12 h-12 shrink-0">
+                  <Send className="w-5 h-5 ml-0.5" />
+                </Button>
               </div>
-            )}
-            
-            <div className="flex items-center gap-2 bg-muted/50 p-1.5 rounded-2xl border shadow-sm focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all">
-              <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleImageSelect} />
-              <input type="file" accept="image/*" capture="environment" className="hidden" ref={cameraInputRef} onChange={handleImageSelect} />
-              
-              <TooltipProvider delayDuration={300}>
-                <Button variant="ghost" size="icon" onClick={startCamera} className="rounded-xl text-muted-foreground hover:text-primary">
-                  <Camera className="w-5 h-5" />
-                </Button>
-                <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} className="rounded-xl text-muted-foreground hover:text-primary">
-                  <ImagePlus className="w-5 h-5" />
-                </Button>
-              </TooltipProvider>
-
-              <Input 
-                value={input} 
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Message FindMedi AI..."
-                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-                className="flex-1 border-0 bg-transparent shadow-none focus-visible:ring-0 text-base"
-              />
-              
-              <Button size="icon" onClick={sendMessage} disabled={(!input.trim() && !selectedImage) || loading} className="rounded-xl w-12 h-12 shrink-0">
-                <Send className="w-5 h-5 ml-0.5" />
-              </Button>
             </div>
             <p className="text-xs text-muted-foreground text-center mt-3 font-medium">
               FindMedi AI can make mistakes. Always consult a healthcare professional for medical advice.

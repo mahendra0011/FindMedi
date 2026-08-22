@@ -3,9 +3,10 @@ import { motion } from 'framer-motion';
 import { User, Calendar, FileText, Search, Users, TrendingUp } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
-import { api, resolveFileUrl } from '@/lib/api';
+import { api, resolveFileUrl, isValidFileUrl } from '@/lib/api';
 import { subSlotFor } from '@/lib/timeSlots';
 import { CompletedCard } from '@/components/TodayAppointmentsSection';
+import { toast } from 'sonner';
 
 export default function ClinicPatients() {
   const { user } = useAuth();
@@ -104,7 +105,10 @@ export default function ClinicPatients() {
                 <CompletedCard
                   apt={latestAppt || apt}
                   subSlotFor={subSlotFor}
-                  onViewFile={(url) => url && window.open(resolveFileUrl(url), '_blank')}
+                  onViewFile={(url) => {
+                    if (!isValidFileUrl(url)) { toast.error('File unavailable — upload was not completed. Ask the patient to re-upload it.'); return; }
+                    window.open(resolveFileUrl(url), '_blank');
+                  }}
                   stats={{ visits: visitCount, records: recordCount }}
                 />
               </motion.div>

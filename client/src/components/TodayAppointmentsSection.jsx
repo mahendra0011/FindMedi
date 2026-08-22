@@ -3,13 +3,13 @@ import {
   Clock, Phone, Mail, MapPin, Droplet, User, CalendarDays,
   ChevronDown, ChevronUp, FileText, Stethoscope, CheckCircle,
   ArrowLeft, Download, Receipt, RotateCcw, Search, Info, X,
-  UserX, Ban,
+  UserX, Ban, Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { api, downloadInvoicePdf, resolveFileUrl } from '@/lib/api';
+import { api, downloadInvoicePdf, resolveFileUrl, getFilePreviewUrl, isValidFileUrl } from '@/lib/api';
 import {
   getHourSlots, getSubSlotsForHour, hourBoxFor, subSlotFor, parseTime,
 } from '@/lib/timeSlots';
@@ -115,8 +115,42 @@ export default function TodayAppointmentsSection({
 
   // History modal
   const [historyPatient, setHistoryPatient] = useState(null);
-  // File viewer popup
+  // File viewer popup — blob URLs are revoked on close to avoid leaks.
   const [fileViewerUrl, setFileViewerUrl] = useState(null);
+  const [fileViewerType, setFileViewerType] = useState(null); // 'image' | 'pdf' | 'other'
+  const [fileViewerLoading, setFileViewerLoading] = useState(false);
+
+  // Open uploaded intake files in the popup. Local /auth-protected URLs are
+  // fetched with credentials → blob URL, so <img>/<iframe> don't get a 401.
+  const openFileViewer = useCallback(async (url) => {
+    if (!url) return;
+    if (!isValidFileUrl(url)) {
+      toast.error('File unavailable — upload was not completed. Please ask the patient to re-upload it.');
+      return;
+    }
+    setFileViewerLoading(true);
+    try {
+      const preview = await getFilePreviewUrl(url);
+      if (!preview) {
+        toast.error('Unable to load file. It may have been removed or is not accessible.');
+        return;
+      }
+      setFileViewerUrl(preview.url);
+      setFileViewerType(preview.type);
+    } catch (err) {
+      console.error('File preview error:', err);
+      toast.error('Failed to load file preview.');
+    } finally {
+      setFileViewerLoading(false);
+    }
+  }, []);
+
+  const closeFileViewer = useCallback(() => {
+    if (fileViewerUrl?.startsWith('blob:')) URL.revokeObjectURL(fileViewerUrl);
+    setFileViewerUrl(null);
+    setFileViewerType(null);
+    setFileViewerLoading(false);
+  }, [fileViewerUrl]);
 
   // Visit-number for history button visibility (2nd+ visit)
   const pastVisitCountFor = useCallback((apt) => {
@@ -306,7 +340,7 @@ export default function TodayAppointmentsSection({
                     onConfirmComplete={handleConfirmComplete}
                     onOpenHistory={openHistory}
                     onWritePrescription={handleWritePrescription}
-                      onViewFile={(url) => setFileViewerUrl(resolveFileUrl(url))}
+                      onViewFile={openFileViewer}
                     onRefresh={onRefresh}
                     user={user}
                     selectedDate={selectedDate}
@@ -429,7 +463,7 @@ export default function TodayAppointmentsSection({
                       onDownloadInvoice={(a) => a.invoiceId && downloadInvoicePdf(a.invoiceId, `invoice-${a.patient}.pdf`)}
                       onViewDetails={onViewDetails}
                       subSlotFor={subSlotFor}
-                    onViewFile={(url) => setFileViewerUrl(resolveFileUrl(url))}
+                    onViewFile={openFileViewer}
                     />
                   ) : (
                     <AbsentCard apt={apt} subSlotFor={subSlotFor} />
@@ -452,20 +486,22 @@ export default function TodayAppointmentsSection({
       )}
       {/* File Viewer Popup */}
       {fileViewerUrl && (
-        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={() => setFileViewerUrl(null)}>
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={closeFileViewer}>
           <div className="bg-card rounded-2xl border border-border w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-3 border-b border-border/40">
               <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
                 <FileText className="w-4 h-4 text-primary" /> Uploaded File
               </h3>
-              <button onClick={() => setFileViewerUrl(null)} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground" aria-label="Close">
+              <button onClick={closeFileViewer} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground" aria-label="Close">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="flex-1 overflow-auto p-4 flex items-center justify-center bg-muted/10">
-              {fileViewerUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+              {fileViewerLoading ? (
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              ) : fileViewerType === 'image' ? (
                 <img src={fileViewerUrl} alt="Uploaded file" className="max-w-full max-h-[70vh] rounded-lg object-contain" />
-              ) : fileViewerUrl.match(/\.pdf$/i) ? (
+              ) : fileViewerType === 'pdf' ? (
                 <iframe src={fileViewerUrl} className="w-full h-[70vh] rounded-lg border-0" title="PDF Viewer" />
               ) : (
                 <a href={fileViewerUrl} target="_blank" rel="noopener noreferrer" className="text-primary underline">Open file in new tab</a>

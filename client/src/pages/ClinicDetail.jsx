@@ -219,7 +219,7 @@ const [testSort, setTestSort] = useState('popularity');
           setClinicDoctors(loadedDoctors);
         setDoctor(loadedDoctors[0] || null);
         try {
-          const t = await api.getTests({});
+          const t = await api.getTests({ hospitalId: clinicId });
           const mapped = (Array.isArray(t) ? t : t?.tests || []).map(t => ({
             id: t._id,
             _id: t._id,
@@ -255,6 +255,27 @@ const [testSort, setTestSort] = useState('popularity');
           const r = await api.getReviews({ doctorId: clinicId });
           const revs = Array.isArray(r) ? r : r?.reviews || [];
           if (revs.length > 0) setReviews(revs);
+          try {
+            const docFacilityId = doc?.facilityId?._id || doc?.facilityId;
+            const docTestScope = docFacilityId || doc?.hospitalId || doc?._id;
+            const t = await api.getTests(docTestScope ? { hospitalId: docTestScope } : {});
+            const mapped = (Array.isArray(t) ? t : t?.tests || []).map(t => ({
+              id: t._id,
+              _id: t._id,
+              name: t.name,
+              dept: t.category || t.department || 'Pathology',
+              category: t.category,
+              department: t.department,
+              price: t.price,
+              mrp: t.mrp || t.price,
+              reportTime: t.reportTime || '24 hrs',
+              homeCollection: t.homeCollection || false,
+              rx: t.prescriptionReq || false,
+              prescriptionReq: t.prescriptionReq || false,
+              popular: t.popular || false,
+            }));
+            setTests(mapped);
+          } catch { setTests([]); }
         } catch (doctorError) {
           console.error(facilityError);
           console.error(doctorError);

@@ -18,7 +18,7 @@ export default function DashboardLayout({ children }) {
       <AppSidebar />
       <main
         ref={mainRef}
-        className={`dashboard-main h-screen overflow-y-auto overscroll-contain transition-all duration-300 flex flex-col ${isMobile ? 'p-4 pb-0 pt-16' : 'p-6 pb-0 md:p-8 md:pb-0'}`}
+        className={`dashboard-main h-screen overflow-y-auto overscroll-contain transition-all duration-300 flex flex-col ${isAIChat ? 'p-0 pt-16 md:pt-0' : (isMobile ? 'p-4 pb-0 pt-16' : 'p-6 pb-0 md:p-8 md:pb-0')}`}
         style={isMobile ? {} : { marginLeft: 256 }}
       >
         {children}

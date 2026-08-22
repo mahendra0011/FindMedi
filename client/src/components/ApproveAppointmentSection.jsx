@@ -5,12 +5,13 @@ import {
   XCircle, AlertTriangle, FileText, Info, Phone, Mail, MapPin, Droplet,
 } from 'lucide-react';
 import { getISTDateString, formatDisplayDate } from '@/lib/dateUtils';
-import { resolveFileUrl } from '@/lib/api';
+import { resolveFileUrl, isValidFileUrl } from '@/lib/api';
 import {
   parseTime, subSlotFor, getHourSlots, getSubSlotsForHour, hourBoxFor,
 } from '@/lib/timeSlots';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { toast } from 'sonner';
 
 /**
  * Approve Appointments Section — same-to-same layout & UI as Appointment History:
@@ -264,7 +265,10 @@ export default function ApproveAppointmentSection({ appointments, onConfirm, onR
                   <ApproveCard
                     apt={apt}
                     subSlotFor={subSlotFor}
-                    onViewFile={(url) => window.open(resolveFileUrl(url), '_blank')}
+                    onViewFile={(url) => {
+                      if (!isValidFileUrl(url)) { toast.error('File unavailable — upload was not completed. Ask the patient to re-upload it.'); return; }
+                      window.open(resolveFileUrl(url), '_blank');
+                    }}
                     onConfirm={onConfirm}
                     onRejectClick={(a) => setRejectTarget(a)}
                   />
@@ -348,7 +352,10 @@ export default function ApproveAppointmentSection({ appointments, onConfirm, onR
                           <ApproveCard
                             apt={apt}
                             subSlotFor={subSlotFor}
-                            onViewFile={(url) => window.open(resolveFileUrl(url), '_blank')}
+                            onViewFile={(url) => {
+                              if (!isValidFileUrl(url)) { toast.error('File unavailable — upload was not completed. Ask the patient to re-upload it.'); return; }
+                              window.open(resolveFileUrl(url), '_blank');
+                            }}
                             onConfirm={onConfirm}
                             onRejectClick={(a) => setRejectTarget(a)}
                           />
