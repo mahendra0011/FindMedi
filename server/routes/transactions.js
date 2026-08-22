@@ -48,8 +48,22 @@ router.get('/', protect, async (req, res, next) => {
     const isDoctor = req.user.role === 'doctor' || req.user.role === 'clinic_doctor';
     let filter = {};
     if (isDoctor) {
-      // Doctors see payments where provider matches their name
-      filter = { provider: { $regex: req.user.name, $options: 'i' } };
+      // Doctors see payments for their own clinic. Provider name match alone is
+      // unreliable — jab patient clinic ke through book karta hai to provider me
+      // facility ka naam aata hai, doctor ka nahi. Isliye apne appointments se
+      // linked saare payments bhi include karo.
+      const ownRefIds = req.user.doctorProfileId
+        ? await Appointment.find({ doctorId: req.user.doctorProfileId })
+            .select('_id')
+            .lean()
+            .then(appts => appts.map(a => a._id.toString()))
+        : [];
+      filter = {
+        $or: [
+          { provider: { $regex: req.user.name, $options: 'i' } },
+          ...(ownRefIds.length ? [{ referenceId: { $in: ownRefIds } }] : []),
+        ],
+      };
     } else {
       filter = { patient_id: req.user._id.toString() };
     }
@@ -147,7 +161,7 @@ router.post('/pay', protect, async (req, res, next) => {
     // ── If appointment data is provided, create appointment first (atomic flow) ──
     if (apptData && serviceType === 'appointment') {
       try {
-        const { doctorId, doctor, doctorName, department, date, time, notes, type, symptoms, priority, facilityId } = apptData;
+        const { doctorId, doctor, doctorName, department, date, time, notes, type, symptoms, priority, facilityId, preConsultationDetails } = apptData;
         const patientName = req.user.name;
         const patientId = req.user._id;
 
@@ -259,6 +273,7 @@ router.post('/pay', protect, async (req, res, next) => {
             hospitalId: hospitalId || undefined,
             fees: Number(amount) || 0,
             status: 'Pending',
+            preConsultationDetails: preConsultationDetails ? { ...preConsultationDetails, filledAt: new Date() } : undefined,
           });
         } catch (err) {
           if (err.code === 11000) {

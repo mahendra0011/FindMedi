@@ -230,7 +230,7 @@ function SidebarContent({ collapsed, onToggleCollapse, onNavClick }) {
     <div className={`flex flex-col h-full bg-sidebar text-sidebar-foreground ${collapsed ? 'w-[72px]' : 'w-64'}`}>
       {/* Logo */}
       <div className={`flex items-center gap-3 px-4 py-5 border-b border-sidebar-border ${collapsed ? 'justify-center' : ''}`}>
-        <img src="/logo.png" alt="FindMedi Logo" className="w-12 h-12 object-contain drop-shadow-md flex-shrink-0" />
+        <img src="/logo.png" alt="FindMedi Logo" className="w-12 h-12 object-contain drop-shadow-md flex-shrink-0 rounded-xl" />
         {!collapsed && (
           <div>
             <h1 className="font-heading text-base font-bold text-sidebar-primary-foreground leading-none">FindMedi</h1>

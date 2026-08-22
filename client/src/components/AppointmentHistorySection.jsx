@@ -1,16 +1,21 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   CalendarDays, ChevronLeft, ChevronRight, Clock, Search, CheckCircle,
   Phone, Mail, FileText, History, CalendarCheck2, TrendingUp, User,
   BarChart3, Award, Trophy, UserX, ChevronUp, ChevronDown,
+  IndianRupee, CreditCard, Smartphone, Landmark, Wallet, Loader2,
+  Hash, Ticket, Cake, Droplet, Stethoscope, Beaker, Pill,
+  Download, RotateCcw, AlertCircle, MapPin,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { getISTDateString, formatDisplayDate } from '@/lib/dateUtils';
-import { resolveFileUrl } from '@/lib/api';
+import { resolveFileUrl, isValidFileUrl, api, downloadPaymentInvoice, downloadBillPdf } from '@/lib/api';
 import { 
   parseTime, subSlotFor, getHourSlots, getSubSlotsForHour, hourBoxFor 
 } from '@/lib/timeSlots';
 import { CompletedCard } from '@/components/TodayAppointmentsSection';
+import { toast } from 'sonner';
 
 /**
  * Appointment History Section — shows completed appointments for any selected date.
@@ -40,8 +45,49 @@ const countStats = (list, today) => {
 export default function AppointmentHistorySection({ appointments }) {
   const [calDate, setCalDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(getISTDateString());
-  const [viewMode, setViewMode] = useState('complete'); // 'complete' | 'absent'
+  const [viewMode, setViewMode] = useState('complete'); // 'complete' | 'absent' | 'payments'
   const [showMore, setShowMore] = useState(false);
+
+  // ── Payment history (patient ne is doctor ko jo payments kiye) ──
+  const [payments, setPayments] = useState([]);
+  const [paymentsLoading, setPaymentsLoading] = useState(false);
+  const [paymentSearch, setPaymentSearch] = useState('');
+
+  const loadPayments = useCallback(async () => {
+    setPaymentsLoading(true);
+    try {
+      const res = await api.getTransactions({ limit: 100 });
+      const list = res?.data || res?.payments || [];
+      setPayments(list);
+    } catch (e) {
+      console.error(e);
+      toast.error('Failed to load payment history');
+    }
+    setPaymentsLoading(false);
+  }, []);
+
+  useEffect(() => { loadPayments(); }, [loadPayments]);
+
+  const filteredPayments = useMemo(() => {
+    if (!paymentSearch.trim()) return payments;
+    const q = paymentSearch.toLowerCase();
+    return payments.filter(t =>
+      (t.patient_name || '').toLowerCase().includes(q) ||
+      (t.patient?.name || '').toLowerCase().includes(q) ||
+      (t.patient?.phone || '').toLowerCase().includes(q) ||
+      (t.patient?.email || '').toLowerCase().includes(q) ||
+      (t.transaction_id || '').toLowerCase().includes(q) ||
+      (t.invoice_id || '').toLowerCase().includes(q)
+    );
+  }, [payments, paymentSearch]);
+
+  const paymentStats = useMemo(() => ({
+    total: payments.filter(t => t.status === 'completed').reduce((s, t) => s + (t.amount || 0), 0),
+    completed: payments.filter(t => t.status === 'completed').length,
+    pending: payments.filter(t => t.status === 'pending').length,
+    failed: payments.filter(t => t.status === 'failed').length,
+    refunded: payments.filter(t => t.status === 'refunded').length,
+  }), [payments]);
 
   const today = getISTDateString();
 
@@ -276,7 +322,7 @@ export default function AppointmentHistorySection({ appointments }) {
 
       {/* ════════════ MIDDLE: Search + History cards (internal scroll) ════════════ */}
       <div className="space-y-4 flex flex-col md:min-h-0">
-        {/* Complete / Absent switch */}
+        {/* Complete / Absent / Payments switch */}
         <div className="flex items-center justify-between shrink-0 gap-3">
           <div className="flex gap-1 bg-muted/50 rounded-xl p-1 w-fit">
             <button
@@ -295,26 +341,75 @@ export default function AppointmentHistorySection({ appointments }) {
             >
               <UserX className="w-3.5 h-3.5" /> Absent
             </button>
+            <button
+              onClick={() => setViewMode('payments')}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                viewMode === 'payments' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <IndianRupee className="w-3.5 h-3.5" /> Payments
+            </button>
           </div>
-          <span className={`text-[10px] font-semibold px-2 py-1 rounded-full ${viewMode === 'complete' ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}`}>
-            {viewMode === 'complete' ? 'Completed patients' : 'Missed appointments'}
+          <span className={`text-[10px] font-semibold px-2 py-1 rounded-full ${
+            viewMode === 'complete' ? 'bg-success/10 text-success' : viewMode === 'absent' ? 'bg-destructive/10 text-destructive' : 'bg-primary/10 text-primary'
+          }`}>
+            {viewMode === 'complete' ? 'Completed patients' : viewMode === 'absent' ? 'Missed appointments' : `${payments.length} payments`}
           </span>
         </div>
 
         {/* Date header */}
         <div className="flex items-center justify-between shrink-0">
           <h4 className="font-heading text-base font-semibold text-foreground flex items-center gap-2">
-            <CalendarDays className="w-4 h-4 text-primary" />
-            {formatDisplayDate(selectedDate) || selectedDate}
+            {viewMode === 'payments' ? (
+              <IndianRupee className="w-4 h-4 text-primary" />
+            ) : (
+              <CalendarDays className="w-4 h-4 text-primary" />
+            )}
+            {viewMode === 'payments' ? 'Payment History' : (formatDisplayDate(selectedDate) || selectedDate)}
           </h4>
           <span className="text-xs text-muted-foreground">
-            {slotAppointments.length} {viewMode === 'complete' ? 'completed' : 'absent'} appointment{slotAppointments.length !== 1 ? 's' : ''}
+            {viewMode === 'payments'
+              ? `${filteredPayments.length} payment${filteredPayments.length !== 1 ? 's' : ''}`
+              : `${slotAppointments.length} ${viewMode === 'complete' ? 'completed' : 'absent'} appointment${slotAppointments.length !== 1 ? 's' : ''}`}
           </span>
         </div>
 
         {/* Completed appointments list */}
         <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pr-1 scrollbar-thin flex flex-col">
-          {slotAppointments.length === 0 ? (
+          {viewMode === 'payments' ? (
+            <>
+              {/* Payment search */}
+              <div className="relative mb-3 shrink-0">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                <Input
+                  placeholder="Search by patient, phone, txn / invoice ID…"
+                  value={paymentSearch}
+                  onChange={e => setPaymentSearch(e.target.value)}
+                  className="pl-8 h-9 text-xs w-full"
+                />
+              </div>
+              {paymentsLoading ? (
+                <div className="flex justify-center py-16">
+                  <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                </div>
+              ) : filteredPayments.length === 0 ? (
+                <div className="bg-card rounded-2xl border border-border/60 p-8 text-center flex-1 flex flex-col items-center justify-center">
+                  <IndianRupee className="w-10 h-10 text-muted-foreground/30 mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    {payments.length === 0
+                      ? 'No payments received yet. When patients pay for appointments, they appear here.'
+                      : 'No payments match your search.'}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {filteredPayments.map((txn) => (
+                    <PaymentCard key={txn._id} txn={txn} />
+                  ))}
+                </div>
+              )}
+            </>
+          ) : slotAppointments.length === 0 ? (
             <div className="bg-card rounded-2xl border border-border/60 p-8 text-center flex-1 flex flex-col items-center justify-center">
               {viewMode === 'complete'
                 ? <CheckCircle className="w-10 h-10 text-muted-foreground/30 mx-auto mb-2" />
@@ -331,7 +426,10 @@ export default function AppointmentHistorySection({ appointments }) {
                 <div key={apt._id || i} id={`history-card-${apt._id}`} className="scroll-mt-4">
                   <CompletedCard 
                     apt={apt} 
-                    onViewFile={(url) => window.open(resolveFileUrl(url), '_blank')}
+                    onViewFile={(url) => {
+                      if (!isValidFileUrl(url)) { toast.error('File unavailable — upload was not completed. Ask the patient to re-upload it.'); return; }
+                      window.open(resolveFileUrl(url), '_blank');
+                    }}
                     subSlotFor={subSlotFor}
                   />
                 </div>
@@ -415,13 +513,76 @@ export default function AppointmentHistorySection({ appointments }) {
         {/* Recent completed/absent (fills to bottom) */}
         <div className="bg-card rounded-2xl border border-border/60 p-4 shadow-sm flex-1 min-h-0 flex flex-col">
           <h4 className="font-heading text-sm font-semibold text-foreground mb-3 flex items-center gap-2 shrink-0">
-            {viewMode === 'complete'
-              ? <TrendingUp className="w-4 h-4 text-primary" />
-              : <UserX className="w-4 h-4 text-destructive" />}
-            {viewMode === 'complete' ? 'Recent Completed' : 'Recent Absent'}
+            {viewMode === 'payments'
+              ? <IndianRupee className="w-4 h-4 text-primary" />
+              : viewMode === 'complete'
+                ? <TrendingUp className="w-4 h-4 text-primary" />
+                : <UserX className="w-4 h-4 text-destructive" />}
+            {viewMode === 'payments' ? 'Payment Summary' : viewMode === 'complete' ? 'Recent Completed' : 'Recent Absent'}
           </h4>
+          {viewMode === 'payments' && (
+            <>
+              <div className="grid grid-cols-2 gap-2 mb-3 shrink-0">
+                <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-600">Total Collected</p>
+                  <p className="font-heading text-lg font-bold text-foreground mt-0.5">₹{paymentStats.total.toLocaleString('en-IN')}</p>
+                </div>
+                <div className="rounded-xl border border-border/40 bg-muted/20 p-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Paid Count</p>
+                  <p className="font-heading text-lg font-bold text-foreground mt-0.5">{paymentStats.completed}</p>
+                </div>
+                <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-600">Pending</p>
+                  <p className="font-heading text-lg font-bold text-foreground mt-0.5">{paymentStats.pending}</p>
+                </div>
+                <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-red-500">Failed</p>
+                  <p className="font-heading text-lg font-bold text-foreground mt-0.5">{paymentStats.failed}</p>
+                </div>
+              </div>
+              <div className="flex items-center justify-between text-[11px] pb-2 border-b border-border/40 mb-2 shrink-0">
+                <span className="text-muted-foreground">Refunded</span>
+                <span className="font-bold text-foreground">{paymentStats.refunded}</span>
+              </div>
+            </>
+          )}
           <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-1 scrollbar-thin">
-            {recent.length === 0 ? (
+            {viewMode === 'payments' ? (
+              payments.slice(0, 12).length === 0 ? (
+                <div className="flex-1 flex flex-col items-center justify-center h-full text-center">
+                  <IndianRupee className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
+                  <p className="text-xs text-muted-foreground">No payments yet.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {payments.slice(0, 12).map((txn, i) => (
+                    <button
+                      key={txn._id || i}
+                      onClick={() => setViewMode('payments')}
+                      className="w-full flex items-center gap-3 p-2.5 rounded-xl text-left transition-colors hover:bg-muted/50 border border-transparent hover:border-border/40"
+                    >
+                      <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold shrink-0">
+                        {(txn.patient_name || '?').slice(0, 2).toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">{txn.patient_name}</p>
+                        <p className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Hash className="w-3 h-3 shrink-0" />
+                          {txn.transaction_id}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground/60 flex items-center gap-1">
+                          <CalendarDays className="w-3 h-3 shrink-0" />
+                          {formatDateTime(txn.createdAt)}
+                        </p>
+                      </div>
+                      <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-semibold whitespace-nowrap shrink-0 bg-emerald-500/10 text-emerald-600">
+                        ₹{txn.amount?.toLocaleString('en-IN') || 0}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )
+            ) : recent.length === 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center h-full text-center">
                 {viewMode === 'complete'
                   ? <CheckCircle className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
@@ -488,6 +649,162 @@ function StatusTile({ icon: Icon, label, value, tone = 'primary' }) {
         <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground truncate">{label}</span>
       </div>
       <p className="font-heading text-xl font-bold text-foreground leading-tight">{value}</p>
+    </div>
+  );
+}
+
+/* ── Payment helpers ── */
+const paymentStatusConfig = {
+  completed: { label: 'Paid', color: 'bg-emerald-500/10 text-emerald-600', icon: CheckCircle },
+  pending: { label: 'Pending', color: 'bg-amber-500/10 text-amber-600', icon: Clock },
+  failed: { label: 'Failed', color: 'bg-red-500/10 text-red-600', icon: AlertCircle },
+  refunded: { label: 'Refunded', color: 'bg-blue-500/10 text-blue-600', icon: RotateCcw },
+};
+const methodIcons = { card: CreditCard, upi: Smartphone, netbanking: Landmark, cash: Wallet };
+
+function formatDateTime(d) {
+  if (!d) return '';
+  return new Date(d).toLocaleString('en-IN', {
+    day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+  });
+}
+
+function formatShortDate(d) {
+  if (!d) return '';
+  return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function calcAge(dob) {
+  if (!dob) return '';
+  const birth = new Date(dob);
+  const now = new Date();
+  let age = now.getFullYear() - birth.getFullYear();
+  const m = now.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) age--;
+  return age >= 0 ? `${age} yrs` : '';
+}
+
+function PayInfoRow({ icon: Icon, label, value, color = 'text-muted-foreground' }) {
+  if (!value) return null;
+  return (
+    <div className="flex items-center gap-2 py-0.5">
+      <Icon className={`w-3.5 h-3.5 ${color} shrink-0`} />
+      <span className="text-[11px] text-muted-foreground min-w-[72px]">{label}:</span>
+      <span className="text-xs font-medium text-foreground truncate">{value}</span>
+    </div>
+  );
+}
+
+/* ── Payment card — patient ne doctor ko kiya payment, full details ke saath ── */
+function PaymentCard({ txn }) {
+  const isAppt = txn.serviceType === 'appointment';
+  const isTest = txn.serviceType === 'test';
+  const isMed = txn.serviceType === 'medicine';
+  const patient = txn.patient || {};
+  const ref = txn.reference || {};
+
+  const StatusIcon = paymentStatusConfig[txn.status]?.icon || CheckCircle;
+  const MethodIcon = methodIcons[txn.method] || CreditCard;
+  const TypeIcon = isAppt ? Stethoscope : isTest ? Beaker : Pill;
+  const typeBadgeColor = isAppt ? 'bg-blue-500/10 text-blue-600' : isTest ? 'bg-purple-500/10 text-purple-600' : 'bg-rose-500/10 text-rose-600';
+  const serviceName = isAppt ? 'Appointment Booking' : isTest ? 'Lab Test' : 'Medicine Order';
+  const typeLabel = isAppt ? 'Appointment' : isTest ? 'Lab Test' : 'Medicine';
+  const fullAddress = [patient.address, patient.city, patient.state].filter(Boolean).join(', ');
+
+  return (
+    <div key={txn._id} className="bg-card rounded-2xl border border-border/60 overflow-hidden hover:shadow-lg transition-all">
+      <div className="p-5">
+        {/* Top row: type + status + amount */}
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${typeBadgeColor}`}>
+              <TypeIcon className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 mb-0.5">
+                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${typeBadgeColor}`}>
+                  <TypeIcon className="w-3 h-3" /> {typeLabel}
+                </span>
+                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${paymentStatusConfig[txn.status]?.color || ''}`}>
+                  <StatusIcon className="w-3 h-3" /> {paymentStatusConfig[txn.status]?.label || txn.status}
+                </span>
+              </div>
+              <p className="font-heading font-semibold text-foreground text-sm">{serviceName}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{txn.description || ''}</p>
+            </div>
+          </div>
+          <div className="text-right shrink-0">
+            <p className="font-heading text-xl font-bold text-foreground">₹{txn.amount?.toLocaleString('en-IN') || 0}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">{formatDateTime(txn.createdAt)}</p>
+          </div>
+        </div>
+
+        {/* Patient details */}
+        <div className="bg-muted/20 rounded-xl border border-border/30 p-4 mb-4">
+          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-1">
+            <User className="w-3 h-3" /> Patient Details
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
+            <PayInfoRow icon={User} label="Full Name" value={patient.name || txn.patient_name || 'N/A'} color="text-primary" />
+            <PayInfoRow icon={Cake} label="Age" value={calcAge(patient.dateOfBirth)} color="text-blue-500" />
+            <PayInfoRow icon={User} label="Gender" value={patient.gender} color="text-purple-500" />
+            <PayInfoRow icon={Droplet} label="Blood Group" value={patient.bloodGroup} color="text-red-500" />
+            <PayInfoRow icon={Phone} label="Phone" value={patient.phone} color="text-emerald-500" />
+            <PayInfoRow icon={Mail} label="Email" value={patient.email} color="text-cyan-500" />
+            <div className="sm:col-span-2">
+              <PayInfoRow icon={MapPin} label="Address" value={fullAddress} color="text-amber-500" />
+            </div>
+          </div>
+        </div>
+
+        {/* Payment & transaction details */}
+        <div className="bg-muted/10 rounded-xl border border-border/20 p-4 mb-4">
+          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-1">
+            <Hash className="w-3 h-3" /> Payment & Transaction Details
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
+            <PayInfoRow icon={IndianRupee} label="Fee Paid" value={`₹${txn.amount?.toLocaleString('en-IN') || 0}`} color="text-orange-500" />
+            <PayInfoRow icon={MethodIcon} label="Method" value={(txn.method || '').toUpperCase()} color="text-emerald-500" />
+            <PayInfoRow icon={CalendarDays} label="Date & Time" value={formatDateTime(txn.createdAt)} color="text-blue-500" />
+            <PayInfoRow icon={StatusIcon} label="Status" value={paymentStatusConfig[txn.status]?.label || txn.status} color={paymentStatusConfig[txn.status]?.color?.split(' ')[1] || 'text-muted-foreground'} />
+            <PayInfoRow icon={Hash} label="Transaction ID" value={txn.transaction_id} color="text-muted-foreground" />
+            <PayInfoRow icon={Ticket} label="Invoice ID" value={txn.invoice_id} color="text-cyan-500" />
+            <PayInfoRow icon={FileText} label="Bill ID" value={txn.invoice_id ? txn.invoice_id.replace(/INV/i, 'BILL') : ''} color="text-violet-500" />
+            {isAppt && ref.appointmentDate && (
+              <PayInfoRow icon={CalendarDays} label="Appt Date" value={`${formatShortDate(ref.appointmentDate)}, ${ref.appointmentTime || ''}`} color="text-blue-500" />
+            )}
+            {isAppt && ref.tokenNumber && (
+              <PayInfoRow icon={Ticket} label="Token No." value={ref.tokenNumber} color="text-emerald-500" />
+            )}
+            {isAppt && ref.doctorName && (
+              <PayInfoRow icon={Stethoscope} label="Doctor" value={`Dr. ${ref.doctorName.replace('Dr. ', '')}`} color="text-primary" />
+            )}
+            {isTest && ref.bookingId && (
+              <PayInfoRow icon={Hash} label="Booking ID" value={ref.bookingId} color="text-cyan-500" />
+            )}
+            {isMed && ref.orderId && (
+              <PayInfoRow icon={Hash} label="Order ID" value={ref.orderId} color="text-rose-500" />
+            )}
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex flex-wrap gap-2 pt-2 border-t border-border/20">
+          <Button size="sm" variant="ghost" className="gap-1.5 rounded-xl h-9 text-xs"
+            onClick={() => {
+              const billName = txn.invoice_id ? txn.invoice_id.replace('INV', 'BILL') : 'bill';
+              downloadBillPdf(txn._id, `${billName}.pdf`).catch(err => toast.error(err.message));
+            }}>
+            <Download className="w-3.5 h-3.5" /> Download Bill
+          </Button>
+          {txn.status === 'completed' && (
+            <Button size="sm" variant="outline" className="gap-1.5 rounded-xl h-9 text-xs"
+              onClick={() => downloadPaymentInvoice(txn._id, `${txn.invoice_id || 'invoice'}.pdf`).catch(err => toast.error(err.message))}>
+              <Download className="w-3.5 h-3.5" /> Invoice
+            </Button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

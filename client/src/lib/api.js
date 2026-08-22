@@ -12,6 +12,113 @@ export function resolveFileUrl(url) {
   return url;
 }
 
+/**
+ * True only when the value is an actual usable file URL.
+ * Bare filenames (stored when an upload previously failed) are NOT valid —
+ * opening them produces a bogus relative URL.
+ */
+export function isValidFileUrl(url) {
+  if (!url) return false;
+  return /^https?:\/\//i.test(url) || url.startsWith('/') || url.startsWith('data:') || url.startsWith('blob:');
+}
+
+/**
+ * Detect file type from a URL or filename.
+ * Returns 'image' | 'pdf' | 'other'
+ */
+export function getFileType(url = '') {
+  if (/\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(url)) return 'image';
+  if (/\.pdf$/i.test(url)) return 'pdf';
+  return 'other';
+}
+
+// API origin (without /api) — used to detect local-server URLs that need auth.
+const API_ORIGIN = BASE.replace(/\/api\/?$/, '');
+
+/**
+ * Returns true when the (resolved) URL points to the local Express server
+ * (auth-protected static middleware) rather than an external CDN such as
+ * Cloudinary.  External URLs are publicly accessible and can be used directly;
+ * local URLs require credentials that <img>/<iframe> do not send.
+ */
+export function isLocalFileUrl(url = '') {
+  if (!url) return false;
+  // Relative paths (e.g. "/uploads/documents/x.jpg") are local by definition.
+  if (url.startsWith('/') && !url.startsWith('//')) return true;
+  // Absolute URLs on the same origin as the API server.
+  return url.startsWith(API_ORIGIN + '/') || url.startsWith(API_ORIGIN);
+}
+
+/**
+ * Resolve a file URL for inline preview (<img>, <iframe>).
+ *
+ * Local / auth-protected URLs are fetched with `credentials: 'include'` so
+ * they pass the server's `/uploads` middleware, then converted to a blob URL
+ * that the browser can render without re-sending auth.  External URLs
+ * (Cloudinary, etc.) are returned as-is.
+ *
+ * @param {string} url - raw file URL stored on the appointment/record
+ * @returns {Promise<{url: string, type: 'image'|'pdf'|'other'} | null>}
+ */
+export async function getFilePreviewUrl(url) {
+  const resolved = resolveFileUrl(url);
+  if (!resolved) return null;
+
+  const type = getFileType(resolved);
+
+  if (!isLocalFileUrl(resolved)) {
+    // External CDN (Cloudinary) — publicly accessible, use directly.
+    return { url: resolved, type };
+  }
+
+  // Local / auth-protected — fetch with credentials → blob URL.
+  try {
+    const response = await fetch(resolved, { credentials: 'include' });
+    if (!response.ok) throw new Error(`Failed to load file (${response.status})`);
+    const blob = await response.blob();
+    return { url: URL.createObjectURL(blob), type };
+  } catch (err) {
+    console.error('getFilePreviewUrl error:', err);
+    return null;
+  }
+}
+
+/**
+ * Map a Payment doc (from /api/transactions) into the "bill" shape that
+ * EarningsAnalytics and the clinic dashboard revenue widgets expect.
+ *
+ * /api/billing is patient-scoped and /api/payments returns hospital-wide
+ * data, so earnings must come from /api/transactions (already filtered to
+ * this doctor's own payments).  Statuses are converted to the capitalized
+ * variants used by STATUS_META (Paid/Pending/Partial/Overdue).
+ */
+export function txToEarningsBill(t) {
+  const created = t.createdAt ? new Date(t.createdAt) : new Date();
+  const ist = new Date(created.getTime() + 5.5 * 60 * 60 * 1000);
+  const iso = ist.toISOString();
+  return {
+    _id: t._id,
+    amount: Number(t.amount) || 0,
+    paid: t.status === 'completed' ? Number(t.amount) || 0 : 0,
+    date: iso.slice(0, 10),
+    time: iso.slice(11, 16),
+    status: t.status === 'completed' ? 'Paid'
+      : t.status === 'pending' ? 'Pending'
+      : t.status === 'failed' ? 'Failed'
+      : t.status === 'refunded' ? 'Refunded'
+      : t.status,
+    patient: t.patient_name || t.patient || 'Patient',
+    service: t.serviceType === 'appointment' ? 'Appointment'
+      : t.serviceType === 'test' ? 'Test'
+      : t.serviceType === 'medicine' ? 'Medicine'
+      : t.serviceType || 'General',
+    method: t.method,
+    provider: t.provider,
+    transaction_id: t.transaction_id,
+    invoice_id: t.invoice_id,
+  };
+}
+
 export function dispatch(_fallback, path, options = {}) {
   return request(path, options);
 }

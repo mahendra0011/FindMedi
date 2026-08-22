@@ -4,6 +4,7 @@ import { TestTube, Plus, X, Save, Search, Edit2, FlaskConical, Activity, Heart, 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 
 const testCategories = ['Basic', 'Lab', 'Imaging', 'Cardiac', 'Other'];
@@ -26,6 +27,7 @@ const categoryIcons = {
 };
 
 export default function ClinicTests() {
+  const { user } = useAuth();
   const [tests, setTests] = useState(defaultTests);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
@@ -41,28 +43,28 @@ export default function ClinicTests() {
 
   const loadTests = useCallback(async () => {
     try {
-      const res = await api.getTests({});
+      const fac = await api.getMyFacility().catch(() => null);
+      const myId = fac?._id || user?.hospitalId || user?.doctorProfileId;
+      const res = await api.getTests(myId ? { hospitalId: myId } : {});
       const list = Array.isArray(res) ? res : res?.tests || [];
-      if (list.length > 0) {
-        setTests(list.map(t => ({
-          _id: t._id,
-          name: t.name,
-          price: t.price,
-          mrp: t.mrp || t.price,
-          category: t.category || t.department || 'Lab',
-          department: t.department || 'Pathology',
-          reportTime: t.reportTime || '24 hrs',
-          prescriptionReq: t.prescriptionReq || false,
-          homeCollection: t.homeCollection || false,
-          homeCollectionFee: t.homeCollectionFee || 0,
-          popular: t.popular || false,
-          nablAccredited: t.nablAccredited || false,
-          description: t.description || '',
-          preparation: t.preparation || '',
-        })));
-      }
+      setTests(list.map(t => ({
+        _id: t._id,
+        name: t.name,
+        price: t.price,
+        mrp: t.mrp || t.price,
+        category: t.category || t.department || 'Lab',
+        department: t.department || 'Pathology',
+        reportTime: t.reportTime || '24 hrs',
+        prescriptionReq: t.prescriptionReq || false,
+        homeCollection: t.homeCollection || false,
+        homeCollectionFee: t.homeCollectionFee || 0,
+        popular: t.popular || false,
+        nablAccredited: t.nablAccredited || false,
+        description: t.description || '',
+        preparation: t.preparation || '',
+      })));
     } catch { console.warn('Failed to load tests'); }
-  }, []);
+  }, [user?.hospitalId, user?.doctorProfileId]);
 
   useEffect(() => { loadTests(); }, [loadTests]);
 

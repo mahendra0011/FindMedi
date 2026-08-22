@@ -64,20 +64,7 @@ export default function IntakeFormStep({ formData, setFormData, onNext, onBack }
     } catch (err) {
       console.error('Upload error:', err);
       const errorMsg = err.response?.data?.error || err.response?.data?.message || err.message || 'Failed to upload file';
-      // Store just the filename (not base64) so form can still be submitted
-      const fileName = file.name || 'uploaded-file';
-      if (fieldPath === 'prescriptionFile') {
-        setFormData(prev => ({
-          ...prev,
-          currentTreatment: { ...prev.currentTreatment, prescriptionFile: fileName }
-        }));
-      } else if (fieldPath === 'reportFile') {
-        setFormData(prev => ({
-          ...prev,
-          testReports: { ...prev.testReports, reportFile: fileName }
-        }));
-      }
-      toast.error(`Upload failed: ${errorMsg}. File name saved, please try again later.`);
+      toast.error(`Upload failed: ${errorMsg}. Please try again.`);
     } finally {
       setUploading(false);
       e.target.value = '';

@@ -6,6 +6,8 @@ import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
+import { format } from 'date-fns';
+import TypewriterText from '@/components/TypewriterText';
 import { toast } from 'sonner';
 
 const SYSTEM_PROMPT = `You are FindMedi AI, a helpful health assistant. Your role:
@@ -120,7 +122,7 @@ export default function AIChatAssistant() {
       const history = messages.map((m) => ({ role: m.role, content: m.content, image: m.image }));
       const res = await api.post('/ai-chat', { message: userMsg.content, image: userMsg.image, history });
       
-      const assistantMsg = { role: 'assistant', content: res.reply, suggestions: res.suggestions };
+      const assistantMsg = { role: 'assistant', content: res.reply, suggestions: res.suggestions, isTyping: true };
       const finalMessages = [...newMessages, assistantMsg];
       setMessages(finalMessages);
 
@@ -149,7 +151,7 @@ export default function AIChatAssistant() {
       localStorage.setItem('medicore_ai_history', JSON.stringify(newSessions));
 
     } catch {
-      setMessages((prev) => [...prev, { role: 'assistant', content: 'Sorry, I encountered an error. Please try again.' }]);
+      setMessages((prev) => [...prev, { role: 'assistant', content: 'Oops, something went wrong on my end! Could you please try again?' }]);
     }
     setLoading(false);
   };
@@ -197,7 +199,7 @@ export default function AIChatAssistant() {
             initial={{ opacity: 0, y: 100, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 100, scale: 0.9 }}
-            className="fixed bottom-24 right-6 z-50 w-[360px] max-w-[calc(100vw-2rem)] h-[520px] max-h-[calc(100vh-8rem)] bg-card rounded-2xl border shadow-2xl flex flex-col overflow-hidden"
+            className="fixed bottom-0 right-0 sm:bottom-24 sm:right-6 z-50 w-full h-[100dvh] sm:w-[420px] sm:h-[600px] sm:max-h-[calc(100vh-8rem)] bg-card sm:rounded-2xl border sm:shadow-2xl flex flex-col overflow-hidden"
           >
             {isCameraOpen && (
               <div className="absolute inset-0 z-50 bg-black flex flex-col items-center justify-center">
@@ -214,13 +216,11 @@ export default function AIChatAssistant() {
               <div className="flex items-center gap-3">
                 <div className="relative w-12 h-12 flex items-center justify-center overflow-hidden">
                   <img src="/chatbot-icon.png" alt="Bot" className="w-12 h-12 object-contain drop-shadow-sm" />
-                  <span className="absolute bottom-0 right-0 w-3 h-3 bg-success rounded-full border-2 border-card shadow-sm" />
                 </div>
                 <div>
                   <p className="font-heading font-bold text-base text-foreground leading-tight">FindMedi AI</p>
-                  <p className="text-xs text-muted-foreground font-medium flex items-center gap-1">
-                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-success" />
-                    Health Assistant · Online
+                  <p className="text-xs text-muted-foreground font-medium">
+                    Health Assistant
                   </p>
                 </div>
               </div>
@@ -330,30 +330,25 @@ export default function AIChatAssistant() {
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {messages.length === 0 && (
                 <div className="flex flex-col items-center justify-center h-full text-center px-2">
-                  <div className="relative w-24 h-24 mx-auto mb-5">
-                    <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-blue-500/20 rounded-full blur-xl animate-pulse" />
-                    <div className="relative w-24 h-24 flex items-center justify-center bg-gradient-to-br from-primary/10 to-blue-500/10 rounded-2xl border border-primary/20 shadow-lg">
-                      <img src="/chatbot-icon.png" alt="Bot" className="w-16 h-16 object-contain drop-shadow-md" />
-                    </div>
-                    <span className="absolute bottom-1 right-1 w-4 h-4 bg-success rounded-full border-2 border-card shadow-sm" />
+                  <div className="w-20 h-20 mx-auto mb-4">
+                    <img src="/chatbot-icon.png" alt="Bot" className="w-20 h-20 object-contain drop-shadow-md" />
                   </div>
                   <p className="font-heading text-lg font-bold text-foreground">FindMedi AI</p>
                   <p className="text-xs text-primary font-semibold uppercase tracking-wide mt-0.5">Advanced Health Assistant</p>
                   <p className="text-sm text-muted-foreground mt-3 max-w-[280px] leading-relaxed">
                     Ask me about symptoms, diseases, medicines, nutrition, or general health tips. I'll help guide you to the right care.
                   </p>
-                  <div className="grid grid-cols-2 gap-2 mt-5 w-full max-w-[300px]">
+                  <div className="flex flex-wrap justify-center gap-1.5 mt-4 w-full max-w-[300px]">
                     {[
-                      { q: 'What are symptoms of flu?', icon: Activity },
-                      { q: 'Which doctor for headache?', icon: Stethoscope },
-                      { q: 'Healthy diet tips', icon: Sparkles },
-                      { q: 'First aid for burns', icon: Bot },
-                    ].map(({ q, icon: Icon }) => (
+                      'What are symptoms of flu?',
+                      'Which doctor for headache?',
+                      'Healthy diet tips',
+                      'First aid for burns',
+                    ].map((q) => (
                       <button key={q} onClick={() => { setInput(q); }}
-                        className="group flex flex-col items-start gap-1.5 p-3 rounded-xl bg-muted/50 border border-border/50 hover:border-primary/30 hover:bg-primary/5 transition-all text-left"
+                        className="text-[11px] px-2.5 py-1 rounded-full bg-muted/50 border border-border/50 text-muted-foreground hover:border-primary/30 hover:bg-primary/5 hover:text-primary transition-all"
                       >
-                        <Icon className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                        <span className="text-xs text-muted-foreground group-hover:text-foreground leading-snug">{q}</span>
+                        {q}
                       </button>
                     ))}
                   </div>
@@ -362,7 +357,7 @@ export default function AIChatAssistant() {
               {messages.map((m, i) => (
                 <div key={i} className={`flex gap-2.5 ${m.role === 'user' ? 'justify-end' : ''}`}>
                   {m.role === 'assistant' && (
-                    <div className="w-9 h-9 flex items-center justify-center shrink-0 mt-1 overflow-hidden rounded-xl bg-gradient-to-br from-primary/10 to-blue-500/10 border border-primary/15">
+                    <div className="w-9 h-9 flex items-center justify-center shrink-0 mt-1 overflow-hidden">
                       <img src="/chatbot-icon.png" alt="Bot" className="w-7 h-7 object-contain" />
                     </div>
                   )}
@@ -376,8 +371,19 @@ export default function AIChatAssistant() {
                         <img src={m.image} alt="User upload" className="rounded-lg max-h-40 object-cover border border-border/40" />
                       </div>
                     )}
-                    <p className="whitespace-pre-wrap">{m.content}</p>
-                    {m.suggestions && m.suggestions.length > 0 && (
+                    {m.role === 'assistant' && m.isTyping ? (
+                      <TypewriterText 
+                        text={m.content} 
+                        delay={4}
+                        chunkSize={4}
+                        onComplete={() => {
+                          setMessages(prev => prev.map((msg, idx) => idx === i ? { ...msg, isTyping: false } : msg));
+                        }} 
+                      />
+                    ) : (
+                      <p className="whitespace-pre-wrap">{m.content}</p>
+                    )}
+                    {m.suggestions && m.suggestions.length > 0 && !m.isTyping && (
                       <div className="mt-3 space-y-2 border-t pt-3 border-border/40">
                         <p className="text-xs font-bold text-primary flex items-center gap-1.5">
                           <Stethoscope className="w-3.5 h-3.5" />
@@ -404,16 +410,14 @@ export default function AIChatAssistant() {
                 </div>
               ))}
               {loading && (
-                <div className="flex gap-2.5">
-                  <div className="w-9 h-9 flex items-center justify-center overflow-hidden shrink-0 mt-1 rounded-xl bg-gradient-to-br from-primary/10 to-blue-500/10 border border-primary/15">
+                <div className="flex gap-2.5 items-center">
+                  <div className="w-9 h-9 flex items-center justify-center overflow-hidden shrink-0 mt-1">
                     <img src="/chatbot-icon.png" alt="Bot" className="w-7 h-7 object-contain" />
                   </div>
-                  <div className="bg-muted/70 rounded-2xl rounded-tl-md px-4 py-3 border border-border/40">
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-muted-foreground/40 animate-bounce" style={{ animationDelay: '0ms' }} />
-                      <span className="w-2 h-2 rounded-full bg-muted-foreground/40 animate-bounce" style={{ animationDelay: '150ms' }} />
-                      <span className="w-2 h-2 rounded-full bg-muted-foreground/40 animate-bounce" style={{ animationDelay: '300ms' }} />
-                    </div>
+                  <div className="bg-muted/70 rounded-2xl rounded-tl-md px-4 py-3.5 border border-border/40 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <span className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <span className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '300ms' }} />
                   </div>
                 </div>
               )}
@@ -421,15 +425,16 @@ export default function AIChatAssistant() {
             </div>
 
             <div className="p-3 border-t bg-muted/20">
-              {selectedImage && (
-                <div className="relative inline-block mb-2.5">
-                  <img src={selectedImage} alt="Preview" className="h-16 w-16 object-cover rounded-lg border border-border/40 shadow-sm" />
-                  <button onClick={() => setSelectedImage(null)} className="absolute -top-2 -right-2 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center shadow-md hover:scale-110 transition-transform">
-                    <X className="w-3 h-3" />
-                  </button>
-                </div>
-              )}
-              <div className="flex gap-2 items-center">
+              <div className="bg-muted p-1 rounded-2xl flex flex-col shadow-sm border border-border/40">
+                {selectedImage && (
+                  <div className="relative inline-block mb-1 ml-2 mt-2 self-start">
+                    <img src={selectedImage} alt="Preview" className="h-12 w-12 object-cover rounded-lg border shadow-sm" />
+                    <button onClick={() => setSelectedImage(null)} className="absolute -top-2 -right-2 w-4 h-4 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center shadow-md hover:scale-110 transition-transform">
+                      <X className="w-2.5 h-2.5" />
+                    </button>
+                  </div>
+                )}
+                <div className="flex gap-1 items-center">
                 <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleImageSelect} />
                 <input type="file" accept="image/*" capture="environment" className="hidden" ref={cameraInputRef} onChange={handleImageSelect} />
                 <button onClick={startCamera} title="Take photo" className="p-2.5 text-muted-foreground hover:text-primary transition-colors bg-muted/60 hover:bg-primary/10 rounded-xl">
@@ -443,9 +448,10 @@ export default function AIChatAssistant() {
                   onKeyDown={(e) => { if (e.key === 'Enter') sendMessage(); }}
                   className="flex-1 bg-background border-border/50 focus-visible:ring-primary/30"
                 />
-                <Button size="icon" onClick={sendMessage} disabled={(!input.trim() && !selectedImage) || loading} className="rounded-xl shadow-md">
-                  <Send className="w-4 h-4" />
-                </Button>
+                  <Button size="icon" onClick={sendMessage} disabled={(!input.trim() && !selectedImage) || loading} className="rounded-xl shadow-md shrink-0">
+                    <Send className="w-4 h-4" />
+                  </Button>
+                </div>
               </div>
               <p className="text-[10px] text-muted-foreground mt-2 text-center flex items-center justify-center gap-1.5">
                 <Sparkles className="w-2.5 h-2.5" />

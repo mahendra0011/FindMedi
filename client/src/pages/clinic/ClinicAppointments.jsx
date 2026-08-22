@@ -9,7 +9,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
-import { api, downloadInvoicePdf, resolveFileUrl } from '@/lib/api';
+import { api, downloadInvoicePdf, resolveFileUrl, isValidFileUrl } from '@/lib/api';
 import { toast } from 'sonner';
 import { getISTDateString } from '@/lib/dateUtils';
 import AppointmentDetailsModal from '@/components/AppointmentDetailsModal';
@@ -429,7 +429,10 @@ export default function ClinicAppointments() {
                     onDownloadPrescription={handleDownloadPrescription}
                     onDownloadInvoice={(a) => a.invoiceId && downloadInvoicePdf(a.invoiceId, `invoice-${a.patient}.pdf`)}
                     onViewDetails={(a) => setDetailsApt(a)}
-                    onViewFile={(url) => window.open(resolveFileUrl(url), '_blank')}
+                    onViewFile={(url) => {
+                      if (!isValidFileUrl(url)) { toast.error('File unavailable — upload was not completed. Ask the patient to re-upload it.'); return; }
+                      window.open(resolveFileUrl(url), '_blank');
+                    }}
                     subSlotFor={subSlotFor}
                   />
                 </div>

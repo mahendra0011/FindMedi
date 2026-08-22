@@ -10,7 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
-import { api, downloadPaymentInvoice } from '@/lib/api';
+import { api, downloadPaymentInvoice, txToEarningsBill } from '@/lib/api';
 import { getISTDateString, formatDisplayDate } from '@/lib/dateUtils';
 import { useAppointmentRealtime } from '@/lib/useAppointmentRealtime';
 import LicenseExpiryReminder from '@/components/LicenseExpiryReminder';
@@ -63,9 +63,8 @@ export default function ClinicDashboard() {
   const [bills, setBills] = useState([]);
   const [payments, setPayments] = useState([]);
   const [reviews, setReviews] = useState([]);
-  const [refunds, setRefunds] = useState([]);
+const [refunds, setRefunds] = useState([]);
   const [patients, setPatients] = useState([]);
-  const [prescriptions, setPrescriptions] = useState([]);
   const [testRequests, setTestRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tipIndex, setTipIndex] = useState(0);
@@ -89,36 +88,25 @@ export default function ClinicDashboard() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const results = await Promise.allSettled([
+const results = await Promise.allSettled([
         api.getAppointments(),
-        api.getBilling(),
+        api.getTransactions({ limit: 500 }),
         api.getReviews(),
-        api.getPayments({ status: 'refunded' }),
-        api.getPayments({ status: 'pending' }),
-        api.getPayments({}),
         api.getLabBookings(),
       ]);
       if (!mounted.current) return;
-      const [a, b, r, rf, pf, allP, lb] = results.map(res => res.status === 'fulfilled' ? res.value : []);
+      const [a, tx, r, lb] = results.map(res => res.status === 'fulfilled' ? res.value : []);
       const appts = a?.data || a || [];
       const myAppts = appts?.filter(apt => apt.doctor?.toLowerCase().includes(user?.name?.toLowerCase())) || [];
       setAppointments(myAppts);
-      const billsArray = b?.data || b?.bills || b || [];
-      setBills(billsArray);
+      const txList = tx?.data || tx?.payments || tx || [];
+      setBills(txList.filter(t => t.status === 'completed' || t.status === 'pending').map(txToEarningsBill));
+      setPayments(txList.filter(t => t.status === 'completed'));
+      setRefunds(txList.filter(t => t.status === 'refunded' || t.status === 'pending'));
       setReviews(r?.filter(rv => rv.doctorName === user?.name) || []);
-      const refundedArray = rf?.payments || rf?.data || rf || [];
-      const pendingArray = pf?.payments || pf?.data || pf || [];
-      setRefunds([...refundedArray, ...pendingArray]);
-      const allPayments = allP?.payments || allP?.data || allP || [];
-      setPayments(allPayments);
-      setPatients(Array.from(new Set(myAppts.map(apt => apt.patient).filter(Boolean))));
+setPatients(Array.from(new Set(myAppts.map(apt => apt.patient).filter(Boolean))));
       const labBookingsArray = lb?.bookings || lb?.data || lb || [];
       setTestRequests(labBookingsArray);
-      // best-effort prescriptions load
-      try {
-        const rx = await api.getPharmacyPrescriptions?.({}).catch(() => ({ prescriptions: [] }));
-        if (rx?.prescriptions?.length) setPrescriptions(rx.prescriptions);
-      } catch { /* optional */ }
       const failed = results.filter(res => res.status === 'rejected');
       if (failed.length > 0) toast.error(`Failed to load ${failed.length} data source(s)`);
     } catch (e) { console.error(e); toast.error('Failed to load dashboard data'); }
@@ -148,7 +136,6 @@ export default function ClinicDashboard() {
   const weekRevenue = bills.filter(b => b.date >= weekStartStr && b.date <= today && b.status === 'Paid').reduce((s, b) => s + (b.paid || b.amount || 0), 0);
   const totalRefunded = refunds.reduce((s, r) => s + (r.refund_amount || r.amount || 0), 0);
   const pendingRefunds = refunds.filter(r => r.status === 'pending' || r.status === 'Pending').length;
-  const activeRxCount = prescriptions.filter(p => p.status === 'Active').length;
   const recentPayments = payments.slice(0, 3);
 
   const statValues = {
