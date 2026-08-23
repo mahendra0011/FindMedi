@@ -1,0 +1,39 @@
+services:
+  - type: web
+    name: medicore
+    env: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start --prefix server
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      # ── Required - set in Render Dashboard (sync:false = manual) ──
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: CLIENT_URL
+        sync: false
+      # Optional but recommended - if you use platform features
+      - key: CORS_ORIGIN
+        sync: false
+      - key: CLOUDINARY_URL
+        sync: false
+      - key: BREVO_API_KEY
+        sync: false
+      - key: BREVO_SENDER_EMAIL
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_DRIVE_REDIRECT_URI
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: REDIS_URL
+        sync: false

@@ -87,10 +87,7 @@ export function printEnvStatus() {
     console.warn('\n⚠️  Environment Warnings:');
     warnings.forEach(w => console.warn(`   ${w}`));
     console.warn('');
-    if (process.env.NODE_ENV === 'production') {
-      console.error('\n❌ Warnings are treated as errors in production. Fix all issues before starting.\n');
-      process.exit(1);
-    }
+    // In production, warnings are non-fatal (e.g. PORT default) - log only to avoid crash on Render
   }
 
   if (missing.length === 0 && warnings.length === 0) {
