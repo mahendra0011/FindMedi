@@ -2,6 +2,9 @@
   "name": "medicore-server",
   "version": "1.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
     "dev": "node --watch-path=./index.js --watch-path=./routes --watch-path=./middleware --watch-path=./models --watch-path=./services --watch-path=./utils --watch-path=./config index.js",
     "start": "node index.js",

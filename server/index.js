@@ -316,6 +316,18 @@ app.use('/api/drive', driveRoutes);
 app.use('/api/auth/2fa', twoFactorRoutes);
 
 app.get('/api/health', (_, res) => res.json({ status: 'ok', time: new Date() }));
+
+// ── Serve frontend in production (single-service deploy on Render) ──
+if (process.env.NODE_ENV === 'production') {
+  const clientDist = path.join(__dirname, '../client/dist');
+  app.use(express.static(clientDist));
+  // SPA fallback: serve index.html for non-API routes (must be before 404)
+  app.get(/^\/(?!api).*/, (req, res) => {
+    res.sendFile(path.join(clientDist, 'index.html'), (err) => {
+      if (err) res.status(404).end();
+    });
+  });
+}
  
 // 404 handler for unknown routes
 app.use(notFound);
