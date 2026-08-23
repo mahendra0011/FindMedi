@@ -316,17 +316,23 @@ app.use('/api/drive', driveRoutes);
 app.use('/api/auth/2fa', twoFactorRoutes);
 
 app.get('/api/health', (_, res) => res.json({ status: 'ok', time: new Date() }));
+app.get('/', (_, res) => res.json({ status: 'ok', message: 'MediCore API running', health: '/api/health', docs: '/api/health' }));
 
-// ── Serve frontend in production (single-service deploy on Render) ──
+// ── Serve frontend in production (only if client/dist exists - single-service deploy) ──
+import fs from 'fs';
 if (process.env.NODE_ENV === 'production') {
   const clientDist = path.join(__dirname, '../client/dist');
-  app.use(express.static(clientDist));
-  // SPA fallback: serve index.html for non-API routes (must be before 404)
-  app.get(/^\/(?!api).*/, (req, res) => {
-    res.sendFile(path.join(clientDist, 'index.html'), (err) => {
-      if (err) res.status(404).end();
+  if (fs.existsSync(clientDist)) {
+    app.use(express.static(clientDist));
+    // SPA fallback: serve index.html for non-API routes (must be before 404)
+    app.get(/^\/(?!api).*/, (req, res) => {
+      res.sendFile(path.join(clientDist, 'index.html'), (err) => {
+        if (err) res.status(404).end();
+      });
     });
-  });
+  } else {
+    logger.info('ℹ️ client/dist not found - running in API-only mode (expected for split deploy)');
+  }
 }
  
 // 404 handler for unknown routes
