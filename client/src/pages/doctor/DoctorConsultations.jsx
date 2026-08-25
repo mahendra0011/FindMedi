@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/AuthContext';
-import { api } from '@/lib/api';
+import { api, getApiBaseUrl } from '@/lib/api';
 import { toast } from 'sonner';
 import { getISTDateString } from '@/lib/dateUtils';
 
@@ -55,8 +55,7 @@ export default function DoctorConsultations() {
 
   const handleDownloadPdf = async (recordId) => {
     try {
-      const base = import.meta.env.VITE_API_URL || 'http://localhost:5001';
-      const res = await fetch(`${base}/api/records/${recordId}/prescription-pdf`, {
+      const res = await fetch(`${getApiBaseUrl()}/records/${recordId}/prescription-pdf`, {
         credentials: 'include',
       });
       if (!res.ok) throw new Error('Download failed');

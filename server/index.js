@@ -145,36 +145,86 @@ if (MONGO_URI.startsWith('mongodb')) {
   }
 }
 
-// Middleware
-const corsOptions = {
-  credentials: true,
-  allowedHeaders: ['Authorization', 'Content-Type', 'X-Requested-With'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+// Middleware - Allowed Origins Helper
+const getAllowedOrigins = () => {
+  const envOrigins = [
+    ...(process.env.CLIENT_URL ? process.env.CLIENT_URL.split(',') : []),
+    ...(process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : []),
+  ];
+  const defaultOrigins = [
+    'https://findmedi.online',
+    'https://www.findmedi.online',
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'http://localhost:5001',
+  ];
+  return Array.from(new Set([...envOrigins, ...defaultOrigins]))
+    .map(o => o.trim().replace(/\/+$/, ''))
+    .filter(Boolean);
 };
 
-// In production, restrict origins. In development, allow all.
-if (process.env.NODE_ENV === 'production') {
-  const allowedOrigins = [
-    // 'https://medicore.example.com', // placeholder — rely on CLIENT_URL / CORS_ORIGIN env vars
-    ...(process.env.CLIENT_URL ? [process.env.CLIENT_URL] : []),
-    ...(process.env.CORS_ORIGIN ? [process.env.CORS_ORIGIN] : []),
-  ].filter(Boolean);
-  if (allowedOrigins.length === 0) {
-    logger.error('CORS: No allowed origins configured for production. Set CLIENT_URL or CORS_ORIGIN env vars.');
-  }
-  corsOptions.origin = allowedOrigins;
-} else {
-  corsOptions.origin = true; // Allow all in development
-}
+const corsOptions = {
+  credentials: true,
+  allowedHeaders: [
+    'Authorization',
+    'Content-Type',
+    'X-Requested-With',
+    'X-CSRF-Token',
+    'x-csrf-token',
+    'Accept',
+    'Origin',
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  origin: (origin, callback) => {
+    // Allow non-browser requests (curl, server-to-server, mobile apps)
+    if (!origin) return callback(null, true);
+    if (process.env.NODE_ENV !== 'production') return callback(null, true);
+
+    const allowed = getAllowedOrigins();
+    const normalized = origin.trim().replace(/\/+$/, '');
+    if (allowed.includes(normalized) || allowed.some(a => normalized.endsWith(a.replace(/^https?:\/\//, '')))) {
+      return callback(null, true);
+    }
+    logger.warn(`CORS blocked request from origin: ${origin}`);
+    return callback(new Error(`CORS blocked for origin: ${origin}`));
+  },
+};
 
 app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '5mb' }));
+
+// Route Normalization Middleware:
+// If a client or reverse-proxy calls an API route without the "/api" prefix (e.g. /auth/login, /users),
+// automatically rewrite req.url to /api/... so it matches registered Express routes.
+app.use((req, res, next) => {
+  if (!req.url.startsWith('/api') && !req.url.startsWith('/uploads') && req.url !== '/' && req.url !== '/favicon.ico') {
+    const knownApiPrefixes = [
+      '/auth', '/analytics', '/users', '/doctors', '/patients', '/appointments',
+      '/records', '/billing', '/dashboard', '/reviews', '/notifications', '/reports',
+      '/upload', '/emergency', '/departments', '/payments', '/transactions', '/lab',
+      '/pharmacy', '/ipd', '/triage', '/radiology', '/insurance', '/diet', '/ot',
+      '/bloodbank', '/physio', '/mentalhealth', '/staff', '/inventory', '/housekeeping',
+      '/tokens', '/nursing', '/beds', '/tests', '/hospitals', '/facilities', '/clinics',
+      '/platform', '/patient', '/audit-logs', '/system-settings', '/commission',
+      '/disputes', '/support-tickets', '/leave-requests', '/schedule-change-requests',
+      '/categories', '/licenses', '/announcements', '/broadcast', '/platform-coupons',
+      '/featured-listings', '/cities', '/platform-content', '/export', '/integrations',
+      '/delivery-partners', '/ai-chat', '/drive', '/health'
+    ];
+    if (knownApiPrefixes.some(p => req.url.startsWith(p))) {
+      req.url = `/api${req.url}`;
+    }
+  }
+  next();
+});
+
 // CSRF protection for state-changing requests (POST/PUT/DELETE)
 app.use('/api', csrfProtection);
 // CSRF token endpoint (must be before auth routes to allow anonymous access)
 app.get('/api/auth/csrf-token', setCsrfToken);
+app.get('/auth/csrf-token', setCsrfToken);
 // Serve uploaded files with filename-based access control
 app.use('/uploads', (req, res, next) => {
   // Authenticated access only for medical files (check cookie or Authorization header)
@@ -315,7 +365,12 @@ app.use('/api/drive', driveRoutes);
 // 2FA routes
 app.use('/api/auth/2fa', twoFactorRoutes);
 
+// Fallback direct routes (in case requests bypass /api)
+app.use('/auth', authRoutes);
+app.use('/auth/2fa', twoFactorRoutes);
+
 app.get('/api/health', (_, res) => res.json({ status: 'ok', time: new Date() }));
+app.get('/health', (_, res) => res.json({ status: 'ok', time: new Date() }));
 app.get('/', (_, res) => res.json({ status: 'ok', message: 'MediCore API running', health: '/api/health', docs: '/api/health' }));
 
 // ── Serve frontend in production (only if client/dist exists - single-service deploy) ──

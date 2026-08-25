@@ -1,6 +1,8 @@
-import apiClient from './axios';
+import apiClient, { getApiBaseUrl, getServerOrigin } from './axios';
 
-const BASE = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+export { getApiBaseUrl, getServerOrigin };
+
+const BASE = getApiBaseUrl();
 
 // Server se relative path milne par (e.g. "/uploads/documents/x.jpg" — local
 // storage fallback) use API origin se prefix karo; Cloudinary/absolute URL
@@ -8,7 +10,7 @@ const BASE = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 export function resolveFileUrl(url) {
   if (!url) return '';
   if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) return url;
-  if (url.startsWith('/')) return BASE.replace(/\/api\/?$/, '') + url;
+  if (url.startsWith('/')) return getServerOrigin() + url;
   return url;
 }
 

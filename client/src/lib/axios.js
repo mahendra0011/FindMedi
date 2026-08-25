@@ -1,6 +1,28 @@
 import axios from 'axios';
 
-const BASE = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+/**
+ * Normalize BASE API URL so that even if VITE_API_URL is configured without "/api"
+ * (e.g. "https://medicore-main.onrender.com" or "https://findmedi.online"),
+ * or with trailing slashes, it will ALWAYS correctly end with "/api".
+ */
+export function getApiBaseUrl() {
+  let url = (import.meta.env.VITE_API_URL || 'http://localhost:5001/api').trim();
+  url = url.replace(/\/+$/, '');
+  if (!url.endsWith('/api')) {
+    url = `${url}/api`;
+  }
+  return url;
+}
+
+/**
+ * Returns backend server origin without the "/api" suffix
+ * (e.g. "https://medicore-main.onrender.com" or "http://localhost:5001").
+ */
+export function getServerOrigin() {
+  return getApiBaseUrl().replace(/\/api\/?$/, '');
+}
+
+const BASE = getApiBaseUrl();
 
 function getCookie(name) {
   const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));

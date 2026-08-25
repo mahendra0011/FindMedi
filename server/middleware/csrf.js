@@ -3,7 +3,7 @@ import crypto from 'crypto';
 const getCookieOptions = () => ({
   httpOnly: false,
   secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax',
+  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
   path: '/',
   // Refresh token (7d) jitna hi rakho — warna 24h baad har POST fail ho kar session girti thi
   maxAge: 7 * 24 * 60 * 60 * 1000,
@@ -21,9 +21,18 @@ export const csrfProtection = (req, res, next) => {
   const origin = req.headers['origin'];
   const referer = req.headers['referer'];
   if (origin || referer) {
-    const allowed = process.env.CLIENT_URL || 'http://localhost:5173';
-    const source = origin || referer;
-    if (!source.startsWith(allowed.replace(/\/$/, ''))) {
+    const source = (origin || referer).trim().replace(/\/$/, '');
+    const allowedList = [
+      ...(process.env.CLIENT_URL ? process.env.CLIENT_URL.split(',') : []),
+      ...(process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : []),
+      'https://findmedi.online',
+      'https://www.findmedi.online',
+      'http://localhost:5173',
+      'http://localhost:3000',
+    ].map(o => o.trim().replace(/\/$/, '')).filter(Boolean);
+
+    const isAllowed = allowedList.some(allowed => source.startsWith(allowed));
+    if (!isAllowed && process.env.NODE_ENV === 'production') {
       return res.status(403).json({ message: 'CSRF validation failed: invalid origin' });
     }
   }

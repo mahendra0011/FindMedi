@@ -125,7 +125,7 @@ const setAuthCookies = (res, accessToken, refreshToken) => {
   res.cookie('token', accessToken, {
     httpOnly: true,
     secure: isProd,
-    sameSite: 'lax',
+    sameSite: isProd ? 'none' : 'lax',
     path: '/',
     maxAge: 15 * 60 * 1000,
   });
@@ -133,7 +133,7 @@ const setAuthCookies = (res, accessToken, refreshToken) => {
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: isProd,
-      sameSite: 'lax',
+      sameSite: isProd ? 'none' : 'lax',
       path: '/',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
@@ -141,8 +141,9 @@ const setAuthCookies = (res, accessToken, refreshToken) => {
 };
 
 const clearAuthCookies = (res) => {
-  res.clearCookie('token', { path: '/' });
-  res.clearCookie('refreshToken', { path: '/' });
+  const isProd = process.env.NODE_ENV === 'production';
+  res.clearCookie('token', { path: '/', httpOnly: true, secure: isProd, sameSite: isProd ? 'none' : 'lax' });
+  res.clearCookie('refreshToken', { path: '/', httpOnly: true, secure: isProd, sameSite: isProd ? 'none' : 'lax' });
 };
 
 const initialsFor = (name = '') => name

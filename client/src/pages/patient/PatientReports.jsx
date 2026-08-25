@@ -3,10 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { FileText, Download, Calendar, User, Stethoscope, Loader2, Pill, TestTube, FlaskConical, HeartPulse, Eye, ChevronRight, Sparkles } from 'lucide-react';
-import { api, resolveFileUrl } from '@/lib/api';
+import { api, resolveFileUrl, getServerOrigin } from '@/lib/api';
 import { toast } from 'sonner';
 
-const UPLOAD_BASE = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'http://localhost:5001';
+const UPLOAD_BASE = getServerOrigin();
 
 const tabConfig = {
   prescriptions: { label: 'Prescriptions', icon: Pill, color: 'text-blue-500', bg: 'bg-blue-500/10' },

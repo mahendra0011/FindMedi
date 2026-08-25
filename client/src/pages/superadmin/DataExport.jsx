@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/components/ui/sonner';
-import { api } from '@/lib/api';
+import { api, getApiBaseUrl } from '@/lib/api';
 import { getISTDateString } from '@/lib/dateUtils';
 
 const EXPORTS = [
@@ -25,9 +25,8 @@ export default function DataExport() {
       const params = new URLSearchParams({ format: 'csv', ...dateRange });
       if (dateRange.from) params.set('from', dateRange.from);
       if (dateRange.to) params.set('to', dateRange.to);
-      const baseUrl = import.meta.env.VITE_API_URL || '';
       const token = localStorage.getItem('token');
-      const url = `${baseUrl}/api/export/${type}?${params}`;
+      const url = `${getApiBaseUrl()}/export/${type}?${params}`;
 
       const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
       if (!res.ok) throw new Error('Export failed');
