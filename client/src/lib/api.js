@@ -241,6 +241,7 @@ export const api = {
   del:                (path)      => request(path, { method:'DELETE' }),
   login:              (body)    => request('/auth/login',            { method:'POST', body: JSON.stringify(body) }),
   googleAuth:         (body)    => request('/auth/google',           { method:'POST', body: JSON.stringify(body) }),
+  googleRegister:     (body)    => request('/auth/google-register',  { method:'POST', body: JSON.stringify(body) }),
   setDoctorPassword:  (body)    => request('/auth/doctor-setup',     { method:'POST', body: JSON.stringify(body) }),
   register:           (body)    => request('/auth/register',         { method:'POST', body: JSON.stringify(body) }),
   verifyOTP:          (body)    => request('/auth/verify-otp',       { method:'POST', body: JSON.stringify(body) }),

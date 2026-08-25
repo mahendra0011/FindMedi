@@ -735,42 +735,7 @@ router.post('/google', async (req, res) => {
       });
     }
 
-    // User not registered yet
-    if (role === 'patient' || !role) {
-      user = await User.create({
-        name: googleUser.name || googleUser.email.split('@')[0],
-        email: googleUser.email,
-        role: 'patient',
-        avatar: googleUser.picture || '',
-        isVerified: true,
-        status: 'active',
-        approvalStatus: 'not_required',
-      });
-
-      await Patient.create({
-        name: user.name,
-        email: user.email,
-        userId: user._id,
-        status: 'Active',
-      });
-
-      try {
-        await auditLog('user_register_google', user._id, { ip: req.ip, userAgent: req.get('user-agent'), email: user.email });
-      } catch (e) {}
-
-      const { accessToken: token, refreshToken } = sign(user);
-      setAuthCookies(res, token, refreshToken);
-
-      return res.json({
-        success: true,
-        exists: true,
-        isNewUser: true,
-        token,
-        refreshToken,
-        user: await userResponse(user),
-      });
-    }
-
+    // User not registered yet -> Return google profile for Step 2 Complete Profile form
     return res.json({
       success: true,
       exists: false,
@@ -778,12 +743,86 @@ router.post('/google', async (req, res) => {
         email: googleUser.email,
         name: googleUser.name,
         picture: googleUser.picture,
-        role,
+        sub: googleUser.sub,
+        role: role || 'patient',
       },
     });
   } catch (err) {
     logger.error('Google auth route error:', err);
     res.status(500).json({ message: err.message || 'Google authentication failed' });
+  }
+});
+
+// POST /api/auth/google-register — Step 2 of Google Signup: Complete Profile & Register
+router.post('/google-register', async (req, res) => {
+  try {
+    const {
+      name,
+      email,
+      phone = '',
+      gender = '',
+      dateOfBirth,
+      role = 'patient',
+      avatar = '',
+    } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required' });
+    }
+
+    const lowerEmail = email.toLowerCase();
+    let user = await User.findOne({ email: lowerEmail });
+
+    if (user) {
+      if (phone && !user.phone) user.phone = phone;
+      if (gender && !user.gender) user.gender = gender;
+      if (dateOfBirth && !user.dateOfBirth) user.dateOfBirth = dateOfBirth;
+      if (avatar && !user.avatar) user.avatar = avatar;
+      user.isVerified = true;
+      await user.save();
+    } else {
+      user = await User.create({
+        name: name || lowerEmail.split('@')[0],
+        email: lowerEmail,
+        role: role === 'patient' ? 'patient' : role,
+        phone,
+        gender,
+        dateOfBirth: dateOfBirth || undefined,
+        avatar: avatar || '',
+        isVerified: true,
+        status: 'active',
+        approvalStatus: role === 'patient' ? 'not_required' : 'pending',
+      });
+
+      if (user.role === 'patient') {
+        await Patient.create({
+          name: user.name,
+          email: user.email,
+          phone: user.phone,
+          gender: user.gender || 'Other',
+          age: calculateAge(dateOfBirth),
+          userId: user._id,
+          status: 'Active',
+        });
+      }
+    }
+
+    try {
+      await auditLog('user_register_google', user._id, { ip: req.ip, userAgent: req.get('user-agent'), email: user.email });
+    } catch (e) {}
+
+    const { accessToken: token, refreshToken } = sign(user);
+    setAuthCookies(res, token, refreshToken);
+
+    return res.json({
+      success: true,
+      token,
+      refreshToken,
+      user: await userResponse(user),
+    });
+  } catch (err) {
+    logger.error('Google register route error:', err);
+    res.status(500).json({ message: err.message || 'Google registration failed' });
   }
 });
 
