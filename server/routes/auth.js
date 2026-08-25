@@ -634,6 +634,124 @@ router.post('/login', validate(loginSchema), async (req, res) => {
   }
 });
 
+// POST /api/auth/google — authenticate or verify Google OAuth user
+router.post('/google', async (req, res) => {
+  try {
+    const { idToken, accessToken, role = 'patient' } = req.body;
+
+    if (!idToken && !accessToken) {
+      return res.status(400).json({ message: 'Google credential (idToken or accessToken) is required' });
+    }
+
+    let googleUser = null;
+
+    // 1. If idToken is provided, try verifying with google-auth-library
+    if (idToken) {
+      try {
+        const ticket = await googleClient.verifyIdToken({
+          idToken,
+          audience: [
+            process.env.GOOGLE_CLIENT_ID,
+            '752004325733-5u50qb3l1c71mceopu44eqlv9rhc5d89.apps.googleusercontent.com',
+            '752004325733-hj2litb6frb03tsbsc05pjj5k6lkijqn.apps.googleusercontent.com',
+          ].filter(Boolean),
+        });
+        const payload = ticket.getPayload();
+        googleUser = {
+          email: payload.email?.toLowerCase(),
+          name: payload.name,
+          picture: payload.picture,
+          sub: payload.sub,
+          email_verified: payload.email_verified,
+        };
+      } catch (idErr) {
+        logger.warn('Google verifyIdToken failed, trying userinfo fallback: ' + idErr.message);
+      }
+    }
+
+    // 2. Fallback: Fetch userinfo directly from Google API endpoint
+    if (!googleUser && (accessToken || idToken)) {
+      try {
+        const tokenToUse = accessToken || idToken;
+        const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { Authorization: `Bearer ${tokenToUse}` },
+        });
+        if (response.ok) {
+          const info = await response.json();
+          googleUser = {
+            email: info.email?.toLowerCase(),
+            name: info.name,
+            picture: info.picture,
+            sub: info.sub,
+            email_verified: info.email_verified,
+          };
+        }
+      } catch (fetchErr) {
+        logger.error('Google userinfo fetch failed:', fetchErr);
+      }
+    }
+
+    if (!googleUser || !googleUser.email) {
+      return res.status(400).json({ message: 'Failed to verify Google credentials' });
+    }
+
+    // Check if user already exists
+    let user = await User.findOne({ email: googleUser.email });
+
+    if (user) {
+      if (user.status === 'blocked') {
+        return res.status(403).json({ message: 'Your account has been blocked. Contact administrator.', blocked: true });
+      }
+
+      if (!user.isVerified) {
+        user.isVerified = true;
+        await user.save();
+      }
+
+      if (user.role === 'doctor') {
+        const doctorProfile = await getDoctorProfile(user);
+        if (!doctorProfile?.approved && user.approvalStatus !== 'approved') {
+          return res.json({
+            message: 'Your doctor account is pending admin approval.',
+            approvalPending: true,
+            user: await userResponse(user),
+          });
+        }
+      }
+
+      try {
+        await auditLog('user_login_google', user._id, { ip: req.ip, userAgent: req.get('user-agent'), email: user.email });
+      } catch (e) {}
+
+      const { accessToken: token, refreshToken } = sign(user);
+      setAuthCookies(res, token, refreshToken);
+
+      return res.json({
+        success: true,
+        exists: true,
+        token,
+        refreshToken,
+        user: await userResponse(user),
+      });
+    }
+
+    // User not registered yet
+    return res.json({
+      success: true,
+      exists: false,
+      googleUser: {
+        email: googleUser.email,
+        name: googleUser.name,
+        picture: googleUser.picture,
+        role,
+      },
+    });
+  } catch (err) {
+    logger.error('Google auth route error:', err);
+    res.status(500).json({ message: err.message || 'Google authentication failed' });
+  }
+});
+
 // POST /api/auth/forgot-password
 router.post('/forgot-password', validate(forgotPasswordSchema), async (req, res) => {
   try {

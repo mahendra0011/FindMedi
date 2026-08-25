@@ -38,16 +38,25 @@ export default function Login() {
     setError('');
   };
 
-  const handleGoogleCredential = async (credential) => {
+  const handleGoogleCredential = async (idToken, accessToken) => {
     setError('');
     setGoogleLoading(true);
     try {
-      const data = await api.googleAuth({ idToken: credential });
+      const data = await api.googleAuth({ idToken, accessToken, role });
+      if (data.exists && data.token) {
+        if (data.token) {
+          localStorage.setItem('token', data.token);
+          if (data.refreshToken) localStorage.setItem('refreshToken', data.refreshToken);
+        }
+        navigate('/dashboard');
+        return;
+      }
+
       const g = data.googleUser || {};
       const signupData = {
         role,
-        name: g.name || email || '',
-        email: g.email || email || '',
+        name: g.name || '',
+        email: g.email || '',
         isGoogle: true,
       };
       localStorage.setItem('google_signup', JSON.stringify(signupData));
@@ -66,6 +75,29 @@ export default function Login() {
       setError('Google Sign-In is not configured. Contact the administrator.');
       return;
     }
+
+    if (window.google?.accounts?.oauth2) {
+      try {
+        const tokenClient = window.google.accounts.oauth2.initTokenClient({
+          client_id: GOOGLE_CLIENT_ID,
+          scope: 'email profile openid',
+          callback: (tokenResponse) => {
+            if (tokenResponse?.access_token) {
+              handleGoogleCredential(null, tokenResponse.access_token);
+            }
+          },
+          error_callback: (err) => {
+            console.error('Google OAuth popup error:', err);
+            setError('Google sign-in was cancelled or closed.');
+          },
+        });
+        tokenClient.requestAccessToken({ prompt: 'select_account' });
+        return;
+      } catch (oauthErr) {
+        console.warn('initTokenClient failed, falling back to ID prompt:', oauthErr);
+      }
+    }
+
     if (window.google?.accounts?.id) {
       window.google.accounts.id.initialize({
         client_id: GOOGLE_CLIENT_ID,
@@ -73,7 +105,7 @@ export default function Login() {
       });
       window.google.accounts.id.prompt();
     } else {
-      setError('Google Sign-In is not available. Check your internet or try again later.');
+      setError('Google Sign-In script is loading. Please try again in a moment.');
     }
   };
 
