@@ -13,7 +13,7 @@ function isConfigured() {
   return Boolean(CLIENT_ID && CLIENT_SECRET);
 }
 
-function getAuthUrl() {
+function getAuthUrl(state) {
   if (!isConfigured()) {
     throw new Error('Google Drive is not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in .env');
   }
@@ -21,6 +21,7 @@ function getAuthUrl() {
     access_type: 'offline',
     scope: SCOPES,
     prompt: 'consent',
+    ...(state ? { state } : {}),
   });
 }
 

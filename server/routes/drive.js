@@ -8,6 +8,8 @@ import User from '../models/User.js';
 import Record from '../models/Record.js';
 import Notification from '../models/Notification.js';
 
+import jwt from 'jsonwebtoken';
+
 const router = express.Router();
 
 const storage = multer.memoryStorage();
@@ -49,19 +51,20 @@ router.get('/auth-url', protect, (req, res, next) => {
     if (!isConfigured()) {
       return res.status(503).json({ error: 'Google Drive is not configured on the server.' });
     }
-    const url = getAuthUrl();
+    const state = JSON.stringify({ userId: req.user.id });
+    const url = getAuthUrl(Buffer.from(state).toString('base64'));
     res.json({ url });
   } catch (error) {
     next(error);
   }
 });
 
-router.get('/callback', protect, async (req, res, next) => {
+router.get('/callback', async (req, res, next) => {
   const rawClient = process.env.CLIENT_URL || process.env.CORS_ORIGIN || 'https://findmedi.online';
   const clientUrl = rawClient.split(',')[0].trim().replace(/\/+$/, '');
 
   try {
-    const { code, error } = req.query;
+    const { code, error, state } = req.query;
     if (error) {
       return res.redirect(`${clientUrl}/#/upload?drive=error&reason=${encodeURIComponent(error)}`);
     }
@@ -69,8 +72,27 @@ router.get('/callback', protect, async (req, res, next) => {
       return res.redirect(`${clientUrl}/#/upload?drive=error&reason=no_code`);
     }
 
+    let userId = null;
+    if (state) {
+      try {
+        const decodedState = JSON.parse(Buffer.from(state, 'base64').toString('utf-8'));
+        userId = decodedState.userId;
+      } catch (e) {}
+    }
+
+    if (!userId && req.cookies?.token) {
+      try {
+        const decoded = jwt.verify(req.cookies.token, process.env.JWT_SECRET);
+        userId = decoded.id;
+      } catch (e) {}
+    }
+
+    if (!userId) {
+      return res.redirect(`${clientUrl}/#/upload?drive=error&reason=unauthorized`);
+    }
+
     const tokens = await exchangeCodeForTokens(code);
-    await User.findByIdAndUpdate(req.user.id, { driveTokens: tokens });
+    await User.findByIdAndUpdate(userId, { driveTokens: tokens });
 
     res.redirect(`${clientUrl}/#/upload?drive=connected`);
   } catch (err) {
