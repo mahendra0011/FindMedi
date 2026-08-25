@@ -736,6 +736,41 @@ router.post('/google', async (req, res) => {
     }
 
     // User not registered yet
+    if (role === 'patient' || !role) {
+      user = await User.create({
+        name: googleUser.name || googleUser.email.split('@')[0],
+        email: googleUser.email,
+        role: 'patient',
+        avatar: googleUser.picture || '',
+        isVerified: true,
+        status: 'active',
+        approvalStatus: 'not_required',
+      });
+
+      await Patient.create({
+        name: user.name,
+        email: user.email,
+        userId: user._id,
+        status: 'Active',
+      });
+
+      try {
+        await auditLog('user_register_google', user._id, { ip: req.ip, userAgent: req.get('user-agent'), email: user.email });
+      } catch (e) {}
+
+      const { accessToken: token, refreshToken } = sign(user);
+      setAuthCookies(res, token, refreshToken);
+
+      return res.json({
+        success: true,
+        exists: true,
+        isNewUser: true,
+        token,
+        refreshToken,
+        user: await userResponse(user),
+      });
+    }
+
     return res.json({
       success: true,
       exists: false,
