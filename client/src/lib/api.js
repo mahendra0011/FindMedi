@@ -66,22 +66,39 @@ export async function getFilePreviewUrl(url) {
   const resolved = resolveFileUrl(url);
   if (!resolved) return null;
 
-  const type = getFileType(resolved);
+  let type = getFileType(resolved);
 
-  if (!isLocalFileUrl(resolved)) {
-    // External CDN (Cloudinary) — publicly accessible, use directly.
-    return { url: resolved, type };
+  // If already a blob or data url, return directly
+  if (resolved.startsWith('blob:') || resolved.startsWith('data:')) {
+    return { url: resolved, type, rawUrl: resolved };
   }
 
-  // Local / auth-protected — fetch with credentials → blob URL.
+  const token = typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null;
+  const headers = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  // Fetch with Authorization header + credentials to handle auth-protected endpoints and cross-origin
   try {
-    const response = await fetch(resolved, { credentials: 'include' });
+    const response = await fetch(resolved, {
+      credentials: 'include',
+      headers,
+    });
     if (!response.ok) throw new Error(`Failed to load file (${response.status})`);
+
+    const contentType = (response.headers.get('content-type') || '').toLowerCase();
+    if (contentType.includes('application/pdf') || resolved.toLowerCase().endsWith('.pdf')) {
+      type = 'pdf';
+    } else if (contentType.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(resolved)) {
+      type = 'image';
+    }
+
     const blob = await response.blob();
-    return { url: URL.createObjectURL(blob), type };
+    return { url: URL.createObjectURL(blob), type, rawUrl: resolved };
   } catch (err) {
     console.error('getFilePreviewUrl error:', err);
-    return null;
+    return { url: resolved, type, rawUrl: resolved };
   }
 }
 
@@ -238,9 +255,12 @@ export const api = {
     body.append('file', file);
     return request('/auth/avatar', { method:'POST', body });
   },
-  uploadFile:         (file)    => {
+  uploadFile:         (file, options = {}) => {
     const body = new FormData();
     body.append('file', file);
+    if (options.uploadType) body.append('uploadType', options.uploadType);
+    if (options.purpose) body.append('purpose', options.purpose);
+    if (options.createRecord !== undefined) body.append('createRecord', String(options.createRecord));
     return request('/upload', { method:'POST', body });
   },  changePassword:     (body)    => request('/auth/change-password',  { method:'PUT', body: JSON.stringify(body) }),
   dashboardStats:     ()        => request('/dashboard/stats'),

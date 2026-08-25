@@ -188,39 +188,43 @@ router.post('/', protect, upload.single('file'), async (req, res, next) => {
     }
 
     const recordType = detectRecordType(clientUploadType);
+    const shouldCreateRecord = req.body?.createRecord !== 'false' && req.body?.purpose !== 'intake' && req.body?.isTemp !== 'true';
 
-    const record = await Record.create({
-      patient: req.user.name,
-      patientId: req.user._id,
-      doctor: 'Self Upload',
-      date: getISTDateString(),
-      diagnosis: `Uploaded ${req.file.originalname}`,
-      type: recordType,
-      notes: `File: ${req.file.originalname}`,
-      data: {
-        patient: { name: req.user.name },
-        doctor: { name: 'Self Upload' },
-        uploadedFile: {
-          filename: req.file.originalname,
-          url: cloudResult.url,
-          fileId: cloudResult.fileId,
-          size: cloudResult.size || req.file.size,
-          format: path.extname(req.file.originalname).replace('.', '') || cloudResult.format || '',
-          mimeType: req.file.mimetype,
-          storedIn: cloudResult.storedIn || 'cloudinary',
-        },
+    let record = null;
+    if (shouldCreateRecord) {
+      record = await Record.create({
+        patient: req.user.name,
+        patientId: req.user._id,
+        doctor: 'Self Upload',
         date: getISTDateString(),
-      },
-    });
+        diagnosis: `Uploaded ${req.file.originalname}`,
+        type: recordType,
+        notes: `File: ${req.file.originalname}`,
+        data: {
+          patient: { name: req.user.name },
+          doctor: { name: 'Self Upload' },
+          uploadedFile: {
+            filename: req.file.originalname,
+            url: cloudResult.url,
+            fileId: cloudResult.fileId,
+            size: cloudResult.size || req.file.size,
+            format: path.extname(req.file.originalname).replace('.', '') || cloudResult.format || '',
+            mimeType: req.file.mimetype,
+            storedIn: cloudResult.storedIn || 'cloudinary',
+          },
+          date: getISTDateString(),
+        },
+      });
 
-    await Notification.create({
-      title: 'File Uploaded',
-      message: `Your file "${req.file.originalname}" has been uploaded successfully`,
-      type: 'records',
-      read: false,
-      userId: req.user._id,
-      date: getISTDateString(),
-    });
+      await Notification.create({
+        title: 'File Uploaded',
+        message: `Your file "${req.file.originalname}" has been uploaded successfully`,
+        type: 'records',
+        read: false,
+        userId: req.user._id,
+        date: getISTDateString(),
+      });
+    }
 
     res.json({
       success: true,
@@ -231,6 +235,7 @@ router.post('/', protect, upload.single('file'), async (req, res, next) => {
       fileId: cloudResult.fileId,
       storedIn: cloudResult.storedIn || 'cloudinary',
       uploadType: recordType,
+      recordId: record?._id,
     });
   } catch (error) {
     next(error);
