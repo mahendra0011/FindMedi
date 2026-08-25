@@ -303,6 +303,8 @@ export const api = {
   getMyAppointments:  (p={})    => request('/appointments/my-appointments?' + new URLSearchParams({ ...p, _t: Date.now() })),
   getAppointmentsHistory: ()    => request('/appointments/history-with-payments?_t=' + Date.now()),
   getBookedSlots:     (p={})    => request('/appointments/booked-slots?' + new URLSearchParams(p)),
+  lockAppointmentSlot:(body)    => request('/appointments/lock-slot', { method:'POST', body: JSON.stringify(body) }),
+  releaseAppointmentSlot:(body) => request('/appointments/release-slot', { method:'POST', body: JSON.stringify(body) }),
   createAppointment:  (body)    => request('/appointments',         { method:'POST',   body: JSON.stringify(body) }),
   walkInAppointment:  (body)    => request('/appointments/walk-in', { method:'POST',   body: JSON.stringify(body) }),
   updateAppointment:  (id,b)    => request(`/appointments/${id}`,   { method:'PUT',    body: JSON.stringify(b) }),

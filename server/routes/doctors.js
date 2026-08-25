@@ -12,6 +12,13 @@ import { uploadFileToCloudinary } from '../services/cloudinaryService.js';
 import { z } from 'zod';
 import { validate, createDoctorSchema, updateDoctorSchema } from '../utils/validate.js';
 import { paginatedResults } from '../utils/pagination.js';
+import {
+  getCache,
+  setCache,
+  flushCachePattern,
+  getOnlinePresence,
+  getOnlineDoctorsList,
+} from '../config/redis.js';
 
 const router = express.Router();
 
@@ -48,9 +55,32 @@ const populatePractice = (query) => query
   .populate('hospitalId', 'name address city phone email rating reviewsCount establishedYear totalDoctors accreditations hospitalType emergency24x7 bedAvailability ambulanceService insuranceAccepted workingHours logo')
   .populate('facilityId', 'name address city phone email type status rating reviewsCount specialties establishedYear');
 
+// GET /api/doctors/presence — get live online status of doctors
+router.get('/presence', async (req, res) => {
+  try {
+    const { ids } = req.query;
+    if (ids) {
+      const idList = ids.split(',').map(s => s.trim()).filter(Boolean);
+      const presence = await getOnlinePresence(idList);
+      return res.json(presence);
+    }
+    const onlineDocs = await getOnlineDoctorsList();
+    res.json({ onlineDoctors: onlineDocs });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 router.get('/', async (req, res) => {
   try {
     const { page, limit, search, available, specialization, location, includeAll, hospitalId, facilityId, doctor_type } = req.query;
+
+    const cacheKey = `doctors_list_${JSON.stringify(req.query)}`;
+    const cached = await getCache(cacheKey);
+    if (cached) {
+      res.setHeader('X-Cache', 'HIT');
+      return res.json(cached);
+    }
     const filter = {};
     const canViewAll = includeAll === 'true' && await isAdminListRequest(req);
     if (!canViewAll) filter.approved = true;
@@ -103,7 +133,7 @@ router.get('/', async (req, res) => {
         if (d.doctor_type === 'clinic') d.clinicProfile = profileMap[d._id.toString()] || null;
         return d;
       });
-    }
+    await setCache(cacheKey, result, 300);
     res.json(result);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });

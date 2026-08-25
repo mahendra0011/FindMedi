@@ -1,6 +1,13 @@
 import OTP from '../models/OTP.js';
 import { sendEmail } from './notificationService.js';
 import { renderEmailTemplate, renderPlainText } from './emailTemplates.js';
+import {
+  setRedisOTP,
+  getRedisOTP,
+  delRedisOTP,
+  setOTPCooldown,
+  checkOTPCooldown,
+} from '../config/redis.js';
 
 // OTP validity: 10 minutes
 const OTP_VALIDITY_MINUTES = 10;
@@ -16,11 +23,21 @@ export const generateOTP = () => {
 
 /**
  * Check if user can request a new OTP (minimum 1 minute gap)
+ * Uses Redis cooldown with fallback to DB
  * @param {string} email - User email
  * @returns {Promise<{allowed: boolean, waitSeconds?: number, lastRequestAt?: Date}>}
  */
 export const checkRateLimit = async (email) => {
-  // Find the most recent OTP for this email
+  // Check fast Redis cooldown first
+  const redisCheck = await checkOTPCooldown(email);
+  if (!redisCheck.allowed) {
+    return {
+      allowed: false,
+      waitSeconds: redisCheck.waitSeconds,
+    };
+  }
+
+  // Fallback to MongoDB check
   const lastOtp = await OTP.findOne({ email })
     .sort({ createdAt: -1 })
     .select('createdAt')
@@ -80,6 +97,10 @@ export const createAndSendOTP = async ({ userId, email, type = 'email', phone = 
       expiresAt,
       lastRequestAt: new Date()
     });
+
+    // Save in Redis OTP cache and activate 60s cooldown
+    await setRedisOTP(`${normalizedEmail}:${type}`, otpHash, OTP_VALIDITY_MINUTES * 60);
+    await setOTPCooldown(normalizedEmail, 60);
 
     // Send OTP via email only (SMS removed)
     const isPasswordReset = type === 'password_reset';
@@ -189,6 +210,7 @@ export const verifyOTP = async ({ email, otp, type = 'email' }) => {
     // Mark as used (single-use)
     otpRecord.used = true;
     await otpRecord.save();
+    await delRedisOTP(`${normalizedEmail}:${type}`);
     await OTP.updateMany(
       {
         email: normalizedEmail,
