@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Upload, Download, FileSpreadsheet, Users, Stethoscope, CreditCard, CalendarDays, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
+import { getApiBaseUrl } from '@/lib/api';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+const API_URL = getApiBaseUrl();
 
 export default function ImportExport() {
   const { user } = useAuth();

@@ -24,9 +24,9 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { api } from '@/lib/api';
+import { api, getApiBaseUrl } from '@/lib/api';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+const API_URL = getApiBaseUrl();
 
 const UPLOAD_TYPES = [
   {

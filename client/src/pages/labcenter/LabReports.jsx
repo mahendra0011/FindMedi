@@ -4,7 +4,7 @@ import { FileText, Upload, CheckCircle, Send, Search, Download, Calendar, User, 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { api } from '@/lib/api';
+import { api, getApiBaseUrl } from '@/lib/api';
 
 const statusColors = {
   'Pending Upload': 'bg-warning/10 text-warning',
@@ -19,15 +19,20 @@ export default function LabReports() {
   const [filter, setFilter] = useState('All');
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await api.getLabBookings({});
-        setReports(res.bookings || []);
-      } catch (e) { console.error(e); }
-      setLoading(false);
-    };
-    load();
+    fetchReports();
   }, []);
+
+  const fetchReports = async () => {
+    try {
+      const data = await api.getLabBookings();
+      setReports(data || []);
+    } catch (e) {
+      console.error(e);
+      setReports([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleUpload = async (id) => {
     try {
@@ -39,8 +44,7 @@ export default function LabReports() {
   const handleDownload = async (id) => {
     try {
       await api.updateLabBooking(id, { notified: true });
-      const base = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
-      window.open(base + '/lab/bookings/' + id + '/report', '_blank');
+      window.open(getApiBaseUrl() + '/lab/bookings/' + id + '/report', '_blank');
     } catch (e) { console.error(e); }
   };
 

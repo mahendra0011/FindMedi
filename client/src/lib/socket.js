@@ -1,10 +1,7 @@
 import { io } from 'socket.io-client';
+import { getServerOrigin } from './axios';
 
-// VITE_API_URL ends with /api — Socket.IO usse namespace samajhta hai, isliye
-// strip karke sirf origin pass karte hain. Sab jagah ek hi URL (yeh file).
-const SOCKET_URL = import.meta.env.VITE_API_URL
-  ? import.meta.env.VITE_API_URL.replace('/api', '')
-  : 'http://localhost:5001';
+const SOCKET_URL = getServerOrigin();
 
 let socket = null;
 
