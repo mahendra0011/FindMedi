@@ -41,11 +41,17 @@ export const selectIsAuthenticated = (state) => !!state.auth.user;
 export const selectUserRole = (state) => state.auth.user?.role;
 export const selectUserSettings = (state) => state.auth.user?.settings;
 
-// Async thunk: initialize auth from httpOnly cookie (auto-sent by browser)
+// Async thunk: initialize auth
 export const initializeAuth = () => async (dispatch) => {
-  // Backend restart / HMR reload ke waqt request transiently fail hoti hai —
-  // turant logout mat karo, retry karo. Sirf tab logout jab server 401/400 de.
-  for (let attempt = 0; attempt < 5; attempt++) {
+  const hasLocalToken = typeof localStorage !== 'undefined' && (localStorage.getItem('token') || localStorage.getItem('refreshToken'));
+  if (!hasLocalToken) {
+    dispatch(setUser(null));
+    dispatch(setLoading(false));
+    return;
+  }
+
+  // If token is present, verify with server
+  for (let attempt = 0; attempt < 3; attempt++) {
     try {
       const user = await api.me();
       const mergedUser = {
@@ -55,12 +61,12 @@ export const initializeAuth = () => async (dispatch) => {
       dispatch(setUser(mergedUser));
       return;
     } catch (err) {
-      const status = err?.response?.status;
+      const status = err?.response?.status || err?.status;
       if (status === 401 || status === 400 || status === 403) {
         break; // session genuinely invalid → logout
       }
       // Network error / 5xx → backend maybe restarting, wait and retry
-      await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)));
+      await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
     }
   }
   dispatch(setUser(null));
