@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/AuthContext';
-import { api, getApiBaseUrl } from '@/lib/api';
+import { api, apiClient, getApiBaseUrl } from '@/lib/api';
 import { toast } from 'sonner';
 import { getISTDateString } from '@/lib/dateUtils';
 
@@ -55,11 +55,10 @@ export default function DoctorConsultations() {
 
   const handleDownloadPdf = async (recordId) => {
     try {
-      const res = await fetch(`${getApiBaseUrl()}/records/${recordId}/prescription-pdf`, {
-        credentials: 'include',
+      const res = await apiClient.get(`/records/${recordId}/prescription-pdf`, {
+        responseType: 'blob',
       });
-      if (!res.ok) throw new Error('Download failed');
-      const blob = await res.blob();
+      const blob = new Blob([res.data], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Upload, Download, FileSpreadsheet, Users, Stethoscope, CreditCard, CalendarDays, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
-import { getApiBaseUrl } from '@/lib/api';
+import { apiClient, getApiBaseUrl, api } from '@/lib/api';
 
 const API_URL = getApiBaseUrl();
 
@@ -16,12 +16,11 @@ export default function ImportExport() {
   const handleExport = async (type, format = 'excel') => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/reports/export/${type}?format=${format}`, {
-        method: 'GET',
-        credentials: 'include',
+      const res = await apiClient.get(`/reports/export/${type}?format=${format}`, {
+        responseType: 'blob',
       });
       
-      const blob = await res.blob();
+      const blob = new Blob([res.data]);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -46,15 +45,13 @@ export default function ImportExport() {
     formData.append('file', file);
 
     try {
-      const res = await fetch(`${API_URL}/reports/import/${type}`, {
+      const data = await api.dispatch(null, `/reports/import/${type}`, {
         method: 'POST',
-        credentials: 'include',
         body: formData
       });
       
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.message || data.error || 'Import failed');
+      if (!data || data.success === false) {
+        throw new Error(data?.message || data?.error || 'Import failed');
       }
       setImportResults(prev => ({ ...prev, [type]: data }));
     } catch (error) {

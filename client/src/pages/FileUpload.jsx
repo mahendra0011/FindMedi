@@ -123,30 +123,22 @@ export default function FileUpload() {
   const fetchUploadedFiles = useCallback(async () => {
     setLoadingFiles(true);
     try {
-      const res = await fetch(`${API_URL}/records`, {
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-      });
-
-      if (res.status === 401) {
-        handleSessionExpired();
-        setLoadingFiles(false);
-        return;
-      }
-
-      const data = await res.json();
-      if (data.data) {
-        const filesWithUploads = data.data
-          .filter((r) => r.data?.uploadedFile)
-          .map((r) => ({
-            ...r,
-            fileType: r.type,
-            uploadedAt: r.createdAt || r.data?.date,
-          }));
-        setFiles(filesWithUploads);
-      }
+      const data = await api.getRecords();
+      const recordsList = data.records || data.data || (Array.isArray(data) ? data : []);
+      const filesWithUploads = recordsList
+        .filter((r) => r.data?.uploadedFile)
+        .map((r) => ({
+          ...r,
+          fileType: r.type,
+          uploadedAt: r.createdAt || r.data?.date,
+        }));
+      setFiles(filesWithUploads);
     } catch (error) {
-      console.error('Error fetching files:', error);
+      if (error?.status === 401 || isAuthError(error?.status, error?.message)) {
+        handleSessionExpired();
+      } else {
+        console.error('Error fetching files:', error);
+      }
     }
     setLoadingFiles(false);
   }, [handleSessionExpired]);
@@ -196,37 +188,16 @@ export default function FileUpload() {
 
     const formData = new FormData();
     formData.append('file', file);
-
-    // Use Drive upload endpoint if Drive storage is selected
-    const endpoint = storageOption === 'drive' ? `${API_URL}/drive/upload` : `${API_URL}/upload`;
+    formData.append('uploadType', uploadType);
 
     try {
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        credentials: 'include',
-        body: formData,
-      });
+      const endpoint = storageOption === 'drive' ? '/drive/upload' : '/upload';
+      const data = await api.dispatch(null, endpoint, { method: 'POST', body: formData });
 
-      const text = await res.text();
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch {
-        data = { error: `Server error: ${res.status}` };
-      }
-
-      const msg = data.error || data.message || '';
-
-      if (res.status === 401 || isAuthError(res.status, msg)) {
-        handleSessionExpired();
-        setLoading(false);
-        return;
-      }
-
-      if (!res.ok || !data.success) {
+      if (!data || data.success === false) {
         setUploadResult({
           success: false,
-          error: msg || `Error: ${res.status}`,
+          error: data?.error || data?.message || 'Upload failed',
         });
         setLoading(false);
         return;
@@ -234,17 +205,21 @@ export default function FileUpload() {
 
       setUploadResult({
         success: true,
-        filename: data.filename,
-        size: data.size,
+        filename: data.filename || file.name,
+        size: data.size || file.size,
         format: data.format || '',
-        storedIn: data.storedIn || 'cloudinary',
+        storedIn: data.storedIn || (storageOption === 'drive' ? 'drive' : 'cloudinary'),
       });
 
       fetchUploadedFiles();
       if (fileInputRef.current) fileInputRef.current.value = '';
     } catch (error) {
       console.error('Upload error:', error);
-      setUploadResult({ success: false, error: error.message });
+      if (error?.status === 401 || isAuthError(error?.status, error?.message)) {
+        handleSessionExpired();
+      } else {
+        setUploadResult({ success: false, error: error.message || 'Upload failed' });
+      }
     }
     setLoading(false);
   };

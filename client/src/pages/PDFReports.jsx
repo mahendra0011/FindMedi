@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FileText, Download, Loader2, Send } from 'lucide-react';
-import { getApiBaseUrl } from '@/lib/api';
+import { apiClient, getApiBaseUrl, api } from '@/lib/api';
 
 const API_URL = getApiBaseUrl();
 
@@ -28,85 +28,119 @@ export default function PDFReports() {
 
   const [labReport, setLabReport] = useState({
     patientName: '', patientAge: '', patientGender: '', patientPhone: '', patientEmail: '',
-    doctorName: '', doctorSpecialization: '',
-    reportId: '', testDate: '', reportDate: '',
-    notes: '',
-    tests: [{ name: '', result: '', unit: '', referenceRange: '' }]
+    doctorName: '', testName: '', sampleType: '',
+    results: [{ testParameter: '', value: '', unit: '', referenceRange: '', flag: 'Normal' }],
+    notes: '', impression: ''
   });
 
-  const [discharge, setDischarge] = useState({
+  const [dischargeSummary, setDischargeSummary] = useState({
     patientName: '', patientAge: '', patientGender: '', patientPhone: '', patientEmail: '', patientAddress: '',
-    doctorName: '', doctorSpecialization: '',
-    admissionId: '', admissionDate: '', dischargeDate: '',
-    chiefComplaints: '', diagnosis: '', treatment: '', surgery: '',
-    dischargeAdvice: '', followUpInstructions: '',
-    medications: [{ name: '', dosage: '', frequency: '' }]
+    doctorName: '', admissionDate: '', dischargeDate: '',
+    admissionDiagnosis: '', dischargeDiagnosis: '', treatmentSummary: '',
+    conditionAtDischarge: 'Stable', hospitalCourse: '', dischargeMedications: '',
+    dietInstructions: '', activityRestrictions: '', followUpInstructions: ''
   });
 
-  const addMedication = () => {
-    setPrescription({ ...prescription, medications: [...prescription.medications, { name: '', dosage: '', frequency: '', instructions: '' }] });
+  const handleMedicationChange = (index, field, value) => {
+    const next = [...prescription.medications];
+    next[index][field] = value;
+    setPrescription({ ...prescription, medications: next });
   };
 
-  const updateMedication = (index, field, value) => {
-    const updated = [...prescription.medications];
-    updated[index][field] = value;
-    setPrescription({ ...prescription, medications: updated });
+  const addMedication = () => {
+    setPrescription({
+      ...prescription,
+      medications: [...prescription.medications, { name: '', dosage: '', frequency: '', instructions: '' }]
+    });
   };
 
   const removeMedication = (index) => {
-    setPrescription({ ...prescription, medications: prescription.medications.filter((_, i) => i !== index) });
+    if (prescription.medications.length <= 1) return;
+    setPrescription({
+      ...prescription,
+      medications: prescription.medications.filter((_, i) => i !== index)
+    });
   };
 
-  const addTest = () => {
-    setLabReport({ ...labReport, tests: [...labReport.tests, { name: '', result: '', unit: '', referenceRange: '' }] });
+  const handleLabResultChange = (index, field, value) => {
+    const next = [...labReport.results];
+    next[index][field] = value;
+    setLabReport({ ...labReport, results: next });
   };
 
-  const updateTest = (index, field, value) => {
-    const updated = [...labReport.tests];
-    updated[index][field] = value;
-    setLabReport({ ...labReport, tests: updated });
+  const addLabResult = () => {
+    setLabReport({
+      ...labReport,
+      results: [...labReport.results, { testParameter: '', value: '', unit: '', referenceRange: '', flag: 'Normal' }]
+    });
   };
 
-  const removeTest = (index) => {
-    setLabReport({ ...labReport, tests: labReport.tests.filter((_, i) => i !== index) });
-  };
-
-  const addDischargeMed = () => {
-    setDischarge({ ...discharge, medications: [...discharge.medications, { name: '', dosage: '', frequency: '' }] });
-  };
-
-  const updateDischargeMed = (index, field, value) => {
-    const updated = [...discharge.medications];
-    updated[index][field] = value;
-    setDischarge({ ...discharge, medications: updated });
+  const removeLabResult = (index) => {
+    if (labReport.results.length <= 1) return;
+    setLabReport({
+      ...labReport,
+      results: labReport.results.filter((_, i) => i !== index)
+    });
   };
 
   const buildReportPayload = (type) => {
     if (type === 'prescription') {
       return {
-        patient: { name: prescription.patientName, age: prescription.patientAge, gender: prescription.patientGender, phone: prescription.patientPhone, email: prescription.patientEmail, address: prescription.patientAddress },
-        doctor: { name: prescription.doctorName, specialization: prescription.doctorSpecialization },
-        chiefComplaints: prescription.chiefComplaints, diagnosis: prescription.diagnosis, advice: prescription.advice, followUp: prescription.followUp,
-        medications: prescription.medications.filter(m => m.name)
+        patient: {
+          name: prescription.patientName,
+          age: prescription.patientAge,
+          gender: prescription.patientGender,
+          phone: prescription.patientPhone,
+          email: prescription.patientEmail,
+          address: prescription.patientAddress
+        },
+        doctorName: prescription.doctorName || user?.name,
+        doctorSpecialization: prescription.doctorSpecialization,
+        chiefComplaints: prescription.chiefComplaints,
+        diagnosis: prescription.diagnosis,
+        advice: prescription.advice,
+        followUp: prescription.followUp,
+        medications: prescription.medications
       };
     }
-
     if (type === 'lab') {
       return {
-        patient: { name: labReport.patientName, age: labReport.patientAge, gender: labReport.patientGender, phone: labReport.patientPhone, email: labReport.patientEmail },
-        doctor: { name: labReport.doctorName, specialization: labReport.doctorSpecialization },
-        reportId: labReport.reportId, testDate: labReport.testDate, reportDate: labReport.reportDate, notes: labReport.notes,
-        tests: labReport.tests.filter(t => t.name)
+        patient: {
+          name: labReport.patientName,
+          age: labReport.patientAge,
+          gender: labReport.patientGender,
+          phone: labReport.patientPhone,
+          email: labReport.patientEmail
+        },
+        doctorName: labReport.doctorName || user?.name,
+        testName: labReport.testName,
+        sampleType: labReport.sampleType,
+        results: labReport.results,
+        notes: labReport.notes,
+        impression: labReport.impression
       };
     }
-
     return {
-      patient: { name: discharge.patientName, age: discharge.patientAge, gender: discharge.patientGender, phone: discharge.patientPhone, email: discharge.patientEmail, address: discharge.patientAddress },
-      doctor: { name: discharge.doctorName, specialization: discharge.doctorSpecialization },
-      admissionId: discharge.admissionId, admissionDate: discharge.admissionDate, dischargeDate: discharge.dischargeDate,
-      chiefComplaints: discharge.chiefComplaints, diagnosis: discharge.diagnosis, treatment: discharge.treatment, surgery: discharge.surgery,
-      dischargeAdvice: discharge.dischargeAdvice, followUpInstructions: discharge.followUpInstructions,
-      medications: discharge.medications.filter(m => m.name)
+      patient: {
+        name: dischargeSummary.patientName,
+        age: dischargeSummary.patientAge,
+        gender: dischargeSummary.patientGender,
+        phone: dischargeSummary.patientPhone,
+        email: dischargeSummary.patientEmail,
+        address: dischargeSummary.patientAddress
+      },
+      doctorName: dischargeSummary.doctorName || user?.name,
+      admissionDate: dischargeSummary.admissionDate,
+      dischargeDate: dischargeSummary.dischargeDate,
+      admissionDiagnosis: dischargeSummary.admissionDiagnosis,
+      dischargeDiagnosis: dischargeSummary.dischargeDiagnosis,
+      treatmentSummary: dischargeSummary.treatmentSummary,
+      conditionAtDischarge: dischargeSummary.conditionAtDischarge,
+      hospitalCourse: dischargeSummary.hospitalCourse,
+      dischargeMedications: dischargeSummary.dischargeMedications,
+      dietInstructions: dischargeSummary.dietInstructions,
+      activityRestrictions: dischargeSummary.activityRestrictions,
+      followUpInstructions: dischargeSummary.followUpInstructions
     };
   };
 
@@ -120,16 +154,8 @@ export default function PDFReports() {
         : '/reports/generate-discharge-summary';
       const payload = buildReportPayload(type);
 
-      const res = await fetch(`${API_URL}${endpoint}`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      if (!res.ok) throw new Error('PDF generation failed');
-
-      const blob = await res.blob();
+      const res = await apiClient.post(endpoint, payload, { responseType: 'blob' });
+      const blob = new Blob([res.data], { type: 'application/pdf' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -170,15 +196,8 @@ export default function PDFReports() {
         summary: reportPayload
       };
 
-      const res = await fetch(`${API_URL}${endpoint}`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      const data = await res.json();
-      if (!res.ok || data.success === false) {
+      const data = await api.dispatch(null, endpoint, { method: 'POST', body: JSON.stringify(payload) });
+      if (data?.success === false) {
         throw new Error(data.message || data.error || 'Email send failed');
       }
 
