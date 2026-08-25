@@ -133,6 +133,8 @@ router.get('/', async (req, res) => {
         if (d.doctor_type === 'clinic') d.clinicProfile = profileMap[d._id.toString()] || null;
         return d;
       });
+    }
+
     await setCache(cacheKey, result, 300);
     res.json(result);
   } catch (err) { res.status(500).json({ message: err.message }); }
