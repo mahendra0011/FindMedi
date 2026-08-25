@@ -130,6 +130,8 @@ router.post('/', async (req, res) => {
         phone: f.phone,
         type: f.constructor.modelName,
       }));
+    }
+
     if (cacheKey && reply) {
       await setCachedAIReply(cacheKey, { reply, suggestions }, 86400); // 24-hour cache
     }
