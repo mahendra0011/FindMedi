@@ -29,6 +29,8 @@ export default function BookingModal({
   const [bookingNotes, setBookingNotes] = useState('');
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookedSlots, setBookedSlots] = useState([]);
+  const [lockedSlots, setLockedSlots] = useState([]);
+  const [lockingSlot, setLockingSlot] = useState(false);
   const [slotCounts, setSlotCounts] = useState({});
   const [dateDisabledSlots, setDateDisabledSlots] = useState([]);
   const [pendingDisabledSlots, setPendingDisabledSlots] = useState([]);
@@ -69,6 +71,7 @@ export default function BookingModal({
       setSelectedHour(null);
       setDateDisabledSlots([]);
       setPendingDisabledSlots([]);
+      setLockedSlots([]);
       setBookingWindow(null);
       setBookingNotes('');
       setPaymentMethod('card');
@@ -116,19 +119,20 @@ export default function BookingModal({
 
   // Doctor + date change hone par uske already-booked slots fetch karo WITH COUNTS
   useEffect(() => {
-    if (!currentDoc?._id || !bookingDate) { setBookedSlots([]); setSlotCounts({}); setDateDisabledSlots([]); setPendingDisabledSlots([]); setBookingWindow(null); return; }
+    if (!currentDoc?._id || !bookingDate) { setBookedSlots([]); setLockedSlots([]); setSlotCounts({}); setDateDisabledSlots([]); setPendingDisabledSlots([]); setBookingWindow(null); return; }
     api.getBookedSlots({ doctorId: currentDoc._id, date: bookingDate })
       .then(res => {
-        // New shape: { counts, capacity, fullSlots, dateDisabled, bookingWindow, pendingDisabledSlots }. Legacy shape: ["10:00 AM", ...]
         if (res && typeof res === 'object' && !Array.isArray(res) && res.counts) {
           setSlotCounts(res.counts || {});
           setBookedSlots(res.fullSlots || Object.keys(res.counts || {}));
+          setLockedSlots(res.lockedSlots || []);
           setDateDisabledSlots(res.dateDisabled || []);
           setPendingDisabledSlots(res.pendingDisabledSlots || []);
           setBookingWindow(res.bookingWindow || null);
         } else {
           const arr = Array.isArray(res) ? res : [];
           setBookedSlots(arr);
+          setLockedSlots([]);
           const counts = {};
           arr.forEach(s => { counts[s] = (counts[s] || 0) + 1; });
           setSlotCounts(counts);
@@ -137,13 +141,43 @@ export default function BookingModal({
           setBookingWindow(null);
         }
       })
-      .catch(() => { setBookedSlots([]); setSlotCounts({}); setDateDisabledSlots([]); setPendingDisabledSlots([]); setBookingWindow(null); });
+      .catch(() => { setBookedSlots([]); setLockedSlots([]); setSlotCounts({}); setDateDisabledSlots([]); setPendingDisabledSlots([]); setBookingWindow(null); });
   }, [currentDoc?._id, bookingDate, currentDoc?.maxBookingsPerSlot]);
 
   const isSlotFull = (time) => {
-    // Per sub-slot, only 1 booking is allowed (15 min = 1 patient treatment)
     const bookedCount = slotCounts[time] || 0;
     return bookedCount >= 1;
+  };
+
+  const isSlotLocked = (time) => {
+    return lockedSlots.includes(time) && bookingTime !== time;
+  };
+
+  const handleSelectSlot = async (t) => {
+    if (t === bookingTime) return;
+    if (isSlotLocked(t)) {
+      toast.error(`Slot ${t} is currently being booked by another patient. Please select another.`);
+      return;
+    }
+    if (user && currentDoc?._id && bookingDate) {
+      setLockingSlot(true);
+      try {
+        if (bookingTime) {
+          api.releaseAppointmentSlot({ doctorId: currentDoc._id, date: bookingDate, time: bookingTime }).catch(() => {});
+        }
+        const lockRes = await api.lockAppointmentSlot({ doctorId: currentDoc._id, date: bookingDate, time: t });
+        if (lockRes && !lockRes.success && lockRes.lockedByOther) {
+          toast.error(lockRes.message || 'This slot is currently being booked by another patient.');
+          setLockingSlot(false);
+          return;
+        }
+      } catch (err) {
+        console.warn('Slot lock failed', err);
+      } finally {
+        setLockingSlot(false);
+      }
+    }
+    setBookingTime(t);
   };
 
   const handleProceedToPayment = () => {
@@ -533,27 +567,36 @@ export default function BookingModal({
                         const disabled = isSlotDisabled(t);
                         const pendingUpdate = isSlotPendingUpdate(t);
                         const full = isSlotFull(t);
-                        const unavailable = disabled || full || pendingUpdate;
+                        const locked = isSlotLocked(t);
+                        const unavailable = disabled || full || pendingUpdate || locked;
                         const selected = bookingTime === t;
                         return (
                           <button
                             key={t}
                             type="button"
-                            disabled={unavailable}
-                            onClick={() => setBookingTime(t)}
+                            disabled={unavailable || lockingSlot}
+                            onClick={() => handleSelectSlot(t)}
                             className={`flex flex-col items-center gap-0.5 px-1.5 py-2 rounded-lg border text-center transition-all ${
                               selected
-                                ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+                                ? 'border-primary bg-primary text-primary-foreground shadow-sm ring-2 ring-primary/30'
+                                : locked
+                                ? 'border-amber-300 bg-amber-500/10 text-amber-700 dark:text-amber-300 cursor-not-allowed'
                                 : unavailable
-                                ? (pendingUpdate
-                                    ? 'border-red-300 bg-red-50 text-red-600 cursor-not-allowed'
-                                    : 'border-red-300 bg-red-50 text-red-600 cursor-not-allowed')
+                                ? 'border-red-300 bg-red-500/10 text-red-600 dark:text-red-300 cursor-not-allowed'
                                 : 'border-border bg-card text-foreground hover:border-primary/50 hover:bg-primary/5'
                             }`}
                           >
                             <span className="text-xs font-semibold">{rangeFor(t)}</span>
-                            <span className={`text-[9px] leading-none ${selected ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
-                              {disabled ? 'Not Available (Disabled)' : pendingUpdate ? 'Pending — may not be available' : full ? 'Booked' : 'Available'}
+                            <span className={`text-[9px] leading-none font-medium ${selected ? 'text-primary-foreground/90' : 'text-muted-foreground'}`}>
+                              {disabled
+                                ? 'Disabled'
+                                : pendingUpdate
+                                ? 'Pending Update'
+                                : full
+                                ? 'Booked'
+                                : locked
+                                ? '🔒 In Booking'
+                                : 'Available'}
                             </span>
                           </button>
                         );

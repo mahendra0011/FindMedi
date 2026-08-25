@@ -15,6 +15,12 @@ import { generateTokenNumber } from '../utils/idGenerator.js';
 import Payment from '../models/Payment.js';
 import { getISTDateString } from '../utils/dateUtils.js';
 import { emitAppointmentUpdate } from '../services/socketService.js';
+import {
+  lockAppointmentSlot,
+  releaseAppointmentSlot,
+  getLockedSlotsForDoctor,
+  getNextOPDTokenNumber,
+} from '../config/redis.js';
 
 const router = express.Router();
 
@@ -117,6 +123,36 @@ router.get('/', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
+// POST /api/appointments/lock-slot — lock a 10:00-10:15 time slot for 5 minutes during patient checkout
+router.post('/lock-slot', protect, async (req, res) => {
+  try {
+    const { doctorId, date, time } = req.body;
+    if (!doctorId || !date || !time) {
+      return res.status(400).json({ message: 'doctorId, date, and time are required to lock a slot' });
+    }
+    const result = await lockAppointmentSlot(doctorId, date, time, req.user._id, 300);
+    if (!result.success) {
+      return res.status(409).json(result);
+    }
+    res.json({ success: true, message: 'Slot reserved for 5 minutes', expiresAt: result.expiresAt });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// POST /api/appointments/release-slot — release slot lock if user changes slot or closes modal
+router.post('/release-slot', protect, async (req, res) => {
+  try {
+    const { doctorId, date, time } = req.body;
+    if (doctorId && date && time) {
+      await releaseAppointmentSlot(doctorId, date, time, req.user._id);
+    }
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 router.get('/booked-slots', protect, async (req, res) => {
   try {
     const { doctorId, date } = req.query;
@@ -135,10 +171,10 @@ router.get('/booked-slots', protect, async (req, res) => {
     appts.forEach(a => { counts[a.time] = (counts[a.time] || 0) + 1; });
     const fullSlots = Object.keys(counts).filter(t => counts[t] >= capacity);
 
-    // Pending slot removals: slots the doctor requested to disable (pending approval)
-    // that are NOT already disabled in the live schedule. Patients see these as
-    // "Pending Update" (grey, not selectable) so they don't book a slot that may
-    // be removed once the admin approves.
+    // Redis Concurrent Locked Slots (currently being booked by other users)
+    const lockedSlots = await getLockedSlotsForDoctor(doctorId, date);
+
+    // Pending slot removals
     let pendingDisabledSlots = [];
     try {
       const ScheduleChangeRequest = (await import('../models/ScheduleChangeRequest.js')).default;
@@ -153,7 +189,7 @@ router.get('/booked-slots', protect, async (req, res) => {
       }
     } catch (_) {}
 
-    res.json({ counts, capacity, fullSlots, dateDisabled, bookingWindow, pendingDisabledSlots });
+    res.json({ counts, capacity, fullSlots, lockedSlots, dateDisabled, bookingWindow, pendingDisabledSlots });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
@@ -372,7 +408,7 @@ router.post('/walk-in', protect, requireRole(['doctor', 'clinic_doctor', 'clinic
     }
 
     // 4. Appointment create (Confirmed)
-    const tokenNumber = generateTokenNumber();
+    const tokenNumber = await getNextOPDTokenNumber(targetDoctorId || 'general', date);
     const estimatedWaitTime = await calculateEstimatedWaitTime(department || 'General', priority);
     const appointment = await Appointment.create({
       tokenNumber,
@@ -393,6 +429,10 @@ router.post('/walk-in', protect, requireRole(['doctor', 'clinic_doctor', 'clinic
       hospitalId,
       status: 'Confirmed',
     });
+
+    if (targetDoctorId && date && time) {
+      await releaseAppointmentSlot(targetDoctorId, date, time, req.user._id);
+    }
 
     await auditLog('create_appointment', req.user._id, { recordId: appointment._id, ip: req.ip, userAgent: req.get('user-agent') });
     await emitAppointmentUpdate(appointment);
@@ -451,7 +491,7 @@ router.post('/', protect, requireRole(['hospital_admin', 'superadmin']), validat
     }
 
     const countToday = await Appointment.countDocuments({ date, doctor: doctor || '' });
-    const tokenNumber = generateTokenNumber();
+    const tokenNumber = await getNextOPDTokenNumber(doctorId || 'general', date);
     const patientUser = await User.findById(patientId);
     const estimatedWaitTime = await calculateEstimatedWaitTime(department, priority);
     const appointment = await Appointment.create({
@@ -472,9 +512,13 @@ router.post('/', protect, requireRole(['hospital_admin', 'superadmin']), validat
         status: 'Pending'
       });
       
-      await auditLog('create_appointment', req.user._id, { recordId: appointment._id, ip: req.ip, userAgent: req.get('user-agent') });
+    if (doctorId && date && time) {
+      await releaseAppointmentSlot(doctorId, date, time, patientId);
+    }
+
+    await auditLog('create_appointment', req.user._id, { recordId: appointment._id, ip: req.ip, userAgent: req.get('user-agent') });
       
-      await appointment.populate('doctorId', 'name specialization');
+    await appointment.populate('doctorId', 'name specialization');
     
     if (doctorId) {
       await createNotification(doctorId, 'New Appointment', `New ${type || 'Consultation'} appointment from ${patientName} for ${date} at ${time}`, 'appointment');

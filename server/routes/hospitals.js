@@ -6,11 +6,19 @@ import { protect, superadminOnly, hospitalAdminOnly } from '../middleware/auth.j
 import { validate, registerHospitalSchema } from '../utils/validate.js';
 import { auditLog } from '../middleware/audit.js';
 import logger from '../config/logger.js';
+import { getCache, setCache, flushCachePattern } from '../config/redis.js';
 
 const router = express.Router();
 
 router.get('/', async (req, res) => {
   try {
+    const cacheKey = `hospitals_list_${JSON.stringify(req.query)}`;
+    const cached = await getCache(cacheKey);
+    if (cached) {
+      res.setHeader('X-Cache', 'HIT');
+      return res.json(cached);
+    }
+
     const { search, city, specialty, status } = req.query;
     const filter = {};
 
@@ -41,6 +49,7 @@ router.get('/', async (req, res) => {
     if (specialty) filter.specialties = new RegExp(specialty, 'i');
 
     const hospitals = await Hospital.find(filter).sort({ createdAt: -1 });
+    await setCache(cacheKey, hospitals, 300);
     res.json(hospitals);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });

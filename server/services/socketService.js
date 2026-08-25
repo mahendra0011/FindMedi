@@ -1,7 +1,16 @@
 import { Server } from 'socket.io';
 import { createAdapter } from '@socket.io/redis-adapter';
 import logger from '../config/logger.js';
-import { redisPub, redisSub, connectRedis, updateDeliveryBoyLocation } from '../config/redis.js';
+import {
+  redisPub,
+  redisSub,
+  connectRedis,
+  updateDeliveryBoyLocation,
+  setUserPresence,
+  removeUserPresence,
+  getOnlinePresence,
+  getOnlineDoctorsList,
+} from '../config/redis.js';
 import DeliveryPartner from '../models/DeliveryPartner.js';
 import PharmacyDelivery from '../models/PharmacyDelivery.js';
 import Doctor from '../models/Doctor.js';
@@ -46,9 +55,6 @@ export async function initSocket(server) {
   });
 
   // Redis adapter sirf tab lagao jab REDIS_URL set ho aur connect ho sake.
-  // Locally (bina Redis) default in-memory adapter use hota hai — warna har emit
-  // ek kabhi-connected-na-huye pub/sub client par atak kar silently fail ho jaata
-  // tha (real-time updates kabhi nahi pahunchte the).
   if (process.env.REDIS_URL) {
     try {
       await connectRedis();
@@ -64,8 +70,27 @@ export async function initSocket(server) {
   io.on('connection', (socket) => {
     logger.info(`Socket connected: ${socket.id}`);
 
-    socket.on('join', (userId) => {
-      if (userId) socket.join(`user:${userId}`);
+    socket.on('join', async (payload) => {
+      const userId = typeof payload === 'object' ? payload?.userId : payload;
+      const role = typeof payload === 'object' ? payload?.role : undefined;
+
+      if (userId) {
+        socket.userId = String(userId);
+        socket.userRole = role;
+        socket.join(`user:${userId}`);
+
+        // Mark presence in Redis
+        try {
+          await setUserPresence(userId, role);
+          io.emit('presence:change', { userId: String(userId), online: true, role });
+        } catch (e) {}
+      }
+    });
+
+    socket.on('presence:ping', async () => {
+      if (socket.userId) {
+        await setUserPresence(socket.userId, socket.userRole);
+      }
     });
 
     socket.on('order:join_tracking', (orderId) => {
@@ -77,7 +102,6 @@ export async function initSocket(server) {
 
     socket.on('deliveryboy:location', async ({ deliveryPartnerId, orderId, lat, lng }) => {
       try {
-        // Redis cache best-effort hai — fail hone par DB updates ko skip mat karo
         try {
           await updateDeliveryBoyLocation(deliveryPartnerId, lat, lng);
         } catch (redisErr) {
@@ -101,7 +125,15 @@ export async function initSocket(server) {
       await DeliveryPartner.findByIdAndUpdate(deliveryPartnerId, { isOnline: online, isAvailable: online });
     });
 
-    socket.on('disconnect', () => logger.info(`Socket disconnected: ${socket.id}`));
+    socket.on('disconnect', async () => {
+      logger.info(`Socket disconnected: ${socket.id}`);
+      if (socket.userId) {
+        try {
+          await removeUserPresence(socket.userId, socket.userRole);
+          io.emit('presence:change', { userId: socket.userId, online: false, role: socket.userRole });
+        } catch (e) {}
+      }
+    });
   });
 
   logger.info('Socket.IO ready');

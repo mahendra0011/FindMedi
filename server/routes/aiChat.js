@@ -2,10 +2,9 @@ import express from 'express';
 import logger from '../config/logger.js';
 import Hospital from '../models/Hospital.js';
 import Facility from '../models/Facility.js';
+import { getCachedAIReply, setCachedAIReply } from '../config/redis.js';
 
 const router = express.Router();
-
-
 
 const SYSTEM_PROMPT = `You are FindMedi AI, a helpful health assistant. Your role:
 - Answer health-related questions only (symptoms, diseases, medicines, fitness, nutrition, mental health)
@@ -22,6 +21,20 @@ router.post('/', async (req, res) => {
     const { message, image, history = [] } = req.body;
     if ((!message || !message.trim()) && !image) {
       return res.status(400).json({ reply: 'Please ask a health-related question or provide an image.' });
+    }
+
+    // Check Redis AI cache for single-turn text queries
+    const isSingleTurnText = !image && (!history || history.length === 0);
+    const cacheKey = isSingleTurnText
+      ? Buffer.from(message.toLowerCase().trim().replace(/[^a-z0-9]/g, '')).toString('base64').slice(0, 64)
+      : null;
+
+    if (cacheKey) {
+      const cachedResponse = await getCachedAIReply(cacheKey);
+      if (cachedResponse) {
+        res.setHeader('X-Cache', 'HIT');
+        return res.json({ ...cachedResponse, cached: true });
+      }
     }
 
     const apiKey = process.env.GEMINI_API_KEY;
@@ -117,6 +130,8 @@ router.post('/', async (req, res) => {
         phone: f.phone,
         type: f.constructor.modelName,
       }));
+    if (cacheKey && reply) {
+      await setCachedAIReply(cacheKey, { reply, suggestions }, 86400); // 24-hour cache
     }
 
     res.json({ reply, suggestions });
