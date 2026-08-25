@@ -44,7 +44,7 @@ export default function IntakeFormStep({ formData, setFormData, onNext, onBack }
     setUploading(true);
 
     try {
-      const res = await api.uploadFile(file);
+      const res = await api.uploadFile(file, { purpose: 'intake', createRecord: false });
       if (res && res.url) {
         toast.success('File uploaded successfully');
         if (fieldPath === 'prescriptionFile') {

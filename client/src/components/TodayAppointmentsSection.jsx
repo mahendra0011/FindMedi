@@ -3,7 +3,7 @@ import {
   Clock, Phone, Mail, MapPin, Droplet, User, CalendarDays,
   ChevronDown, ChevronUp, FileText, Stethoscope, CheckCircle,
   ArrowLeft, Download, Receipt, RotateCcw, Search, Info, X,
-  UserX, Ban, Loader2,
+  UserX, Ban, Loader2, ExternalLink,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -117,11 +117,13 @@ export default function TodayAppointmentsSection({
   const [historyPatient, setHistoryPatient] = useState(null);
   // File viewer popup — blob URLs are revoked on close to avoid leaks.
   const [fileViewerUrl, setFileViewerUrl] = useState(null);
+  const [fileViewerRawUrl, setFileViewerRawUrl] = useState(null);
   const [fileViewerType, setFileViewerType] = useState(null); // 'image' | 'pdf' | 'other'
   const [fileViewerLoading, setFileViewerLoading] = useState(false);
+  const [fileViewerError, setFileViewerError] = useState(false);
 
   // Open uploaded intake files in the popup. Local /auth-protected URLs are
-  // fetched with credentials → blob URL, so <img>/<iframe> don't get a 401.
+  // fetched with credentials + Bearer token → blob URL, so <img>/<iframe> don't get a 401.
   const openFileViewer = useCallback(async (url) => {
     if (!url) return;
     if (!isValidFileUrl(url)) {
@@ -129,16 +131,25 @@ export default function TodayAppointmentsSection({
       return;
     }
     setFileViewerLoading(true);
+    setFileViewerError(false);
+    setFileViewerUrl('loading');
+    setFileViewerRawUrl(url);
+
     try {
       const preview = await getFilePreviewUrl(url);
-      if (!preview) {
-        toast.error('Unable to load file. It may have been removed or is not accessible.');
+      if (!preview || !preview.url) {
+        toast.error('Unable to load file preview. Opening fallback.');
+        setFileViewerUrl(resolveFileUrl(url));
+        setFileViewerType('other');
         return;
       }
       setFileViewerUrl(preview.url);
+      setFileViewerRawUrl(preview.rawUrl || url);
       setFileViewerType(preview.type);
     } catch (err) {
       console.error('File preview error:', err);
+      setFileViewerUrl(resolveFileUrl(url));
+      setFileViewerType('other');
       toast.error('Failed to load file preview.');
     } finally {
       setFileViewerLoading(false);
@@ -148,8 +159,10 @@ export default function TodayAppointmentsSection({
   const closeFileViewer = useCallback(() => {
     if (fileViewerUrl?.startsWith('blob:')) URL.revokeObjectURL(fileViewerUrl);
     setFileViewerUrl(null);
+    setFileViewerRawUrl(null);
     setFileViewerType(null);
     setFileViewerLoading(false);
+    setFileViewerError(false);
   }, [fileViewerUrl]);
 
   // Visit-number for history button visibility (2nd+ visit)
@@ -487,24 +500,66 @@ export default function TodayAppointmentsSection({
       {/* File Viewer Popup */}
       {fileViewerUrl && (
         <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={closeFileViewer}>
-          <div className="bg-card rounded-2xl border border-border w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-3 border-b border-border/40">
-              <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
-                <FileText className="w-4 h-4 text-primary" /> Uploaded File
+          <div className="bg-card rounded-2xl border border-border w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-3.5 border-b border-border/40 bg-muted/20">
+              <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                <FileText className="w-4 h-4 text-primary" /> Uploaded Document
               </h3>
-              <button onClick={closeFileViewer} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground" aria-label="Close">
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-2">
+                {fileViewerRawUrl && (
+                  <a
+                    href={fileViewerUrl !== 'loading' ? fileViewerUrl : resolveFileUrl(fileViewerRawUrl)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" /> Open / Download
+                  </a>
+                )}
+                <button onClick={closeFileViewer} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground transition-colors" aria-label="Close">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
-            <div className="flex-1 overflow-auto p-4 flex items-center justify-center bg-muted/10">
-              {fileViewerLoading ? (
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <div className="flex-1 overflow-auto p-4 flex items-center justify-center bg-muted/10 min-h-[320px]">
+              {fileViewerLoading || fileViewerUrl === 'loading' ? (
+                <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                  <span className="text-xs">Loading document preview...</span>
+                </div>
+              ) : fileViewerError ? (
+                <div className="text-center p-6 space-y-3">
+                  <p className="text-sm text-foreground font-medium">Preview cannot be rendered directly in viewer.</p>
+                  <a
+                    href={fileViewerUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-white text-xs font-semibold hover:bg-primary/90 shadow-sm"
+                  >
+                    <ExternalLink className="w-4 h-4" /> Open Document in New Tab
+                  </a>
+                </div>
               ) : fileViewerType === 'image' ? (
-                <img src={fileViewerUrl} alt="Uploaded file" className="max-w-full max-h-[70vh] rounded-lg object-contain" />
+                <img
+                  src={fileViewerUrl}
+                  alt="Uploaded prescription or test report"
+                  className="max-w-full max-h-[70vh] rounded-lg object-contain shadow-sm"
+                  onError={() => setFileViewerError(true)}
+                />
               ) : fileViewerType === 'pdf' ? (
-                <iframe src={fileViewerUrl} className="w-full h-[70vh] rounded-lg border-0" title="PDF Viewer" />
+                <iframe src={fileViewerUrl} className="w-full h-[70vh] rounded-lg border-0 bg-white" title="PDF Viewer" />
               ) : (
-                <a href={fileViewerUrl} target="_blank" rel="noopener noreferrer" className="text-primary underline">Open file in new tab</a>
+                <div className="text-center p-6 space-y-3">
+                  <p className="text-sm text-foreground font-medium">Document ready to view.</p>
+                  <a
+                    href={fileViewerUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-white text-xs font-semibold hover:bg-primary/90 shadow-sm"
+                  >
+                    <ExternalLink className="w-4 h-4" /> Open / Download Document
+                  </a>
+                </div>
               )}
             </div>
           </div>
