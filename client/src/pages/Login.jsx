@@ -53,9 +53,10 @@ export default function Login() {
 
       const g = data.googleUser || {};
       const signupData = {
-        role,
+        role: role || 'patient',
         name: g.name || '',
         email: g.email || '',
+        avatar: g.picture || '',
         isGoogle: true,
       };
       localStorage.setItem('google_signup', JSON.stringify(signupData));
