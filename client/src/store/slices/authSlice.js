@@ -119,16 +119,22 @@ export const registerUser = (body) => async (dispatch) => {
 };
 
 // Async thunk: logout
-export const logoutUser = () => async (dispatch) => {
+export const logoutUser = () => (dispatch) => {
+  // 1. Instantly clear tokens and reset Redux user state to null (0ms instant logout)
   try {
-    await api.logout();
-  } catch {
-    console.warn('Logout request failed, clearing local session');
-  }
-  // Cached refresh token clear kar do taaki next login tak purana token
-  // reuse na ho (cross-origin cookie fallback cache).
-  try { (await import('@/lib/axios')).clearRefreshTokenCache?.(); } catch { /* ignore */ }
+    localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('user');
+  } catch { /* ignore */ }
+
+  try {
+    import('@/lib/axios').then(m => m.clearRefreshTokenCache?.()).catch(() => {});
+  } catch { /* ignore */ }
+
   dispatch(logout());
+
+  // 2. Fire backend logout in background without blocking UI
+  api.logout().catch(() => {});
 };
 
 export default authSlice.reducer;
