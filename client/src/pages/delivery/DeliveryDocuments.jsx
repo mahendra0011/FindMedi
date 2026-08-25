@@ -49,7 +49,7 @@ export default function DeliveryDocuments() {
       <div className="text-center py-20">
         <AlertCircle className="w-16 h-16 mx-auto text-muted-foreground/30 mb-4" />
         <p className="text-muted-foreground">Please complete registration first</p>
-        <Button className="mt-4" onClick={() => window.location.href = '/register/delivery-partner'}>
+        <Button className="mt-4" onClick={() => window.location.hash = '#/register/delivery-partner'}>
           Register Now
         </Button>
       </div>

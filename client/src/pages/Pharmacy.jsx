@@ -777,7 +777,7 @@ showToast('Failed to export billing', 'error');
                     <div className={`w-5 h-5 rounded-full bg-white shadow-sm absolute top-0.5 transition-transform ${storeSettings.autoRetry ? 'translate-x-6' : 'translate-x-0.5'}`} />
                   </button>
                 </div>
-                <Button className="w-full" onClick={() => { window.location.href = '/admin/pharmacy-settings'; }}><Save className="w-4 h-4 mr-1" /> Save Settings</Button>
+                <Button className="w-full" onClick={() => { window.location.hash = '#/admin/pharmacy-settings'; }}><Save className="w-4 h-4 mr-1" /> Save Settings</Button>
               </div>
             </div>
           )}

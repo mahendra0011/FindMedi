@@ -133,7 +133,7 @@ export default function PatientMedicineOrders() {
             {search ? 'Try a different order ID or check your filters.' : 'Order medicines from your preferred pharmacy for doorstep delivery.'}
           </p>
           {!search && (
-            <Button size="sm" className="mt-4 rounded-xl" onClick={() => window.location.href = '/pharmacy'}>
+            <Button size="sm" className="mt-4 rounded-xl" onClick={() => window.location.hash = '#/pharmacy'}>
               <ShoppingCart className="w-3.5 h-3.5 mr-1.5" /> Browse Medicines
             </Button>
           )}
