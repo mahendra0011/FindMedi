@@ -353,16 +353,37 @@ export default function Signup() {
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="text-xs font-semibold text-foreground block">Email Address</label>
-                {isGoogle && <span className="text-[11px] text-muted-foreground">Editable if needed</span>}
+                {isGoogle && (
+                  <button
+                    type="button"
+                    onClick={handleGoogleLogin}
+                    className="text-[11px] text-primary hover:underline font-semibold flex items-center gap-1 transition-colors"
+                  >
+                    <RefreshCw className="w-3 h-3" /> Switch Email
+                  </button>
+                )}
               </div>
-              <Input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="Enter your email"
-                required
-                className="h-10"
-              />
+              <div className="relative">
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={isGoogle ? undefined : (e) => setEmail(e.target.value)}
+                  readOnly={isGoogle}
+                  disabled={isGoogle}
+                  placeholder="Enter your email"
+                  required
+                  className={`h-10 ${
+                    isGoogle
+                      ? 'bg-muted/70 text-foreground/90 font-medium pr-28 cursor-not-allowed border-emerald-500/30 select-none'
+                      : ''
+                  }`}
+                />
+                {isGoogle && (
+                  <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-500/15 px-2 py-0.5 rounded-full pointer-events-none border border-emerald-500/25">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Google Verified
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Phone Number */}
