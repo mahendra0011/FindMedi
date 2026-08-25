@@ -10,10 +10,36 @@ import User from '../models/User.js';
 
 let io = null;
 
+const getAllowedSocketOrigins = () => {
+  const envOrigins = [
+    ...(process.env.CLIENT_URL ? process.env.CLIENT_URL.split(',') : []),
+    ...(process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : []),
+  ];
+  const defaults = [
+    'https://findmedi.online',
+    'https://www.findmedi.online',
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'http://localhost:5001',
+  ];
+  return Array.from(new Set([...envOrigins, ...defaults]))
+    .map(o => o.trim().replace(/\/+$/, ''))
+    .filter(Boolean);
+};
+
 export async function initSocket(server) {
   io = new Server(server, {
     cors: {
-      origin: process.env.CLIENT_URL || 'http://localhost:5173',
+      origin: (origin, callback) => {
+        if (!origin) return callback(null, true);
+        if (process.env.NODE_ENV !== 'production') return callback(null, true);
+        const allowed = getAllowedSocketOrigins();
+        const normalized = origin.trim().replace(/\/+$/, '');
+        if (allowed.includes(normalized) || allowed.some(a => normalized.endsWith(a.replace(/^https?:\/\//, '')))) {
+          return callback(null, true);
+        }
+        return callback(new Error(`Socket.IO CORS blocked for origin ${origin}`));
+      },
       methods: ['GET', 'POST'],
       credentials: true,
     },

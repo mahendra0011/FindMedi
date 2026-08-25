@@ -37,12 +37,26 @@ const apiClient = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
-// ─── Request Interceptor: CSRF token + FormData ────────────────────────────
+// Cross-origin (localhost:5173 → localhost:5001 or findmedi.online → onrender.com)
+// me httpOnly cookies third-party restrictions ki wajah se browser drop kar sakta hai.
+// Isliye accessToken aur refreshToken ko memory + localStorage me cache karte hain
+// aur Authorization header + body fallback se bhejte hain.
+let accessTokenCache = typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null;
+let refreshTokenCache = typeof localStorage !== 'undefined' ? localStorage.getItem('refreshToken') : null;
+
+// ─── Request Interceptor: CSRF token + Authorization Header + FormData ──────
 apiClient.interceptors.request.use(
   (config) => {
     if (config.data instanceof FormData) {
       delete config.headers['Content-Type'];
     }
+
+    // Attach Authorization header if token is available
+    const token = accessTokenCache || (typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null);
+    if (token && !config.headers['Authorization']) {
+      config.headers['Authorization'] = `Bearer ${token}`;
+    }
+
     if (['post', 'put', 'patch', 'delete'].includes(config.method?.toLowerCase())) {
       const csrfToken = getCookie('csrf-token');
       if (csrfToken) {
@@ -57,12 +71,6 @@ apiClient.interceptors.request.use(
 // ─── Auto token refresh (401 → /auth/refresh → retry) ──────────────────────
 let isRefreshing = false;
 let refreshQueue = [];
-
-// Cross-origin (localhost:5173 → localhost:5001) me httpOnly cookie kabhi-kabhi
-// store/send nahi hoti → /auth/refresh 400 "Refresh token is required" → logout.
-// Isliye login/otp/refresh response ka refreshToken yahan memory me cache karte
-// hain aur body me bhejte hain (server req.body?.refreshToken bhi check karta hai).
-let refreshTokenCache = null;
 
 const subscribeRefresh = (resolve, reject) => refreshQueue.push({ resolve, reject });
 const onRefreshed = () => {
@@ -81,9 +89,14 @@ const refreshSession = async () => {
   let lastErr;
   for (let i = 0; i < 3; i++) {
     try {
-      const res = await apiClient.post('/auth/refresh', refreshTokenCache
-        ? { refreshToken: refreshTokenCache }
+      const currentRefresh = refreshTokenCache || (typeof localStorage !== 'undefined' ? localStorage.getItem('refreshToken') : null);
+      const res = await apiClient.post('/auth/refresh', currentRefresh
+        ? { refreshToken: currentRefresh }
         : undefined);
+      if (res.data?.token) {
+        accessTokenCache = res.data.token;
+        try { localStorage.setItem('token', res.data.token); } catch {}
+      }
       return res.status === 200;
     } catch (err) {
       lastErr = err;
@@ -106,16 +119,19 @@ const NO_AUTO_REFRESH_PATHS = [
 const isNoAutoRefresh = (url = '') => NO_AUTO_REFRESH_PATHS.some(p => url.startsWith(p));
 
 // ─── Response Interceptor: Unified error handling + auto-refresh ───────────
-// Capture refreshToken from login/otp/refresh responses so it can be sent in
-// the request body as a fallback when the httpOnly cookie isn't delivered
-// cross-origin (localhost:5173 → localhost:5001).
+// Capture token and refreshToken from auth responses so they are always stored
 apiClient.interceptors.response.use(
   (response) => {
     const url = response.config?.url || '';
     if (url.startsWith('/auth/login') || url.startsWith('/auth/verify-otp') ||
         url.startsWith('/auth/google') || url.startsWith('/auth/refresh')) {
+      if (response.data?.token) {
+        accessTokenCache = response.data.token;
+        try { localStorage.setItem('token', response.data.token); } catch {}
+      }
       if (response.data?.refreshToken) {
         refreshTokenCache = response.data.refreshToken;
+        try { localStorage.setItem('refreshToken', response.data.refreshToken); } catch {}
       }
     }
     return response;
@@ -196,9 +212,14 @@ apiClient.interceptors.response.use(
 
 export default apiClient;
 
-// Logout pe cached refresh token clear kar do taaki stale token reuse na ho.
+// Logout pe cached tokens clear kar do taaki stale token reuse na ho.
 export function clearRefreshTokenCache() {
+  accessTokenCache = null;
   refreshTokenCache = null;
+  try {
+    localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
+  } catch { /* ignore */ }
 }
 
 // ─── Proactive token refresh ───────────────────────────────────────────────

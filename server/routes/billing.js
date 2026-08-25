@@ -40,61 +40,101 @@ async function cleanupStalePending() {
 cleanupStalePending();
 setInterval(cleanupStalePending, 5 * 60 * 1000);
 
-// GET /api/transactions — user's payment history
+// GET /api/billing — bills list with stats summary
 router.get('/', protect, async (req, res, next) => {
   try {
-    const { page, limit, serviceType } = req.query;
-    const filter = { patient_id: req.user._id.toString() };
-    if (serviceType) filter.serviceType = serviceType;
-    const result = await paginatedResults(Payment, filter, { page, limit, sort: { createdAt: -1 } });
+    const { status, search, patientId, patient_id } = req.query;
+    const filter = {};
 
-    // Populate reference data for richer history card display
-    if (result.data?.length) {
-      for (const payment of result.data) {
-        if (!payment.referenceId) continue;
-        try {
-          if (payment.serviceType === 'appointment') {
-            const appt = await Appointment.findById(payment.referenceId)
-              .populate('doctorId', 'name specialization')
-              .lean();
-            if (appt) {
-              payment._doc.reference = {
-                doctorName: appt.doctor || appt.doctorId?.name || '',
-                doctorSpecialization: appt.doctorId?.specialization || '',
-                appointmentDate: appt.date,
-                appointmentTime: appt.time,
-                appointmentType: appt.type,
-              };
-            }
-          } else if (payment.serviceType === 'test') {
-            const booking = await LabBooking.findById(payment.referenceId)
-              .populate('testIds', 'name')
-              .lean();
-            if (booking) {
-              payment._doc.reference = {
-                collectionMode: booking.visitType === 'Home Collection' ? 'Home' : 'Lab Visit',
-                timeSlot: booking.timeSlot || '',
-                tests: booking.tests || [],
-                testDetails: (booking.testIds || []).map(t => t?.name).filter(Boolean),
-              };
-            }
-          } else if (payment.serviceType === 'medicine') {
-            const order = await PharmacyOrder.findById(payment.referenceId)
-              .populate('items.medicineId', 'name')
-              .lean();
-            if (order) {
-              payment._doc.reference = {
-                deliveryMode: order.deliveryMode || 'delivery',
-                items: (order.items || []).map(i => i.medicineName || i.medicineId?.name || ''),
-                itemCount: order.items?.length || 0,
-              };
-            }
-            }
-          } catch (refErr) { /* silently skip reference populate */ }
-        }
-      }
+    if (req.user.role === 'patient') {
+      filter.patientId = req.user._id;
+    } else if (patientId || patient_id) {
+      filter.patientId = patientId || patient_id;
+    } else if (req.user.hospitalId && req.user.role !== 'superadmin') {
+      filter.hospitalId = req.user.hospitalId;
+    } else if (req.user.role === 'doctor' || req.user.role === 'clinic_doctor') {
+      filter.$or = [
+        { doctorId: req.user._id },
+        { doctor: { $regex: req.user.name, $options: 'i' } }
+      ];
+    }
 
-    res.json(result);
+    if (status && status !== 'All') {
+      filter.status = status;
+    }
+
+    if (search) {
+      filter.$or = [
+        { patient: { $regex: search, $options: 'i' } },
+        { doctor: { $regex: search, $options: 'i' } },
+        { service: { $regex: search, $options: 'i' } },
+        { invoiceId: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    const bills = await Billing.find(filter).sort({ createdAt: -1 });
+    const total = bills.reduce((s, b) => s + (b.amount || 0), 0);
+    const paid = bills.reduce((s, b) => s + (b.paid || 0), 0);
+    const balance = total - paid;
+
+    res.json({
+      data: bills,
+      bills,
+      summary: { total, paid, balance },
+      count: bills.length,
+    });
+  } catch (err) { next(err); }
+});
+
+// POST /api/billing — create a new bill
+router.post('/', protect, async (req, res, next) => {
+  try {
+    const invoiceId = req.body.invoiceId || generateInvoiceId();
+    const date = req.body.date || getISTDateString();
+    const bill = await Billing.create({
+      ...req.body,
+      invoiceId,
+      date,
+      hospitalId: req.user.hospitalId || req.body.hospitalId,
+      facilityId: req.user.facilityId || req.body.facilityId,
+    });
+    await auditLog('create_billing', req.user._id, { billId: bill._id, invoiceId, amount: bill.amount });
+    res.status(201).json(bill);
+  } catch (err) { next(err); }
+});
+
+// GET /api/billing/:id
+router.get('/:id', protect, async (req, res, next) => {
+  try {
+    const bill = mongoose.Types.ObjectId.isValid(req.params.id)
+      ? await Billing.findById(req.params.id)
+      : await Billing.findOne({ invoiceId: req.params.id });
+    if (!bill) return res.status(404).json({ message: 'Bill not found' });
+    res.json(bill);
+  } catch (err) { next(err); }
+});
+
+// PUT /api/billing/:id
+router.put('/:id', protect, async (req, res, next) => {
+  try {
+    const bill = mongoose.Types.ObjectId.isValid(req.params.id)
+      ? await Billing.findById(req.params.id)
+      : await Billing.findOne({ invoiceId: req.params.id });
+    if (!bill) return res.status(404).json({ message: 'Bill not found' });
+    Object.assign(bill, req.body);
+    await bill.save();
+    await auditLog('update_billing', req.user._id, { billId: bill._id, changes: req.body });
+    res.json(bill);
+  } catch (err) { next(err); }
+});
+
+// DELETE /api/billing/:id
+router.delete('/:id', protect, async (req, res, next) => {
+  try {
+    const bill = await Billing.findByIdAndDelete(req.params.id);
+    if (!bill) return res.status(404).json({ message: 'Bill not found' });
+    await auditLog('delete_billing', req.user._id, { billId: req.params.id });
+    res.json({ success: true, message: 'Bill deleted' });
   } catch (err) { next(err); }
 });
 

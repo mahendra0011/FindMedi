@@ -211,7 +211,7 @@ app.use((req, res, next) => {
       '/disputes', '/support-tickets', '/leave-requests', '/schedule-change-requests',
       '/categories', '/licenses', '/announcements', '/broadcast', '/platform-coupons',
       '/featured-listings', '/cities', '/platform-content', '/export', '/integrations',
-      '/delivery-partners', '/ai-chat', '/drive', '/health'
+      '/delivery-partners', '/delivery-boy', '/ai-chat', '/drive', '/health'
     ];
     if (knownApiPrefixes.some(p => req.url.startsWith(p))) {
       req.url = `/api${req.url}`;
@@ -359,6 +359,7 @@ app.use('/api/platform-content', platformContentRoutes);
 app.use('/api/export', exportRoutes);
 app.use('/api/integrations', integrationRoutes);
 app.use('/api/delivery-partners', deliveryPartnerRoutes);
+app.use('/api/delivery-boy', deliveryPartnerRoutes);
 app.use('/api/ai-chat', aiChatRoutes);
 app.use('/api/drive', driveRoutes);
 

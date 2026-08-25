@@ -57,22 +57,25 @@ router.get('/auth-url', protect, (req, res, next) => {
 });
 
 router.get('/callback', protect, async (req, res, next) => {
+  const rawClient = process.env.CLIENT_URL || process.env.CORS_ORIGIN || 'https://findmedi.online';
+  const clientUrl = rawClient.split(',')[0].trim().replace(/\/+$/, '');
+
   try {
     const { code, error } = req.query;
     if (error) {
-      return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/upload?drive=error&reason=${encodeURIComponent(error)}`);
+      return res.redirect(`${clientUrl}/#/upload?drive=error&reason=${encodeURIComponent(error)}`);
     }
     if (!code) {
-      return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/upload?drive=error&reason=no_code`);
+      return res.redirect(`${clientUrl}/#/upload?drive=error&reason=no_code`);
     }
 
     const tokens = await exchangeCodeForTokens(code);
     await User.findByIdAndUpdate(req.user.id, { driveTokens: tokens });
 
-    res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/upload?drive=connected`);
+    res.redirect(`${clientUrl}/#/upload?drive=connected`);
   } catch (err) {
     console.error('Drive callback error:', err);
-    res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/upload?drive=error&reason=${encodeURIComponent(err.message)}`);
+    res.redirect(`${clientUrl}/#/upload?drive=error&reason=${encodeURIComponent(err.message)}`);
   }
 });
 

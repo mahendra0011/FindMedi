@@ -7,8 +7,6 @@ import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
-
 function patientRequest(path, opts = {}) {
   return api.dispatch(null, path, opts);
 }
