@@ -172,14 +172,34 @@ apiClient.interceptors.response.use(
           onRefreshed();
           return apiClient(original);
         }
-        throw new Error('Refresh failed');
       } catch (refreshErr) {
         onRefreshFailed(); // release waiting requests so nothing hangs forever
-        // Server ne session ko invalid bataya → hi logout/login redirect karo.
-        // Network error par kabhi logout nahi — backend restart hote waqt session preserve rahega.
+        // If session is truly dead, clear stored tokens
         if (refreshErr.response && (refreshErr.response.status === 401 || refreshErr.response.status === 400 || refreshErr.response.status === 403)) {
-          try { apiClient.post('/auth/logout'); } catch { /* ignore */ }
-          if (!window.location.hash.startsWith('#/login') && !window.location.pathname.startsWith('/login')) {
+          accessTokenCache = null;
+          refreshTokenCache = null;
+          try {
+            localStorage.removeItem('token');
+            localStorage.removeItem('refreshToken');
+          } catch { /* ignore */ }
+
+          // Only redirect if user is actively on a protected / dashboard route.
+          // NEVER kick guest visitors on public routes (home, doctors, hospitals, medicines, signup, etc.) to login.
+          const hash = window.location.hash || '';
+          const isDashboardOrAdmin =
+            hash.startsWith('#/dashboard') ||
+            hash.startsWith('#/admin') ||
+            hash.startsWith('#/superadmin') ||
+            hash.startsWith('#/doctor') ||
+            hash.startsWith('#/patient') ||
+            hash.startsWith('#/clinic-admin') ||
+            hash.startsWith('#/pharmacy-business') ||
+            hash.startsWith('#/lab-business') ||
+            hash.startsWith('#/settings') ||
+            hash.startsWith('#/upload');
+
+          if (isDashboardOrAdmin) {
+            try { apiClient.post('/auth/logout'); } catch { /* ignore */ }
             window.location.hash = '#/login';
           }
         }
