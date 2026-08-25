@@ -15,7 +15,6 @@ import {
   AlertTriangle,
   Download,
   Eye,
-  Cloud,
   ShieldCheck,
   Sparkles,
   LogIn,
@@ -31,7 +30,7 @@ const API_URL = getApiBaseUrl();
 const UPLOAD_TYPES = [
   {
     value: 'image',
-    label: 'Medical image',
+    label: 'Medical Image',
     hint: 'JPG, PNG, WebP',
     icon: Image,
     accent: 'from-sky-500/15 to-cyan-500/10 border-sky-500/30',
@@ -39,7 +38,7 @@ const UPLOAD_TYPES = [
   },
   {
     value: 'xray',
-    label: 'X-ray',
+    label: 'X-Ray / Scan',
     hint: 'Any image format',
     icon: Image,
     accent: 'from-violet-500/15 to-indigo-500/10 border-violet-500/30',
@@ -47,8 +46,8 @@ const UPLOAD_TYPES = [
   },
   {
     value: 'document',
-    label: 'Document',
-    hint: 'PDF or images',
+    label: 'PDF / Document',
+    hint: 'PDF, Word, or Scans',
     icon: FileText,
     accent: 'from-emerald-500/15 to-teal-500/10 border-emerald-500/30',
     ring: 'ring-emerald-500/40',
@@ -72,18 +71,17 @@ export default function FileUpload() {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef(null);
 
-  // Google Drive integration
+  // Google Drive integration state
   const [searchParams, setSearchParams] = useSearchParams();
-  const [driveStatus, setDriveStatus] = useState({ configured: false, connected: false });
+  const [driveStatus, setDriveStatus] = useState({ configured: true, connected: false });
   const [driveLoading, setDriveLoading] = useState(false);
-  const [storageOption, setStorageOption] = useState('cloudinary');
 
   const handleSessionExpired = useCallback(() => {
     logout();
     setUploadResult({
       success: false,
       sessionExpired: true,
-      error: 'Your session expired or the saved token was invalid. Please sign in again.',
+      error: 'Your session expired. Please sign in again.',
     });
   }, [logout]);
 
@@ -91,11 +89,11 @@ export default function FileUpload() {
     try {
       const res = await api.getDriveStatus();
       setDriveStatus({
-        configured: res.configured || false,
-        connected: res.connected || false,
+        configured: res.configured !== false,
+        connected: Boolean(res.connected),
       });
     } catch {
-      setDriveStatus({ configured: false, connected: false });
+      setDriveStatus({ configured: true, connected: false });
     }
   }, []);
 
@@ -103,9 +101,15 @@ export default function FileUpload() {
     setDriveLoading(true);
     try {
       const res = await api.getDriveAuthUrl();
-      window.location.href = res.url;
+      if (res?.url) {
+        window.location.href = res.url;
+      }
     } catch (e) {
       console.error('Drive connect error:', e);
+      setUploadResult({
+        success: false,
+        error: e.message || 'Failed to initiate Google Drive connection.',
+      });
     }
     setDriveLoading(false);
   };
@@ -113,8 +117,8 @@ export default function FileUpload() {
   const disconnectDrive = async () => {
     try {
       await api.disconnectDrive();
-      setDriveStatus({ configured: driveStatus.configured, connected: false });
-      setStorageOption('cloudinary');
+      setDriveStatus(prev => ({ ...prev, connected: false }));
+      setUploadResult(null);
     } catch (e) {
       console.error('Drive disconnect error:', e);
     }
@@ -155,15 +159,16 @@ export default function FileUpload() {
     const driveParam = searchParams.get('drive');
     if (driveParam === 'connected') {
       setDriveStatus({ configured: true, connected: true });
-      setStorageOption('drive');
       setUploadResult({
         success: true,
-        filename: 'Google Drive connected',
+        filename: 'Google Drive connected successfully',
         size: 0,
         format: '',
-        message: 'Your Google Drive is now connected. Files will be saved directly to your Drive.',
+        storedIn: 'drive',
+        message: 'Your Google Drive is connected! Files will now be saved securely in your Drive FindMedi folder.',
       });
       setSearchParams({}, { replace: true });
+      fetchDriveStatus();
     } else if (driveParam === 'error') {
       const reason = searchParams.get('reason') || 'Unknown error';
       setUploadResult({
@@ -172,16 +177,24 @@ export default function FileUpload() {
       });
       setSearchParams({}, { replace: true });
     }
-  }, [searchParams, setSearchParams]);
+  }, [searchParams, setSearchParams, fetchDriveStatus]);
 
   const getAcceptedTypes = () => {
     if (uploadType === 'xray') return 'image/*';
-    if (uploadType === 'document') return '.pdf,.jpg,.jpeg,.png,.gif';
+    if (uploadType === 'document') return '.pdf,.jpg,.jpeg,.png,.gif,.doc,.docx';
     return 'image/jpeg,image/png,image/webp';
   };
 
   const uploadSelectedFile = async (file) => {
     if (!file) return;
+
+    if (!driveStatus.connected) {
+      setUploadResult({
+        success: false,
+        error: 'Please connect your Google Drive first to upload medical files.',
+      });
+      return;
+    }
 
     setLoading(true);
     setUploadResult(null);
@@ -191,13 +204,12 @@ export default function FileUpload() {
     formData.append('uploadType', uploadType);
 
     try {
-      const endpoint = storageOption === 'drive' ? '/drive/upload' : '/upload';
-      const data = await api.dispatch(null, endpoint, { method: 'POST', body: formData });
+      const data = await api.dispatch(null, '/drive/upload', { method: 'POST', body: formData });
 
       if (!data || data.success === false) {
         setUploadResult({
           success: false,
-          error: data?.error || data?.message || 'Upload failed',
+          error: data?.error || data?.message || 'Google Drive upload failed',
         });
         setLoading(false);
         return;
@@ -208,7 +220,7 @@ export default function FileUpload() {
         filename: data.filename || file.name,
         size: data.size || file.size,
         format: data.format || '',
-        storedIn: data.storedIn || (storageOption === 'drive' ? 'drive' : 'cloudinary'),
+        storedIn: 'drive',
       });
 
       fetchUploadedFiles();
@@ -259,6 +271,7 @@ export default function FileUpload() {
   };
 
   const formatFileSize = (bytes) => {
+    if (!bytes) return '—';
     if (bytes < 1024) return bytes + ' B';
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
@@ -303,104 +316,88 @@ export default function FileUpload() {
 
   return (
     <div className="space-y-4 max-w-5xl mx-auto pb-6">
-      {/* Hero */}
-      <div className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-primary/10 via-background to-accent/30 px-5 py-5 sm:px-8 sm:py-6 shadow-sm">
-        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
-        <div className="absolute -left-16 bottom-0 h-48 w-48 rounded-full bg-cyan-500/10 blur-3xl pointer-events-none" />
-         <div className="relative flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      {/* Hero Header */}
+      <div className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-primary/10 via-background to-cyan-500/10 px-5 py-5 sm:px-8 sm:py-6 shadow-sm">
+        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-cyan-500/10 blur-3xl pointer-events-none" />
+        <div className="absolute -left-16 bottom-0 h-48 w-48 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
+        
+        <div className="relative flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <div className="flex flex-wrap items-center gap-1.5 mb-2">
-              <Badge variant="secondary" className="gap-1 font-normal text-[10px]">
-                <Cloud className="w-3 h-3" />
-                Cloudinary
+              <Badge variant="secondary" className="gap-1.5 font-medium text-xs bg-cyan-500/15 text-cyan-600 border border-cyan-500/20">
+                <HardDrive className="w-3.5 h-3.5" />
+                Google Drive Storage
               </Badge>
-              {driveStatus.connected && (
-                <Badge variant="secondary" className="gap-1 font-normal text-[10px]">
-                  <HardDrive className="w-3 h-3 text-cyan-500" />
-                  Google Drive
-                </Badge>
-              )}
               <Badge variant="outline" className="gap-1 font-normal border-primary/30 text-[10px]">
                 <ShieldCheck className="w-3 h-3 text-primary" />
-                Encrypted transfer
+                100% Private & Encrypted
               </Badge>
             </div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
-              Medical file upload
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+              Medical File Upload
             </h1>
             <p className="mt-1 text-sm text-muted-foreground max-w-xl leading-relaxed">
-              Share images, X-rays, and PDFs with your care team. Files are stored securely and
-              linked to your records.
+              Upload your medical prescriptions, lab reports, and X-rays directly into your personal Google Drive for maximum security and ownership.
             </p>
           </div>
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-background/60 backdrop-blur-sm rounded-lg border px-3 py-2 shrink-0">
-            <Sparkles className="w-3.5 h-3.5 text-primary shrink-0" />
-            <span>Up to 25 MB per file</span>
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-background/80 backdrop-blur-sm rounded-lg border px-3 py-2 shrink-0 shadow-xs">
+            <Sparkles className="w-3.5 h-3.5 text-cyan-500 shrink-0" />
+            <span>Direct to your Drive</span>
           </div>
         </div>
 
-        {/* Google Drive connection bar */}
-        {driveStatus.configured && (
-          <div className="mt-3 flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/40">
-            <div className="flex items-center gap-3">
-              <HardDrive className="w-5 h-5 text-cyan-500" />
-              <div>
-                <p className="text-sm font-medium text-foreground">
-                  {driveStatus.connected ? 'Google Drive connected' : 'Connect your Google Drive'}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {driveStatus.connected
-                    ? 'Files will be saved directly to your personal Drive for privacy.'
-                    : 'Save prescriptions & reports directly to your own Google Drive.'}
-                </p>
-              </div>
+        {/* Google Drive Status Bar */}
+        <div className="mt-4 p-4 rounded-xl bg-card border border-border/80 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${driveStatus.connected ? 'bg-emerald-500/15 text-emerald-600' : 'bg-cyan-500/15 text-cyan-600'}`}>
+              <HardDrive className="w-5 h-5" />
             </div>
-            {driveStatus.connected ? (
+            <div>
               <div className="flex items-center gap-2">
-                <Button variant="ghost" size="sm" onClick={disconnectDrive} className="text-xs">
-                  Disconnect
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => setStorageOption('drive')} className="text-xs gap-1">
-                  <HardDrive className="w-3 h-3" /> Use Drive
-                </Button>
+                <p className="text-sm font-semibold text-foreground">
+                  {driveStatus.connected ? 'Google Drive Connected' : 'Google Drive Required'}
+                </p>
+                {driveStatus.connected && (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/15 text-emerald-600">
+                    Active
+                  </span>
+                )}
               </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {driveStatus.connected
+                  ? 'All files will be saved in your private Google Drive folder ("FindMedi").'
+                  : 'Connect your Google Drive account to enable secure medical file uploads.'}
+              </p>
+            </div>
+          </div>
+
+          <div className="w-full sm:w-auto flex items-center gap-2 shrink-0">
+            {driveStatus.connected ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={disconnectDrive}
+                className="text-xs text-muted-foreground hover:text-destructive border-border hover:border-destructive/30 w-full sm:w-auto"
+              >
+                Disconnect Drive
+              </Button>
             ) : (
-              <Button variant="outline" size="sm" onClick={connectDrive} disabled={driveLoading} className="text-xs gap-1">
-                {driveLoading ? <RefreshCw className="w-3 h-3 animate-spin" /> : <ExternalLink className="w-3 h-3" />}
-                Connect Drive
+              <Button
+                size="sm"
+                onClick={connectDrive}
+                disabled={driveLoading}
+                className="text-xs gap-2 bg-cyan-600 hover:bg-cyan-700 text-white shadow-sm w-full sm:w-auto"
+              >
+                {driveLoading ? (
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <HardDrive className="w-3.5 h-3.5" />
+                )}
+                Connect Google Drive
               </Button>
             )}
           </div>
-        )}
-
-        {/* Storage option toggle (only show when Drive is connected) */}
-        {driveStatus.connected && (
-          <div className="mt-3 flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">Storage:</span>
-            <div className="flex gap-1 p-1 bg-muted/50 rounded-lg">
-              <button
-                onClick={() => setStorageOption('cloudinary')}
-                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                  storageOption === 'cloudinary'
-                    ? 'bg-background text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                <Cloud className="w-3 h-3 inline mr-1" /> Cloudinary
-              </button>
-              <button
-                onClick={() => setStorageOption('drive')}
-                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                  storageOption === 'drive'
-                    ? 'bg-background text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                <HardDrive className="w-3 h-3 inline mr-1 text-cyan-500" /> Google Drive
-              </button>
-            </div>
-          </div>
-        )}
+        </div>
       </div>
 
       {uploadResult && (
@@ -425,33 +422,32 @@ export default function FileUpload() {
               <div className="flex-1 space-y-2">
                 <p className="font-semibold text-lg">
                   {uploadResult.success
-                    ? 'Upload complete'
+                    ? 'Uploaded to Google Drive'
                     : uploadResult.sessionExpired
                       ? 'Session needs refresh'
                       : 'Upload failed'}
                 </p>
                 {uploadResult.success ? (
-                   <ul className="text-sm text-muted-foreground space-y-1">
-                     <li>
-                       <span className="text-foreground font-medium">File:</span> {uploadResult.filename}
-                     </li>
-                     <li>
-                       <span className="text-foreground font-medium">Size:</span>{' '}
-                       {formatFileSize(uploadResult.size)}
-                     </li>
-                     {uploadResult.format ? (
-                       <li>
-                         <span className="text-foreground font-medium">Format:</span>{' '}
-                         {String(uploadResult.format).toUpperCase()}
-                       </li>
-                     ) : null}
-                     {uploadResult.storedIn ? (
-                       <li>
-                         <span className="text-foreground font-medium">Stored in:</span>{' '}
-                         {uploadResult.storedIn === 'drive' ? 'Google Drive' : 'Cloudinary'}
-                       </li>
-                     ) : null}
-                   </ul>
+                  <ul className="text-sm text-muted-foreground space-y-1">
+                    <li>
+                      <span className="text-foreground font-medium">File:</span> {uploadResult.filename}
+                    </li>
+                    {uploadResult.size > 0 && (
+                      <li>
+                        <span className="text-foreground font-medium">Size:</span>{' '}
+                        {formatFileSize(uploadResult.size)}
+                      </li>
+                    )}
+                    {uploadResult.format ? (
+                      <li>
+                        <span className="text-foreground font-medium">Format:</span>{' '}
+                        {String(uploadResult.format).toUpperCase()}
+                      </li>
+                    ) : null}
+                    <li>
+                      <span className="text-foreground font-medium">Location:</span> Saved in Google Drive (`FindMedi` folder)
+                    </li>
+                  </ul>
                 ) : (
                   <p className="text-sm text-muted-foreground">{uploadResult.error}</p>
                 )}
@@ -483,101 +479,127 @@ export default function FileUpload() {
             value="myfiles"
             className="rounded-lg data-[state=active]:shadow-sm data-[state=active]:bg-background"
           >
-            My files ({files.length})
+            My Drive Files ({files.length})
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="upload" className="space-y-4 mt-4">
-          <Card className="overflow-hidden border-muted shadow-sm">
-            <CardHeader className="space-y-0.5 pb-1">
-              <CardTitle className="text-lg tracking-tight">
-                What are you uploading?
-              </CardTitle>
-              <CardDescription className="text-xs">Choose a category so we file it correctly in your records.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4 pt-1">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                {UPLOAD_TYPES.map((t) => {
-                  const Icon = t.icon;
-                  const active = uploadType === t.value;
-                  return (
-                    <button
-                      key={t.value}
-                      type="button"
-                      onClick={() => setUploadType(t.value)}
+          {!driveStatus.connected ? (
+            /* Locked State Card */
+            <Card className="border-cyan-500/20 bg-gradient-to-br from-cyan-500/[0.04] to-transparent shadow-sm">
+              <CardContent className="py-12 px-6 text-center max-w-md mx-auto space-y-4">
+                <div className="w-16 h-16 rounded-2xl bg-cyan-500/15 text-cyan-600 flex items-center justify-center mx-auto shadow-xs">
+                  <HardDrive className="w-8 h-8" />
+                </div>
+                <div className="space-y-1.5">
+                  <h3 className="text-lg font-bold text-foreground">Connect Google Drive to Upload</h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    MediCore stores your medical uploads directly in your personal Google Drive. Connect your account in one click to enable uploading.
+                  </p>
+                </div>
+                <Button
+                  onClick={connectDrive}
+                  disabled={driveLoading}
+                  className="gap-2 bg-cyan-600 hover:bg-cyan-700 text-white font-semibold px-6 shadow-md"
+                >
+                  {driveLoading ? (
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <HardDrive className="w-4 h-4" />
+                  )}
+                  Connect Google Drive Now
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            /* Upload form when Drive IS connected */
+            <Card className="overflow-hidden border-muted shadow-sm">
+              <CardHeader className="space-y-0.5 pb-1">
+                <CardTitle className="text-lg tracking-tight">
+                  What are you uploading to Drive?
+                </CardTitle>
+                <CardDescription className="text-xs">Choose a category so we file it correctly in your Drive records.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4 pt-1">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  {UPLOAD_TYPES.map((t) => {
+                    const Icon = t.icon;
+                    const active = uploadType === t.value;
+                    return (
+                      <button
+                        key={t.value}
+                        type="button"
+                        onClick={() => setUploadType(t.value)}
+                        className={`
+                          relative text-left rounded-xl border-2 p-3 transition-all duration-200
+                          bg-gradient-to-br ${t.accent}
+                          ${active ? `ring-2 ${t.ring} border-primary shadow-md scale-[1.01]` : 'border-border/80 hover:border-primary/40 hover:shadow-sm'}
+                        `}
+                      >
+                        {active && (
+                          <span className="absolute top-2 right-2 flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-40" />
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
+                          </span>
+                        )}
+                        <Icon className={`w-6 h-6 mb-2 ${active ? 'text-primary' : 'text-muted-foreground'}`} />
+                        <p className="font-semibold text-sm">{t.label}</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">{t.hint}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept={getAcceptedTypes()}
+                    onChange={handleFileInputChange}
+                    className="hidden"
+                    id="file-upload"
+                    disabled={loading}
+                  />
+                  <label htmlFor="file-upload" className="cursor-pointer block">
+                    <div
+                      onDragEnter={handleDragIn}
+                      onDragLeave={handleDragOut}
+                      onDragOver={handleDragIn}
+                      onDrop={handleDrop}
                       className={`
-                        relative text-left rounded-xl border-2 p-3 transition-all duration-200
-                        bg-gradient-to-br ${t.accent}
-                        ${active ? `ring-2 ${t.ring} border-primary shadow-md scale-[1.01]` : 'border-border/80 hover:border-primary/40 hover:shadow-sm'}
+                        relative rounded-xl border-2 border-dashed px-6 py-8 sm:py-10 text-center transition-all duration-300
+                        ${isDragging ? 'border-primary bg-primary/10 scale-[1.01]' : 'border-primary/25 bg-muted/30 hover:bg-primary/[0.06] hover:border-primary/50'}
+                        ${loading ? 'pointer-events-none opacity-70' : ''}
                       `}
                     >
-                      {active && (
-                        <span className="absolute top-2 right-2 flex h-2 w-2">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-40" />
-                          <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
-                        </span>
+                      {loading && (
+                        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-xl bg-background/70 backdrop-blur-[2px]">
+                          <Loader2 className="w-8 h-8 animate-spin text-cyan-600 mb-1" />
+                          <p className="text-xs font-medium text-foreground">Uploading directly to Google Drive…</p>
+                        </div>
                       )}
-                      <Icon className={`w-6 h-6 mb-2 ${active ? 'text-primary' : 'text-muted-foreground'}`} />
-                      <p className="font-semibold text-sm">{t.label}</p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">{t.hint}</p>
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept={getAcceptedTypes()}
-                  onChange={handleFileInputChange}
-                  className="hidden"
-                  id="file-upload"
-                  disabled={loading}
-                />
-                <label htmlFor="file-upload" className="cursor-pointer block">
-                  <div
-                    onDragEnter={handleDragIn}
-                    onDragLeave={handleDragOut}
-                    onDragOver={handleDragIn}
-                    onDrop={handleDrop}
-                    className={`
-                      relative rounded-xl border-2 border-dashed px-6 py-8 sm:py-10 text-center transition-all duration-300
-                      ${isDragging ? 'border-primary bg-primary/10 scale-[1.01]' : 'border-primary/25 bg-muted/30 hover:bg-primary/[0.06] hover:border-primary/50'}
-                      ${loading ? 'pointer-events-none opacity-70' : ''}
-                    `}
-                  >
-                    {loading && (
-                      <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-xl bg-background/70 backdrop-blur-[2px]">
-                        <Loader2 className="w-8 h-8 animate-spin text-primary mb-1" />
-                        <p className="text-xs font-medium text-foreground">Uploading…</p>
+                      <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-500/15 text-cyan-600 mb-2">
+                        <Upload className="w-6 h-6" />
                       </div>
-                    )}
-                    <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/15 text-primary mb-2">
-                      <Upload className="w-6 h-6" />
+                      <p className="text-base font-semibold tracking-tight text-foreground">
+                        Drop your file here or click to browse
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1 max-w-md mx-auto">
+                        {uploadType === 'xray'
+                          ? 'X-ray and scan images (common formats supported).'
+                          : uploadType === 'document'
+                            ? 'PDFs and scanned documents or photos of documents.'
+                            : 'Clear photos of prescriptions, charts, or medical reports.'}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground/80 mt-3">
+                        Saved into your Google Drive (`FindMedi` folder) · max 25 MB
+                      </p>
                     </div>
-                    <p className="text-base font-semibold tracking-tight">
-                      Drop your file here or click to browse
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1 max-w-md mx-auto">
-                      {uploadType === 'xray'
-                        ? 'X-ray and scan images (common formats supported).'
-                        : uploadType === 'document'
-                          ? 'PDFs and scanned documents or photos of documents.'
-                          : 'Clear photos of prescriptions, charts, or wound care images.'}
-                    </p>
-                    <p className="text-[11px] text-muted-foreground/80 mt-3">
-                      {uploadType === 'image'
-                        ? 'JPG, PNG, WebP · max 25 MB'
-                        : uploadType === 'xray'
-                          ? 'All image formats · max 25 MB'
-                          : 'PDF, JPG, PNG, GIF · max 25 MB'}
-                    </p>
-                  </div>
-                </label>
-              </div>
-            </CardContent>
-          </Card>
+                  </label>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="myfiles" className="mt-4">
@@ -585,17 +607,16 @@ export default function FileUpload() {
             <Card className="border-muted shadow-sm">
               <CardContent className="py-16 text-center">
                 <Loader2 className="w-10 h-10 mx-auto animate-spin text-primary" />
-                <p className="text-muted-foreground mt-4">Loading your files…</p>
+                <p className="text-muted-foreground mt-4">Loading your Drive files…</p>
               </CardContent>
             </Card>
           ) : filteredFiles.all.length === 0 ? (
             <Card className="border-dashed border-2 bg-muted/20">
               <CardContent className="py-16 text-center">
-                <FileText className="w-14 h-14 mx-auto mb-4 text-muted-foreground/60" />
-                <p className="text-lg font-semibold">No files yet</p>
+                <HardDrive className="w-14 h-14 mx-auto mb-4 text-muted-foreground/60" />
+                <p className="text-lg font-semibold">No Google Drive files yet</p>
                 <p className="text-sm text-muted-foreground mt-2 max-w-sm mx-auto">
-                  Upload a document or image on the Upload tab — it will show up here with quick view
-                  and download links.
+                  Connect your Google Drive and upload a document or image — it will be saved in your Drive and show up here.
                 </p>
               </CardContent>
             </Card>
@@ -605,7 +626,7 @@ export default function FileUpload() {
                 {[
                   { label: 'Images & X-rays', count: filteredFiles.images.length, icon: Image, tone: 'text-sky-500' },
                   { label: 'Documents', count: filteredFiles.documents.length, icon: FileText, tone: 'text-emerald-500' },
-                  { label: 'Total', count: files.length, icon: Upload, tone: 'text-primary' },
+                  { label: 'Total Files', count: files.length, icon: HardDrive, tone: 'text-cyan-600' },
                 ].map((s) => (
                   <Card key={s.label} className="shadow-sm border-muted/80 overflow-hidden">
                     <CardContent className="pt-6 flex items-center justify-between gap-3">
@@ -623,7 +644,7 @@ export default function FileUpload() {
                 {filteredFiles.all.map((file, idx) => (
                   <Card
                     key={file._id || idx}
-                    className="group hover:shadow-lg hover:border-primary/20 transition-all duration-200 border-muted/80"
+                    className="group hover:shadow-lg hover:border-cyan-500/30 transition-all duration-200 border-muted/80"
                   >
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between gap-2">
@@ -651,22 +672,13 @@ export default function FileUpload() {
                             </div>
                             <div className="flex justify-between">
                               <span className="text-muted-foreground">Type</span>
-                              <span className="uppercase">{file.data.uploadedFile.format}</span>
+                              <span className="uppercase">{file.data.uploadedFile.format || 'file'}</span>
                             </div>
                             <div className="flex justify-between">
                               <span className="text-muted-foreground">Storage</span>
-                              <span className="flex items-center gap-1">
-                                {file.data.uploadedFile.storedIn === 'drive' ? (
-                                  <>
-                                    <HardDrive className="w-3 h-3 text-cyan-500" />
-                                    Google Drive
-                                  </>
-                                ) : (
-                                  <>
-                                    <Cloud className="w-3 h-3" />
-                                    Cloudinary
-                                  </>
-                                )}
+                              <span className="flex items-center gap-1 text-cyan-600 font-medium">
+                                <HardDrive className="w-3.5 h-3.5" />
+                                Google Drive
                               </span>
                             </div>
                           </>
@@ -674,15 +686,15 @@ export default function FileUpload() {
                       </div>
 
                       <div className="flex gap-2">
-                        <Button size="sm" variant="outline" className="flex-1" asChild>
+                        <Button size="sm" variant="outline" className="flex-1 gap-1.5" asChild>
                           <a href={getFileUrl(file)} target="_blank" rel="noopener noreferrer">
-                            <Eye className="w-3.5 h-3.5 mr-1.5" />
+                            <Eye className="w-3.5 h-3.5" />
                             View
                           </a>
                         </Button>
-                        <Button size="sm" className="flex-1" asChild>
+                        <Button size="sm" className="flex-1 gap-1.5 bg-cyan-600 hover:bg-cyan-700 text-white" asChild>
                           <a href={getFileUrl(file)} download target="_blank" rel="noopener noreferrer">
-                            <Download className="w-3.5 h-3.5 mr-1.5" />
+                            <Download className="w-3.5 h-3.5" />
                             Download
                           </a>
                         </Button>
