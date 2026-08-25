@@ -163,8 +163,8 @@ apiClient.interceptors.response.use(
         // Network error par kabhi logout nahi — backend restart hote waqt session preserve rahega.
         if (refreshErr.response && (refreshErr.response.status === 401 || refreshErr.response.status === 400 || refreshErr.response.status === 403)) {
           try { apiClient.post('/auth/logout'); } catch { /* ignore */ }
-          if (!window.location.pathname.startsWith('/login')) {
-            window.location.href = '/login';
+          if (!window.location.hash.startsWith('#/login') && !window.location.pathname.startsWith('/login')) {
+            window.location.hash = '#/login';
           }
         }
         return Promise.reject(error);
