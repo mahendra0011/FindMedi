@@ -36,8 +36,15 @@ export function AuthProvider({ children }) {
     }));
   };
 
+  const completeGoogleLogin = (userData) => {
+    dispatch(setUser({
+      ...userData,
+      settings: mergeSettings(readStoredSettings(), userData?.settings),
+    }));
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, loading, updateUser, isAuthenticated, completeOtpLogin }}>
+    <AuthContext.Provider value={{ user, login, register, logout, loading, updateUser, isAuthenticated, completeOtpLogin, completeGoogleLogin }}>
       {children}
     </AuthContext.Provider>
   );

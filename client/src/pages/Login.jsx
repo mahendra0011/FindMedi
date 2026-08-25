@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
+import { setAuthTokens } from '@/lib/axios';
 
 const roles = [
   { key: 'superadmin', label: 'SuperAdmin', desc: 'Manage full platform',  icon: Shield,      color: 'text-purple-600',  bg: 'bg-purple-500/10'  },
@@ -20,7 +21,7 @@ const roles = [
 
 export default function Login() {
   const navigate = useNavigate();
-  const { user, login } = useAuth();
+  const { user, login, completeGoogleLogin } = useAuth();
   const [role, setRole] = useState('hospital_admin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -43,11 +44,9 @@ export default function Login() {
     setGoogleLoading(true);
     try {
       const data = await api.googleAuth({ idToken, accessToken, role });
-      if (data.exists && data.token) {
-        if (data.token) {
-          localStorage.setItem('token', data.token);
-          if (data.refreshToken) localStorage.setItem('refreshToken', data.refreshToken);
-        }
+      if (data.exists && data.token && data.user) {
+        setAuthTokens(data.token, data.refreshToken);
+        completeGoogleLogin(data.user);
         navigate('/dashboard');
         return;
       }

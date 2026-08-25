@@ -212,6 +212,15 @@ apiClient.interceptors.response.use(
 
 export default apiClient;
 
+export function setAuthTokens(accessToken, refreshToken) {
+  accessTokenCache = accessToken;
+  refreshTokenCache = refreshToken;
+  try {
+    if (accessToken) localStorage.setItem('token', accessToken);
+    if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
+  } catch { /* ignore */ }
+}
+
 // Logout pe cached tokens clear kar do taaki stale token reuse na ho.
 export function clearRefreshTokenCache() {
   accessTokenCache = null;
