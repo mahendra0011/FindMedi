@@ -51,7 +51,9 @@ const platformRegisterSchema = z.object({
     qualifications: z.string().optional(),
     licenseNumber: z.string().optional(),
     consultationFee: z.number().optional(),
-  })).optional(),
+    appointmentModes: z.array(z.string()).optional(),
+    appointmentFees: z.any().optional(),
+  }).passthrough()).optional(),
   specialist: z.any().optional(),
 });
 
@@ -97,6 +99,12 @@ router.post('/register', validate(platformRegisterSchema), async (req, res) => {
         insuranceAccepted: (facility.insurance || []).map(i => ({ provider: i })),
         amenities: facility.amenities || { parking: false, acWaitingArea: false, wheelchairAccess: false, cardPayment: false, inHousePharmacy: false, drinkingWater: false, wifi: false, homeVisit: false },
         socialLinks: facility.socialLinks || { facebook: '', instagram: '', youtube: '' },
+        appointmentModes: facility.appointmentModes || [],
+        appointmentFees: facility.appointmentFees || {},
+        emergencySupport: Boolean(facility.emergencySupport || facility.emergency24x7),
+        emergency24x7: Boolean(facility.emergencySupport || facility.emergency24x7),
+        refundOnMissedOrCancelled: Boolean(facility.refundPolicy ?? facility.refundOnMissedOrCancelled),
+        ambulanceService: Boolean(facility.ambulanceSupport ?? facility.ambulanceService),
         slug,
         status: 'pending',
       });
@@ -110,10 +118,10 @@ router.post('/register', validate(platformRegisterSchema), async (req, res) => {
         hospitalId: entity._id,
         isVerified: false,
         status: 'inactive',
-      approvalStatus: 'pending',
-       });
-     } else {
-       entity = await Facility.create({
+        approvalStatus: 'pending',
+      });
+    } else {
+      entity = await Facility.create({
         type,
         name: facility.name,
         email: (facility.email || account.email).toLowerCase(),
@@ -133,6 +141,11 @@ router.post('/register', validate(platformRegisterSchema), async (req, res) => {
         socialLinks: facility.socialLinks || {},
         timing: facility.weekSchedule || {},
         workingHours: facility.timing || '',
+        appointmentModes: facility.appointmentModes || [],
+        appointmentFees: facility.appointmentFees || {},
+        emergencySupport: Boolean(facility.emergencySupport),
+        refundOnMissedOrCancelled: Boolean(facility.refundPolicy ?? facility.refundOnMissedOrCancelled),
+        ambulanceService: Boolean(facility.ambulanceSupport ?? facility.ambulanceService),
         slug,
         status: 'pending',
         details: {
@@ -143,6 +156,10 @@ router.post('/register', validate(platformRegisterSchema), async (req, res) => {
           insurance: facility.insurance || [],
           amenities: facility.amenities || {},
           socialLinks: facility.socialLinks || {},
+          appointmentModes: facility.appointmentModes || ['chat', 'video', 'offline'],
+          appointmentFees: facility.appointmentFees || { chat: 300, video: 500, offline: 500 },
+          emergencySupport: Boolean(facility.emergencySupport),
+          refundOnMissedOrCancelled: facility.refundOnMissedOrCancelled !== false,
         },
         nablNumber: facility.nablNumber || '',
         aerbNumber: facility.aerbNumber || '',
@@ -158,7 +175,7 @@ router.post('/register', validate(platformRegisterSchema), async (req, res) => {
         technicianExperience: specialist?.technicianExperience || '',
       });
 
-      await User.create({
+      const clinicUser = await User.create({
         name: account.name,
         email: account.email.toLowerCase(),
         password: hashedPassword,
@@ -168,8 +185,39 @@ router.post('/register', validate(platformRegisterSchema), async (req, res) => {
         facilityType: type,
         isVerified: false,
         status: 'inactive',
-      approvalStatus: 'pending',
+        approvalStatus: 'pending',
       });
+
+      // If Clinic Doctor, also create Doctor profile for discovery & booking
+      if (type === 'clinic') {
+        const chatFee = facility.appointmentFees?.chat || 300;
+        const videoFee = facility.appointmentFees?.video || 500;
+        const offlineFee = facility.appointmentFees?.offline || 500;
+        const homeVisitFee = facility.appointmentFees?.home_visit || 800;
+
+        await Doctor.create({
+          user_id: clinicUser._id,
+          name: account.name,
+          email: account.email.toLowerCase(),
+          phone: account.phone,
+          specialization: facility.specialties?.[0] || 'General Medicine',
+          experience: facility.established ? `${new Date().getFullYear() - Number(facility.established)} years` : '3 years',
+          consultation_fees: offlineFee,
+          chat_fee: chatFee,
+          video_fee: videoFee,
+          offline_fee: offlineFee,
+          home_visit_fee: homeVisitFee,
+          appointmentModes: facility.appointmentModes || ['chat', 'video', 'offline', 'home_visit'],
+          appointmentFees: { chat: chatFee, video: videoFee, offline: offlineFee, home_visit: homeVisitFee },
+          emergencySupport: Boolean(facility.emergencySupport),
+          refundOnMissedOrCancelled: facility.refundOnMissedOrCancelled !== false,
+          emergency_consultation: Boolean(facility.emergencySupport),
+          facilityId: entity._id,
+          facilityType: 'clinic',
+          doctor_type: 'clinic',
+          approved: false,
+        });
+      }
     }
 
     const user = await User.findOne({ email: account.email.toLowerCase() });
@@ -179,6 +227,11 @@ router.post('/register', validate(platformRegisterSchema), async (req, res) => {
         if (!doc.name || !doc.specialization) continue;
         const docEmail = doc.email || `${doc.name.toLowerCase().replace(/\s+/g, '.')}@${slug}.findmedi.app`;
         const tempPassword = Math.random().toString(36).slice(-10);
+        const docChatFee = doc.appointmentFees?.chat || doc.chatFee || 300;
+        const docVideoFee = doc.appointmentFees?.video || doc.videoFee || 500;
+        const docOfflineFee = doc.appointmentFees?.offline || doc.offlineFee || doc.consultationFee || 500;
+        const docHomeVisitFee = doc.appointmentFees?.home_visit || doc.homeVisitFee || 800;
+
         const docUser = await User.create({
           name: doc.name,
           email: docEmail.toLowerCase(),
@@ -190,13 +243,15 @@ router.post('/register', validate(platformRegisterSchema), async (req, res) => {
           experience: doc.experience || '',
           qualification: doc.qualifications || '',
           licenseNumber: doc.licenseNumber || '',
-          consultationFee: doc.consultationFee || 0,
+          consultationFee: docOfflineFee,
           isVerified: true,
           status: 'active',
           approvalStatus: 'approved',
         });
+
         await Doctor.create({
           userId: docUser._id,
+          user_id: docUser._id,
           name: doc.name,
           email: docEmail.toLowerCase(),
           phone: doc.phone || account.phone,
@@ -204,7 +259,15 @@ router.post('/register', validate(platformRegisterSchema), async (req, res) => {
           qualifications: doc.qualifications || '',
           experience: parseInt(doc.experience) || 0,
           licenseNumber: doc.licenseNumber || '',
-          consultationFee: doc.consultationFee || 0,
+          consultation_fees: docOfflineFee,
+          chat_fee: docChatFee,
+          video_fee: docVideoFee,
+          offline_fee: docOfflineFee,
+          home_visit_fee: docHomeVisitFee,
+          appointmentModes: doc.appointmentModes || facility.appointmentModes || ['chat', 'video', 'offline', 'home_visit'],
+          appointmentFees: { chat: docChatFee, video: docVideoFee, offline: docOfflineFee, home_visit: docHomeVisitFee },
+          emergencySupport: doc.emergencySupport !== undefined ? Boolean(doc.emergencySupport) : Boolean(facility.emergencySupport),
+          refundOnMissedOrCancelled: doc.refundOnMissedOrCancelled !== undefined ? Boolean(doc.refundOnMissedOrCancelled) : facility.refundOnMissedOrCancelled !== false,
           ...(type === 'hospital' ? { hospitalId: entity._id } : { facilityId: entity._id, facilityType: type }),
           approved: true,
         });

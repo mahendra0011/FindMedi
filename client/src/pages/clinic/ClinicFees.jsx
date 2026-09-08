@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Save, Stethoscope, Home, CheckCircle, IndianRupee } from 'lucide-react';
+import {
+  Save, Stethoscope, Home, CheckCircle, IndianRupee, MessageSquare, Video,
+  Building2, AlertTriangle, ShieldCheck, RefreshCw, CheckSquare, Square,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 
@@ -12,9 +16,19 @@ export default function ClinicFees() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  const [consultationFee, setConsultationFee] = useState('');
-  const [homeVisitFee, setHomeVisitFee] = useState('');
-  const [emergencyFee, setEmergencyFee] = useState('');
+  // Appointment Modes
+  const [appointmentModes, setAppointmentModes] = useState(['chat', 'video', 'offline']);
+
+  // Mode Fees
+  const [chatFee, setChatFee] = useState('300');
+  const [videoFee, setVideoFee] = useState('500');
+  const [offlineFee, setOfflineFee] = useState('500');
+  const [homeVisitFee, setHomeVisitFee] = useState('1000');
+  const [emergencyFee, setEmergencyFee] = useState('800');
+
+  // Policy Flags
+  const [emergencySupport, setEmergencySupport] = useState(false);
+  const [refundOnMissedOrCancelled, setRefundOnMissedOrCancelled] = useState(true);
 
   useEffect(() => {
     const load = async () => {
@@ -24,96 +38,411 @@ export default function ClinicFees() {
         const myDoc = doctors.find(d => d.email === user?.email) || doctors.find(d => d.name?.includes(user?.name)) || null;
         if (myDoc) {
           setDoctor(myDoc);
-           setConsultationFee(myDoc.consultation_fees || myDoc.fees || '');
-          setHomeVisitFee(myDoc.home_visit_fee || '');
+          
+          // Modes
+          if (Array.isArray(myDoc.appointmentModes) && myDoc.appointmentModes.length > 0) {
+            setAppointmentModes(myDoc.appointmentModes);
+          }
 
-          setEmergencyFee(myDoc.emergency_fee || '');
+          // Fees
+          const fees = myDoc.appointmentFees || {};
+          setChatFee(String(fees.chat ?? myDoc.chat_fee ?? 300));
+          setVideoFee(String(fees.video ?? myDoc.video_fee ?? 500));
+          setOfflineFee(String(fees.offline ?? myDoc.offline_fee ?? myDoc.consultation_fees ?? myDoc.fees ?? 500));
+          setHomeVisitFee(String(myDoc.home_visit_fee ?? 1000));
+          setEmergencyFee(String(myDoc.emergency_fee ?? 800));
+
+          // Flags
+          setEmergencySupport(Boolean(myDoc.emergencySupport || myDoc.emergency_consultation));
+          setRefundOnMissedOrCancelled(myDoc.refundOnMissedOrCancelled !== false);
         }
-      } catch (e) { console.error(e); }
+      } catch (e) {
+        console.error(e);
+      }
       setLoading(false);
     };
     load();
   }, [user?.email, user?.name]);
 
+  const toggleMode = (mode) => {
+    setAppointmentModes(prev => {
+      if (prev.includes(mode)) {
+        if (prev.length === 1) {
+          toast.warning('At least one consultation mode must be enabled');
+          return prev;
+        }
+        return prev.filter(m => m !== mode);
+      } else {
+        return [...prev, mode];
+      }
+    });
+  };
+
   const handleSave = async () => {
     if (!doctor) return;
     setSaving(true);
     try {
-      await api.updateDoctor(doctor._id, {
-         consultation_fees: consultationFee,
-        home_visit_fee: homeVisitFee,
+      const cFee = Number(chatFee) || 0;
+      const vFee = Number(videoFee) || 0;
+      const offFee = Number(offlineFee) || 0;
+      const hvFee = Number(homeVisitFee) || 0;
+      const emFee = Number(emergencyFee) || 0;
 
-        emergency_fee: emergencyFee,
+      await api.updateDoctor(doctor._id, {
+        appointmentModes,
+        appointmentFees: {
+          chat: cFee,
+          video: vFee,
+          offline: offFee,
+          home_visit: hvFee,
+        },
+        chat_fee: cFee,
+        video_fee: vFee,
+        offline_fee: offFee,
+        consultation_fees: offFee,
+        fees: offFee,
+        home_visit_fee: hvFee,
+        emergency_fee: emFee,
+        emergencySupport,
+        emergency_consultation: emergencySupport,
+        refundOnMissedOrCancelled,
       });
+
       setSaved(true);
+      toast.success('Fee & pricing settings updated successfully!');
       setTimeout(() => setSaved(false), 2500);
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+      toast.error(e.message || 'Failed to save fees');
+    }
     setSaving(false);
   };
 
-  if (loading) return <div className="flex justify-center py-12"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>;
-
-  return (
-     <div className="space-y-6 max-w-5xl mx-auto">
-       {/* Header */}
-       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-2">
-       <div>
-         <h1 className="font-heading text-2xl font-bold text-foreground">Fee & Pricing Management</h1>
-         <p className="text-muted-foreground">Set your consultation and service fees</p>
-         {doctor?.name && (
-           <p className="mt-1 text-sm font-medium text-foreground/80">{doctor.name}</p>
-         )}
-       </div>
-         <Button className="gap-2" onClick={handleSave} disabled={saving}>
-           <Save className="w-4 h-4" /> {saving ? 'Saving...' : 'Save Fees'}
-           {saved && <CheckCircle className="w-4 h-4 text-success" />}
-         </Button>
-        </div>
-
-        {/* Summary (moved to top, under header) */}
-        <div className="bg-gradient-to-r from-primary/5 to-primary/10 rounded-2xl border border-primary/20 p-5">
-          <h3 className="font-heading font-semibold text-foreground mb-3">Current Pricing Summary</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
-            <div className="bg-card rounded-xl p-4 text-center border border-border/40">
-              <p className="text-xl font-bold text-primary">₹{consultationFee || '-'}</p>
-              <p className="text-xs text-muted-foreground">Consultation</p>
-            </div>
-            <div className="bg-card rounded-xl p-4 text-center border border-border/40">
-              <p className="text-xl font-bold text-primary">₹{homeVisitFee || '-'}</p>
-              <p className="text-xs text-muted-foreground">Home Visit</p>
-            </div>
-            <div className="bg-card rounded-xl p-4 text-center border border-border/40">
-              <p className="text-xl font-bold text-primary">₹{emergencyFee || '-'}</p>
-              <p className="text-xs text-muted-foreground">Emergency</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Standard Fees */}
-        <div className="bg-card rounded-2xl border border-border/60 p-5 shadow-sm">
-         <h2 className="font-heading text-lg font-semibold text-foreground flex items-center gap-2 mb-4">
-           <IndianRupee className="w-5 h-5 text-primary" /> Standard Consultation Fees
-         </h2>
-         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-           <FeeField label="Clinic Consultation" icon={Stethoscope} value={consultationFee} onChange={setConsultationFee} placeholder="500" />
-           <FeeField label="Home Visit" icon={Home} value={homeVisitFee} onChange={setHomeVisitFee} placeholder="1000" />
-           <FeeField label="Emergency Visit" icon={Stethoscope} value={emergencyFee} onChange={setEmergencyFee} placeholder="800" />
-         </div>
-       </div>
-
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center py-20">
+        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
-function FeeField({ label, icon: Icon, value, onChange, placeholder }) {
   return (
-    <div>
-      <label className="text-sm font-medium text-foreground mb-1.5 block flex items-center gap-2">
-        <Icon className="w-4 h-4 text-muted-foreground" /> {label}
+    <div className="space-y-6 max-w-5xl mx-auto">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-2">
+        <div>
+          <h1 className="font-heading text-2xl font-bold text-foreground flex items-center gap-2.5">
+            <IndianRupee className="w-6 h-6 text-primary" />
+            Fee &amp; Pricing Management
+          </h1>
+          <p className="text-muted-foreground text-sm">
+            Configure online (Chat, Video) &amp; in-person consultation fees, emergency support, and refund policies
+          </p>
+          {doctor?.name && (
+            <p className="mt-1 text-xs font-semibold text-primary/80">
+              Doctor / Facility: {doctor.name} ({doctor.specialization || 'General'})
+            </p>
+          )}
+        </div>
+        <Button className="gap-2 shrink-0 shadow-sm" onClick={handleSave} disabled={saving}>
+          <Save className="w-4 h-4" /> {saving ? 'Saving...' : 'Save All Fees'}
+          {saved && <CheckCircle className="w-4 h-4 text-emerald-300" />}
+        </Button>
+      </div>
+
+      {/* Live Summary Bar */}
+      <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent rounded-2xl border border-primary/20 p-5 shadow-sm">
+        <h3 className="font-heading font-semibold text-foreground text-sm mb-3">Current Active Pricing Overview</h3>
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-sm">
+          <div className="bg-card rounded-xl p-3.5 text-center border border-border/60">
+            <div className="flex items-center justify-center gap-1 text-blue-600 mb-1">
+              <MessageSquare className="w-3.5 h-3.5" />
+              <span className="text-[11px] font-bold">Online Chat</span>
+            </div>
+            <p className="text-xl font-bold text-foreground">₹{chatFee || '0'}</p>
+            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full mt-1 inline-block ${appointmentModes.includes('chat') ? 'bg-emerald-500/10 text-emerald-600' : 'bg-muted text-muted-foreground'}`}>
+              {appointmentModes.includes('chat') ? 'Active' : 'Disabled'}
+            </span>
+          </div>
+
+          <div className="bg-card rounded-xl p-3.5 text-center border border-border/60">
+            <div className="flex items-center justify-center gap-1 text-emerald-600 mb-1">
+              <Video className="w-3.5 h-3.5" />
+              <span className="text-[11px] font-bold">Video Call</span>
+            </div>
+            <p className="text-xl font-bold text-foreground">₹{videoFee || '0'}</p>
+            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full mt-1 inline-block ${appointmentModes.includes('video') ? 'bg-emerald-500/10 text-emerald-600' : 'bg-muted text-muted-foreground'}`}>
+              {appointmentModes.includes('video') ? 'Active' : 'Disabled'}
+            </span>
+          </div>
+
+          <div className="bg-card rounded-xl p-3.5 text-center border border-border/60">
+            <div className="flex items-center justify-center gap-1 text-violet-600 mb-1">
+              <Building2 className="w-3.5 h-3.5" />
+              <span className="text-[11px] font-bold">In-Person / OPD</span>
+            </div>
+            <p className="text-xl font-bold text-foreground">₹{offlineFee || '0'}</p>
+            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full mt-1 inline-block ${appointmentModes.includes('offline') ? 'bg-emerald-500/10 text-emerald-600' : 'bg-muted text-muted-foreground'}`}>
+              {appointmentModes.includes('offline') ? 'Active' : 'Disabled'}
+            </span>
+          </div>
+
+          <div className="bg-card rounded-xl p-3.5 text-center border border-border/60">
+            <div className="flex items-center justify-center gap-1 text-amber-600 mb-1">
+              <Home className="w-3.5 h-3.5" />
+              <span className="text-[11px] font-bold">Home Visit</span>
+            </div>
+            <p className="text-xl font-bold text-foreground">₹{homeVisitFee || '0'}</p>
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full mt-1 inline-block bg-primary/10 text-primary">
+              Standard
+            </span>
+          </div>
+
+          <div className="bg-card rounded-xl p-3.5 text-center border border-border/60">
+            <div className="flex items-center justify-center gap-1 text-destructive mb-1">
+              <AlertTriangle className="w-3.5 h-3.5" />
+              <span className="text-[11px] font-bold">Emergency</span>
+            </div>
+            <p className="text-xl font-bold text-foreground">₹{emergencyFee || '0'}</p>
+            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full mt-1 inline-block ${emergencySupport ? 'bg-destructive/10 text-destructive' : 'bg-muted text-muted-foreground'}`}>
+              {emergencySupport ? 'Supported' : 'No 24x7'}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Section 1: Modes of Appointment Provided */}
+      <div className="bg-card rounded-2xl border border-border/60 p-6 shadow-sm">
+        <div className="mb-4">
+          <h2 className="font-heading text-base font-bold text-foreground flex items-center gap-2">
+            <CheckSquare className="w-5 h-5 text-primary" /> Modes of Appointment You Provide
+          </h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Choose which consultation channels you offer to patients. Patients can book appointments for enabled modes.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+          {/* Chat Mode Card */}
+          <div
+            onClick={() => toggleMode('chat')}
+            className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 select-none ${
+              appointmentModes.includes('chat')
+                ? 'border-blue-500 bg-blue-500/5'
+                : 'border-border/60 hover:border-border'
+            }`}
+          >
+            <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${appointmentModes.includes('chat') ? 'bg-blue-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+              <MessageSquare className="w-4 h-4" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-sm text-foreground">Online Chat</span>
+                <span className={`text-xs font-bold ${appointmentModes.includes('chat') ? 'text-blue-600' : 'text-muted-foreground'}`}>
+                  {appointmentModes.includes('chat') ? 'Enabled' : 'Disabled'}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">Real-time messaging &amp; digital prescriptions</p>
+            </div>
+          </div>
+
+          {/* Video Mode Card */}
+          <div
+            onClick={() => toggleMode('video')}
+            className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 select-none ${
+              appointmentModes.includes('video')
+                ? 'border-emerald-500 bg-emerald-500/5'
+                : 'border-border/60 hover:border-border'
+            }`}
+          >
+            <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${appointmentModes.includes('video') ? 'bg-emerald-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+              <Video className="w-4 h-4" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-sm text-foreground">Video Call</span>
+                <span className={`text-xs font-bold ${appointmentModes.includes('video') ? 'text-emerald-600' : 'text-muted-foreground'}`}>
+                  {appointmentModes.includes('video') ? 'Enabled' : 'Disabled'}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">HD face-to-face virtual consultation</p>
+            </div>
+          </div>
+
+          {/* Offline Mode Card */}
+          <div
+            onClick={() => toggleMode('offline')}
+            className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 select-none ${
+              appointmentModes.includes('offline')
+                ? 'border-violet-500 bg-violet-500/5'
+                : 'border-border/60 hover:border-border'
+            }`}
+          >
+            <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${appointmentModes.includes('offline') ? 'bg-violet-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+              <Building2 className="w-4 h-4" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-sm text-foreground">In-Person / Offline</span>
+                <span className={`text-xs font-bold ${appointmentModes.includes('offline') ? 'text-violet-600' : 'text-muted-foreground'}`}>
+                  {appointmentModes.includes('offline') ? 'Enabled' : 'Disabled'}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">Physical clinic / hospital visit</p>
+            </div>
+          </div>
+
+          {/* Home Visit Mode Card */}
+          <div
+            onClick={() => toggleMode('home_visit')}
+            className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 select-none ${
+              (appointmentModes.includes('home_visit') || appointmentModes.includes('home'))
+                ? 'border-amber-500 bg-amber-500/5'
+                : 'border-border/60 hover:border-border'
+            }`}
+          >
+            <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${(appointmentModes.includes('home_visit') || appointmentModes.includes('home')) ? 'bg-amber-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+              <Home className="w-4 h-4" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-sm text-foreground">Home Visit</span>
+                <span className={`text-xs font-bold ${(appointmentModes.includes('home_visit') || appointmentModes.includes('home')) ? 'text-amber-600' : 'text-muted-foreground'}`}>
+                  {(appointmentModes.includes('home_visit') || appointmentModes.includes('home')) ? 'Enabled' : 'Disabled'}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">Doctor visits patient at home</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Section 2: Online & In-Person Pricing */}
+      <div className="bg-card rounded-2xl border border-border/60 p-6 shadow-sm">
+        <div className="mb-4">
+          <h2 className="font-heading text-base font-bold text-foreground flex items-center gap-2">
+            <IndianRupee className="w-5 h-5 text-primary" /> Mode-Wise Consultation Fees
+          </h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Set individual pricing for each consultation mode. These prices are displayed during booking and checkout.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <FeeField
+            label="Chat Consultation Fee"
+            icon={MessageSquare}
+            color="text-blue-600"
+            value={chatFee}
+            onChange={setChatFee}
+            placeholder="300"
+            disabled={!appointmentModes.includes('chat')}
+          />
+          <FeeField
+            label="Video Call Consultation Fee"
+            icon={Video}
+            color="text-emerald-600"
+            value={videoFee}
+            onChange={setVideoFee}
+            placeholder="500"
+            disabled={!appointmentModes.includes('video')}
+          />
+          <FeeField
+            label="In-Person / OPD Consultation Fee"
+            icon={Building2}
+            color="text-violet-600"
+            value={offlineFee}
+            onChange={setOfflineFee}
+            placeholder="500"
+            disabled={!appointmentModes.includes('offline')}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4 pt-4 border-t border-border/40">
+          <FeeField
+            label="Home Visit Consultation Fee"
+            icon={Home}
+            color="text-amber-600"
+            value={homeVisitFee}
+            onChange={setHomeVisitFee}
+            placeholder="1000"
+          />
+          <FeeField
+            label="Emergency Consultation Fee"
+            icon={AlertTriangle}
+            color="text-destructive"
+            value={emergencyFee}
+            onChange={setEmergencyFee}
+            placeholder="800"
+          />
+        </div>
+      </div>
+
+      {/* Section 3: Emergency Support & Policies */}
+      <div className="bg-card rounded-2xl border border-border/60 p-6 shadow-sm">
+        <h2 className="font-heading text-base font-bold text-foreground flex items-center gap-2 mb-4">
+          <ShieldCheck className="w-5 h-5 text-primary" /> Emergency Support &amp; Refund Policy
+        </h2>
+
+        <div className="space-y-4">
+          {/* Emergency Support Toggle */}
+          <label className="flex items-start gap-3 p-3.5 rounded-xl border border-border/60 hover:bg-muted/30 cursor-pointer transition-colors">
+            <input
+              type="checkbox"
+              checked={emergencySupport}
+              onChange={e => setEmergencySupport(e.target.checked)}
+              className="w-4 h-4 rounded border-border text-primary focus:ring-primary mt-0.5 cursor-pointer"
+            />
+            <div>
+              <span className="font-semibold text-sm text-foreground block">
+                Do you provide emergency support (24x7 / Priority)?
+              </span>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Enables emergency priority booking badges and lists you under urgent care / emergency services.
+              </p>
+            </div>
+          </label>
+
+          {/* Refund Support Toggle */}
+          <label className="flex items-start gap-3 p-3.5 rounded-xl border border-border/60 hover:bg-muted/30 cursor-pointer transition-colors">
+            <input
+              type="checkbox"
+              checked={refundOnMissedOrCancelled}
+              onChange={e => setRefundOnMissedOrCancelled(e.target.checked)}
+              className="w-4 h-4 rounded border-border text-primary focus:ring-primary mt-0.5 cursor-pointer"
+            />
+            <div>
+              <span className="font-semibold text-sm text-foreground block">
+                Do you support full / partial refund when appointment is missed or cancelled by patient?
+              </span>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Displays the 100% Refund Guarantee badge on your clinic profile and streamlines automatic patient refunds.
+              </p>
+            </div>
+          </label>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FeeField({ label, icon: Icon, color = 'text-muted-foreground', value, onChange, placeholder, disabled = false }) {
+  return (
+    <div className={disabled ? 'opacity-50 pointer-events-none' : ''}>
+      <label className="text-xs font-semibold text-foreground mb-1.5 block flex items-center gap-1.5">
+        <Icon className={`w-3.5 h-3.5 ${color}`} /> {label}
       </label>
       <div className="relative">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">Rs</span>
-        <Input type="number" value={value} onChange={e => onChange(e.target.value)} className="pl-10" placeholder={placeholder} min={0} />
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">₹</span>
+        <Input
+          type="number"
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          className="pl-8 text-sm font-semibold h-9"
+          placeholder={placeholder}
+          min={0}
+          disabled={disabled}
+        />
       </div>
     </div>
   );

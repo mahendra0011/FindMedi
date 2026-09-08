@@ -89,13 +89,28 @@ export const updateDoctorSchema = z.object({
   specialization: z.string().trim().min(2).optional(),
   phone: phoneSchema,
   fees: positiveNumber.optional(),
+  consultation_fees: positiveNumber.optional(),
   experience: z.string().optional(),
   qualification: z.string().optional(),
   consultationFee: positiveNumber.optional(),
   available: z.boolean().optional(),
   location: z.string().optional(),
   bio: z.string().optional(),
-});
+  appointmentModes: z.array(z.string()).optional(),
+  appointmentFees: z.object({
+    chat: positiveNumber.optional(),
+    video: positiveNumber.optional(),
+    offline: positiveNumber.optional(),
+    home_visit: positiveNumber.optional(),
+  }).optional(),
+  chat_fee: positiveNumber.optional(),
+  video_fee: positiveNumber.optional(),
+  offline_fee: positiveNumber.optional(),
+  home_visit_fee: positiveNumber.optional(),
+  emergency_fee: positiveNumber.optional(),
+  emergencySupport: z.boolean().optional(),
+  refundOnMissedOrCancelled: z.boolean().optional(),
+}).passthrough();
 
 // ─── Patient Schemas ───────────────────────────────────────────────────────
 export const createPatientSchema = z.object({

@@ -15,6 +15,7 @@ const appointmentSchema = new mongoose.Schema({
   status: { type: String, enum: ['Pending', 'Confirmed', 'Cancelled', 'Completed', 'In Queue', 'Serving', 'Missed'], default: 'Pending' },
   priority: { type: String, enum: ['Normal', 'Urgent', 'Emergency'], default: 'Normal' },
   type: { type: String, enum: ['Consultation', 'Follow-up', 'Check-up', 'Emergency'], default: 'Consultation' },
+  appointmentMode: { type: String, enum: ['chat', 'video', 'offline', 'home_visit', 'home'], default: 'offline' },
   notes: { type: String, default: '' },
   symptoms: { type: String, default: '' },
   preConsultationDetails: {

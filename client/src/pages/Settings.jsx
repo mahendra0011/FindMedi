@@ -19,6 +19,13 @@ import {
   Copy,
   Check,
   QrCode,
+  MessageSquare,
+  Video,
+  AlertTriangle,
+  ShieldCheck,
+  CheckSquare,
+  Building2,
+  Home,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,6 +41,7 @@ import PreferredPharmacySettings from '@/components/PreferredPharmacySettings';
 const roleBadge = {
   admin: 'bg-primary/15 text-primary',
   doctor: 'bg-info/15 text-info',
+  clinic_doctor: 'bg-info/15 text-info',
   patient: 'bg-success/15 text-success',
 };
 
@@ -63,7 +71,13 @@ const buildProfile = (user) => ({
   experience: user?.experience || '',
   qualification: user?.qualification || '',
   licenseNumber: user?.licenseNumber || '',
-  consultationFee: user?.consultationFee || '',
+  consultationFee: user?.consultationFee || user?.fees || 500,
+  chatFee: user?.appointmentFees?.chat ?? user?.chat_fee ?? 300,
+  videoFee: user?.appointmentFees?.video ?? user?.video_fee ?? 500,
+  homeVisitFee: user?.appointmentFees?.home_visit ?? user?.home_visit_fee ?? 800,
+  appointmentModes: user?.appointmentModes || ['chat', 'video', 'offline', 'home_visit'],
+  emergencySupport: Boolean(user?.emergencySupport || user?.emergency_consultation),
+  refundOnMissedOrCancelled: user?.refundOnMissedOrCancelled !== false,
 });
 
 function Field({ label, children, note }) {
@@ -295,7 +309,7 @@ export default function Settings() {
     setProfile(buildProfile(user));
   }, [user]);
 
-// Sync auth user settings into Redux when user changes
+  // Sync auth user settings into Redux when user changes
   useEffect(() => {
     if (authSettings && Object.keys(authSettings).length > 0) {
       dispatch(loadUserSettings(authSettings));
@@ -520,26 +534,166 @@ export default function Settings() {
               </div>
 
               {(user?.role === 'doctor' || user?.role === 'clinic_doctor') && (
-                <div className="bg-card rounded-xl border shadow-sm p-6 mt-5">
-                  <h3 className="font-heading font-semibold text-lg text-card-foreground mb-5 flex items-center gap-2"><Stethoscope className="w-5 h-5 text-primary" /> {tr('settings.professionalInfo')}</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <Field label={tr('settings.specialization')}>
-                      <Input value={profile.specialization} onChange={(event) => updateProfile('specialization', event.target.value)} placeholder="e.g. Cardiology" />
-                    </Field>
-                    <Field label={tr('settings.experience')}>
-                      <Input value={profile.experience} onChange={(event) => updateProfile('experience', event.target.value)} placeholder="e.g. 10 years" />
-                    </Field>
-                    <Field label={tr('settings.qualification')}>
-                      <Input value={profile.qualification} onChange={(event) => updateProfile('qualification', event.target.value)} placeholder="e.g. MBBS, MD" />
-                    </Field>
-                    <Field label={tr('settings.licenseNumber')}>
-                      <Input value={profile.licenseNumber} onChange={(event) => updateProfile('licenseNumber', event.target.value)} placeholder="Medical license number" />
-                    </Field>
-                    <Field label={tr('settings.consultationFee')}>
-                      <Input type="number" value={profile.consultationFee} onChange={(event) => updateProfile('consultationFee', event.target.value)} placeholder="e.g. 500" />
-                    </Field>
+                <div className="bg-card rounded-xl border shadow-sm p-6 mt-5 space-y-6">
+                  <div>
+                    <h3 className="font-heading font-semibold text-lg text-card-foreground mb-4 flex items-center gap-2">
+                      <Stethoscope className="w-5 h-5 text-primary" /> {tr('settings.professionalInfo')}
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <Field label={tr('settings.specialization')}>
+                        <Input value={profile.specialization} onChange={(event) => updateProfile('specialization', event.target.value)} placeholder="e.g. Cardiology" />
+                      </Field>
+                      <Field label={tr('settings.experience')}>
+                        <Input value={profile.experience} onChange={(event) => updateProfile('experience', event.target.value)} placeholder="e.g. 10 years" />
+                      </Field>
+                      <Field label={tr('settings.qualification')}>
+                        <Input value={profile.qualification} onChange={(event) => updateProfile('qualification', event.target.value)} placeholder="e.g. MBBS, MD" />
+                      </Field>
+                      <Field label={tr('settings.licenseNumber')}>
+                        <Input value={profile.licenseNumber} onChange={(event) => updateProfile('licenseNumber', event.target.value)} placeholder="Medical license number" />
+                      </Field>
+                    </div>
                   </div>
-                  <div className="flex justify-end mt-5">
+
+                  <hr className="border-border/60" />
+
+                  {/* Consultation Modes */}
+                  <div>
+                    <h4 className="font-heading font-semibold text-sm text-foreground mb-2 flex items-center gap-1.5">
+                      <CheckSquare className="w-4 h-4 text-primary" /> Modes of Appointment You Provide
+                    </h4>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Select which consultation modes patients can book with you.
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                      {[{ key: 'chat', label: 'Online Chat', Icon: MessageSquare, color: 'text-blue-600', border: 'border-blue-500' },
+                        { key: 'video', label: 'Video Call', Icon: Video, color: 'text-emerald-600', border: 'border-emerald-500' },
+                        { key: 'offline', label: 'In-Person / OPD', Icon: Building2, color: 'text-violet-600', border: 'border-violet-500' },
+                        { key: 'home_visit', label: 'Home Visit', Icon: Home, color: 'text-amber-600', border: 'border-amber-500' }
+                      ].map(({ key, label, Icon, color, border }) => {
+                        const active = (profile.appointmentModes || []).includes(key);
+                        return (
+                          <div
+                            key={key}
+                            onClick={() => {
+                              const current = profile.appointmentModes || [];
+                              if (active) {
+                                if (current.length === 1) {
+                                  toast.warning('At least one mode must remain active');
+                                  return;
+                                }
+                                updateProfile('appointmentModes', current.filter(m => m !== key));
+                              } else {
+                                updateProfile('appointmentModes', [...current, key]);
+                              }
+                            }}
+                            className={`p-3 rounded-xl border-2 cursor-pointer transition-all flex items-center justify-between select-none ${
+                              active ? `${border} bg-primary/5` : 'border-border/60 hover:border-border'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <Icon className={`w-4 h-4 ${color}`} />
+                              <span className="text-xs font-semibold text-foreground">{label}</span>
+                            </div>
+                            <input type="checkbox" checked={active} readOnly className="rounded text-primary pointer-events-none" />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <hr className="border-border/60" />
+
+                  {/* Mode-wise Fees */}
+                  <div>
+                    <h4 className="font-heading font-semibold text-sm text-foreground mb-3">
+                      Consultation Fees by Mode
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <Field label="Chat Consultation Fee (₹)">
+                        <Input
+                          type="number"
+                          value={profile.chatFee}
+                          onChange={(e) => updateProfile('chatFee', e.target.value)}
+                          placeholder="300"
+                          min={0}
+                        />
+                      </Field>
+                      <Field label="Video Call Consultation Fee (₹)">
+                        <Input
+                          type="number"
+                          value={profile.videoFee}
+                          onChange={(e) => updateProfile('videoFee', e.target.value)}
+                          placeholder="500"
+                          min={0}
+                        />
+                      </Field>
+                      <Field label="In-Person Consultation Fee (₹)">
+                        <Input
+                          type="number"
+                          value={profile.consultationFee}
+                          onChange={(e) => updateProfile('consultationFee', e.target.value)}
+                          placeholder="500"
+                          min={0}
+                        />
+                      </Field>
+                      <Field label="Home Visit Consultation Fee (₹)">
+                        <Input
+                          type="number"
+                          value={profile.homeVisitFee}
+                          onChange={(e) => updateProfile('homeVisitFee', e.target.value)}
+                          placeholder="800"
+                          min={0}
+                        />
+                      </Field>
+                    </div>
+                  </div>
+
+                  <hr className="border-border/60" />
+
+                  {/* Policies & Support */}
+                  <div>
+                    <h4 className="font-heading font-semibold text-sm text-foreground mb-3 flex items-center gap-1.5">
+                      <ShieldCheck className="w-4 h-4 text-primary" /> Emergency Support &amp; Refund Policy
+                    </h4>
+                    <div className="space-y-3">
+                      <label className="flex items-start gap-3 p-3 rounded-xl border border-border/60 hover:bg-muted/30 cursor-pointer transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={profile.emergencySupport}
+                          onChange={(e) => updateProfile('emergencySupport', e.target.checked)}
+                          className="w-4 h-4 rounded border-border text-primary mt-0.5 cursor-pointer"
+                        />
+                        <div>
+                          <span className="font-semibold text-xs text-foreground block">
+                            Are you provide emergency support (24x7 / Priority)?
+                          </span>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">
+                            Allows emergency bookings and lists your profile under urgent care.
+                          </p>
+                        </div>
+                      </label>
+
+                      <label className="flex items-start gap-3 p-3 rounded-xl border border-border/60 hover:bg-muted/30 cursor-pointer transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={profile.refundOnMissedOrCancelled}
+                          onChange={(e) => updateProfile('refundOnMissedOrCancelled', e.target.checked)}
+                          className="w-4 h-4 rounded border-border text-primary mt-0.5 cursor-pointer"
+                        />
+                        <div>
+                          <span className="font-semibold text-xs text-foreground block">
+                            Are you support refund when appointment is missed and cancelled by patient?
+                          </span>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">
+                            Displays 100% Refund Guarantee badge on your appointments.
+                          </p>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end mt-5 pt-3 border-t">
                     <Button onClick={saveAccount} disabled={saveMut.isPending} className="gap-2">
                       <Save className="w-4 h-4" />
                       {saveMut.isPending ? tr('common.saving') : tr('settings.saveProfile')}
@@ -666,4 +820,3 @@ export default function Settings() {
     </div>
   );
 }
-

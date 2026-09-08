@@ -1,29 +1,72 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { MessageCircle, Send, Sparkles, Bot, User, Loader2, Camera, ImagePlus, History, Plus, MoreVertical, Trash2, X, Stethoscope, Edit2, Check, Search } from 'lucide-react';
+import { 
+  MessageCircle, Send, Sparkles, Bot, User, Loader2, Camera, ImagePlus, 
+  History, Plus, MoreVertical, Trash2, X, Stethoscope, Edit2, Check, Search,
+  Menu, Settings, Mic, Paperclip, Globe, Brain, Pin, Archive, Share, Copy, 
+  ThumbsUp, ThumbsDown, RotateCcw, StopCircle, UploadCloud, Moon, Sun, Monitor,
+  Volume2, MicOff, Languages, Type
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { api } from '@/lib/api';
 import TypewriterText from '@/components/TypewriterText';
 import { toast } from 'sonner';
 
 export default function AIChatPage() {
+  // State
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
+  const [selectedFile, setSelectedFile] = useState(null);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [chatSessions, setChatSessions] = useState([]);
   const [currentSessionId, setCurrentSessionId] = useState(null);
+  
+  // Toggles & Settings
+  const [webSearchEnabled, setWebSearchEnabled] = useState(false);
+  const [memoryEnabled, setMemoryEnabled] = useState(true);
+  const [selectedModel, setSelectedModel] = useState('gpt-4');
+  const [isRecording, setIsRecording] = useState(false);
+  
+  // Dialogs
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  // Edit / Chat Management State
   const [editingSessionId, setEditingSessionId] = useState(null);
   const [editTitle, setEditTitle] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
+
+  // Refs
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
+  const documentInputRef = useRef(null);
   const cameraInputRef = useRef(null);
   const videoRef = useRef(null);
   const streamRef = useRef(null);
+  const textareaRef = useRef(null);
+
+  // Settings State
+  const [settings, setSettings] = useState({
+    theme: 'system',
+    language: 'en',
+    fontSize: 'medium',
+    enterToSend: true,
+    chatHistory: true,
+    memory: true,
+    notifications: true,
+    voice: 'default',
+    mic: 'default',
+    speaker: 'default',
+    voiceSpeed: 1
+  });
 
   useEffect(() => {
     return () => {
@@ -48,6 +91,15 @@ export default function AIChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Auto-resize textarea
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 200) + 'px';
+    }
+  }, [input]);
+
+  // Camera Functions
   const startCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
@@ -59,7 +111,6 @@ export default function AIChatPage() {
         }
       }, 100);
     } catch (err) {
-      console.error("Error accessing camera:", err);
       toast.error("Camera access denied or unavailable.");
       cameraInputRef.current?.click();
     }
@@ -86,6 +137,7 @@ export default function AIChatPage() {
     }
   };
 
+  // File Handlers
   const handleImageSelect = (e) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -95,26 +147,118 @@ export default function AIChatPage() {
     }
   };
 
+  const handleDocumentSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+    }
+  };
+
+  // Drag and Drop
+  const handleDrag = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const file = e.dataTransfer.files[0];
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onloadend = () => setSelectedImage(reader.result);
+        reader.readAsDataURL(file);
+      } else {
+        setSelectedFile(file);
+      }
+    }
+  };
+
+  // Paste handler
+  const handlePaste = (e) => {
+    if (e.clipboardData.files.length > 0) {
+      const file = e.clipboardData.files[0];
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onloadend = () => setSelectedImage(reader.result);
+        reader.readAsDataURL(file);
+      } else {
+        setSelectedFile(file);
+      }
+    }
+  };
+
+  // Chat Actions
   const startNewChat = () => {
     setCurrentSessionId(null);
     setMessages([]);
   };
 
+  const clearAllChats = () => {
+    setChatSessions([]);
+    localStorage.removeItem('medicore_ai_history');
+    startNewChat();
+    toast.success('All chats cleared');
+    setSettingsOpen(false);
+  };
+
+  const togglePin = (e, id) => {
+    e.stopPropagation();
+    const updated = chatSessions.map(s => s.id === id ? { ...s, pinned: !s.pinned } : s);
+    setChatSessions(updated);
+    localStorage.setItem('medicore_ai_history', JSON.stringify(updated));
+  };
+
+  const toggleArchive = (e, id) => {
+    e.stopPropagation();
+    const updated = chatSessions.map(s => s.id === id ? { ...s, archived: !s.archived } : s);
+    setChatSessions(updated);
+    localStorage.setItem('medicore_ai_history', JSON.stringify(updated));
+    if (currentSessionId === id) startNewChat();
+  };
+
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text);
+    toast.success('Copied to clipboard');
+  };
+
+  // Messaging
   const sendMessage = async () => {
-    if ((!input.trim() && !selectedImage) || loading) return;
-    const userMsg = { role: 'user', content: input.trim(), image: selectedImage };
+    if ((!input.trim() && !selectedImage && !selectedFile) || loading) return;
+    
+    let content = input.trim();
+    if (selectedFile) content += `\n[Attached File: ${selectedFile.name}]`;
+
+    const userMsg = { role: 'user', content, image: selectedImage, id: Date.now() };
     
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
     setInput('');
     setSelectedImage(null);
+    setSelectedFile(null);
     setLoading(true);
 
     try {
-      const history = messages.map((m) => ({ role: m.role, content: m.content, image: m.image }));
-      const res = await api.post('/ai-chat', { message: userMsg.content, image: userMsg.image, history });
+      // In a real app, this hits the backend with model, webSearchEnabled, memoryEnabled, etc.
+      const history = messages.map((m) => ({ role: m.role, content: m.content }));
       
-      const assistantMsg = { role: 'assistant', content: res.reply, suggestions: res.suggestions, isTyping: true };
+      // Simulating API call for now to demonstrate UI
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      const assistantMsg = { 
+        role: 'assistant', 
+        id: Date.now() + 1,
+        content: `This is a simulated response using the ${selectedModel} model.\nWeb Search: ${webSearchEnabled ? 'On' : 'Off'}\nMemory: ${memoryEnabled ? 'On' : 'Off'}`, 
+        isTyping: true 
+      };
+
       const finalMessages = [...newMessages, assistantMsg];
       setMessages(finalMessages);
 
@@ -126,8 +270,10 @@ export default function AIChatPage() {
         setCurrentSessionId(session_id);
         newSessions.unshift({
           id: session_id,
-          title: userMsg.content.substring(0, 40) || 'Image Analysis',
+          title: content.substring(0, 40) || 'New Chat',
           date: new Date().toISOString(),
+          pinned: false,
+          archived: false,
           messages: finalMessages
         });
       } else {
@@ -136,306 +282,519 @@ export default function AIChatPage() {
           newSessions[sessionIndex].messages = finalMessages;
           newSessions[sessionIndex].date = new Date().toISOString();
           const [session] = newSessions.splice(sessionIndex, 1);
-          newSessions.unshift(session);
+          newSessions.unshift(session); // Move to top
         }
       }
       setChatSessions(newSessions);
       localStorage.setItem('medicore_ai_history', JSON.stringify(newSessions));
 
     } catch {
-      setMessages((prev) => [...prev, { role: 'assistant', content: 'Sorry, I encountered an error. Please try again.' }]);
+      setMessages((prev) => [...prev, { role: 'assistant', id: Date.now(), content: 'Sorry, I encountered an error. Please try again.' }]);
     }
     setLoading(false);
   };
 
-  return (
-    <div className="flex flex-col h-[calc(100dvh-4rem)] md:h-screen w-full bg-card relative overflow-hidden">
-      {/* Header */}
-      <div className="h-14 border-b bg-background flex items-center justify-between px-4 shrink-0 z-10 shadow-sm relative">
-        <div className="flex items-center gap-2 relative"
-          onMouseEnter={() => setIsHistoryOpen(true)}
-          onMouseLeave={() => setIsHistoryOpen(false)}
-        >
-          <Button 
-            variant="outline" 
-            className="flex items-center gap-2 font-semibold hover:bg-muted"
-            onClick={() => setIsHistoryOpen(!isHistoryOpen)}
-          >
-            <History className="w-4 h-4 text-primary" />
-            Chat History
-          </Button>
+  // Settings Component
+  const SettingsModal = () => (
+    <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-bold flex items-center gap-2">
+            <Settings className="w-6 h-6" /> AI Settings
+          </DialogTitle>
+        </DialogHeader>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 py-4">
           
-          {/* History Popover */}
-          {isHistoryOpen && (
-            <>
-              <div className="fixed inset-0 z-40 bg-black/5" onClick={() => setIsHistoryOpen(false)} />
-              <div className="absolute top-full left-0 pt-2 w-80">
-              <div className="bg-background border rounded-xl shadow-xl overflow-hidden z-50 flex flex-col max-h-[60vh] animate-in fade-in slide-in-from-top-2">
-                <div className="p-3 border-b flex items-center gap-2 bg-muted/30">
-                  <div className="relative flex-1">
-                    <Search className="w-4 h-4 absolute left-2.5 top-2.5 text-muted-foreground" />
-                    <input 
-                      type="text" 
-                      placeholder="Search history..." 
-                      className="w-full bg-background border rounded-lg pl-9 pr-3 py-1.5 text-sm outline-none focus:border-primary/50"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                  </div>
-                  <Button size="icon" variant="ghost" onClick={() => { startNewChat(); setIsHistoryOpen(false); }} className="h-8 w-8 shrink-0 rounded-full bg-primary/10 hover:bg-primary/20 text-primary">
-                    <Plus className="w-4 h-4" />
-                  </Button>
-                </div>
-                
-                <div className="flex-1 overflow-y-auto p-2 space-y-1">
-                  {chatSessions.filter(s => s.title.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground text-sm">
-                      <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-20" />
-                      <p>No chats found</p>
-                    </div>
-                  ) : (
-                    chatSessions.filter(s => s.title.toLowerCase().includes(searchQuery.toLowerCase())).map(session => (
-                      <div 
-                        key={session.id} 
-                        onClick={() => {
-                          setCurrentSessionId(session.id);
-                          setMessages(session.messages);
-                          setIsHistoryOpen(false);
-                        }}
-                        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors group ${currentSessionId === session.id ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-muted text-foreground'}`}
-                      >
-                        <MessageCircle className={`w-4 h-4 shrink-0 ${currentSessionId === session.id ? 'text-primary' : 'text-muted-foreground'}`} />
-                        {editingSessionId === session.id ? (
-                          <div className="flex-1 flex items-center gap-1" onClick={e => e.stopPropagation()}>
-                            <input 
-                              autoFocus
-                              className="flex-1 bg-background text-sm rounded px-1.5 py-0.5 border border-primary/50 outline-none w-full"
-                              value={editTitle}
-                              onChange={e => setEditTitle(e.target.value)}
-                              onKeyDown={e => {
-                                if (e.key === 'Enter') {
-                                  const updated = chatSessions.map(s => s.id === session.id ? { ...s, title: editTitle || 'Untitled Chat' } : s);
-                                  setChatSessions(updated);
-                                  localStorage.setItem('medicore_ai_history', JSON.stringify(updated));
-                                  setEditingSessionId(null);
-                                } else if (e.key === 'Escape') {
-                                  setEditingSessionId(null);
-                                }
-                              }}
-                            />
-                            <Button size="icon" variant="ghost" className="h-6 w-6 text-green-500 hover:bg-green-100 hover:text-green-600 rounded-full" onClick={(e) => {
-                              e.stopPropagation();
-                              const updated = chatSessions.map(s => s.id === session.id ? { ...s, title: editTitle || 'Untitled Chat' } : s);
-                              setChatSessions(updated);
-                              localStorage.setItem('medicore_ai_history', JSON.stringify(updated));
-                              setEditingSessionId(null);
-                            }}>
-                              <Check className="w-3.5 h-3.5" />
-                            </Button>
-                          </div>
-                        ) : (
-                          <>
-                            <p className="text-sm truncate flex-1">{session.title}</p>
-                            <div className="flex items-center opacity-0 group-hover:opacity-100 -mr-1">
-                              <Button size="icon" variant="ghost" className="h-6 w-6 rounded-full" onClick={(e) => {
-                                e.stopPropagation();
-                                setEditTitle(session.title);
-                                setEditingSessionId(session.id);
-                              }}>
-                                <Edit2 className="w-3.5 h-3.5 text-muted-foreground" />
-                              </Button>
-                              <Button size="icon" variant="ghost" className="h-6 w-6 rounded-full" onClick={(e) => {
-                                e.stopPropagation();
-                                const updated = chatSessions.filter(s => s.id !== session.id);
-                                setChatSessions(updated);
-                                localStorage.setItem('medicore_ai_history', JSON.stringify(updated));
-                                if (currentSessionId === session.id) {
-                                  setCurrentSessionId(null);
-                                  setMessages([]);
-                                }
-                              }}>
-                                <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                              </Button>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    ))
-                  )}
-                </div>
+          {/* Basic Settings */}
+          <div className="space-y-6">
+            <h3 className="font-semibold text-lg border-b pb-2">Basic Settings</h3>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Theme</label>
+              <Select value={settings.theme} onValueChange={(v) => setSettings({...settings, theme: v})}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="light"><div className="flex items-center gap-2"><Sun className="w-4 h-4"/> Light</div></SelectItem>
+                  <SelectItem value="dark"><div className="flex items-center gap-2"><Moon className="w-4 h-4"/> Dark</div></SelectItem>
+                  <SelectItem value="system"><div className="flex items-center gap-2"><Monitor className="w-4 h-4"/> System</div></SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Language</label>
+              <Select value={settings.language} onValueChange={(v) => setSettings({...settings, language: v})}>
+                <SelectTrigger><div className="flex items-center gap-2"><Languages className="w-4 h-4"/> <SelectValue /></div></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="en">English</SelectItem>
+                  <SelectItem value="es">Español</SelectItem>
+                  <SelectItem value="hi">Hindi</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Font Size</label>
+              <Select value={settings.fontSize} onValueChange={(v) => setSettings({...settings, fontSize: v})}>
+                <SelectTrigger><div className="flex items-center gap-2"><Type className="w-4 h-4"/> <SelectValue /></div></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="small">Small</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="large">Large</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">Enter to Send</p>
+                <p className="text-xs text-muted-foreground">Press enter to send message</p>
               </div>
+              <Switch checked={settings.enterToSend} onCheckedChange={(v) => setSettings({...settings, enterToSend: v})} />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">Chat History</p>
+                <p className="text-xs text-muted-foreground">Save chats locally</p>
               </div>
-            </>
-          )}
+              <Switch checked={settings.chatHistory} onCheckedChange={(v) => setSettings({...settings, chatHistory: v})} />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">Memory</p>
+                <p className="text-xs text-muted-foreground">AI remembers across chats</p>
+              </div>
+              <Switch checked={settings.memory} onCheckedChange={(v) => setSettings({...settings, memory: v})} />
+            </div>
+            
+            <div className="pt-4 border-t">
+              <Button variant="destructive" className="w-full" onClick={clearAllChats}>
+                <Trash2 className="w-4 h-4 mr-2" /> Clear All Chats
+              </Button>
+            </div>
+          </div>
+
+          {/* Voice Settings */}
+          <div className="space-y-6">
+            <h3 className="font-semibold text-lg border-b pb-2">Voice Settings</h3>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Voice Select</label>
+              <Select value={settings.voice} onValueChange={(v) => setSettings({...settings, voice: v})}>
+                <SelectTrigger><div className="flex items-center gap-2"><Volume2 className="w-4 h-4"/> <SelectValue /></div></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="default">Default System Voice</SelectItem>
+                  <SelectItem value="nova">Nova (Female)</SelectItem>
+                  <SelectItem value="echo">Echo (Male)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Microphone</label>
+              <Select value={settings.mic} onValueChange={(v) => setSettings({...settings, mic: v})}>
+                <SelectTrigger><div className="flex items-center gap-2"><Mic className="w-4 h-4"/> <SelectValue /></div></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="default">Default Microphone</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Voice Speed: {settings.voiceSpeed}x</label>
+              <input 
+                type="range" 
+                min="0.5" max="2" step="0.1" 
+                value={settings.voiceSpeed}
+                onChange={(e) => setSettings({...settings, voiceSpeed: parseFloat(e.target.value)})}
+                className="w-full"
+              />
+            </div>
+          </div>
+
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex flex-col items-end">
-            <span className="text-sm font-bold text-foreground">FindMedi AI</span>
-            <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Advanced Health Assistant</span>
+      </DialogContent>
+    </Dialog>
+  );
+
+  return (
+    <div className={`flex h-[calc(100dvh-4rem)] md:h-screen w-full bg-background relative overflow-hidden text-${settings.fontSize}`}>
+      
+      {/* Sidebar */}
+      <div className={`shrink-0 border-r bg-card transition-all duration-300 flex flex-col ${isSidebarOpen ? 'w-64 translate-x-0' : 'w-0 -translate-x-full absolute md:relative overflow-hidden border-none'}`}>
+        <div className="p-3 border-b flex items-center justify-between">
+          <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(false)} className="md:hidden">
+            <X className="w-5 h-5" />
+          </Button>
+          <Button onClick={startNewChat} className="flex-1 ml-2 bg-primary/10 text-primary hover:bg-primary/20 shadow-none">
+            <Plus className="w-4 h-4 mr-2" /> New Chat
+          </Button>
+        </div>
+        
+        <div className="p-3">
+          <div className="relative">
+            <Search className="w-4 h-4 absolute left-2.5 top-2.5 text-muted-foreground" />
+            <input 
+              type="text" 
+              placeholder="Search chats..." 
+              className="w-full bg-background border rounded-lg pl-9 pr-3 py-1.5 text-sm outline-none focus:border-primary"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
-          <div className="w-14 h-14 flex items-center justify-center p-1.5">
-            <img src="/chatbot-icon.png" alt="Bot" className="w-full h-full object-contain" />
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-2 space-y-1 pb-4">
+          {/* Pinned Section */}
+          {chatSessions.filter(s => s.pinned && !s.archived && s.title.toLowerCase().includes(searchQuery.toLowerCase())).length > 0 && (
+            <div className="mb-4">
+              <p className="px-2 text-xs font-semibold text-muted-foreground uppercase mb-1">Pinned</p>
+              {chatSessions.filter(s => s.pinned && !s.archived && s.title.toLowerCase().includes(searchQuery.toLowerCase())).map(session => (
+                <ChatItem key={session.id} session={session} />
+              ))}
+            </div>
+          )}
+
+          {/* Recent Section */}
+          <div className="mb-4">
+            <p className="px-2 text-xs font-semibold text-muted-foreground uppercase mb-1">Recent</p>
+            {chatSessions.filter(s => !s.pinned && !s.archived && s.title.toLowerCase().includes(searchQuery.toLowerCase())).map(session => (
+              <ChatItem key={session.id} session={session} />
+            ))}
           </div>
+        </div>
+
+        <div className="p-3 border-t">
+          <Button variant="ghost" className="w-full justify-start gap-3" onClick={() => setSettingsOpen(true)}>
+            <Settings className="w-4 h-4" /> Settings
+          </Button>
         </div>
       </div>
-      
-      <div className="flex-1 flex flex-col relative bg-card">
 
-        
-
-        {/* Camera Overlay */}
-        {isCameraOpen && (
-          <div className="absolute inset-0 z-50 bg-black flex flex-col items-center justify-center">
-            <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
-            <div className="absolute bottom-10 flex gap-8 items-center">
-              <Button onClick={stopCamera} size="icon" variant="outline" className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 border-white/20 text-white backdrop-blur-md">
-                <X className="w-6 h-6" />
-              </Button>
-              <button onClick={capturePhoto} className="w-20 h-20 bg-white rounded-full border-4 border-gray-300 shadow-xl flex shrink-0 hover:scale-105 transition-transform"></button>
+      {/* Main Chat Area */}
+      <div 
+        className="flex-1 flex flex-col relative bg-background"
+        onDragEnter={handleDrag}
+        onDragOver={handleDrag}
+        onDragLeave={handleDrag}
+        onDrop={handleDrop}
+      >
+        {/* Drag Overlay */}
+        {dragActive && (
+          <div className="absolute inset-0 z-50 bg-primary/10 border-4 border-dashed border-primary flex items-center justify-center backdrop-blur-sm rounded-xl m-4">
+            <div className="text-center p-8 bg-card rounded-2xl shadow-xl">
+              <UploadCloud className="w-16 h-16 text-primary mx-auto mb-4" />
+              <h3 className="text-2xl font-bold">Drop files here</h3>
+              <p className="text-muted-foreground">Upload images, PDFs, or documents</p>
             </div>
           </div>
         )}
 
-        {/* Chat Messages */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {messages.length === 0 && (
+        {/* Header */}
+        <div className="h-14 border-b bg-background flex items-center justify-between px-4 shrink-0 z-10 shadow-sm">
+          <div className="flex items-center gap-3">
+            {!isSidebarOpen && (
+              <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(true)}>
+                <Menu className="w-5 h-5" />
+              </Button>
+            )}
+            
+            {/* Model Selector */}
+            <Select value={selectedModel} onValueChange={setSelectedModel}>
+              <SelectTrigger className="w-[160px] border-none shadow-none font-semibold text-base focus:ring-0 bg-transparent">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="gpt-4"><div className="flex items-center gap-2"><Sparkles className="w-4 h-4 text-purple-500"/> GPT-4 Plus</div></SelectItem>
+                <SelectItem value="claude-3"><div className="flex items-center gap-2"><Brain className="w-4 h-4 text-orange-500"/> Claude 3 Opus</div></SelectItem>
+                <SelectItem value="gemini"><div className="flex items-center gap-2"><Bot className="w-4 h-4 text-blue-500"/> Gemini Pro</div></SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
+          {messages.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center max-w-2xl mx-auto">
-              <div className="w-32 h-32 mb-6">
-                <img src="/chatbot-icon.png" alt="Bot" className="w-full h-full object-contain drop-shadow-xl" />
+              <div className="w-24 h-24 mb-6 rounded-full bg-primary/10 flex items-center justify-center">
+                <Bot className="w-12 h-12 text-primary" />
               </div>
               <h2 className="text-3xl font-bold font-heading mb-3">How can I help you today?</h2>
               <p className="text-muted-foreground mb-8 text-lg">
-                Ask about symptoms, find the right specialist, get wellness advice, or upload a medical report.
+                Upload a medical report, ask about symptoms, or search the web for latest treatments.
               </p>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full px-4">
                 {[
-                  { title: "Symptom Checker", desc: "What are the symptoms of flu vs cold?" },
-                  { title: "Find a Doctor", desc: "Which specialist for severe migraines?" },
-                  { title: "Diet & Nutrition", desc: "Healthy diet plan for diabetes" },
-                  { title: "First Aid", desc: "Immediate first aid for minor burns" },
+                  { title: "Analyze Report", desc: "Upload a PDF blood test report", icon: Paperclip },
+                  { title: "Web Search", desc: "Search latest clinical trials", icon: Globe },
+                  { title: "Image Generation", desc: "Generate a medical diagram", icon: ImagePlus },
+                  { title: "Symptom Checker", desc: "Analyze these symptoms...", icon: Stethoscope },
                 ].map((q) => (
                   <button key={q.title} onClick={() => setInput(q.desc)}
-                    className="p-4 rounded-xl border bg-card hover:bg-muted/50 hover:border-primary/50 transition-all text-left group"
+                    className="p-4 rounded-xl border bg-card hover:bg-muted/50 hover:border-primary/50 transition-all text-left flex items-start gap-3 group"
                   >
-                    <p className="font-semibold text-foreground group-hover:text-primary transition-colors">{q.title}</p>
-                    <p className="text-sm text-muted-foreground mt-1">{q.desc}</p>
+                    <q.icon className="w-5 h-5 text-muted-foreground group-hover:text-primary mt-0.5" />
+                    <div>
+                      <p className="font-semibold text-foreground group-hover:text-primary transition-colors">{q.title}</p>
+                      <p className="text-sm text-muted-foreground mt-1">{q.desc}</p>
+                    </div>
                   </button>
                 ))}
               </div>
             </div>
-          )}
-          
-          {messages.map((m, i) => (
-            <div key={i} className={`flex gap-4 max-w-4xl mx-auto ${m.role === 'user' ? 'justify-end' : ''}`}>
-              {m.role === 'assistant' && (
-                <div className="w-10 h-10 flex items-center justify-center shrink-0 mt-1">
-                  <img src="/chatbot-icon.png" alt="Bot" className="w-full h-full object-contain drop-shadow-sm" />
-                </div>
-              )}
-              <div className={`max-w-[80%] rounded-2xl px-5 py-3.5 shadow-sm ${
-                m.role === 'user'
-                  ? 'bg-primary text-primary-foreground rounded-tr-sm'
-                  : 'bg-muted/50 text-foreground rounded-tl-sm border border-border/50'
-              }`}>
-                {m.image && (
-                  <div className="mb-3">
-                    <img src={m.image} alt="Upload" className="rounded-xl max-h-60 object-cover shadow-sm" />
-                  </div>
-                )}
-                {m.role === 'assistant' && m.isTyping ? (
-                  <TypewriterText 
-                    text={m.content} 
-                    onComplete={() => {
-                      setMessages(prev => prev.map((msg, idx) => idx === i ? { ...msg, isTyping: false } : msg));
-                    }} 
-                  />
-                ) : (
-                  <div className="leading-relaxed whitespace-pre-wrap">{m.content}</div>
-                )}
-                {m.suggestions && m.suggestions.length > 0 && !m.isTyping && (
-                  <div className="mt-4 space-y-3 border-t pt-3 border-border/50">
-                    <p className="text-sm font-semibold text-primary flex items-center gap-2">
-                      <Stethoscope className="w-4 h-4" /> Recommended Providers
-                    </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {m.suggestions.map((s, idx) => (
-                        <div key={idx} className="bg-background rounded-lg p-3 text-sm border shadow-sm">
-                          <p className="font-semibold text-foreground truncate">{s.name}</p>
-                          <p className="text-muted-foreground text-xs mt-1 truncate">{s.address}, {s.city}</p>
-                          <p className="text-primary text-xs font-medium mt-1">{s.phone}</p>
-                        </div>
-                      ))}
+          ) : (
+            <div className="max-w-4xl mx-auto space-y-8 pb-10">
+              {messages.map((m, i) => (
+                <div key={m.id || i} className="flex gap-4 group">
+                  {m.role === 'assistant' ? (
+                    <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 mt-1">
+                      <Bot className="w-5 h-5 text-primary" />
                     </div>
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-muted border flex items-center justify-center shrink-0 mt-1">
+                      <User className="w-5 h-5 text-muted-foreground" />
+                    </div>
+                  )}
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-sm mb-1 text-foreground/80">
+                      {m.role === 'assistant' ? 'FindMedi AI' : 'You'}
+                    </div>
+                    
+                    <div className="prose prose-sm md:prose-base dark:prose-invert max-w-none">
+                      {m.image && (
+                        <div className="mb-3">
+                          <img src={m.image} alt="Upload" className="rounded-xl max-h-60 object-cover border shadow-sm" />
+                        </div>
+                      )}
+                      
+                      {m.role === 'assistant' && m.isTyping ? (
+                        <TypewriterText 
+                          text={m.content} 
+                          onComplete={() => {
+                            setMessages(prev => prev.map((msg) => msg.id === m.id ? { ...msg, isTyping: false } : msg));
+                          }} 
+                        />
+                      ) : (
+                        <div className="leading-relaxed whitespace-pre-wrap">{m.content}</div>
+                      )}
+                    </div>
+
+                    {/* Message Action Buttons */}
+                    {!m.isTyping && (
+                      <div className="flex items-center gap-1 mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {m.role === 'assistant' ? (
+                          <>
+                            <TooltipProvider><Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7 rounded-md" onClick={() => copyToClipboard(m.content)}><Copy className="w-3.5 h-3.5 text-muted-foreground" /></Button></TooltipTrigger><TooltipContent>Copy Text</TooltipContent></Tooltip></TooltipProvider>
+                            <TooltipProvider><Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7 rounded-md"><RotateCcw className="w-3.5 h-3.5 text-muted-foreground" /></Button></TooltipTrigger><TooltipContent>Regenerate Response</TooltipContent></Tooltip></TooltipProvider>
+                            <TooltipProvider><Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7 rounded-md"><ThumbsUp className="w-3.5 h-3.5 text-muted-foreground" /></Button></TooltipTrigger><TooltipContent>Good response</TooltipContent></Tooltip></TooltipProvider>
+                            <TooltipProvider><Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7 rounded-md"><ThumbsDown className="w-3.5 h-3.5 text-muted-foreground" /></Button></TooltipTrigger><TooltipContent>Bad response</TooltipContent></Tooltip></TooltipProvider>
+                          </>
+                        ) : (
+                          <>
+                            <TooltipProvider><Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7 rounded-md" onClick={() => setInput(m.content)}><Edit2 className="w-3.5 h-3.5 text-muted-foreground" /></Button></TooltipTrigger><TooltipContent>Edit message</TooltipContent></Tooltip></TooltipProvider>
+                          </>
+                        )}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-              {m.role === 'user' && (
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-1">
-                  <User className="w-5 h-5 text-primary" />
+                </div>
+              ))}
+              
+              {loading && (
+                <div className="flex gap-4">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+                    <Loader2 className="w-4 h-4 text-primary animate-spin" />
+                  </div>
+                  <div className="flex items-center gap-2 text-muted-foreground text-sm font-medium">
+                    Generating response...
+                    <Button variant="outline" size="sm" className="ml-2 h-7 rounded-full text-xs" onClick={() => setLoading(false)}>
+                      <StopCircle className="w-3.5 h-3.5 mr-1" /> Stop
+                    </Button>
+                  </div>
                 </div>
               )}
-            </div>
-          ))}
-          
-          {loading && (
-            <div className="flex gap-4 max-w-4xl mx-auto items-center">
-              <div className="w-10 h-10 flex items-center justify-center shrink-0">
-                <img src="/chatbot-icon.png" alt="Bot" className="w-full h-full object-contain drop-shadow-sm" />
-              </div>
-              <div className="bg-muted/50 border border-border/50 rounded-2xl rounded-tl-sm px-5 py-4 shadow-sm flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: '0ms' }} />
-                <span className="w-2.5 h-2.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: '150ms' }} />
-                <span className="w-2.5 h-2.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: '300ms' }} />
-              </div>
             </div>
           )}
           <div ref={messagesEndRef} />
         </div>
 
         {/* Input Area */}
-        <div className="p-4 px-6 border-t bg-background">
-          <div className="max-w-4xl mx-auto">
-            {selectedImage && (
-              <div className="relative inline-block mb-4">
-                <img src={selectedImage} alt="Preview" className="h-20 w-20 object-cover rounded-xl border shadow-sm" />
-                <button onClick={() => setSelectedImage(null)} className="absolute -top-2 -right-2 w-6 h-6 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center shadow-md hover:scale-110 transition-transform">
-                  <X className="w-3.5 h-3.5" />
-                </button>
+        <div className="p-4 md:p-6 bg-gradient-to-t from-background via-background to-transparent pt-0">
+          <div className="max-w-4xl mx-auto relative bg-muted/30 border border-border shadow-sm rounded-2xl p-2 focus-within:ring-1 focus-within:ring-primary focus-within:bg-background transition-all">
+            
+            {/* Attachments Preview */}
+            {(selectedImage || selectedFile) && (
+              <div className="flex flex-wrap gap-2 mb-2 p-2">
+                {selectedImage && (
+                  <div className="relative group">
+                    <img src={selectedImage} alt="Preview" className="h-16 w-16 object-cover rounded-lg border shadow-sm" />
+                    <button onClick={() => setSelectedImage(null)} className="absolute -top-2 -right-2 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                )}
+                {selectedFile && (
+                  <div className="relative group flex items-center gap-2 bg-background border rounded-lg p-2 pr-6 max-w-[200px]">
+                    <Paperclip className="w-4 h-4 text-primary shrink-0" />
+                    <span className="text-xs truncate">{selectedFile.name}</span>
+                    <button onClick={() => setSelectedFile(null)} className="absolute -top-2 -right-2 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                )}
               </div>
             )}
-            
-            <div className="flex items-center gap-2 bg-muted/50 p-1.5 rounded-2xl border shadow-sm focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all">
-              <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleImageSelect} />
-              <input type="file" accept="image/*" capture="environment" className="hidden" ref={cameraInputRef} onChange={handleImageSelect} />
-              
-              <TooltipProvider delayDuration={300}>
-                <Button variant="ghost" size="icon" onClick={startCamera} className="rounded-xl text-muted-foreground hover:text-primary">
-                  <Camera className="w-5 h-5" />
-                </Button>
-                <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} className="rounded-xl text-muted-foreground hover:text-primary">
-                  <ImagePlus className="w-5 h-5" />
-                </Button>
-              </TooltipProvider>
 
-              <Input 
+            <div className="flex items-end gap-2">
+              {/* Textarea */}
+              <Textarea 
+                ref={textareaRef}
                 value={input} 
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Message FindMedi AI..."
-                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-                className="flex-1 border-0 bg-transparent shadow-none focus-visible:ring-0 text-base"
+                onPaste={handlePaste}
+                placeholder="Message AI... (Drag & Drop files)"
+                onKeyDown={(e) => { 
+                  if (e.key === 'Enter' && !e.shiftKey && settings.enterToSend) { 
+                    e.preventDefault(); 
+                    sendMessage(); 
+                  } 
+                }}
+                className="flex-1 border-0 bg-transparent shadow-none focus-visible:ring-0 text-base resize-none min-h-[44px] max-h-[200px] py-3 px-2 overflow-y-auto"
+                rows={1}
               />
               
-              <Button size="icon" onClick={sendMessage} disabled={(!input.trim() && !selectedImage) || loading} className="rounded-xl w-12 h-12 shrink-0">
-                <Send className="w-5 h-5 ml-0.5" />
-              </Button>
+              {/* Send / Voice Button */}
+              {input.trim() || selectedImage || selectedFile ? (
+                <Button size="icon" onClick={sendMessage} disabled={loading} className="rounded-xl w-10 h-10 mb-1 shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md transition-all">
+                  <Send className="w-4 h-4 ml-0.5" />
+                </Button>
+              ) : (
+                <Button size="icon" variant="ghost" onClick={() => setIsRecording(!isRecording)} className={`rounded-xl w-10 h-10 mb-1 shrink-0 transition-colors ${isRecording ? 'bg-red-100 text-red-500 hover:bg-red-200' : 'bg-muted hover:bg-muted-foreground/10'}`}>
+                  {isRecording ? <StopCircle className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+                </Button>
+              )}
             </div>
-            <p className="text-xs text-muted-foreground text-center mt-3 font-medium">
-              FindMedi AI can make mistakes. Always consult a healthcare professional for medical advice.
-            </p>
+
+            {/* Input Action Bar */}
+            <div className="flex items-center justify-between mt-2 pt-2 border-t px-1">
+              <div className="flex items-center gap-1">
+                <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleImageSelect} />
+                <input type="file" accept=".pdf,.doc,.docx,.txt" className="hidden" ref={documentInputRef} onChange={handleDocumentSelect} />
+                <input type="file" accept="image/*" capture="environment" className="hidden" ref={cameraInputRef} onChange={handleImageSelect} />
+                
+                <TooltipProvider>
+                  <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => documentInputRef.current?.click()} className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground"><Paperclip className="w-4 h-4" /></Button></TooltipTrigger><TooltipContent>Upload File/PDF</TooltipContent></Tooltip>
+                  <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground"><ImagePlus className="w-4 h-4" /></Button></TooltipTrigger><TooltipContent>Upload Image</TooltipContent></Tooltip>
+                  <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={startCamera} className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground"><Camera className="w-4 h-4" /></Button></TooltipTrigger><TooltipContent>Take Photo</TooltipContent></Tooltip>
+                </TooltipProvider>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className={`h-8 rounded-full border-dashed text-xs px-3 ${webSearchEnabled ? 'border-blue-500 text-blue-500 bg-blue-50/50' : 'text-muted-foreground'}`}
+                        onClick={() => setWebSearchEnabled(!webSearchEnabled)}
+                      >
+                        <Globe className="w-3.5 h-3.5 mr-1.5" /> Web Search
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Search the web for real-time information</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className={`h-8 rounded-full border-dashed text-xs px-3 ${memoryEnabled ? 'border-purple-500 text-purple-500 bg-purple-50/50' : 'text-muted-foreground'}`}
+                        onClick={() => setMemoryEnabled(!memoryEnabled)}
+                      >
+                        <Brain className="w-3.5 h-3.5 mr-1.5" /> Memory
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Remember details across conversations</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+            </div>
+
+          </div>
+          
+          <div className="text-center mt-3">
+            <span className="text-[10px] text-muted-foreground font-medium">
+              AI can make mistakes. Consider verifying important medical information.
+            </span>
           </div>
         </div>
       </div>
+
+      {/* Settings Modal */}
+      <SettingsModal />
     </div>
   );
+
+  // Helper Component for Sidebar Chat Item
+  function ChatItem({ session }) {
+    const isSelected = currentSessionId === session.id;
+    return (
+      <div 
+        onClick={() => {
+          setCurrentSessionId(session.id);
+          setMessages(session.messages);
+        }}
+        className={`group flex flex-col gap-1 px-3 py-2 rounded-lg cursor-pointer transition-colors relative ${isSelected ? 'bg-primary/10' : 'hover:bg-muted'}`}
+      >
+        <div className="flex items-center gap-2">
+          {session.pinned ? (
+            <Pin className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`} />
+          ) : (
+            <MessageCircle className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`} />
+          )}
+          
+          {editingSessionId === session.id ? (
+            <div className="flex-1 flex items-center gap-1" onClick={e => e.stopPropagation()}>
+              <input 
+                autoFocus
+                className="flex-1 bg-background text-sm rounded px-1.5 py-0.5 border border-primary/50 outline-none w-full"
+                value={editTitle}
+                onChange={e => setEditTitle(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    const updated = chatSessions.map(s => s.id === session.id ? { ...s, title: editTitle || 'Untitled Chat' } : s);
+                    setChatSessions(updated);
+                    localStorage.setItem('medicore_ai_history', JSON.stringify(updated));
+                    setEditingSessionId(null);
+                  } else if (e.key === 'Escape') {
+                    setEditingSessionId(null);
+                  }
+                }}
+              />
+            </div>
+          ) : (
+            <p className={`text-sm truncate flex-1 ${isSelected ? 'font-medium text-primary' : 'text-foreground'}`}>
+              {session.title}
+            </p>
+          )}
+
+          {/* Action Menu (Visible on hover) */}
+          <div className="opacity-0 group-hover:opacity-100 flex items-center bg-gradient-to-l from-background via-background to-transparent pl-4 absolute right-2">
+            <TooltipProvider>
+              <Tooltip><TooltipTrigger asChild><button onClick={(e) => togglePin(e, session.id)} className="p-1 hover:text-primary"><Pin className="w-3 h-3"/></button></TooltipTrigger><TooltipContent>Pin</TooltipContent></Tooltip>
+              <Tooltip><TooltipTrigger asChild><button onClick={(e) => toggleArchive(e, session.id)} className="p-1 hover:text-primary"><Archive className="w-3 h-3"/></button></TooltipTrigger><TooltipContent>Archive</TooltipContent></Tooltip>
+              <Tooltip><TooltipTrigger asChild><button onClick={(e) => { e.stopPropagation(); setEditTitle(session.title); setEditingSessionId(session.id); }} className="p-1 hover:text-primary"><Edit2 className="w-3 h-3"/></button></TooltipTrigger><TooltipContent>Rename</TooltipContent></Tooltip>
+              <Tooltip><TooltipTrigger asChild><button onClick={(e) => { e.stopPropagation(); const updated = chatSessions.filter(s => s.id !== session.id); setChatSessions(updated); localStorage.setItem('medicore_ai_history', JSON.stringify(updated)); if (isSelected) startNewChat(); }} className="p-1 text-destructive hover:text-red-600"><Trash2 className="w-3 h-3"/></button></TooltipTrigger><TooltipContent>Delete</TooltipContent></Tooltip>
+            </TooltipProvider>
+          </div>
+        </div>
+      </div>
+    );
+  }
 }

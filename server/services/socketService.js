@@ -125,6 +125,29 @@ export async function initSocket(server) {
       await DeliveryPartner.findByIdAndUpdate(deliveryPartnerId, { isOnline: online, isAvailable: online });
     });
 
+    // Chat Events
+    socket.on('chat:join', (conversationId) => {
+      socket.join(`chat:${conversationId}`);
+    });
+
+    socket.on('chat:leave', (conversationId) => {
+      socket.leave(`chat:${conversationId}`);
+    });
+
+    socket.on('chat:typing', ({ conversationId, userId, isTyping }) => {
+      socket.to(`chat:${conversationId}`).emit('chat:typing', { conversationId, userId, isTyping });
+    });
+
+    socket.on('chat:send_message', (message) => {
+      // Broadcast to the chat room
+      io.to(`chat:${message.conversationId}`).emit('chat:receive_message', message);
+      // Also trigger a notification event to the specific recipient user room if they aren't in the chat room
+      // Since it's 1-on-1, the recipient is the other participant
+      if (message.recipientId) {
+        io.to(`user:${message.recipientId}`).emit('chat:new_message_notification', message);
+      }
+    });
+
     socket.on('disconnect', async () => {
       logger.info(`Socket disconnected: ${socket.id}`);
       if (socket.userId) {
