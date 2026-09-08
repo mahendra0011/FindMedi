@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { BadgeCheck, CalendarDays, CheckCircle, CheckCircle2, ChevronRight, CreditCard, Landmark, Smartphone, Wallet, ArrowLeft, Users, FileDown, Clock, User, UserPlus, Heart, Phone } from 'lucide-react';
+import { BadgeCheck, CalendarDays, CheckCircle, CheckCircle2, ChevronRight, CreditCard, Landmark, Smartphone, Wallet, ArrowLeft, Users, FileDown, Clock, User, UserPlus, Heart, Phone, MessageSquare, Video, MapPin, Home } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -39,6 +39,7 @@ export default function BookingModal({
   const [paymentMethod, setPaymentMethod] = useState('card');
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [bookingDetails, setBookingDetails] = useState(null);
+  const [appointmentMode, setAppointmentMode] = useState('offline');
   const [intakeFormData, setIntakeFormData] = useState({
     chiefComplaint: '', chiefComplaintOther: '', symptomsDuration: '',
     pastMedicalHistory: { hasHistory: null, details: '' },
@@ -76,6 +77,7 @@ export default function BookingModal({
       setBookingNotes('');
       setPaymentMethod('card');
       setBookingDetails(null);
+      setAppointmentMode('offline');
       setIntakeFormData({
         chiefComplaint: '', chiefComplaintOther: '', symptomsDuration: '',
         pastMedicalHistory: { hasHistory: null, details: '' },
@@ -116,6 +118,21 @@ export default function BookingModal({
 
   const currentDoc = selectedDoctor || doctor;
   const isAutoConfirm = currentDoc?.autoConfirmAppointment ?? facility?.settings?.autoConfirmAppointment ?? true;
+
+  // Compute fee based on selected appointment mode
+  const getModeBasedFee = (mode, doc) => {
+    if (!doc) return 0;
+    const fees = doc.appointmentFees || {};
+    if (mode === 'chat') return Number(fees.chat || doc.chat_fee || doc.consultation_fees || doc.fees || 0);
+    if (mode === 'video') return Number(fees.video || doc.video_fee || doc.consultation_fees || doc.fees || 0);
+    if (mode === 'home_visit' || mode === 'home') return Number(fees.home_visit || doc.home_visit_fee || doc.consultation_fees || doc.fees || 0);
+    return Number(fees.offline || doc.offline_fee || doc.consultation_fees || doc.fees || 0);
+  };
+  const currentFee = getModeBasedFee(appointmentMode, currentDoc);
+  // Available modes from the doctor (fallback to all 4)
+  const availableModes = (currentDoc?.appointmentModes && currentDoc.appointmentModes.length > 0)
+    ? currentDoc.appointmentModes
+    : ['chat', 'video', 'offline', 'home_visit'];
 
   // Doctor + date change hone par uske already-booked slots fetch karo WITH COUNTS
   useEffect(() => {
@@ -195,12 +212,11 @@ export default function BookingModal({
     }
 
     // consultation_fees must be a valid positive number
-    const fees = Number(currentDoc.consultation_fees) || Number(currentDoc.fees);
-    if (!fees || fees <= 0) {
+    if (!currentFee || currentFee <= 0) {
       toast.error('Doctor consultation fee is not set. Please contact support.');
       return;
     }
-    setBookingDetails({ doctor: currentDoc.name, specialization: currentDoc.specialization, date: bookingDate, time: bookingTime, fees });
+    setBookingDetails({ doctor: currentDoc.name, specialization: currentDoc.specialization, date: bookingDate, time: bookingTime, fees: currentFee, mode: appointmentMode });
     
     setBookingStep(1); // Go to "Who is this for?" step
   };
@@ -233,7 +249,7 @@ export default function BookingModal({
         }
       } catch (_) { /* proceed even if check fails — server will catch duplicates */ }
 
-      const fees = Number(currentDoc.consultation_fees) || Number(currentDoc.fees);
+      const fees = currentFee;
       if (!fees || fees <= 0) {
         throw new Error('Doctor consultation fee is not set. Please contact support.');
       }
@@ -250,7 +266,8 @@ export default function BookingModal({
           date: bookingDate,
           time: bookingTime,
           notes: bookingNotes,
-          type: 'Consultation',
+          type: appointmentMode === 'chat' ? 'Chat Consultation' : appointmentMode === 'video' ? 'Video Consultation' : 'Consultation',
+          appointmentMode,
           bookingFor: bookingFor,
           familyMemberId: bookingFor === 'family' ? selectedFamilyMember?._id : undefined,
           familyMemberName: bookingFor === 'family' ? selectedFamilyMember?.name : undefined,
@@ -509,10 +526,43 @@ export default function BookingModal({
                   )}
                 </div>
               </div>
+              {/* Appointment Mode Selector */}
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-foreground">Mode of Appointment</label>
+                <div className={`grid gap-2 ${availableModes.length === 1 ? 'grid-cols-1' : availableModes.length === 2 ? 'grid-cols-2' : availableModes.length === 3 ? 'grid-cols-3' : 'grid-cols-2 sm:grid-cols-4'}`}>
+                  {[
+                    { key: 'chat', label: 'Chat', desc: 'Text', Icon: MessageSquare, color: 'text-blue-600', activeBg: 'border-blue-500 bg-blue-50 dark:bg-blue-500/10' },
+                    { key: 'video', label: 'Video Call', desc: 'Live Video', Icon: Video, color: 'text-emerald-600', activeBg: 'border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10' },
+                    { key: 'offline', label: 'Offline', desc: 'In-Person', Icon: MapPin, color: 'text-violet-600', activeBg: 'border-violet-500 bg-violet-50 dark:bg-violet-500/10' },
+                    { key: 'home_visit', label: 'Home Visit', desc: 'At Home', Icon: Home, color: 'text-amber-600', activeBg: 'border-amber-500 bg-amber-50 dark:bg-amber-500/10' },
+                  ].filter(m => availableModes.includes(m.key) || (m.key === 'home_visit' && availableModes.includes('home'))).map(({ key, label, desc, Icon, color, activeBg }) => {
+                    const active = appointmentMode === key || (key === 'home_visit' && appointmentMode === 'home');
+                    const fee = getModeBasedFee(key, currentDoc);
+                    return (
+                      <button key={key} type="button" onClick={() => setAppointmentMode(key)}
+                        className={`relative flex flex-col items-center gap-1 py-2.5 px-2 rounded-xl border-2 text-center transition-all ${
+                          active ? activeBg + ' shadow-sm' : 'border-border/60 bg-card hover:border-primary/30'
+                        }`}>
+                        {active && (
+                          <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-primary flex items-center justify-center">
+                            <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                          </div>
+                        )}
+                        <Icon className={`w-4 h-4 ${active ? color : 'text-muted-foreground'}`} />
+                        <p className={`text-[11px] font-semibold leading-none ${active ? color : 'text-foreground'}`}>{label}</p>
+                        <p className={`text-[10px] font-bold ${active ? 'text-foreground' : 'text-muted-foreground'}`}>
+                          {fee > 0 ? `₹${fee}` : 'Free'}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-2">
                 <div className="p-2 rounded-xl bg-primary/5 border border-primary/10 text-center">
                   <p className="text-[11px] text-muted-foreground mb-0.5">Consultation Fee</p>
-                  <p className="font-bold text-sm text-primary">₹{Number(currentDoc?.consultation_fees) || Number(currentDoc?.fees) || 0}</p>
+                  <p className="font-bold text-sm text-primary">₹{currentFee || 0}</p>
                 </div>
                 <div className="p-2 rounded-xl bg-emerald-50 border border-emerald-200 dark:bg-emerald-500/10 text-center">
                   <p className="text-[11px] text-muted-foreground mb-0.5">Avg Treatment Time</p>
@@ -872,11 +922,11 @@ export default function BookingModal({
             </DialogHeader>
             <div className="py-3 space-y-3">
               <BillCheckout
-                amount={Number(currentDoc?.consultation_fees) || Number(currentDoc?.fees) || 0}
+                amount={currentFee}
                 serviceType="appointment"
                 provider={facility?.name || currentDoc?.name}
-                details={{ doctor: currentDoc?.name, specialization: currentDoc?.specialization, date: formatDisplayDate(bookingDate), time: bookingTime, type: 'Consultation' }}
-                lineItems={[{ name: 'Consultation Fee', price: Number(currentDoc?.consultation_fees) || Number(currentDoc?.fees) || 0, qty: 1 }]}
+                details={{ doctor: currentDoc?.name, specialization: currentDoc?.specialization, date: formatDisplayDate(bookingDate), time: bookingTime, type: appointmentMode === 'chat' ? 'Chat Consultation' : appointmentMode === 'video' ? 'Video Consultation' : 'In-Person Consultation' }}
+                lineItems={[{ name: `${appointmentMode === 'chat' ? 'Chat' : appointmentMode === 'video' ? 'Video' : 'Offline'} Consultation Fee`, price: currentFee, qty: 1 }]}
                 platformFee={0}
                 gst={0}
                 discount={0}
@@ -899,7 +949,7 @@ export default function BookingModal({
               <DialogFooter className="gap-2 sm:gap-2">
                 <Button variant="outline" size="sm" className="w-full sm:w-auto flex-1" onClick={() => setBookingStep(3)}>Back</Button>
                 <Button size="sm" className="w-full sm:w-auto flex-1" disabled={paymentLoading} onClick={handlePayment}>
-                  {paymentLoading ? <>Processing…</> : <>Pay ₹{Number(currentDoc?.consultation_fees) || Number(currentDoc?.fees) || 0}</>}
+                  {paymentLoading ? <>Processing…</> : <>Pay ₹{currentFee}</>}
                 </Button>
               </DialogFooter>
             </div>
@@ -931,7 +981,7 @@ export default function BookingModal({
             <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20">
               <CheckCircle className="w-4 h-4 text-emerald-600" />
               <span className="text-xs font-medium text-emerald-600">
-                Payment of ₹{Number(currentDoc?.consultation_fees) || Number(currentDoc?.fees) || 0} via {paymentMethod === 'upi' ? 'UPI' : paymentMethod === 'netbanking' ? 'Net Banking' : paymentMethod === 'wallet' ? 'Wallet' : 'Card'} successful
+                Payment of ₹{bookingDetails?.fees ?? currentFee} via {paymentMethod === 'upi' ? 'UPI' : paymentMethod === 'netbanking' ? 'Net Banking' : paymentMethod === 'wallet' ? 'Wallet' : 'Card'} successful
               </span>
             </div>
             {bookingDetails?.transactionId && (

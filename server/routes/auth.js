@@ -1097,6 +1097,13 @@ router.put('/profile', protect, async (req, res) => {
       qualification,
       licenseNumber,
       consultationFee,
+      chatFee,
+      videoFee,
+      homeVisitFee,
+      appointmentModes,
+      emergencySupport,
+      refundOnMissedOrCancelled,
+      ambulanceService,
       settings,
     } = req.body;
 
@@ -1118,19 +1125,40 @@ router.put('/profile', protect, async (req, res) => {
 
     await user.save();
 
-    if (user.role === 'doctor') {
+    if (user.role === 'doctor' || user.role === 'clinic_doctor') {
+      const docUpdate = {
+        name: user.name,
+        phone: user.phone,
+        specialization: user.specialization,
+        experience: user.experience || '1 year',
+        qualifications: user.qualification,
+        fees: Number(user.consultationFee) || 500,
+        consultation_fees: Number(user.consultationFee) || 500,
+        profile_photo: user.avatar,
+      };
+      if (appointmentModes) docUpdate.appointmentModes = appointmentModes;
+      if (chatFee !== undefined) docUpdate.chat_fee = Number(chatFee) || 0;
+      if (videoFee !== undefined) docUpdate.video_fee = Number(videoFee) || 0;
+      if (consultationFee !== undefined) docUpdate.offline_fee = Number(consultationFee) || 0;
+      if (homeVisitFee !== undefined) docUpdate.home_visit_fee = Number(homeVisitFee) || 0;
+      if (emergencySupport !== undefined) {
+        docUpdate.emergencySupport = Boolean(emergencySupport);
+        docUpdate.emergency_consultation = Boolean(emergencySupport);
+      }
+      if (refundOnMissedOrCancelled !== undefined) {
+        docUpdate.refundOnMissedOrCancelled = Boolean(refundOnMissedOrCancelled);
+      }
+      if (chatFee !== undefined || videoFee !== undefined || consultationFee !== undefined || homeVisitFee !== undefined) {
+        docUpdate.appointmentFees = {
+          chat: Number(chatFee || docUpdate.chat_fee || 300),
+          video: Number(videoFee || docUpdate.video_fee || 500),
+          offline: Number(consultationFee || docUpdate.offline_fee || 500),
+          home_visit: Number(homeVisitFee || docUpdate.home_visit_fee || 800),
+        };
+      }
       await Doctor.findOneAndUpdate(
         { $or: [{ user_id: user._id.toString() }, { email: user.email }] },
-        {
-          name: user.name,
-          phone: user.phone,
-          specialization: user.specialization,
-          experience: user.experience || '1 year',
-          qualifications: user.qualification,
-          fees: Number(user.consultationFee) || 500,
-          consultation_fees: Number(user.consultationFee) || 500,
-          profile_photo: user.avatar,
-        },
+        docUpdate,
         { new: true }
       );
     }

@@ -352,11 +352,18 @@ router.post('/', protect, validate(createDoctorSchema), async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/:id', protect, adminOnly, validate(updateDoctorSchema), async (req, res) => {
+router.put('/:id', protect, validate(updateDoctorSchema), async (req, res) => {
   try {
     const doctor = await Doctor.findById(req.params.id);
     if (!doctor) return res.status(404).json({ message: 'Doctor not found' });
-    if (doctor.hospitalId?.toString() !== req.user.hospitalId?.toString() && req.user.role !== 'superadmin') {
+    const isSelf = req.user.doctorProfileId?.toString() === req.params.id ||
+      doctor.user_id?.toString() === req.user._id?.toString() ||
+      (doctor.email && doctor.email.toLowerCase() === req.user.email?.toLowerCase());
+    const isHospitalAdmin = req.user.role === 'hospital_admin' && doctor.hospitalId?.toString() === req.user.hospitalId?.toString();
+    const isClinicAdmin = req.user.role === 'clinic_doctor' && ((req.user.facilityId && doctor.facilityId?.toString() === req.user.facilityId?.toString()) || isSelf);
+    const isSuperAdmin = req.user.role === 'superadmin';
+
+    if (!isSelf && !isHospitalAdmin && !isClinicAdmin && !isSuperAdmin) {
       return res.status(403).json({ message: 'Not authorized to update this doctor' });
     }
     const updated = await Doctor.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
@@ -366,10 +373,19 @@ router.put('/:id', protect, adminOnly, validate(updateDoctorSchema), async (req,
 
 const clinicProfileSchema = z.object({ clinicProfile: z.object({}).passthrough() });
 
-router.put('/:id/clinic-profile', protect, adminOnly, validate(clinicProfileSchema), async (req, res) => {
+router.put('/:id/clinic-profile', protect, validate(clinicProfileSchema), async (req, res) => {
   try {
     const doctor = await Doctor.findById(req.params.id);
     if (!doctor) return res.status(404).json({ message: 'Doctor not found' });
+    const isSelf = req.user.doctorProfileId?.toString() === req.params.id ||
+      doctor.user_id?.toString() === req.user._id?.toString() ||
+      (doctor.email && doctor.email.toLowerCase() === req.user.email?.toLowerCase());
+    const isClinicAdmin = req.user.role === 'clinic_doctor';
+    const isSuperAdmin = req.user.role === 'superadmin';
+
+    if (!isSelf && !isClinicAdmin && !isSuperAdmin) {
+      return res.status(403).json({ message: 'Not authorized to update clinic profile' });
+    }
     const { clinicProfile } = req.body;
     if (!clinicProfile) return res.status(400).json({ message: 'clinicProfile data required' });
     const profile = await ClinicProfile.findOneAndUpdate(

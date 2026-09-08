@@ -32,6 +32,19 @@ const hospitalSchema = new mongoose.Schema({
     default: 'Private',
   },
   emergency24x7: { type: Boolean, default: false },           // 24/7 Emergency badge
+  emergencySupport: { type: Boolean, default: false },        // Emergency Support provided
+  refundOnMissedOrCancelled: { type: Boolean, default: true },// Support refund when missed/cancelled by patient
+  appointmentModes: {                                         // Provided appointment modes: chat, video, offline, home_visit
+    type: [String],
+    enum: ['chat', 'video', 'offline', 'home_visit', 'home'],
+    default: ['chat', 'video', 'offline', 'home_visit'],
+  },
+  appointmentFees: {
+    chat: { type: Number, default: 300 },
+    video: { type: Number, default: 500 },
+    offline: { type: Number, default: 500 },
+    home_visit: { type: Number, default: 800 },
+  },
   bedAvailability: { type: Number, default: 0 },              // Bed availability status
   ambulanceService: { type: Boolean, default: false },        // Ambulance Service available
   image: { type: String, default: '' },                     // Cover image for hospital profile

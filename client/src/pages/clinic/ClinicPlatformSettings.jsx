@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Globe, Save, CheckCircle, ToggleLeft, ToggleRight, Upload, Camera, Pen, X } from 'lucide-react';
+import {
+  Globe, Save, CheckCircle, ToggleLeft, ToggleRight, Upload, Camera, Pen, X,
+  AlertTriangle, ShieldCheck, CheckSquare, MessageSquare, Video, Building2, Home,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
@@ -15,6 +19,10 @@ export default function ClinicPlatformSettings() {
   const [doctorId, setDoctorId] = useState(null);
   const [signatureUrl, setSignatureUrl] = useState('');
   const [signatureUploading, setSignatureUploading] = useState(false);
+
+  const [appointmentModes, setAppointmentModes] = useState(['chat', 'video', 'offline']);
+  const [emergencySupport, setEmergencySupport] = useState(false);
+  const [refundOnMissedOrCancelled, setRefundOnMissedOrCancelled] = useState(true);
 
   useEffect(() => {
     const load = async () => {
@@ -40,6 +48,9 @@ export default function ClinicPlatformSettings() {
         if (myDoc) {
           setDoctorId(myDoc._id);
           setSignatureUrl(myDoc.signatureUrl || '');
+          if (myDoc.appointmentModes?.length) setAppointmentModes(myDoc.appointmentModes);
+          if (myDoc.emergencySupport !== undefined) setEmergencySupport(myDoc.emergencySupport);
+          if (myDoc.refundOnMissedOrCancelled !== undefined) setRefundOnMissedOrCancelled(myDoc.refundOnMissedOrCancelled);
         }
       } catch (err) {
         console.error('Failed to load doctor:', err);
@@ -48,17 +59,41 @@ export default function ClinicPlatformSettings() {
     if (user?.email) loadDoctor();
   }, [user?.email, user?.name]);
 
+  const toggleMode = (mode) => {
+    if (appointmentModes.includes(mode)) {
+      if (appointmentModes.length === 1) {
+        toast.warning('At least one consultation mode must remain active');
+        return;
+      }
+      setAppointmentModes(appointmentModes.filter(m => m !== mode));
+    } else {
+      setAppointmentModes([...appointmentModes, mode]);
+    }
+  };
+
   const handleSave = async () => {
     setSaving(true);
     setSaved(false);
     try {
       await api.updateFacilitySettings({ autoConfirmAppointment: autoConfirm });
-    await api.updateMyAutoConfirm(autoConfirm).catch(() => {});
+      await api.updateMyAutoConfirm(autoConfirm).catch(() => {});
+      if (doctorId) {
+        await api.updateDoctor(doctorId, {
+          appointmentModes,
+          emergencySupport,
+          refundOnMissedOrCancelled,
+        });
+      }
+      await api.updateProfile({
+        appointmentModes,
+        emergencySupport,
+        refundOnMissedOrCancelled,
+      });
       setSaved(true);
       toast.success('Settings saved successfully');
       setTimeout(() => setSaved(false), 2000);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to save settings');
+      toast.error(err.response?.data?.message || err.message || 'Failed to save settings');
     } finally {
       setSaving(false);
     }
@@ -94,13 +129,133 @@ export default function ClinicPlatformSettings() {
   }
 
   return (
-    <div className="p-6 max-w-2xl">
+    <div className="p-6 max-w-3xl">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-foreground mb-1">Platform Settings</h1>
-        <p className="text-muted-foreground">Configure how your clinic behaves on the platform</p>
+        <p className="text-muted-foreground">Configure how your clinic and consultation channels behave on the platform</p>
       </div>
 
       <div className="space-y-6">
+        {/* Modes of Appointment */}
+        <div className="rounded-xl border border-border bg-card p-6">
+          <h3 className="font-semibold text-foreground text-lg mb-2 flex items-center gap-2">
+            <CheckSquare className="w-5 h-5 text-primary" /> Modes of Appointment You Provide
+          </h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Select all channels through which patients can book consultations with your clinic.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div
+              onClick={() => toggleMode('chat')}
+              className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 select-none ${
+                appointmentModes.includes('chat') ? 'border-blue-500 bg-blue-500/5' : 'border-border/60 hover:border-border'
+              }`}
+            >
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${appointmentModes.includes('chat') ? 'bg-blue-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+                <MessageSquare className="w-4 h-4" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="font-semibold text-sm text-foreground block">Online Chat</span>
+                <span className="text-[11px] text-muted-foreground">Digital messaging</span>
+              </div>
+              <input type="checkbox" checked={appointmentModes.includes('chat')} readOnly className="rounded text-primary mt-1 pointer-events-none" />
+            </div>
+
+            <div
+              onClick={() => toggleMode('video')}
+              className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 select-none ${
+                appointmentModes.includes('video') ? 'border-emerald-500 bg-emerald-500/5' : 'border-border/60 hover:border-border'
+              }`}
+            >
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${appointmentModes.includes('video') ? 'bg-emerald-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+                <Video className="w-4 h-4" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="font-semibold text-sm text-foreground block">Video Call</span>
+                <span className="text-[11px] text-muted-foreground">Virtual video consult</span>
+              </div>
+              <input type="checkbox" checked={appointmentModes.includes('video')} readOnly className="rounded text-primary mt-1 pointer-events-none" />
+            </div>
+
+            <div
+              onClick={() => toggleMode('offline')}
+              className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 select-none ${
+                appointmentModes.includes('offline') ? 'border-violet-500 bg-violet-500/5' : 'border-border/60 hover:border-border'
+              }`}
+            >
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${appointmentModes.includes('offline') ? 'bg-violet-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+                <Building2 className="w-4 h-4" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="font-semibold text-sm text-foreground block">In-Person</span>
+                <span className="text-[11px] text-muted-foreground">Physical clinic visit</span>
+              </div>
+              <input type="checkbox" checked={appointmentModes.includes('offline')} readOnly className="rounded text-primary mt-1 pointer-events-none" />
+            </div>
+
+            <div
+              onClick={() => toggleMode('home_visit')}
+              className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 select-none ${
+                (appointmentModes.includes('home_visit') || appointmentModes.includes('home')) ? 'border-amber-500 bg-amber-500/5' : 'border-border/60 hover:border-border'
+              }`}
+            >
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${(appointmentModes.includes('home_visit') || appointmentModes.includes('home')) ? 'bg-amber-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+                <Home className="w-4 h-4" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="font-semibold text-sm text-foreground block">Home Visit</span>
+                <span className="text-[11px] text-muted-foreground">Doctor at patient home</span>
+              </div>
+              <input type="checkbox" checked={(appointmentModes.includes('home_visit') || appointmentModes.includes('home'))} readOnly className="rounded text-primary mt-1 pointer-events-none" />
+            </div>
+          </div>
+        </div>
+
+        {/* Emergency & Refund Policies */}
+        <div className="rounded-xl border border-border bg-card p-6 space-y-4">
+          <h3 className="font-semibold text-foreground text-lg flex items-center gap-2">
+            <ShieldCheck className="w-5 h-5 text-primary" /> Emergency Support &amp; Refund Policy
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            Configure urgent triage availability and cancellation refund protection.
+          </p>
+
+          <label className="flex items-start gap-3 p-3.5 rounded-xl border border-border/60 hover:bg-muted/30 cursor-pointer transition-colors">
+            <input
+              type="checkbox"
+              checked={emergencySupport}
+              onChange={e => setEmergencySupport(e.target.checked)}
+              className="w-4 h-4 rounded border-border text-primary mt-0.5 cursor-pointer"
+            />
+            <div>
+              <span className="font-semibold text-sm text-foreground flex items-center gap-1.5">
+                <AlertTriangle className="w-4 h-4 text-destructive" /> Are you provide emergency support?
+              </span>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Displays the 24x7 Emergency Support badge on your clinic profile and allows urgent appointments.
+              </p>
+            </div>
+          </label>
+
+          <label className="flex items-start gap-3 p-3.5 rounded-xl border border-border/60 hover:bg-muted/30 cursor-pointer transition-colors">
+            <input
+              type="checkbox"
+              checked={refundOnMissedOrCancelled}
+              onChange={e => setRefundOnMissedOrCancelled(e.target.checked)}
+              className="w-4 h-4 rounded border-border text-primary mt-0.5 cursor-pointer"
+            />
+            <div>
+              <span className="font-semibold text-sm text-foreground flex items-center gap-1.5">
+                <ShieldCheck className="w-4 h-4 text-emerald-600" /> Are you support refund when the appointment is missed and cancelled by patient?
+              </span>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Enables 100% Refund Guarantee badge for patient peace of mind and auto-refund handling.
+              </p>
+            </div>
+          </label>
+        </div>
+
+        {/* Auto Confirm Appointment */}
         <div className="rounded-xl border border-border bg-card p-6">
           <div className="flex items-start justify-between gap-4">
             <div className="space-y-1">
@@ -143,6 +298,7 @@ export default function ClinicPlatformSettings() {
           </div>
         </div>
 
+        {/* Digital Signature */}
         <div className="rounded-xl border border-border bg-card p-6">
           <h3 className="font-semibold text-foreground text-lg mb-4 flex items-center gap-2">
             <Pen className="w-5 h-5 text-primary" /> Digital Signature

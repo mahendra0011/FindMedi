@@ -6,7 +6,8 @@ import {
    Check, ChevronRight, User, Mail, Phone, MapPin, Clock, FileText,
    Plus, X, Users, Star, Award, CalendarDays, BadgeCheck, Loader2,
    Shield, Heart, Eye, EyeOff, Activity, Lock, Globe, Image, UserRound, BarChart3,
-   Truck, FileImage, IndianRupee, Wifi, WifiOff, Calendar, MapPinned, AlertCircle
+   Truck, FileImage, IndianRupee, Wifi, WifiOff, Calendar, MapPinned, AlertCircle,
+   MessageSquare, Video, Ambulance, RotateCcw, Home
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,7 +28,11 @@ const PLATFORM_TYPES = [
 
 const SPECIALTIES = ['Cardiology','Neurology','Orthopedics','Pediatrics','Dermatology','Oncology','General Medicine','ENT','Psychiatry','Gynecology','Urology','Ophthalmology','Dentistry','Ayurveda','Homeopathy','Physiotherapy'];
 
-const emptyDoctor = () => ({ name: '', specialization: '', qualifications: '', experience: '', email: '', phone: '' });
+const emptyDoctor = () => ({
+  name: '', specialization: '', qualifications: '', experience: '', email: '', phone: '',
+  appointmentModes: [],
+  appointmentFees: { chat: '', video: '', offline: '', home_visit: '' },
+});
 
 const BASE_STEPS = [
   { num: 1, label: 'Facility Type', icon: Building2 },
@@ -76,6 +81,12 @@ export default function JoinPlatform() {
       monday: '9:00 AM - 6:00 PM', tuesday: '9:00 AM - 6:00 PM', wednesday: '9:00 AM - 6:00 PM',
       thursday: '9:00 AM - 6:00 PM', friday: '9:00 AM - 6:00 PM', saturday: '9:00 AM - 2:00 PM', sunday: 'Closed',
     },
+    // Appointment & Policy fields
+    appointmentModes: [],
+    appointmentFees: { chat: '', video: '', offline: '', home_visit: '' },
+    emergencySupport: false,
+    refundPolicy: false,
+    ambulanceSupport: false,
   });
   const [doctors, setDoctors] = useState([emptyDoctor()]);
   
@@ -223,10 +234,26 @@ export default function JoinPlatform() {
         facility: {
           ...facility,
           established: facility.established ? Number(facility.established) : facility.established,
+          appointmentFees: {
+            chat: facility.appointmentFees.chat ? Number(facility.appointmentFees.chat) : undefined,
+            video: facility.appointmentFees.video ? Number(facility.appointmentFees.video) : undefined,
+            offline: facility.appointmentFees.offline ? Number(facility.appointmentFees.offline) : undefined,
+            home_visit: facility.appointmentFees.home_visit ? Number(facility.appointmentFees.home_visit) : undefined,
+          },
         },
         specialist: type === 'diagnostic' ? specialist : undefined,
       };
-      if (type === 'hospital' || type === 'clinic') payload.doctors = doctors.filter(d => d.name && d.specialization);
+      if (type === 'hospital' || type === 'clinic') {
+        payload.doctors = doctors.filter(d => d.name && d.specialization).map(d => ({
+          ...d,
+          appointmentFees: {
+            chat: d.appointmentFees?.chat ? Number(d.appointmentFees.chat) : undefined,
+            video: d.appointmentFees?.video ? Number(d.appointmentFees.video) : undefined,
+            offline: d.appointmentFees?.offline ? Number(d.appointmentFees.offline) : undefined,
+            home_visit: d.appointmentFees?.home_visit ? Number(d.appointmentFees.home_visit) : undefined,
+          },
+        }));
+      }
       const res = await api.registerPlatform(payload);
       if (res.requiresVerification) {
         navigate(`/verify-otp?email=${encodeURIComponent(res.email)}`);
@@ -992,6 +1019,141 @@ export default function JoinPlatform() {
                   <Textarea value={facility.description} onChange={updateFacility('description')} placeholder="Brief description about your facility and services" rows={2} />
                 </div>
 
+                {/* Appointment Modes Section — Hospital & Clinic only */}
+                {(type === 'hospital' || type === 'clinic') && (
+                  <div className="rounded-2xl border-2 border-primary/20 bg-primary/5 p-5 space-y-5">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center">
+                        <CalendarDays className="w-4 h-4 text-primary" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold text-foreground">Modes of Appointment You Provide</h3>
+                        <p className="text-xs text-muted-foreground">Select all consultation types your facility offers</p>
+                      </div>
+                    </div>
+
+                    {/* Mode Cards */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {[
+                        { key: 'chat', label: 'Chat', desc: 'Text-based consultation', Icon: MessageSquare, color: 'text-blue-600', bg: 'bg-blue-50 border-blue-200', activeBg: 'bg-blue-600' },
+                        { key: 'video', label: 'Video Call', desc: 'Live video consultation', Icon: Video, color: 'text-emerald-600', bg: 'bg-emerald-50 border-emerald-200', activeBg: 'bg-emerald-600' },
+                        { key: 'offline', label: 'Offline', desc: 'In-person clinic visit', Icon: MapPin, color: 'text-violet-600', bg: 'bg-violet-50 border-violet-200', activeBg: 'bg-violet-600' },
+                        { key: 'home_visit', label: 'Home Visit', desc: 'Doctor at patient home', Icon: Home, color: 'text-amber-600', bg: 'bg-amber-50 border-amber-200', activeBg: 'bg-amber-600' },
+                      ].map(({ key, label, desc, Icon, color, bg, activeBg }) => {
+                        const active = facility.appointmentModes.includes(key);
+                        return (
+                          <button key={key} type="button"
+                            onClick={() => setFacility(p => ({
+                              ...p,
+                              appointmentModes: active
+                                ? p.appointmentModes.filter(m => m !== key)
+                                : [...p.appointmentModes, key]
+                            }))}
+                            className={cn(
+                              'relative flex flex-col items-center gap-2 p-3.5 rounded-xl border-2 text-center transition-all',
+                              active
+                                ? `border-primary bg-primary/10 shadow-sm`
+                                : 'border-border/60 bg-background hover:border-primary/40 hover:bg-muted/30'
+                            )}>
+                            {active && (
+                              <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                                <Check className="w-3 h-3 text-white" />
+                              </div>
+                            )}
+                            <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center border', active ? 'bg-primary/15 border-primary/30' : bg)}>
+                              <Icon className={cn('w-5 h-5', active ? 'text-primary' : color)} />
+                            </div>
+                            <div>
+                              <p className={cn('text-xs font-semibold', active ? 'text-primary' : 'text-foreground')}>{label}</p>
+                              <p className="text-[10px] text-muted-foreground leading-tight">{desc}</p>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Fee Inputs for selected modes */}
+                    {facility.appointmentModes.length > 0 && (
+                      <div className="space-y-3">
+                        <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
+                          <IndianRupee className="w-3.5 h-3.5" /> Consultation Fees (₹)
+                        </p>
+                        <div className={cn('grid gap-3', facility.appointmentModes.length === 1 ? 'grid-cols-1' : facility.appointmentModes.length === 2 ? 'grid-cols-2' : facility.appointmentModes.length === 3 ? 'grid-cols-3' : 'grid-cols-2 sm:grid-cols-4')}>
+                          {[
+                            { key: 'chat', label: 'Chat Fee', Icon: MessageSquare },
+                            { key: 'video', label: 'Video Fee', Icon: Video },
+                            { key: 'offline', label: 'Offline Fee', Icon: MapPin },
+                            { key: 'home_visit', label: 'Home Visit Fee', Icon: Home },
+                          ].filter(f => facility.appointmentModes.includes(f.key)).map(({ key, label, Icon }) => (
+                            <div key={key}>
+                              <label className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
+                                <Icon className="w-3 h-3" /> {label}
+                              </label>
+                              <div className="relative">
+                                <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                                <Input
+                                  type="number" min="0"
+                                  value={facility.appointmentFees[key]}
+                                  onChange={e => setFacility(p => ({ ...p, appointmentFees: { ...p.appointmentFees, [key]: e.target.value } }))}
+                                  placeholder="0"
+                                  className="pl-9 h-9 text-sm"
+                                />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Policy Checkboxes */}
+                    <div className="space-y-2">
+                      <p className="text-xs font-semibold text-muted-foreground">Policies & Support</p>
+                      <div className="grid grid-cols-1 gap-2">
+                        <label className="flex items-center gap-3 p-3 rounded-xl border border-border/50 bg-background cursor-pointer hover:border-primary/30 hover:bg-muted/20 transition-all">
+                          <input type="checkbox" checked={facility.emergencySupport}
+                            onChange={e => setFacility(p => ({ ...p, emergencySupport: e.target.checked }))}
+                            className="w-4 h-4 rounded border-border accent-primary" />
+                          <div className="flex items-center gap-2">
+                            <Shield className="w-4 h-4 text-red-500" />
+                            <div>
+                              <p className="text-xs font-semibold text-foreground">Are you provide Emergency Support?</p>
+                              <p className="text-[10px] text-muted-foreground">24/7 emergency services available</p>
+                            </div>
+                          </div>
+                        </label>
+
+                        <label className="flex items-center gap-3 p-3 rounded-xl border border-border/50 bg-background cursor-pointer hover:border-primary/30 hover:bg-muted/20 transition-all">
+                          <input type="checkbox" checked={facility.refundPolicy}
+                            onChange={e => setFacility(p => ({ ...p, refundPolicy: e.target.checked }))}
+                            className="w-4 h-4 rounded border-border accent-primary" />
+                          <div className="flex items-center gap-2">
+                            <RotateCcw className="w-4 h-4 text-amber-500" />
+                            <div>
+                              <p className="text-xs font-semibold text-foreground">Are you support Refund when the Appointment miss and cancel by Patient?</p>
+                              <p className="text-[10px] text-muted-foreground">Refund will be issued on missed/cancelled appointments</p>
+                            </div>
+                          </div>
+                        </label>
+
+                        {type === 'hospital' && (
+                          <label className="flex items-center gap-3 p-3 rounded-xl border border-border/50 bg-background cursor-pointer hover:border-primary/30 hover:bg-muted/20 transition-all">
+                            <input type="checkbox" checked={facility.ambulanceSupport}
+                              onChange={e => setFacility(p => ({ ...p, ambulanceSupport: e.target.checked }))}
+                              className="w-4 h-4 rounded border-border accent-primary" />
+                            <div className="flex items-center gap-2">
+                              <Ambulance className="w-4 h-4 text-blue-500" />
+                              <div>
+                                <p className="text-xs font-semibold text-foreground">Are you provide Ambulance Service?</p>
+                                <p className="text-[10px] text-muted-foreground">Ambulance available for patient transport</p>
+                              </div>
+                            </div>
+                          </label>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <details className="group">
                   <summary className="flex items-center gap-2 text-sm font-semibold text-primary cursor-pointer py-2 select-none">
                     <ChevronRight className="w-4 h-4 transition-transform group-open:rotate-90" /> Additional Details
@@ -1179,6 +1341,68 @@ export default function JoinPlatform() {
                             <label className="text-xs text-muted-foreground mb-1 block">Phone</label>
                             <Input type="tel" value={doc.phone} onChange={updateDoctor(i, 'phone')} placeholder="Contact number" className="h-9 text-sm" />
                           </div>
+                        </div>
+
+                        {/* Per-doctor Appointment Modes */}
+                        <div className="mt-3 pt-3 border-t border-border/30">
+                          <p className="text-[11px] font-semibold text-primary mb-2 flex items-center gap-1.5">
+                            <CalendarDays className="w-3.5 h-3.5" /> Appointment Modes &amp; Fees
+                          </p>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+                            {[
+                              { key: 'chat', label: 'Chat', Icon: MessageSquare },
+                              { key: 'video', label: 'Video', Icon: Video },
+                              { key: 'offline', label: 'Offline', Icon: MapPin },
+                              { key: 'home_visit', label: 'Home Visit', Icon: Home },
+                            ].map(({ key, label, Icon }) => {
+                              const active = doc.appointmentModes?.includes(key);
+                              return (
+                                <button key={key} type="button"
+                                  onClick={() => setDoctors(p => {
+                                    const d = [...p];
+                                    const modes = d[i].appointmentModes || [];
+                                    d[i] = { ...d[i], appointmentModes: active ? modes.filter(m => m !== key) : [...modes, key] };
+                                    return d;
+                                  })}
+                                  className={cn(
+                                    'flex flex-col items-center gap-1 py-2 px-1 rounded-lg border transition-all text-center',
+                                    active ? 'border-primary bg-primary/10 text-primary' : 'border-border/50 hover:border-primary/30'
+                                  )}>
+                                  {active && <Check className="w-3 h-3 text-primary" />}
+                                  <Icon className="w-3.5 h-3.5" />
+                                  <span className="text-[10px] font-medium">{label}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                          {doc.appointmentModes?.length > 0 && (
+                            <div className={cn('grid gap-2', doc.appointmentModes.length === 1 ? 'grid-cols-1' : doc.appointmentModes.length === 2 ? 'grid-cols-2' : doc.appointmentModes.length === 3 ? 'grid-cols-3' : 'grid-cols-2 sm:grid-cols-4')}>
+                              {[
+                                { key: 'chat', label: 'Chat ₹' },
+                                { key: 'video', label: 'Video ₹' },
+                                { key: 'offline', label: 'Offline ₹' },
+                                { key: 'home_visit', label: 'Home Visit ₹' },
+                              ].filter(f => doc.appointmentModes.includes(f.key)).map(({ key, label }) => (
+                                <div key={key}>
+                                  <label className="text-[10px] text-muted-foreground block mb-0.5">{label}</label>
+                                  <div className="relative">
+                                    <IndianRupee className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
+                                    <Input
+                                      type="number" min="0"
+                                      value={doc.appointmentFees?.[key] || ''}
+                                      onChange={e => setDoctors(p => {
+                                        const d = [...p];
+                                        d[i] = { ...d[i], appointmentFees: { ...(d[i].appointmentFees || {}), [key]: e.target.value } };
+                                        return d;
+                                      })}
+                                      placeholder="0"
+                                      className="pl-7 h-8 text-xs"
+                                    />
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </motion.div>
                     ))}

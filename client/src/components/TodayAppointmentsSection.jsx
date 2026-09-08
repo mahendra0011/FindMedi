@@ -1,9 +1,10 @@
 import { useState, useMemo, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Clock, Phone, Mail, MapPin, Droplet, User, CalendarDays,
   ChevronDown, ChevronUp, FileText, Stethoscope, CheckCircle,
   ArrowLeft, Download, Receipt, RotateCcw, Search, Info, X,
-  UserX, Ban, Loader2, ExternalLink,
+  UserX, Ban, Loader2, ExternalLink, Video, MessageSquare,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -577,6 +578,7 @@ function PatientDetailCard({
   onConfirmComplete, onOpenHistory, onWritePrescription, onViewFile,
   onRefresh, user, selectedDate,
 }) {
+  const navigate = useNavigate();
   const patient = apt.patientId;
   const intake = apt.preConsultationDetails;
 
@@ -803,6 +805,46 @@ function PatientDetailCard({
         </Button>
       </div>
 
+      {/* Online Consultation Action Button */}
+      {(() => {
+        const mode = (apt.appointmentMode || '').toLowerCase();
+        const type = (apt.type || '').toLowerCase();
+        const isOnline = mode === 'voice' || mode === 'audio' || mode === 'video' || mode === 'chat' || type.includes('voice') || type.includes('audio') || type.includes('video') || type.includes('chat') || type.includes('online');
+        if (!isOnline) return null;
+        
+        const isVideo = mode === 'video' || type.includes('video');
+        
+        const routePrefix = user?.role === 'clinic_doctor' ? '/clinic' : '/doctor';
+
+        return (
+          <div className="mt-3 p-3 bg-muted/20 border border-border/40 rounded-xl space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-foreground">Consultation Mode:</span>
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${isVideo ? 'bg-emerald-500/10 text-emerald-600' : 'bg-amber-500/10 text-amber-600'}`}>
+                {isVideo ? 'Video Call' : 'Voice Call'}
+              </span>
+            </div>
+            {isVideo ? (
+              <Button
+                size="sm"
+                className="w-full gap-1.5 text-xs h-8 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm font-semibold"
+                onClick={() => navigate(`${routePrefix}/video-call/${apt._id}`)}
+              >
+                <Video className="w-3.5 h-3.5" /> Start Video Consultation
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                className="w-full gap-1.5 text-xs h-8 bg-amber-600 hover:bg-amber-700 text-white shadow-sm font-semibold"
+                onClick={() => navigate(`${routePrefix}/call/${apt._id}`)}
+              >
+                <Phone className="w-3.5 h-3.5" /> Start Voice Consultation
+              </Button>
+            )}
+          </div>
+        );
+      })()}
+
       {/* View Details dropdown — appears below the buttons */}
       {showDetails && (
         <div className="mt-3 bg-muted/20 rounded-xl p-4 border border-border/40">
@@ -837,6 +879,14 @@ function PatientDetailCard({
           </h4>
           {intake ? (
             <div className="space-y-2.5">
+              {(() => {
+                const mode = (apt.appointmentMode || '').toLowerCase();
+                const type = (apt.type || '').toLowerCase();
+                if (mode === 'chat' || type.includes('chat')) return <IntakeRow label="Consultation Mode" value="Chat" />;
+                if (mode === 'video' || type.includes('video')) return <IntakeRow label="Consultation Mode" value="Video Call" />;
+                if (mode === 'voice' || mode === 'audio' || type.includes('voice') || type.includes('audio')) return <IntakeRow label="Consultation Mode" value="Voice Call" />;
+                return null;
+              })()}
               {/* 1. Chief Complaint & Duration */}
               <IntakeRow label="Chief Complaint" value={
                 intake.chiefComplaint === 'Other' ? intake.chiefComplaintOther : intake.chiefComplaint
@@ -1053,6 +1103,14 @@ export function CompletedCard({ apt, subSlotFor, onRevert, onDownloadPrescriptio
           </h4>
           {intake ? (
             <div className="space-y-2.5">
+              {(() => {
+                const mode = (apt.appointmentMode || '').toLowerCase();
+                const type = (apt.type || '').toLowerCase();
+                if (mode === 'chat' || type.includes('chat')) return <IntakeRow label="Consultation Mode" value="Chat" />;
+                if (mode === 'video' || type.includes('video')) return <IntakeRow label="Consultation Mode" value="Video Call" />;
+                if (mode === 'voice' || mode === 'audio' || type.includes('voice') || type.includes('audio')) return <IntakeRow label="Consultation Mode" value="Voice Call" />;
+                return null;
+              })()}
               <IntakeRow label="Chief Complaint" value={
                 intake.chiefComplaint === 'Other' ? intake.chiefComplaintOther : intake.chiefComplaint
               } />
@@ -1237,6 +1295,14 @@ function AbsentCard({ apt, subSlotFor }) {
           </h4>
           {intake ? (
             <div className="space-y-2.5">
+              {(() => {
+                const mode = (apt.appointmentMode || '').toLowerCase();
+                const type = (apt.type || '').toLowerCase();
+                if (mode === 'chat' || type.includes('chat')) return <IntakeRow label="Consultation Mode" value="Chat" />;
+                if (mode === 'video' || type.includes('video')) return <IntakeRow label="Consultation Mode" value="Video Call" />;
+                if (mode === 'voice' || mode === 'audio' || type.includes('voice') || type.includes('audio')) return <IntakeRow label="Consultation Mode" value="Voice Call" />;
+                return null;
+              })()}
               <IntakeRow label="Chief Complaint" value={
                 intake.chiefComplaint === 'Other' ? intake.chiefComplaintOther : intake.chiefComplaint
               } />

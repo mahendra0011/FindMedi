@@ -1,5 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Save, Loader2, Building2, Phone, Mail, MapPin, Clock, Image, Plus, X, CheckCircle2, Globe, Shield, FileText } from 'lucide-react';
+import {
+  Save, Loader2, Building2, Phone, Mail, MapPin, Clock, Image, Plus, X,
+  CheckCircle2, Globe, Shield, FileText, MessageSquare, Video, AlertTriangle,
+  Ambulance, ShieldCheck, CheckSquare, Home,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -14,7 +18,32 @@ const DAY_LABELS = { monday:'Monday', tuesday:'Tuesday', wednesday:'Wednesday', 
 export default function AdminClinicSettings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({});
+  const [form, setForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    address: '',
+    city: '',
+    state: '',
+    pincode: '',
+    licenseNumber: '',
+    description: '',
+    website: '',
+    logo: '',
+    image: '',
+    establishedYear: '',
+    specialties: [],
+    accreditations: [],
+    timing: { monday:'9:00 AM - 6:00 PM', tuesday:'9:00 AM - 6:00 PM', wednesday:'9:00 AM - 6:00 PM', thursday:'9:00 AM - 6:00 PM', friday:'9:00 AM - 6:00 PM', saturday:'9:00 AM - 2:00 PM', sunday:'Closed' },
+    amenities: { parking: false, acWaitingArea: false, wheelchairAccess: false, cardPayment: false, inHousePharmacy: false, drinkingWater: false, wifi: false, homeVisit: false },
+    insurance: [],
+    socialLinks: { facebook: '', instagram: '', youtube: '' },
+    appointmentModes: ['chat', 'video', 'offline'],
+    emergencySupport: false,
+    emergency24x7: false,
+    ambulanceService: false,
+    refundOnMissedOrCancelled: true,
+  });
 
   useEffect(() => {
     const load = async () => {
@@ -30,7 +59,7 @@ export default function AdminClinicSettings() {
           pincode: f.pincode || '',
           licenseNumber: f.licenseNumber || '',
           description: f.description || '',
-          website: f.details?.website || '',
+          website: f.details?.website || f.website || '',
           logo: f.logo || '',
           image: f.image || '',
           establishedYear: f.establishedYear || '',
@@ -40,8 +69,16 @@ export default function AdminClinicSettings() {
           amenities: f.amenities || { parking: false, acWaitingArea: false, wheelchairAccess: false, cardPayment: false, inHousePharmacy: false, drinkingWater: false, wifi: false, homeVisit: false },
           insurance: f.details?.insurance || [],
           socialLinks: f.socialLinks || { facebook: '', instagram: '', youtube: '' },
+          appointmentModes: f.appointmentModes || ['chat', 'video', 'offline'],
+          emergencySupport: Boolean(f.emergencySupport || f.emergency24x7),
+          emergency24x7: Boolean(f.emergency24x7 || f.emergencySupport),
+          ambulanceService: Boolean(f.ambulanceService),
+          refundOnMissedOrCancelled: f.refundOnMissedOrCancelled !== false,
         });
-      } catch (e) { console.error(e); toast.error('Failed to load clinic data'); }
+      } catch (e) {
+        console.error(e);
+        toast.error('Failed to load clinic data');
+      }
       setLoading(false);
     };
     load();
@@ -49,13 +86,26 @@ export default function AdminClinicSettings() {
 
   const update = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
+  const toggleMode = (mode) => {
+    const current = form.appointmentModes || [];
+    if (current.includes(mode)) {
+      if (current.length === 1) {
+        toast.warning('At least one consultation mode must remain enabled');
+        return;
+      }
+      update('appointmentModes', current.filter(m => m !== mode));
+    } else {
+      update('appointmentModes', [...current, mode]);
+    }
+  };
+
   const addSpecialty = () => {
     const v = prompt('Enter specialty (e.g. General Medicine, Pediatrics):');
     if (v) update('specialties', [...form.specialties, v.trim()]);
   };
 
   const addAccreditation = () => {
-    const v = prompt('Enter accreditation:');
+    const v = prompt('Enter accreditation (e.g. NABH, ISO):');
     if (v) update('accreditations', [...form.accreditations, v.trim().toUpperCase()]);
   };
 
@@ -71,10 +121,14 @@ export default function AdminClinicSettings() {
       await api.updateFacility(f._id, {
         ...form,
         establishedYear: form.establishedYear ? Number(form.establishedYear) : undefined,
+        emergency24x7: form.emergencySupport,
+        emergencySupport: form.emergencySupport,
         details: { ...(f.details || {}), website: form.website, insurance: form.insurance },
       });
       toast.success('Clinic settings updated successfully');
-    } catch (e) { toast.error(e.message || 'Failed to update'); }
+    } catch (e) {
+      toast.error(e.message || 'Failed to update settings');
+    }
     setSaving(false);
   };
 
@@ -82,10 +136,161 @@ export default function AdminClinicSettings() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-8 py-6">
-      <div>
-        <h1 className="font-heading text-2xl font-bold text-foreground">Clinic Settings</h1>
-        <p className="text-muted-foreground">Manage your clinic profile, working hours, and services</p>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="font-heading text-2xl font-bold text-foreground">Clinic Settings</h1>
+          <p className="text-muted-foreground text-sm">Manage your clinic profile, consultation modes, emergency policies, and services</p>
+        </div>
+        <Button size="default" onClick={handleSave} disabled={saving} className="gap-2 shrink-0">
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+          {saving ? 'Saving...' : 'Save Settings'}
+        </Button>
       </div>
+
+      {/* Modes of Appointment */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CheckSquare className="w-5 h-5 text-primary" /> Modes of Appointment You Provide
+          </CardTitle>
+          <CardDescription>Select all consultation modes your clinic offers to patients</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div
+              onClick={() => toggleMode('chat')}
+              className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 select-none ${
+                form.appointmentModes?.includes('chat') ? 'border-blue-500 bg-blue-500/5' : 'border-border/60 hover:border-border'
+              }`}
+            >
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${form.appointmentModes?.includes('chat') ? 'bg-blue-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+                <MessageSquare className="w-4 h-4" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="font-semibold text-sm text-foreground block">Online Chat</span>
+                <span className="text-[11px] text-muted-foreground">Digital messaging</span>
+              </div>
+              <input type="checkbox" checked={form.appointmentModes?.includes('chat')} readOnly className="rounded text-primary mt-1 pointer-events-none" />
+            </div>
+
+            <div
+              onClick={() => toggleMode('video')}
+              className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 select-none ${
+                form.appointmentModes?.includes('video') ? 'border-emerald-500 bg-emerald-500/5' : 'border-border/60 hover:border-border'
+              }`}
+            >
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${form.appointmentModes?.includes('video') ? 'bg-emerald-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+                <Video className="w-4 h-4" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="font-semibold text-sm text-foreground block">Video Call</span>
+                <span className="text-[11px] text-muted-foreground">Virtual video consult</span>
+              </div>
+              <input type="checkbox" checked={form.appointmentModes?.includes('video')} readOnly className="rounded text-primary mt-1 pointer-events-none" />
+            </div>
+
+            <div
+              onClick={() => toggleMode('offline')}
+              className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 select-none ${
+                form.appointmentModes?.includes('offline') ? 'border-violet-500 bg-violet-500/5' : 'border-border/60 hover:border-border'
+              }`}
+            >
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${form.appointmentModes?.includes('offline') ? 'bg-violet-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+                <Building2 className="w-4 h-4" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="font-semibold text-sm text-foreground block">In-Person</span>
+                <span className="text-[11px] text-muted-foreground">Physical clinic visit</span>
+              </div>
+              <input type="checkbox" checked={form.appointmentModes?.includes('offline')} readOnly className="rounded text-primary mt-1 pointer-events-none" />
+            </div>
+
+            <div
+              onClick={() => toggleMode('home_visit')}
+              className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 select-none ${
+                (form.appointmentModes?.includes('home_visit') || form.appointmentModes?.includes('home')) ? 'border-amber-500 bg-amber-500/5' : 'border-border/60 hover:border-border'
+              }`}
+            >
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${(form.appointmentModes?.includes('home_visit') || form.appointmentModes?.includes('home')) ? 'bg-amber-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+                <Home className="w-4 h-4" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="font-semibold text-sm text-foreground block">Home Visit</span>
+                <span className="text-[11px] text-muted-foreground">Doctor at patient home</span>
+              </div>
+              <input type="checkbox" checked={(form.appointmentModes?.includes('home_visit') || form.appointmentModes?.includes('home'))} readOnly className="rounded text-primary mt-1 pointer-events-none" />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Emergency & Refund Policies */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ShieldCheck className="w-5 h-5 text-primary" /> Emergency Support &amp; Refund Policy
+          </CardTitle>
+          <CardDescription>Configure emergency availability, ambulance services, and cancellation refund guarantee</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Emergency Support Toggle */}
+          <label className="flex items-start gap-3 p-3.5 rounded-xl border border-border/60 hover:bg-muted/30 cursor-pointer transition-colors">
+            <input
+              type="checkbox"
+              checked={form.emergencySupport}
+              onChange={e => {
+                update('emergencySupport', e.target.checked);
+                update('emergency24x7', e.target.checked);
+              }}
+              className="w-4 h-4 rounded border-border text-primary focus:ring-primary mt-0.5 cursor-pointer"
+            />
+            <div>
+              <span className="font-semibold text-sm text-foreground flex items-center gap-1.5">
+                <AlertTriangle className="w-4 h-4 text-destructive" /> Are you provide emergency support?
+              </span>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Displays the 24x7 Emergency Care badge on your clinic profile and enables emergency queue handling.
+              </p>
+            </div>
+          </label>
+
+          {/* Ambulance Service Toggle */}
+          <label className="flex items-start gap-3 p-3.5 rounded-xl border border-border/60 hover:bg-muted/30 cursor-pointer transition-colors">
+            <input
+              type="checkbox"
+              checked={form.ambulanceService}
+              onChange={e => update('ambulanceService', e.target.checked)}
+              className="w-4 h-4 rounded border-border text-primary focus:ring-primary mt-0.5 cursor-pointer"
+            />
+            <div>
+              <span className="font-semibold text-sm text-foreground flex items-center gap-1.5">
+                <Ambulance className="w-4 h-4 text-blue-600" /> Are you provide ambulance service?
+              </span>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Lists your clinic with active emergency ambulance support for nearby patients.
+              </p>
+            </div>
+          </label>
+
+          {/* Refund Support Toggle */}
+          <label className="flex items-start gap-3 p-3.5 rounded-xl border border-border/60 hover:bg-muted/30 cursor-pointer transition-colors">
+            <input
+              type="checkbox"
+              checked={form.refundOnMissedOrCancelled}
+              onChange={e => update('refundOnMissedOrCancelled', e.target.checked)}
+              className="w-4 h-4 rounded border-border text-primary focus:ring-primary mt-0.5 cursor-pointer"
+            />
+            <div>
+              <span className="font-semibold text-sm text-foreground flex items-center gap-1.5">
+                <ShieldCheck className="w-4 h-4 text-emerald-600" /> Are you support refund when the appointment is missed and cancelled by patient?
+              </span>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Enables the 100% Refund Guarantee badge on your clinic profile and streamlines automatic refunds.
+              </p>
+            </div>
+          </label>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader><CardTitle className="flex items-center gap-2"><Building2 className="w-5 h-5" /> Basic Information</CardTitle><CardDescription>Clinic name, contact details, and description</CardDescription></CardHeader>
@@ -200,7 +405,7 @@ export default function AdminClinicSettings() {
       <div className="flex justify-end">
         <Button size="lg" onClick={handleSave} disabled={saving} className="gap-2">
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-          {saving ? 'Saving...' : 'Save Changes'}
+          {saving ? 'Saving...' : 'Save All Settings'}
         </Button>
       </div>
     </div>

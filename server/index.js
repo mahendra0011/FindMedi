@@ -298,6 +298,7 @@ import deliveryPartnerRoutes from './routes/deliveryPartners.js';
 import aiChatRoutes from './routes/aiChat.js';
 import driveRoutes from './routes/drive.js';
 import analyticsRoutes from './routes/analytics.js';
+import chatRoutes from './routes/chat.js';
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -362,6 +363,7 @@ app.use('/api/delivery-partners', deliveryPartnerRoutes);
 app.use('/api/delivery-boy', deliveryPartnerRoutes);
 app.use('/api/ai-chat', aiChatRoutes);
 app.use('/api/drive', driveRoutes);
+app.use('/api/chat', chatRoutes);
 
 // 2FA routes
 app.use('/api/auth/2fa', twoFactorRoutes);
