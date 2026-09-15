@@ -39,14 +39,36 @@ export interface PreConsultationDetails {
     details: string;
   };
   filledAt?: string;
+  formId?: string;
+}
+
+export interface AppointmentPatientRef {
+  _id: string;
+  name: string;
+  phone?: string;
+  email?: string;
+  age?: number;
+  gender?: 'Male' | 'Female' | 'Other';
+}
+
+export interface AppointmentDoctorRef {
+  _id: string;
+  name: string;
+  specialization?: string;
+}
+
+export interface LastVisitRef {
+  date: string;
+  diagnosis?: string;
+  note?: string;
 }
 
 export interface Appointment extends BaseEntity {
   tokenNumber?: string;
   uhid?: string;
-  patient: string;
-  patientId?: string;
-  doctor: string;
+  patientId?: AppointmentPatientRef | string;
+  patient?: string; // legacy display name
+  doctor?: AppointmentDoctorRef | string;
   doctorId?: string;
   department: string;
   date: string;
@@ -60,6 +82,8 @@ export interface Appointment extends BaseEntity {
   preConsultationDetails?: PreConsultationDetails;
   services: string[];
   fees: number;
+  transactionId?: string;
+  invoiceId?: string;
   queuePosition: number;
   estimatedWaitTime: number;
   checkedInAt?: string;
@@ -71,6 +95,12 @@ export interface Appointment extends BaseEntity {
   cancelledBy?: string;
   cancellationReason?: string;
   refundAmount?: number;
+  lastVisit?: LastVisitRef | null;
+  _delay?: number;
+}
+
+export interface AppointmentDisplay extends Appointment {
+  patient?: string; // display name for card consumption
 }
 
 export interface TimeSlot {

@@ -8,6 +8,7 @@ import { protect, superadminOnly } from '../middleware/auth.js';
 import { validate, registerFacilitySchema, updateFacilitySchema } from '../utils/validate.js';
 import { auditLog } from '../middleware/audit.js';
 import License from '../models/License.js';
+import { paginatedResults } from '../utils/pagination.js';
 import logger from '../config/logger.js';
 import { sendEmail } from '../services/notificationService.js';
 
@@ -37,8 +38,9 @@ router.get('/', async (req, res) => {
     ];
     if (city) filter.city = new RegExp(city, 'i');
 
-    const facilities = await Facility.find(filter).sort({ createdAt: -1 });
-    res.json(facilities);
+    const { page, limit } = req.query;
+    const result = await paginatedResults(Facility, filter, { page, limit, sort: { createdAt: -1 } });
+    res.json(result);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
@@ -47,8 +49,9 @@ router.get('/pending', protect, superadminOnly, async (req, res) => {
     const { type } = req.query;
     const filter = { status: 'pending' };
     if (type && type !== 'All') filter.type = type;
-    const facilities = await Facility.find(filter).sort({ createdAt: -1 });
-    res.json(facilities);
+    const { page, limit } = req.query;
+    const result = await paginatedResults(Facility, filter, { page, limit, sort: { createdAt: -1 } });
+    res.json(result);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 

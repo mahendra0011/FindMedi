@@ -795,3 +795,74 @@ export const createNotificationSchema = z.object({
   read: z.boolean().optional(),
   date: z.string().optional(),
 });
+
+// ─── Additional Auth Schemas ───────────────────────────────────────────────
+export const resendOtpSchema = z.object({
+  email: emailSchema,
+});
+
+export const googleAuthSchema = z.object({
+  idToken: z.string().min(1, 'Google ID token is required'),
+  accessToken: z.string().optional(),
+  role: z.enum(['patient', 'doctor', 'hospital_admin', 'technician']).optional().default('patient'),
+});
+
+export const googleRegisterSchema = z.object({
+  name: z.string().trim().min(2, 'Name is required'),
+  email: emailSchema,
+  phone: phoneSchema,
+  gender: z.enum(['Male', 'Female', 'Other']).optional().default(''),
+  dateOfBirth: z.string().optional(),
+  role: z.enum(['patient', 'doctor', 'hospital_admin', 'technician']).optional().default('patient'),
+  specialization: z.string().optional().default(''),
+  licenseNumber: z.string().optional().default(''),
+  qualification: z.string().optional().default(''),
+  consultationFee: z.union([z.string(), z.number()]).optional().default(0),
+  avatar: z.string().optional(),
+});
+
+export const doctorSetupSchema = z.object({
+  token: z.string().min(1, 'Setup token is required'),
+  password: passwordSchema,
+});
+
+export const refreshTokenSchema = z.object({
+  refreshToken: z.string().optional(),
+});
+
+export const profileUpdateSchema = z.object({
+  name: z.string().trim().min(2).optional(),
+  phone: phoneSchema,
+  avatar: z.string().optional(),
+  address: z.string().optional(),
+  gender: z.enum(['Male', 'Female', 'Other']).optional(),
+  dateOfBirth: z.string().optional(),
+  specialization: z.string().optional(),
+  experience: z.string().optional(),
+  qualification: z.string().optional(),
+  licenseNumber: z.string().optional(),
+  consultationFee: z.union([z.string(), z.number()]).optional(),
+  chatFee: z.union([z.string(), z.number()]).optional(),
+  videoFee: z.union([z.string(), z.number()]).optional(),
+  homeVisitFee: z.union([z.string(), z.number()]).optional(),
+  appointmentModes: z.array(z.string()).optional(),
+  emergencySupport: z.boolean().optional(),
+  refundOnMissedOrCancelled: z.boolean().optional(),
+  ambulanceService: z.boolean().optional(),
+  settings: z.record(z.unknown()).optional(),
+}).passthrough();
+
+export const changeEmailSchema = z.object({
+  email: emailSchema,
+});
+
+// ─── Patient Search Schema ───────────────────────────────────────────────────
+export const patientSearchSchema = z.object({
+  q: z.string().optional(),
+  hospitalId: objectIdSchema.optional(),
+  phone: z.string().optional(),
+  uhid: z.string().optional(),
+  status: z.enum(['Active', 'Discharged', 'Critical']).optional(),
+  page: z.string().regex(/^\d+$/).optional(),
+  limit: z.string().regex(/^\d+$/).optional(),
+});

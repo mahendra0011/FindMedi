@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, UserRound, Stethoscope, CalendarDays, FileText,
   CreditCard, Percent, Settings, ChevronLeft, ChevronRight, Activity, LogOut,
-  Home, Search, Star, Users, BarChart3, Bell, Building2, Clock, Calendar, CalendarClock, DollarSign, FileUp, Download, TestTube, AlertTriangle, Menu, X, Bed, Pill, FlaskConical, Hospital, Heart, Brain, Syringe, ClipboardList, ShieldCheck, Baby, Ambulance, IndianRupee, History, Flag, ShoppingCart, Megaphone, Settings2, Truck, Microscope, HelpCircle, MapPinned, User, Bookmark, Upload, TrendingUp, FileCheck, Tags, Headset, Shield, Tag, MapPin, Globe, Package, RotateCcw, Bot
+  Home, Search, Star, Users, BarChart3, Bell, Building2, Clock, Calendar, CalendarClock, DollarSign, FileUp, Download, TestTube, AlertTriangle, Menu, X, Bed, Pill, FlaskConical, Hospital, Heart, Brain, Syringe, ClipboardList, ShieldCheck, Baby, Ambulance, IndianRupee, History, Flag, ShoppingCart, Megaphone, Settings2, Truck, Microscope, HelpCircle, MapPinned, User, Bookmark, Upload, TrendingUp, FileCheck, Tags, Headset, Shield, Tag, MapPin, Globe, Package, RotateCcw, Bot, Video, MessageCircle
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { t } from '@/lib/settings';
@@ -90,7 +90,9 @@ const navConfig = {
   clinic_doctor: [
     { icon: LayoutDashboard, labelKey: 'nav.dashboard',         path: '/clinic/dashboard'     },
     { icon: Bot, labelKey: 'nav.chatWithAI', path: '/ai-chat' },
+    { icon: MessageCircle,   labelKey: 'nav.messages',         path: '/clinic/chat'   },
     { icon: CalendarDays,    labelKey: 'nav.todayAppointments',   path: '/clinic/appointments'  },
+    { icon: Video,           labelKey: 'nav.onlineAppointments',  path: '/clinic/online-appointments' },
     { icon: FileCheck,       labelKey: 'nav.approveAppointments', path: '/clinic/appointments/approve' },
     { icon: History,         labelKey: 'nav.appointmentHistory',  path: '/clinic/appointments/history' },
     { icon: Clock,           labelKey: 'nav.mySchedule',        path: '/clinic/schedule'      },
@@ -114,7 +116,9 @@ const navConfig = {
   doctor: [
     { icon: LayoutDashboard, labelKey: 'nav.dashboard',       path: '/dashboard'           },
     { icon: Bot, labelKey: 'nav.chatWithAI', path: '/ai-chat' },
+    { icon: MessageCircle,   labelKey: 'nav.messages',        path: '/doctor/chat'   },
     { icon: CalendarDays,    labelKey: 'nav.todayAppointments',   path: '/doctor/appointments'  },
+    { icon: Video,           labelKey: 'nav.onlineAppointments',  path: '/doctor/online-appointments' },
     { icon: FileCheck,       labelKey: 'nav.approveAppointments', path: '/doctor/appointments/approve' },
     { icon: History,         labelKey: 'nav.appointmentHistory',  path: '/doctor/appointments/history' },
     { icon: UserRound,       labelKey: 'nav.myPatients',      path: '/doctor/patients'     },
@@ -179,6 +183,7 @@ const navConfig = {
   patient: [
     { icon: LayoutDashboard, labelKey: 'nav.dashboard',             path: '/dashboard'                  },
     { icon: Bot, labelKey: 'nav.chatWithAI', path: '/ai-chat' },
+    { icon: MessageCircle,   labelKey: 'nav.messages',             path: '/patient/chat'               },
     { icon: CalendarDays,    labelKey: 'nav.myAppointments',        path: '/patient/appointments'       },
     { icon: TestTube,        labelKey: 'nav.myTestBookings',        path: '/patient/bookings'           },
     { icon: ShoppingCart,    labelKey: 'nav.myMedicineOrders',      path: '/patient/medicine-orders'    },

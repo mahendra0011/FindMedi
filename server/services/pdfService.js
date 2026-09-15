@@ -1,6 +1,7 @@
 import PDFDocument from 'pdfkit';
 import fetch from 'node-fetch';
 import { v4 as uuidv4 } from 'uuid';
+import { generateInvoicePdfNative, NATIVE_PDF_AVAILABLE } from './napiPdfService.js';
  
 const HOSPITAL = {
   name: 'FindMedi Hospital',
@@ -483,7 +484,15 @@ if (bill.invoiceId) {
 }
 });
  
-export const generatePaymentInvoicePDF = async (payment, reference = null, user = null, documentTitle = 'Payment Invoice') => collectPdf((doc) => {
+export const generatePaymentInvoicePDF = async (payment, reference = null, user = null, documentTitle = 'Payment Invoice') => {
+  // Use native Rust PDF generation when available (8-18x faster than pdfkit)
+  if (NATIVE_PDF_AVAILABLE) {
+    const rustPdf = await generateInvoicePdfNative(payment, reference, user, documentTitle);
+    if (rustPdf) return rustPdf;
+  }
+
+  // Fallback: pdfkit (JavaScript) implementation
+  return collectPdf((doc) => {
   const typePrefix = { appointment: 'APT', test: 'TST', medicine: 'MED' };
   const year = new Date(payment.createdAt || Date.now()).getFullYear();
   const numericPart = (payment.transaction_id || payment._id?.toString() || '00000').replace(/\D/g, '');
@@ -715,4 +724,5 @@ export const generatePaymentInvoicePDF = async (payment, reference = null, user 
   doc.fillColor(COLORS.primaryDark).font('Helvetica-Bold').fontSize(12).text(money(payment.amount), x + 126, ty, { width: 98, align: 'right' });
   
   doc.y = y + boxHeight + 20;
-});
+  });
+};

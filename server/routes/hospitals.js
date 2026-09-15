@@ -7,6 +7,7 @@ import { validate, registerHospitalSchema } from '../utils/validate.js';
 import { auditLog } from '../middleware/audit.js';
 import logger from '../config/logger.js';
 import { getCache, setCache, flushCachePattern } from '../config/redis.js';
+import { paginatedResults } from '../utils/pagination.js';
 
 const router = express.Router();
 
@@ -48,16 +49,18 @@ router.get('/', async (req, res) => {
     if (city) filter.city = new RegExp(city, 'i');
     if (specialty) filter.specialties = new RegExp(specialty, 'i');
 
-    const hospitals = await Hospital.find(filter).sort({ createdAt: -1 });
-    await setCache(cacheKey, hospitals, 300);
-    res.json(hospitals);
+    const { page, limit } = req.query;
+    const result = await paginatedResults(Hospital, filter, { page, limit, sort: { createdAt: -1 } });
+    await setCache(cacheKey, result, 300);
+    res.json(result);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
 router.get('/pending', protect, superadminOnly, async (req, res) => {
   try {
-    const hospitals = await Hospital.find({ status: 'pending' }).sort({ createdAt: -1 });
-    res.json(hospitals);
+    const { page, limit } = req.query;
+    const result = await paginatedResults(Hospital, { status: 'pending' }, { page, limit, sort: { createdAt: -1 } });
+    res.json(result);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 

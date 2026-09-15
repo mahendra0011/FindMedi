@@ -56,5 +56,9 @@ patientSchema.pre('save', async function (next) {
   next();
 });
 
+patientSchema.index({ hospitalId: 1, status: 1 });
+patientSchema.index({ phone: 1 });
+patientSchema.index({ createdAt: -1 });
+
 export default mongoose.model('Patient', patientSchema);
 

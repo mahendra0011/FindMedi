@@ -1,19 +1,23 @@
 /**
  * Verify OTP page — Client Component.
  * Ported from client/src/pages/OTPVerification.jsx.
+ *
+ * The `useSearchParams` hook requires a Suspense boundary during prerendering,
+ * so the page shell renders a Suspense fallback while the inner component
+ * resolves the URL parameters client-side.
  */
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import type { UserRole } from '@/types/enums';
 
-export default function VerifyOtpPage() {
+function VerifyOtpContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { verifyOTP, login } = useAuth();
+  const { verifyOTP } = useAuth();
   const email = searchParams.get('email') ?? '';
   const role = (searchParams.get('role') ?? 'patient') as UserRole;
 
@@ -35,6 +39,7 @@ export default function VerifyOtpPage() {
     try {
       const user = await verifyOTP({ email, otp });
       void user;
+      void role;
       router.push('/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Invalid OTP');
@@ -47,7 +52,7 @@ export default function VerifyOtpPage() {
     <div className="text-center">
       <h2 className="text-2xl font-bold mb-4">Verify Your OTP</h2>
       <p className="text-sm text-muted-foreground mb-6">
-        We've sent a 6-digit code to {email}
+        We&apos;ve sent a 6-digit code to {email}
       </p>
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -67,5 +72,13 @@ export default function VerifyOtpPage() {
         </Button>
       </form>
     </div>
+  );
+}
+
+export default function VerifyOtpPage() {
+  return (
+    <Suspense fallback={<div className="text-center py-8">Loading…</div>}>
+      <VerifyOtpContent />
+    </Suspense>
   );
 }

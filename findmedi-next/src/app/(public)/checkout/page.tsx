@@ -4,7 +4,7 @@
  */
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/hooks/useCart';
 import { Button } from '@/components/ui/button';
@@ -18,8 +18,16 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Redirect to cart when empty.  Guarded inside useEffect so the router call
+  // only runs client-side — calling it during render breaks static prerendering
+  // with "ReferenceError: location is not defined".
+  useEffect(() => {
+    if (totalItems === 0) {
+      router.replace('/cart');
+    }
+  }, [totalItems, router]);
+
   if (totalItems === 0) {
-    router.replace('/cart');
     return null;
   }
 

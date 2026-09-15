@@ -1,0 +1,85 @@
+{
+  "metadata": {
+    "date": "2026-09-09T02:41:50.302Z",
+    "node_version": "v24.16.0",
+    "phase": "csv-migration",
+    "description": "Post-Rust CSV migration performance comparison"
+  },
+  "targets": {
+    "csv_export": {
+      "description": "CSV export (toCSV) - Rust native vs JS fallback",
+      "benchmarks": {
+        "rust_tocsv_100_rows": {
+          "iterations": 1000,
+          "avg_ms": 0.7,
+          "ops_sec": 1429
+        },
+        "js_tocsv_100_rows": {
+          "iterations": 1000,
+          "avg_ms": 0.236,
+          "ops_sec": 4242
+        },
+        "rust_tocsv_1k_rows": {
+          "iterations": 200,
+          "avg_ms": 7.782,
+          "ops_sec": 129
+        },
+        "js_tocsv_1k_rows": {
+          "iterations": 200,
+          "avg_ms": 2.415,
+          "ops_sec": 414,
+          "baseline_ms": 4.52
+        },
+        "rust_tocsv_10k_rows": {
+          "iterations": 20,
+          "avg_ms": 83.321,
+          "ops_sec": 12
+        },
+        "js_tocsv_10k_rows": {
+          "iterations": 20,
+          "avg_ms": 29.071,
+          "ops_sec": 34,
+          "baseline_ms": 47.6
+        }
+      },
+      "findings": "Rust CSV export is slower than JS due to JSON FFI marshaling overhead. Rust is RFC 4180 compliant. JS fallback used as primary for export."
+    },
+    "csv_import": {
+      "description": "CSV import (parseCsv) - Rust native vs JS fallback",
+      "benchmarks": {
+        "rust_parsecsv_100_rows": {
+          "iterations": 1000,
+          "avg_ms": 0.642,
+          "ops_sec": 1556
+        },
+        "js_parsecsv_100_rows": {
+          "iterations": 1000,
+          "avg_ms": 0.277,
+          "ops_sec": 3608
+        },
+        "rust_parsecsv_1k_rows": {
+          "iterations": 200,
+          "avg_ms": 7.481,
+          "ops_sec": 134
+        },
+        "js_parsecsv_1k_rows": {
+          "iterations": 200,
+          "avg_ms": 3.111,
+          "ops_sec": 321
+        },
+        "rust_parsecsv_5k_rows": {
+          "iterations": 20,
+          "avg_ms": 35.733,
+          "ops_sec": 28
+        },
+        "js_parsecsv_5k_rows": {
+          "iterations": 20,
+          "avg_ms": 17.309,
+          "ops_sec": 58
+        }
+      },
+      "findings": "Rust CSV parser is ~2x slower than simple JS fallback but handles RFC 4180 edge cases. 5.8x faster than ExcelJS xlsx (35.7ms vs 206.9ms baseline)."
+    }
+  },
+  "conclusion": "CSV migration complete. Rust provides RFC 4180-compliant CSV serialization and parsing. JS fallback used for export (faster). Rust parser available for robust CSV import."
+}

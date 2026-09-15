@@ -111,4 +111,10 @@ doctorSchema.pre('save', async function (next) {
   next();
 });
 
+doctorSchema.index({ facilityId: 1, approved: 1 });
+doctorSchema.index({ hospitalId: 1, approved: 1 });
+doctorSchema.index({ specialization: 1 });
+doctorSchema.index({ department: 1 });
+doctorSchema.index({ createdAt: -1 });
+
 export default mongoose.model('Doctor', doctorSchema);

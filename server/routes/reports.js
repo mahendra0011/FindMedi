@@ -15,7 +15,7 @@ import Patient from '../models/Patient.js';
 import Doctor from '../models/Doctor.js';
 import { protect, adminOnly } from '../middleware/auth.js';
 import { validate } from '../utils/validate.js';
-import { parseExcelFile, exportToExcel, exportToCSV, validatePatientData, validateDoctorData, validateBillingData, formatPatientsForExport, formatDoctorsForExport, formatBillingForExport, formatAppointmentsForExport } from '../utils/excelUtils.js';
+import { parseExcelFile, parseFile, exportToExcel, exportToCSV, validatePatientData, validateDoctorData, validateBillingData, formatPatientsForExport, formatDoctorsForExport, formatBillingForExport, formatAppointmentsForExport } from '../utils/excelUtils.js';
 import { getConfig } from '../utils/configLoader.js';
 import { generatePrescriptionPDF, generateLabReportPDF, generateDischargeSummaryPDF } from '../services/pdfService.js';
 import { generateReportId, generateInvoiceId } from '../utils/idGenerator.js';
@@ -390,7 +390,7 @@ router.post('/import/:type', protect, adminOnly, upload.single('file'), async (r
     const { type } = req.params;
     if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
 
-    const rows = await parseExcelFile(req.file.buffer);
+    const rows = await parseFile(req.file.buffer, req.file.mimetype);
     if (!rows || rows.length === 0) return res.status(400).json({ message: 'Excel file is empty or has no valid data' });
 
     const hospFilter = req.user.hospitalId ? { hospitalId: req.user.hospitalId } : {};

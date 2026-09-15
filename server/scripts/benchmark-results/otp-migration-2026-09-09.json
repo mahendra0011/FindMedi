@@ -1,0 +1,50 @@
+{
+  "metadata": {
+    "date": "2026-09-09T02:57:06.563Z",
+    "node_version": "v24.16.0",
+    "phase": "otp-migration",
+    "description": "Post-Rust OTP/2FA hashing migration performance comparison"
+  },
+  "targets": {
+    "otp_hashing": {
+      "description": "OTP hashing and verification - Rust SHA-256+salt vs bcrypt (cost 10)",
+      "components": [
+        "server/napi-core/src/lib.rs (hash_otp, verify_otp_hash, constant_time_compare via sha2 + rand crates)",
+        "server/services/napiOtpService.js (hashOtp, verifyOtpHash with bcrypt fallback)",
+        "server/models/OTP.js (hashOTP, compareOTP updated to use native with fallback)",
+        "server/services/twoFactorService.js (verifyBackupCode using constantTimeCompare)"
+      ],
+      "benchmarks": {
+        "rust_hash_otp": {
+          "iterations": 1000,
+          "avg_ms": 0.0197,
+          "ops_sec": 50768
+        },
+        "bcrypt_hash": {
+          "iterations": 100,
+          "avg_ms": 205.125,
+          "ops_sec": 5
+        },
+        "rust_verify_otp": {
+          "iterations": 1000,
+          "avg_ms": 0.0104,
+          "ops_sec": 95751
+        },
+        "bcrypt_verify": {
+          "iterations": 100,
+          "avg_ms": 207.168,
+          "ops_sec": 5
+        }
+      },
+      "findings": {
+        "hash_speedup": "Rust SHA-256+salt is 10,414x faster than bcrypt (0.02ms vs 205ms)",
+        "verify_speedup": "Rust verification is 19,836x faster than bcrypt (0.01ms vs 207ms)",
+        "security_sufficient": "For 6-digit OTPs (1M possible values, 10-min TTL, single-use), SHA-256+salt provides adequate security versus bcrypt",
+        "legacy_support": "Rust verifyOtpHash detects bcrypt hashes ($2b$) and returns false, triggering JS bcrypt.compare fallback",
+        "constant_time": "constant_time_compare uses XOR-based constant-time algorithm to prevent timing side-channel attacks",
+        "backup_codes": "2FA backup code verification updated from indexOf (timing-vulnerable) to constantTimeCompare (timing-safe)"
+      }
+    }
+  },
+  "conclusion": "OTP/2FA hashing migrated to Rust. 10,000x+ speedup over bcrypt. Constant-time comparison prevents timing attacks. Legacy bcrypt hashes still supported via fallback."
+}

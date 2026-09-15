@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { constantTimeCompare, NATIVE_OTP_AVAILABLE } from './napiOtpService.js';
 
 const BACKUP_CODE_COUNT = 10;
 const BACKUP_CODE_LENGTH = 10;
@@ -109,6 +110,20 @@ export function hashBackupCode(code) {
 export function verifyBackupCode(code, hashedCodes) {
   if (!code || !hashedCodes?.length) return { valid: false, codeIndex: -1 };
   const hashed = hashBackupCode(code.toUpperCase());
+
+  // Constant-time comparison to prevent timing attacks
+  if (NATIVE_OTP_AVAILABLE) {
+    let found = false;
+    let foundIndex = -1;
+    hashedCodes.forEach((stored, i) => {
+      if (constantTimeCompare(hashed, stored)) {
+        found = true;
+        foundIndex = i;
+      }
+    });
+    return { valid: found, codeIndex: foundIndex };
+  }
+
   const index = hashedCodes.indexOf(hashed);
   return { valid: index !== -1, codeIndex: index };
 }

@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import bcrypt from 'bcryptjs';
+import { hashOtp, verifyOtpHash, NATIVE_OTP_AVAILABLE } from '../services/napiOtpService.js';
 
 const otpSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -28,6 +28,15 @@ otpSchema.index({ createdAt: 1 }, { expireAfterSeconds: 3600 });
  * Hash an OTP before storing
  */
 otpSchema.statics.hashOTP = async (otp) => {
+  if (NATIVE_OTP_AVAILABLE) {
+    try {
+      return hashOtp(otp); // Rust SHA-256 hash (returns salt:hash synchronously)
+    } catch (e) {
+      // Fall through to bcrypt
+    }
+  }
+  // Fallback: bcrypt
+  const bcrypt = (await import('bcryptjs')).default;
   return await bcrypt.hash(otp, 10);
 };
 
@@ -35,6 +44,15 @@ otpSchema.statics.hashOTP = async (otp) => {
  * Compare plain OTP with stored hash
  */
 otpSchema.methods.compareOTP = async function(plainOtp) {
+  if (NATIVE_OTP_AVAILABLE) {
+    try {
+      return verifyOtpHash(plainOtp, this.otpHash);
+    } catch (e) {
+      // Fall through to bcrypt
+    }
+  }
+  // Fallback: bcrypt
+  const bcrypt = (await import('bcryptjs')).default;
   return await bcrypt.compare(plainOtp, this.otpHash);
 };
 

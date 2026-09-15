@@ -336,6 +336,48 @@ export async function checkOTPCooldown(email) {
   }
 }
 
+export async function checkOTPLockout(email, type = 'email') {
+  if (!isRedisReady()) return { locked: false };
+  const key = `otp_lockout:${email.toLowerCase()}:${type}`;
+  try {
+    const ttl = await redisClient.ttl(key);
+    if (ttl > 0) return { locked: true, waitSeconds: ttl };
+    return { locked: false };
+  } catch {
+    return { locked: false };
+  }
+}
+
+export async function incrementOTPFailures(email, type = 'email', maxFailures = 5, lockoutSeconds = 900) {
+  if (!isRedisReady()) return { failures: 0, locked: false };
+  const failKey = `otp_fails:${email.toLowerCase()}:${type}`;
+  const lockKey = `otp_lockout:${email.toLowerCase()}:${type}`;
+  try {
+    const failures = await redisClient.incr(failKey);
+    if (failures === 1) {
+      await redisClient.expire(failKey, lockoutSeconds);
+    }
+    if (failures >= maxFailures) {
+      await redisClient.set(lockKey, '1', { EX: lockoutSeconds });
+      await redisClient.del(failKey);
+      return { failures, locked: true, waitSeconds: lockoutSeconds };
+    }
+    return { failures, locked: false };
+  } catch {
+    return { failures: 0, locked: false };
+  }
+}
+
+export async function resetOTPFailures(email, type = 'email') {
+  if (!isRedisReady()) return;
+  try {
+    await redisClient.del(`otp_fails:${email.toLowerCase()}:${type}`);
+    await redisClient.del(`otp_lockout:${email.toLowerCase()}:${type}`);
+  } catch {
+    // ignore
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // 6. GEMINI AI HEALTH CHATBOT RESPONSE CACHING
 // ─────────────────────────────────────────────────────────────────────────────

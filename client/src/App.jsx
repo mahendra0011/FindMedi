@@ -147,8 +147,10 @@ const DoctorEmergency = lazy(() => import('./pages/doctor/DoctorEmergency'));
 const DoctorPrescriptions = lazy(() => import('./pages/doctor/DoctorPrescriptions'));
 const DoctorLeaveRequests = lazy(() => import('./pages/doctor/DoctorLeaveRequests'));
 const DoctorProfile = lazy(() => import('./pages/doctor/DoctorProfile'));
+const DoctorOnlineAppointments = lazy(() => import('./pages/doctor/DoctorOnlineAppointments'));
 
 const AIChatPage = lazy(() => import('./pages/AIChatPage'));
+const ChatPage = lazy(() => import('./pages/ChatPage'));
 
 const ClinicDashboard = lazy(() => import('./pages/clinic/ClinicDashboard'));
 const ClinicAppointments = lazy(() => import('./pages/clinic/ClinicAppointments'));
@@ -580,11 +582,14 @@ const App = () => (
                     <Route path="/patient/favorites" element={<RoleRoute allowedRoles={['patient']}><PatientFavorites /></RoleRoute>} />
                     <Route path="/patient/addresses" element={<RoleRoute allowedRoles={['patient']}><PatientAddresses /></RoleRoute>} />
                     <Route path="/patient/profile" element={<RoleRoute allowedRoles={['patient']}><Settings /></RoleRoute>} />
+                    <Route path="/patient/chat" element={<RoleRoute allowedRoles={['patient']}><ChatPage /></RoleRoute>} />
 
                     {/* Doctor routes */}
                     <Route path="/doctor/appointments/approve" element={<RoleRoute allowedRoles={['doctor']}><DoctorAppointments /></RoleRoute>} />
                     <Route path="/doctor/appointments/history" element={<RoleRoute allowedRoles={['doctor']}><DoctorAppointments /></RoleRoute>} />
                     <Route path="/doctor/appointments" element={<RoleRoute allowedRoles={['doctor']}><DoctorAppointments /></RoleRoute>} />
+                    <Route path="/doctor/online-appointments" element={<RoleRoute allowedRoles={['doctor']}><DoctorOnlineAppointments /></RoleRoute>} />
+                    <Route path="/doctor/chat" element={<RoleRoute allowedRoles={['doctor']}><ChatPage /></RoleRoute>} />
                     <Route path="/doctor/patients" element={<RoleRoute allowedRoles={['doctor']}><DoctorPatients /></RoleRoute>} />
                     <Route path="/doctor/consultations" element={<RoleRoute allowedRoles={['doctor']}><DoctorConsultations /></RoleRoute>} />
                     <Route path="/doctor/reviews" element={<RoleRoute allowedRoles={['doctor']}><DoctorReviews /></RoleRoute>} />
@@ -601,6 +606,8 @@ const App = () => (
                     <Route path="/clinic/appointments/approve" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicAppointments /></RoleRoute>} />
                     <Route path="/clinic/appointments/history" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicAppointments /></RoleRoute>} />
                     <Route path="/clinic/appointments" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicAppointments /></RoleRoute>} />
+                    <Route path="/clinic/online-appointments" element={<RoleRoute allowedRoles={['clinic_doctor']}><DoctorOnlineAppointments /></RoleRoute>} />
+                    <Route path="/clinic/chat" element={<RoleRoute allowedRoles={['clinic_doctor']}><ChatPage /></RoleRoute>} />
                     <Route path="/clinic/schedule" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicSchedule /></RoleRoute>} />
                     <Route path="/clinic/fees" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicFees /></RoleRoute>} />
                     <Route path="/clinic/patients" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicPatients /></RoleRoute>} />
