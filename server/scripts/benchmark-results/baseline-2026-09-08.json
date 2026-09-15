@@ -1,0 +1,67 @@
+{
+  "metadata": {
+    "date": "2026-09-08T23:47:35.099Z",
+    "node_version": "v24.16.0",
+    "phase": "baseline",
+    "description": "Pre-Rust baseline performance measurement for Phase 7 migration targets"
+  },
+  "targets": {
+    "1_image_upload": {
+      "description": "Image upload handling: Cloudinary upload + auth.js magic-byte validation + Sharp resize",
+      "components": [
+        "server/services/cloudinaryService.js (uploadFileToCloudinary)",
+        "server/middleware/upload.js (validateFileContent magic bytes)",
+        "server/node_modules/sharp (image resize/compress)"
+      ],
+      "benchmarks": {
+        "magic_byte_validation_small_jpeg": { "iterations": 10000, "avg_ms": 0.001, "p50_ms": 0.001, "p95_ms": 0.001, "p99_ms": 0.001, "ops_sec": 1705524, "heap_delta_mb": 7.69 },
+        "sharp_resize_small_300x200_to_thumb_128x128": { "iterations": 1000, "avg_ms": 6.05, "p50_ms": 6.03, "p95_ms": 7.88, "p99_ms": 8.75, "ops_sec": 165.3, "heap_delta_mb": 11.27 },
+        "sharp_resize_medium_1200x800_to_thumb_256x256": { "iterations": 500, "avg_ms": 21.53, "p50_ms": 21.44, "p95_ms": 27.92, "p99_ms": 31.10, "ops_sec": 46.5, "heap_delta_mb": -11.83 },
+        "sharp_resize_large_3000x2000_to_thumb_256x256": { "iterations": 200, "avg_ms": 103.46, "p50_ms": 100.86, "p95_ms": 139.02, "p99_ms": 158.34, "ops_sec": 9.7, "heap_delta_mb": 2.26 },
+        "full_avatar_pipeline": { "iterations": 500, "avg_ms": 21.78, "p50_ms": 20.38, "p95_ms": 32.87, "p99_ms": 43.60, "ops_sec": 45.9, "heap_delta_mb": -2.65 },
+        "cloudinary_sim_base64_encode": { "iterations": 200, "avg_ms": 0.76, "p50_ms": 0.63, "p95_ms": 1.80, "p99_ms": 3.81, "ops_sec": 1311.2, "heap_delta_mb": 11.46 }
+      }
+    },
+    "2_pdf_generation": {
+      "description": "PDF report/invoice generation via pdfkit",
+      "components": [
+        "server/services/pdfService.js (generatePaymentInvoicePDF, generatePrescriptionPDF, etc.)",
+        "server/node_modules/pdfkit"
+      ],
+      "benchmarks": {
+        "generateInvoicePDF_5_items": { "iterations": 200, "avg_ms": 9.68, "p50_ms": 9.04, "p95_ms": 13.70, "p99_ms": 16.78, "ops_sec": 103.3, "heap_delta_mb": 9.27 },
+        "generateInvoicePDF_20_items": { "iterations": 100, "avg_ms": 11.57, "p50_ms": 11.08, "p95_ms": 17.38, "p99_ms": 22.33, "ops_sec": 86.4, "heap_delta_mb": 7.15 },
+        "generateInvoicePDF_50_items": { "iterations": 50, "avg_ms": 39.07, "p50_ms": 37.42, "p95_ms": 64.63, "p99_ms": 99.62, "ops_sec": 25.6, "heap_delta_mb": -4.25 },
+        "generateInvoicePDF_100_items": { "iterations": 20, "avg_ms": 83.65, "p50_ms": 75.30, "p95_ms": 176.86, "p99_ms": 176.86, "ops_sec": 12.0, "heap_delta_mb": 5.26 }
+      }
+    },
+    "3_csv_export_import": {
+      "description": "CSV export and Excel/CSV import parsing",
+      "components": [
+        "server/routes/export.js (toCSV - hand-rolled CSV writer)",
+        "server/utils/excelUtils.js (exportToCSV via json2csv, parseExcelFile via ExcelJS)",
+        "server/node_modules/json2csv",
+        "server/node_modules/exceljs"
+      ],
+      "benchmarks": {
+        "toCSV_100_rows": { "iterations": 1000, "avg_ms": 0.50, "p50_ms": 0.44, "p95_ms": 0.87, "p99_ms": 1.17, "ops_sec": 2009.1, "heap_delta_mb": 29.97 },
+        "toCSV_1k_rows": { "iterations": 200, "avg_ms": 4.52, "p50_ms": 4.29, "p95_ms": 7.03, "p99_ms": 7.73, "ops_sec": 221.4, "heap_delta_mb": -50.51 },
+        "toCSV_10k_rows": { "iterations": 20, "avg_ms": 47.60, "p50_ms": 46.52, "p95_ms": 70.20, "p99_ms": 70.20, "ops_sec": 21.0, "heap_delta_mb": 22.15 },
+        "toCSV_revenue_1k_rows": { "iterations": 500, "avg_ms": 4.25, "p50_ms": 4.01, "p95_ms": 6.01, "p99_ms": 6.79, "ops_sec": 235.1, "heap_delta_mb": -7.72 },
+        "json2csv_1k_rows": { "iterations": 200, "avg_ms": 6.68, "p50_ms": 6.58, "p95_ms": 9.64, "p99_ms": 11.42, "ops_sec": 149.7, "heap_delta_mb": -4.73 },
+        "json2csv_10k_rows": { "iterations": 20, "avg_ms": 66.22, "p50_ms": 64.72, "p95_ms": 82.97, "p99_ms": 82.97, "ops_sec": 15.1, "heap_delta_mb": 36.78 },
+        "exceljs_parse_50_rows": { "iterations": 100, "avg_ms": 7.43, "p50_ms": 6.32, "p95_ms": 15.03, "p99_ms": 62.49, "ops_sec": 134.6, "heap_delta_mb": 17.34 },
+        "exceljs_parse_500_rows": { "iterations": 50, "avg_ms": 20.81, "p50_ms": 20.56, "p95_ms": 31.80, "p99_ms": 35.02, "ops_sec": 48.1, "heap_delta_mb": 13.56 },
+        "exceljs_parse_5k_rows": { "iterations": 5, "avg_ms": 206.87, "p50_ms": 203.87, "p95_ms": 238.32, "p99_ms": 238.32, "ops_sec": 4.8, "heap_delta_mb": 35.47 }
+      }
+    }
+  },
+  "findings": {
+    "sharp_resize_is_hotspot": "Large image (3000x2000) resize averages 103ms — the #1 CPU bottleneck in the image pipeline. The avatar pipeline (validate+resize+encode) averages 21ms for medium images.",
+    "pdfkit_linear_scaling": "PDF generation scales roughly linearly with item count: 5 items = 9.7ms, 100 items = 83.7ms. The drawTable and heightOfString calls dominate.",
+    "csv_toCSV_faster_than_json2csv": "Hand-rolled toCSV (4.25ms for 1k rows) outperforms json2csv (6.68ms for 1k rows) — the custom function avoids json2csv's object mapping overhead.",
+    "exceljs_parse_dominates_import": "ExcelJS xlsx parsing is the slowest path: 5k rows = 207ms. This is the strongest candidate for Rust migration.",
+    "magic_byte_validation_trivial": "Magic-byte validation is sub-microsecond (~1.7M ops/sec). Not worth migrating to Rust — keep as-is.",
+    "heap_pressure": "PDF generation and ExcelJS parsing both show significant heap growth (5-36 MB delta) due to buffer accumulation and object creation."
+  }
+}

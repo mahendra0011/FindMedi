@@ -111,6 +111,30 @@ export function formatCurrency(amount: number | string | null | undefined): stri
   }).format(num);
 }
 
+/** Get today's date as a YYYY-MM-DD string in IST (UTC+5:30). */
+export function getISTDateString(date: Date = new Date()): string {
+  const istOffsetMs = 5.5 * 60 * 60 * 1000;
+  const ist = new Date(date.getTime() + istOffsetMs);
+  const y = ist.getUTCFullYear();
+  const M = String(ist.getUTCMonth() + 1).padStart(2, '0');
+  const D = String(ist.getUTCDate()).padStart(2, '0');
+  return `${y}-${M}-${D}`;
+}
+
+/**
+ * Format a YYYY-MM-DD string like "2027-10-27" into "27 Oct 2027".
+ * Manually parsed to avoid JS Date timezone shifting the day.
+ */
+export function formatDisplayDate(dateStr: string | null | undefined): string {
+  if (!dateStr) return '';
+  const parts = String(dateStr).split('-').map(Number);
+  if (parts.length !== 3 || !parts[0] || !parts[1] || !parts[2]) return dateStr;
+  const [, m, d] = parts;
+  const y = parts[0];
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `${String(d).padStart(2, '0')} ${months[m! - 1] || 'Jan'} ${y}`;
+}
+
 /** Resolve a file URL for display. */
 export function resolveFileUrl(url: string): string {
   if (!url) return '';
@@ -154,4 +178,80 @@ export function withQuery(path: string, params: Record<string, unknown> = {}): s
   if (!qs) return path;
   const separator = path.includes('?') ? '&' : '?';
   return `${path}${separator}${qs}`;
+}
+
+/** True only when the value is an actual usable file URL. */
+export function isValidFileUrl(url: string | null | undefined): boolean {
+  if (!url) return false;
+  return /^https?:\/\//i.test(url) || url.startsWith('/') || url.startsWith('data:') || url.startsWith('blob:');
+}
+
+/** Detect file type from a URL or filename. Returns 'image' | 'pdf' | 'other'. */
+export function getFileType(url: string = ''): 'image' | 'pdf' | 'other' {
+  if (/\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(url)) return 'image';
+  if (/\.pdf$/i.test(url)) return 'pdf';
+  return 'other';
+}
+
+/**
+ * Resolve a file URL for inline preview.
+ * Local /auth-protected URLs are fetched with credentials + Bearer token → blob URL.
+ * External URLs (Cloudinary, etc.) are returned as-is.
+ *
+ * @param url - raw file URL stored on the appointment/record
+ * @returns {url, type, rawUrl} | null
+ */
+export async function getFilePreviewUrl(
+  url: string,
+  getToken: () => string | null = () => {
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') return null;
+    try {
+      return localStorage.getItem('token');
+    } catch {
+      return null;
+    }
+  },
+): Promise<{ url: string; type: 'image' | 'pdf' | 'other'; rawUrl: string } | null> {
+  const resolved = resolveFileUrl(url);
+  if (!resolved) return null;
+
+  let type: 'image' | 'pdf' | 'other' = getFileType(resolved);
+
+  // If already a blob or data url, return directly
+  if (resolved.startsWith('blob:') || resolved.startsWith('data:')) {
+    return { url: resolved, type, rawUrl: resolved };
+  }
+
+  // External URLs (http/https) are publicly accessible
+  if (resolved.startsWith('http://') || resolved.startsWith('https://')) {
+    return { url: resolved, type, rawUrl: resolved };
+  }
+
+  // Local /auth-protected URLs — fetch with credentials + Bearer token
+  const token = getToken();
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  try {
+    const response = await fetch(resolved, {
+      credentials: 'include',
+      headers,
+    });
+    if (!response.ok) throw new Error(`Failed to load file (${response.status})`);
+
+    const contentType = (response.headers.get('content-type') || '').toLowerCase();
+    if (contentType.includes('application/pdf') || resolved.toLowerCase().endsWith('.pdf')) {
+      type = 'pdf';
+    } else if (contentType.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(resolved)) {
+      type = 'image';
+    }
+
+    const blob = await response.blob();
+    return { url: URL.createObjectURL(blob), type, rawUrl: resolved };
+  } catch (err) {
+    console.error('getFilePreviewUrl error:', err);
+    return { url: resolved, type, rawUrl: resolved };
+  }
 }

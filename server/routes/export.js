@@ -6,16 +6,19 @@ import Hospital from '../models/Hospital.js';
 import { getISTDateString } from '../utils/dateUtils.js';
 import AuditLog from '../models/AuditLog.js';
 import { protect, superadminOnly } from '../middleware/auth.js';
+import { toCsvNative, toCsvFallback, NATIVE_CSV_AVAILABLE } from '../services/napiCsvService.js';
 
 const toCSV = (data, fields) => {
-  const header = fields.map(f => `"${f}"`).join(',');
-  const rows = data.map(row => fields.map(f => {
-    const val = row[f];
-    if (val === null || val === undefined) return '';
-    return `"${String(val).replace(/"/g, '""')}"`;
-  }).join(','));
-  return [header, ...rows].join('\n');
+  if (NATIVE_CSV_AVAILABLE) {
+    try {
+      return toCsvNative(data, fields);
+    } catch (e) {
+      // Fall through to fallback
+    }
+  }
+  return toCsvFallback(data, fields);
 };
+
 
 const router = express.Router();
 

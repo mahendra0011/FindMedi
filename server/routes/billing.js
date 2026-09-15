@@ -72,7 +72,9 @@ router.get('/', protect, async (req, res, next) => {
       ];
     }
 
-    const bills = await Billing.find(filter).sort({ createdAt: -1 });
+    const { page, limit } = req.query;
+    const result = await paginatedResults(Billing, filter, { page, limit, sort: { createdAt: -1 } });
+    const bills = result.data;
     const total = bills.reduce((s, b) => s + (b.amount || 0), 0);
     const paid = bills.reduce((s, b) => s + (b.paid || 0), 0);
     const balance = total - paid;
@@ -82,6 +84,9 @@ router.get('/', protect, async (req, res, next) => {
       bills,
       summary: { total, paid, balance },
       count: bills.length,
+      page: result.page,
+      limit: result.limit,
+      totalPages: result.totalPages,
     });
   } catch (err) { next(err); }
 });

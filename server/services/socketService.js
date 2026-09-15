@@ -79,9 +79,10 @@ export async function initSocket(server) {
         socket.userRole = role;
         socket.join(`user:${userId}`);
 
-        // Mark presence in Redis
+        // Mark presence in Redis + DB (last seen / online indicator ke liye)
         try {
           await setUserPresence(userId, role);
+          await User.findByIdAndUpdate(userId, { isOnline: true, lastActive: new Date() }).catch(() => {});
           io.emit('presence:change', { userId: String(userId), online: true, role });
         } catch (e) {}
       }
@@ -138,6 +139,80 @@ export async function initSocket(server) {
       socket.to(`chat:${conversationId}`).emit('chat:typing', { conversationId, userId, isTyping });
     });
 
+    // Recording a voice message (mic button pressed)
+    socket.on('chat:recording', ({ conversationId, userId, isRecording }) => {
+      socket.to(`chat:${conversationId}`).emit('chat:recording', { conversationId, userId, isRecording });
+    });
+
+    // Delivery receipts — sender ko wapas broadcast karo
+    socket.on('chat:delivered', async ({ conversationId, userId }) => {
+      if (!conversationId || !userId) return;
+      try {
+        const ChatMessage = (await import('../models/ChatMessage.js')).default;
+        await ChatMessage.updateMany(
+          { conversationId, sender: { $ne: userId }, 'deliveredTo.userId': { $ne: userId } },
+          { $push: { deliveredTo: { userId, at: new Date() } } }
+        );
+      } catch (e) {}
+      socket.to(`chat:${conversationId}`).emit('chat:delivered', { conversationId, userId, at: new Date() });
+    });
+
+    // Read receipts — sender ko wapas broadcast karo (participant sirf apne messages ke ticks update kare)
+    socket.on('chat:read', async ({ conversationId, userId }) => {
+      if (!conversationId || !userId) return;
+      let shareReceipt = true;
+      try {
+        const [{ default: ChatMessage }, { default: ChatPrivacy }] = await Promise.all([
+          import('../models/ChatMessage.js'),
+          import('../models/ChatPrivacy.js'),
+        ]);
+        // Privacy: user ne read receipts OFF kiye hain to sender ko blue tick nahi milega
+        const privacy = await ChatPrivacy.findOne({ userId }).select('readReceipts').lean();
+        shareReceipt = privacy ? privacy.readReceipts !== false : true;
+
+        if (shareReceipt) {
+          const now = new Date();
+          await ChatMessage.updateMany(
+            { conversationId, sender: { $ne: userId }, 'readBy.userId': { $ne: userId } },
+            { $push: { readBy: { userId, at: now }, deliveredTo: { userId, at: now } } }
+          );
+        }
+      } catch (e) {}
+      if (shareReceipt) {
+        socket.to(`chat:${conversationId}`).emit('chat:read', { conversationId, userId, at: new Date() });
+      }
+    });
+
+    // Presence ping from chat page — last seen fresh rakhta hai
+    socket.on('chat:presence', async ({ userId }) => {
+      if (userId) {
+        await setUserPresence(String(userId), socket.userRole);
+        try {
+          await User.findByIdAndUpdate(userId, { isOnline: true, lastActive: new Date() });
+        } catch (e) {}
+      }
+    });
+
+    // ── WebRTC signalling (1-to-1 voice / video calls) ─────────────────────
+    // Socket.IO sirf SDP/ICE exchange karta hai; actual media WebRTC peer-to-peer.
+    const callEvents = [
+      'chat:call_invite', 'chat:call_ringing', 'chat:call_accept', 'chat:call_reject',
+      'chat:call_cancel', 'chat:call_end', 'chat:call_offer', 'chat:call_answer',
+      'chat:call_ice', 'chat:call_state', 'chat:call_missed',
+    ];
+    callEvents.forEach((event) => {
+      socket.on(event, (payload = {}) => {
+        const target = payload.to || payload.recipientId || payload.peerId;
+        const from = payload.from || socket.userId;
+        if (!target) return;
+        const body = { ...payload, from };
+        io.to(`user:${target}`).emit(event, body);
+        if (payload.conversationId) {
+          socket.to(`chat:${payload.conversationId}`).emit(event, body);
+        }
+      });
+    });
+
     socket.on('chat:send_message', (message) => {
       // Broadcast to the chat room
       io.to(`chat:${message.conversationId}`).emit('chat:receive_message', message);
@@ -153,6 +228,7 @@ export async function initSocket(server) {
       if (socket.userId) {
         try {
           await removeUserPresence(socket.userId, socket.userRole);
+          await User.findByIdAndUpdate(socket.userId, { isOnline: false, lastActive: new Date() }).catch(() => {});
           io.emit('presence:change', { userId: socket.userId, online: false, role: socket.userRole });
         } catch (e) {}
       }
@@ -175,6 +251,27 @@ export function notifyUser(userId, notification) {
     io.to(`user:${userId}`).emit('notification', notification);
   }
 }
+
+/**
+ * Chat REST handlers se room-wide realtime event bhejne ke liye helper.
+ * DB mutation ke baad route code ise call karta hai — clients turant
+ * update ho jaate hain bina refetch kiye. Silent no-op agar socket band ho.
+ */
+export function emitChatEvent(conversationId, event, payload) {
+  if (!io || !conversationId) return;
+  try {
+    io.to(`chat:${conversationId}`).emit(event, payload);
+  } catch (e) {}
+}
+
+/** Specific user ke personal room me event (notifications, force-refresh etc.) */
+export function emitChatNotification(userId, event, payload) {
+  if (!io || !userId) return;
+  try {
+    io.to(`user:${userId}`).emit(event, payload);
+  } catch (e) {}
+}
+
 
 export function notifyUsers(userIds, notification) {
   if (io) {

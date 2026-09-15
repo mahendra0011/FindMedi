@@ -499,3 +499,72 @@
     display: none;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Chat (1-to-1 doctor ↔ patient messenger)
+   Animation + layout tokens jo `applyChatPrefs()` CSS variables se control
+   hote hain — user "Reduce motion" off kare to sab instantly disable ho jata
+   hai (--chat-anim-duration: 0ms).
+   ══════════════════════════════════════════════════════════════════════════ */
+
+@keyframes chatRowEnter {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes chatPopEnter {
+  0%   { opacity: 0; transform: scale(0.9) translateY(4px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes chatBubblePop {
+  0%   { transform: scale(0.96); }
+  60%  { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+
+@keyframes chatPulseDot {
+  0%, 60%, 100% { opacity: 0.25; transform: translateY(0); }
+  30%           { opacity: 1;    transform: translateY(-2px); }
+}
+
+.chat-row-enter {
+  animation: chatRowEnter var(--chat-anim-duration, 220ms) ease-out;
+}
+
+.chat-pop-enter {
+  animation: chatPopEnter var(--chat-anim-duration, 220ms) cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.chat-bubble-pop {
+  animation: chatBubblePop var(--chat-anim-duration, 220ms) ease-out;
+}
+
+/* Typing indicator ke teen dots */
+.chat-typing-dot {
+  animation: chatPulseDot 1.2s infinite ease-in-out;
+}
+.chat-typing-dot:nth-child(2) { animation-delay: 0.18s; }
+.chat-typing-dot:nth-child(3) { animation-delay: 0.36s; }
+
+/* Reduce motion / animations-off par kuch bhi animate na ho */
+html[data-chat-animations='off'] *,
+html[data-chat-animations='off'] *::before,
+html[data-chat-animations='off'] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+}
+
+/* High contrast mode (accessibility) */
+html[data-chat-contrast='high'] .chat-row-enter > div > div {
+  border-width: 2px !important;
+  border-color: currentColor !important;
+}
+
+/* Chat scroll area — smooth momentum scroll mobile par */
+.chat-scroll {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+

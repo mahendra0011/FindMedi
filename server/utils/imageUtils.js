@@ -3,6 +3,12 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { v4 as uuidv4 } from 'uuid';
+import {
+  resizeImage as napiResizeImage,
+  resizeToFit as napiResizeToFit,
+  getImageInfo as napiGetImageInfo,
+  NATIVE_AVAILABLE,
+} from '../services/napiImageService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -45,27 +51,38 @@ export const processAndSaveImage = async (file, options = {}) => {
   } = options;
 
   const uploadDir = getUploadDir(outputDir);
-  const filename = `${uuidv4()}.${format}`;
+  const ext = format === 'jpg' ? 'jpeg' : format;
+  const filename = `${uuidv4()}.${ext}`;
   const filepath = path.join(uploadDir, filename);
 
-  let pipeline = sharp(file.buffer)
-    .resize(width, height, { fit: 'inside', withoutEnlargement: true });
+  let buffer;
 
-  if (format === 'jpeg' || format === 'jpg') {
-    pipeline = pipeline.jpeg({ quality });
-  } else if (format === 'png') {
-    pipeline = pipeline.png({ quality: Math.min(quality, 100) });
-  } else if (format === 'webp') {
-    pipeline = pipeline.webp({ quality });
+  // Use native Rust resize for JPEG output (faster than Sharp)
+  if ((format === 'jpeg' || format === 'jpg') && NATIVE_AVAILABLE) {
+    buffer = napiResizeToFit(file.buffer, width, height, quality);
+  } else {
+    // Fallback to Sharp (also handles PNG/WebP with quality control)
+    let pipeline = sharp(file.buffer)
+      .resize(width, height, { fit: 'inside', withoutEnlargement: true });
+
+    if (format === 'jpeg' || format === 'jpg') {
+      pipeline = pipeline.jpeg({ quality });
+    } else if (format === 'png') {
+      pipeline = pipeline.png({ quality: Math.min(quality, 100) });
+    } else if (format === 'webp') {
+      pipeline = pipeline.webp({ quality });
+    }
+
+    buffer = await pipeline.toBuffer();
   }
 
-  await pipeline.toFile(filepath);
+  await fs.promises.writeFile(filepath, buffer);
 
   return {
     filename,
     filepath: `/uploads/${outputDir}/${filename}`,
     originalName: file.originalname,
-    size: fs.statSync(filepath).size,
+    size: buffer.length,
     width,
     height,
     format,
@@ -74,27 +91,37 @@ export const processAndSaveImage = async (file, options = {}) => {
 
 export const compressImage = async (file, options = {}) => {
   const { quality = 70, format = 'jpeg' } = options;
-  
+
   const uploadDir = getUploadDir('compressed');
   const filename = `compressed-${uuidv4()}.${format}`;
   const filepath = path.join(uploadDir, filename);
 
-  let pipeline = sharp(file.buffer);
-  
-  if (format === 'jpeg' || format === 'jpg') {
-    pipeline = pipeline.jpeg({ quality });
-  } else if (format === 'png') {
-    pipeline = pipeline.png({ compressionLevel: 9 });
-  } else if (format === 'webp') {
-    pipeline = pipeline.webp({ quality });
+  let buffer;
+
+  // Use native Rust resize for JPEG output
+  if ((format === 'jpeg' || format === 'jpg') && NATIVE_AVAILABLE) {
+    const info = napiGetImageInfo(file.buffer);
+    buffer = napiResizeImage(file.buffer, info.width, info.height, quality);
+  } else {
+    let pipeline = sharp(file.buffer);
+
+    if (format === 'jpeg' || format === 'jpg') {
+      pipeline = pipeline.jpeg({ quality });
+    } else if (format === 'png') {
+      pipeline = pipeline.png({ compressionLevel: 9 });
+    } else if (format === 'webp') {
+      pipeline = pipeline.webp({ quality });
+    }
+
+    buffer = await pipeline.toBuffer();
   }
 
-  await pipeline.toFile(filepath);
+  await fs.promises.writeFile(filepath, buffer);
 
   return {
     filename,
     filepath: `/uploads/compressed/${filename}`,
-    size: fs.statSync(filepath).size,
+    size: buffer.length,
   };
 };
 
@@ -103,19 +130,44 @@ export const generateThumbnail = async (file, size = 150) => {
   const filename = `thumb-${uuidv4()}.jpg`;
   const filepath = path.join(uploadDir, filename);
 
-  await sharp(file.buffer)
-    .resize(size, size, { fit: 'cover' })
-    .jpeg({ quality: 60 })
-    .toFile(filepath);
+  let buffer;
+
+  // Use native Rust resize for JPEG thumbnails (exact resize, faster)
+  if (NATIVE_AVAILABLE) {
+    buffer = napiResizeImage(file.buffer, size, size, 60);
+  } else {
+    buffer = await sharp(file.buffer)
+      .resize(size, size, { fit: 'cover' })
+      .jpeg({ quality: 60 })
+      .toBuffer();
+  }
+
+  await fs.promises.writeFile(filepath, buffer);
 
   return {
     filename,
     filepath: `/uploads/thumbnails/${filename}`,
-    size: fs.statSync(filepath).size,
+    size: buffer.length,
   };
 };
 
 export const getImageMetadata = async (file) => {
+  // Use native Rust image info when available (faster, no dependency on Sharp)
+  if (NATIVE_AVAILABLE) {
+    try {
+      const info = napiGetImageInfo(file.buffer);
+      return {
+        width: info.width,
+        height: info.height,
+        format: info.format.toLowerCase(),
+        size: file.size,
+        hasAlpha: info.format.toLowerCase() !== 'jpeg', // JPEG doesn't support alpha
+      };
+    } catch {
+      // Fall through to Sharp if Rust fails (e.g. unsupported format)
+    }
+  }
+
   const metadata = await sharp(file.buffer).metadata();
   return {
     width: metadata.width,
@@ -131,14 +183,24 @@ export const convertToJPEG = async (file) => {
   const filename = `converted-${uuidv4()}.jpeg`;
   const filepath = path.join(uploadDir, filename);
 
-  await sharp(file.buffer)
-    .jpeg({ quality: 90 })
-    .toFile(filepath);
+  let buffer;
+
+  // Use native Rust for JPEG conversion
+  if (NATIVE_AVAILABLE) {
+    const info = napiGetImageInfo(file.buffer);
+    buffer = napiResizeImage(file.buffer, info.width, info.height, 90);
+  } else {
+    buffer = await sharp(file.buffer)
+      .jpeg({ quality: 90 })
+      .toBuffer();
+  }
+
+  await fs.promises.writeFile(filepath, buffer);
 
   return {
     filename,
     filepath: `/uploads/converted/${filename}`,
-    size: fs.statSync(filepath).size,
+    size: buffer.length,
   };
 };
 

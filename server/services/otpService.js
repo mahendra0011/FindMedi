@@ -7,6 +7,9 @@ import {
   delRedisOTP,
   setOTPCooldown,
   checkOTPCooldown,
+  checkOTPLockout,
+  incrementOTPFailures,
+  resetOTPFailures,
 } from '../config/redis.js';
 
 // OTP validity: 10 minutes
@@ -183,6 +186,17 @@ export const verifyOTP = async ({ email, otp, type = 'email' }) => {
   try {
     const normalizedEmail = email.toLowerCase();
 
+    // Check if the IP/email is locked out from too many failed attempts
+    const lockout = await checkOTPLockout(normalizedEmail, type);
+    if (lockout.locked) {
+      return {
+        success: false,
+        message: `Too many failed OTP attempts. Please try again in ${lockout.waitSeconds} seconds.`,
+        locked: true,
+        waitSeconds: lockout.waitSeconds,
+      };
+    }
+
     // Find valid, unused OTP for this email
     const otpRecord = await OTP.findOne({
       email: normalizedEmail,
@@ -192,15 +206,34 @@ export const verifyOTP = async ({ email, otp, type = 'email' }) => {
     }).sort({ createdAt: -1 }); // Get the most recent
 
     if (!otpRecord) {
+      // No valid OTP found — still increment failure count to prevent enumeration
+      const failResult = await incrementOTPFailures(normalizedEmail, type);
+      if (failResult.locked) {
+        return {
+          success: false,
+          message: `Too many failed attempts. Please try again in ${failResult.waitSeconds} seconds.`,
+          locked: true,
+          waitSeconds: failResult.waitSeconds,
+        };
+      }
       return {
         success: false,
         message: 'Invalid or expired OTP. Please request a new one.'
       };
     }
 
-    // Check if OTP matches
+    // Check if OTP matches (constant-time comparison via Rust SHA-256 with bcrypt fallback)
     const isMatch = await otpRecord.compareOTP(otp);
     if (!isMatch) {
+      const failResult = await incrementOTPFailures(normalizedEmail, type);
+      if (failResult.locked) {
+        return {
+          success: false,
+          message: `Too many failed attempts. Please try again in ${failResult.waitSeconds} seconds.`,
+          locked: true,
+          waitSeconds: failResult.waitSeconds,
+        };
+      }
       return {
         success: false,
         message: 'Invalid OTP'
@@ -211,6 +244,7 @@ export const verifyOTP = async ({ email, otp, type = 'email' }) => {
     otpRecord.used = true;
     await otpRecord.save();
     await delRedisOTP(`${normalizedEmail}:${type}`);
+    await resetOTPFailures(normalizedEmail, type);
     await OTP.updateMany(
       {
         email: normalizedEmail,

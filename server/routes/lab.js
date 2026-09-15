@@ -11,6 +11,7 @@ import { protect, adminOnly } from '../middleware/auth.js';
 import { validate, createLabOrderSchema } from '../utils/validate.js';
 import { auditLog } from '../middleware/audit.js';
 import { generateOrderId, generateSampleId, generateTimestampedId } from '../utils/idGenerator.js';
+import { toCsvNative, toCsvFallback, NATIVE_CSV_AVAILABLE } from '../services/napiCsvService.js';
 
 const labRegisterSampleSchema = z.object({ testIndex: z.number().int().nonnegative(), sampleType: z.string().optional() });
 const labCollectSampleSchema = z.object({ testIndex: z.number().int().nonnegative(), rejectionReason: z.string().optional() });
@@ -449,11 +450,20 @@ router.get('/export', protect, adminOnly, async (req, res) => {
     const orders = await LabOrder.find(filter).populate('patientId', 'name').populate('doctorId', 'name');
 
     if (format === 'csv') {
-      const header = 'orderId,patient,doctor,tests,status,amount,createdAt\n';
-      const rows = orders.map(o => `${o.orderId},${o.patientName},${o.doctorName},${o.tests?.length || 0},${o.status},${o.amount || 0},${o.createdAt?.toISOString()?.split('T')[0]}`).join('\n');
+      const labFields = ['orderId', 'patient', 'doctor', 'tests', 'status', 'amount', 'createdAt'];
+      const labData = orders.map(o => ({
+        orderId: o.orderId,
+        patient: o.patientName,
+        doctor: o.doctorName,
+        tests: o.tests?.length || 0,
+        status: o.status,
+        amount: o.amount || 0,
+        createdAt: o.createdAt?.toISOString()?.split('T')[0],
+      }));
+      const csv = NATIVE_CSV_AVAILABLE ? toCsvNative(labData, labFields) : toCsvFallback(labData, labFields);
       res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', 'attachment; filename=lab-orders.csv');
-      return res.send(header + rows);
+      res.setHeader('Content-Disposition', `attachment; filename=lab-orders.csv`);
+      return res.send(csv);
     }
 
     res.json({ orders });

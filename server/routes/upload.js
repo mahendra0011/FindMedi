@@ -10,6 +10,7 @@ import { protect } from '../middleware/auth.js';
 import { uploadFileToCloudinary } from '../services/cloudinaryService.js';
 import { uploadFileToDrive, isConfigured as isDriveConfigured } from '../services/driveService.js';
 import { getISTDateString } from '../utils/dateUtils.js';
+import { validateFileContent } from '../middleware/upload.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -90,6 +91,13 @@ router.post('/', protect, upload.single('file'), async (req, res, next) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    // Content-based file type verification (magic bytes) — prevents MIME type spoofing
+    if (!validateFileContent(req.file.buffer, req.file.mimetype)) {
+      return res.status(400).json({
+        error: 'File content does not match its claimed type. Upload rejected for security.',
+      });
     }
 
     const storedIn = req.body?.storedIn || 'cloudinary';

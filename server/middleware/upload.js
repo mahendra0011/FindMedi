@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
+import { validateMagicBytes as napiValidateMagicBytes, NATIVE_AVAILABLE } from '../services/napiImageService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -64,6 +65,66 @@ function fileFilter(allowedTypes) {
     } else {
       cb(new Error(`File type ${file.mimetype} is not allowed. Allowed types: ${allowedTypes.join(', ')}`), false);
     }
+  };
+}
+
+// Magic byte signatures for content-based file type verification
+const MAGIC_BYTES = {
+  'image/jpeg': [Buffer.from([0xff, 0xd8, 0xff])],
+  'image/png': [Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])],
+  'image/gif': [Buffer.from([0x47, 0x49, 0x46, 0x38])],
+  'image/webp': [Buffer.from([0x52, 0x49, 0x46, 0x46])], // RIFF....WEBP checked separately
+  'application/pdf': [Buffer.from([0x25, 0x50, 0x44, 0x46])],
+  'application/msword': [Buffer.from([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x00, 0x00])],
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': [
+    // ZIP signature (docx is a zip)
+    Buffer.from([0x50, 0x4b, 0x03, 0x04]),
+  ],
+};
+
+const isZipType = (mimetype) => mimetype.includes('officedocument');
+
+export function validateFileContent(buffer, mimetype) {
+  // Use native Rust validation when the napi module is available
+  if (NATIVE_AVAILABLE) {
+    return napiValidateMagicBytes(buffer, mimetype).valid;
+  }
+
+  // Fallback: pure JavaScript magic byte validation
+  if (!buffer || buffer.length < 4) return false;
+
+  const signatures = MAGIC_BYTES[mimetype];
+  if (!signatures) return true; // Unknown type — allow (MIME filter already checked)
+
+  for (const sig of signatures) {
+    if (buffer.slice(0, sig.length).equals(sig)) {
+      // For WebP, verify the full RIFF....WEBP pattern
+      if (mimetype === 'image/webp' && buffer.length >= 12 &&
+          buffer.slice(8, 12).toString('ascii') === 'WEBP') {
+        return true;
+      }
+      if (mimetype !== 'image/webp') return true;
+    }
+  }
+  return false;
+}
+
+export function requireValidatedFile(allowedTypes, maxFileSize) {
+  return (req, res, next) => {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+    if (!allowedTypes.includes(req.file.mimetype)) {
+      return res.status(400).json({
+        message: `File type ${req.file.mimetype} is not allowed. Allowed types: ${allowedTypes.join(', ')}`,
+      });
+    }
+    if (!validateFileContent(req.file.buffer, req.file.mimetype)) {
+      return res.status(400).json({
+        message: `File content does not match its MIME type. The file may be corrupted or malicious.`,
+      });
+    }
+    next();
   };
 }
 

@@ -99,6 +99,7 @@ const userSchema = new mongoose.Schema({
     lng: { type: Number, default: null },
   },
   isOnline: { type: Boolean, default: false },
+  lastActive: { type: Date, default: Date.now, index: true },
   deliveryZone: [{ type: String }],
   workingHours: {
     type: Object,

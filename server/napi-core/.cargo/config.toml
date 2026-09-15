@@ -1,0 +1,15 @@
+# Rust linker configuration for napi-rs native module builds.
+#
+# On Linux CI runners, cargo uses the system linker (cc) directly — no
+# special config needed. On Windows GNU target, rust-lld with
+# link-self-contained resolves system DLL symbols, so an empty dlltool.exe
+# replacement (src/dlltool_repl.rs) satisfies the import-library step.
+#
+# See BUILD.md for full details and the build.bat Windows build helper.
+
+[target.x86_64-pc-windows-gnu]
+linker = "rust-lld"
+rustflags = ["-C", "link-self-contained=yes"]
+
+[target.x86_64-pc-windows-msvc]
+# MSVC target uses the system linker (link.exe) — no special config needed.

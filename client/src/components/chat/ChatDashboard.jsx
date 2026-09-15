@@ -1,463 +1,1173 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { getSocket } from '@/lib/socket';
-import api from '@/lib/axios';
-import {
-  Search, Send, MoreVertical, Phone, Video, 
-  Info, Ban, BellOff, Trash2, ArrowLeft,
-  Check, CheckCheck, User as UserIcon, MessageCircle
-} from 'lucide-react';
-import { format } from 'date-fns';
+import { getSocket, joinRoom } from '@/lib/socket';
+import api, { getServerOrigin } from '@/lib/axios';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
+import {
+  Search, Send, Paperclip, Smile, Mic, X, Phone, Video, MoreVertical, Ban,
+  ArrowLeft, ChevronDown, Check, CheckCheck, Clock, AlertCircle, Pin,
+  Copy, Forward, Trash2, Star, Reply, Pencil, Info, ShieldAlert, ImageIcon,
+  FileText, Link2, Lock, BellOff, CheckSquare, Settings as SettingsIcon,
+  User as UserIcon, MessageCircle, WifiOff
+} from 'lucide-react';
+import ChatList from './ChatList';
+import MessageBubble from './MessageBubble';
+import ChatSettingsPanel from './ChatSettingsPanel';
+import ChatInfoPanel from './ChatInfoPanel';
+import EmojiPicker from './EmojiPicker';
+import MediaViewer from './MediaViewer';
+import VoiceRecorder from './VoiceRecorder';
+import {
+  DEFAULT_CHAT_PREFS, readChatPrefs, writeChatPrefs, readDrafts, saveDraft,
+  enqueueMessage, dequeueMessage, readQueue, writeQueue, messagePreview,
+  wallpaperCss, readConversationWallpapers, setConversationWallpaper,
+} from '@/lib/chatPrefs';
+
+const mediaUrl = (u) => (String(u || '').startsWith('http') ? u : `${getServerOrigin()}${u}`);
+const uid = (v) => (v == null ? '' : (typeof v === 'object' ? String(v._id || v.userId || '') : String(v)));
 
 export default function ChatDashboard() {
   const { user } = useAuth();
-  const socket = getSocket();
-  const [conversations, setConversations] = useState([]);
-  const [selectedConversation, setSelectedConversation] = useState(null);
-  const [messages, setMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-  const [typingUsers, setTypingUsers] = useState({});
-  const [searchQuery, setSearchQuery] = useState('');
-  const [userSearchResults, setUserSearchResults] = useState([]);
-  const [showSettings, setShowSettings] = useState(false);
-  const messagesEndRef = useRef(null);
+  const meId = uid(user?.id || user?._id);
 
-  // Fetch Conversations
-  useEffect(() => {
-    fetchConversations();
+  // ── Core lists ──
+  const [conversations, setConversations] = useState([]);
+  const [contacts, setContacts] = useState([]);
+  const [requests, setRequests] = useState([]);
+  const [blocked, setBlocked] = useState([]);
+  const [reports, setReports] = useState([]);
+  const [filter, setFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // ── Active conversation ──
+  const [selectedId, setSelectedId] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [unreadDividerId, setUnreadDividerId] = useState(null);
+  const [gallery, setGallery] = useState({ media: [], links: [], files: [], voice: [] });
+  const [starred, setStarred] = useState([]);
+
+  // ── Composer ──
+  const [draftText, setDraftText] = useState('');
+  const [replyTo, setReplyTo] = useState(null);
+  const [editMessage, setEditMessage] = useState(null);
+  const [showEmoji, setShowEmoji] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [pendingAttachments, setPendingAttachments] = useState([]);
+  const fileInputRef = useRef(null);
+
+  // ── Realtime indicators ──
+  const [typingUsers, setTypingUsers] = useState({});
+  const [recordingUsers, setRecordingUsers] = useState({});
+  const [onlineUsers, setOnlineUsers] = useState({});
+  const [connected, setConnected] = useState(true);
+  const [queuedCount, setQueuedCount] = useState(0);
+
+  // ── Selection / forward ──
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedMessages, setSelectedMessages] = useState([]);
+  const [forwardMessageIds, setForwardMessageIds] = useState(null);
+
+  // ── Panels / dialogs ──
+  const [showSettings, setShowSettings] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
+  const [reactionDetails, setReactionDetails] = useState(null);
+  const [viewer, setViewer] = useState(null);
+  const [messageInfo, setMessageInfo] = useState(null);
+
+  // ── Prefs & privacy ──
+  const [prefs, setPrefsState] = useState(DEFAULT_CHAT_PREFS);
+  const [privacy, setPrivacy] = useState({});
+  const [theme, setTheme] = useState('system');
+  const [storage, setStorage] = useState(null);
+  const [backup, setBackup] = useState({});
+  const [backupRunning, setBackupRunning] = useState(false);
+  const [pinSet, setPinSet] = useState(false);
+
+  const setPrefs = useCallback((patch) => {
+    setPrefsState((p) => {
+      const next = typeof patch === 'function' ? patch(p) : { ...p, ...patch };
+      writeChatPrefs(next);
+      return next;
+    });
   }, []);
 
-  const fetchConversations = async () => {
+  const setPrivacyField = useCallback(async (key, value) => {
+    const prev = privacy;
+    setPrivacy((p) => ({ ...p, [key]: value }));
     try {
-      const { data } = await api.get('/api/chat/conversations');
+      const { data } = await api.put('/chat/privacy', { [key]: value });
+      setPrivacy(data);
+      setBackup(data.backup || {});
+    } catch (err) {
+      setPrivacy(prev);
+      toast.error(err.response?.data?.message || 'Setting save nahi hui');
+    }
+  }, [privacy]);
+
+  const refreshConversations = useCallback(async () => {
+    try {
+      const { data } = await api.get('/chat/conversations');
       setConversations(data);
-    } catch (error) {
-      toast.error('Failed to load conversations');
-    }
-  };
+    } catch { toast.error('Conversations load nahi hui'); }
+  }, []);
 
-  // Socket setup
-  useEffect(() => {
-    if (!socket || !user) return;
-
-    // Join my user room for global notifications
-    socket.emit('join', { userId: user._id, role: user.role });
-
-    const handleReceiveMessage = (message) => {
-      if (selectedConversation && message.conversationId === selectedConversation._id) {
-        setMessages((prev) => [...prev, message]);
-        // Mark as read if viewing
-        if (message.sender !== user._id) {
-          api.put(`/api/chat/messages/read/${selectedConversation._id}`);
-        }
-      } else {
-        // Update conversation list with new lastMessage
-        fetchConversations();
-      }
-    };
-
-    const handleNewMessageNotification = (message) => {
-      // Re-fetch conversations to show unread or latest message
-      fetchConversations();
-      if (!selectedConversation || message.conversationId !== selectedConversation._id) {
-        toast.info('New message received');
-      }
-    };
-
-    const handleTyping = ({ conversationId, userId, isTyping }) => {
-      setTypingUsers(prev => ({
-        ...prev,
-        [conversationId]: isTyping
-      }));
-    };
-
-    socket.on('chat:receive_message', handleReceiveMessage);
-    socket.on('chat:new_message_notification', handleNewMessageNotification);
-    socket.on('chat:typing', handleTyping);
-
-    return () => {
-      socket.off('chat:receive_message', handleReceiveMessage);
-      socket.off('chat:new_message_notification', handleNewMessageNotification);
-      socket.off('chat:typing', handleTyping);
-    };
-  }, [socket, user, selectedConversation]);
-
-  // Select Conversation
-  const handleSelectConversation = async (conv) => {
-    if (selectedConversation) {
-      socket.emit('chat:leave', selectedConversation._id);
-    }
-    setSelectedConversation(conv);
-    setShowSettings(false);
-    
-    // Join conversation room
-    socket.emit('chat:join', conv._id);
-    
-    // Fetch messages
+  const refreshSideData = useCallback(async () => {
     try {
-      const { data } = await api.get(`/api/chat/messages/${conv._id}`);
-      setMessages(data);
-      // Mark as read
-      await api.put(`/api/chat/messages/read/${conv._id}`);
-    } catch (error) {
-      toast.error('Failed to load messages');
-    }
-  };
+      const [c, r, b, rep, st] = await Promise.all([
+        api.get('/chat/contacts'),
+        api.get('/chat/conversations/requests'),
+        api.get('/chat/blocked'),
+        api.get('/chat/report/my'),
+        api.get('/chat/starred'),
+      ]);
+      setContacts(c.data);
+      setRequests(r.data);
+      setBlocked(b.data);
+      setReports(rep.data);
+      setStarred(st.data);
+    } catch { /* non-fatal */ }
+  }, []);
 
-  // Scroll to bottom
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const refreshPrivacy = useCallback(async () => {
+    try {
+      const { data } = await api.get('/chat/privacy');
+      setPrivacy(data);
+      setPinSet(Boolean(data.appLockPinSet));
+      setBackup(data.backup || {});
+      try { setTheme(JSON.parse(localStorage.getItem('medicore_settings') || '{}').theme || 'system'); } catch { /* keep */ }
+    } catch { /* non-fatal */ }
+  }, []);
+
+  const refreshStorage = useCallback(async () => {
+    try {
+      const { data } = await api.get('/chat/storage-usage');
+      setStorage(data);
+    } catch { /* non-fatal */ }
+  }, []);
+
+  /*__DERIVED_HERE__*/
+  /* ── Derived ── */
+  const activeConv = useMemo(
+    () => conversations.find((c) => uid(c._id) === uid(selectedId)) || null,
+    [conversations, selectedId]
+  );
+  const peer = useMemo(() => {
+    const list = activeConv?.participants || [];
+    const other = list.find((p) => uid(p._id || p) !== meId) || null;
+    return other ? {
+      ...other,
+      _id: uid(other._id || other),
+      isOnline: onlineUsers[uid(other._id || other)]?.isOnline ?? other.isOnline,
+      lastActive: onlineUsers[uid(other._id || other)]?.lastActive || other.lastActive,
+    } : null;
+  }, [activeConv, meId, onlineUsers]);
+
+  const tables = useMemo(() => ({
+    typing: Object.keys(typingUsers[uid(selectedId)] || {}).length > 0,
+    recording: Object.keys(recordingUsers[uid(selectedId)] || {}).length > 0,
+  }), [typingUsers, recordingUsers, selectedId]);
+
+  const pinnedMsg = useMemo(
+    () => messages.find((m) => m._id === (activeConv?.pinnedMessageId || activeConv?.pinnedMessage?._id)) || null,
+    [messages, activeConv]
+  );
+
+  const grouped = useMemo(() => {
+    const out = [];
+    let lastDay = '';
+    messages.forEach((m) => {
+      const day = new Date(m.createdAt).toDateString();
+      if (day !== lastDay) {
+        out.push({ kind: 'day', label: format(new Date(m.createdAt), 'dd MMM yyyy'), id: `d-${day}` });
+        lastDay = day;
+      }
+      out.push({ kind: 'msg', message: m });
+    });
+    return out;
   }, [messages]);
 
-  // Send Message
-  const handleSendMessage = async (e) => {
-    e.preventDefault();
-    if (!newMessage.trim() || !selectedConversation) return;
-
-    const recipient = selectedConversation.participants.find(p => p._id !== user._id);
-
-    try {
-      const { data } = await api.post('/api/chat/messages', {
-        conversationId: selectedConversation._id,
-        content: newMessage,
-        recipientId: recipient?._id
-      });
-      
-      // Update local state immediately
-      setMessages(prev => [...prev, data]);
-      setNewMessage('');
-      
-      // Socket emit
-      socket.emit('chat:send_message', { ...data, recipientId: recipient?._id });
-      
-      // Update last message in conversation list
-      fetchConversations();
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to send message');
-    }
-  };
-
-  // Search Users
+  /* ── Boot: prefs + server data ── */
   useEffect(() => {
-    const delayDebounceFn = setTimeout(async () => {
-      if (searchQuery.trim().length > 2) {
-        try {
-          const { data } = await api.get(`/api/chat/search-users?q=${searchQuery}`);
-          setUserSearchResults(data);
-        } catch (error) {
-          console.error(error);
+    setPrefsState(readChatPrefs());
+    refreshPrivacy();
+    refreshConversations();
+    refreshSideData();
+    refreshStorage();
+  }, [refreshPrivacy, refreshConversations, refreshSideData, refreshStorage]);
+
+  /* ── Socket.IO: presence, realtime messages, typing/recording, sync ── */
+  /* ── Refs, drafts, offline queue flush ── */
+  const scrollRef = useRef(null);
+  const selectedIdRef = useRef(null);
+  const replyToRef = useRef(null);
+  const typingTimerRef = useRef(null);
+  const [drafts, setDrafts] = useState({});
+
+  useEffect(() => { selectedIdRef.current = selectedId; }, [selectedId]);
+  useEffect(() => { replyToRef.current = replyTo; }, [replyTo]);
+  useEffect(() => { setDrafts(readDrafts()); }, []);
+
+  const scrollToBottom = useCallback((smooth = true) => {
+    const el = scrollRef.current;
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior: smooth ? 'smooth' : 'auto' });
+  }, []);
+
+  /** Reconnect / boot par offline queue ke messages server ko bhejta hai */
+  const flushQueue = useCallback(async () => {
+    const queue = readQueue(meId);
+    if (!queue.length) return;
+    let sent = 0;
+    for (const item of queue) {
+      try {
+        // eslint-disable-next-line no-await-in-loop
+        const { data } = await api.post('/chat/messages', item.payload);
+        setMessages((prev) => prev.map((m) => (m._id === item.clientGeneratedId ? data : m)));
+        dequeueMessage(meId, item.clientGeneratedId);
+        sent += 1;
+      } catch (err) {
+        if (err.response) {
+          // permanent rejection — queue se hatao, failed mark karo
+          setMessages((prev) => prev.map((m) => (m._id === item.clientGeneratedId ? { ...m, status: 'failed' } : m)));
+          dequeueMessage(meId, item.clientGeneratedId);
         }
-      } else {
-        setUserSearchResults([]);
+        // network error → item queue me hi rahega, agli flush me retry
       }
-    }, 500);
-
-    return () => clearTimeout(delayDebounceFn);
-  }, [searchQuery]);
-
-  const handleStartNewChat = async (targetUserId) => {
-    try {
-      const { data } = await api.post('/api/chat/conversations', { targetUserId });
-      setSearchQuery('');
-      setUserSearchResults([]);
-      await fetchConversations();
-      handleSelectConversation(data);
-    } catch (error) {
-      toast.error('Failed to start chat');
     }
-  };
+    setQueuedCount(readQueue(meId).length);
+    if (sent > 0) toast.success(`${sent} pending message bhej diye gaye`);
+  }, [meId]);
 
-  const handleSettingsToggle = async (action, value) => {
+  /** Draft update + typing indicator emit (2.5s debounce stop) */
+  const updateDraft = useCallback((convId, text) => {
+    setDraftText(text);
+    saveDraft(convId, text);
+    setDrafts(readDrafts());
+    if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+    const socket = getSocket();
+    socket.emit('chat:typing', { conversationId: convId, isTyping: Boolean(text) });
+    typingTimerRef.current = setTimeout(() => {
+      socket.emit('chat:typing', { conversationId: convId, isTyping: false });
+    }, 2500);
+  }, []);
+
+  useEffect(() => {
+    if (!meId) return undefined;
+    const socket = getSocket();
+    const cleanupJoin = joinRoom('chat:join', meId);
+
+    const onConnect = () => {
+      setConnected(true);
+      socket.emit('chat:presence', { online: true });
+      socket.emit('chat:sync', { since: Date.now() - 60000 }); // reconnect → missed events
+      flushQueue();
+      refreshConversations();
+    };
+    const onDisconnect = () => setConnected(false);
+
+    socket.on('connect', onConnect);
+    socket.on('disconnect', onDisconnect);
+
+    socket.on('chat:receive_message', (msg) => {
+      if (!msg?._id) return;
+      // Mere hi doosre device se aaya (multi-device sync) — local optimistic replace
+      setMessages((prev) => {
+        if (!prev.some((m) => m._id === msg._id)) return prev;
+        return prev.map((m) => (m._id === msg._id ? msg : m));
+      });
+      setConversations((prev) => prev.map((c) => (uid(c._id) === uid(msg.conversationId)
+        ? { ...c, lastMessage: { content: msg.content, type: msg.type, createdAt: msg.createdAt } }
+        : c)));
+      if (selectedIdRef.current === uid(msg.conversationId)) {
+        api.put(`/chat/messages/read/${msg.conversationId}`).catch(() => {});
+      }
+    });
+
+    socket.on('chat:read', ({ conversationId, userId }) => {
+      if (uid(userId) === meId) return;
+      setMessages((prev) => prev.map((m) => (uid(m.conversationId) === uid(conversationId)
+        ? { ...m, readCount: Math.max(m.readCount || 0, 1) } : m)));
+    });
+
+    socket.on('chat:delivered', ({ conversationId, userId }) => {
+      if (uid(userId) === meId) return;
+      setMessages((prev) => prev.map((m) => (uid(m.conversationId) === uid(conversationId)
+        ? { ...m, deliveredCount: Math.max(m.deliveredCount || 0, 1) } : m)));
+    });
+
+    socket.on('chat:reaction', (msg) => {
+      setMessages((prev) => prev.map((m) => (m._id === msg._id ? { ...m, ...msg } : m)));
+    });
+    socket.on('chat:message_edited', (msg) => {
+      setMessages((prev) => prev.map((m) => (m._id === msg._id ? { ...m, ...msg } : m)));
+    });
+    socket.on('chat:message_deleted', ({ messageId, deletedForEveryone }) => {
+      setMessages((prev) => (deletedForEveryone
+        ? prev.filter((m) => m._id !== messageId)
+        : prev.map((m) => (m._id === messageId ? { ...m, deletedForEveryone: true, content: '' } : m))));
+    });
+    socket.on('chat:pinned_message', ({ conversationId, messageId }) => {
+      setConversations((prev) => prev.map((c) => (uid(c._id) === uid(conversationId)
+        ? { ...c, pinnedMessageId: messageId } : c)));
+    });
+
+    socket.on('chat:typing', ({ conversationId, userId, isTyping }) => {
+      if (uid(userId) === meId) return;
+      setTypingUsers((prev) => {
+        const conv = { ...(prev[conversationId] || {}) };
+        if (isTyping) conv[userId] = Date.now();
+        else delete conv[userId];
+        return { ...prev, [conversationId]: conv };
+      });
+    });
+
+    socket.on('chat:recording', ({ conversationId, userId, isRecording }) => {
+      if (uid(userId) === meId) return;
+      setRecordingUsers((prev) => {
+        const conv = { ...(prev[conversationId] || {}) };
+        if (isRecording) conv[userId] = Date.now();
+        else delete conv[userId];
+        return { ...prev, [conversationId]: conv };
+      });
+    });
+
+    socket.on('chat:presence', ({ userId, isOnline, lastActive }) => {
+      setOnlineUsers((prev) => ({ ...prev, [userId]: { isOnline, lastActive } }));
+    });
+
+    socket.on('chat:conversation_updated', () => refreshConversations());
+    socket.on('chat:new_message_notification', () => {
+      refreshConversations();
+      refreshSideData();
+    });
+    socket.on('chat:message_request', () => {
+      refreshSideData();
+      toast.info('New message request');
+    });
+
+    return () => {
+      cleanupJoin();
+      socket.emit('chat:presence', { online: false });
+      ['connect', 'disconnect', 'chat:receive_message', 'chat:read', 'chat:delivered',
+        'chat:reaction', 'chat:message_edited', 'chat:message_deleted', 'chat:pinned_message',
+        'chat:typing', 'chat:recording', 'chat:presence', 'chat:conversation_updated',
+        'chat:new_message_notification', 'chat:message_request'].forEach((e) => socket.off(e));
+    };
+  }, [meId, flushQueue, refreshConversations, refreshSideData]);
+
+  /* ── Conversation open ── */
+  const openConversation = useCallback(async (id) => {
+    setSelectedId(id);
+    setSelectionMode(false); setSelectedMessages([]);
+    setReplyTo(null); setEditMessage(null); setShowInfo(false);
+    setDraftText(readDrafts()[id] || '');
+    setLoadingMessages(true);
     try {
-      const { data } = await api.put(`/api/chat/settings/${selectedConversation._id}`, { action, value });
-      setSelectedConversation(data);
-      fetchConversations();
-      toast.success(`${action} updated`);
-    } catch (error) {
-      toast.error(`Failed to update ${action}`);
-    }
-  };
+      const [m, g] = await Promise.all([
+        api.get(`/chat/messages/${id}`),
+        api.get(`/chat/messages/${id}/media`),
+      ]);
+      setMessages(m.data);
+      setGallery(g.data || { media: [], links: [], files: [], voice: [] });
+      api.put(`/chat/messages/read/${id}`).catch(() => {});
+      api.put(`/chat/messages/delivered/${id}`).catch(() => {});
+      setConversations((prev) => prev.map((c) => (uid(c._id) === uid(id) ? { ...c, unread: 0 } : c)));
+      requestAnimationFrame(() => scrollToBottom(false));
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Messages load nahi hue');
+    } finally { setLoadingMessages(false); }
+  }, [scrollToBottom]);
 
-  const getOtherParticipant = (conv) => {
-    return conv.participants.find(p => p._id !== user?._id);
+  /* ── Send (optimistic + offline queue) ── */
+  const sendMessage = useCallback(async ({ text = '', type = 'text', attachments = [] } = {}) => {
+    const convId = selectedIdRef.current;
+    if (!convId || (!text.trim() && !attachments.length)) return;
+    const clientGeneratedId = `c-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const replySnapshot = replyToRef.current;
+    setMessages((prev) => [...prev, {
+      _id: clientGeneratedId, clientGeneratedId, conversationId: convId,
+      sender: { _id: meId, name: user?.name || '', avatar: user?.avatar || '' },
+      type, content: text, attachments, replyTo: replySnapshot,
+      mine: true, status: 'sending', reactions: [], starred: false,
+      deliveredCount: 0, readCount: 0, createdAt: new Date().toISOString(),
+    }]);
+    requestAnimationFrame(() => scrollToBottom());
+
+    const payload = { conversationId: convId, type, content: text, attachments, replyTo: replySnapshot?._id || null, clientGeneratedId };
+    setReplyTo(null);
+    saveDraft(convId, ''); setDraftText(''); setDrafts(readDrafts());
+    getSocket().emit('chat:typing', { conversationId: convId, isTyping: false });
+
+    if (!connected) {
+      enqueueMessage(meId, payload);
+      setQueuedCount(readQueue(meId).length);
+      setMessages((prev) => prev.map((m) => (m._id === clientGeneratedId ? { ...m, status: 'queued' } : m)));
+      toast.info('Offline — queue me hai, internet aane par bhej denge');
+      return;
+    }
+    try {
+      const { data } = await api.post('/chat/messages', payload);
+      setMessages((prev) => prev.map((m) => (m._id === clientGeneratedId ? data : m)));
+      refreshConversations();
+    } catch (err) {
+      if (!err.response) {
+        enqueueMessage(meId, payload);
+        setQueuedCount(readQueue(meId).length);
+        setMessages((prev) => prev.map((m) => (m._id === clientGeneratedId ? { ...m, status: 'queued' } : m)));
+      } else {
+        toast.error(err.response?.data?.message || 'Message send nahi hua');
+        setMessages((prev) => prev.map((m) => (m._id === clientGeneratedId ? { ...m, status: 'failed' } : m)));
+      }
+    }
+  }, [meId, user, connected, scrollToBottom, refreshConversations]);
+
+  /* ── Attachments (image/video/doc) + voice ── */
+  const uploadDataUrl = useCallback(async (dataUrl, name) => {
+    const { data } = await api.post('/chat/upload', { dataUrl, name });
+    return data; // { url, name, size, mimetype }
+  }, []);
+
+  const handleFilesPicked = useCallback(async (fileList) => {
+    const files = Array.from(fileList || []);
+    if (!files.length) return;
+    setUploading(0.15);
+    try {
+      const uploaded = [];
+      for (const file of files) {
+        if (file.size > 25 * 1024 * 1024) { toast.error(`${file.name} 25MB se bada hai`); continue; }
+        const dataUrl = await new Promise((resolve, reject) => {
+          const fr = new FileReader();
+          fr.onload = () => resolve(fr.result);
+          fr.onerror = reject;
+          fr.readAsDataURL(file);
+        });
+        setUploading(0.5);
+        // eslint-disable-next-line no-await-in-loop
+        const meta = await uploadDataUrl(dataUrl, file.name);
+        uploaded.push(meta);
+      }
+      setUploading(false);
+      if (!uploaded.length) return;
+      const first = uploaded[0];
+      const type = first.mimetype?.startsWith('image/') ? 'image'
+        : first.mimetype?.startsWith('video/') ? 'video'
+          : first.mimetype?.startsWith('audio/') ? 'audio' : 'file';
+      await sendMessage({ text: draftText.trim(), type, attachments: uploaded });
+    } catch (err) {
+      setUploading(false);
+      toast.error(err.response?.data?.message || 'Upload fail');
+    }
+  }, [uploadDataUrl, sendMessage, draftText]);
+
+  const handleVoiceSend = useCallback(async ({ dataUrl, duration }) => {
+    setUploading(0.4);
+    try {
+      const meta = await uploadDataUrl(dataUrl, `voice-${Date.now()}.webm`);
+      setUploading(false);
+      await sendMessage({ type: 'voice', attachments: [{ ...meta, duration }] });
+    } catch (err) {
+      setUploading(false);
+      toast.error(err.response?.data?.message || 'Voice message fail');
+    }
+  }, [uploadDataUrl, sendMessage]);
+
+  /* ── Message actions ── */
+  const handleReact = useCallback(async (messageId, emoji) => {
+    setMessages((prev) => prev.map((m) => (m._id === messageId
+      ? { ...m, myReaction: m.myReaction === emoji ? null : emoji } : m)));
+    try { await api.post(`/chat/messages/${messageId}/reactions`, { emoji }); }
+    catch { toast.error('Reaction save nahi hua'); }
+  }, []);
+
+  const handleEditSubmit = useCallback(async (messageId, content) => {
+    try {
+      const { data } = await api.put(`/chat/messages/${messageId}`, { content });
+      setMessages((prev) => prev.map((m) => (m._id === messageId ? { ...m, ...data, edited: true } : m)));
+      setEditMessage(null);
+    } catch (err) { toast.error(err.response?.data?.message || 'Edit fail'); }
+  }, []);
+
+  const handleDelete = useCallback(async (messageId, scope) => {
+    try {
+      await api.delete(`/chat/messages/${messageId}`, { params: { scope } });
+      setMessages((prev) => (scope === 'everyone'
+        ? prev.map((m) => (m._id === messageId ? { ...m, deletedForEveryone: true, content: '', attachments: [] } : m))
+        : prev.filter((m) => m._id !== messageId)));
+    } catch (err) { toast.error(err.response?.data?.message || 'Delete fail'); }
+  }, []);
+
+  const handleStar = useCallback(async (messageId, current) => {
+    setMessages((prev) => prev.map((m) => (m._id === messageId ? { ...m, starred: !current } : m)));
+    try { await api.put(`/chat/messages/${messageId}/star`, { starred: !current }); refreshSideData(); }
+    catch { toast.error('Star update fail'); }
+  }, [refreshSideData]);
+
+  const handlePin = useCallback(async (messageId) => {
+    const convId = selectedIdRef.current;
+    if (!convId) return;
+    try {
+      await api.put(`/chat/${convId}/pin-message`, { messageId });
+      setConversations((prev) => prev.map((c) => (uid(c._id) === uid(convId) ? { ...c, pinnedMessageId: messageId } : c)));
+      toast.success(messageId ? 'Message pinned' : 'Unpinned');
+    } catch (err) { toast.error(err.response?.data?.message || 'Pin fail'); }
+  }, []);
+
+  const handleCopy = useCallback((message) => {
+    const text = message.content || (message.attachments || []).map((a) => a.url).join('\n');
+    navigator.clipboard?.writeText(text).then(() => toast.success('Copied')).catch(() => {});
+  }, []);
+
+  const handleForward = useCallback(async (targetConvId) => {
+    if (!forwardMessageIds?.length) return;
+    try {
+      await api.post('/chat/messages/forward', { messageIds: forwardMessageIds, conversationId: targetConvId });
+      toast.success('Message forward ho gaya');
+      setForwardMessageIds(null); setSelectedMessages([]); setSelectionMode(false);
+      refreshConversations();
+    } catch (err) { toast.error(err.response?.data?.message || 'Forward fail'); }
+  }, [forwardMessageIds, refreshConversations]);
+
+  const handleRetry = useCallback((message) => {
+    sendMessage({ text: message.content, type: message.type, attachments: message.attachments });
+    setMessages((prev) => prev.filter((m) => m._id !== message._id));
+  }, [sendMessage]);
+
+  const openMessageInfo = useCallback(async (message) => {
+    try {
+      const { data } = await api.get(`/chat/messages/${message._id}/info`);
+      setMessageInfo({ message, info: data });
+    } catch { setMessageInfo({ message, info: null }); }
+  }, []);
+
+  const openReactionDetails = useCallback(async (message) => {
+    try {
+      const { data } = await api.get(`/chat/messages/${message._id}/reactions`);
+      setReactionDetails({ message, reactions: data });
+    } catch { /* ignore */ }
+  }, []);
+
+  const reportMessage = useCallback(async (message) => {
+    try {
+      await api.post('/chat/report', {
+        reportedUserId: uid(peer?.id || peer?._id), messageId: message._id,
+        conversationId: selectedIdRef.current, reason: 'other', details: 'Reported from chat',
+      });
+      toast.success('Report bhej diya');
+      refreshSideData();
+    } catch (err) { toast.error(err.response?.data?.message || 'Report fail'); }
+  }, [peer, refreshSideData]);
+
+  /* ── Conversation actions ── */
+  const convAction = useCallback(async (action, value) => {
+    const convId = selectedIdRef.current;
+    if (!convId) return;
+    try {
+      await api.put(`/chat/settings/${convId}`, { action, value });
+      await refreshConversations();
+    } catch (err) { toast.error(err.response?.data?.message || 'Action fail'); }
+  }, [refreshConversations]);
+
+  const markUnread = useCallback(async (convId) => {
+    try {
+      await api.put(`/chat/messages/mark-unread/${convId}`);
+      setConversations((prev) => prev.map((c) => (uid(c._id) === uid(convId) ? { ...c, unread: Math.max(1, c.unread || 0) } : c)));
+    } catch { /* ignore */ }
+  }, []);
+
+  const clearChat = useCallback(async () => {
+    const convId = selectedIdRef.current;
+    if (!convId) return;
+    try {
+      await api.delete(`/chat/${convId}/clear`);
+      setMessages([]);
+      toast.success('Chat clear ho gayi (sirf aapke liye)');
+    } catch (err) { toast.error(err.response?.data?.message || 'Clear fail'); }
+  }, []);
+
+  const deleteChat = useCallback(async () => {
+    const convId = selectedIdRef.current;
+    if (!convId) return;
+    try {
+      await api.delete(`/chat/${convId}`);
+      setConversations((prev) => prev.filter((c) => uid(c._id) !== uid(convId)));
+      setSelectedId(null); setMessages([]);
+      toast.success('Chat delete ho gayi');
+    } catch (err) { toast.error(err.response?.data?.message || 'Delete fail'); }
+  }, []);
+
+  const exportChat = useCallback(() => {
+    if (!messages.length) { toast.error('Export ke liye messages nahi hain'); return; }
+    const lines = messages.map((m) => {
+      const who = m.mine ? (user?.name || 'Me') : (peer?.name || 'Contact');
+      const when = new Date(m.createdAt).toLocaleString();
+      const body = m.deletedForEveryone ? '[deleted]' : (m.content || (m.attachments || []).map((a) => a.url).join(' '));
+      return `[${when}] ${who}: ${body}`;
+    });
+    const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `chat-${peer?.name || 'export'}-${Date.now()}.txt`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }, [messages, user, peer]);
+
+  const respondRequest = useCallback(async (conv, action) => {
+    try {
+      await api.put(`/chat/conversations/${conv._id}/request`, { action });
+      refreshSideData(); refreshConversations();
+      toast.success(action === 'accept' ? 'Request accept ho gayi' : 'Request hata di');
+    } catch (err) { toast.error(err.response?.data?.message || 'Action fail'); }
+  }, [refreshSideData, refreshConversations]);
+
+  const startChat = useCallback(async (contact) => {
+    try {
+      const targetId = uid(contact.user?._id || contact.user?.id || contact._id);
+      const { data } = await api.post('/chat/conversations', { targetUserId: targetId });
+      await refreshConversations();
+      await openConversation(data._id);
+    } catch (err) { toast.error(err.response?.data?.message || 'Chat start nahi hui'); }
+  }, [refreshConversations, openConversation]);
+
+  const searchInChat = useCallback(async (q) => {
+    const convId = selectedIdRef.current;
+    if (!convId || !q) return [];
+    try {
+      const { data } = await api.get(`/chat/messages/${convId}/search`, { params: { q } });
+      return data || [];
+    } catch { return []; }
+  }, []);
+
+  const jumpToMessage = useCallback((messageId) => {
+    setHighlightId(messageId);
+    const el = document.getElementById(`msg-${messageId}`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setTimeout(() => setHighlightId(null), 2200);
+  }, []);
+
+  const runBackup = useCallback(async () => {
+    setBackupRunning(true);
+    try {
+      const { data } = await api.post('/chat/backup/run');
+      setBackup((b) => ({ ...b, lastBackupAt: data.at }));
+      toast.success('Backup complete');
+    } catch (err) { toast.error(err.response?.data?.message || 'Backup fail'); }
+    finally { setBackupRunning(false); }
+  }, []);
+
+  const setAppPin = useCallback(async (pin, currentPin) => {
+    try {
+      await api.post('/chat/privacy/app-lock/pin', { pin, currentPin });
+      setPinSet(true);
+      toast.success('PIN set ho gaya');
+      return true;
+    } catch (err) { toast.error(err.response?.data?.message || 'PIN set fail'); return false; }
+  }, []);
+
+  const onThemeChange = useCallback((next) => {
+    setTheme(next);
+    try {
+      const stored = JSON.parse(localStorage.getItem('medicore_settings') || '{}');
+      localStorage.setItem('medicore_settings', JSON.stringify({ ...stored, theme: next }));
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.classList.toggle('dark', next === 'dark' || (next === 'system' && prefersDark));
+    } catch { /* ignore */ }
+  }, []);
+
+  const requestDesktopPermission = useCallback(() => {
+    try { Notification?.requestPermission?.(); } catch { /* ignore */ }
+  }, []);
+
+  const unblockUser = useCallback(async (userId) => {
+    const conv = conversations.find((c) => uid((c.participants || []).find((p) => uid(p._id || p) !== meId)?._id) === uid(userId));
+    if (!conv) { toast.error('Conversation nahi mili'); return; }
+    try {
+      await api.put(`/chat/settings/${conv._id}`, { action: 'block', value: false });
+      refreshSideData(); refreshConversations();
+      toast.success('Unblock ho gaya');
+    } catch (err) { toast.error(err.response?.data?.message || 'Unblock fail'); }
+  }, [conversations, meId, refreshSideData, refreshConversations]);
+
+  /* ── Wallpaper apply ── */
+  useEffect(() => {
+    const isDark = document.documentElement.classList.contains('dark');
+    const convWall = readConversationWallpapers()[uid(selectedId)] || prefs.wallpaper;
+    const css = wallpaperCss(convWall, isDark);
+    const el = document.getElementById('chat-wallpaper');
+    if (el) el.style.cssText = css;
+  }, [selectedId, prefs.wallpaper, theme]);
+
+  /* ── Draft autosave (local + server) ── */
+  useEffect(() => {
+    if (!selectedIdRef.current) return undefined;
+    const convId = selectedIdRef.current;
+    const t = setTimeout(() => {
+      if (draftText) api.put(`/chat/${convId}/draft`, { text: draftText }).catch(() => {});
+    }, 900);
+    return () => clearTimeout(t);
+  }, [draftText, selectedId]);
+
+  /* ── Keyboard shortcuts ── */
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        setShowEmoji(false); setViewer(null); setMessageInfo(null); setReactionDetails(null); setForwardMessageIds(null);
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f' && selectedIdRef.current) {
+        e.preventDefault(); setShowInfo(true);
+      }
+      if (e.key === 'ArrowUp' && !draftText && messages.length && !editMessage) {
+        const last = [...messages].reverse().find((m) => m.mine && !m.deletedForEveryone);
+        if (last) { e.preventDefault(); setEditMessage({ _id: last._id, content: last.content }); setDraftText(last.content); }
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [draftText, messages, editMessage]);
+
+  const sendCurrent = useCallback(() => {
+    if (editMessage) { handleEditSubmit(editMessage._id, draftText.trim()); setDraftText(''); return; }
+    sendMessage({ text: draftText.trim() });
+  }, [editMessage, draftText, handleEditSubmit, sendMessage]);
+
+  const onComposerKeyDown = (e) => {
+    const enterSends = prefs.sendWithEnter !== false;
+    if (e.key === 'Enter' && !e.shiftKey && enterSends) { e.preventDefault(); sendCurrent(); }
   };
 
   return (
-    <div className="flex h-[calc(100vh-80px)] bg-background rounded-xl overflow-hidden border border-border shadow-sm m-4">
-      {/* LEFT SIDEBAR: Conversations List */}
-      <div className={`w-full md:w-[350px] border-r border-border flex flex-col bg-card ${selectedConversation ? 'hidden md:flex' : 'flex'}`}>
-        {/* Header */}
-        <div className="p-4 border-b border-border bg-muted/30">
-          <h2 className="text-xl font-semibold mb-4">Messages</h2>
-          <div className="relative">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Search or start new chat"
-              className="w-full bg-background border border-border rounded-full py-2 pl-9 pr-4 text-sm focus:outline-none focus:border-primary transition-colors"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-        </div>
-
-        {/* Search Results */}
-        {searchQuery.trim().length > 2 && (
-          <div className="overflow-y-auto max-h-48 border-b border-border">
-            <div className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Search Results</div>
-            {userSearchResults.length === 0 ? (
-              <div className="p-4 text-sm text-center text-muted-foreground">No users found</div>
-            ) : (
-              userSearchResults.map(u => (
-                <div 
-                  key={u._id} 
-                  className="flex items-center gap-3 p-3 hover:bg-muted/50 cursor-pointer transition-colors"
-                  onClick={() => handleStartNewChat(u._id)}
-                >
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-                    {u.avatar ? <img src={u.avatar} className="w-full h-full rounded-full object-cover" alt="" /> : u.name?.charAt(0)}
-                  </div>
-                  <div>
-                    <div className="font-medium text-sm">{u.name}</div>
-                    <div className="text-xs text-muted-foreground capitalize">{u.role?.replace('_', ' ')}</div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        )}
-
-        {/* Conversation List */}
-        <div className="flex-1 overflow-y-auto">
-          {conversations.length === 0 && !searchQuery ? (
-            <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-6 text-center space-y-3">
-              <MessageCircle className="w-12 h-12 opacity-20" />
-              <p>No conversations yet. Search for a user to start chatting.</p>
-            </div>
-          ) : (
-            conversations.map(conv => {
-              const other = getOtherParticipant(conv);
-              if (!other) return null;
-              const isSelected = selectedConversation?._id === conv._id;
-              
-              return (
-                <div 
-                  key={conv._id}
-                  onClick={() => handleSelectConversation(conv)}
-                  className={`flex items-center gap-3 p-4 cursor-pointer border-b border-border/50 transition-colors ${isSelected ? 'bg-primary/10' : 'hover:bg-muted/50'}`}
-                >
-                  <div className="relative">
-                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold flex-shrink-0">
-                      {other.avatar ? <img src={other.avatar} className="w-full h-full rounded-full object-cover" alt="" /> : <UserIcon className="w-6 h-6 opacity-50" />}
-                    </div>
-                    {other.isOnline && (
-                      <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-card"></div>
-                    )}
-                  </div>
-                  
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-baseline mb-1">
-                      <h3 className="font-semibold text-sm truncate">{other.name}</h3>
-                      {conv.lastMessage && (
-                        <span className="text-[10px] text-muted-foreground flex-shrink-0">
-                          {format(new Date(conv.lastMessageAt), 'p')}
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-xs text-muted-foreground truncate">
-                      {typingUsers[conv._id] ? (
-                        <span className="text-primary animate-pulse">Typing...</span>
-                      ) : (
-                        conv.lastMessage?.content || 'Say hi!'
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
+    <div className="flex h-[calc(100vh-64px)] min-h-[520px] -m-4 sm:-m-6 bg-background overflow-hidden">
+      <div className={`${selectedId ? 'hidden md:flex' : 'flex'} flex-shrink-0 h-full`}>
+        <ChatList
+          conversations={conversations.map((c) => ({ ...c, me: meId }))}
+          contacts={contacts}
+          requests={requests}
+          filter={filter}
+          setFilter={setFilter}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          typingUsers={typingUsers}
+          recordingUsers={recordingUsers}
+          drafts={drafts}
+          selectedId={selectedId}
+          onOpen={(c) => openConversation(c._id)}
+          onTogglePin={(c) => api.put(`/chat/settings/${c._id}`, { action: 'pin', value: !c.pinned }).then(refreshConversations)}
+          onToggleMute={(c) => api.put(`/chat/settings/${c._id}`, { action: 'mute', value: !c.muted }).then(refreshConversations)}
+          onToggleArchive={(c) => api.put(`/chat/settings/${c._id}`, { action: 'archive', value: !c.archived }).then(refreshConversations)}
+          onDeleteChat={(c) => api.delete(`/chat/${c._id}`).then(() => {
+            setConversations((p) => p.filter((x) => uid(x._id) !== uid(c._id)));
+            if (uid(selectedId) === uid(c._id)) setSelectedId(null);
+            toast.success('Chat delete ho gayi');
+          })}
+          onMarkUnread={(c) => markUnread(c._id)}
+          onNewChat={startChat}
+          onAcceptRequest={(r) => respondRequest(r, 'accept')}
+          onDeclineRequest={(r, action) => respondRequest(r, action)}
+          onOpenSettings={() => setShowSettings(true)}
+          hidePreviewsInLocked={privacy.hideLockedNotifications !== false}
+        />
       </div>
 
-      {/* RIGHT/MAIN AREA: Chat Interface */}
-      <div className={`flex-1 flex-col bg-slate-50/50 dark:bg-slate-900/50 relative ${!selectedConversation ? 'hidden md:flex items-center justify-center' : 'flex'}`}>
-        {!selectedConversation ? (
-          <div className="flex flex-col items-center justify-center text-muted-foreground space-y-4 max-w-sm text-center">
-            <div className="w-24 h-24 rounded-full bg-primary/5 flex items-center justify-center mb-2">
-              <MessageCircle className="w-12 h-12 text-primary/40" />
-            </div>
-            <h2 className="text-2xl font-bold text-foreground">MediCore Chat</h2>
-            <p>Select a conversation from the sidebar or start a new one to begin messaging.</p>
+      <div className={`flex-1 flex-col min-w-0 h-full ${selectedId ? 'flex' : 'hidden md:flex'}`}>
+        {!selectedId ? (
+          <div className="flex-1 flex flex-col items-center justify-center text-center px-6 text-muted-foreground">
+            <MessageCircle className="w-14 h-14 mb-4 opacity-30" />
+            <p className="text-base font-medium text-foreground">Select a chat to start messaging</p>
+            <p className="text-[13px] mt-1">Doctor ↔ patient ke beech secure 1-to-1 chat</p>
           </div>
         ) : (
           <>
-            {/* Chat Header */}
-            <div className="h-16 border-b border-border bg-card flex items-center justify-between px-4 sticky top-0 z-10">
-              <div className="flex items-center gap-3">
-                <button 
-                  className="md:hidden p-2 -ml-2 rounded-full hover:bg-muted text-muted-foreground"
-                  onClick={() => setSelectedConversation(null)}
-                >
-                  <ArrowLeft className="w-5 h-5" />
-                </button>
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-                  {getOtherParticipant(selectedConversation)?.avatar ? (
-                    <img src={getOtherParticipant(selectedConversation).avatar} className="w-full h-full rounded-full object-cover" alt="" />
-                  ) : (
-                    <UserIcon className="w-5 h-5 opacity-50" />
-                  )}
+            {/*__RENDER_HDR__*/}
+            <div className="flex items-center gap-3 px-3 py-2.5 border-b border-border bg-card">
+              <button onClick={() => setSelectedId(null)} className="md:hidden p-1.5 rounded-full hover:bg-muted text-muted-foreground">
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+              <button onClick={() => setShowInfo(true)} className="flex items-center gap-3 min-w-0 flex-1 text-left">
+                <div className="relative flex-shrink-0">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center overflow-hidden">
+                    {peer?.avatar ? <img src={peer.avatar} alt="" className="w-full h-full object-cover" /> : <UserIcon className="w-5 h-5 opacity-60" />}
+                  </div>
+                  {peer?.isOnline && <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-card" />}
                 </div>
-                <div>
-                  <h3 className="font-semibold text-sm">{getOtherParticipant(selectedConversation)?.name}</h3>
-                  <p className="text-[11px] text-muted-foreground">
-                    {getOtherParticipant(selectedConversation)?.isOnline ? 'Online' : 'Offline'}
+                <div className="min-w-0">
+                  <p className="text-[14px] font-semibold truncate">{peer?.name || 'Chat'}</p>
+                  <p className="text-[11px] text-muted-foreground truncate">
+                    {tables.recording ? 'recording audio…'
+                      : tables.typing ? 'typing…'
+                        : peer?.isOnline ? 'Online'
+                          : peer?.lastActive ? `Last seen ${format(new Date(peer.lastActive), 'dd MMM, HH:mm')}`
+                            : 'Offline'}
                   </p>
                 </div>
+              </button>
+              <div className="flex items-center gap-0.5">
+                {selectionMode ? (
+                  <>
+                    <button onClick={() => setForwardMessageIds(selectedMessages)} disabled={!selectedMessages.length} className="px-2.5 py-1.5 rounded-lg bg-muted text-[11px] font-medium disabled:opacity-50">
+                      Forward
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (!selectedMessages.length) return;
+                        await api.post('/chat/messages/bulk-delete', { messageIds: selectedMessages });
+                        setMessages((p) => p.filter((m) => !selectedMessages.includes(m._id)));
+                        setSelectedMessages([]); setSelectionMode(false);
+                        toast.success('Deleted');
+                      }}
+                      className="px-2.5 py-1.5 rounded-lg bg-red-500/10 text-red-600 dark:text-red-400 text-[11px] font-medium"
+                    >
+                      Delete
+                    </button>
+                    <button onClick={() => { setSelectionMode(false); setSelectedMessages([]); }} className="p-2 rounded-full hover:bg-muted text-muted-foreground">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button onClick={() => setSelectionMode(true)} className="p-2 rounded-full hover:bg-muted text-muted-foreground hidden sm:block" title="Select messages">
+                      <CheckSquare className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => setShowInfo(true)} className="p-2 rounded-full hover:bg-muted text-muted-foreground" title="Chat info">
+                      <Info className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => setShowSettings(true)} className="p-2 rounded-full hover:bg-muted text-muted-foreground" title="Chat settings">
+                      <SettingsIcon className="w-4 h-4" />
+                    </button>
+                  </>
+                )}
               </div>
-              
-              <div className="flex items-center gap-1">
-                <button className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-full transition-colors">
-                  <Video className="w-5 h-5" />
-                </button>
-                <button className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-full transition-colors">
-                  <Phone className="w-5 h-5" />
-                </button>
-                <button 
-                  className={`p-2 rounded-full transition-colors ${showSettings ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:bg-muted'}`}
-                  onClick={() => setShowSettings(!showSettings)}
-                >
-                  <MoreVertical className="w-5 h-5" />
-                </button>
-              </div>
             </div>
 
-            {/* Chat Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {messages.map((msg, idx) => {
-                const isMe = msg.sender === user._id;
-                const showDate = idx === 0 || new Date(messages[idx - 1].createdAt).toDateString() !== new Date(msg.createdAt).toDateString();
-                
-                return (
-                  <React.Fragment key={msg._id}>
-                    {showDate && (
-                      <div className="flex justify-center my-4">
-                        <span className="bg-muted px-3 py-1 rounded-full text-[10px] uppercase font-semibold text-muted-foreground">
-                          {format(new Date(msg.createdAt), 'MMM d, yyyy')}
-                        </span>
-                      </div>
-                    )}
-                    <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
-                      <div className={`max-w-[75%] px-4 py-2.5 rounded-2xl ${isMe ? 'bg-primary text-primary-foreground rounded-tr-sm' : 'bg-card border border-border text-foreground rounded-tl-sm shadow-sm'}`}>
-                        <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
-                        <div className={`flex items-center justify-end gap-1 mt-1 ${isMe ? 'text-primary-foreground/70' : 'text-muted-foreground'} text-[10px]`}>
-                          <span>{format(new Date(msg.createdAt), 'p')}</span>
-                          {isMe && (
-                            msg.status === 'read' ? <CheckCheck className="w-3 h-3 text-blue-300" /> : <Check className="w-3 h-3" />
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </React.Fragment>
-                );
-              })}
-              <div ref={messagesEndRef} />
-            </div>
-
-            {/* Chat Input */}
-            <div className="p-4 bg-card border-t border-border">
-              {selectedConversation.blockedBy?.includes(user._id) ? (
-                <div className="text-center text-sm text-destructive py-2">
-                  You have blocked this user. Unblock to send messages.
-                </div>
-              ) : selectedConversation.blockedBy?.includes(getOtherParticipant(selectedConversation)?._id) ? (
-                <div className="text-center text-sm text-muted-foreground py-2">
-                  You cannot reply to this conversation.
-                </div>
-              ) : (
-                <form onSubmit={handleSendMessage} className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={newMessage}
-                    onChange={(e) => {
-                      setNewMessage(e.target.value);
-                      if (!isTyping) {
-                        setIsTyping(true);
-                        socket.emit('chat:typing', { conversationId: selectedConversation._id, userId: user._id, isTyping: true });
-                        setTimeout(() => {
-                          setIsTyping(false);
-                          socket.emit('chat:typing', { conversationId: selectedConversation._id, userId: user._id, isTyping: false });
-                        }, 2000);
-                      }
-                    }}
-                    placeholder="Type a message..."
-                    className="flex-1 bg-muted/50 border border-border rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-                  />
-                  <button 
-                    type="submit" 
-                    disabled={!newMessage.trim()}
-                    className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm flex-shrink-0"
-                  >
-                    <Send className="w-4 h-4 ml-1" />
-                  </button>
-                </form>
-              )}
-            </div>
-
-            {/* Settings Overlay / Sidebar */}
-            {showSettings && (
-              <div className="absolute top-16 right-0 bottom-0 w-72 bg-card border-l border-border shadow-xl z-20 overflow-y-auto">
-                <div className="p-4 flex flex-col items-center border-b border-border">
-                  <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold mb-3">
-                    {getOtherParticipant(selectedConversation)?.avatar ? (
-                      <img src={getOtherParticipant(selectedConversation).avatar} className="w-full h-full rounded-full object-cover" alt="" />
-                    ) : (
-                      <UserIcon className="w-10 h-10 opacity-50" />
-                    )}
-                  </div>
-                  <h3 className="font-bold text-lg">{getOtherParticipant(selectedConversation)?.name}</h3>
-                  <p className="text-sm text-muted-foreground capitalize">{getOtherParticipant(selectedConversation)?.role?.replace('_', ' ')}</p>
-                </div>
-                
-                <div className="p-2 space-y-1">
-                  <button className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted rounded-lg transition-colors text-sm font-medium">
-                    <Info className="w-4 h-4 text-muted-foreground" /> Contact Info
-                  </button>
-                  
-                  <div className="my-2 border-t border-border"></div>
-                  
-                  {selectedConversation.mutedBy?.includes(user._id) ? (
-                    <button onClick={() => handleSettingsToggle('mute', false)} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted rounded-lg transition-colors text-sm font-medium text-primary">
-                      <BellOff className="w-4 h-4" /> Unmute Notifications
-                    </button>
-                  ) : (
-                    <button onClick={() => handleSettingsToggle('mute', true)} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted rounded-lg transition-colors text-sm font-medium">
-                      <BellOff className="w-4 h-4 text-muted-foreground" /> Mute Notifications
-                    </button>
-                  )}
-                  
-                  <button className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted rounded-lg transition-colors text-sm font-medium">
-                    <Trash2 className="w-4 h-4 text-muted-foreground" /> Clear Chat
-                  </button>
-                  
-                  <div className="my-2 border-t border-border"></div>
-
-                  {selectedConversation.blockedBy?.includes(user._id) ? (
-                    <button onClick={() => handleSettingsToggle('block', false)} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-destructive/10 text-destructive rounded-lg transition-colors text-sm font-medium">
-                      <Ban className="w-4 h-4" /> Unblock User
-                    </button>
-                  ) : (
-                    <button onClick={() => handleSettingsToggle('block', true)} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-destructive/10 text-destructive rounded-lg transition-colors text-sm font-medium">
-                      <Ban className="w-4 h-4" /> Block User
-                    </button>
-                  )}
-                </div>
+            {!connected && (
+              <div className="px-3 py-1.5 bg-amber-500/10 text-amber-700 dark:text-amber-400 text-[11px] flex items-center gap-1.5 justify-center">
+                <WifiOff className="w-3.5 h-3.5" /> Offline — messages queue honge{queuedCount ? ` (${queuedCount} pending)` : ''}
               </div>
             )}
+
+            {pinnedMsg && (
+              <div className="px-3 py-1.5 bg-muted/60 border-b border-border flex items-center gap-2">
+                <Pin className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                <button onClick={() => jumpToMessage(pinnedMsg._id)} className="text-[11px] truncate flex-1 text-left">
+                  {pinnedMsg.content || messagePreview(pinnedMsg) || 'Pinned message'}
+                </button>
+                <button onClick={() => handlePin(null)} className="text-muted-foreground text-[11px] hover:text-foreground">Unpin</button>
+              </div>
+            )}
+
+            <div id="chat-wallpaper" ref={scrollRef} className="flex-1 overflow-y-auto chat-scroll relative">
+              {loadingMessages ? (
+                <div className="flex items-center justify-center h-full text-muted-foreground text-[13px]">Loading…</div>
+              ) : !messages.length ? (
+                <div className="flex items-center justify-center h-full text-muted-foreground text-[13px]">No messages yet — say hello 👋</div>
+              ) : (
+                <div className="py-3">
+                  {grouped.map((item) => (item.kind === 'day' ? (
+                    <DateSeparator key={item.id} label={item.label} />
+                  ) : (
+                    <div key={item.message._id} id={`msg-${item.message._id}`}>
+                      <MessageBubble
+                        message={item.message}
+                        isMine={item.message.mine || uid(item.message.sender) === meId}
+                        prefs={prefs}
+                        peerName={peer?.name || 'Contact'}
+                        onReply={(m) => { setReplyTo(m); setEditMessage(null); }}
+                        onReact={(m, emoji) => handleReact(m._id, emoji)}
+                        onEdit={(m) => { setEditMessage({ _id: m._id, content: m.content }); setDraftText(m.content); }}
+                        onDelete={(m, scope) => handleDelete(m._id, scope)}
+                        onStar={(m) => handleStar(m._id, m.starred)}
+                        onPin={(m) => handlePin(uid(m._id) === uid(pinnedMsg?._id) ? null : m._id)}
+                        onForward={(m) => setForwardMessageIds([m._id])}
+                        onCopy={handleCopy}
+                        onInfo={openMessageInfo}
+                        onReport={reportMessage}
+                        onRetry={handleRetry}
+                        onOpenMedia={(att, all) => {
+                          const list = all || [att];
+                          setViewer({ items: list.map((a) => ({ ...a, url: mediaUrl(a.url) })), index: Math.max(0, list.findIndex((a) => a.url === att.url)) });
+                        }}
+                        onJumpToReply={(id) => id && jumpToMessage(id)}
+                        onShowReactions={openReactionDetails}
+                        selectionMode={selectionMode}
+                        selected={selectedMessages.includes(item.message._id)}
+                        onToggleSelect={(m) => {
+                          setSelectionMode(true);
+                          setSelectedMessages((p) => (p.includes(m._id) ? p.filter((x) => x !== m._id) : [...p, m._id]));
+                        }}
+                        highlight={highlightId === item.message._id}
+                      />
+                    </div>
+                  )))}
+                </div>
+              )}
+
+              <button
+                onClick={() => scrollToBottom()}
+                className="absolute bottom-4 right-4 w-9 h-9 rounded-full bg-card border border-border shadow-lg flex items-center justify-center text-muted-foreground hover:text-foreground"
+                title="Scroll to bottom"
+              >
+                <ChevronDown className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="border-t border-border bg-card">
+              {(replyTo || editMessage) && (
+                <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-muted/40">
+                  {editMessage ? <Pencil className="w-4 h-4 text-primary" /> : <Reply className="w-4 h-4 text-primary" />}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[11px] font-semibold text-primary">
+                      {editMessage ? 'Editing message' : `Replying to ${uid(replyTo?.sender) === meId ? 'yourself' : (peer?.name || 'Contact')}`}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground truncate">
+                      {(editMessage?.content || replyTo?.content || messagePreview(replyTo) || '').slice(0, 120)}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => { setReplyTo(null); setEditMessage(null); setDraftText(''); }}
+                    className="p-1.5 rounded-full hover:bg-muted text-muted-foreground"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+
+              {uploading !== false && (
+                <div className="px-3 py-1.5 text-[11px] text-muted-foreground flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full border-2 border-primary border-t-transparent animate-spin" /> Uploading…
+                </div>
+              )}
+
+              <div className="flex items-end gap-1.5 p-2.5 relative">
+                <button onClick={() => setShowEmoji((v) => !v)} className="p-2 rounded-full hover:bg-muted text-muted-foreground flex-shrink-0" title="Emoji / Stickers / GIF">
+                  <Smile className="w-5 h-5" />
+                </button>
+                <button onClick={() => fileInputRef.current?.click()} className="p-2 rounded-full hover:bg-muted text-muted-foreground flex-shrink-0" title="Attach image / video / document">
+                  <Paperclip className="w-5 h-5" />
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => { handleFilesPicked(e.target.files); e.target.value = ''; }}
+                />
+
+                {recordingVoice ? (
+                  <VoiceRecorder
+                    onSend={handleVoiceSend}
+                    onCancel={() => {
+                      setRecordingVoice(false);
+                      getSocket().emit('chat:recording', { conversationId: selectedId, isRecording: false });
+                    }}
+                    onRecordingChange={(on) => getSocket().emit('chat:recording', { conversationId: selectedId, isRecording: on })}
+                  />
+                ) : (
+                  <>
+                    <textarea
+                      value={draftText}
+                      onChange={(e) => updateDraft(selectedId, e.target.value)}
+                      onKeyDown={onComposerKeyDown}
+                      placeholder="Type a message…"
+                      rows={1}
+                      className="flex-1 resize-none bg-muted/50 border border-border rounded-2xl px-3.5 py-2 text-[13.5px] max-h-32 focus:outline-none focus:ring-1 focus:ring-primary/40"
+                    />
+                    {draftText.trim() || editMessage ? (
+                      <button onClick={sendCurrent} className="p-2.5 rounded-full bg-primary text-primary-foreground flex-shrink-0" title="Send">
+                        <Send className="w-[18px] h-[18px]" />
+                      </button>
+                    ) : (
+                      <button onClick={() => setRecordingVoice(true)} className="p-2 rounded-full hover:bg-muted text-muted-foreground flex-shrink-0" title="Record voice message">
+                        <Mic className="w-5 h-5" />
+                      </button>
+                    )}
+                  </>
+                )}
+
+                {showEmoji && (
+                  <div className="absolute bottom-[64px] left-2 z-40">
+                    <EmojiPicker
+                      onPickEmoji={(emoji) => updateDraft(selectedId, `${draftText}${emoji}`)}
+                      onPickSticker={(s) => { sendMessage({ text: s }); setShowEmoji(false); }}
+                      onPickGif={(url) => { sendMessage({ text: url }); setShowEmoji(false); }}
+                      onClose={() => setShowEmoji(false)}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
           </>
         )}
       </div>
+
+      {/* ── Info panel ── */}
+      <ChatInfoPanel
+        open={showInfo && Boolean(selectedId)}
+        onClose={() => setShowInfo(false)}
+        peer={peer}
+        conversation={{ ...(activeConv || {}), wallpaper: readConversationWallpapers()[uid(selectedId)] }}
+        media={gallery.media || []}
+        links={gallery.links || []}
+        files={gallery.files || []}
+        starred={starred}
+        onToggle={convAction}
+        onOpenMedia={(items, index) => setViewer({ items: (items || []).map((a) => ({ ...a, url: mediaUrl(a.url) })), index: index || 0 })}
+        onJump={jumpToMessage}
+        onClearChat={clearChat}
+        onDeleteChat={deleteChat}
+        onBlock={() => convAction('block', !(activeConv?.blocked))}
+        onReport={() => reportMessage(messages[messages.length - 1] || {})}
+        onExport={exportChat}
+        onWallpaper={(value) => {
+          setConversationWallpaper(uid(selectedId), value);
+          setPrefs({ wallpaper: value });
+          convAction('wallpaper', value);
+        }}
+        onSearch={searchInChat}
+        onUnstar={(m) => handleStar(m._id, true)}
+      />
+
+      {/* ── Settings panel ── */}
+      <ChatSettingsPanel
+        open={showSettings}
+        onClose={() => setShowSettings(false)}
+        user={user}
+        privacy={privacy}
+        setPrivacyField={setPrivacyField}
+        prefs={prefs}
+        setPrefs={setPrefs}
+        theme={theme}
+        onThemeChange={onThemeChange}
+        blocked={blocked}
+        onUnblock={unblockUser}
+        reports={reports}
+        storage={storage}
+        backup={backup}
+        setBackup={(patch) => setBackup((b) => ({ ...b, ...patch }))}
+        onRunBackup={runBackup}
+        backupRunning={backupRunning}
+        pinSet={pinSet}
+        onSetPin={setAppPin}
+        onLogoutAll={() => toast.info('Account settings se logout-all karein')}
+        onRequestDesktopPermission={requestDesktopPermission}
+        locks={conversations.filter((c) => c.locked).map((c) => ({ ...c, other: (c.participants || []).find((p) => uid(p._id || p) !== meId) }))}
+        onOpenLocked={(c) => { setShowSettings(false); openConversation(c._id); }}
+        onClearAllDrafts={() => {
+          Object.keys(readDrafts()).forEach((k) => saveDraft(k, ''));
+          setDrafts({}); setDraftText('');
+        }}
+        onClearCache={() => { toast.success('Cache saaf ho gaya'); refreshStorage(); }}
+      />
+
+      {/* ── Media viewer ── */}
+      {viewer && (
+        <MediaViewer
+          items={viewer.items}
+          index={viewer.index}
+          onClose={() => setViewer(null)}
+          onSendToChat={() => setViewer(null)}
+        />
+      )}
+
+      {/* ── Reaction details ── */}
+      {reactionDetails && (
+        <div className="fixed inset-0 z-[95] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setReactionDetails(null)} />
+          <div className="relative bg-background border border-border rounded-2xl shadow-2xl w-full max-w-sm chat-pop-enter">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+              <h3 className="text-sm font-semibold">Reactions</h3>
+              <button onClick={() => setReactionDetails(null)} className="p-1.5 rounded-full hover:bg-muted text-muted-foreground">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-3 max-h-72 overflow-y-auto scrollbar-thin">
+              {reactionDetails.reactions?.length ? reactionDetails.reactions.map((r, i) => (
+                <div key={`${r.user?._id || i}-${i}`} className="flex items-center gap-3 py-2">
+                  <span className="text-lg">{r.emoji}</span>
+                  <span className="text-[13px] flex-1 truncate">{r.user?.name || 'User'}{r.mine ? ' (you)' : ''}</span>
+                  <span className="text-[10px] text-muted-foreground">
+                    {r.at ? new Date(r.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                  </span>
+                </div>
+              )) : <p className="text-[12px] text-muted-foreground text-center py-6">No reactions</p>}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Message info ── */}
+      {messageInfo && (
+        <div className="fixed inset-0 z-[95] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setMessageInfo(null)} />
+          <div className="relative bg-background border border-border rounded-2xl shadow-2xl w-full max-w-sm chat-pop-enter">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+              <h3 className="text-sm font-semibold">Message info</h3>
+              <button onClick={() => setMessageInfo(null)} className="p-1.5 rounded-full hover:bg-muted text-muted-foreground">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-4 space-y-3 text-[12px]">
+              <div className="bg-muted/50 rounded-lg p-3">
+                {messageInfo.message.content || messagePreview(messageInfo.message)}
+              </div>
+              <p className="flex items-center gap-2">
+                <Send className="w-3.5 h-3.5 text-muted-foreground" />
+                Sent: {new Date(messageInfo.message.createdAt).toLocaleString()}
+              </p>
+              <p className="flex items-center gap-2">
+                <CheckCheck className="w-3.5 h-3.5 text-muted-foreground" />
+                Delivered: {(messageInfo.message.deliveredCount || 0) > 0 ? 'Yes' : 'Pending'}
+              </p>
+              <p className="flex items-center gap-2">
+                <Check className="w-3.5 h-3.5 text-sky-500" />
+                Read: {(messageInfo.message.readCount || 0) > 0 ? 'Yes' : 'Not yet'}
+              </p>
+              {messageInfo.message.edited && (
+                <p className="flex items-center gap-2"><Pencil className="w-3.5 h-3.5 text-muted-foreground" /> Edited message</p>
+              )}
+              {messageInfo.message.starred && (
+                <p className="flex items-center gap-2"><Star className="w-3.5 h-3.5 text-amber-500" /> Starred</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Forward picker ── */}
+      {forwardMessageIds && (
+        <div className="fixed inset-0 z-[95] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setForwardMessageIds(null)} />
+          <div className="relative bg-background border border-border rounded-2xl shadow-2xl w-full max-w-sm chat-pop-enter">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+              <h3 className="text-sm font-semibold">Forward to…</h3>
+              <button onClick={() => setForwardMessageIds(null)} className="p-1.5 rounded-full hover:bg-muted text-muted-foreground">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-2 max-h-80 overflow-y-auto scrollbar-thin">
+              {conversations.filter((c) => uid(c._id) !== uid(selectedId)).length === 0 && (
+                <p className="text-[12px] text-muted-foreground text-center py-8">
+                  Forward karne ke liye koi doosra chat nahi hai
+                </p>
+              )}
+              {conversations.filter((c) => uid(c._id) !== uid(selectedId)).map((c) => {
+                const other = (c.participants || []).find((p) => uid(p._id || p) !== meId) || {};
+                return (
+                  <button
+                    key={c._id}
+                    onClick={() => handleForward(c._id)}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted text-left"
+                  >
+                    <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center overflow-hidden">
+                      {other.avatar ? <img src={other.avatar} alt="" className="w-full h-full object-cover" /> : <UserIcon className="w-4 h-4 opacity-60" />}
+                    </div>
+                    <span className="text-[13px] font-medium truncate flex-1">{other.name || 'Chat'}</span>
+                    <Forward className="w-4 h-4 text-muted-foreground" />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

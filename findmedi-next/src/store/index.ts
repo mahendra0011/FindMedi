@@ -2,6 +2,7 @@ import { configureStore, combineReducers } from '@reduxjs/toolkit';
 import { TypedUseSelectorHook, useDispatch, useSelector } from 'react-redux';
 import authReducer from './slices/authSlice';
 import cartReducer from './slices/cartSlice';
+import mapReducer from './slices/mapSlice';
 import notificationsReducer from './slices/notificationsSlice';
 import settingsReducer from './slices/settingsSlice';
 import uiReducer from './slices/uiSlice';
@@ -10,6 +11,7 @@ import uiReducer from './slices/uiSlice';
 export const rootReducer = combineReducers({
   auth: authReducer,
   cart: cartReducer,
+  map: mapReducer,
   notifications: notificationsReducer,
   settings: settingsReducer,
   ui: uiReducer,
@@ -28,8 +30,8 @@ export const store = configureStore({
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {
-        ignoredPaths: ['notifications', 'ui'],
-        ignoredActions: ['notifications/setList', 'ui/openModal', 'ui/showToast'],
+        ignoredPaths: ['notifications', 'ui', 'map'],
+        ignoredActions: ['notifications/setList', 'ui/openModal', 'ui/showToast', 'map/geocodePlace/fulfilled', 'map/fetchRoute/fulfilled'],
       },
     }),
   // In development, Redux DevTools is automatically enabled.

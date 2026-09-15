@@ -1,0 +1,21 @@
+{
+  "name": "medi-core-napi",
+  "version": "0.1.0",
+  "description": "Native Rust modules for mediCore performance-critical paths (napi-rs)",
+  "main": "index.js",
+  "scripts": {
+    "build": "napi build --platform --dts index.d.ts",
+    "build:release": "napi build --platform --dts index.d.ts --release",
+    "test": "node test.js"
+  },
+  "binary": {
+    "napi": true,
+    "name": "medi_core_napi"
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "^2.0.0"
+  },
+  "dependencies": {
+    "ffi-napi": "^4.0.3"
+  }
+}

@@ -50,3 +50,33 @@ jobs:
 
     - name: Test
       run: cd server && npm test
+
+  build-rust:
+    name: Build Rust Native Module
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Use Node.js 20.x
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20.x
+        cache: 'npm'
+        cache-dependency-path: server/napi-core/package-lock.json
+
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Install Dependencies
+      run: cd server/napi-core && npm install
+
+    - name: Build Native Module
+      run: cd server/napi-core && npm run build:release
+
+    - name: Test Native Module
+      run: cd server/napi-core && node test.js

@@ -29,11 +29,18 @@ import {
   resetPasswordSchema,
   forgotPasswordSchema,
   verifyOtpSchema,
+  resendOtpSchema,
+  googleAuthSchema,
+  googleRegisterSchema,
+  doctorSetupSchema,
+  refreshTokenSchema,
+  profileUpdateSchema,
   passwordSchema,
 } from '../utils/validate.js';
 import { auditLog } from '../middleware/audit.js';
 import logger from '../config/logger.js';
 import { notifyUsers } from '../services/socketService.js';
+import { validateFileContent } from '../middleware/upload.js';
 
 const router = express.Router();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -63,6 +70,11 @@ const handleAvatarUpload = (req, res, next) => {
     // Validate MIME type explicitly
     if (!allowedAvatarTypes.has(file.mimetype)) {
       return res.status(400).json({ message: 'Invalid file type. Only JPG, PNG, WEBP, or GIF images are allowed.' });
+    }
+
+    // Content-based file type verification (magic bytes) — prevents MIME type spoofing
+    if (!validateFileContent(file.buffer, file.mimetype)) {
+      return res.status(400).json({ message: 'File content does not match its claimed type. Upload rejected for security.' });
     }
 
     // Validate file extension
@@ -398,6 +410,13 @@ router.post('/verify-otp', validate(verifyOtpSchema), async (req, res) => {
     const verificationResult = await verifyOTP({ email: lowerEmail, otp, type: 'email' });
 
     if (!verificationResult.success) {
+      if (verificationResult.locked) {
+        return res.status(429).json({
+          message: verificationResult.message,
+          locked: true,
+          waitSeconds: verificationResult.waitSeconds,
+        });
+      }
       return res.status(400).json({ message: verificationResult.message });
     }
 
@@ -440,7 +459,7 @@ router.post('/verify-otp', validate(verifyOtpSchema), async (req, res) => {
 });
 
 // POST /api/auth/resend-otp
-router.post('/resend-otp', async (req, res) => {
+router.post('/resend-otp', validate(resendOtpSchema), async (req, res) => {
   try {
     const { email } = req.body;
 
@@ -635,7 +654,7 @@ router.post('/login', validate(loginSchema), async (req, res) => {
 });
 
 // POST /api/auth/google — authenticate or verify Google OAuth user
-router.post('/google', async (req, res) => {
+router.post('/google', validate(googleAuthSchema), async (req, res) => {
   try {
     const { idToken, accessToken, role = 'patient' } = req.body;
 
@@ -754,7 +773,7 @@ router.post('/google', async (req, res) => {
 });
 
 // POST /api/auth/google-register — Step 2 of Google Signup: Complete Profile & Register
-router.post('/google-register', async (req, res) => {
+router.post('/google-register', validate(googleRegisterSchema), async (req, res) => {
   try {
     const {
       name,
@@ -879,6 +898,13 @@ router.post('/reset-password', validate(resetPasswordSchema), async (req, res) =
     });
 
     if (!verificationResult.success) {
+      if (verificationResult.locked) {
+        return res.status(429).json({
+          message: verificationResult.message,
+          locked: true,
+          waitSeconds: verificationResult.waitSeconds,
+        });
+      }
       return res.status(400).json({ message: verificationResult.message });
     }
 
@@ -899,7 +925,7 @@ router.post('/reset-password', validate(resetPasswordSchema), async (req, res) =
 });
 
 // POST /api/auth/doctor-setup
-router.post('/doctor-setup', async (req, res) => {
+router.post('/doctor-setup', validate(doctorSetupSchema), async (req, res) => {
   try {
     const { token, password } = req.body;
     if (!token || !password) {
@@ -933,8 +959,8 @@ router.post('/doctor-setup', async (req, res) => {
   }
 });
 
-// POST /api/auth/google
-router.post('/google', async (req, res) => {
+// POST /api/auth/google (duplicate - last defined route is the active one)
+router.post('/google', validate(googleAuthSchema), async (req, res) => {
   try {
     const { idToken } = req.body;
     if (!idToken) {
@@ -1083,7 +1109,7 @@ router.post('/avatar', protect, handleAvatarUpload, async (req, res) => {
 });
 
 // PUT /api/auth/profile
-router.put('/profile', protect, async (req, res) => {
+router.put('/profile', protect, validate(profileUpdateSchema), async (req, res) => {
   try {
     const {
       name,
@@ -1185,7 +1211,7 @@ router.post('/logout', async (req, res) => {
 });
 
 // POST /api/auth/refresh
-router.post('/refresh', async (req, res) => {
+router.post('/refresh', validate(refreshTokenSchema), async (req, res) => {
   let newRefreshTokenDoc = null;
   try {
     const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;

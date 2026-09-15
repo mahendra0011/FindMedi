@@ -33,7 +33,9 @@ app.use(helmet({
     directives: {
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'"],
-      imgSrc: ["'self'", "data:", "res.cloudinary.com", "https://basemaps.cartocdn.com", "https://api.maptiler.com", "https://*.tile.openstreetmap.org"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      fontSrc: ["'self'", "data:"],
+      imgSrc: ["'self'", "data:", "https://res.cloudinary.com", "https://basemaps.cartocdn.com", "https://api.maptiler.com", "https://*.tile.openstreetmap.org"],
       connectSrc: ["'self'", "https://api.maptiler.com", "https://api.openrouteservice.org", "https://api.open-elevation.com"],
     },
   },
@@ -98,16 +100,37 @@ const otpLimiter = rateLimit({
 });
 
 const forgotPasswordLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 3,
+  windowMs: 15 * 60 * 1000,
+  max: 5,
   message: { message: 'Too many password reset requests, please try again later.' },
+});
+
+const otpVerifyLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { message: 'Too many OTP verification attempts, please try again later.' },
+});
+
+const resetPasswordLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { message: 'Too many password reset attempts, please try again later.' },
+});
+
+const tokenRefreshLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  message: { message: 'Too many token refresh requests, please try again later.' },
 });
 
 app.use('/api/', apiLimiter);
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
 app.use('/api/auth/resend-otp', otpLimiter);
+app.use('/api/auth/verify-otp', otpVerifyLimiter);
 app.use('/api/auth/forgot-password', forgotPasswordLimiter);
+app.use('/api/auth/reset-password', resetPasswordLimiter);
+app.use('/api/auth/refresh', tokenRefreshLimiter);
 
 if (process.env.NODE_ENV === 'production' && !process.env.REDIS_URL) {
   logger.warn('Rate limiting is using in-memory store. Set REDIS_URL for shared rate limiting across multiple instances.');
@@ -440,8 +463,12 @@ if (process.env.NODE_ENV !== 'test') {
     try {
       const Appointment = (await import('./models/Appointment.js')).default;
       const Payment = (await import('./models/Payment.js')).default;
+      const Doctor = (await import('./models/Doctor.js')).default;
+      const Patient = (await import('./models/Patient.js')).default;
       await Appointment.syncIndexes();
       await Payment.syncIndexes();
+      await Doctor.syncIndexes();
+      await Patient.syncIndexes();
       logger.info('✅ Database indexes synced');
     } catch (e) {
       logger.error('⚠️ Failed to sync indexes: ' + e.message);

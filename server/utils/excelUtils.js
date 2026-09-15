@@ -2,6 +2,7 @@ import ExcelJS from 'exceljs';
 import { Parser } from 'json2csv';
 
 import { getISTDateString } from './dateUtils.js';
+import { toCsvNative, toCsvFallback, parseCsvNative, parseCsvFallback, NATIVE_CSV_AVAILABLE } from '../services/napiCsvService.js';
 
 export const parseExcelFile = async (buffer) => {
   const workbook = new ExcelJS.Workbook();
@@ -22,6 +23,39 @@ export const parseExcelFile = async (buffer) => {
     rows.push(rowData);
   });
   return rows;
+};
+
+// ZIP magic bytes for xlsx detection (PK..)
+const XLSX_SIG = Buffer.from([0x50, 0x4b, 0x03, 0x04]);
+
+/**
+ * Parse an uploaded file buffer, auto-detecting CSV vs xlsx format.
+ * Uses the Rust native CSV parser for CSV files (fast), ExcelJS for xlsx.
+ * @param {Buffer} buffer - File buffer
+ * @param {string} [mimetype] - Optional mime type hint
+ * @returns {Promise<Array<Object>>} Parsed rows
+ */
+export const parseFile = async (buffer, mimetype = null) => {
+  if (!buffer || buffer.length === 0) return [];
+
+  // Check if xlsx (ZIP signature)
+  const isXlsx = buffer.length >= 4 && buffer.slice(0, 4).equals(XLSX_SIG);
+  
+  if (!isXlsx) {
+    // Assume CSV
+    const csvText = buffer.toString('utf-8');
+    if (NATIVE_CSV_AVAILABLE) {
+      try {
+        return parseCsvNative(csvText);
+      } catch (e) {
+        // Fall through to fallback
+      }
+    }
+    // Fallback: use JS CSV parser
+    return parseCsvFallback(csvText);
+  }
+
+  return parseExcelFile(buffer);
 };
 
 export const exportToExcel = async (data) => {
@@ -45,6 +79,13 @@ export const exportToExcel = async (data) => {
 };
 
 export const exportToCSV = (data, fields) => {
+  if (NATIVE_CSV_AVAILABLE) {
+    try {
+      return toCsvNative(data, Array.isArray(fields) ? fields : Object.keys(data[0] || {}));
+    } catch (e) {
+      // Fall through to fallback
+    }
+  }
   const parser = new Parser({ fields });
   return parser.parse(data);
 };

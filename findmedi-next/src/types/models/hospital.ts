@@ -73,4 +73,5 @@ export interface Hospital extends BaseEntity {
   paymentModes: string[];
   settings: HospitalSettings;
   workingHours: WorkingHours;
+  distance?: string | number;
 }
