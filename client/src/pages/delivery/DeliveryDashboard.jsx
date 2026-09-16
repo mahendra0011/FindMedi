@@ -12,6 +12,7 @@ export default function DeliveryDashboard() {
   const { user } = useAuth();
   const [profile, setProfile] = useState(null);
   const [deliveries, setDeliveries] = useState({ active: [], history: [] });
+  const [deliveryTab, setDeliveryTab] = useState('active');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -132,58 +133,139 @@ export default function DeliveryDashboard() {
         </div>
       </div>
 
-      {deliveries.active.length > 0 && (
-        <div>
-          <h2 className="font-heading font-semibold text-lg text-foreground mb-4">Active Delivery</h2>
-          {deliveries.active.map((d) => (
-            <motion.div key={d._id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-              className="bg-card rounded-xl border p-5 mb-3"
+      {/* Delivery Orders Hub */}
+      <div className="bg-card rounded-2xl border p-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+          <div>
+            <h2 className="font-heading font-semibold text-lg text-foreground">Delivery Orders Hub</h2>
+            <p className="text-xs text-muted-foreground">Manage active pickup/drop tasks and delivery history</p>
+          </div>
+          <div className="flex items-center gap-1 p-1 bg-muted/50 rounded-2xl border border-border/50">
+            <button
+              type="button"
+              onClick={() => setDeliveryTab('active')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                deliveryTab === 'active'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+              }`}
             >
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <p className="font-semibold text-foreground">Order #{d.orderId}</p>
-                  <Badge className="mt-1">{d.status}</Badge>
-                </div>
-                <a href={`tel:${d.orderRef?.phone || ''}`} className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
-                  <Phone className="w-4 h-4" />
-                </a>
-              </div>
-              <div className="space-y-2 text-sm text-muted-foreground mb-4">
-                <div className="flex items-start gap-2">
-                  <MapPin className="w-4 h-4 mt-0.5 shrink-0 text-primary" />
-                  <span><strong>Pickup:</strong> {d.pickupAddress}</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <MapPin className="w-4 h-4 mt-0.5 shrink-0 text-destructive" />
-                  <span><strong>Drop:</strong> {d.dropAddress}</span>
-                </div>
-                {d.deliveryOtp && (
-                  <div className="flex items-center gap-2 text-foreground font-semibold">
-                    <Package className="w-4 h-4" /> OTP: {d.deliveryOtp}
-                  </div>
-                )}
-              </div>
-              <div className="flex gap-2">
-                {d.status === 'Assigned' && (
-                  <Button size="sm" onClick={() => updateStatus(d._id, 'Picked Up')} className="gap-1">
-                    <Package className="w-4 h-4" /> Picked Up
-                  </Button>
-                )}
-                {d.status === 'Picked Up' && (
-                  <Button size="sm" onClick={() => updateStatus(d._id, 'Out for Delivery')} className="gap-1">
-                    <Bike className="w-4 h-4" /> Out for Delivery
-                  </Button>
-                )}
-                {d.status === 'Out for Delivery' && (
-                  <Button size="sm" onClick={() => updateStatus(d._id, 'Delivered')} className="gap-1 bg-success hover:bg-success/90">
-                    <Package className="w-4 h-4" /> Delivered
-                  </Button>
-                )}
-              </div>
-            </motion.div>
-          ))}
+              <Package className="w-3.5 h-3.5" />
+              <span>Active Orders</span>
+              {deliveries.active?.length > 0 && (
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${deliveryTab === 'active' ? 'bg-white/20 text-white' : 'bg-primary/20 text-primary'}`}>
+                  {deliveries.active.length}
+                </span>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => setDeliveryTab('history')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                deliveryTab === 'history'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+              }`}
+            >
+              <Clock className="w-3.5 h-3.5" />
+              <span>Completed History</span>
+              {deliveries.history?.length > 0 && (
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${deliveryTab === 'history' ? 'bg-white/20 text-white' : 'bg-primary/20 text-primary'}`}>
+                  {deliveries.history.length}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
-      )}
+
+        {deliveryTab === 'active' && (
+          <div>
+            {deliveries.active?.length === 0 ? (
+              <div className="text-center py-10 text-muted-foreground">
+                <Package className="w-12 h-12 mx-auto mb-2 opacity-30" />
+                <p className="font-medium text-sm">No active delivery tasks</p>
+                <p className="text-xs text-muted-foreground/60 mt-1">New delivery orders will show up here automatically</p>
+              </div>
+            ) : (
+              deliveries.active.map((d) => (
+                <motion.div key={d._id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                  className="bg-muted/20 rounded-xl border p-5 mb-3 last:mb-0 hover:border-primary/30 transition-colors"
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <p className="font-semibold text-foreground">Order #{d.orderId || d._id?.slice(-6)}</p>
+                      <Badge className="mt-1">{d.status}</Badge>
+                    </div>
+                    <a href={`tel:${d.orderRef?.phone || ''}`} className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center hover:bg-primary/20 transition-colors">
+                      <Phone className="w-4 h-4" />
+                    </a>
+                  </div>
+                  <div className="space-y-2 text-sm text-muted-foreground mb-4">
+                    <div className="flex items-start gap-2">
+                      <MapPin className="w-4 h-4 mt-0.5 shrink-0 text-primary" />
+                      <span><strong>Pickup:</strong> {d.pickupAddress || 'Pharmacy Store'}</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <MapPin className="w-4 h-4 mt-0.5 shrink-0 text-destructive" />
+                      <span><strong>Drop:</strong> {d.dropAddress || 'Customer Address'}</span>
+                    </div>
+                    {d.deliveryOtp && (
+                      <div className="flex items-center gap-2 text-foreground font-semibold">
+                        <Package className="w-4 h-4" /> OTP: {d.deliveryOtp}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    {d.status === 'Assigned' && (
+                      <Button size="sm" onClick={() => updateStatus(d._id, 'Picked Up')} className="gap-1">
+                        <Package className="w-4 h-4" /> Picked Up
+                      </Button>
+                    )}
+                    {d.status === 'Picked Up' && (
+                      <Button size="sm" onClick={() => updateStatus(d._id, 'Out for Delivery')} className="gap-1">
+                        <Bike className="w-4 h-4" /> Out for Delivery
+                      </Button>
+                    )}
+                    {d.status === 'Out for Delivery' && (
+                      <Button size="sm" onClick={() => updateStatus(d._id, 'Delivered')} className="gap-1 bg-success hover:bg-success/90">
+                        <Package className="w-4 h-4" /> Delivered
+                      </Button>
+                    )}
+                  </div>
+                </motion.div>
+              ))
+            )}
+          </div>
+        )}
+
+        {deliveryTab === 'history' && (
+          <div>
+            {deliveries.history?.length === 0 ? (
+              <div className="text-center py-10 text-muted-foreground">
+                <Clock className="w-12 h-12 mx-auto mb-2 opacity-30" />
+                <p className="font-medium text-sm">No completed deliveries yet</p>
+                <p className="text-xs text-muted-foreground/60 mt-1">Delivered orders will appear in your history log</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {deliveries.history.map((d, idx) => (
+                  <div key={d._id || idx} className="flex items-center justify-between p-4 bg-muted/20 rounded-xl border border-border/40">
+                    <div>
+                      <p className="font-semibold text-sm text-foreground">Order #{d.orderId || d._id?.slice(-6)}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">Delivered to: {d.dropAddress || 'Customer'}</p>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-success/10 text-success">
+                        Delivered
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {!profile?.isOnline && (
         <div className="bg-muted/20 border border-dashed rounded-xl p-6 text-center">

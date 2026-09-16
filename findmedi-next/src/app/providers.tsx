@@ -20,6 +20,14 @@ import { loadSettings } from '@/store/slices/settingsSlice';
 import { applyUserSettings, readStoredSettings } from '@/lib/settings';
 import { useProactiveTokenRefresh } from '@/hooks/useProactiveTokenRefresh';
 import SocketProvider from '@/components/shared/realtime/SocketProvider';
+import { AudioCallProvider } from '@/context/AudioCallContext';
+import { VideoCallProvider } from '@/context/VideoCallContext';
+import AudioCallOverlay from '@/components/calls/AudioCallOverlay';
+import IncomingCallDialog from '@/components/calls/IncomingCallDialog';
+import AudioCallMinimized from '@/components/calls/AudioCallMinimized';
+import VideoCallOverlay from '@/components/videocalls/VideoCallOverlay';
+import IncomingVideoCallDialog from '@/components/videocalls/IncomingVideoCallDialog';
+import VideoCallMinimized from '@/components/videocalls/VideoCallMinimized';
 import type { ReactNode } from 'react';
 import type { UserSettings } from '@/types/models/user';
 
@@ -67,7 +75,19 @@ export default function Providers({ children }: { children: ReactNode }) {
     <Provider store={store}>
       <QueryClientProvider client={queryClient}>
         <SocketProvider>
-          <InitializeApp>{children}</InitializeApp>
+          <InitializeApp>
+            <AudioCallProvider>
+              <VideoCallProvider>
+                <AudioCallOverlay />
+                <IncomingCallDialog />
+                <AudioCallMinimized />
+                <VideoCallOverlay />
+                <IncomingVideoCallDialog />
+                <VideoCallMinimized />
+                {children}
+              </VideoCallProvider>
+            </AudioCallProvider>
+          </InitializeApp>
         </SocketProvider>
       </QueryClientProvider>
     </Provider>

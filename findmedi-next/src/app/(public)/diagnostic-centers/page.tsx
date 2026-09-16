@@ -22,7 +22,13 @@ async function fetchCenters(params: SearchParams): Promise<Facility[]> {
   if (params.city) p.city = params.city;
   if (params.page) p.page = parseInt(params.page, 10);
   if (params.limit) p.limit = parseInt(params.limit, 10);
-  return api.facilities.get(p);
+  try {
+    const res = await api.facilities.get(p);
+    if (Array.isArray(res)) return res;
+    return (res as any)?.facilities || (res as any)?.data || [];
+  } catch {
+    return [];
+  }
 }
 
 export const metadata = {

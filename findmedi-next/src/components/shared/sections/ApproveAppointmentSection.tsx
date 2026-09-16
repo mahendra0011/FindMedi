@@ -49,7 +49,7 @@ interface DisplayAppointment extends Omit<Appointment, 'doctor' | 'doctorId'> {
   patient?: string;
   doctorName?: string;
   doctor?: string | { name?: string };
-  doctorId?: { name?: string };
+  doctorId?: string | { name?: string; _id?: string };
 }
 
 interface ApproveAppointmentSectionProps {
@@ -609,7 +609,7 @@ function ApproveCard({ apt, subSlotFor, onViewFile, onConfirm, onRejectClick }: 
             <div className="flex justify-between items-center pb-2 border-b border-border/50">
               <div>
                 <p className="text-[10px] uppercase tracking-wide font-semibold text-muted-foreground/60">Doctor</p>
-                <p className="text-sm font-bold">{apt.doctorName || (typeof apt.doctor === 'string' ? apt.doctor : apt.doctor?.name) || apt.doctorId?.name || 'Doctor'}</p>
+                <p className="text-sm font-bold">{apt.doctorName || (typeof apt.doctor === 'string' ? apt.doctor : apt.doctor?.name) || (typeof apt.doctorId === 'object' ? apt.doctorId?.name : apt.doctorId) || 'Doctor'}</p>
               </div>
               <span className={`text-xs font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 ${
                 isRejected ? 'bg-destructive/10 text-destructive' : 'bg-amber-500/10 text-amber-600'

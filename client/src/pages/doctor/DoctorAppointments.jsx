@@ -14,6 +14,7 @@ import { getISTDateString, formatDisplayDate } from '@/lib/dateUtils';
 import AppointmentDetailsModal from '@/components/AppointmentDetailsModal';
 import TodayAppointmentsSection from '@/components/TodayAppointmentsSection';
 import AppointmentHistorySection from '@/components/AppointmentHistorySection';
+import UpcomingAppointmentsSection from '@/components/UpcomingAppointmentsSection';
 import { subSlotFor } from '@/lib/timeSlots';
 import WalkInPatientForm from '@/components/WalkInPatientForm';
 import ApproveAppointmentSection from '@/components/ApproveAppointmentSection';
@@ -56,7 +57,7 @@ const initialDischargeData = {
 export default function DoctorAppointments() {
   const { user } = useAuth();
   const location = useLocation();
-  const view = location.pathname.endsWith('/approve') ? 'approve' : location.pathname.endsWith('/history') ? 'history' : 'today';
+  const view = location.pathname.endsWith('/approve') ? 'approve' : location.pathname.endsWith('/upcoming') ? 'upcoming' : location.pathname.endsWith('/history') ? 'history' : 'today';
   const [appointments, setAppointments] = useState([]);
   const [calDate, setCalDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(getISTDateString());
@@ -133,6 +134,7 @@ export default function DoctorAppointments() {
 
   const today = getISTDateString();
   const pendingAppointments = appointments.filter(a => (a.status || '').toLowerCase() === 'pending');
+  const upcomingAppointments = appointments.filter(a => a.date > today && ((a.status || '').toLowerCase() === 'confirmed' || (a.status || '').toLowerCase() === 'approved'));
   const todayAppointments = appointments.filter(a => a.date === today);
   const dayAppointments = appointments.filter(a => a.date === selectedDate);
   const approveAppointments = dayAppointments.filter(a => (a.status || '').toLowerCase() === 'pending');
@@ -419,39 +421,57 @@ export default function DoctorAppointments() {
       <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap">
         <h1 className="font-heading text-xl font-bold text-foreground flex items-center gap-2 shrink-0">
           {view === 'approve'
-            ? <><FileCheck className="w-5 h-5 text-primary" /> Approve Appointments</>
+            ? <><FileCheck className="w-5 h-5 text-amber-500" /> Pending Approvals</>
+            : view === 'upcoming'
+            ? <><CalendarClock className="w-5 h-5 text-purple-600 dark:text-purple-400" /> Upcoming Appointments</>
             : view === 'history'
-            ? <><CalendarDays className="w-5 h-5 text-primary" /> Appointment History</>
+            ? <><CalendarDays className="w-5 h-5 text-emerald-600 dark:text-emerald-400" /> Appointment History</>
             : <><CalendarClock className="w-5 h-5 text-primary" /> Today Appointments</>
           }
           {view === 'approve' && pendingAppointments.length > 0 && (
             <span className="px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/15 text-amber-600">{pendingAppointments.length} pending</span>
+          )}
+          {view === 'upcoming' && upcomingAppointments.length > 0 && (
+            <span className="px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-purple-500/15 text-purple-600 dark:text-purple-400">{upcomingAppointments.length} upcoming</span>
           )}
           {view === 'today' && todayAppointments.filter(a => a.status !== 'Pending').length > 0 && (
             <span className="px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-primary/10 text-primary">{todayAppointments.filter(a => a.status !== 'Pending').length} today</span>
           )}
         </h1>
         <p className="text-xs text-muted-foreground hidden xl:inline shrink-0">
-          {view === 'approve' ? 'Review pending requests' : view === 'history' ? 'Completed history' : 'Scheduled for today'}
+          {view === 'approve' ? 'Review pending requests' : view === 'upcoming' ? 'Confirmed future bookings' : view === 'history' ? 'Completed history' : 'Scheduled for today'}
         </p>
-        {/* Today + Approve + History tabs */}
-        <div className="flex items-center bg-primary/10 rounded-full p-0.5">
+        {/* 4 Tabs: Pending, Upcoming, Today, Complete + Home Visit */}
+        <div className="flex items-center bg-muted/60 border border-border/50 rounded-full p-0.5 gap-0.5">
+          <Link to="/doctor/appointments/approve">
+            <button aria-label="Pending appointments" className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold transition-all duration-300 ${view === 'approve' ? 'bg-amber-500 text-white shadow-md' : 'text-muted-foreground hover:text-foreground'}`}>
+              <FileCheck className="w-4 h-4" /> Pending
+              {pendingAppointments.length > 0 && (
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${view === 'approve' ? 'bg-white/25 text-white' : 'bg-amber-500 text-white'}`}>{pendingAppointments.length}</span>
+              )}
+            </button>
+          </Link>
+          <Link to="/doctor/appointments/upcoming">
+            <button aria-label="Upcoming appointments" className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold transition-all duration-300 ${view === 'upcoming' ? 'bg-purple-600 text-white shadow-md' : 'text-muted-foreground hover:text-foreground'}`}>
+              <CalendarClock className="w-4 h-4" /> Upcoming
+              {upcomingAppointments.length > 0 && (
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${view === 'upcoming' ? 'bg-white/25 text-white' : 'bg-purple-500/20 text-purple-600 dark:text-purple-400'}`}>{upcomingAppointments.length}</span>
+              )}
+            </button>
+          </Link>
           <Link to="/doctor/appointments">
             <button aria-label="Today appointments" className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold transition-all duration-300 ${view === 'today' ? 'bg-primary text-primary-foreground shadow-md' : 'text-muted-foreground hover:text-foreground'}`}>
               <CalendarClock className="w-4 h-4" /> Today
-            </button>
-          </Link>
-          <Link to="/doctor/appointments/approve">
-            <button aria-label="Approve appointments" className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold transition-all duration-300 ${view === 'approve' ? 'bg-primary text-primary-foreground shadow-md' : 'text-muted-foreground hover:text-foreground'}`}>
-              <FileCheck className="w-4 h-4" /> Approve
-              {pendingAppointments.length > 0 && (
-                <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-white">{pendingAppointments.length}</span>
+              {todayAppointments.filter(a => a.status !== 'Pending').length > 0 && (
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${view === 'today' ? 'bg-white/25 text-white' : 'bg-primary/20 text-primary'}`}>
+                  {todayAppointments.filter(a => a.status !== 'Pending').length}
+                </span>
               )}
             </button>
           </Link>
           <Link to="/doctor/appointments/history">
-            <button aria-label="Appointment history" className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold transition-all duration-300 ${view === 'history' ? 'bg-primary text-primary-foreground shadow-md' : 'text-muted-foreground hover:text-foreground'}`}>
-              <CalendarDays className="w-4 h-4" /> History
+            <button aria-label="Appointment history" className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold transition-all duration-300 ${view === 'history' ? 'bg-emerald-600 text-white shadow-md' : 'text-muted-foreground hover:text-foreground'}`}>
+              <CalendarDays className="w-4 h-4" /> Complete
             </button>
           </Link>
           <Link to="/doctor/home-visit">
@@ -473,7 +493,7 @@ export default function DoctorAppointments() {
             <div key={i} className="bg-card rounded-2xl border border-border/60 p-5 animate-pulse">
               <div className="flex items-start justify-between mb-3"><div className="h-5 bg-muted rounded w-3/4" /><div className="h-4 bg-muted rounded w-16" /></div>
               <div className="space-y-1.5 mb-4"><div className="h-4 bg-muted rounded w-1/2" /><div className="h-4 bg-muted rounded w-1/3" /></div>
-              <div className="space-y-1.5 mb-3"><div className="h-3 bg-muted rounded w-full" /><div className="h-3 bg-muted rounded w-3/4" /><div className="h-3 bg-muted rounded w-1/2" /></div>
+              <div className="space-y-1.5 mb-3"><div className="h-3 bg-muted rounded w-full" /><div className="h-3 bg-muted rounded w-3/4" /></div>
               <div className="flex gap-2 pt-2"><div className="h-8 bg-muted rounded flex-1" /><div className="h-8 bg-muted rounded flex-1" /></div>
             </div>
           ))}
@@ -486,6 +506,12 @@ export default function DoctorAppointments() {
           onRefresh={loadAppointments}
           user={user}
           onViewDetails={(a) => setDetailsApt(a)}
+        />
+      ) : view === 'upcoming' ? (
+        <UpcomingAppointmentsSection
+          appointments={appointments}
+          onViewDetails={(a) => setDetailsApt(a)}
+          user={user}
         />
       ) : view === 'history' ? (
         <AppointmentHistorySection appointments={appointments} />
