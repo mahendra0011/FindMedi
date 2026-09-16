@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Link, useLocation } from 'react-router-dom';
 import {
   CalendarDays, CheckCircle, XCircle, FileText, IndianRupee, Send, Plus, X,
-  CalendarClock, FileCheck, ChevronLeft, ChevronRight, RefreshCw, AlertCircle,
+  CalendarClock, FileCheck, ChevronLeft, ChevronRight, RefreshCw, AlertCircle, MapPin,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -452,6 +452,11 @@ export default function DoctorAppointments() {
           <Link to="/doctor/appointments/history">
             <button aria-label="Appointment history" className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold transition-all duration-300 ${view === 'history' ? 'bg-primary text-primary-foreground shadow-md' : 'text-muted-foreground hover:text-foreground'}`}>
               <CalendarDays className="w-4 h-4" /> History
+            </button>
+          </Link>
+          <Link to="/doctor/home-visit">
+            <button aria-label="Home visits" className="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold text-muted-foreground hover:text-foreground transition-all duration-300">
+              <MapPin className="w-4 h-4 text-violet-500" /> Home Visit
             </button>
           </Link>
         </div>

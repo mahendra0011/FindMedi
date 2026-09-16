@@ -4,7 +4,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   CheckCircle, XCircle, Send, Plus, X,
   ChevronLeft, ChevronRight, CalendarClock, FileCheck, FileText, Clock,
-  RefreshCw, IndianRupee, Search,
+  RefreshCw, IndianRupee, Search, MapPin,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -381,6 +381,12 @@ export default function ClinicAppointments() {
             <Link to="/clinic/appointments/history">
               <button className={`px-4 py-2 text-sm font-bold rounded-xl transition-all ${mode === 'history' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
                 History
+              </button>
+            </Link>
+            <Link to="/clinic/home-visit">
+              <button className="px-4 py-2 text-sm font-bold rounded-xl transition-all text-muted-foreground hover:text-foreground flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5 text-violet-500" />
+                Home Visit
               </button>
             </Link>
           </div>

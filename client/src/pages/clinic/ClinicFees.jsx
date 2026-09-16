@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   Save, Stethoscope, Home, CheckCircle, IndianRupee, MessageSquare, Video,
-  Building2, AlertTriangle, ShieldCheck, RefreshCw, CheckSquare, Square,
+  Building2, AlertTriangle, ShieldCheck, RefreshCw, CheckSquare, Square, Phone,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,11 +17,12 @@ export default function ClinicFees() {
   const [saved, setSaved] = useState(false);
 
   // Appointment Modes
-  const [appointmentModes, setAppointmentModes] = useState(['chat', 'video', 'offline']);
+  const [appointmentModes, setAppointmentModes] = useState(['chat', 'video', 'offline', 'audio']);
 
   // Mode Fees
   const [chatFee, setChatFee] = useState('300');
   const [videoFee, setVideoFee] = useState('500');
+  const [audioFee, setAudioFee] = useState('400');
   const [offlineFee, setOfflineFee] = useState('500');
   const [homeVisitFee, setHomeVisitFee] = useState('1000');
   const [emergencyFee, setEmergencyFee] = useState('800');
@@ -48,6 +49,7 @@ export default function ClinicFees() {
           const fees = myDoc.appointmentFees || {};
           setChatFee(String(fees.chat ?? myDoc.chat_fee ?? 300));
           setVideoFee(String(fees.video ?? myDoc.video_fee ?? 500));
+          setAudioFee(String(fees.audio ?? myDoc.audio_fee ?? 400));
           setOfflineFee(String(fees.offline ?? myDoc.offline_fee ?? myDoc.consultation_fees ?? myDoc.fees ?? 500));
           setHomeVisitFee(String(myDoc.home_visit_fee ?? 1000));
           setEmergencyFee(String(myDoc.emergency_fee ?? 800));
@@ -84,6 +86,7 @@ export default function ClinicFees() {
     try {
       const cFee = Number(chatFee) || 0;
       const vFee = Number(videoFee) || 0;
+      const aFee = Number(audioFee) || 0;
       const offFee = Number(offlineFee) || 0;
       const hvFee = Number(homeVisitFee) || 0;
       const emFee = Number(emergencyFee) || 0;
@@ -93,11 +96,13 @@ export default function ClinicFees() {
         appointmentFees: {
           chat: cFee,
           video: vFee,
+          audio: aFee,
           offline: offFee,
           home_visit: hvFee,
         },
         chat_fee: cFee,
         video_fee: vFee,
+        audio_fee: aFee,
         offline_fee: offFee,
         consultation_fees: offFee,
         fees: offFee,
@@ -136,7 +141,7 @@ export default function ClinicFees() {
             Fee &amp; Pricing Management
           </h1>
           <p className="text-muted-foreground text-sm">
-            Configure online (Chat, Video) &amp; in-person consultation fees, emergency support, and refund policies
+            Configure online (Chat, Video), clinic &amp; home visit consultation fees, emergency support, and refund policies
           </p>
           {doctor?.name && (
             <p className="mt-1 text-xs font-semibold text-primary/80">
@@ -153,15 +158,26 @@ export default function ClinicFees() {
       {/* Live Summary Bar */}
       <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent rounded-2xl border border-primary/20 p-5 shadow-sm">
         <h3 className="font-heading font-semibold text-foreground text-sm mb-3">Current Active Pricing Overview</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-sm">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-sm">
           <div className="bg-card rounded-xl p-3.5 text-center border border-border/60">
-            <div className="flex items-center justify-center gap-1 text-blue-600 mb-1">
-              <MessageSquare className="w-3.5 h-3.5" />
-              <span className="text-[11px] font-bold">Online Chat</span>
+            <div className="flex items-center justify-center gap-1 text-violet-600 mb-1">
+              <Building2 className="w-3.5 h-3.5" />
+              <span className="text-[11px] font-bold">In Clinic</span>
             </div>
-            <p className="text-xl font-bold text-foreground">₹{chatFee || '0'}</p>
-            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full mt-1 inline-block ${appointmentModes.includes('chat') ? 'bg-emerald-500/10 text-emerald-600' : 'bg-muted text-muted-foreground'}`}>
-              {appointmentModes.includes('chat') ? 'Active' : 'Disabled'}
+            <p className="text-xl font-bold text-foreground">₹{offlineFee || '0'}</p>
+            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full mt-1 inline-block ${appointmentModes.includes('offline') ? 'bg-emerald-500/10 text-emerald-600' : 'bg-muted text-muted-foreground'}`}>
+              {appointmentModes.includes('offline') ? 'Active' : 'Disabled'}
+            </span>
+          </div>
+
+          <div className="bg-card rounded-xl p-3.5 text-center border border-border/60">
+            <div className="flex items-center justify-center gap-1 text-amber-600 mb-1">
+              <Home className="w-3.5 h-3.5" />
+              <span className="text-[11px] font-bold">Home Visit</span>
+            </div>
+            <p className="text-xl font-bold text-foreground">₹{homeVisitFee || '0'}</p>
+            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full mt-1 inline-block ${(appointmentModes.includes('home_visit') || appointmentModes.includes('home')) ? 'bg-emerald-500/10 text-emerald-600' : 'bg-muted text-muted-foreground'}`}>
+              {(appointmentModes.includes('home_visit') || appointmentModes.includes('home')) ? 'Active' : 'Disabled'}
             </span>
           </div>
 
@@ -177,24 +193,24 @@ export default function ClinicFees() {
           </div>
 
           <div className="bg-card rounded-xl p-3.5 text-center border border-border/60">
-            <div className="flex items-center justify-center gap-1 text-violet-600 mb-1">
-              <Building2 className="w-3.5 h-3.5" />
-              <span className="text-[11px] font-bold">In-Person / OPD</span>
+            <div className="flex items-center justify-center gap-1 text-teal-600 mb-1">
+              <Phone className="w-3.5 h-3.5" />
+              <span className="text-[11px] font-bold">Audio Call</span>
             </div>
-            <p className="text-xl font-bold text-foreground">₹{offlineFee || '0'}</p>
-            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full mt-1 inline-block ${appointmentModes.includes('offline') ? 'bg-emerald-500/10 text-emerald-600' : 'bg-muted text-muted-foreground'}`}>
-              {appointmentModes.includes('offline') ? 'Active' : 'Disabled'}
+            <p className="text-xl font-bold text-foreground">₹{audioFee || '0'}</p>
+            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full mt-1 inline-block ${appointmentModes.includes('audio') ? 'bg-emerald-500/10 text-emerald-600' : 'bg-muted text-muted-foreground'}`}>
+              {appointmentModes.includes('audio') ? 'Active' : 'Disabled'}
             </span>
           </div>
 
           <div className="bg-card rounded-xl p-3.5 text-center border border-border/60">
-            <div className="flex items-center justify-center gap-1 text-amber-600 mb-1">
-              <Home className="w-3.5 h-3.5" />
-              <span className="text-[11px] font-bold">Home Visit</span>
+            <div className="flex items-center justify-center gap-1 text-blue-600 mb-1">
+              <MessageSquare className="w-3.5 h-3.5" />
+              <span className="text-[11px] font-bold">Online Chat</span>
             </div>
-            <p className="text-xl font-bold text-foreground">₹{homeVisitFee || '0'}</p>
-            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full mt-1 inline-block bg-primary/10 text-primary">
-              Standard
+            <p className="text-xl font-bold text-foreground">₹{chatFee || '0'}</p>
+            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full mt-1 inline-block ${appointmentModes.includes('chat') ? 'bg-emerald-500/10 text-emerald-600' : 'bg-muted text-muted-foreground'}`}>
+              {appointmentModes.includes('chat') ? 'Active' : 'Disabled'}
             </span>
           </div>
 
@@ -222,53 +238,7 @@ export default function ClinicFees() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-          {/* Chat Mode Card */}
-          <div
-            onClick={() => toggleMode('chat')}
-            className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 select-none ${
-              appointmentModes.includes('chat')
-                ? 'border-blue-500 bg-blue-500/5'
-                : 'border-border/60 hover:border-border'
-            }`}
-          >
-            <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${appointmentModes.includes('chat') ? 'bg-blue-500 text-white' : 'bg-muted text-muted-foreground'}`}>
-              <MessageSquare className="w-4 h-4" />
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center justify-between">
-                <span className="font-semibold text-sm text-foreground">Online Chat</span>
-                <span className={`text-xs font-bold ${appointmentModes.includes('chat') ? 'text-blue-600' : 'text-muted-foreground'}`}>
-                  {appointmentModes.includes('chat') ? 'Enabled' : 'Disabled'}
-                </span>
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">Real-time messaging &amp; digital prescriptions</p>
-            </div>
-          </div>
-
-          {/* Video Mode Card */}
-          <div
-            onClick={() => toggleMode('video')}
-            className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 select-none ${
-              appointmentModes.includes('video')
-                ? 'border-emerald-500 bg-emerald-500/5'
-                : 'border-border/60 hover:border-border'
-            }`}
-          >
-            <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${appointmentModes.includes('video') ? 'bg-emerald-500 text-white' : 'bg-muted text-muted-foreground'}`}>
-              <Video className="w-4 h-4" />
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center justify-between">
-                <span className="font-semibold text-sm text-foreground">Video Call</span>
-                <span className={`text-xs font-bold ${appointmentModes.includes('video') ? 'text-emerald-600' : 'text-muted-foreground'}`}>
-                  {appointmentModes.includes('video') ? 'Enabled' : 'Disabled'}
-                </span>
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">HD face-to-face virtual consultation</p>
-            </div>
-          </div>
-
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
           {/* Offline Mode Card */}
           <div
             onClick={() => toggleMode('offline')}
@@ -283,12 +253,12 @@ export default function ClinicFees() {
             </div>
             <div className="flex-1">
               <div className="flex items-center justify-between">
-                <span className="font-semibold text-sm text-foreground">In-Person / Offline</span>
+                <span className="font-semibold text-sm text-foreground">In Clinic</span>
                 <span className={`text-xs font-bold ${appointmentModes.includes('offline') ? 'text-violet-600' : 'text-muted-foreground'}`}>
                   {appointmentModes.includes('offline') ? 'Enabled' : 'Disabled'}
                 </span>
               </div>
-              <p className="text-xs text-muted-foreground mt-1">Physical clinic / hospital visit</p>
+              <p className="text-xs text-muted-foreground mt-1">Physical clinic visit</p>
             </div>
           </div>
 
@@ -314,10 +284,79 @@ export default function ClinicFees() {
               <p className="text-xs text-muted-foreground mt-1">Doctor visits patient at home</p>
             </div>
           </div>
+
+          {/* Video Mode Card */}
+          <div
+            onClick={() => toggleMode('video')}
+            className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 select-none ${
+              appointmentModes.includes('video')
+                ? 'border-emerald-500 bg-emerald-500/5'
+                : 'border-border/60 hover:border-border'
+            }`}
+          >
+            <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${appointmentModes.includes('video') ? 'bg-emerald-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+              <Video className="w-4 h-4" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-sm text-foreground">Video Call</span>
+                <span className={`text-xs font-bold ${appointmentModes.includes('video') ? 'text-emerald-600' : 'text-muted-foreground'}`}>
+                  {appointmentModes.includes('video') ? 'Enabled' : 'Disabled'}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">HD virtual video consult</p>
+            </div>
+          </div>
+
+          {/* Audio Mode Card */}
+          <div
+            onClick={() => toggleMode('audio')}
+            className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 select-none ${
+              appointmentModes.includes('audio')
+                ? 'border-teal-500 bg-teal-500/5'
+                : 'border-border/60 hover:border-border'
+            }`}
+          >
+            <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${appointmentModes.includes('audio') ? 'bg-teal-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+              <Phone className="w-4 h-4" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-sm text-foreground">Audio Call</span>
+                <span className={`text-xs font-bold ${appointmentModes.includes('audio') ? 'text-teal-600' : 'text-muted-foreground'}`}>
+                  {appointmentModes.includes('audio') ? 'Enabled' : 'Disabled'}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">Direct voice call consultation</p>
+            </div>
+          </div>
+
+          {/* Chat Mode Card */}
+          <div
+            onClick={() => toggleMode('chat')}
+            className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 select-none ${
+              appointmentModes.includes('chat')
+                ? 'border-blue-500 bg-blue-500/5'
+                : 'border-border/60 hover:border-border'
+            }`}
+          >
+            <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${appointmentModes.includes('chat') ? 'bg-blue-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+              <MessageSquare className="w-4 h-4" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-sm text-foreground">Online Chat</span>
+                <span className={`text-xs font-bold ${appointmentModes.includes('chat') ? 'text-blue-600' : 'text-muted-foreground'}`}>
+                  {appointmentModes.includes('chat') ? 'Enabled' : 'Disabled'}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">Real-time digital chat</p>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Section 2: Online & In-Person Pricing */}
+      {/* Section 2: Consultation Fees Pricing */}
       <div className="bg-card rounded-2xl border border-border/60 p-6 shadow-sm">
         <div className="mb-4">
           <h2 className="font-heading text-base font-bold text-foreground flex items-center gap-2">
@@ -328,18 +367,27 @@ export default function ClinicFees() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <FeeField
-            label="Chat Consultation Fee"
-            icon={MessageSquare}
-            color="text-blue-600"
-            value={chatFee}
-            onChange={setChatFee}
-            placeholder="300"
-            disabled={!appointmentModes.includes('chat')}
+            label="In Clinic Fee"
+            icon={Building2}
+            color="text-violet-600"
+            value={offlineFee}
+            onChange={setOfflineFee}
+            placeholder="500"
+            disabled={!appointmentModes.includes('offline')}
           />
           <FeeField
-            label="Video Call Consultation Fee"
+            label="Home Visit Fee"
+            icon={Home}
+            color="text-amber-600"
+            value={homeVisitFee}
+            onChange={setHomeVisitFee}
+            placeholder="1000"
+            disabled={!appointmentModes.includes('home_visit') && !appointmentModes.includes('home')}
+          />
+          <FeeField
+            label="Video Call Fee"
             icon={Video}
             color="text-emerald-600"
             value={videoFee}
@@ -348,13 +396,22 @@ export default function ClinicFees() {
             disabled={!appointmentModes.includes('video')}
           />
           <FeeField
-            label="In-Person / OPD Consultation Fee"
-            icon={Building2}
-            color="text-violet-600"
-            value={offlineFee}
-            onChange={setOfflineFee}
-            placeholder="500"
-            disabled={!appointmentModes.includes('offline')}
+            label="Audio Call Fee"
+            icon={Phone}
+            color="text-teal-600"
+            value={audioFee}
+            onChange={setAudioFee}
+            placeholder="400"
+            disabled={!appointmentModes.includes('audio')}
+          />
+          <FeeField
+            label="Chat Consultation Fee"
+            icon={MessageSquare}
+            color="text-blue-600"
+            value={chatFee}
+            onChange={setChatFee}
+            placeholder="300"
+            disabled={!appointmentModes.includes('chat')}
           />
         </div>
 

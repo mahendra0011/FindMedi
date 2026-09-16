@@ -1035,10 +1035,10 @@ export default function JoinPlatform() {
                     {/* Mode Cards */}
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                       {[
-                        { key: 'chat', label: 'Chat', desc: 'Text-based consultation', Icon: MessageSquare, color: 'text-blue-600', bg: 'bg-blue-50 border-blue-200', activeBg: 'bg-blue-600' },
-                        { key: 'video', label: 'Video Call', desc: 'Live video consultation', Icon: Video, color: 'text-emerald-600', bg: 'bg-emerald-50 border-emerald-200', activeBg: 'bg-emerald-600' },
-                        { key: 'offline', label: 'Offline', desc: 'In-person clinic visit', Icon: MapPin, color: 'text-violet-600', bg: 'bg-violet-50 border-violet-200', activeBg: 'bg-violet-600' },
+                        { key: 'offline', label: type === 'hospital' ? 'In Hospital' : 'In Clinic', desc: type === 'hospital' ? 'Hospital OPD visit' : 'Physical clinic visit', Icon: MapPin, color: 'text-violet-600', bg: 'bg-violet-50 border-violet-200', activeBg: 'bg-violet-600' },
                         { key: 'home_visit', label: 'Home Visit', desc: 'Doctor at patient home', Icon: Home, color: 'text-amber-600', bg: 'bg-amber-50 border-amber-200', activeBg: 'bg-amber-600' },
+                        { key: 'video', label: 'Video Call', desc: 'Live video consultation', Icon: Video, color: 'text-emerald-600', bg: 'bg-emerald-50 border-emerald-200', activeBg: 'bg-emerald-600' },
+                        { key: 'chat', label: 'Chat', desc: 'Text-based consultation', Icon: MessageSquare, color: 'text-blue-600', bg: 'bg-blue-50 border-blue-200', activeBg: 'bg-blue-600' },
                       ].map(({ key, label, desc, Icon, color, bg, activeBg }) => {
                         const active = facility.appointmentModes.includes(key);
                         return (

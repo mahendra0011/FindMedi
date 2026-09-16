@@ -193,16 +193,26 @@ export async function initSocket(server) {
       }
     });
 
-    // ── WebRTC signalling (1-to-1 voice / video calls) ─────────────────────
-    // Socket.IO sirf SDP/ICE exchange karta hai; actual media WebRTC peer-to-peer.
-    const callEvents = [
+    // ── WebRTC 1-to-1 Audio & Video Call Signalling ──────────────────────────────
+    // Socket.IO is solely used for signaling (SDP & ICE exchange); media travels directly via WebRTC peer connection.
+    const allCallEvents = [
+      // 1-to-1 Audio Calls
+      'call:invite', 'call:ringing', 'call:accept', 'call:reject',
+      'call:cancel', 'call:end', 'call:busy', 'call:timeout',
+      'call:offer', 'call:answer', 'call:ice', 'call:state', 'call:missed',
       'chat:call_invite', 'chat:call_ringing', 'chat:call_accept', 'chat:call_reject',
       'chat:call_cancel', 'chat:call_end', 'chat:call_offer', 'chat:call_answer',
       'chat:call_ice', 'chat:call_state', 'chat:call_missed',
+      // 1-to-1 Full HD Video Calls (Strictly isolated channel)
+      'videocall:invite', 'videocall:ringing', 'videocall:accept', 'videocall:reject',
+      'videocall:cancel', 'videocall:end', 'videocall:busy', 'videocall:timeout',
+      'videocall:offer', 'videocall:answer', 'videocall:ice', 'videocall:state',
+      'videocall:track_state', 'videocall:switch_camera', 'videocall:message', 'videocall:screen_share',
     ];
-    callEvents.forEach((event) => {
+
+    allCallEvents.forEach((event) => {
       socket.on(event, (payload = {}) => {
-        const target = payload.to || payload.recipientId || payload.peerId;
+        const target = payload.to || payload.recipientId || payload.peerId || payload.targetUserId;
         const from = payload.from || socket.userId;
         if (!target) return;
         const body = { ...payload, from };

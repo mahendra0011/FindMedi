@@ -34,14 +34,15 @@ const hospitalSchema = new mongoose.Schema({
   emergency24x7: { type: Boolean, default: false },           // 24/7 Emergency badge
   emergencySupport: { type: Boolean, default: false },        // Emergency Support provided
   refundOnMissedOrCancelled: { type: Boolean, default: true },// Support refund when missed/cancelled by patient
-  appointmentModes: {                                         // Provided appointment modes: chat, video, offline, home_visit
+  appointmentModes: {                                         // Provided appointment modes: chat, video, offline, home_visit, audio
     type: [String],
-    enum: ['chat', 'video', 'offline', 'home_visit', 'home'],
-    default: ['chat', 'video', 'offline', 'home_visit'],
+    enum: ['chat', 'video', 'offline', 'home_visit', 'home', 'audio', 'voice', 'call'],
+    default: ['chat', 'video', 'offline', 'home_visit', 'audio'],
   },
   appointmentFees: {
     chat: { type: Number, default: 300 },
     video: { type: Number, default: 500 },
+    audio: { type: Number, default: 400 },
     offline: { type: Number, default: 500 },
     home_visit: { type: Number, default: 800 },
   },

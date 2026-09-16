@@ -14,6 +14,14 @@ import { NotificationProvider } from '@/context/NotificationContext';
 import { AuthProvider } from '@/context/AuthContext';
 import { CartProvider } from '@/context/CartContext';
 import { PreferredPharmacyProvider } from '@/context/PreferredPharmacyContext';
+import { AudioCallProvider } from '@/context/AudioCallContext';
+import AudioCallOverlay from '@/components/calls/AudioCallOverlay';
+import IncomingCallDialog from '@/components/calls/IncomingCallDialog';
+import AudioCallMinimized from '@/components/calls/AudioCallMinimized';
+import { VideoCallProvider } from '@/context/VideoCallContext';
+import VideoCallOverlay from '@/components/videocalls/VideoCallOverlay';
+import IncomingVideoCallDialog from '@/components/videocalls/IncomingVideoCallDialog';
+import VideoCallMinimized from '@/components/videocalls/VideoCallMinimized';
 import { useDispatch, useSelector } from 'react-redux';
 import { useAuth } from '@/context/AuthContext';
 import DashboardLayout from './components/DashboardLayout';
@@ -148,6 +156,10 @@ const DoctorPrescriptions = lazy(() => import('./pages/doctor/DoctorPrescription
 const DoctorLeaveRequests = lazy(() => import('./pages/doctor/DoctorLeaveRequests'));
 const DoctorProfile = lazy(() => import('./pages/doctor/DoctorProfile'));
 const DoctorOnlineAppointments = lazy(() => import('./pages/doctor/DoctorOnlineAppointments'));
+const DoctorCalls = lazy(() => import('./pages/doctor/DoctorCalls'));
+const DoctorVideoCalls = lazy(() => import('./pages/doctor/DoctorVideoCalls'));
+const DoctorInPersonAppointments = lazy(() => import('./pages/doctor/DoctorInPersonAppointments'));
+const PatientInPersonVisits = lazy(() => import('./pages/patient/PatientInPersonVisits'));
 
 const AIChatPage = lazy(() => import('./pages/AIChatPage'));
 const ChatPage = lazy(() => import('./pages/ChatPage'));
@@ -407,10 +419,18 @@ const App = () => (
       <NotificationProvider>
         <PreferredPharmacyProvider>
         <CartProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <AudioCallProvider>
+        <VideoCallProvider>
+          <AudioCallOverlay />
+          <IncomingCallDialog />
+          <AudioCallMinimized />
+          <VideoCallOverlay />
+          <IncomingVideoCallDialog />
+          <VideoCallMinimized />
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <LenisScroll>
               <AppMotion>
                 <Suspense fallback={loadingFallback}>
@@ -583,13 +603,21 @@ const App = () => (
                     <Route path="/patient/addresses" element={<RoleRoute allowedRoles={['patient']}><PatientAddresses /></RoleRoute>} />
                     <Route path="/patient/profile" element={<RoleRoute allowedRoles={['patient']}><Settings /></RoleRoute>} />
                     <Route path="/patient/chat" element={<RoleRoute allowedRoles={['patient']}><ChatPage /></RoleRoute>} />
+                    <Route path="/patient/calls" element={<RoleRoute allowedRoles={['patient']}><DoctorCalls /></RoleRoute>} />
+                    <Route path="/patient/video-calls" element={<RoleRoute allowedRoles={['patient']}><DoctorVideoCalls /></RoleRoute>} />
+                    <Route path="/patient/home-visit" element={<RoleRoute allowedRoles={['patient']}><PatientInPersonVisits /></RoleRoute>} />
+                    <Route path="/patient/in-person" element={<RoleRoute allowedRoles={['patient']}><PatientInPersonVisits /></RoleRoute>} />
 
                     {/* Doctor routes */}
                     <Route path="/doctor/appointments/approve" element={<RoleRoute allowedRoles={['doctor']}><DoctorAppointments /></RoleRoute>} />
                     <Route path="/doctor/appointments/history" element={<RoleRoute allowedRoles={['doctor']}><DoctorAppointments /></RoleRoute>} />
                     <Route path="/doctor/appointments" element={<RoleRoute allowedRoles={['doctor']}><DoctorAppointments /></RoleRoute>} />
                     <Route path="/doctor/online-appointments" element={<RoleRoute allowedRoles={['doctor']}><DoctorOnlineAppointments /></RoleRoute>} />
+                    <Route path="/doctor/home-visit" element={<RoleRoute allowedRoles={['doctor']}><DoctorInPersonAppointments /></RoleRoute>} />
+                    <Route path="/doctor/in-person" element={<RoleRoute allowedRoles={['doctor']}><DoctorInPersonAppointments /></RoleRoute>} />
                     <Route path="/doctor/chat" element={<RoleRoute allowedRoles={['doctor']}><ChatPage /></RoleRoute>} />
+                    <Route path="/doctor/calls" element={<RoleRoute allowedRoles={['doctor']}><DoctorCalls /></RoleRoute>} />
+                    <Route path="/doctor/video-calls" element={<RoleRoute allowedRoles={['doctor']}><DoctorVideoCalls /></RoleRoute>} />
                     <Route path="/doctor/patients" element={<RoleRoute allowedRoles={['doctor']}><DoctorPatients /></RoleRoute>} />
                     <Route path="/doctor/consultations" element={<RoleRoute allowedRoles={['doctor']}><DoctorConsultations /></RoleRoute>} />
                     <Route path="/doctor/reviews" element={<RoleRoute allowedRoles={['doctor']}><DoctorReviews /></RoleRoute>} />
@@ -607,7 +635,11 @@ const App = () => (
                     <Route path="/clinic/appointments/history" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicAppointments /></RoleRoute>} />
                     <Route path="/clinic/appointments" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicAppointments /></RoleRoute>} />
                     <Route path="/clinic/online-appointments" element={<RoleRoute allowedRoles={['clinic_doctor']}><DoctorOnlineAppointments /></RoleRoute>} />
+                    <Route path="/clinic/home-visit" element={<RoleRoute allowedRoles={['clinic_doctor']}><DoctorInPersonAppointments /></RoleRoute>} />
+                    <Route path="/clinic/in-person" element={<RoleRoute allowedRoles={['clinic_doctor']}><DoctorInPersonAppointments /></RoleRoute>} />
                     <Route path="/clinic/chat" element={<RoleRoute allowedRoles={['clinic_doctor']}><ChatPage /></RoleRoute>} />
+                    <Route path="/clinic/calls" element={<RoleRoute allowedRoles={['clinic_doctor']}><DoctorCalls /></RoleRoute>} />
+                    <Route path="/clinic/video-calls" element={<RoleRoute allowedRoles={['clinic_doctor']}><DoctorVideoCalls /></RoleRoute>} />
                     <Route path="/clinic/schedule" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicSchedule /></RoleRoute>} />
                     <Route path="/clinic/fees" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicFees /></RoleRoute>} />
                     <Route path="/clinic/patients" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicPatients /></RoleRoute>} />
@@ -648,6 +680,8 @@ const App = () => (
             </LenisScroll>
           </HashRouter>
         </TooltipProvider>
+        </VideoCallProvider>
+        </AudioCallProvider>
         </CartProvider>
         </PreferredPharmacyProvider>
       </NotificationProvider>

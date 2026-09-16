@@ -1,6 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { CalendarDays, Clock, User, CheckCircle, AlertCircle, Star, DollarSign, Stethoscope, Activity, Users, FlaskConical, RotateCcw } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import {
+  CalendarDays, Clock, User, CheckCircle, AlertCircle, Star, DollarSign,
+  Stethoscope, Activity, Users, FlaskConical, RotateCcw,
+  MapPin, Globe, Phone, Video, MessageCircle, ChevronRight, Car, Sparkles
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
@@ -10,6 +15,19 @@ import LicenseExpiryReminder from '@/components/LicenseExpiryReminder';
 import EarningsAnalytics from '@/components/EarningsAnalytics';
 import { getISTDateString } from '@/lib/dateUtils';
 
+function isInPersonAppointment(appt) {
+  if (!appt) return false;
+  const mode = (appt.appointmentMode || '').toLowerCase();
+  const type = (appt.type || '').toLowerCase();
+  const intakeMode = (appt.preConsultationDetails?.appointmentMode || appt.preConsultationDetails?.mode || '').toLowerCase();
+  if (mode === 'offline' || mode === 'in_person' || mode === 'in-person' || mode === 'home_visit' || mode === 'home' || intakeMode === 'in_person' || intakeMode === 'offline' || intakeMode === 'home_visit' || intakeMode === 'home') {
+    return true;
+  }
+  const isOnline = mode === 'chat' || mode === 'video' || mode === 'voice' || mode === 'audio' ||
+    type.includes('chat') || type.includes('video') || type.includes('voice') || type.includes('audio');
+  return !isOnline;
+}
+
 const statusColors = {
   Confirmed: { bg: 'bg-success/10', text: 'text-success', border: 'border-success/20' },
   Pending: { bg: 'bg-warning/10', text: 'text-warning', border: 'border-warning/20' },
@@ -18,6 +36,7 @@ const statusColors = {
 };
 
 export default function DoctorDashboard() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [appointments, setAppointments] = useState([]);
   const [reviews, setReviews] = useState([]);
@@ -98,6 +117,8 @@ export default function DoctorDashboard() {
   const todayAppts = appointments.filter(a => a.date === today);
   const pendingAppts = appointments.filter(a => a.status === 'Pending');
   const completedAppts = appointments.filter(a => a.status === 'Completed');
+  const todayInPersonAppts = todayAppts.filter(a => isInPersonAppointment(a) && a.status !== 'Completed' && a.status !== 'Cancelled');
+  const todayOnlineAppts = todayAppts.filter(a => !isInPersonAppointment(a) && a.status !== 'Completed' && a.status !== 'Cancelled');
   const uniquePatients = new Set(appointments.map(a => a.patient?.toLowerCase())).size;
   const avgRating = reviews.length > 0 ? (reviews.reduce((s, r) => s + Number(r.rating || 0), 0) / reviews.length).toFixed(1) : '0.0';
   
@@ -164,6 +185,171 @@ export default function DoctorDashboard() {
           <p className="text-sm text-muted-foreground">Total Earned</p>
         </motion.div>
       </div>
+
+      {/* Consultation & Patient Visits Hub (Home Visits Live Map, Online Queue, Audio/Video Suite, Chat) */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="rounded-3xl border border-border/60 bg-gradient-to-br from-card via-card to-primary/5 p-5 sm:p-6 shadow-sm"
+      >
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-600 text-white flex items-center justify-center shadow-md">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-heading font-bold text-lg text-foreground">
+                  Consultation & Live Patient Tracking Hub
+                </h3>
+                <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/20">
+                  Hospital Doctor Suite
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Manage your confirmed home visits with live GPS map tracking, online appointments, and real-time communications.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+          {/* 1. Home Visits with Live Map */}
+          <div
+            onClick={() => navigate('/doctor/home-visit')}
+            className="group relative rounded-2xl border-2 border-violet-500/30 bg-violet-500/5 dark:bg-violet-950/20 p-4 hover:border-violet-500 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 cursor-pointer flex flex-col justify-between"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-2.5">
+                <div className="w-10 h-10 rounded-xl bg-violet-600 text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
+                  <MapPin className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-500 text-white flex items-center gap-1">
+                  <Car className="w-3 h-3" /> Live GPS
+                </span>
+              </div>
+              <h4 className="font-heading font-bold text-foreground text-sm group-hover:text-violet-600 transition-colors">
+                Home Visits
+              </h4>
+              <p className="text-xs text-muted-foreground mt-1">
+                Live patient route tracking map, Haversine distance, urban ETA, and arrival waiting room check-in.
+              </p>
+            </div>
+            <div className="mt-4 pt-2.5 border-t border-violet-500/20 flex items-center justify-between text-xs font-semibold text-violet-600">
+              <span>{todayInPersonAppts.length} active today</span>
+              <span className="flex items-center gap-0.5">Track Map <ChevronRight className="w-3.5 h-3.5" /></span>
+            </div>
+          </div>
+
+          {/* 2. Online Appointments */}
+          <div
+            onClick={() => navigate('/doctor/online-appointments')}
+            className="group relative rounded-2xl border border-border/60 bg-card p-4 hover:border-primary hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 cursor-pointer flex flex-col justify-between"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-2.5">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <Globe className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                  Telehealth
+                </span>
+              </div>
+              <h4 className="font-heading font-bold text-foreground text-sm group-hover:text-primary transition-colors">
+                Online Visits
+              </h4>
+              <p className="text-xs text-muted-foreground mt-1">
+                Scheduled chat & video consultations queue with patient intake summaries.
+              </p>
+            </div>
+            <div className="mt-4 pt-2.5 border-t border-border/40 flex items-center justify-between text-xs font-semibold text-primary">
+              <span>{todayOnlineAppts.length} active today</span>
+              <span className="flex items-center gap-0.5">Open Queue <ChevronRight className="w-3.5 h-3.5" /></span>
+            </div>
+          </div>
+
+          {/* 3. Patient Chat */}
+          <div
+            onClick={() => navigate('/doctor/chat')}
+            className="group relative rounded-2xl border border-border/60 bg-card p-4 hover:border-blue-500 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 cursor-pointer flex flex-col justify-between"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-2.5">
+                <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <MessageCircle className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600">
+                  Instant
+                </span>
+              </div>
+              <h4 className="font-heading font-bold text-foreground text-sm group-hover:text-blue-600 transition-colors">
+                Patient Chat
+              </h4>
+              <p className="text-xs text-muted-foreground mt-1">
+                Encrypted text chat, symptom discussions, and medical report sharing.
+              </p>
+            </div>
+            <div className="mt-4 pt-2.5 border-t border-border/40 flex items-center justify-between text-xs font-semibold text-blue-600">
+              <span>Direct Messages</span>
+              <span className="flex items-center gap-0.5">Chat <ChevronRight className="w-3.5 h-3.5" /></span>
+            </div>
+          </div>
+
+          {/* 4. Audio Calls */}
+          <div
+            onClick={() => navigate('/doctor/calls')}
+            className="group relative rounded-2xl border border-border/60 bg-card p-4 hover:border-emerald-500 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 cursor-pointer flex flex-col justify-between"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-2.5">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <Phone className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600">
+                  WebRTC
+                </span>
+              </div>
+              <h4 className="font-heading font-bold text-foreground text-sm group-hover:text-emerald-600 transition-colors">
+                Voice Calls
+              </h4>
+              <p className="text-xs text-muted-foreground mt-1">
+                1-to-1 crystal-clear audio consultations with active call duration & log history.
+              </p>
+            </div>
+            <div className="mt-4 pt-2.5 border-t border-border/40 flex items-center justify-between text-xs font-semibold text-emerald-600">
+              <span>Noise Canceling</span>
+              <span className="flex items-center gap-0.5">Dial <ChevronRight className="w-3.5 h-3.5" /></span>
+            </div>
+          </div>
+
+          {/* 5. Video Calls */}
+          <div
+            onClick={() => navigate('/doctor/video-calls')}
+            className="group relative rounded-2xl border border-border/60 bg-card p-4 hover:border-cyan-500 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 cursor-pointer flex flex-col justify-between"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-2.5">
+                <div className="w-10 h-10 rounded-xl bg-cyan-500/10 text-cyan-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <Video className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-600">
+                  1080p HD
+                </span>
+              </div>
+              <h4 className="font-heading font-bold text-foreground text-sm group-hover:text-cyan-600 transition-colors">
+                Video Consult
+              </h4>
+              <p className="text-xs text-muted-foreground mt-1">
+                Full HD 1080p video consultation room with screen sharing, PiP, and camera controls.
+              </p>
+            </div>
+            <div className="mt-4 pt-2.5 border-t border-border/40 flex items-center justify-between text-xs font-semibold text-cyan-600">
+              <span>Full HD</span>
+              <span className="flex items-center gap-0.5">Start <ChevronRight className="w-3.5 h-3.5" /></span>
+            </div>
+          </div>
+        </div>
+      </motion.div>
 
       {/* Earnings Analytics */}
       <EarningsAnalytics bills={bills} title="Earnings Analytics" />

@@ -16,6 +16,8 @@ import {
 } from '@/lib/timeSlots';
 import PatientHistoryModal from '@/components/PatientHistoryModal';
 import { formatDisplayDate } from '@/lib/dateUtils';
+import { useAudioCall } from '@/context/AudioCallContext';
+import { useVideoCall } from '@/context/VideoCallContext';
 
 /**
  * Shared 3-column "Today Appointments" dashboard for Doctor & Clinic dashboards.
@@ -579,6 +581,8 @@ function PatientDetailCard({
   onRefresh, user, selectedDate,
 }) {
   const navigate = useNavigate();
+  const { initiateCall } = useAudioCall();
+  const { initiateVideoCall } = useVideoCall();
   const patient = apt.patientId;
   const intake = apt.preConsultationDetails;
 
@@ -824,23 +828,49 @@ function PatientDetailCard({
                 {isVideo ? 'Video Call' : 'Voice Call'}
               </span>
             </div>
-            {isVideo ? (
+            <div className="grid grid-cols-2 gap-2 pt-1">
               <Button
                 size="sm"
-                className="w-full gap-1.5 text-xs h-8 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm font-semibold"
-                onClick={() => navigate(`${routePrefix}/video-call/${apt._id}`)}
+                className="gap-1.5 text-xs h-8 bg-cyan-600 hover:bg-cyan-700 text-white shadow-sm font-semibold"
+                onClick={() => {
+                  const targetId = patient?.userId || patient?._id || apt.patientId;
+                  if (targetId && initiateVideoCall) {
+                    initiateVideoCall({
+                      id: String(targetId),
+                      name: apt.patient || patient?.name || 'Patient',
+                      avatar: patient?.avatar || '',
+                      phone: patient?.phone || '',
+                      role: 'patient',
+                    }, apt._id);
+                  } else {
+                    navigate(`${routePrefix}/video-calls`);
+                  }
+                }}
               >
-                <Video className="w-3.5 h-3.5" /> Start Video Consultation
+                <Video className="w-3.5 h-3.5" /> Video Call
               </Button>
-            ) : (
               <Button
                 size="sm"
-                className="w-full gap-1.5 text-xs h-8 bg-amber-600 hover:bg-amber-700 text-white shadow-sm font-semibold"
-                onClick={() => navigate(`${routePrefix}/call/${apt._id}`)}
+                variant="outline"
+                className="gap-1.5 text-xs h-8 border-emerald-600/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 font-semibold"
+                onClick={() => {
+                  const targetId = patient?.userId || patient?._id || apt.patientId;
+                  if (targetId && initiateCall) {
+                    initiateCall({
+                      id: String(targetId),
+                      name: apt.patient || patient?.name || 'Patient',
+                      avatar: patient?.avatar || '',
+                      phone: patient?.phone || '',
+                      role: 'patient',
+                    }, apt._id);
+                  } else {
+                    navigate(`${routePrefix}/calls`);
+                  }
+                }}
               >
-                <Phone className="w-3.5 h-3.5" /> Start Voice Consultation
+                <Phone className="w-3.5 h-3.5" /> Audio Call
               </Button>
-            )}
+            </div>
           </div>
         );
       })()}

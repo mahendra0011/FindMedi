@@ -3,6 +3,7 @@ import {
   CalendarDays, ChevronLeft, ChevronRight, Clock, CheckCircle,
   User, History, TrendingUp,
   XCircle, AlertTriangle, FileText, Info, Phone, Mail, MapPin, Droplet,
+  Video, MessageSquare,
 } from 'lucide-react';
 import { getISTDateString, formatDisplayDate } from '@/lib/dateUtils';
 import { resolveFileUrl, isValidFileUrl } from '@/lib/api';
@@ -303,6 +304,12 @@ export default function ApproveAppointmentSection({ appointments, onConfirm, onR
                         onClick={() => {
                           if (isRejected) return;
                           setExpandedId(isExpanded ? null : apt._id);
+                          if (apt.date) {
+                            setSelectedDate(apt.date);
+                            try {
+                              setCalDate(new Date(apt.date + 'T00:00:00'));
+                            } catch (_) {}
+                          }
                         }}
                         className={`w-full flex items-center gap-3 p-2.5 rounded-xl text-left transition-colors border ${
                           isExpanded ? 'bg-muted/50 border-primary/30' : 'border-transparent hover:bg-muted/50 hover:border-border/40 cursor-pointer'
@@ -319,10 +326,13 @@ export default function ApproveAppointmentSection({ appointments, onConfirm, onR
                             <Clock className="w-3 h-3 shrink-0" />
                             {apt.time} {subSlotFor(apt.time) ? `· ${subSlotFor(apt.time)}` : ''}
                           </p>
-                          <p className="text-[10px] text-muted-foreground/60 flex items-center gap-1">
-                            <CalendarDays className="w-3 h-3 shrink-0" />
-                            {formatDisplayDate(apt.date) || apt.date}
-                          </p>
+                          <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                            <span className="text-[10px] text-muted-foreground/70 flex items-center gap-1">
+                              <CalendarDays className="w-3 h-3 shrink-0" />
+                              {formatDisplayDate(apt.date) || apt.date}
+                            </span>
+                            {getConsultationModeBadge(apt)}
+                          </div>
                         </div>
                         {isRejected ? (
                           <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-semibold whitespace-nowrap shrink-0 bg-destructive/10 text-destructive">
@@ -419,10 +429,65 @@ export default function ApproveAppointmentSection({ appointments, onConfirm, onR
  * TodayAppointmentsSection, but with ONLY Confirm/Reject actions.
  * Rejected appointments show the rejection reason (apt.notes).
  * ════════════════════════════════════════════════════════════ */
+function isInPersonAppointment(appt) {
+  if (!appt) return false;
+  const mode = (appt.appointmentMode || '').toLowerCase();
+  const type = (appt.type || '').toLowerCase();
+  const intakeMode = (appt.preConsultationDetails?.appointmentMode || appt.preConsultationDetails?.mode || '').toLowerCase();
+  if (mode === 'offline' || mode === 'in_person' || mode === 'in-person' || mode === 'home_visit' || mode === 'home' || intakeMode === 'in_person' || intakeMode === 'offline' || intakeMode === 'home_visit' || intakeMode === 'home') {
+    return true;
+  }
+  const isOnline = mode === 'chat' || mode === 'video' || mode === 'voice' || mode === 'audio' ||
+    type.includes('chat') || type.includes('video') || type.includes('voice') || type.includes('audio');
+  return !isOnline;
+}
+
+function getConsultationModeBadge(appt) {
+  if (!appt) return null;
+  const mode = (appt.appointmentMode || '').toLowerCase();
+  const type = (appt.type || '').toLowerCase();
+  const intakeMode = (appt.preConsultationDetails?.appointmentMode || appt.preConsultationDetails?.mode || '').toLowerCase();
+
+  if (mode === 'chat' || type.includes('chat') || intakeMode === 'chat') {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-medium bg-blue-500/10 text-blue-700 dark:text-blue-400 text-[10px] border border-blue-500/20">
+        <MessageSquare className="w-3 h-3 text-blue-600" /> Chat Consultation
+      </span>
+    );
+  }
+  if (mode === 'audio' || mode === 'call' || mode === 'voice' || type.includes('audio') || type.includes('voice') || intakeMode === 'audio' || intakeMode === 'voice') {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-medium bg-teal-500/10 text-teal-700 dark:text-teal-400 text-[10px] border border-teal-500/20">
+        <Phone className="w-3 h-3 text-teal-600" /> Voice Call
+      </span>
+    );
+  }
+  if (mode === 'video' || type.includes('video') || intakeMode === 'video') {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-[10px] border border-emerald-500/20">
+        <Video className="w-3 h-3 text-emerald-600" /> Video Call
+      </span>
+    );
+  }
+  if (mode === 'home_visit' || mode === 'home' || intakeMode === 'home_visit' || intakeMode === 'home') {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-medium bg-amber-500/10 text-amber-700 dark:text-amber-400 text-[10px] border border-amber-500/20">
+        <MapPin className="w-3 h-3" /> Home Visit
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-medium bg-violet-500/10 text-violet-700 dark:text-violet-400 text-[10px] border border-violet-500/20">
+      <MapPin className="w-3 h-3" /> In Person
+    </span>
+  );
+}
+
 function ApproveCard({ apt, subSlotFor, onViewFile, onConfirm, onRejectClick }) {
   const patient = apt.patientId;
   const intake = apt.preConsultationDetails;
   const isRejected = (apt.status || '').toLowerCase() === 'cancelled';
+  const isInPerson = isInPersonAppointment(apt);
 
   const [showDetails, setShowDetails] = useState(false);
   const [showIntake, setShowIntake] = useState(true);
@@ -450,17 +515,20 @@ function ApproveCard({ apt, subSlotFor, onViewFile, onConfirm, onRejectClick }) 
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="font-heading text-base font-bold text-foreground truncate">{apt.patient}</h3>
-          {isRejected ? (
-            <div className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full font-semibold bg-destructive/10 text-destructive text-[10px]">
-              <XCircle className="w-3 h-3" />
-              Rejected
-            </div>
-          ) : (
-            <div className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full font-semibold bg-amber-500/10 text-amber-600 text-[10px]">
-              <Clock className="w-3 h-3" />
-              Awaiting Approval
-            </div>
-          )}
+          <div className="flex items-center gap-1.5 flex-wrap mt-1">
+            {isRejected ? (
+              <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-semibold bg-destructive/10 text-destructive text-[10px]">
+                <XCircle className="w-3 h-3" />
+                Rejected
+              </div>
+            ) : (
+              <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-semibold bg-amber-500/10 text-amber-600 text-[10px]">
+                <Clock className="w-3 h-3" />
+                Awaiting Approval
+              </div>
+            )}
+            {getConsultationModeBadge(apt)}
+          </div>
         </div>
       </div>
 
@@ -503,6 +571,14 @@ function ApproveCard({ apt, subSlotFor, onViewFile, onConfirm, onRejectClick }) 
             <AlertTriangle className="w-3 h-3" /> Rejection Reason
           </p>
           <p className="text-xs text-foreground">{apt.notes || 'No reason provided'}</p>
+        </div>
+      )}
+
+      {/* Informative banner for Home visits */}
+      {isInPerson && !isRejected && (
+        <div className="flex items-center gap-2 p-2.5 mb-3 rounded-xl bg-violet-500/10 border border-violet-500/20 text-xs text-violet-700 dark:text-violet-300">
+          <MapPin className="w-4 h-4 shrink-0 text-violet-600" />
+          <span>Home visit. Once confirmed, this will appear in <strong>Home Visits</strong> with live patient tracking.</span>
         </div>
       )}
 

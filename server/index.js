@@ -234,7 +234,7 @@ app.use((req, res, next) => {
       '/disputes', '/support-tickets', '/leave-requests', '/schedule-change-requests',
       '/categories', '/licenses', '/announcements', '/broadcast', '/platform-coupons',
       '/featured-listings', '/cities', '/platform-content', '/export', '/integrations',
-      '/delivery-partners', '/delivery-boy', '/ai-chat', '/drive', '/health'
+      '/delivery-partners', '/delivery-boy', '/ai-chat', '/drive', '/calls', '/health'
     ];
     if (knownApiPrefixes.some(p => req.url.startsWith(p))) {
       req.url = `/api${req.url}`;
@@ -322,6 +322,7 @@ import aiChatRoutes from './routes/aiChat.js';
 import driveRoutes from './routes/drive.js';
 import analyticsRoutes from './routes/analytics.js';
 import chatRoutes from './routes/chat.js';
+import callRoutes from './routes/calls.js';
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -387,6 +388,7 @@ app.use('/api/delivery-boy', deliveryPartnerRoutes);
 app.use('/api/ai-chat', aiChatRoutes);
 app.use('/api/drive', driveRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/calls', callRoutes);
 
 // 2FA routes
 app.use('/api/auth/2fa', twoFactorRoutes);

@@ -309,6 +309,7 @@ export const api = {
   walkInAppointment:  (body)    => request('/appointments/walk-in', { method:'POST',   body: JSON.stringify(body) }),
   updateAppointment:  (id,b)    => request(`/appointments/${id}`,   { method:'PUT',    body: JSON.stringify(b) }),
   submitIntakeForm:   (id,b)    => request(`/appointments/${id}/intake`, { method:'PUT', body: JSON.stringify(b) }),
+  updateAppointmentTransit: (id,b) => request(`/appointments/${id}/transit`, { method:'PUT', body: JSON.stringify(b) }),
   deleteAppointment:  (id)      => request(`/appointments/${id}`,   { method:'DELETE' }),
 
   getRecords:         (p={})    => request('/records?' + new URLSearchParams(p)),
@@ -679,4 +680,13 @@ export const api = {
   getCommissionConfigs:   ()        => request('/commission/configs'),
   getCommissionStats:     ()        => request('/commission/stats'),
   updateCommissionConfig: (id,body) => request(`/commission/configs/${id}`, { method:'PUT', body: JSON.stringify(body) }),
+
+  // ── 1-to-1 Audio Calls ──
+  getCalls:               (p={})    => request('/calls?' + new URLSearchParams(p)),
+  getCallStats:           ()        => request('/calls/stats'),
+  getCallContacts:        ()        => request('/calls/contacts'),
+  initiateCallLog:        (body)    => request('/calls/initiate', { method:'POST', body: JSON.stringify(body) }),
+  updateCallStatus:       (id,body) => request(`/calls/${id}/status`, { method:'PUT', body: JSON.stringify(body) }),
+  deleteCallLog:          (id)      => request(`/calls/${id}`, { method:'DELETE' }),
+  clearAllCallLogs:       ()        => request('/calls/clear/all', { method:'DELETE' }),
 };

@@ -14,8 +14,21 @@ const appointmentSchema = new mongoose.Schema({
   time: { type: String, required: true },
   status: { type: String, enum: ['Pending', 'Confirmed', 'Cancelled', 'Completed', 'In Queue', 'Serving', 'Missed'], default: 'Pending' },
   priority: { type: String, enum: ['Normal', 'Urgent', 'Emergency'], default: 'Normal' },
-  type: { type: String, enum: ['Consultation', 'Follow-up', 'Check-up', 'Emergency'], default: 'Consultation' },
-  appointmentMode: { type: String, enum: ['chat', 'video', 'offline', 'home_visit', 'home'], default: 'offline' },
+  type: { type: String, enum: ['Consultation', 'Follow-up', 'Check-up', 'Emergency', 'Chat Consultation', 'Video Consultation', 'Audio Call Consultation', 'Audio Consultation', 'Home Visit Consultation'], default: 'Consultation' },
+  appointmentMode: { type: String, enum: ['chat', 'video', 'audio', 'voice', 'call', 'offline', 'in_person', 'home_visit', 'home'], default: 'offline' },
+  patientLocation: {
+    lat: { type: Number },
+    lng: { type: Number },
+    address: { type: String, default: '' },
+    updatedAt: { type: Date },
+    transitStatus: { 
+      type: String, 
+      enum: ['pending_departure', 'on_the_way', 'nearby', 'arrived', 'completed'], 
+      default: 'pending_departure' 
+    },
+    etaMinutes: { type: Number },
+    distanceKm: { type: Number },
+  },
   notes: { type: String, default: '' },
   symptoms: { type: String, default: '' },
   preConsultationDetails: {
