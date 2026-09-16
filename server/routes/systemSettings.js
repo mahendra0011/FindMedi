@@ -19,7 +19,7 @@ const DEFAULT_SETTINGS = {
   autoApproveDoctors: { value: false, type: 'boolean', description: 'Auto-approve doctor registrations' },
   maintenanceMode: { value: false, type: 'boolean', description: 'Put platform in maintenance mode' },
   autoConfirmAppointment: { value: true, type: 'boolean', description: 'Auto-confirm appointments globally after successful payment (facilities can override)' },
-  supportEmail: { value: 'support@medicore.com', type: 'string', description: 'Platform support email' },
+  supportEmail: { value: 'support@findmedi.com', type: 'string', description: 'Platform support email' },
   termsVersion: { value: '1.0', type: 'string', description: 'Current terms of service version' },
 };
 

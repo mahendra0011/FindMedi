@@ -141,7 +141,7 @@ export default function ChatDashboard() {
       setPrivacy(data);
       setPinSet(Boolean(data.appLockPinSet));
       setBackup(data.backup || {});
-      try { setTheme(JSON.parse(localStorage.getItem('medicore_settings') || '{}').theme || 'system'); } catch { /* keep */ }
+      try { setTheme(JSON.parse((localStorage.getItem('findmedi_settings') || localStorage.getItem('medicore_settings')) || '{}').theme || 'system'); } catch { /* keep */ }
     } catch { /* non-fatal */ }
   }, []);
 
@@ -672,8 +672,8 @@ export default function ChatDashboard() {
   const onThemeChange = useCallback((next) => {
     setTheme(next);
     try {
-      const stored = JSON.parse(localStorage.getItem('medicore_settings') || '{}');
-      localStorage.setItem('medicore_settings', JSON.stringify({ ...stored, theme: next }));
+      const stored = JSON.parse((localStorage.getItem('findmedi_settings') || localStorage.getItem('medicore_settings')) || '{}');
+      localStorage.setItem('findmedi_settings', JSON.stringify({ ...stored, theme: next }));
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
       document.documentElement.classList.toggle('dark', next === 'dark' || (next === 'system' && prefersDark));
     } catch { /* ignore */ }

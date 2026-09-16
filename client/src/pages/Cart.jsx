@@ -13,12 +13,12 @@ export default function Cart() {
   const navigate = useNavigate();
   const { entries, stores, updateQty, removeItem, addItem, totalItems } = useCart();
   const [savedForLater, setSavedForLater] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('mediCore_saved')) || {}; } catch { return {}; }
+    try { return JSON.parse((localStorage.getItem('findmedi_saved') || localStorage.getItem('mediCore_saved'))) || {}; } catch { return {}; }
   });
   const [fetchedStores, setFetchedStores] = useState([]);
 
   useEffect(() => {
-    localStorage.setItem('mediCore_saved', JSON.stringify(savedForLater));
+    localStorage.setItem('findmedi_saved', JSON.stringify(savedForLater));
   }, [savedForLater]);
 
   useEffect(() => {

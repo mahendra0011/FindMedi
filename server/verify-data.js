@@ -8,10 +8,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.join(__dirname, '.env') });
 configureMongoDns();
 
-const DATABASE_NAME = 'medicore';
+const DATABASE_NAME = 'findmedi';
 
 const buildMongoUri = () => {
-  let mongoUri = process.env.MONGO_URI || 'mongodb://localhost:27017/medicore';
+  let mongoUri = process.env.MONGO_URI || 'mongodb://localhost:27017/findmedi';
 
   try {
     const url = new URL(mongoUri);
@@ -40,7 +40,7 @@ const main = async () => {
   const collections = await db.listCollections().toArray();
   const collectionNames = collections.map(c => c.name);
 
-  console.log('Collections in medicore database:');
+  console.log('Collections in findmedi database:');
   if (collectionNames.length === 0) {
     console.log('No collections found.');
     process.exit(1);

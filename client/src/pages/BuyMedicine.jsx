@@ -25,7 +25,7 @@ function getLocality(address) {
 
 export default function BuyMedicine() {
   const navigate = useNavigate();
-  const selectedCity = localStorage.getItem('mediCore_city') || '';
+  const selectedCity = (localStorage.getItem('findmedi_city') || localStorage.getItem('mediCore_city')) || '';
   const [allStores, setAllStores] = useState([]);
 
   useEffect(() => {

@@ -1,7 +1,7 @@
 {
   "name": "medi-core-napi",
   "version": "0.1.0",
-  "description": "Native Rust modules for mediCore performance-critical paths (napi-rs)",
+  "description": "Native Rust modules for FindMedi performance-critical paths (napi-rs)",
   "main": "index.js",
   "scripts": {
     "build": "napi build --platform --dts index.d.ts",

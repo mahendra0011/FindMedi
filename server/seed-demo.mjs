@@ -11,7 +11,7 @@ configureMongoDns();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.join(__dirname, '.env') });
 
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/medicore';
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/findmedi';
 
 import Hospital from './models/Hospital.js';
 import Facility from './models/Facility.js';

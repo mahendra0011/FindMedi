@@ -77,7 +77,7 @@ export default function AIChatPage() {
   }, []);
 
   useEffect(() => {
-    const saved = localStorage.getItem('medicore_ai_history');
+    const saved = (localStorage.getItem('findmedi_ai_history') || localStorage.getItem('medicore_ai_history'));
     if (saved) {
       try {
         setChatSessions(JSON.parse(saved));
@@ -203,7 +203,7 @@ export default function AIChatPage() {
 
   const clearAllChats = () => {
     setChatSessions([]);
-    localStorage.removeItem('medicore_ai_history');
+    localStorage.removeItem('findmedi_ai_history'); localStorage.removeItem('medicore_ai_history');
     startNewChat();
     toast.success('All chats cleared');
     setSettingsOpen(false);
@@ -213,14 +213,14 @@ export default function AIChatPage() {
     e.stopPropagation();
     const updated = chatSessions.map(s => s.id === id ? { ...s, pinned: !s.pinned } : s);
     setChatSessions(updated);
-    localStorage.setItem('medicore_ai_history', JSON.stringify(updated));
+    localStorage.setItem('findmedi_ai_history', JSON.stringify(updated));
   };
 
   const toggleArchive = (e, id) => {
     e.stopPropagation();
     const updated = chatSessions.map(s => s.id === id ? { ...s, archived: !s.archived } : s);
     setChatSessions(updated);
-    localStorage.setItem('medicore_ai_history', JSON.stringify(updated));
+    localStorage.setItem('findmedi_ai_history', JSON.stringify(updated));
     if (currentSessionId === id) startNewChat();
   };
 
@@ -286,7 +286,7 @@ export default function AIChatPage() {
         }
       }
       setChatSessions(newSessions);
-      localStorage.setItem('medicore_ai_history', JSON.stringify(newSessions));
+      localStorage.setItem('findmedi_ai_history', JSON.stringify(newSessions));
 
     } catch {
       setMessages((prev) => [...prev, { role: 'assistant', id: Date.now(), content: 'Sorry, I encountered an error. Please try again.' }]);
@@ -770,7 +770,7 @@ export default function AIChatPage() {
                   if (e.key === 'Enter') {
                     const updated = chatSessions.map(s => s.id === session.id ? { ...s, title: editTitle || 'Untitled Chat' } : s);
                     setChatSessions(updated);
-                    localStorage.setItem('medicore_ai_history', JSON.stringify(updated));
+                    localStorage.setItem('findmedi_ai_history', JSON.stringify(updated));
                     setEditingSessionId(null);
                   } else if (e.key === 'Escape') {
                     setEditingSessionId(null);
@@ -790,7 +790,7 @@ export default function AIChatPage() {
               <Tooltip><TooltipTrigger asChild><button onClick={(e) => togglePin(e, session.id)} className="p-1 hover:text-primary"><Pin className="w-3 h-3"/></button></TooltipTrigger><TooltipContent>Pin</TooltipContent></Tooltip>
               <Tooltip><TooltipTrigger asChild><button onClick={(e) => toggleArchive(e, session.id)} className="p-1 hover:text-primary"><Archive className="w-3 h-3"/></button></TooltipTrigger><TooltipContent>Archive</TooltipContent></Tooltip>
               <Tooltip><TooltipTrigger asChild><button onClick={(e) => { e.stopPropagation(); setEditTitle(session.title); setEditingSessionId(session.id); }} className="p-1 hover:text-primary"><Edit2 className="w-3 h-3"/></button></TooltipTrigger><TooltipContent>Rename</TooltipContent></Tooltip>
-              <Tooltip><TooltipTrigger asChild><button onClick={(e) => { e.stopPropagation(); const updated = chatSessions.filter(s => s.id !== session.id); setChatSessions(updated); localStorage.setItem('medicore_ai_history', JSON.stringify(updated)); if (isSelected) startNewChat(); }} className="p-1 text-destructive hover:text-red-600"><Trash2 className="w-3 h-3"/></button></TooltipTrigger><TooltipContent>Delete</TooltipContent></Tooltip>
+              <Tooltip><TooltipTrigger asChild><button onClick={(e) => { e.stopPropagation(); const updated = chatSessions.filter(s => s.id !== session.id); setChatSessions(updated); localStorage.setItem('findmedi_ai_history', JSON.stringify(updated)); if (isSelected) startNewChat(); }} className="p-1 text-destructive hover:text-red-600"><Trash2 className="w-3 h-3"/></button></TooltipTrigger><TooltipContent>Delete</TooltipContent></Tooltip>
             </TooltipProvider>
           </div>
         </div>

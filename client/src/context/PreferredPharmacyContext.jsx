@@ -1,7 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useReducer, useState } from 'react';
 import { api } from '@/lib/api';
 
-const STORAGE_KEY = 'mediCore_preferred_pharmacies';
+const STORAGE_KEY = 'findmedi_preferred_pharmacies';
+const LEGACY_STORAGE_KEY = 'mediCore_preferred_pharmacies';
 const DEFAULT_PHARMACIES = [
   { id: 's1', name: 'MedPlus Pharmacy', priority: 1 },
   { id: 's2', name: 'HealthFirst Medicals', priority: 2 },
@@ -9,7 +10,7 @@ const DEFAULT_PHARMACIES = [
 ];
 
 function loadPrefs() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)); } catch { return null; }
+  try { return JSON.parse((localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY))); } catch { return null; }
 }
 
 const initialState = {

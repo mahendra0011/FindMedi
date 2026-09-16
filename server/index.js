@@ -148,7 +148,7 @@ printEnvStatus();
 const redactMongoUri = (uri) => uri.replace(/\/\/([^:]+):([^@]+)@/, '//***:***@');
 
 // Load MONGO_URI with environment fallback
-let MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/medicore';
+let MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/findmedi';
 
 // Check if URI contains placeholders and warn
 if (MONGO_URI.includes('<username>') || MONGO_URI.includes('<password>')) {
@@ -160,7 +160,7 @@ if (MONGO_URI.startsWith('mongodb')) {
   try {
     const url = new URL(MONGO_URI);
     if (!url.pathname || url.pathname === '/') {
-      url.pathname = '/medicore';
+      url.pathname = '/findmedi';
       MONGO_URI = url.toString();
     }
   } catch (e) {
@@ -399,7 +399,7 @@ app.use('/auth/2fa', twoFactorRoutes);
 
 app.get('/api/health', (_, res) => res.json({ status: 'ok', time: new Date() }));
 app.get('/health', (_, res) => res.json({ status: 'ok', time: new Date() }));
-app.get('/', (_, res) => res.json({ status: 'ok', message: 'MediCore API running', health: '/api/health', docs: '/api/health' }));
+app.get('/', (_, res) => res.json({ status: 'ok', message: 'FindMedi API running', health: '/api/health', docs: '/api/health' }));
 
 // ── Serve frontend in production (only if client/dist exists - single-service deploy) ──
 import fs from 'fs';

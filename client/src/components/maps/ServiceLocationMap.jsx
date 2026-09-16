@@ -594,7 +594,7 @@ function ServiceDomMarkers({ places, selectedPlace, hoveredPlaceId, route, onSel
           focusAfterOpen: false,
           maxWidth: 'min(342px, calc(100vw - 96px))',
           offset: 22,
-          className: 'medicore-map-popup',
+          className: 'findmedi-map-popup',
         })
           .setLngLat(coordinates)
           .setDOMContent(content)

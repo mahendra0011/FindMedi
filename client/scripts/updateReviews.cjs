@@ -54,7 +54,7 @@ const filesToUpdate = [
   }
 ];
 
-const basePath = path.join('D:', 'projects', 'mediCore', 'client', 'src', 'pages');
+const basePath = path.resolve(__dirname, '..', 'src', 'pages');
 
 filesToUpdate.forEach(item => {
   const filePath = path.join(basePath, item.file);

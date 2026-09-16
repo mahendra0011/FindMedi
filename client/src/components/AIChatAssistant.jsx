@@ -46,7 +46,7 @@ export default function AIChatAssistant() {
   }, []);
 
   useEffect(() => {
-    const saved = localStorage.getItem('medicore_ai_history');
+    const saved = (localStorage.getItem('findmedi_ai_history') || localStorage.getItem('medicore_ai_history'));
     if (saved) {
       try {
         setChatSessions(JSON.parse(saved));
@@ -148,7 +148,7 @@ export default function AIChatAssistant() {
         }
       }
       setChatSessions(newSessions);
-      localStorage.setItem('medicore_ai_history', JSON.stringify(newSessions));
+      localStorage.setItem('findmedi_ai_history', JSON.stringify(newSessions));
 
     } catch {
       setMessages((prev) => [...prev, { role: 'assistant', content: 'Oops, something went wrong on my end! Could you please try again?' }]);
@@ -309,7 +309,7 @@ export default function AIChatAssistant() {
                             e.stopPropagation();
                             const updated = chatSessions.filter(s => s.id !== session.id);
                             setChatSessions(updated);
-                            localStorage.setItem('medicore_ai_history', JSON.stringify(updated));
+                            localStorage.setItem('findmedi_ai_history', JSON.stringify(updated));
                             if (currentSessionId === session.id) {
                               setCurrentSessionId(null);
                               setMessages([]);

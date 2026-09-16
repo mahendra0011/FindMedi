@@ -12,6 +12,8 @@
   will-change: transform, opacity;
 }
 
+.findmedi-split-gradient .split-word,
+.findmedi-split-gradient .split-char,
 .medicore-split-gradient .split-word,
 .medicore-split-gradient .split-char {
   background: linear-gradient(90deg, hsl(var(--primary)), #3b82f6, #8b5cf6);

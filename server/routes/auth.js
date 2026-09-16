@@ -1073,7 +1073,7 @@ router.post('/avatar', protect, handleAvatarUpload, async (req, res) => {
         req.file.buffer,
         req.file.originalname,
         req.file.mimetype,
-        'medicore/avatars'
+        'findmedi/avatars'
       );
     } catch (error) {
       logger.warn('Avatar Cloudinary upload failed, using local storage:', error.message);

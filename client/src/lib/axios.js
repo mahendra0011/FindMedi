@@ -2,7 +2,7 @@ import axios from 'axios';
 
 /**
  * Normalize BASE API URL so that even if VITE_API_URL is configured without "/api"
- * (e.g. "https://medicore-main.onrender.com" or "https://findmedi.online"),
+ * (e.g. "https://findmedi-main.onrender.com" or "https://findmedi.online"),
  * or with trailing slashes, it will ALWAYS correctly end with "/api".
  */
 export function getApiBaseUrl() {
@@ -16,7 +16,7 @@ export function getApiBaseUrl() {
 
 /**
  * Returns backend server origin without the "/api" suffix
- * (e.g. "https://medicore-main.onrender.com" or "http://localhost:5001").
+ * (e.g. "https://findmedi-main.onrender.com" or "http://localhost:5001").
  */
 export function getServerOrigin() {
   return getApiBaseUrl().replace(/\/api\/?$/, '');
