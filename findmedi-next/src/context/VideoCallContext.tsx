@@ -267,7 +267,7 @@ export function VideoCallProvider({ children }: { children: React.ReactNode }) {
     }
   }, [activePeer, endCall]);
 
-  const startCall = useCallback(async (peer: ActiveVideoPeer) => {
+  const startCall = useCallback(async (peer: ActiveVideoPeer, _metadata?: Record<string, unknown>) => {
     try {
       setActivePeer(peer);
       setIsCaller(true);

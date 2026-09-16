@@ -257,7 +257,7 @@ export function AudioCallProvider({ children }: { children: React.ReactNode }) {
     }
   }, [activePeer, endCall]);
 
-  const startCall = useCallback(async (peer: ActivePeer) => {
+  const startCall = useCallback(async (peer: ActivePeer, _metadata?: Record<string, unknown>) => {
     try {
       setActivePeer(peer);
       setIsCaller(true);
