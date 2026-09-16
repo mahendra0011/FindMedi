@@ -15,6 +15,7 @@ import { getISTDateString } from '@/lib/dateUtils';
 import AppointmentDetailsModal from '@/components/AppointmentDetailsModal';
 import TodayAppointmentsSection from '@/components/TodayAppointmentsSection';
 import AppointmentHistorySection from '@/components/AppointmentHistorySection';
+import UpcomingAppointmentsSection from '@/components/UpcomingAppointmentsSection';
 import { CompletedCard } from '@/components/TodayAppointmentsSection';
 import { subSlotFor } from '@/lib/timeSlots';
 import WalkInPatientForm from '@/components/WalkInPatientForm';
@@ -39,7 +40,7 @@ const prescriptionInitialState = {
 export default function ClinicAppointments() {
   const { user } = useAuth();
   const location = useLocation();
-  const mode = location.pathname.endsWith('/approve') ? 'approve' : location.pathname.endsWith('/history') ? 'history' : 'today';
+  const mode = location.pathname.endsWith('/approve') ? 'approve' : location.pathname.endsWith('/upcoming') ? 'upcoming' : location.pathname.endsWith('/history') ? 'history' : 'today';
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [calDate, setCalDate] = useState(new Date());
@@ -123,6 +124,7 @@ export default function ClinicAppointments() {
 
   const today = getISTDateString();
   const pendingAppointments = appointments.filter(a => (a.status || '').toLowerCase() === 'pending');
+  const upcomingAppointments = appointments.filter(a => a.date > today && ((a.status || '').toLowerCase() === 'confirmed' || (a.status || '').toLowerCase() === 'approved'));
   const todayAppointments = appointments.filter(a => a.date === today);
 
   const handleStatus = async (id, status, extra = {}) => {
@@ -349,11 +351,18 @@ export default function ClinicAppointments() {
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <h1 className="font-heading text-2xl font-bold text-foreground flex items-center gap-2 shrink-0">
           {mode === 'approve'
-            ? <><FileCheck className="w-6 h-6 text-primary" /> Approve Appointments</>
+            ? <><FileCheck className="w-6 h-6 text-amber-500" /> Pending Approvals</>
+            : mode === 'upcoming'
+            ? <><CalendarClock className="w-6 h-6 text-purple-600 dark:text-purple-400" /> Upcoming Appointments</>
+            : mode === 'history'
+            ? <><CalendarClock className="w-6 h-6 text-emerald-600 dark:text-emerald-400" /> Appointment History</>
             : <><CalendarClock className="w-6 h-6 text-primary" /> Today Appointments</>
           }
           {mode === 'approve' && pendingAppointments.length > 0 && (
             <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-600">{pendingAppointments.length} pending</span>
+          )}
+          {mode === 'upcoming' && upcomingAppointments.length > 0 && (
+            <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-500/15 text-purple-600 dark:text-purple-400">{upcomingAppointments.length} upcoming</span>
           )}
           {mode === 'today' && todayAppointments.length > 0 && (
             <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary">{todayAppointments.length} today</span>
@@ -362,29 +371,44 @@ export default function ClinicAppointments() {
         <p className="text-sm text-muted-foreground">
           {mode === 'approve'
             ? 'Review and confirm pending appointment requests'
+            : mode === 'upcoming'
+            ? 'Confirmed future consultations'
+            : mode === 'history'
+            ? 'Completed appointment history'
             : 'All appointments scheduled for today'}
         </p>
-        <div className="bg-muted p-1 rounded-2xl flex items-center shrink-0">
-            <Link to="/clinic/appointments">
-              <button className={`px-4 py-2 text-sm font-bold rounded-xl transition-all ${mode === 'today' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
-                Today
+        <div className="bg-muted/80 p-1 rounded-2xl border border-border/50 flex items-center shrink-0 gap-0.5">
+            <Link to="/clinic/appointments/approve">
+              <button className={`px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all relative ${mode === 'approve' ? 'bg-amber-500 text-white shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+                Pending
+                {pendingAppointments.length > 0 && (
+                  <span className={`ml-1.5 px-1.5 py-0.2 rounded-full text-[10px] font-bold ${mode === 'approve' ? 'bg-white/25 text-white' : 'bg-amber-500 text-white'}`}>{pendingAppointments.length}</span>
+                )}
               </button>
             </Link>
-            <Link to="/clinic/appointments/approve">
-              <button className={`px-4 py-2 text-sm font-bold rounded-xl transition-all relative ${mode === 'approve' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
-                Approve
-                {pendingAppointments.length > 0 && (
-                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-amber-500 rounded-full border-2 border-background" />
+            <Link to="/clinic/appointments/upcoming">
+              <button className={`px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all relative ${mode === 'upcoming' ? 'bg-purple-600 text-white shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+                Upcoming
+                {upcomingAppointments.length > 0 && (
+                  <span className={`ml-1.5 px-1.5 py-0.2 rounded-full text-[10px] font-bold ${mode === 'upcoming' ? 'bg-white/25 text-white' : 'bg-purple-500/20 text-purple-600 dark:text-purple-400'}`}>{upcomingAppointments.length}</span>
+                )}
+              </button>
+            </Link>
+            <Link to="/clinic/appointments">
+              <button className={`px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all ${mode === 'today' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+                Today
+                {todayAppointments.length > 0 && (
+                  <span className={`ml-1.5 px-1.5 py-0.2 rounded-full text-[10px] font-bold ${mode === 'today' ? 'bg-white/25 text-white' : 'bg-primary/20 text-primary'}`}>{todayAppointments.length}</span>
                 )}
               </button>
             </Link>
             <Link to="/clinic/appointments/history">
-              <button className={`px-4 py-2 text-sm font-bold rounded-xl transition-all ${mode === 'history' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
-                History
+              <button className={`px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all ${mode === 'history' ? 'bg-emerald-600 text-white shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+                Complete
               </button>
             </Link>
             <Link to="/clinic/home-visit">
-              <button className="px-4 py-2 text-sm font-bold rounded-xl transition-all text-muted-foreground hover:text-foreground flex items-center gap-1.5">
+              <button className="px-3 py-1.5 text-xs font-bold rounded-xl transition-all text-muted-foreground hover:text-foreground flex items-center gap-1">
                 <MapPin className="w-3.5 h-3.5 text-violet-500" />
                 Home Visit
               </button>
@@ -418,25 +442,47 @@ export default function ClinicAppointments() {
             <h3 className="font-heading text-xl font-bold text-foreground">
               Search Results
             </h3>
-            <span className="text-sm text-muted-foreground">{appointments.length} found</span>
           </div>
-          {appointments.length === 0 ? (
-            <div className="bg-card rounded-2xl border border-border/60 p-12 text-center text-muted-foreground shadow-sm">
-              <Search className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
-              <p>No results found for "{searchTerm}"</p>
+          {appointments.filter(a =>
+            a.patient?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            a.phone?.includes(searchTerm) ||
+            a._id?.includes(searchTerm)
+          ).length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <Search className="w-10 h-10 mx-auto mb-2 opacity-30" />
+              <p className="font-medium">No matching appointments</p>
+              <p className="text-xs mt-1">Try a different name, phone, or ID</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {appointments.map((apt) => (
-                <div key={apt._id}>
+              {appointments.filter(a =>
+                a.patient?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                a.phone?.includes(searchTerm) ||
+                a._id?.includes(searchTerm)
+              ).map(a => (
+                <div key={a._id} className="bg-card rounded-2xl border border-border/60 p-4">
                   <CompletedCard
-                    apt={apt}
-                    onRevert={(a) => handleStatus(a._id, 'Confirmed')}
-                    onDownloadPrescription={handleDownloadPrescription}
-                    onDownloadInvoice={(a) => a.invoiceId && downloadInvoicePdf(a.invoiceId, `invoice-${a.patient}.pdf`)}
-                    onViewDetails={(a) => setDetailsApt(a)}
-                    onViewFile={(url) => {
-                      if (!isValidFileUrl(url)) { toast.error('File unavailable — upload was not completed. Ask the patient to re-upload it.'); return; }
+                    apt={a}
+                    onOpenBill={() => { setCompleteId(a._id); setBillModal(true); }}
+                    onOpenPrescription={() => {
+                      setPrescriptionData({
+                        patientName: a.patient || '',
+                        age: a.age || '',
+                        gender: a.gender || '',
+                        phone: a.phone || '',
+                        email: a.email || '',
+                        address: a.address || '',
+                        doctorName: user?.name || '',
+                        specialization: user?.specialization || '',
+                        chiefComplaints: '',
+                        diagnosis: '',
+                        medications: [{ name: '', dosage: '', frequency: '', instructions: '' }],
+                        advice: '',
+                        followUp: '',
+                      });
+                      setShowPrescriptionModal(true);
+                    }}
+                    onOpenReport={(url) => {
                       window.open(resolveFileUrl(url), '_blank');
                     }}
                     subSlotFor={subSlotFor}
@@ -454,6 +500,12 @@ export default function ClinicAppointments() {
           onRefresh={loadAppointments}
           user={user}
           onViewDetails={(a) => setDetailsApt(a)}
+        />
+      ) : mode === 'upcoming' ? (
+        <UpcomingAppointmentsSection
+          appointments={appointments}
+          onViewDetails={(a) => setDetailsApt(a)}
+          user={user}
         />
       ) : mode === 'history' ? (
         <AppointmentHistorySection appointments={appointments} />

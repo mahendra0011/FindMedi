@@ -1,21 +1,11 @@
-/**
- * LicenseExpiryReminder — superadmin-facing banner that shows licenses
- * expiring within 30 days (or already expired) in the dashboard.
- *
- * Ported from client/src/components/LicenseExpiryReminder.jsx.
- * Migration changes:
- *   - @/context/AuthContext → @/hooks/useAuth (Redux-based)
- *   - api.getLicenses() → api.licenses.get() (typed, namespaced)
- *   - TypeScript prop/return types throughout
- */
 'use client';
 
 import { useState, useEffect } from 'react';
 import { AlertTriangle, Clock } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { api } from '@/lib/api/endpoints';
+import { api } from '@/lib/api';
 
-interface LicenseRecord {
+interface LicenseItem {
   _id: string;
   licenseType: string;
   licenseNumber: string;
@@ -25,32 +15,24 @@ interface LicenseRecord {
 
 export default function LicenseExpiryReminder() {
   const { user } = useAuth();
-  const [expiringLicenses, setExpiringLicenses] = useState<LicenseRecord[]>([]);
+  const [expiringLicenses, setExpiringLicenses] = useState<LicenseItem[]>([]);
 
   useEffect(() => {
     if (user?.role !== 'superadmin') return;
 
     const checkLicenses = async () => {
       try {
-        const licenses: Record<string, unknown>[] = await api.licenses.get();
+        const res = await api.getLicenses() as unknown as { licenses?: LicenseItem[] } | LicenseItem[];
+        const licenses: LicenseItem[] = Array.isArray(res) ? res : (res?.licenses || []);
         if (licenses && licenses.length > 0) {
           const now = new Date();
           const thirtyDaysFromNow = new Date();
           thirtyDaysFromNow.setDate(now.getDate() + 30);
 
-          const expiring: LicenseRecord[] = licenses
-            .filter(lic => {
-              const expDate = new Date((lic.expiryDate as string) || '');
-              return (lic.status as string) === 'Active' && expDate <= thirtyDaysFromNow;
-            })
-            .map(lic => ({
-              _id: lic._id as string,
-              licenseType: lic.licenseType as string,
-              licenseNumber: lic.licenseNumber as string,
-              expiryDate: lic.expiryDate as string,
-              status: lic.status as string,
-            }));
-
+          const expiring = licenses.filter((lic) => {
+            const expDate = new Date(lic.expiryDate);
+            return lic.status === 'Active' && expDate <= thirtyDaysFromNow;
+          });
           setExpiringLicenses(expiring);
         }
       } catch (err) {
@@ -64,20 +46,25 @@ export default function LicenseExpiryReminder() {
 
   return (
     <div className="mb-6 space-y-3">
-      {expiringLicenses.map(lic => {
+      {expiringLicenses.map((lic) => {
         const isExpired = new Date(lic.expiryDate) < new Date();
         return (
           <div
             key={lic._id}
             className={`p-4 rounded-xl border flex items-center gap-3 ${
-              isExpired ? 'bg-destructive/10 border-destructive/20 text-destructive' : 'bg-warning/10 border-warning/20 text-warning-foreground'
+              isExpired
+                ? 'bg-destructive/10 border-destructive/20 text-destructive'
+                : 'bg-warning/10 border-warning/20 text-warning-foreground'
             }`}
           >
             <AlertTriangle className="w-5 h-5 shrink-0" />
             <div className="flex-1">
-              <h4 className="font-semibold">{lic.licenseType} {isExpired ? 'Expired' : 'Expiring Soon'}</h4>
+              <h4 className="font-semibold">
+                {lic.licenseType} {isExpired ? 'Expired' : 'Expiring Soon'}
+              </h4>
               <p className="text-sm opacity-90">
-                Your {lic.licenseType} ({lic.licenseNumber}) {isExpired ? 'expired on' : 'will expire on'} {new Date(lic.expiryDate).toLocaleDateString()}. Please renew it to avoid service interruption.
+                Your {lic.licenseType} ({lic.licenseNumber}) {isExpired ? 'expired on' : 'will expire on'}{' '}
+                {new Date(lic.expiryDate).toLocaleDateString()}. Please renew it to avoid service interruption.
               </p>
             </div>
             <Clock className="w-5 h-5 shrink-0 opacity-50" />

@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import {
   Pill, ShoppingCart, DollarSign, AlertTriangle,
-  Package, RotateCcw, Globe, Save, Building2, Users, CheckCircle, AlertCircle
+  Package, RotateCcw, Globe, Save, Building2, Users, CheckCircle, AlertCircle,
+  Clock, CalendarClock, CalendarDays, ChevronRight
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -21,7 +22,8 @@ const statusColors = {
 export default function PharmacyBusinessDashboard() {
   const { user } = useAuth();
   const [stats, setStats] = useState(null);
-  const [recentOrders, setRecentOrders] = useState([]);
+  const [orders, setOrders] = useState([]);
+  const [orderTab, setOrderTab] = useState('pending');
   const [lowStock, setLowStock] = useState([]);
   const [refunds, setRefunds] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -41,7 +43,8 @@ export default function PharmacyBusinessDashboard() {
         if (!mounted.current) return;
         const [s, o, m, rf] = results.map(res => res.status === 'fulfilled' ? res.value : null);
         setStats(s);
-        setRecentOrders((o?.orders || []).slice(0, 5));
+        const orderList = o?.orders || [];
+        setOrders(orderList);
         setLowStock((m?.medicines || []).slice(0, 5));
         setRefunds((rf?.returns || rf?.data || []).slice(0, 5));
         const failed = results.filter(r => r.status === 'rejected');
@@ -55,6 +58,17 @@ export default function PharmacyBusinessDashboard() {
 
   const totalRefunded = refunds.reduce((s, r) => s + (r.total || r.refundAmount || 0), 0);
   const pendingRefunds = refunds.filter(r => r.status === 'Pending' || r.status === 'pending').length;
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const pendingOrders = orders.filter(o => (o.status || '').toLowerCase() === 'pending');
+  const processingOrders = orders.filter(o => (o.status || '').toLowerCase() === 'processing' || (o.status || '').toLowerCase() === 'ready');
+  const todayOrders = orders.filter(o => (o.createdAt || o.date || '').startsWith(todayStr));
+  const completedOrders = orders.filter(o => (o.status || '').toLowerCase() === 'completed' || (o.status || '').toLowerCase() === 'delivered');
+
+  const displayedOrders = orderTab === 'pending' ? pendingOrders
+    : orderTab === 'processing' ? processingOrders
+    : orderTab === 'today' ? todayOrders
+    : completedOrders;
 
   if (loading) {
     return (
@@ -89,7 +103,7 @@ export default function PharmacyBusinessDashboard() {
         <StatCard
           title="Active Orders"
           value={stats?.totalOrders ?? '—'}
-          change={`${stats?.pendingDispense || 0} pending fulfillment`}
+          change={`${pendingOrders.length} pending fulfillment`}
           changeType="neutral"
           icon={ShoppingCart}
           iconColor="text-warning"
@@ -117,12 +131,91 @@ export default function PharmacyBusinessDashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-card rounded-xl border p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-5">
-            <h3 className="font-heading font-semibold text-lg text-card-foreground flex items-center gap-2">
-              <Package className="w-5 h-5 text-primary" /> Recent Orders
-            </h3>
-            <Link to="/pharmacy-business/orders" className="text-xs text-primary hover:underline">View All</Link>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+            <div className="flex items-center gap-2">
+              <Package className="w-5 h-5 text-primary" />
+              <div>
+                <h3 className="font-heading font-semibold text-lg text-card-foreground">Pharmacy Orders Hub</h3>
+                <p className="text-xs text-muted-foreground">Fulfill and track customer orders across 4 stages</p>
+              </div>
+            </div>
+
+            {/* 4 Tabs: Pending, Processing, Today, Completed */}
+            <div className="flex items-center gap-1 p-1 bg-muted/50 rounded-2xl border border-border/50 overflow-x-auto">
+              <button
+                type="button"
+                onClick={() => setOrderTab('pending')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 ${
+                  orderTab === 'pending'
+                    ? 'bg-amber-500 text-white shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                }`}
+              >
+                <AlertCircle className="w-3.5 h-3.5" />
+                <span>Pending</span>
+                {pendingOrders.length > 0 && (
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${orderTab === 'pending' ? 'bg-white/20 text-white' : 'bg-amber-500/20 text-amber-600'}`}>
+                    {pendingOrders.length}
+                  </span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setOrderTab('processing')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 ${
+                  orderTab === 'processing'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                }`}
+              >
+                <CalendarClock className="w-3.5 h-3.5" />
+                <span>Processing</span>
+                {processingOrders.length > 0 && (
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${orderTab === 'processing' ? 'bg-white/20 text-white' : 'bg-primary/20 text-primary'}`}>
+                    {processingOrders.length}
+                  </span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setOrderTab('today')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 ${
+                  orderTab === 'today'
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                }`}
+              >
+                <CalendarDays className="w-3.5 h-3.5" />
+                <span>Today</span>
+                {todayOrders.length > 0 && (
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${orderTab === 'today' ? 'bg-white/20 text-white' : 'bg-emerald-600/20 text-emerald-600'}`}>
+                    {todayOrders.length}
+                  </span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setOrderTab('completed')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 ${
+                  orderTab === 'completed'
+                    ? 'bg-purple-600 text-white shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                }`}
+              >
+                <CheckCircle className="w-3.5 h-3.5" />
+                <span>Completed</span>
+                {completedOrders.length > 0 && (
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${orderTab === 'completed' ? 'bg-white/20 text-white' : 'bg-purple-600/20 text-purple-600'}`}>
+                    {completedOrders.length}
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
+
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -134,9 +227,9 @@ export default function PharmacyBusinessDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {recentOrders.map((order, i) => (
+                {displayedOrders.slice(0, 5).map((order, i) => (
                   <motion.tr
-                    key={order._id}
+                    key={order._id || i}
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.05 }}
@@ -156,16 +249,22 @@ export default function PharmacyBusinessDashboard() {
                     <td className="py-3 px-2 text-right font-medium text-card-foreground">₹{(order.total || order.amount || 0).toLocaleString()}</td>
                     <td className="py-3 px-2 text-right">
                       <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusColors[order.status] || 'bg-muted text-muted-foreground'}`}>
-                        {order.status}
+                        {order.status || 'Pending'}
                       </span>
                     </td>
                   </motion.tr>
                 ))}
-                {recentOrders.length === 0 && (
-                  <tr><td colSpan={4} className="py-8 text-center text-muted-foreground text-sm">No orders yet</td></tr>
+                {displayedOrders.length === 0 && (
+                  <tr><td colSpan={4} className="py-8 text-center text-muted-foreground text-sm">No {orderTab} orders found</td></tr>
                 )}
               </tbody>
             </table>
+          </div>
+
+          <div className="mt-4 pt-3 border-t border-border flex justify-end">
+            <Link to="/pharmacy-business/orders" className="text-xs text-primary hover:underline flex items-center gap-1">
+              View All In Orders <ChevronRight className="w-3.5 h-3.5" />
+            </Link>
           </div>
         </div>
 

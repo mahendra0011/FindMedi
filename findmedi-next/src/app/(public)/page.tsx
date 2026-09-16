@@ -38,12 +38,20 @@ export const metadata = {
 
 async function fetchHomeData() {
   try {
-    const [doctors, hospitals, labs] = await Promise.all([
+    const [doctorsRes, hospitalsRes, labsRes] = await Promise.all([
       api.doctors.get({ limit: 6, featured: true }).catch(() => []),
       api.hospitals.get({ limit: 6, featured: true }).catch(() => []),
       api.facilities.get({ limit: 6, type: 'lab', approved: true }).catch(() => []),
     ]);
-    return { doctors, hospitals, labs };
+    const toArray = (res: any) => {
+      if (Array.isArray(res)) return res;
+      return res?.doctors || res?.hospitals || res?.facilities || res?.data || [];
+    };
+    return {
+      doctors: toArray(doctorsRes),
+      hospitals: toArray(hospitalsRes),
+      labs: toArray(labsRes),
+    };
   } catch {
     return { doctors: [], hospitals: [], labs: [] };
   }

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { CalendarDays, Clock, User, AlertCircle, TrendingUp, DollarSign, Beaker, FileText, Microscope, RotateCcw, Globe, Save, Building2, Users, CheckCircle } from 'lucide-react';
+import { CalendarDays, Clock, User, AlertCircle, TrendingUp, DollarSign, Beaker, FileText, Microscope, RotateCcw, Globe, Save, Building2, Users, CheckCircle, CalendarClock, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -21,6 +21,7 @@ export default function LabCenterDashboard() {
   const [bookings, setBookings] = useState([]);
   const [refunds, setRefunds] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [bookingTab, setBookingTab] = useState('pending');
   const mounted = useRef(true);
 
   useEffect(() => {
@@ -49,11 +50,19 @@ export default function LabCenterDashboard() {
 
   const today = getISTDateString();
   const todayBookings = bookings.filter(b => (b.bookingDate || '').startsWith(today));
-  const pendingReports = stats?.pending ?? bookings.filter(b => b.status === 'Pending' || b.status === 'Confirmed').length;
+  const pendingBookings = bookings.filter(b => b.status === 'Pending');
+  const upcomingBookings = bookings.filter(b => b.status === 'Confirmed' || (b.bookingDate && b.bookingDate > today && b.status !== 'Completed' && b.status !== 'Cancelled'));
+  const completedBookings = bookings.filter(b => b.status === 'Completed');
+  const pendingReports = stats?.pending ?? pendingBookings.length;
   const totalEarned = bookings.filter(b => b.status === 'Completed').reduce((s, b) => s + Number(b.amount || 0), 0);
   const completedTests = bookings.filter(b => b.status === 'Completed').reduce((s, b) => s + (b.tests?.length || 0), 0);
   const totalRefunded = refunds.reduce((s, r) => s + (r.refund_amount || r.amount || 0), 0);
   const pendingRefunds = refunds.filter(r => r.status === 'Pending' || r.status === 'pending').length;
+
+  const displayedBookings = bookingTab === 'pending' ? pendingBookings
+    : bookingTab === 'upcoming' ? upcomingBookings
+    : bookingTab === 'today' ? todayBookings
+    : completedBookings;
 
   if (loading) return <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>;
 
@@ -72,7 +81,7 @@ export default function LabCenterDashboard() {
               <CalendarDays className="w-5 h-5 text-success" />
             </div>
           </div>
-          <p className="font-heading text-2xl font-bold text-foreground">{stats?.total ?? todayBookings.length}</p>
+          <p className="font-heading text-2xl font-bold text-foreground">{stats?.total ?? bookings.length}</p>
           <p className="text-sm text-muted-foreground">Total Bookings</p>
         </motion.div>
 
@@ -82,8 +91,8 @@ export default function LabCenterDashboard() {
               <FileText className="w-5 h-5 text-warning" />
             </div>
           </div>
-          <p className="font-heading text-2xl font-bold text-foreground">{stats?.pending ?? pendingReports}</p>
-          <p className="text-sm text-muted-foreground">Pending Reports</p>
+          <p className="font-heading text-2xl font-bold text-foreground">{pendingReports}</p>
+          <p className="text-sm text-muted-foreground">Pending Approvals</p>
         </motion.div>
 
         <motion.div whileHover={{ scale: 1.02 }} className="bg-card rounded-2xl border border-border/60 p-5">
@@ -93,7 +102,7 @@ export default function LabCenterDashboard() {
             </div>
           </div>
           <p className="font-heading text-2xl font-bold text-foreground">₹{totalEarned.toLocaleString()}</p>
-          <p className="text-sm text-muted-foreground">Revenue Today</p>
+          <p className="text-sm text-muted-foreground">Revenue</p>
         </motion.div>
 
         <motion.div whileHover={{ scale: 1.02 }} className="bg-card rounded-2xl border border-border/60 p-5">
@@ -102,28 +111,106 @@ export default function LabCenterDashboard() {
               <Beaker className="w-5 h-5 text-info" />
             </div>
           </div>
-          <p className="font-heading text-2xl font-bold text-foreground">{stats?.completed ?? completedTests}</p>
+          <p className="font-heading text-2xl font-bold text-foreground">{completedTests}</p>
           <p className="text-sm text-muted-foreground">Completed Tests</p>
         </motion.div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-card rounded-2xl border border-border/60 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-heading text-lg font-semibold text-foreground flex items-center gap-2">
-              <CalendarDays className="w-5 h-5 text-primary" /> Recent Bookings
-            </h2>
-            <span className="text-xs text-muted-foreground">{today}</span>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <div className="flex items-center gap-2">
+              <CalendarDays className="w-5 h-5 text-primary" />
+              <div>
+                <h2 className="font-heading text-lg font-semibold text-foreground">Lab Bookings Hub</h2>
+                <p className="text-xs text-muted-foreground">Manage sample collection & testing across 4 stages</p>
+              </div>
+            </div>
+
+            {/* 4 Tabs: Pending, Upcoming, Today, Completed */}
+            <div className="flex items-center gap-1 p-1 bg-muted/50 rounded-2xl border border-border/50 overflow-x-auto">
+              <button
+                type="button"
+                onClick={() => setBookingTab('pending')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 ${
+                  bookingTab === 'pending'
+                    ? 'bg-amber-500 text-white shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                }`}
+              >
+                <AlertCircle className="w-3.5 h-3.5" />
+                <span>Pending</span>
+                {pendingBookings.length > 0 && (
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${bookingTab === 'pending' ? 'bg-white/20 text-white' : 'bg-amber-500/20 text-amber-600'}`}>
+                    {pendingBookings.length}
+                  </span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setBookingTab('upcoming')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 ${
+                  bookingTab === 'upcoming'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                }`}
+              >
+                <CalendarClock className="w-3.5 h-3.5" />
+                <span>Upcoming</span>
+                {upcomingBookings.length > 0 && (
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${bookingTab === 'upcoming' ? 'bg-white/20 text-white' : 'bg-primary/20 text-primary'}`}>
+                    {upcomingBookings.length}
+                  </span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setBookingTab('today')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 ${
+                  bookingTab === 'today'
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                }`}
+              >
+                <CalendarDays className="w-3.5 h-3.5" />
+                <span>Today</span>
+                {todayBookings.length > 0 && (
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${bookingTab === 'today' ? 'bg-white/20 text-white' : 'bg-emerald-600/20 text-emerald-600'}`}>
+                    {todayBookings.length}
+                  </span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setBookingTab('completed')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 ${
+                  bookingTab === 'completed'
+                    ? 'bg-purple-600 text-white shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                }`}
+              >
+                <CheckCircle className="w-3.5 h-3.5" />
+                <span>Completed</span>
+                {completedBookings.length > 0 && (
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${bookingTab === 'completed' ? 'bg-white/20 text-white' : 'bg-purple-600/20 text-purple-600'}`}>
+                    {completedBookings.length}
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
 
-          {todayBookings.length === 0 ? (
+          {displayedBookings.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <CalendarDays className="w-12 h-12 mx-auto mb-2 opacity-30" />
-              <p>No bookings today</p>
+              <p>No {bookingTab} bookings found</p>
             </div>
           ) : (
             <div className="space-y-3">
-              {todayBookings.slice(0, 5).map(b => {
+              {displayedBookings.slice(0, 5).map(b => {
                 const colors = statusColors[b.status] || statusColors.Pending;
                 return (
                   <motion.div key={b._id || b.id} whileHover={{ x: 4 }}
@@ -139,7 +226,7 @@ export default function LabCenterDashboard() {
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="text-sm text-muted-foreground flex items-center gap-1">
-                        <Clock className="w-3.5 h-3.5" />{b.timeSlot || b.time}
+                        <Clock className="w-3.5 h-3.5" />{b.timeSlot || b.time || 'Scheduled'}
                       </span>
                       <span className={`px-3 py-1 rounded-full text-xs font-semibold ${colors.bg} ${colors.text}`}>
                         {b.status}
@@ -150,6 +237,12 @@ export default function LabCenterDashboard() {
               })}
             </div>
           )}
+
+          <div className="mt-4 pt-3 border-t border-border flex justify-end">
+            <Link to="/lab-business/bookings" className="text-xs text-primary hover:underline flex items-center gap-1">
+              View All Bookings <ChevronRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
         </div>
 
         <div className="bg-card rounded-2xl border border-border/60 p-6">

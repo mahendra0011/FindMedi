@@ -193,6 +193,7 @@ export function getFileType(url: string = ''): 'image' | 'pdf' | 'other' {
   return 'other';
 }
 
+
 /**
  * Resolve a file URL for inline preview.
  * Local /auth-protected URLs are fetched with credentials + Bearer token → blob URL.

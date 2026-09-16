@@ -11,7 +11,13 @@ import type { Facility } from '@/types/models/facility';
 import type { ListParams } from '@/types/api';
 
 async function fetchPharmacies(): Promise<Facility[]> {
-  return api.facilities.get({ type: 'pharmacy' } as ListParams);
+  try {
+    const res = await api.facilities.get({ type: 'pharmacy' } as ListParams);
+    if (Array.isArray(res)) return res;
+    return (res as any)?.facilities || (res as any)?.data || [];
+  } catch {
+    return [];
+  }
 }
 
 export const metadata = {
@@ -20,7 +26,7 @@ export const metadata = {
 };
 
 export default async function BuyMedicinePage() {
-  const pharmacies = await fetchPharmacies().catch(() => []);
+  const pharmacies = await fetchPharmacies();
 
   return (
     <div className="container mx-auto py-8 px-4">

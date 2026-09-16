@@ -7,18 +7,38 @@ import {
   IndianRupee, Activity, MapPinned, HelpCircle, Phone, MessageCircle, ChevronRight,
   X, Download, Users, Ambulance, Stethoscope, Syringe, CreditCard, Bookmark,
   Smartphone, Landmark, Wallet, RotateCcw, Sparkles, CheckCircle2, TrendingUp,
-  ExternalLink, RefreshCw, ChevronLeft, Video, MapPin, Car
+  ExternalLink, RefreshCw, ChevronLeft, Video, MapPin, Car, Building2, CalendarClock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
 import { api, downloadPaymentInvoice } from '@/lib/api';
-import { getISTDateString } from '@/lib/dateUtils';
+import { getISTDateString, formatDisplayDate } from '@/lib/dateUtils';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
   AlertDialogHeader, AlertDialogTitle
 } from '@/components/ui/alert-dialog';
+
+function getAppointmentModeMeta(appt) {
+  if (!appt) return { key: 'hospital', label: 'In Clinic / Hospital', icon: Building2, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20' };
+  const mode = (appt.appointmentMode || appt.type || '').toLowerCase();
+  const intakeMode = (appt.preConsultationDetails?.appointmentMode || appt.preConsultationDetails?.mode || '').toLowerCase();
+  
+  if (mode === 'home_visit' || mode === 'home' || intakeMode === 'home_visit' || intakeMode === 'home') {
+    return { key: 'home', label: 'Home Visit', icon: MapPin, color: 'text-violet-600 dark:text-violet-400', bg: 'bg-violet-500/10 border-violet-500/20' };
+  }
+  if (mode.includes('video')) {
+    return { key: 'video', label: 'Video Consult', icon: Video, color: 'text-cyan-600 dark:text-cyan-400', bg: 'bg-cyan-500/10 border-cyan-500/20' };
+  }
+  if (mode.includes('voice') || mode.includes('audio') || mode.includes('call')) {
+    return { key: 'voice', label: 'Voice Call', icon: Phone, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20' };
+  }
+  if (mode.includes('chat') || mode.includes('message')) {
+    return { key: 'chat', label: 'Doctor Chat', icon: MessageCircle, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20' };
+  }
+  return { key: 'hospital', label: 'In Clinic / Hospital', icon: Building2, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20' };
+}
 
 const StatusBadge = ({ status, mapping }) => {
   const colors = {
@@ -76,11 +96,11 @@ const statCards = [
 ];
 
 const quickActions = [
+  { label: 'Find Doctors', icon: Building2, link: '/doctors', desc: 'In Clinic / Hospital' },
   { label: 'Home Visits', icon: MapPin, link: '/patient/home-visit', desc: 'Live map tracking' },
-  { label: 'Find Doctors', icon: Stethoscope, link: '/doctors', desc: 'Book appointment' },
-  { label: 'Doctor Chat', icon: MessageCircle, link: '/patient/chat', desc: 'Instant messaging' },
-  { label: 'Voice Calls', icon: Phone, link: '/patient/calls', desc: 'Audio consults' },
   { label: 'Video Consult', icon: Video, link: '/patient/video-calls', desc: 'Full HD 1080p' },
+  { label: 'Voice Calls', icon: Phone, link: '/patient/calls', desc: 'Audio consults' },
+  { label: 'Doctor Chat', icon: MessageCircle, link: '/patient/chat', desc: 'Instant messaging' },
   { label: 'Book Lab Test', icon: Syringe, link: '/patient/services', desc: 'Home collection' },
   { label: 'Buy Medicine', icon: Pill, link: '/pharmacy', desc: 'Doorstep delivery' },
   { label: 'Upload Report', icon: Upload, link: '/upload', desc: 'Store securely' },
@@ -113,6 +133,7 @@ export default function PatientDashboard() {
   const [tipIndex, setTipIndex] = useState(0);
   const [greeting, setGreeting] = useState('');
   const [payments, setPayments] = useState([]);
+  const [apptTab, setApptTab] = useState('upcoming');
 
   useEffect(() => {
     const h = new Date().getHours();
@@ -150,7 +171,7 @@ export default function PatientDashboard() {
           api.getRecords().catch(() => ({ data: [] })),
           api.getBilling().catch(() => ({ data: [] })),
         ]);
-        setAppointments((a?.appointments || a?.data || []).slice(0, 8));
+        setAppointments(a?.appointments || a?.data || a || []);
         const rawBills = b?.bills || b?.data || [];
         const [p, rf] = await Promise.all([
           api.getPayments({ patient_id: user?.id }).catch(() => ({ data: [] })),
@@ -216,7 +237,10 @@ export default function PatientDashboard() {
   }, [user?.id]);
 
   const today = getISTDateString();
-  const upcomingAppts = appointments.filter(a => a.date >= today && a.status !== 'Completed');
+  const pendingAppts = appointments.filter(a => a.status === 'Pending' || a.status === 'pending');
+  const upcomingAppts = appointments.filter(a => (a.status === 'Confirmed' || a.status === 'Approved' || a.status === 'confirmed') && a.date >= today);
+  const todayAppts = appointments.filter(a => a.date === today && a.status !== 'Cancelled');
+  const completedAppts = appointments.filter(a => a.status === 'Completed' || a.status === 'completed');
   const unreadNotifs = notifs.filter(n => !n.read).length;
   const isBillPaid = (bill) => {
     if (bill.status === 'Paid') return true;
@@ -336,125 +360,148 @@ export default function PatientDashboard() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* 1: Doctor Chat */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+          {/* 1: In Clinic / Hospital */}
           <div
-            onClick={() => navigate('/patient/chat')}
-            className="group relative rounded-2xl border border-border/50 bg-card p-4 sm:p-5 hover:border-primary/40 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 cursor-pointer flex flex-col justify-between"
+            onClick={() => navigate('/doctors')}
+            className="group relative rounded-2xl border-2 border-blue-500/30 bg-blue-500/5 dark:bg-blue-950/20 p-4 hover:border-blue-500 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 cursor-pointer flex flex-col justify-between"
           >
             <div>
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-11 h-11 rounded-2xl bg-primary/10 text-primary flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <MessageCircle className="w-5 h-5" />
+              <div className="flex items-center justify-between mb-2.5">
+                <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
+                  <Building2 className="w-5 h-5" />
                 </div>
-                <span className="text-[11px] font-medium text-muted-foreground group-hover:text-primary transition-colors flex items-center gap-1">
-                  Open Chat <ChevronRight className="w-3.5 h-3.5" />
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500 text-white flex items-center gap-1">
+                  OPD Visit
                 </span>
               </div>
-              <h4 className="font-heading font-bold text-foreground text-sm sm:text-base group-hover:text-primary transition-colors">
-                Doctor Chat
+              <h4 className="font-heading font-bold text-foreground text-sm group-hover:text-blue-600 transition-colors">
+                In Clinic / Hospital
               </h4>
               <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                Direct text messaging, share symptoms, medical photos, and get quick answers in real-time.
+                Consult top specialists at verified clinics & hospitals with instant token appointments.
               </p>
             </div>
-            <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-between text-[11px] text-muted-foreground">
-              <span>Real-time Chat</span>
-              <span className="text-emerald-500 font-medium flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Ready
+            <div className="mt-4 pt-2.5 border-t border-blue-500/20 flex items-center justify-between text-[11px] text-muted-foreground">
+              <span>In-Person Visit</span>
+              <span className="text-blue-600 dark:text-blue-400 font-semibold flex items-center gap-1">
+                Book Visit <ChevronRight className="w-3 h-3" />
               </span>
             </div>
           </div>
 
-          {/* 2: Audio Calls */}
+          {/* 2: Home Visits */}
           <div
-            onClick={() => navigate('/patient/calls')}
-            className="group relative rounded-2xl border border-border/50 bg-card p-4 sm:p-5 hover:border-emerald-500/40 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 cursor-pointer flex flex-col justify-between"
+            onClick={() => navigate('/patient/home-visit')}
+            className="group relative rounded-2xl border-2 border-violet-500/30 bg-violet-500/5 dark:bg-violet-950/20 p-4 hover:border-violet-500 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 cursor-pointer flex flex-col justify-between"
           >
             <div>
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-11 h-11 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Phone className="w-5 h-5" />
+              <div className="flex items-center justify-between mb-2.5">
+                <div className="w-10 h-10 rounded-xl bg-violet-600 text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
+                  <MapPin className="w-5 h-5" />
                 </div>
-                <span className="text-[11px] font-medium text-muted-foreground group-hover:text-emerald-600 transition-colors flex items-center gap-1">
-                  Audio Hub <ChevronRight className="w-3.5 h-3.5" />
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-500 text-white flex items-center gap-1">
+                  Live GPS
                 </span>
               </div>
-              <h4 className="font-heading font-bold text-foreground text-sm sm:text-base group-hover:text-emerald-600 transition-colors">
-                Voice Calls
+              <h4 className="font-heading font-bold text-foreground text-sm group-hover:text-violet-600 transition-colors">
+                Home Visits
               </h4>
               <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                Opus 48kHz audio calling with noise cancellation, doctor directory, and consultation history.
+                Doctor visits your doorstep with live route tracking, real-time ETA, and arrival check-in.
               </p>
             </div>
-            <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-between text-[11px] text-muted-foreground">
-              <span>WebRTC Audio</span>
-              <span className="text-emerald-500 font-medium">Clear Audio</span>
+            <div className="mt-4 pt-2.5 border-t border-violet-500/20 flex items-center justify-between text-[11px] text-muted-foreground">
+              <span>MapLibre Route</span>
+              <span className="text-violet-600 dark:text-violet-400 font-semibold flex items-center gap-1">
+                Track Live <ChevronRight className="w-3 h-3" />
+              </span>
             </div>
           </div>
 
           {/* 3: Video Consultations */}
           <div
             onClick={() => navigate('/patient/video-calls')}
-            className="group relative rounded-2xl border border-border/50 bg-card p-4 sm:p-5 hover:border-cyan-500/40 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 cursor-pointer flex flex-col justify-between"
+            className="group relative rounded-2xl border-2 border-cyan-500/30 bg-cyan-500/5 dark:bg-cyan-950/20 p-4 hover:border-cyan-500 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 cursor-pointer flex flex-col justify-between"
           >
             <div>
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-11 h-11 rounded-2xl bg-cyan-500/10 text-cyan-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+              <div className="flex items-center justify-between mb-2.5">
+                <div className="w-10 h-10 rounded-xl bg-cyan-600 text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
                   <Video className="w-5 h-5" />
                 </div>
-                <span className="text-[11px] font-medium text-muted-foreground group-hover:text-cyan-500 transition-colors flex items-center gap-1">
-                  Video Suite <ChevronRight className="w-3.5 h-3.5" />
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-500 text-white flex items-center gap-1">
+                  1080p HD
                 </span>
               </div>
-              <div className="flex items-center gap-2">
-                <h4 className="font-heading font-bold text-foreground text-sm sm:text-base group-hover:text-cyan-500 transition-colors">
-                  Video Consult
-                </h4>
-                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-cyan-500/10 text-cyan-600 dark:text-cyan-400">
-                  1080p
-                </span>
-              </div>
+              <h4 className="font-heading font-bold text-foreground text-sm group-hover:text-cyan-600 transition-colors">
+                Video Consult
+              </h4>
               <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                Full HD face-to-face video consultation with screen sharing, PiP mode, and snapshot analysis.
+                Full HD face-to-face video consultation with screen sharing, PiP mode, and e-prescriptions.
               </p>
             </div>
-            <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-between text-[11px] text-muted-foreground">
+            <div className="mt-4 pt-2.5 border-t border-cyan-500/20 flex items-center justify-between text-[11px] text-muted-foreground">
               <span>Adaptive Full HD</span>
-              <span className="text-cyan-500 font-medium">1-to-1 Encrypted</span>
+              <span className="text-cyan-600 dark:text-cyan-400 font-semibold flex items-center gap-1">
+                Video Room <ChevronRight className="w-3 h-3" />
+              </span>
             </div>
           </div>
 
-          {/* 4: Home Visits & Live Map */}
+          {/* 4: Voice Calls */}
           <div
-            onClick={() => navigate('/patient/home-visit')}
-            className="group relative rounded-2xl border border-border/50 bg-card p-4 sm:p-5 hover:border-violet-500/40 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 cursor-pointer flex flex-col justify-between"
+            onClick={() => navigate('/patient/calls')}
+            className="group relative rounded-2xl border-2 border-emerald-500/30 bg-emerald-500/5 dark:bg-emerald-950/20 p-4 hover:border-emerald-500 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 cursor-pointer flex flex-col justify-between"
           >
             <div>
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-11 h-11 rounded-2xl bg-violet-500/10 text-violet-600 dark:text-violet-400 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <MapPin className="w-5 h-5" />
+              <div className="flex items-center justify-between mb-2.5">
+                <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
+                  <Phone className="w-5 h-5" />
                 </div>
-                <span className="text-[11px] font-medium text-muted-foreground group-hover:text-violet-600 transition-colors flex items-center gap-1">
-                  Live Map <ChevronRight className="w-3.5 h-3.5" />
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500 text-white flex items-center gap-1">
+                  WebRTC
                 </span>
               </div>
-              <div className="flex items-center gap-2">
-                <h4 className="font-heading font-bold text-foreground text-sm sm:text-base group-hover:text-violet-600 transition-colors">
-                  Home Visits
-                </h4>
-                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-violet-500/10 text-violet-600 dark:text-violet-400">
-                  Live GPS
-                </span>
-              </div>
+              <h4 className="font-heading font-bold text-foreground text-sm group-hover:text-emerald-600 transition-colors">
+                Voice Calls
+              </h4>
               <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                Live route tracking to clinic/hospital, distance & ETA, token queue position, and 1-click arrival check-in.
+                Opus 48kHz audio calling with noise cancellation, doctor directory, and call history.
               </p>
             </div>
-            <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-between text-[11px] text-muted-foreground">
-              <span>MapLibre Route</span>
-              <span className="text-violet-600 font-medium flex items-center gap-1">
-                <Car className="w-3 h-3" /> Live Tracking
+            <div className="mt-4 pt-2.5 border-t border-emerald-500/20 flex items-center justify-between text-[11px] text-muted-foreground">
+              <span>Opus 48kHz Audio</span>
+              <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                Call Hub <ChevronRight className="w-3 h-3" />
+              </span>
+            </div>
+          </div>
+
+          {/* 5: Doctor Chat */}
+          <div
+            onClick={() => navigate('/patient/chat')}
+            className="group relative rounded-2xl border-2 border-amber-500/30 bg-amber-500/5 dark:bg-amber-950/20 p-4 hover:border-amber-500 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 cursor-pointer flex flex-col justify-between"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-2.5">
+                <div className="w-10 h-10 rounded-xl bg-amber-600 text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
+                  <MessageCircle className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500 text-white flex items-center gap-1">
+                  Instant
+                </span>
+              </div>
+              <h4 className="font-heading font-bold text-foreground text-sm group-hover:text-amber-600 transition-colors">
+                Doctor Chat
+              </h4>
+              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                Direct text messaging, share symptoms, medical photos, and get quick answers in real-time.
+              </p>
+            </div>
+            <div className="mt-4 pt-2.5 border-t border-amber-500/20 flex items-center justify-between text-[11px] text-muted-foreground">
+              <span>Real-time Chat</span>
+              <span className="text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1">
+                Open Chat <ChevronRight className="w-3 h-3" />
               </span>
             </div>
           </div>
@@ -463,65 +510,211 @@ export default function PatientDashboard() {
 
       {/* Main Content Grid */}
       <div className="grid lg:grid-cols-3 gap-6 mb-6">
-        {/* Upcoming Appointments */}
+        {/* Appointments Hub (4 Tabs: Pending, Upcoming, Today, Complete) */}
         <div className="lg:col-span-2 bg-card rounded-3xl border border-border/50 p-5 sm:p-6 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between mb-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 flex items-center justify-center shadow-sm">
-                <CalendarDays className="w-5 h-5 text-emerald-500" />
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shadow-sm">
+                <CalendarDays className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <h3 className="font-heading font-semibold text-foreground">Upcoming Appointments</h3>
-                <p className="text-xs text-muted-foreground">{upcomingAppts.length > 0 ? `${upcomingAppts.length} appointment${upcomingAppts.length > 1 ? 's' : ''} scheduled` : 'No upcoming visits'}</p>
+                <h3 className="font-heading font-semibold text-foreground">My Appointments</h3>
+                <p className="text-xs text-muted-foreground">
+                  {apptTab === 'pending' && `${pendingAppts.length} pending confirmation`}
+                  {apptTab === 'upcoming' && `${upcomingAppts.length} upcoming scheduled`}
+                  {apptTab === 'today' && `${todayAppts.length} booked for today`}
+                  {apptTab === 'complete' && `${completedAppts.length} completed visits`}
+                </p>
               </div>
             </div>
-            <Button variant="outline" size="sm" className="gap-1.5 rounded-xl text-primary border-primary/20 hover:bg-primary/5 hover:text-primary" onClick={() => navigate('/patient/appointments')}>
-              View All <ChevronRight className="w-3.5 h-3.5" />
-            </Button>
+
+            {/* 4 Tabs */}
+            <div className="flex items-center gap-1 p-1 bg-muted/40 rounded-2xl border border-border/40 overflow-x-auto">
+              <button
+                onClick={() => setApptTab('pending')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 ${
+                  apptTab === 'pending'
+                    ? 'bg-amber-500 text-white shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                }`}
+              >
+                <Clock className="w-3.5 h-3.5" />
+                <span>Pending</span>
+                {pendingAppts.length > 0 && (
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${apptTab === 'pending' ? 'bg-white/20 text-white' : 'bg-amber-500/10 text-amber-600'}`}>
+                    {pendingAppts.length}
+                  </span>
+                )}
+              </button>
+              <button
+                onClick={() => setApptTab('upcoming')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 ${
+                  apptTab === 'upcoming'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                }`}
+              >
+                <CalendarClock className="w-3.5 h-3.5" />
+                <span>Upcoming</span>
+                {upcomingAppts.length > 0 && (
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${apptTab === 'upcoming' ? 'bg-white/20 text-white' : 'bg-primary/10 text-primary'}`}>
+                    {upcomingAppts.length}
+                  </span>
+                )}
+              </button>
+              <button
+                onClick={() => setApptTab('today')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 ${
+                  apptTab === 'today'
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                }`}
+              >
+                <CalendarDays className="w-3.5 h-3.5" />
+                <span>Today</span>
+                {todayAppts.length > 0 && (
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${apptTab === 'today' ? 'bg-white/20 text-white' : 'bg-emerald-500/10 text-emerald-600'}`}>
+                    {todayAppts.length}
+                  </span>
+                )}
+              </button>
+              <button
+                onClick={() => setApptTab('complete')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 ${
+                  apptTab === 'complete'
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                }`}
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>Complete</span>
+                {completedAppts.length > 0 && (
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${apptTab === 'complete' ? 'bg-white/20 text-white' : 'bg-blue-500/10 text-blue-600'}`}>
+                    {completedAppts.length}
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
-          {upcomingAppts.slice(0, 3).length > 0 ? (
-            <div className="space-y-3">
-              {upcomingAppts.slice(0, 3).map(a => (
-                <div key={a._id} className="group flex items-center justify-between p-3.5 bg-muted/20 rounded-2xl border border-border/30 hover:bg-muted/40 hover:border-primary/20 transition-all duration-200">
-                  <div className="flex items-center gap-3.5">
-                    <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
-                      <User className="w-5.5 h-5.5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-foreground">{a.doctor}</p>
-                      <div className="flex items-center gap-2.5 text-xs text-muted-foreground mt-0.5">
-                        <div className="flex items-center gap-1">
-                          <CalendarDays className="w-3 h-3" />
-                          <span>{a.date}</span>
-                        </div>
-                        <div className="w-1 h-1 rounded-full bg-muted-foreground/30" />
-                        <div className="flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          <span>{a.time}</span>
-                        </div>
-                      </div>
-                    </div>
+
+          {/* Active Tab Appointments List */}
+          {(() => {
+            const list = apptTab === 'pending' ? pendingAppts : apptTab === 'upcoming' ? upcomingAppts : apptTab === 'today' ? todayAppts : completedAppts;
+            if (list.length === 0) {
+              return (
+                <div className="text-center py-10">
+                  <div className="w-14 h-14 rounded-2xl bg-muted/30 flex items-center justify-center mx-auto mb-3">
+                    <CalendarDays className="w-7 h-7 text-muted-foreground/30" />
                   </div>
-                  <Button size="sm" variant="ghost"
-                    className="text-xs h-8 text-destructive/70 hover:text-destructive hover:bg-destructive/10 rounded-xl border border-transparent hover:border-destructive/20"
-                    onClick={() => setCancelTarget(a._id)}>
-                    <X className="w-3 h-3 mr-1" /> Cancel
+                  <p className="text-sm text-muted-foreground font-medium">
+                    {apptTab === 'pending' && 'No pending appointments'}
+                    {apptTab === 'upcoming' && 'No upcoming appointments scheduled'}
+                    {apptTab === 'today' && 'No appointments scheduled for today'}
+                    {apptTab === 'complete' && 'No completed appointment history'}
+                  </p>
+                  <p className="text-xs text-muted-foreground/60 mt-1">Book an in-clinic, home visit, video or call appointment</p>
+                  <Button size="sm" className="mt-4 rounded-xl shadow-lg shadow-primary/20" onClick={() => navigate('/doctors')}>
+                    <Building2 className="w-3.5 h-3.5 mr-1.5" /> Book Appointment
                   </Button>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-10">
-              <div className="w-14 h-14 rounded-2xl bg-muted/30 flex items-center justify-center mx-auto mb-3">
-                <CalendarDays className="w-7 h-7 text-muted-foreground/30" />
+              );
+            }
+
+            return (
+              <div className="space-y-3">
+                {list.slice(0, 5).map(a => {
+                  const mode = getAppointmentModeMeta(a);
+                  const ModeIcon = mode.icon;
+                  return (
+                    <div key={a._id} className="group flex flex-col sm:flex-row sm:items-center justify-between p-3.5 bg-muted/20 rounded-2xl border border-border/30 hover:bg-muted/40 hover:border-primary/20 transition-all duration-200 gap-3">
+                      <div className="flex items-center gap-3.5">
+                        <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform shrink-0">
+                          <User className="w-5.5 h-5.5 text-primary" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="text-sm font-semibold text-foreground">{a.doctor}</p>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border flex items-center gap-1 ${mode.bg} ${mode.color}`}>
+                              <ModeIcon className="w-3 h-3" /> {mode.label}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2.5 text-xs text-muted-foreground mt-1 flex-wrap">
+                            <div className="flex items-center gap-1">
+                              <CalendarDays className="w-3 h-3" />
+                              <span>{formatDisplayDate(a.date)}</span>
+                            </div>
+                            <div className="w-1 h-1 rounded-full bg-muted-foreground/30" />
+                            <div className="flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              <span>{a.time}</span>
+                            </div>
+                            <div className="w-1 h-1 rounded-full bg-muted-foreground/30" />
+                            <StatusBadge status={a.status} />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                        {apptTab === 'pending' && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] text-amber-600 dark:text-amber-400 font-medium px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20">
+                              Awaiting Approval
+                            </span>
+                            <Button size="sm" variant="ghost"
+                              className="text-xs h-8 text-destructive/70 hover:text-destructive hover:bg-destructive/10 rounded-xl"
+                              onClick={() => setCancelTarget(a._id)}>
+                              <X className="w-3 h-3 mr-1" /> Cancel
+                            </Button>
+                          </div>
+                        )}
+                        {apptTab === 'upcoming' && (
+                          <div className="flex items-center gap-2">
+                            {mode.key === 'home' && (
+                              <Button size="sm" variant="outline" className="text-xs h-8 rounded-xl border-violet-500/30 text-violet-600 hover:bg-violet-500/10" onClick={() => navigate('/patient/home-visit')}>
+                                <MapPin className="w-3 h-3 mr-1" /> Track Route
+                              </Button>
+                            )}
+                            {mode.key === 'video' && (
+                              <Button size="sm" variant="outline" className="text-xs h-8 rounded-xl border-cyan-500/30 text-cyan-600 hover:bg-cyan-500/10" onClick={() => navigate('/patient/video-calls')}>
+                                <Video className="w-3 h-3 mr-1" /> Join Room
+                              </Button>
+                            )}
+                            <Button size="sm" variant="ghost"
+                              className="text-xs h-8 text-destructive/70 hover:text-destructive hover:bg-destructive/10 rounded-xl"
+                              onClick={() => setCancelTarget(a._id)}>
+                              <X className="w-3 h-3 mr-1" /> Cancel
+                            </Button>
+                          </div>
+                        )}
+                        {apptTab === 'today' && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500 text-white animate-pulse">
+                              Active Today
+                            </span>
+                            {mode.key === 'video' && (
+                              <Button size="sm" className="text-xs h-8 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white" onClick={() => navigate('/patient/video-calls')}>
+                                <Video className="w-3 h-3 mr-1" /> Start Video
+                              </Button>
+                            )}
+                            {mode.key === 'home' && (
+                              <Button size="sm" className="text-xs h-8 rounded-xl bg-violet-600 hover:bg-violet-700 text-white" onClick={() => navigate('/patient/home-visit')}>
+                                <MapPin className="w-3 h-3 mr-1" /> Live Map
+                              </Button>
+                            )}
+                          </div>
+                        )}
+                        {apptTab === 'complete' && (
+                          <Button size="sm" variant="outline" className="text-xs h-8 rounded-xl text-primary border-primary/20 hover:bg-primary/5" onClick={() => navigate('/doctors')}>
+                            Book Again
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-              <p className="text-sm text-muted-foreground font-medium">No upcoming appointments</p>
-              <p className="text-xs text-muted-foreground/60 mt-1">Book a visit with your doctor</p>
-              <Button size="sm" className="mt-4 rounded-xl shadow-lg shadow-primary/20" onClick={() => navigate('/doctors')}>
-                <Stethoscope className="w-3.5 h-3.5 mr-1.5" /> Book Now
-              </Button>
-            </div>
-          )}
+            );
+          })()}
         </div>
 
         {/* Payment History */}

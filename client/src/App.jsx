@@ -395,6 +395,8 @@ function RoleDashboard() {
   if (user?.role === 'clinic_doctor') return <ClinicDashboard />;
   if (user?.role === 'hospital_admin') return <Dashboard />;
   if (user?.role === 'delivery_boy') return <DeliveryDashboard />;
+  if (user?.role === 'lab_owner') return <Navigate to="/lab-business/dashboard" replace />;
+  if (user?.role === 'pharmacy_owner') return <Navigate to="/pharmacy-business/dashboard" replace />;
   return <PatientDashboard />;
 }
 
@@ -610,6 +612,7 @@ const App = () => (
 
                     {/* Doctor routes */}
                     <Route path="/doctor/appointments/approve" element={<RoleRoute allowedRoles={['doctor']}><DoctorAppointments /></RoleRoute>} />
+                    <Route path="/doctor/appointments/upcoming" element={<RoleRoute allowedRoles={['doctor']}><DoctorAppointments /></RoleRoute>} />
                     <Route path="/doctor/appointments/history" element={<RoleRoute allowedRoles={['doctor']}><DoctorAppointments /></RoleRoute>} />
                     <Route path="/doctor/appointments" element={<RoleRoute allowedRoles={['doctor']}><DoctorAppointments /></RoleRoute>} />
                     <Route path="/doctor/online-appointments" element={<RoleRoute allowedRoles={['doctor']}><DoctorOnlineAppointments /></RoleRoute>} />
@@ -632,6 +635,7 @@ const App = () => (
                     {/* Clinic Doctor routes */}
                     <Route path="/clinic/dashboard" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicDashboard /></RoleRoute>} />
                     <Route path="/clinic/appointments/approve" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicAppointments /></RoleRoute>} />
+                    <Route path="/clinic/appointments/upcoming" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicAppointments /></RoleRoute>} />
                     <Route path="/clinic/appointments/history" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicAppointments /></RoleRoute>} />
                     <Route path="/clinic/appointments" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicAppointments /></RoleRoute>} />
                     <Route path="/clinic/online-appointments" element={<RoleRoute allowedRoles={['clinic_doctor']}><DoctorOnlineAppointments /></RoleRoute>} />

@@ -231,7 +231,7 @@ export const transactions = {
 export const prescriptions = {
   get: (params: ListParams = {}): Promise<Prescription[]> => request<Prescription[]>(withQuery('/records', { ...params })),
   getByPatient: (patientId: string): Promise<Prescription[]> => request<Prescription[]>(`/records/patient/${patientId}`),
-  create: (body: Partial<Prescription>): Promise<Prescription> =>
+  create: (body: Partial<Prescription> | Record<string, unknown>): Promise<Prescription> =>
     request<Prescription>('/records', { method: 'POST', body: JSON.stringify(body) }),
   delete: (id: string): Promise<{ message: string }> =>
     request<{ message: string }>(`/records/${id}`, { method: 'DELETE' }),
@@ -802,6 +802,52 @@ export const api = {
   getOrder: (id: string): Promise<Record<string, unknown>> =>
     request<Record<string, unknown>>(withQuery('/pharmacy/orders', { orderId: id })),
   getBookings: lab.getBookings,
+  getLabBookings: lab.getBookings,
+  getTransactions: transactions.get,
+  getLicenses: licenses.get,
+  getLicenseStats: licenses.getStats,
+  getAppointments: appointments.get,
+  updateAppointment: appointments.update,
+  getReviews: reviews.get,
+  getBilling: billing.get,
+  getRecords: prescriptions.get,
+  getRefunds: payments.getRefunds,
+  getDoctor: doctors.getOne,
+  getBookedSlots: appointments.getBookedSlots,
+  walkInAppointment: appointments.walkIn,
+  createRecord: prescriptions.create,
+  createNotification: notifications.create,
+  createBill: billing.create,
+  submitIntakeForm: appointments.submitIntakeForm,
+  getDoctors: doctors.get,
+  payTransaction: transactions.pay,
+  lockAppointmentSlot: appointments.lockSlot,
+  releaseAppointmentSlot: appointments.releaseSlot,
+  deleteAppointment: appointments.delete,
+  getPayments: payments.get,
+  getPharmacyOrders: pharmacy.getOrders,
+  getPharmacyPrescriptions: pharmacy.getPrescriptions,
+  getNotifications: notifications.get,
+  createSupportTicket: supportTickets.create,
+  getPharmacyStats: pharmacy.getStats,
+  getLabStats: lab.getStats,
+  getLabOrders: lab.getOrders,
+  getLabTests: lab.getTests,
+  getPharmacyMedicines: pharmacy.getMedicines,
+  getPharmacyReturns: pharmacy.getReturns,
+  // ── Calls & Video Calls ──
+  getCalls: (p: Record<string, unknown> = {}): Promise<{ success: boolean; data: any[] }> =>
+    request(withQuery('/calls', p as Record<string, string | number | boolean>)),
+  getCallStats: (): Promise<{ success: boolean; stats: any }> => request('/calls/stats'),
+  getCallContacts: (): Promise<{ success: boolean; contacts: any[] }> => request('/calls/contacts'),
+  initiateCallLog: (body: unknown): Promise<{ success: boolean; data: any }> =>
+    request('/calls/initiate', { method: 'POST', body: JSON.stringify(body) }),
+  updateCallStatus: (id: string, body: unknown): Promise<{ success: boolean; data: any }> =>
+    request(`/calls/${id}/status`, { method: 'PUT', body: JSON.stringify(body) }),
+  deleteCallLog: (id: string): Promise<{ success: boolean; message: string }> =>
+    request(`/calls/${id}`, { method: 'DELETE' }),
+  clearAllCallLogs: (): Promise<{ success: boolean; message: string }> =>
+    request('/calls/clear/all', { method: 'DELETE' }),
   // Generic dispatch passthrough
   dispatch: (path: string, options: { method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'; body?: unknown; headers?: Record<string, string> }) =>
     request(path, { method: options.method, body: options.body, headers: options.headers }),
