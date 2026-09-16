@@ -33,11 +33,11 @@ export default function PublicNavbar() {
   const themeToggleLabel = isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode';
 
   const { totalItems } = useCart();
-  const [selectedCity, setSelectedCity] = useState(() => localStorage.getItem('mediCore_city') || 'Jabalpur');
+  const [selectedCity, setSelectedCity] = useState(() => (localStorage.getItem('findmedi_city') || localStorage.getItem('mediCore_city')) || 'Jabalpur');
 
   const handleCitySelect = (cityName) => {
     setSelectedCity(cityName);
-    localStorage.setItem('mediCore_city', cityName);
+    localStorage.setItem('findmedi_city', cityName);
     setCityOpen(false);
   };
 

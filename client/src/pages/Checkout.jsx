@@ -22,7 +22,8 @@ const CROSS_STORE_MEDS = [
   { id:'m3_s3', name:'Cough Syrup 100ml', image:'', brand:'MediCare', mrp:130, price:95, discount:27, inStock:true, rx:false, pack:'100ml bottle', category:'OTC', storeId:'s3' },
 ];
 
-const SAVED_PRESCRIPTIONS_KEY = 'mediCore_saved_rx';
+const SAVED_PRESCRIPTIONS_KEY = 'findmedi_saved_rx';
+const LEGACY_SAVED_PRESCRIPTIONS_KEY = 'mediCore_saved_rx';
 
 const SAVED_ADDRESSES = [
   { id:'a1', label:'Home', address:'123, Health Avenue, Block C, Downtown, New York, NY 10001', type:'home', default:true },
@@ -85,7 +86,7 @@ export default function Checkout() {
   const [uploadedFiles, setUploadedFiles] = useState({});
   const [oosFallback, setOosFallback] = useState(null);
   const [savedPrescriptions, setSavedPrescriptions] = useState(() => {
-    try { return JSON.parse(localStorage.getItem(SAVED_PRESCRIPTIONS_KEY)) || []; } catch { return []; }
+    try { return JSON.parse((localStorage.getItem(SAVED_PRESCRIPTIONS_KEY) || localStorage.getItem(LEGACY_SAVED_PRESCRIPTIONS_KEY))) || []; } catch { return []; }
   });
   const [confirmDialog, setConfirmDialog] = useState(null);
   const [rxConfirmed, setRxConfirmed] = useState(false);

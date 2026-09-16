@@ -359,6 +359,7 @@
     box-shadow: 0 22px 60px -30px oklch(0.16 0.04 257 / 0.38);
   }
 
+  .findmedi-map-popup .maplibregl-popup-content,
   .medicore-map-popup .maplibregl-popup-content {
     padding: 0;
     overflow: hidden;
@@ -370,6 +371,7 @@
   }
 
   @media (max-width: 520px) {
+    .findmedi-map-popup .maplibregl-popup-content,
     .medicore-map-popup .maplibregl-popup-content {
       width: min(342px, calc(100vw - 96px));
       max-width: min(342px, calc(100vw - 96px));

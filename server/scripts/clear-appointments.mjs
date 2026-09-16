@@ -10,7 +10,7 @@ dotenv.config({ path: path.join(__dirname, '..', '.env') });
 // Atlas SRV DNS fix (system DNS UDP53 refuse karta hai)
 dns.setServers(['8.8.8.8', '1.1.1.1']);
 
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/medicore';
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/findmedi';
 
 async function clearAppointments() {
   await mongoose.connect(MONGO_URI, { serverSelectionTimeoutMS: 30000, family: 4 });

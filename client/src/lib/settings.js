@@ -26,7 +26,7 @@ export const mergeSettings = (...settingsList) => settingsList.reduce(
 export function readStoredSettings() {
   if (typeof localStorage === 'undefined') return {};
   try {
-    return JSON.parse(localStorage.getItem('medicore_settings') || '{}');
+    return JSON.parse((localStorage.getItem('findmedi_settings') || localStorage.getItem('medicore_settings')) || '{}');
   } catch {
     return {};
   }
@@ -47,7 +47,7 @@ export function applyUserSettings(settings = {}) {
   root.dir = 'ltr';
 
   if (typeof localStorage !== 'undefined') {
-    localStorage.setItem('medicore_settings', JSON.stringify(next));
+    localStorage.setItem('findmedi_settings', JSON.stringify(next));
   }
 
   return next;

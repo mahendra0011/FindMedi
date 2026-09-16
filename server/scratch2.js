@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-mongoose.connect('mongodb+srv://mahendrapra0077:3Bkvlwlj1aZqi8VP@cluster0.5l9k4vd.mongodb.net/medicore?retryWrites=true&w=majority')
+mongoose.connect('mongodb+srv://mahendrapra0077:3Bkvlwlj1aZqi8VP@cluster0.5l9k4vd.mongodb.net/findmedi?retryWrites=true&w=majority')
   .then(async () => {
     const Payment = mongoose.model('Payment', new mongoose.Schema({}, { strict: false, collection: 'payments' }));
     const Appointment = mongoose.model('Appointment', new mongoose.Schema({}, { strict: false, collection: 'appointments' }));

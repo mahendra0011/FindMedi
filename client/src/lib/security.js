@@ -23,7 +23,7 @@ async function getKey(key) {
  * @param {string} secretKey - Encryption key (min 8 chars)
  * @returns {string} - Encrypted string (base64)
  */
-export async function encryptData(data, secretKey = 'medicore-default-key') {
+export async function encryptData(data, secretKey = 'findmedi-default-key') {
   try {
     const key = await getKey(secretKey);
     const iv = crypto.getRandomValues(new Uint8Array(12));
@@ -49,7 +49,7 @@ export async function encryptData(data, secretKey = 'medicore-default-key') {
  * @param {string} secretKey - Encryption key
  * @returns {any} - Decrypted data
  */
-export async function decryptData(encryptedStr, secretKey = 'medicore-default-key') {
+export async function decryptData(encryptedStr, secretKey = 'findmedi-default-key') {
   try {
     const key = await getKey(secretKey);
     const combined = new Uint8Array(atob(encryptedStr).split('').map(c => c.charCodeAt(0)));

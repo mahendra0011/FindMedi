@@ -9,8 +9,7 @@ server.err
 response.txt
 
 
-# Local dev overrides.env.local
-
-
-# Temp scripts.temp-*
-
+# Local dev overrides
+.env.local
+logs/
+.zcode/

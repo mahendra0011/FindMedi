@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 import Appointment from '../models/Appointment.js';
 import { getISTDateString } from '../utils/dateUtils.js';
 
-const mongoUri = process.env.MONGO_URI || 'mongodb://localhost:27017/mediCore';
+const mongoUri = process.env.MONGO_URI || 'mongodb://localhost:27017/findmedi';
 
 async function migrate() {
   await mongoose.connect(mongoUri);

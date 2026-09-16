@@ -776,7 +776,7 @@ export function AccessibilitySettings({ prefs, setPrefs, privacy, setPrivacyFiel
 export function AboutSection() {
   return (
     <>
-      <SectionCard title="MediCore Chat" description="Secure 1-to-1 messaging between doctors and patients.">
+      <SectionCard title="FindMedi Chat" description="Secure 1-to-1 messaging between doctors and patients.">
         <Row icon={Info} title="Version" description="Chat module v2.0" />
         <Row icon={Shield} title="Privacy by design" description="Chat sirf doctor–patient ke beech hi hoti hai." />
       </SectionCard>

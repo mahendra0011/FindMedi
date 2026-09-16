@@ -1,6 +1,6 @@
 # napi-core Build Guide
 
-Native Rust modules for mediCore's performance-critical paths (image resize, PDF generation, CSV parsing), exposed to Node.js via [`napi-rs`](https://napi.rs) (N-API, ABI-stable).
+Native Rust modules for FindMedi's performance-critical paths (image resize, PDF generation, CSV parsing), exposed to Node.js via [`napi-rs`](https://napi.rs) (N-API, ABI-stable).
 
 ## Prerequisites
 

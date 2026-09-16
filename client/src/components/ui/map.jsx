@@ -439,7 +439,7 @@ export function MapPopup({
       closeOnClick,
       focusAfterOpen,
       offset: 28,
-      className: cn("medicore-map-popup", className),
+      className: cn("findmedi-map-popup", className),
       ...popupOptions,
     })
       .setLngLat(popupPosition)

@@ -494,7 +494,7 @@ export default function FileUpload() {
                 <div className="space-y-1.5">
                   <h3 className="text-lg font-bold text-foreground">Connect Google Drive to Upload</h3>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    MediCore stores your medical uploads directly in your personal Google Drive. Connect your account in one click to enable uploading.
+                    FindMedi stores your medical uploads directly in your personal Google Drive. Connect your account in one click to enable uploading.
                   </p>
                 </div>
                 <Button

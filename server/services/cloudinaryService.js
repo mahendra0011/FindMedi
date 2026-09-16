@@ -53,7 +53,7 @@ export const uploadFileToCloudinary = async (
   fileBuffer,
   filename,
   mimeType,
-  folder = 'medicore/uploads'
+  folder = 'findmedi/uploads'
 ) => {
   ensureCloudinaryConfigured();
 

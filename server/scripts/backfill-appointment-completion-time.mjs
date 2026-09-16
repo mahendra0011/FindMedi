@@ -11,7 +11,7 @@ dotenv.config({ path: path.join(__dirname, '..', '.env') });
 // (ECONNREFUSED). Public DNS par retry karte hain taaki connect ho sake.
 dns.setServers(['8.8.8.8', '1.1.1.1']);
 
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/medicore';
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/findmedi';
 
 // Completed appointments jo token/queue flow se complete hue unme consultationEndTime
 // set nahi hua tha. Is script me wo Token.completedAt se backfill hota hai.

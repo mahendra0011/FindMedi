@@ -7,7 +7,8 @@
  * theme/layout change bina network round-trip ke instantly apply ho jaye.
  */
 
-const KEY = 'medicore_chat_prefs';
+const KEY = 'findmedi_chat_prefs';
+const LEGACY_KEY = 'medicore_chat_prefs';
 
 export const DEFAULT_CHAT_PREFS = {
   wallpaper: 'default',
@@ -24,7 +25,7 @@ export const DEFAULT_CHAT_PREFS = {
 
 export function readChatPrefs() {
   try {
-    const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(KEY) : null;
+    const raw = typeof localStorage !== 'undefined' ? (localStorage.getItem(KEY) || localStorage.getItem(LEGACY_KEY)) : null;
     return raw ? { ...DEFAULT_CHAT_PREFS, ...JSON.parse(raw) } : { ...DEFAULT_CHAT_PREFS };
   } catch {
     return { ...DEFAULT_CHAT_PREFS };
@@ -54,11 +55,12 @@ export const wallpaperCss = (value) =>
   (WALLPAPERS.find((w) => w.value === value) || WALLPAPERS[0]).css;
 
 /** Per-conversation wallpaper override (device local). */
-const WALLPAPER_KEY = 'medicore_chat_wallpapers';
+const WALLPAPER_KEY = 'findmedi_chat_wallpapers';
+const LEGACY_WALLPAPER_KEY = 'medicore_chat_wallpapers';
 
 export function readConversationWallpapers() {
   try {
-    return JSON.parse(localStorage.getItem(WALLPAPER_KEY) || '{}');
+    return JSON.parse((localStorage.getItem(WALLPAPER_KEY) || localStorage.getItem(LEGACY_WALLPAPER_KEY)) || '{}');
   } catch {
     return {};
   }
@@ -73,10 +75,11 @@ export function setConversationWallpaper(conversationId, value) {
 }
 
 // ─── Per-conversation drafts (offline queue se alag) ────────────────────────
-const DRAFT_KEY = 'medicore_chat_drafts';
+const DRAFT_KEY = 'findmedi_chat_drafts';
+const LEGACY_DRAFT_KEY = 'medicore_chat_drafts';
 
 export function readDrafts() {
-  try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || '{}'); } catch { return {}; }
+  try { return JSON.parse((localStorage.getItem(DRAFT_KEY) || localStorage.getItem(LEGACY_DRAFT_KEY)) || '{}'); } catch { return {}; }
 }
 
 export function saveDraft(conversationId, text) {
@@ -91,10 +94,11 @@ export function saveDraft(conversationId, text) {
 // Internet jaane par bheja gaya message yahan queue hota hai aur reconnect
 // hone par socket emit se pehle HTTP se flush hota hai (duplicate-safe via
 // clientGeneratedId — server isi id ko message par store karta hai).
-const QUEUE_KEY = 'medicore_chat_queue';
+const QUEUE_KEY = 'findmedi_chat_queue';
+const LEGACY_QUEUE_KEY = 'medicore_chat_queue';
 
 export function readQueue(userId) {
-  try { return JSON.parse(localStorage.getItem(`${QUEUE_KEY}_${userId}`) || '[]'); } catch { return []; }
+  try { return JSON.parse((localStorage.getItem(`${QUEUE_KEY}_${userId}`) || localStorage.getItem(`${LEGACY_QUEUE_KEY}_${userId}`)) || '[]'); } catch { return []; }
 }
 
 export function writeQueue(userId, items) {

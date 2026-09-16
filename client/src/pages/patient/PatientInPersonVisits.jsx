@@ -455,7 +455,7 @@ export default function PatientInPersonVisits() {
                   <div className="flex items-center gap-1.5 text-xs text-foreground/80 mb-2">
                     <Building2 className="w-3.5 h-3.5 text-violet-500 shrink-0" />
                     <span className="truncate font-medium">
-                      {appt.hospitalId?.name || appt.facilityId?.name || 'MediCore Health Clinic'}
+                      {appt.hospitalId?.name || appt.facilityId?.name || 'FindMedi Health Clinic'}
                     </span>
                   </div>
 
@@ -509,7 +509,7 @@ export default function PatientInPersonVisits() {
                     </h3>
                     <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
                       <Hospital className="w-3.5 h-3.5 text-violet-500" />
-                      {selectedAppt.hospitalId?.name || selectedAppt.facilityId?.name || 'MediCore Clinic Center'}
+                      {selectedAppt.hospitalId?.name || selectedAppt.facilityId?.name || 'FindMedi Clinic Center'}
                     </p>
                   </div>
                 </div>

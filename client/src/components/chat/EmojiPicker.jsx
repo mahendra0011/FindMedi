@@ -2,11 +2,12 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Search, Smile, Sticker, Film, Clock, X } from 'lucide-react';
 import { STICKER_PACKS, searchEmoji } from '@/lib/chatPrefs';
 
-const RECENT_KEY = 'medicore_chat_recent_emoji';
+const RECENT_KEY = 'findmedi_chat_recent_emoji';
+const LEGACY_RECENT_KEY = 'medicore_chat_recent_emoji';
 const GIPHY_KEY = 'dc6zaTOxFJmzC'; // Giphy public beta key (no signup)
 
 function readRecent() {
-  try { return JSON.parse(localStorage.getItem(RECENT_KEY) || '[]'); } catch { return []; }
+  try { return JSON.parse((localStorage.getItem(RECENT_KEY) || localStorage.getItem(LEGACY_RECENT_KEY)) || '[]'); } catch { return []; }
 }
 function pushRecent(emoji) {
   const next = [emoji, ...readRecent().filter((e) => e !== emoji)].slice(0, 24);

@@ -1,10 +1,11 @@
 import { createSlice, createSelector } from '@reduxjs/toolkit';
 
-const STORAGE_KEY = 'mediCore_cart';
+const STORAGE_KEY = 'findmedi_cart';
+const LEGACY_STORAGE_KEY = 'mediCore_cart';
 
 function loadCart() {
   try {
-    const saved = localStorage.getItem(STORAGE_KEY);
+    const saved = (localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY));
     return saved ? JSON.parse(saved) : {};
   } catch {
     return {};

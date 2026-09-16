@@ -1,4 +1,4 @@
-﻿import mongoose from 'mongoose';
+import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -6,7 +6,7 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.join(__dirname, '.env') });
 
-let MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/medicore';
+let MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/findmedi';
 
 async function migrate() {
   await mongoose.connect(MONGO_URI);
@@ -21,11 +21,11 @@ async function migrate() {
       name: 'FindMedi Demo Hospital',
       slug: 'findmedi-demo-hospital',
       email: 'hospital@findmedi.com',
-      phone: '+1-800-MEDICORE',
+      phone: '+1-800-FINDMEDI',
       address: '123 Healthcare Avenue, Medical District',
       city: 'New York',
       state: 'NY',
-      licenseNumber: 'LIC-MC-2024-001',
+      licenseNumber: 'LIC-FM-2024-001',
       description: 'FindMedi multi-specialty hospital providing comprehensive healthcare services.',
       specialties: ['Cardiology', 'Neurology', 'Orthopedics', 'Pediatrics', 'Emergency'],
       status: 'approved',

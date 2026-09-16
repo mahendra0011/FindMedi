@@ -151,7 +151,7 @@ const doctors = [
   { name: "Dr. Andrew Williams", specialty: "Gastroenterologist", available: true, rating: 4.9, patients: 580, doctor_type: "clinic" },
 ];
 
-const getSelectedCity = () => localStorage.getItem('mediCore_city') || '';
+const getSelectedCity = () => (localStorage.getItem('findmedi_city') || localStorage.getItem('mediCore_city')) || '';
 
 const Home = () => {
   const navigate = useNavigate();
@@ -274,7 +274,7 @@ const Home = () => {
                 <SplitText
                   tag="span"
                   text="Healthcare Solutions"
-                  className="block medicore-split-gradient"
+                  className="block findmedi-split-gradient"
                   delay={24}
                   duration={0.7}
                   ease="power3.out"
@@ -431,9 +431,9 @@ const Home = () => {
           damping={48}
           stiffness={360}
           numCopies={7}
-          className="medicore-velocity-text"
-          parallaxClassName="medicore-velocity-row"
-          scrollerClassName="medicore-velocity-scroller"
+          className="findmedi-velocity-text"
+          parallaxClassName="findmedi-velocity-row"
+          scrollerClassName="findmedi-velocity-scroller"
         />
       </section>
 
