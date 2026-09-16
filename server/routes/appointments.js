@@ -87,6 +87,7 @@ router.get('/', protect, async (req, res) => {
       populate: [
         { path: 'patientId', select: 'name email phone gender address dateOfBirth bloodGroup' },
         { path: 'doctorId', select: 'name specialization' },
+        { path: 'hospitalId', select: 'name address city location phone' },
       ],
     });
 
@@ -442,7 +443,7 @@ router.post('/walk-in', protect, requireRole(['doctor', 'clinic_doctor', 'clinic
 
 router.post('/', protect, requireRole(['hospital_admin', 'superadmin']), validate(createAppointmentSchema), async (req, res) => {
   try {
-    const { doctorId, doctor, department, date, time, type, symptoms, priority } = req.body;
+    const { doctorId, doctor, department, date, time, type, symptoms, priority, appointmentMode } = req.body;
     
     let patientName = req.user.name;
     let patientId = req.user._id;
@@ -505,6 +506,7 @@ router.post('/', protect, requireRole(['hospital_admin', 'superadmin']), validat
         date,
         time,
         type: type || 'Consultation',
+        appointmentMode: appointmentMode || (type?.toLowerCase().includes('chat') ? 'chat' : type?.toLowerCase().includes('video') ? 'video' : type?.toLowerCase().includes('audio') || type?.toLowerCase().includes('voice') ? 'audio' : type?.toLowerCase().includes('home') ? 'home_visit' : 'offline'),
         symptoms: symptoms || '',
         priority: priority || 'Normal',
         estimatedWaitTime,
@@ -576,6 +578,43 @@ router.get('/queue/:department', protect, async (req, res) => {
     res.json({ queue });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
+router.put('/:id/transit', protect, async (req, res) => {
+  try {
+    const { lat, lng, address, transitStatus, etaMinutes, distanceKm } = req.body;
+    const appointment = await Appointment.findById(req.params.id);
+    if (!appointment) return res.status(404).json({ message: 'Appointment not found' });
+
+    const isPatient = req.user.role === 'patient' && appointment.patientId?.toString() === req.user._id.toString();
+    const isDoctor = (req.user.role === 'doctor' || req.user.role === 'clinic_doctor') && appointment.doctorId?.toString() === req.user.doctorProfileId?.toString();
+    const isAdmin = req.user.role === 'hospital_admin' || req.user.role === 'superadmin';
+
+    if (!isPatient && !isDoctor && !isAdmin) {
+      return res.status(403).json({ message: 'Not authorized to update transit location' });
+    }
+
+    appointment.patientLocation = {
+      lat: lat !== undefined ? Number(lat) : appointment.patientLocation?.lat,
+      lng: lng !== undefined ? Number(lng) : appointment.patientLocation?.lng,
+      address: address !== undefined ? address : (appointment.patientLocation?.address || ''),
+      transitStatus: transitStatus || appointment.patientLocation?.transitStatus || 'pending_departure',
+      etaMinutes: etaMinutes !== undefined ? Number(etaMinutes) : appointment.patientLocation?.etaMinutes,
+      distanceKm: distanceKm !== undefined ? Number(distanceKm) : appointment.patientLocation?.distanceKm,
+      updatedAt: new Date(),
+    };
+
+    if (transitStatus === 'arrived' && appointment.status === 'Confirmed') {
+      appointment.status = 'In Queue';
+      appointment.checkedInAt = appointment.checkedInAt || new Date();
+    }
+
+    await appointment.save();
+    await emitAppointmentUpdate(appointment);
+    return res.json({ success: true, appointment });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 router.put('/:id/intake', protect, async (req, res) => {
   try {
     const {

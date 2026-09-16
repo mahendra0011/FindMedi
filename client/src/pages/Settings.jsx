@@ -26,6 +26,7 @@ import {
   CheckSquare,
   Building2,
   Home,
+  Phone,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -74,8 +75,9 @@ const buildProfile = (user) => ({
   consultationFee: user?.consultationFee || user?.fees || 500,
   chatFee: user?.appointmentFees?.chat ?? user?.chat_fee ?? 300,
   videoFee: user?.appointmentFees?.video ?? user?.video_fee ?? 500,
+  audioFee: user?.appointmentFees?.audio ?? user?.audio_fee ?? 400,
   homeVisitFee: user?.appointmentFees?.home_visit ?? user?.home_visit_fee ?? 800,
-  appointmentModes: user?.appointmentModes || ['chat', 'video', 'offline', 'home_visit'],
+  appointmentModes: user?.appointmentModes || ['chat', 'video', 'offline', 'home_visit', 'audio'],
   emergencySupport: Boolean(user?.emergencySupport || user?.emergency_consultation),
   refundOnMissedOrCancelled: user?.refundOnMissedOrCancelled !== false,
 });
@@ -565,11 +567,12 @@ export default function Settings() {
                     <p className="text-xs text-muted-foreground mb-3">
                       Select which consultation modes patients can book with you.
                     </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                      {[{ key: 'chat', label: 'Online Chat', Icon: MessageSquare, color: 'text-blue-600', border: 'border-blue-500' },
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                      {[{ key: 'offline', label: user?.role === 'clinic_doctor' ? 'In Clinic' : 'In Hospital', Icon: Building2, color: 'text-violet-600', border: 'border-violet-500' },
+                        { key: 'home_visit', label: 'Home Visit', Icon: Home, color: 'text-amber-600', border: 'border-amber-500' },
                         { key: 'video', label: 'Video Call', Icon: Video, color: 'text-emerald-600', border: 'border-emerald-500' },
-                        { key: 'offline', label: 'In-Person / OPD', Icon: Building2, color: 'text-violet-600', border: 'border-violet-500' },
-                        { key: 'home_visit', label: 'Home Visit', Icon: Home, color: 'text-amber-600', border: 'border-amber-500' }
+                        { key: 'audio', label: 'Audio Call', Icon: Phone, color: 'text-teal-600', border: 'border-teal-500' },
+                        { key: 'chat', label: 'Online Chat', Icon: MessageSquare, color: 'text-blue-600', border: 'border-blue-500' }
                       ].map(({ key, label, Icon, color, border }) => {
                         const active = (profile.appointmentModes || []).includes(key);
                         return (
@@ -609,26 +612,8 @@ export default function Settings() {
                     <h4 className="font-heading font-semibold text-sm text-foreground mb-3">
                       Consultation Fees by Mode
                     </h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                      <Field label="Chat Consultation Fee (₹)">
-                        <Input
-                          type="number"
-                          value={profile.chatFee}
-                          onChange={(e) => updateProfile('chatFee', e.target.value)}
-                          placeholder="300"
-                          min={0}
-                        />
-                      </Field>
-                      <Field label="Video Call Consultation Fee (₹)">
-                        <Input
-                          type="number"
-                          value={profile.videoFee}
-                          onChange={(e) => updateProfile('videoFee', e.target.value)}
-                          placeholder="500"
-                          min={0}
-                        />
-                      </Field>
-                      <Field label="In-Person Consultation Fee (₹)">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                      <Field label={`${user?.role === 'clinic_doctor' ? 'In Clinic' : 'In Hospital'} Fee (₹)`}>
                         <Input
                           type="number"
                           value={profile.consultationFee}
@@ -637,12 +622,39 @@ export default function Settings() {
                           min={0}
                         />
                       </Field>
-                      <Field label="Home Visit Consultation Fee (₹)">
+                      <Field label="Home Visit Fee (₹)">
                         <Input
                           type="number"
                           value={profile.homeVisitFee}
                           onChange={(e) => updateProfile('homeVisitFee', e.target.value)}
                           placeholder="800"
+                          min={0}
+                        />
+                      </Field>
+                      <Field label="Video Call Fee (₹)">
+                        <Input
+                          type="number"
+                          value={profile.videoFee}
+                          onChange={(e) => updateProfile('videoFee', e.target.value)}
+                          placeholder="500"
+                          min={0}
+                        />
+                      </Field>
+                      <Field label="Audio Call Fee (₹)">
+                        <Input
+                          type="number"
+                          value={profile.audioFee}
+                          onChange={(e) => updateProfile('audioFee', e.target.value)}
+                          placeholder="400"
+                          min={0}
+                        />
+                      </Field>
+                      <Field label="Chat Fee (₹)">
+                        <Input
+                          type="number"
+                          value={profile.chatFee}
+                          onChange={(e) => updateProfile('chatFee', e.target.value)}
+                          placeholder="300"
                           min={0}
                         />
                       </Field>

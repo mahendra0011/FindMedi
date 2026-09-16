@@ -14,6 +14,7 @@ import { getISTDateString, formatDisplayDate } from '@/lib/dateUtils';
 import TodayAppointmentsSection from '@/components/TodayAppointmentsSection';
 import AppointmentHistorySection from '@/components/AppointmentHistorySection';
 import ApproveAppointmentSection from '@/components/ApproveAppointmentSection';
+import UpcomingAppointmentsSection from '@/components/UpcomingAppointmentsSection';
 import AppointmentDetailsModal from '@/components/AppointmentDetailsModal';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
@@ -75,7 +76,11 @@ export default function DoctorOnlineAppointments() {
 
   const today = getISTDateString();
   const pendingAppointments = appointments.filter(a => (a.status || '').toLowerCase() === 'pending');
-  const todayAppointments = appointments.filter(a => a.date === today);
+  const upcomingAppointments = appointments.filter(a => {
+    const s = (a.status || '').toLowerCase();
+    return (a.date || '') > today && (s === 'confirmed' || s === 'scheduled');
+  });
+  const todayAppointments = appointments.filter(a => a.date === today && (a.status || '').toLowerCase() !== 'cancelled');
   const completeAppointments = appointments.filter(a => (a.status || '').toLowerCase() === 'completed');
 
   const handleStatus = async (id, status, extra = {}) => {
@@ -280,23 +285,39 @@ export default function DoctorOnlineAppointments() {
                   {pendingAppointments.length} pending
                 </span>
               )}
+              {activeTab === 'upcoming' && upcomingAppointments.length > 0 && (
+                <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-500/15 text-purple-600">
+                  {upcomingAppointments.length} upcoming
+                </span>
+              )}
               {activeTab === 'today' && todayAppointments.length > 0 && (
                 <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary">
                   {todayAppointments.length} today
                 </span>
               )}
+              {activeTab === 'complete' && completeAppointments.length > 0 && (
+                <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-600">
+                  {completeAppointments.length} completed
+                </span>
+              )}
             </h1>
             <p className="text-xs text-muted-foreground">
-              {activeTab === 'pending' ? 'Review & approve incoming chat and video call requests' : activeTab === 'today' ? "Today's scheduled chat & video consultations" : 'Completed online consultation history'}
+              {activeTab === 'pending'
+                ? 'Review & approve incoming chat, voice & video call requests'
+                : activeTab === 'upcoming'
+                ? 'Confirmed future online consultations & bookings'
+                : activeTab === 'today'
+                ? "Today's scheduled chat & video consultations"
+                : 'Completed online consultation history & records'}
             </p>
           </div>
         </div>
 
-        {/* ── 3 Switch Buttons (Pending / Today / Complete) ── */}
-        <div className="flex items-center bg-muted/60 p-1 rounded-full border border-border/60 gap-1 shadow-sm">
+        {/* ── 4 Switch Buttons (Pending / Upcoming / Today / Complete) ── */}
+        <div className="flex items-center bg-muted/60 p-1 rounded-full border border-border/60 gap-1 shadow-sm flex-wrap">
           <button
             onClick={() => setActiveTab('pending')}
-            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${
               activeTab === 'pending'
                 ? 'bg-amber-500 text-white shadow-md'
                 : 'text-muted-foreground hover:text-foreground'
@@ -312,14 +333,31 @@ export default function DoctorOnlineAppointments() {
           </button>
 
           <button
+            onClick={() => setActiveTab('upcoming')}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${
+              activeTab === 'upcoming'
+                ? 'bg-purple-600 text-white shadow-md'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <CalendarClock className="w-3.5 h-3.5" />
+            Upcoming
+            {upcomingAppointments.length > 0 && (
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${activeTab === 'upcoming' ? 'bg-white/20 text-white' : 'bg-purple-600 text-white'}`}>
+                {upcomingAppointments.length}
+              </span>
+            )}
+          </button>
+
+          <button
             onClick={() => setActiveTab('today')}
-            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${
               activeTab === 'today'
                 ? 'bg-primary text-primary-foreground shadow-md'
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            <CalendarClock className="w-3.5 h-3.5" />
+            <CalendarDays className="w-3.5 h-3.5" />
             Today
             {todayAppointments.length > 0 && (
               <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${activeTab === 'today' ? 'bg-white/20 text-white' : 'bg-primary/20 text-primary'}`}>
@@ -330,7 +368,7 @@ export default function DoctorOnlineAppointments() {
 
           <button
             onClick={() => setActiveTab('complete')}
-            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${
               activeTab === 'complete'
                 ? 'bg-emerald-600 text-white shadow-md'
                 : 'text-muted-foreground hover:text-foreground'
@@ -365,6 +403,13 @@ export default function DoctorOnlineAppointments() {
           appointments={appointments}
           onConfirm={(a) => handleStatus(a._id, 'Confirmed')}
           onReject={(a, reason) => handleStatus(a._id, 'Cancelled', { notes: reason })}
+        />
+      ) : activeTab === 'upcoming' ? (
+        /* ════════ UPCOMING VIEW (Future Confirmed Online Consultations) ════════ */
+        <UpcomingAppointmentsSection
+          appointments={appointments}
+          onViewDetails={(a) => setDetailsApt(a)}
+          user={user}
         />
       ) : activeTab === 'today' ? (
         /* ════════ TODAY VIEW (Today Online Consultations + Join Call / Chat) ════════ */

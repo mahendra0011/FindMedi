@@ -23,6 +23,8 @@ import {
   enqueueMessage, dequeueMessage, readQueue, writeQueue, messagePreview,
   wallpaperCss, readConversationWallpapers, setConversationWallpaper,
 } from '@/lib/chatPrefs';
+import { useAudioCall } from '@/context/AudioCallContext';
+import { useVideoCall } from '@/context/VideoCallContext';
 
 const mediaUrl = (u) => (String(u || '').startsWith('http') ? u : `${getServerOrigin()}${u}`);
 const uid = (v) => (v == null ? '' : (typeof v === 'object' ? String(v._id || v.userId || '') : String(v)));
@@ -30,6 +32,9 @@ const uid = (v) => (v == null ? '' : (typeof v === 'object' ? String(v._id || v.
 export default function ChatDashboard() {
   const { user } = useAuth();
   const meId = uid(user?.id || user?._id);
+
+  const audioCallCtx = useAudioCall();
+  const videoCallCtx = useVideoCall();
 
   // ── Core lists ──
   const [conversations, setConversations] = useState([]);
@@ -824,6 +829,44 @@ export default function ChatDashboard() {
                   </>
                 ) : (
                   <>
+                    <button
+                      onClick={() => {
+                        if (!peer?._id && !peer?.id) {
+                          toast.error('Recipient details missing');
+                          return;
+                        }
+                        audioCallCtx?.initiateCall?.({
+                          id: peer._id || peer.id,
+                          name: peer.name || 'User',
+                          avatar: peer.avatar || '',
+                          role: peer.role || 'patient',
+                          phone: peer.phone || '',
+                        });
+                      }}
+                      className="p-2 rounded-full hover:bg-muted text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 transition-colors"
+                      title="Start Audio Call"
+                    >
+                      <Phone className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (!peer?._id && !peer?.id) {
+                          toast.error('Recipient details missing');
+                          return;
+                        }
+                        videoCallCtx?.initiateVideoCall?.({
+                          id: peer._id || peer.id,
+                          name: peer.name || 'User',
+                          avatar: peer.avatar || '',
+                          role: peer.role || 'patient',
+                          phone: peer.phone || '',
+                        });
+                      }}
+                      className="p-2 rounded-full hover:bg-muted text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 transition-colors"
+                      title="Start Full HD Video Call"
+                    >
+                      <Video className="w-4 h-4" />
+                    </button>
                     <button onClick={() => setSelectionMode(true)} className="p-2 rounded-full hover:bg-muted text-muted-foreground hidden sm:block" title="Select messages">
                       <CheckSquare className="w-4 h-4" />
                     </button>

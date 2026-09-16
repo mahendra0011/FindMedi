@@ -1125,6 +1125,7 @@ router.put('/profile', protect, validate(profileUpdateSchema), async (req, res) 
       consultationFee,
       chatFee,
       videoFee,
+      audioFee,
       homeVisitFee,
       appointmentModes,
       emergencySupport,
@@ -1165,6 +1166,7 @@ router.put('/profile', protect, validate(profileUpdateSchema), async (req, res) 
       if (appointmentModes) docUpdate.appointmentModes = appointmentModes;
       if (chatFee !== undefined) docUpdate.chat_fee = Number(chatFee) || 0;
       if (videoFee !== undefined) docUpdate.video_fee = Number(videoFee) || 0;
+      if (audioFee !== undefined) docUpdate.audio_fee = Number(audioFee) || 0;
       if (consultationFee !== undefined) docUpdate.offline_fee = Number(consultationFee) || 0;
       if (homeVisitFee !== undefined) docUpdate.home_visit_fee = Number(homeVisitFee) || 0;
       if (emergencySupport !== undefined) {
@@ -1174,10 +1176,11 @@ router.put('/profile', protect, validate(profileUpdateSchema), async (req, res) 
       if (refundOnMissedOrCancelled !== undefined) {
         docUpdate.refundOnMissedOrCancelled = Boolean(refundOnMissedOrCancelled);
       }
-      if (chatFee !== undefined || videoFee !== undefined || consultationFee !== undefined || homeVisitFee !== undefined) {
+      if (chatFee !== undefined || videoFee !== undefined || audioFee !== undefined || consultationFee !== undefined || homeVisitFee !== undefined) {
         docUpdate.appointmentFees = {
           chat: Number(chatFee || docUpdate.chat_fee || 300),
           video: Number(videoFee || docUpdate.video_fee || 500),
+          audio: Number(audioFee || docUpdate.audio_fee || 400),
           offline: Number(consultationFee || docUpdate.offline_fee || 500),
           home_visit: Number(homeVisitFee || docUpdate.home_visit_fee || 800),
         };

@@ -7,7 +7,7 @@ import {
   IndianRupee, Activity, MapPinned, HelpCircle, Phone, MessageCircle, ChevronRight,
   X, Download, Users, Ambulance, Stethoscope, Syringe, CreditCard, Bookmark,
   Smartphone, Landmark, Wallet, RotateCcw, Sparkles, CheckCircle2, TrendingUp,
-  ExternalLink, RefreshCw, ChevronLeft
+  ExternalLink, RefreshCw, ChevronLeft, Video, MapPin, Car
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -76,7 +76,11 @@ const statCards = [
 ];
 
 const quickActions = [
+  { label: 'Home Visits', icon: MapPin, link: '/patient/home-visit', desc: 'Live map tracking' },
   { label: 'Find Doctors', icon: Stethoscope, link: '/doctors', desc: 'Book appointment' },
+  { label: 'Doctor Chat', icon: MessageCircle, link: '/patient/chat', desc: 'Instant messaging' },
+  { label: 'Voice Calls', icon: Phone, link: '/patient/calls', desc: 'Audio consults' },
+  { label: 'Video Consult', icon: Video, link: '/patient/video-calls', desc: 'Full HD 1080p' },
   { label: 'Book Lab Test', icon: Syringe, link: '/patient/services', desc: 'Home collection' },
   { label: 'Buy Medicine', icon: Pill, link: '/pharmacy', desc: 'Doorstep delivery' },
   { label: 'Upload Report', icon: Upload, link: '/upload', desc: 'Store securely' },
@@ -287,6 +291,8 @@ export default function PatientDashboard() {
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 mb-6">
           {statCards.map((s, i) => {
             const val = statValues[s.label];
+
+
             return (
               <motion.div key={s.label} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 * i }}
                 onClick={() => navigate(s.link)}
@@ -299,6 +305,159 @@ export default function PatientDashboard() {
               </motion.div>
             );
           })}
+        </div>
+      </motion.div>
+
+      {/* ── Telehealth & Communication Suite (Chat, Audio Calls, Video Consult) ── */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.08 }}
+        className="mb-6 rounded-3xl border border-border/60 bg-gradient-to-br from-card via-card/80 to-muted/20 p-5 sm:p-6 shadow-sm relative overflow-hidden"
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-blue-500/10 flex items-center justify-center text-cyan-500 border border-cyan-500/20 shadow-sm">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-heading font-bold text-base sm:text-lg text-foreground">
+                  Consultation & Telehealth Hub
+                </h3>
+                <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                  Instant Connect
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Connect with verified doctors anytime via encrypted chat, crystal-clear voice, or Full HD video.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* 1: Doctor Chat */}
+          <div
+            onClick={() => navigate('/patient/chat')}
+            className="group relative rounded-2xl border border-border/50 bg-card p-4 sm:p-5 hover:border-primary/40 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 cursor-pointer flex flex-col justify-between"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-11 h-11 rounded-2xl bg-primary/10 text-primary flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <MessageCircle className="w-5 h-5" />
+                </div>
+                <span className="text-[11px] font-medium text-muted-foreground group-hover:text-primary transition-colors flex items-center gap-1">
+                  Open Chat <ChevronRight className="w-3.5 h-3.5" />
+                </span>
+              </div>
+              <h4 className="font-heading font-bold text-foreground text-sm sm:text-base group-hover:text-primary transition-colors">
+                Doctor Chat
+              </h4>
+              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                Direct text messaging, share symptoms, medical photos, and get quick answers in real-time.
+              </p>
+            </div>
+            <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-between text-[11px] text-muted-foreground">
+              <span>Real-time Chat</span>
+              <span className="text-emerald-500 font-medium flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Ready
+              </span>
+            </div>
+          </div>
+
+          {/* 2: Audio Calls */}
+          <div
+            onClick={() => navigate('/patient/calls')}
+            className="group relative rounded-2xl border border-border/50 bg-card p-4 sm:p-5 hover:border-emerald-500/40 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 cursor-pointer flex flex-col justify-between"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-11 h-11 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Phone className="w-5 h-5" />
+                </div>
+                <span className="text-[11px] font-medium text-muted-foreground group-hover:text-emerald-600 transition-colors flex items-center gap-1">
+                  Audio Hub <ChevronRight className="w-3.5 h-3.5" />
+                </span>
+              </div>
+              <h4 className="font-heading font-bold text-foreground text-sm sm:text-base group-hover:text-emerald-600 transition-colors">
+                Voice Calls
+              </h4>
+              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                Opus 48kHz audio calling with noise cancellation, doctor directory, and consultation history.
+              </p>
+            </div>
+            <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-between text-[11px] text-muted-foreground">
+              <span>WebRTC Audio</span>
+              <span className="text-emerald-500 font-medium">Clear Audio</span>
+            </div>
+          </div>
+
+          {/* 3: Video Consultations */}
+          <div
+            onClick={() => navigate('/patient/video-calls')}
+            className="group relative rounded-2xl border border-border/50 bg-card p-4 sm:p-5 hover:border-cyan-500/40 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 cursor-pointer flex flex-col justify-between"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-11 h-11 rounded-2xl bg-cyan-500/10 text-cyan-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Video className="w-5 h-5" />
+                </div>
+                <span className="text-[11px] font-medium text-muted-foreground group-hover:text-cyan-500 transition-colors flex items-center gap-1">
+                  Video Suite <ChevronRight className="w-3.5 h-3.5" />
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <h4 className="font-heading font-bold text-foreground text-sm sm:text-base group-hover:text-cyan-500 transition-colors">
+                  Video Consult
+                </h4>
+                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-cyan-500/10 text-cyan-600 dark:text-cyan-400">
+                  1080p
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                Full HD face-to-face video consultation with screen sharing, PiP mode, and snapshot analysis.
+              </p>
+            </div>
+            <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-between text-[11px] text-muted-foreground">
+              <span>Adaptive Full HD</span>
+              <span className="text-cyan-500 font-medium">1-to-1 Encrypted</span>
+            </div>
+          </div>
+
+          {/* 4: Home Visits & Live Map */}
+          <div
+            onClick={() => navigate('/patient/home-visit')}
+            className="group relative rounded-2xl border border-border/50 bg-card p-4 sm:p-5 hover:border-violet-500/40 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 cursor-pointer flex flex-col justify-between"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-11 h-11 rounded-2xl bg-violet-500/10 text-violet-600 dark:text-violet-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <MapPin className="w-5 h-5" />
+                </div>
+                <span className="text-[11px] font-medium text-muted-foreground group-hover:text-violet-600 transition-colors flex items-center gap-1">
+                  Live Map <ChevronRight className="w-3.5 h-3.5" />
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <h4 className="font-heading font-bold text-foreground text-sm sm:text-base group-hover:text-violet-600 transition-colors">
+                  Home Visits
+                </h4>
+                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-violet-500/10 text-violet-600 dark:text-violet-400">
+                  Live GPS
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                Live route tracking to clinic/hospital, distance & ETA, token queue position, and 1-click arrival check-in.
+              </p>
+            </div>
+            <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-between text-[11px] text-muted-foreground">
+              <span>MapLibre Route</span>
+              <span className="text-violet-600 font-medium flex items-center gap-1">
+                <Car className="w-3 h-3" /> Live Tracking
+              </span>
+            </div>
+          </div>
         </div>
       </motion.div>
 

@@ -156,39 +156,7 @@ export default function AdminClinicSettings() {
           <CardDescription>Select all consultation modes your clinic offers to patients</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <div
-              onClick={() => toggleMode('chat')}
-              className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 select-none ${
-                form.appointmentModes?.includes('chat') ? 'border-blue-500 bg-blue-500/5' : 'border-border/60 hover:border-border'
-              }`}
-            >
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${form.appointmentModes?.includes('chat') ? 'bg-blue-500 text-white' : 'bg-muted text-muted-foreground'}`}>
-                <MessageSquare className="w-4 h-4" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <span className="font-semibold text-sm text-foreground block">Online Chat</span>
-                <span className="text-[11px] text-muted-foreground">Digital messaging</span>
-              </div>
-              <input type="checkbox" checked={form.appointmentModes?.includes('chat')} readOnly className="rounded text-primary mt-1 pointer-events-none" />
-            </div>
-
-            <div
-              onClick={() => toggleMode('video')}
-              className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 select-none ${
-                form.appointmentModes?.includes('video') ? 'border-emerald-500 bg-emerald-500/5' : 'border-border/60 hover:border-border'
-              }`}
-            >
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${form.appointmentModes?.includes('video') ? 'bg-emerald-500 text-white' : 'bg-muted text-muted-foreground'}`}>
-                <Video className="w-4 h-4" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <span className="font-semibold text-sm text-foreground block">Video Call</span>
-                <span className="text-[11px] text-muted-foreground">Virtual video consult</span>
-              </div>
-              <input type="checkbox" checked={form.appointmentModes?.includes('video')} readOnly className="rounded text-primary mt-1 pointer-events-none" />
-            </div>
-
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
             <div
               onClick={() => toggleMode('offline')}
               className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 select-none ${
@@ -199,7 +167,7 @@ export default function AdminClinicSettings() {
                 <Building2 className="w-4 h-4" />
               </div>
               <div className="flex-1 min-w-0">
-                <span className="font-semibold text-sm text-foreground block">In-Person</span>
+                <span className="font-semibold text-sm text-foreground block">In Clinic</span>
                 <span className="text-[11px] text-muted-foreground">Physical clinic visit</span>
               </div>
               <input type="checkbox" checked={form.appointmentModes?.includes('offline')} readOnly className="rounded text-primary mt-1 pointer-events-none" />
@@ -219,6 +187,54 @@ export default function AdminClinicSettings() {
                 <span className="text-[11px] text-muted-foreground">Doctor at patient home</span>
               </div>
               <input type="checkbox" checked={(form.appointmentModes?.includes('home_visit') || form.appointmentModes?.includes('home'))} readOnly className="rounded text-primary mt-1 pointer-events-none" />
+            </div>
+
+            <div
+              onClick={() => toggleMode('video')}
+              className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 select-none ${
+                form.appointmentModes?.includes('video') ? 'border-emerald-500 bg-emerald-500/5' : 'border-border/60 hover:border-border'
+              }`}
+            >
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${form.appointmentModes?.includes('video') ? 'bg-emerald-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+                <Video className="w-4 h-4" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="font-semibold text-sm text-foreground block">Video Call</span>
+                <span className="text-[11px] text-muted-foreground">Virtual video consult</span>
+              </div>
+              <input type="checkbox" checked={form.appointmentModes?.includes('video')} readOnly className="rounded text-primary mt-1 pointer-events-none" />
+            </div>
+
+            <div
+              onClick={() => toggleMode('audio')}
+              className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 select-none ${
+                form.appointmentModes?.includes('audio') ? 'border-teal-500 bg-teal-500/5' : 'border-border/60 hover:border-border'
+              }`}
+            >
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${form.appointmentModes?.includes('audio') ? 'bg-teal-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+                <Phone className="w-4 h-4" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="font-semibold text-sm text-foreground block">Audio Call</span>
+                <span className="text-[11px] text-muted-foreground">Direct voice consult</span>
+              </div>
+              <input type="checkbox" checked={form.appointmentModes?.includes('audio')} readOnly className="rounded text-primary mt-1 pointer-events-none" />
+            </div>
+
+            <div
+              onClick={() => toggleMode('chat')}
+              className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 select-none ${
+                form.appointmentModes?.includes('chat') ? 'border-blue-500 bg-blue-500/5' : 'border-border/60 hover:border-border'
+              }`}
+            >
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${form.appointmentModes?.includes('chat') ? 'bg-blue-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+                <MessageSquare className="w-4 h-4" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="font-semibold text-sm text-foreground block">Online Chat</span>
+                <span className="text-[11px] text-muted-foreground">Digital messaging</span>
+              </div>
+              <input type="checkbox" checked={form.appointmentModes?.includes('chat')} readOnly className="rounded text-primary mt-1 pointer-events-none" />
             </div>
           </div>
         </CardContent>

@@ -161,7 +161,7 @@ router.post('/pay', protect, async (req, res, next) => {
     // ── If appointment data is provided, create appointment first (atomic flow) ──
     if (apptData && serviceType === 'appointment') {
       try {
-        const { doctorId, doctor, doctorName, department, date, time, notes, type, symptoms, priority, facilityId, preConsultationDetails } = apptData;
+        const { doctorId, doctor, doctorName, department, date, time, notes, type, symptoms, priority, facilityId, preConsultationDetails, appointmentMode } = apptData;
         const patientName = req.user.name;
         const patientId = req.user._id;
 
@@ -266,6 +266,7 @@ router.post('/pay', protect, async (req, res, next) => {
             date,
             time,
             type: type || 'Consultation',
+            appointmentMode: appointmentMode || (type?.toLowerCase().includes('chat') ? 'chat' : type?.toLowerCase().includes('video') ? 'video' : type?.toLowerCase().includes('audio') || type?.toLowerCase().includes('voice') ? 'audio' : type?.toLowerCase().includes('home') ? 'home_visit' : 'offline'),
             symptoms: symptoms || '',
             notes: notes || '',
             priority: priority || 'Normal',
@@ -370,8 +371,15 @@ router.post('/pay', protect, async (req, res, next) => {
               settings = hospital?.settings;
             }
 
+            const isOnlineAppt = ['chat', 'video', 'audio', 'voice', 'call'].includes((appt?.appointmentMode || '').toLowerCase()) ||
+              ['chat', 'video', 'audio', 'voice'].some(m => (appt?.type || '').toLowerCase().includes(m));
+
             const doctorSetting = appt?.doctorId?.autoConfirmAppointment;
-            if (doctorSetting === false) {
+            if (isOnlineAppt) {
+              // Online consultations (Chat, Voice, Video) require doctor review and remain 'Pending'
+              // unless doctor specifically set autoConfirmAppointment to true
+              shouldConfirm = doctorSetting === true;
+            } else if (doctorSetting === false) {
               shouldConfirm = false;
             } else if (doctorSetting === true) {
               shouldConfirm = true;

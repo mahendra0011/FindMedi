@@ -116,8 +116,10 @@ export default function BookingModal({
     }
   }, [open, doctor, facility]);
 
-  const currentDoc = selectedDoctor || doctor;
-  const isAutoConfirm = currentDoc?.autoConfirmAppointment ?? facility?.settings?.autoConfirmAppointment ?? true;
+  const isOnlineMode = ['chat', 'video', 'audio', 'call', 'voice'].includes(appointmentMode);
+  const isAutoConfirm = isOnlineMode
+    ? (currentDoc?.autoConfirmAppointment === true)
+    : (currentDoc?.autoConfirmAppointment ?? facility?.settings?.autoConfirmAppointment ?? true);
 
   // Compute fee based on selected appointment mode
   const getModeBasedFee = (mode, doc) => {
@@ -125,14 +127,33 @@ export default function BookingModal({
     const fees = doc.appointmentFees || {};
     if (mode === 'chat') return Number(fees.chat || doc.chat_fee || doc.consultation_fees || doc.fees || 0);
     if (mode === 'video') return Number(fees.video || doc.video_fee || doc.consultation_fees || doc.fees || 0);
+    if (mode === 'audio' || mode === 'call' || mode === 'voice') return Number(fees.audio || fees.call || doc.audio_fee || doc.voice_fee || fees.video || doc.video_fee || doc.consultation_fees || doc.fees || 0);
     if (mode === 'home_visit' || mode === 'home') return Number(fees.home_visit || doc.home_visit_fee || doc.consultation_fees || doc.fees || 0);
     return Number(fees.offline || doc.offline_fee || doc.consultation_fees || doc.fees || 0);
   };
   const currentFee = getModeBasedFee(appointmentMode, currentDoc);
-  // Available modes from the doctor (fallback to all 4)
+
+  const isHospital = useMemo(() => {
+    if (facility?.type === 'hospital') return true;
+    if (facility?.type === 'clinic') return false;
+    if (currentDoc?.hospitalId) return true;
+    if (currentDoc?.clinicId) return false;
+    if (currentDoc?.role === 'doctor') return true;
+    if (currentDoc?.role === 'clinic_doctor') return false;
+    if (facility?.name && /hospital/i.test(facility.name)) return true;
+    if (facility?.name && /clinic/i.test(facility.name)) return false;
+    return false;
+  }, [facility, currentDoc]);
+
+  const offlineLabel = isHospital ? 'In Hospital' : 'In Clinic';
+  const offlineDesc = isHospital ? 'Hospital visit' : 'Clinic visit';
+  const offlineConsultationType = isHospital ? 'In Hospital Consultation' : 'In Clinic Consultation';
+  const offlineFeeName = isHospital ? 'In Hospital' : 'In Clinic';
+
+  // Available modes from the doctor (fallback to all 5)
   const availableModes = (currentDoc?.appointmentModes && currentDoc.appointmentModes.length > 0)
     ? currentDoc.appointmentModes
-    : ['chat', 'video', 'offline', 'home_visit'];
+    : ['offline', 'home_visit', 'video', 'audio', 'chat'];
 
   // Doctor + date change hone par uske already-booked slots fetch karo WITH COUNTS
   useEffect(() => {
@@ -266,7 +287,15 @@ export default function BookingModal({
           date: bookingDate,
           time: bookingTime,
           notes: bookingNotes,
-          type: appointmentMode === 'chat' ? 'Chat Consultation' : appointmentMode === 'video' ? 'Video Consultation' : 'Consultation',
+          type: appointmentMode === 'chat'
+            ? 'Chat Consultation'
+            : appointmentMode === 'video'
+            ? 'Video Consultation'
+            : appointmentMode === 'audio' || appointmentMode === 'call' || appointmentMode === 'voice'
+            ? 'Audio Call Consultation'
+            : appointmentMode === 'home_visit' || appointmentMode === 'home'
+            ? 'Home Visit Consultation'
+            : offlineConsultationType,
           appointmentMode,
           bookingFor: bookingFor,
           familyMemberId: bookingFor === 'family' ? selectedFamilyMember?._id : undefined,
@@ -278,7 +307,21 @@ export default function BookingModal({
         method: paymentMethod,
         description: `Consultation with ${currentDoc.name}`,
         provider: facility?.name || currentDoc.name,
-        lineItems: [{ name: 'Consultation Fee', price: fees, qty: 1 }],
+        lineItems: [{
+          name: `${
+            appointmentMode === 'chat'
+              ? 'Chat'
+              : appointmentMode === 'video'
+              ? 'Video'
+              : appointmentMode === 'audio' || appointmentMode === 'call' || appointmentMode === 'voice'
+              ? 'Audio Call'
+              : appointmentMode === 'home_visit' || appointmentMode === 'home'
+              ? 'Home Visit'
+              : offlineFeeName
+          } Consultation Fee`,
+          price: fees,
+          qty: 1
+        }],
       });
 
       console.log('[BookingModal] Payment result:', payResult);
@@ -445,7 +488,7 @@ export default function BookingModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto w-[calc(100%-2rem)] sm:w-full rounded-2xl">
+      <DialogContent className="sm:max-w-[580px] md:max-w-[620px] max-h-[90vh] overflow-y-auto w-[calc(100%-2rem)] sm:w-full rounded-2xl">
         {bookingStep === -1 && (
           <>
             <DialogHeader>
@@ -529,18 +572,19 @@ export default function BookingModal({
               {/* Appointment Mode Selector */}
               <div className="space-y-2">
                 <label className="text-xs font-semibold text-foreground">Mode of Appointment</label>
-                <div className={`grid gap-2 ${availableModes.length === 1 ? 'grid-cols-1' : availableModes.length === 2 ? 'grid-cols-2' : availableModes.length === 3 ? 'grid-cols-3' : 'grid-cols-2 sm:grid-cols-4'}`}>
+                <div className={`grid gap-2 ${availableModes.length === 1 ? 'grid-cols-1' : availableModes.length === 2 ? 'grid-cols-2' : availableModes.length === 3 ? 'grid-cols-3' : availableModes.length === 4 ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2 sm:grid-cols-5'}`}>
                   {[
-                    { key: 'chat', label: 'Chat', desc: 'Text', Icon: MessageSquare, color: 'text-blue-600', activeBg: 'border-blue-500 bg-blue-50 dark:bg-blue-500/10' },
-                    { key: 'video', label: 'Video Call', desc: 'Live Video', Icon: Video, color: 'text-emerald-600', activeBg: 'border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10' },
-                    { key: 'offline', label: 'Offline', desc: 'In-Person', Icon: MapPin, color: 'text-violet-600', activeBg: 'border-violet-500 bg-violet-50 dark:bg-violet-500/10' },
+                    { key: 'offline', label: offlineLabel, desc: offlineDesc, Icon: MapPin, color: 'text-violet-600', activeBg: 'border-violet-500 bg-violet-50 dark:bg-violet-500/10' },
                     { key: 'home_visit', label: 'Home Visit', desc: 'At Home', Icon: Home, color: 'text-amber-600', activeBg: 'border-amber-500 bg-amber-50 dark:bg-amber-500/10' },
-                  ].filter(m => availableModes.includes(m.key) || (m.key === 'home_visit' && availableModes.includes('home'))).map(({ key, label, desc, Icon, color, activeBg }) => {
-                    const active = appointmentMode === key || (key === 'home_visit' && appointmentMode === 'home');
+                    { key: 'video', label: 'Video Call', desc: 'Live Video', Icon: Video, color: 'text-emerald-600', activeBg: 'border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10' },
+                    { key: 'audio', label: 'Audio Call', desc: 'Voice Call', Icon: Phone, color: 'text-teal-600', activeBg: 'border-teal-500 bg-teal-50 dark:bg-teal-500/10' },
+                    { key: 'chat', label: 'Chat', desc: 'Text', Icon: MessageSquare, color: 'text-blue-600', activeBg: 'border-blue-500 bg-blue-50 dark:bg-blue-500/10' },
+                  ].filter(m => availableModes.includes(m.key) || (m.key === 'home_visit' && availableModes.includes('home')) || (m.key === 'audio' && (availableModes.includes('audio') || availableModes.includes('call') || availableModes.includes('voice') || availableModes.includes('video')))).map(({ key, label, desc, Icon, color, activeBg }) => {
+                    const active = appointmentMode === key || (key === 'home_visit' && appointmentMode === 'home') || (key === 'audio' && (appointmentMode === 'voice' || appointmentMode === 'call'));
                     const fee = getModeBasedFee(key, currentDoc);
                     return (
                       <button key={key} type="button" onClick={() => setAppointmentMode(key)}
-                        className={`relative flex flex-col items-center gap-1 py-2.5 px-2 rounded-xl border-2 text-center transition-all ${
+                        className={`relative flex flex-col items-center gap-1.5 py-3 px-2.5 rounded-xl border-2 text-center transition-all ${
                           active ? activeBg + ' shadow-sm' : 'border-border/60 bg-card hover:border-primary/30'
                         }`}>
                         {active && (
@@ -925,8 +969,8 @@ export default function BookingModal({
                 amount={currentFee}
                 serviceType="appointment"
                 provider={facility?.name || currentDoc?.name}
-                details={{ doctor: currentDoc?.name, specialization: currentDoc?.specialization, date: formatDisplayDate(bookingDate), time: bookingTime, type: appointmentMode === 'chat' ? 'Chat Consultation' : appointmentMode === 'video' ? 'Video Consultation' : 'In-Person Consultation' }}
-                lineItems={[{ name: `${appointmentMode === 'chat' ? 'Chat' : appointmentMode === 'video' ? 'Video' : 'Offline'} Consultation Fee`, price: currentFee, qty: 1 }]}
+                details={{ doctor: currentDoc?.name, specialization: currentDoc?.specialization, date: formatDisplayDate(bookingDate), time: bookingTime, type: appointmentMode === 'chat' ? 'Chat Consultation' : appointmentMode === 'video' ? 'Video Consultation' : appointmentMode === 'audio' || appointmentMode === 'call' || appointmentMode === 'voice' ? 'Audio Call Consultation' : appointmentMode === 'home_visit' || appointmentMode === 'home' ? 'Home Visit Consultation' : offlineConsultationType }}
+                lineItems={[{ name: `${appointmentMode === 'chat' ? 'Chat' : appointmentMode === 'video' ? 'Video' : appointmentMode === 'audio' || appointmentMode === 'call' || appointmentMode === 'voice' ? 'Audio Call' : appointmentMode === 'home_visit' || appointmentMode === 'home' ? 'Home Visit' : offlineFeeName} Consultation Fee`, price: currentFee, qty: 1 }]}
                 platformFee={0}
                 gst={0}
                 discount={0}
@@ -967,10 +1011,10 @@ export default function BookingModal({
               <CheckCircle2 className="w-10 h-10 text-primary-foreground" />
             </motion.div>
             <h3 className="text-lg font-bold text-primary mb-2">
-              {bookingDetails?.appointmentStatus === 'Pending' ? 'Payment Received — Pending Confirmation' : 'Booking Confirmed!'}
+              {bookingDetails?.appointmentStatus === 'Pending' ? 'Payment Received — Awaiting Doctor Acceptance' : 'Booking Confirmed!'}
             </h3>
             <p className="text-sm text-muted-foreground mb-4">
-              {bookingDetails?.appointmentStatus === 'Pending' ? 'Clinic will confirm your appointment shortly' : `Appointment booked for ${currentDoc?.name}`}
+              {bookingDetails?.appointmentStatus === 'Pending' ? 'Your consultation request has been sent to the doctor for confirmation' : `Appointment booked for ${currentDoc?.name}`}
             </p>
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 border border-primary/20">
               <CalendarDays className="w-4 h-4 text-primary" />
