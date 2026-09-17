@@ -1,4 +1,7 @@
 /**
+ * Intentionally shared across roles — do not move.
+ */
+/**
  * Dashboard root — role-based redirect landing page.
  *
  * After login, users are redirected here. The page detects their role

@@ -10,9 +10,22 @@ const DASHBOARD_ROLE_PREFIXES: Record<string, UserRole[]> = {
   '/doctor': ['doctor'],
   '/clinic': ['clinic_doctor'],
   '/admin': ['hospital_admin', 'superadmin'],
+  '/hospital': [
+    'hospital_admin',
+    'doctor',
+    'nurse',
+    'radiologist',
+    'dietitian',
+    'physiotherapist',
+    'counselor',
+    'accountant',
+    'superadmin',
+  ],
   '/superadmin': ['superadmin'],
   '/pharmacy-business': ['pharmacy_owner'],
+  '/pharmacy': ['pharmacy_owner', 'pharmacist', 'hospital_admin', 'superadmin'],
   '/lab-business': ['lab_owner'],
+  '/labcenter': ['lab_owner', 'lab_technician', 'pathologist', 'hospital_admin', 'superadmin'],
   '/delivery': ['delivery_boy'],
 };
 
