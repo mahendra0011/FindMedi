@@ -79,7 +79,7 @@ export default function ClinicAppointments({ initialView }: ClinicAppointmentsPr
   const [completeId, setCompleteId] = useState<string | null>(null);
   const [billAmount, setBillAmount] = useState(500);
   const [billModal, setBillModal] = useState(false);
-  const [detailsApt, setDetailsApt] = useState<any>(null);
+  const [detailsApt, setDetailsApt] = useState<Appointment | null>(null);
   const [showWalkInModal, setShowWalkInModal] = useState(false);
 
   // Prescription modal state
@@ -92,12 +92,13 @@ export default function ClinicAppointments({ initialView }: ClinicAppointmentsPr
   const loadAppointments = useCallback(async (params: Record<string, unknown> = {}) => {
     setLoading(true);
     try {
-      const data = await api.getAppointments({ status: 'All', limit: 100, ...params });
-      const list = (data as any)?.appointments || (data as any)?.data || data || [];
+      const data = await api.getAppointments({ status: 'All', limit: 100, ...params }) as { appointments?: Appointment[]; data?: Appointment[] } | Appointment[];
+      const list = (data as { appointments?: Appointment[] })?.appointments || (data as { data?: Appointment[] })?.data || data || [];
       setAppointments(Array.isArray(list) ? list : []);
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error(e);
-      if (e?.status && e.status >= 400 && e.status < 600) toast.error('Failed to load appointments');
+      const err = e as { status?: number };
+      if (err?.status && err.status >= 400 && err.status < 600) toast.error('Failed to load appointments');
     }
     setLoading(false);
   }, []);
@@ -135,16 +136,17 @@ export default function ClinicAppointments({ initialView }: ClinicAppointmentsPr
     }
     let active = true;
     const apt = appointments.find(a => a._id === rescheduleId);
-    const doctorId = typeof apt?.doctorId === 'object' ? (apt?.doctorId as any)?._id : apt?.doctorId;
+    const doctorId = typeof apt?.doctorId === 'object' ? (apt?.doctorId as { _id?: string })?._id : (apt?.doctorId as string | undefined);
     if (!doctorId) return;
     api.getBookedSlots({ doctorId, date: newDate })
-      .then((res: any) => {
+      .then((res: unknown) => {
         if (!active) return;
         if (res && typeof res === 'object' && !Array.isArray(res)) {
-          setBookedSlots(res.fullSlots || Object.keys(res.counts || {}));
-          setDateDisabledSlots(res.dateDisabled || []);
+          const slotRes = res as { fullSlots?: string[]; counts?: Record<string, number>; dateDisabled?: string[] };
+          setBookedSlots(slotRes.fullSlots || Object.keys(slotRes.counts || {}));
+          setDateDisabledSlots(slotRes.dateDisabled || []);
         } else {
-          setBookedSlots(Array.isArray(res) ? res : []);
+          setBookedSlots(Array.isArray(res) ? (res as string[]) : []);
           setDateDisabledSlots([]);
         }
       })
@@ -180,13 +182,14 @@ export default function ClinicAppointments({ initialView }: ClinicAppointmentsPr
     }
   };
 
-  const openPrescriptionModal = useCallback((apt: any) => {
+  const openPrescriptionModal = useCallback((apt: Appointment) => {
     setCompleteId(apt._id);
+    const docSpecialization = (user as { specialization?: string } | null)?.specialization || '';
     setPrescriptionData({
       ...prescriptionInitialState,
       patientName: apt.patient || '',
       doctorName: user?.name || '',
-      specialization: (user as any)?.specialization || '',
+      specialization: docSpecialization,
     });
     setShowPrescriptionModal(true);
   }, [user]);
@@ -204,7 +207,7 @@ export default function ClinicAppointments({ initialView }: ClinicAppointmentsPr
     if (!data.diagnosis) return toast.error('Please enter a diagnosis');
     try {
       const meds = data.medications.filter(m => m.name.trim());
-      const patientId = typeof apt.patientId === 'object' ? (apt.patientId as any)?._id : apt.patientId;
+      const patientId = typeof apt.patientId === 'object' ? apt.patientId._id : apt.patientId;
       await api.createRecord({
         patient: data.patientName,
         patientId,
@@ -224,7 +227,7 @@ export default function ClinicAppointments({ initialView }: ClinicAppointmentsPr
           date: getISTDateString(),
         },
       });
-      await api.createNotification({ title: 'New Prescription', message: `Dr. ${user?.name} has generated your prescription`, type: 'records', userId: patientId || (apt as any).patient });
+      await api.createNotification({ title: 'New Prescription', message: `Dr. ${user?.name} has generated your prescription`, type: 'records', userId: patientId || apt.patient });
       toast.success('Prescription generated');
       setShowPrescriptionModal(false);
       loadAppointments();
@@ -239,21 +242,21 @@ export default function ClinicAppointments({ initialView }: ClinicAppointmentsPr
     const apt = appointments.find(a => a._id === completeId);
     if (!apt) return toast.error('Appointment not found');
     try {
-      const patientId = typeof apt.patientId === 'object' ? (apt.patientId as any)?._id : apt.patientId;
+      const patientId = typeof apt.patientId === 'object' ? apt.patientId._id : apt.patientId;
       await api.createBill({
-        patient: (apt as any).patient,
+        patient: apt.patient || '',
         patientId,
         doctor: user?.name,
-        service: `${apt.type} - ${(apt as any).department || 'Clinic'}`,
+        service: `${apt.type} - ${apt.department || 'Clinic'}`,
         amount,
         date: getISTDateString(),
         status: 'Pending',
       });
       await api.createNotification({
         title: 'New Invoice',
-        message: `Invoice of ₹${amount} generated for ${(apt as any).patient}`,
+        message: `Invoice of ₹${amount} generated for ${apt.patient || ''}`,
         type: 'payment',
-        userId: patientId || (apt as any).patient,
+        userId: patientId || apt.patient,
       });
       await api.updateAppointment(completeId, { status: 'Completed' as AppointmentStatus });
       setBillModal(false);
@@ -456,11 +459,13 @@ export default function ClinicAppointments({ initialView }: ClinicAppointmentsPr
           <div className="flex items-center justify-between">
             <h3 className="font-heading text-xl font-bold text-foreground">Search Results</h3>
           </div>
-          {appointments.filter(a =>
-            (a as any).patient?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (a as any).phone?.includes(searchTerm) ||
-            a._id?.includes(searchTerm)
-          ).length === 0 ? (
+          {appointments.filter(a => {
+            const pat = (typeof a.patientId === 'object' ? a.patientId?.name : a.patient) || '';
+            const phone = (typeof a.patientId === 'object' ? a.patientId?.phone : (a as { phone?: string }).phone) || '';
+            return pat.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              phone.includes(searchTerm) ||
+              a._id?.includes(searchTerm);
+          }).length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <Search className="w-10 h-10 mx-auto mb-2 opacity-30" />
               <p className="font-medium">No matching appointments</p>
@@ -468,11 +473,13 @@ export default function ClinicAppointments({ initialView }: ClinicAppointmentsPr
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {appointments.filter(a =>
-                (a as any).patient?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                (a as any).phone?.includes(searchTerm) ||
-                a._id?.includes(searchTerm)
-              ).map(a => (
+              {appointments.filter(a => {
+                const pat = (typeof a.patientId === 'object' ? a.patientId?.name : a.patient) || '';
+                const phone = (typeof a.patientId === 'object' ? a.patientId?.phone : (a as { phone?: string }).phone) || '';
+                return pat.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                  phone.includes(searchTerm) ||
+                  a._id?.includes(searchTerm);
+              }).map(a => (
                 <div key={a._id} className="bg-card rounded-2xl border border-border/60 p-4">
                   <CompletedCard
                     apt={a}
@@ -535,7 +542,7 @@ export default function ClinicAppointments({ initialView }: ClinicAppointmentsPr
         isOpen={billModal}
         onClose={() => setBillModal(false)}
         onConfirm={handleGenerateBill}
-        serviceName={`${appointments.find(a => a._id === completeId)?.type || 'Consultation'} - ${(appointments.find(a => a._id === completeId) as any)?.department || 'Clinic'}`}
+        serviceName={`${appointments.find(a => a._id === completeId)?.type || 'Consultation'} - ${appointments.find(a => a._id === completeId)?.department || 'Clinic'}`}
         initialAmount={billAmount}
       />
 

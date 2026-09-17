@@ -9,6 +9,17 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatDisplayDate } from '@/lib/dateUtils';
+import type { Appointment } from '@/types/models/appointment';
+
+export interface AppointmentRecord extends Omit<Partial<Appointment>, 'type'> {
+  type?: string;
+  patientName?: string;
+  timeSlot?: string;
+  notes?: string;
+  specialty?: string;
+  reason?: string;
+  [key: string]: unknown;
+}
 
 interface ModeMeta {
   key: string;
@@ -18,10 +29,11 @@ interface ModeMeta {
   bg: string;
 }
 
-function getAppointmentModeMeta(appt: any): ModeMeta {
+function getAppointmentModeMeta(appt?: AppointmentRecord | null): ModeMeta {
   if (!appt) return { key: 'clinic', label: 'In Clinic', icon: Building2, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20' };
   const mode = (appt.appointmentMode || appt.type || '').toLowerCase();
-  const intakeMode = (appt.preConsultationDetails?.appointmentMode || appt.preConsultationDetails?.mode || '').toLowerCase();
+  const intakeDetails = appt.preConsultationDetails as { appointmentMode?: string; mode?: string } | undefined;
+  const intakeMode = (intakeDetails?.appointmentMode || intakeDetails?.mode || '').toLowerCase();
 
   if (mode === 'home_visit' || mode === 'home' || intakeMode === 'home_visit' || intakeMode === 'home') {
     return { key: 'home', label: 'Home Visit', icon: MapPin, color: 'text-violet-600 dark:text-violet-400', bg: 'bg-violet-500/10 border-violet-500/20' };
@@ -59,10 +71,10 @@ function StatusBadge({ status }: { status: string }) {
 interface HospitalAppointmentsSectionProps {
   apptTab: string;
   setApptTab: (tab: string) => void;
-  pendingAppts: any[];
-  upcomingAppts: any[];
-  todayAppts: any[];
-  completedAppts: any[];
+  pendingAppts: AppointmentRecord[];
+  upcomingAppts: AppointmentRecord[];
+  todayAppts: AppointmentRecord[];
+  completedAppts: AppointmentRecord[];
   onAcceptAppt: (id: string) => void;
   onRejectAppt: (id: string) => void;
 }
@@ -225,7 +237,7 @@ export function HospitalAppointmentsSection({
                         <span>{a.time}</span>
                       </div>
                       <div className="w-1 h-1 rounded-full bg-muted-foreground/30" />
-                      <StatusBadge status={a.status} />
+                      <StatusBadge status={a.status || 'Pending'} />
                     </div>
                   </div>
                 </div>
@@ -236,7 +248,7 @@ export function HospitalAppointmentsSection({
                       <Button
                         size="sm"
                         className="text-xs h-8 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white gap-1"
-                        onClick={() => onAcceptAppt(a._id)}
+                        onClick={() => { if (a._id) onAcceptAppt(a._id); }}
                       >
                         <CheckCircle2 className="w-3.5 h-3.5" /> Accept
                       </Button>
@@ -244,7 +256,7 @@ export function HospitalAppointmentsSection({
                         size="sm"
                         variant="ghost"
                         className="text-xs h-8 text-destructive hover:bg-destructive/10 rounded-xl gap-1"
-                        onClick={() => onRejectAppt(a._id)}
+                        onClick={() => { if (a._id) onRejectAppt(a._id); }}
                       >
                         <X className="w-3.5 h-3.5" /> Reject
                       </Button>

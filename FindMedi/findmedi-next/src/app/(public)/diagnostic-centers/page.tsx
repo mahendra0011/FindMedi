@@ -24,8 +24,8 @@ async function fetchCenters(params: SearchParams): Promise<Facility[]> {
   if (params.limit) p.limit = parseInt(params.limit, 10);
   try {
     const res = await api.facilities.get(p);
-    if (Array.isArray(res)) return res;
-    return (res as any)?.facilities || (res as any)?.data || [];
+    const r = res as { facilities?: Facility[]; data?: Facility[] };
+    return r?.facilities || r?.data || [];
   } catch {
     return [];
   }

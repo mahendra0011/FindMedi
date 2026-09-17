@@ -42,14 +42,62 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+export interface HospitalFinancialReview {
+  _id?: string;
+  patientName?: string;
+  doctorName?: string;
+  rating?: number;
+  comment?: string;
+  createdAt?: string;
+  [key: string]: unknown;
+}
+
+export interface HospitalFinancialTestRequest {
+  _id?: string;
+  bookingId?: string;
+  testName?: string;
+  tests?: string[];
+  patientName?: string;
+  status?: string;
+  totalAmount?: number;
+  discountedAmount?: number;
+  date?: string;
+  [key: string]: unknown;
+}
+
+export interface HospitalFinancialRefund {
+  _id?: string;
+  refundId?: string;
+  refund_amount?: number;
+  amount?: number;
+  reason?: string;
+  description?: string;
+  status?: string;
+  date?: string;
+  patient?: string;
+  patient_name?: string;
+  patientName?: string;
+  [key: string]: unknown;
+}
+
+export interface HospitalFinancialPayment {
+  _id?: string;
+  transactionId?: string;
+  amount?: number;
+  status?: string;
+  date?: string;
+  patient?: string;
+  [key: string]: unknown;
+}
+
 interface HospitalFinancialSummaryProps {
   patients: string[];
-  reviews: any[];
-  testRequests: any[];
-  refunds: any[];
+  reviews: HospitalFinancialReview[];
+  testRequests: HospitalFinancialTestRequest[];
+  refunds: HospitalFinancialRefund[];
   totalRefunded: number;
   pendingRefunds: number;
-  payments: any[];
+  payments: HospitalFinancialPayment[];
 }
 
 export function HospitalFinancialSummary({
@@ -152,7 +200,7 @@ export function HospitalFinancialSummary({
                         <Star
                           key={s}
                           className={`w-3 h-3 ${
-                            s <= rv.rating ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground/30'
+                            s <= (rv.rating ?? 0) ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground/30'
                           }`}
                         />
                       ))}

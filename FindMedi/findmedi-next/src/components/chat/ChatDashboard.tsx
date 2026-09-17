@@ -328,10 +328,13 @@ export default function ChatDashboard() {
 
   /* ── Boot: server data ── */
   useEffect(() => {
-    refreshPrivacy();
-    refreshConversations();
-    refreshSideData();
-    refreshStorage();
+    const timer = setTimeout(() => {
+      refreshPrivacy();
+      refreshConversations();
+      refreshSideData();
+      refreshStorage();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [refreshPrivacy, refreshConversations, refreshSideData, refreshStorage]);
 
   /* ── Refs, drafts, offline queue flush ── */

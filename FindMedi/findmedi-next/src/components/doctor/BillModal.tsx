@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -22,10 +22,11 @@ export default function BillModal({
   initialAmount = 500,
 }: BillModalProps) {
   const [amount, setAmount] = useState(initialAmount);
-
-  useEffect(() => {
+  const [prevInitial, setPrevInitial] = useState(initialAmount);
+  if (initialAmount !== prevInitial) {
+    setPrevInitial(initialAmount);
     setAmount(initialAmount);
-  }, [initialAmount]);
+  }
 
   if (!isOpen) return null;
 

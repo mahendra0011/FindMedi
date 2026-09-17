@@ -112,11 +112,5 @@ jobs:
     - name: Build
       run: cd FindMedi/findmedi-next && npm run build
 
-    # Intentionally non-blocking: this app currently carries a legacy lint baseline
-    # of 394 problems (158 errors / 236 warnings, dominated by
-    # @typescript-eslint/no-explicit-any and setState-in-effect patterns).
-    # Reporting it here stops it from growing unnoticed; remove `continue-on-error`
-    # once the baseline is burned down.
-    - name: Lint (non-blocking until lint baseline is cleared)
-      continue-on-error: true
+    - name: Lint
       run: cd FindMedi/findmedi-next && npm run lint

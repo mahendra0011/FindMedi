@@ -10,7 +10,7 @@
     "start": "node index.js",
     "seed": "node seed-demo.mjs",
     "seed:all": "node seed-demo.mjs",
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --forceExit"
   },
   "dependencies": {
     "@socket.io/redis-adapter": "^8.3.0",

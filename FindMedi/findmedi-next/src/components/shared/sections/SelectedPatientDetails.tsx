@@ -218,8 +218,8 @@ export default function SelectedPatientDetails({
         {showCompleteFlow ? (
           <div className="flex flex-col gap-4">
             <div>
-              <h4 className="text-base font-bold text-foreground">Remember Your Patient's Next Appointment</h4>
-              <p className="text-sm text-muted-foreground mt-1">Add quick notes here so you don't forget important details about your patient's upcoming visit.</p>
+              <h4 className="text-base font-bold text-foreground">Remember Your Patient&apos;s Next Appointment</h4>
+              <p className="text-sm text-muted-foreground mt-1">Add quick notes here so you don&apos;t forget important details about your patient&apos;s upcoming visit.</p>
             </div>
             <Textarea
               placeholder="Type your quick notes here..."

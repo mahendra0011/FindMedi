@@ -9,7 +9,7 @@ import {
   CalendarDays, CalendarRange, Eye, EyeOff,
   Zap, PiggyBank, BarChart3, LineChart as LineChartIcon, PieChart as PieChartIcon,
   CircleDollarSign, Flame, Timer, Layers,
-  Check, TrendingDown,
+  Check, TrendingDown, type LucideIcon,
 } from 'lucide-react';
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
@@ -20,14 +20,14 @@ import {
 import { Tooltip as RadixTooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 /* ─── Constants ───────────────────────────────────── */
-const STATUS_META: Record<string, { color: string; dot: string; bg: string; text: string }> = {
+const STATUS_CONFIG: Record<string, { color: string; dot: string; bg: string; text: string }> = {
   Paid:    { color: 'hsl(var(--success))',     dot: 'bg-success',     bg: 'bg-success/10',     text: 'text-success' },
   Pending: { color: 'hsl(var(--warning))',     dot: 'bg-warning',     bg: 'bg-warning/10',     text: 'text-warning' },
   Partial: { color: 'hsl(var(--info))',        dot: 'bg-info',        bg: 'bg-info/10',        text: 'text-info' },
   Overdue: { color: 'hsl(var(--destructive))', dot: 'bg-destructive', bg: 'bg-destructive/10', text: 'text-destructive' },
 };
 
-const METHOD_META: Record<string, { label: string; icon: any; color: string; gradient: string }> = {
+const METHOD_META: Record<string, { label: string; icon: LucideIcon; color: string; gradient: string }> = {
   card:       { label: 'Card',       icon: CreditCard, color: 'hsl(var(--primary))',     gradient: 'from-primary/20 to-primary/5' },
   upi:        { label: 'UPI',        icon: Smartphone, color: 'hsl(var(--success))',     gradient: 'from-success/20 to-success/5' },
   netbanking: { label: 'Netbanking', icon: Landmark,   color: 'hsl(var(--info))',        gradient: 'from-info/20 to-info/5' },
@@ -64,13 +64,27 @@ function AnimatedCounter({ value, prefix = '', suffix = '', duration = 1200 }: {
   return <>{prefix}{display.toLocaleString('en-IN')}{suffix}</>;
 }
 
+interface TooltipPayloadItem {
+  color?: string;
+  stroke?: string;
+  dataKey?: string;
+  value?: number | string;
+}
+
+interface GlassTooltipProps {
+  active?: boolean;
+  payload?: TooltipPayloadItem[];
+  label?: string;
+  prefix?: string;
+}
+
 /* ─── Glassmorphic Tooltip ────────────────────────── */
-function GlassTooltip({ active, payload, label, prefix = '₹' }: any) {
+function GlassTooltip({ active, payload, label, prefix = '₹' }: GlassTooltipProps) {
   if (!active || !payload?.length) return null;
   return (
     <div className="rounded-2xl border border-white/20 bg-card/90 backdrop-blur-xl px-4 py-3 shadow-2xl shadow-black/10">
       <p className="text-xs font-medium text-muted-foreground mb-1.5">{label}</p>
-      {payload.map((p: any, i: number) => (
+      {payload.map((p, i: number) => (
         <div key={i} className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full" style={{ backgroundColor: p.color || p.stroke }} />
           <span className="text-xs text-muted-foreground capitalize">{p.dataKey}</span>
@@ -83,8 +97,19 @@ function GlassTooltip({ active, payload, label, prefix = '₹' }: any) {
   );
 }
 
+interface GlassCardProps {
+  title?: React.ReactNode;
+  subtitle?: React.ReactNode;
+  children?: React.ReactNode;
+  className?: string;
+  action?: React.ReactNode;
+  icon?: LucideIcon;
+  iconColor?: string;
+  noPadding?: boolean;
+}
+
 /* ─── Glassmorphic Section Card ───────────────────── */
-function GlassCard({ title, subtitle, children, className = '', action, icon: Icon, iconColor = 'text-primary', noPadding = false }: any) {
+function GlassCard({ title, subtitle, children, className = '', action, icon: Icon, iconColor = 'text-primary', noPadding = false }: GlassCardProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -133,12 +158,46 @@ function HeatmapCell({ intensity, day, amount }: { intensity: number; day: strin
   );
 }
 
+const STATUS_META: Record<string, { bg: string; text: string; dot: string; color: string }> = {
+  Paid: { bg: 'bg-emerald-500/10', text: 'text-emerald-600', dot: 'bg-emerald-500', color: '#10b981' },
+  Completed: { bg: 'bg-emerald-500/10', text: 'text-emerald-600', dot: 'bg-emerald-500', color: '#10b981' },
+  Pending: { bg: 'bg-amber-500/10', text: 'text-amber-600', dot: 'bg-amber-500', color: '#f59e0b' },
+  Cancelled: { bg: 'bg-rose-500/10', text: 'text-rose-600', dot: 'bg-rose-500', color: '#f43f5e' },
+  Refunded: { bg: 'bg-blue-500/10', text: 'text-blue-600', dot: 'bg-blue-500', color: '#3b82f6' },
+};
+
 /* ═══════════════════════════════════════════════════
    MAIN COMPONENT
    ═══════════════════════════════════════════════════ */
+export interface EarningsBillItem {
+  _id?: string;
+  invoiceId?: string;
+  invoice_id?: string;
+  patient?: string;
+  amount?: number;
+  paid?: number;
+  date?: string;
+  time?: string;
+  status?: string;
+  service?: string;
+  type?: string;
+  method?: string;
+  provider?: string;
+  transaction_id?: string;
+  [key: string]: unknown;
+}
+
+export interface EarningsPaymentItem {
+  amount?: number;
+  date?: string;
+  status?: string;
+  method?: string;
+  [key: string]: unknown;
+}
+
 interface EarningsAnalyticsProps {
-  bills?: any[];
-  payments?: any[];
+  bills?: EarningsBillItem[];
+  payments?: EarningsPaymentItem[];
   title?: string;
 }
 
@@ -252,14 +311,14 @@ export default function EarningsAnalytics({ bills = [], payments = [], title = '
     const avgTicket = txCount > 0 ? Math.round(totalEarned / txCount) : 0;
 
     const recent = [...bills]
-      .filter((b) => b.date)
-      .sort((a, b) => (b.date > a.date ? 1 : -1))
+      .filter((b) => Boolean(b.date))
+      .sort((a, b) => ((b.date || '') > (a.date || '') ? 1 : -1))
       .slice(0, 6);
 
     const hourlyDist = Array(24).fill(0);
     bills.forEach((b) => {
       if (b.time) {
-        const hour = parseInt(b.time.split(':')[0]) || 0;
+        const hour = parseInt((b.time || '').split(':')[0] || '0', 10) || 0;
         hourlyDist[hour] += Number(b.paid) || 0;
       }
     });
@@ -702,31 +761,34 @@ export default function EarningsAnalytics({ bills = [], payments = [], title = '
           iconColor="text-info"
         >
           <div className="space-y-1">
-            {stats.recent.map((b, i) => (
-              <motion.div
-                key={b._id || b.invoiceId || i}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="flex items-center justify-between py-3 px-3 -mx-1 rounded-xl hover:bg-muted/30 transition-colors border-b border-border/20 last:border-0"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${STATUS_META[b.status]?.bg || 'bg-muted/30'}`}>
-                    <CircleDollarSign className={`w-4.5 h-4.5 ${STATUS_META[b.status]?.text || 'text-muted-foreground'}`} />
+            {stats.recent.map((b, i) => {
+              const statusMeta = b.status ? STATUS_META[b.status] : undefined;
+              return (
+                <motion.div
+                  key={b._id || b.invoiceId || b.invoice_id || String(i)}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="flex items-center justify-between py-3 px-3 -mx-1 rounded-xl hover:bg-muted/30 transition-colors border-b border-border/20 last:border-0"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${statusMeta?.bg || 'bg-muted/30'}`}>
+                      <CircleDollarSign className={`w-4.5 h-4.5 ${statusMeta?.text || 'text-muted-foreground'}`} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-foreground truncate">{b.patient || 'Patient'}</p>
+                      <p className="text-xs text-muted-foreground truncate">{b.service || '—'} · {b.date}</p>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-foreground truncate">{b.patient || 'Patient'}</p>
-                    <p className="text-xs text-muted-foreground truncate">{b.service || '—'} · {b.date}</p>
+                  <div className="text-right shrink-0 ml-3">
+                    <p className="font-heading text-sm font-bold text-foreground">{fmt(Number(b.amount || 0))}</p>
+                    <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${statusMeta?.bg || 'bg-muted'} ${statusMeta?.text || 'text-muted-foreground'}`}>
+                      {b.status === 'Paid' && <Check className="w-2.5 h-2.5" />}
+                      {b.status}
+                    </span>
                   </div>
-                </div>
-                <div className="text-right shrink-0 ml-3">
-                  <p className="font-heading text-sm font-bold text-foreground">{fmt(Number(b.amount || 0))}</p>
-                  <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${STATUS_META[b.status]?.bg || 'bg-muted'} ${STATUS_META[b.status]?.text || 'text-muted-foreground'}`}>
-                    {b.status === 'Paid' && <Check className="w-2.5 h-2.5" />}
-                    {b.status}
-                  </span>
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              );
+            })}
           </div>
         </GlassCard>
       )}

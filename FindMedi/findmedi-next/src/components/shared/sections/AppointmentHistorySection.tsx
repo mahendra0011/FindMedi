@@ -7,7 +7,7 @@ import {
   BarChart3, Award, Trophy, UserX, ChevronUp, ChevronDown,
   IndianRupee, CreditCard, Smartphone, Landmark, Wallet, Loader2,
   Hash, Ticket, Cake, Droplet, Stethoscope, Beaker, Pill,
-  Download, RotateCcw, AlertCircle, MapPin,
+  Download, RotateCcw, AlertCircle, MapPin, type LucideIcon,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -21,12 +21,57 @@ import { CompletedCard } from './TodayAppointmentsSection';
 import { toast } from 'sonner';
 import type { Appointment } from '@/types/models/appointment';
 
+export interface PaymentPatient {
+  name?: string;
+  phone?: string;
+  email?: string;
+  gender?: string;
+  dob?: string;
+  dateOfBirth?: string;
+  bloodGroup?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  uhid?: string;
+}
+
+export interface PaymentReference {
+  appointmentDate?: string;
+  appointmentTime?: string;
+  tokenNumber?: string;
+  doctorName?: string;
+  bookingId?: string;
+  orderId?: string;
+  testName?: string;
+}
+
+export interface PaymentRecord {
+  _id: string;
+  invoice_id?: string;
+  amount?: number;
+  status?: string;
+  serviceType?: string;
+  method?: string;
+  date?: string;
+  createdAt?: string;
+  description?: string;
+  patient_name?: string;
+  transaction_id?: string;
+  patient?: PaymentPatient | string;
+  doctor?: {
+    name?: string;
+    specialization?: string;
+  } | string;
+  reference?: PaymentReference;
+  [key: string]: unknown;
+}
+
 interface AppointmentHistorySectionProps {
   appointments?: Appointment[];
 }
 
 // Count appointments across time ranges (used for the Status Overview panel)
-const countStats = (list: any[], today: string) => {
+const countStats = (list: Partial<Appointment>[], today: string) => {
   const parts = today.split('-').map(Number);
   const y = parts[0] ?? 2026;
   const m = parts[1] ?? 1;
@@ -52,15 +97,15 @@ export default function AppointmentHistorySection({ appointments = [] }: Appoint
   const [showMore, setShowMore] = useState(false);
 
   // ── Payment history ──
-  const [payments, setPayments] = useState<any[]>([]);
+  const [payments, setPayments] = useState<PaymentRecord[]>([]);
   const [paymentsLoading, setPaymentsLoading] = useState(false);
   const [paymentSearch, setPaymentSearch] = useState('');
 
   const loadPayments = useCallback(async () => {
     setPaymentsLoading(true);
     try {
-      const res: any = await api.transactions.get({ limit: 100 });
-      const list = res?.data || res?.payments || (Array.isArray(res) ? res : []);
+      const res = await api.transactions.get({ limit: 100 }) as { data?: PaymentRecord[]; payments?: PaymentRecord[] } | PaymentRecord[];
+      const list = Array.isArray(res) ? res : (res?.data || res?.payments || []);
       setPayments(list);
     } catch (e) {
       console.error(e);
@@ -80,14 +125,18 @@ export default function AppointmentHistorySection({ appointments = [] }: Appoint
   const filteredPayments = useMemo(() => {
     if (!paymentSearch.trim()) return payments;
     const q = paymentSearch.toLowerCase();
-    return payments.filter(t =>
-      (t.patient_name || '').toLowerCase().includes(q) ||
-      (t.patient?.name || '').toLowerCase().includes(q) ||
-      (t.patient?.phone || '').toLowerCase().includes(q) ||
-      (t.patient?.email || '').toLowerCase().includes(q) ||
-      (t.transaction_id || '').toLowerCase().includes(q) ||
-      (t.invoice_id || '').toLowerCase().includes(q)
-    );
+    return payments.filter(t => {
+      const patientName = typeof t.patient === 'object' ? t.patient?.name : t.patient;
+      const patientPhone = typeof t.patient === 'object' ? t.patient?.phone : undefined;
+      const patientEmail = typeof t.patient === 'object' ? t.patient?.email : undefined;
+      return (
+        (patientName || '').toLowerCase().includes(q) ||
+        (patientPhone || '').toLowerCase().includes(q) ||
+        (patientEmail || '').toLowerCase().includes(q) ||
+        (t.transaction_id || '').toLowerCase().includes(q) ||
+        (t.invoice_id || '').toLowerCase().includes(q)
+      );
+    });
   }, [payments, paymentSearch]);
 
   const paymentStats = useMemo(() => ({
@@ -105,7 +154,7 @@ export default function AppointmentHistorySection({ appointments = [] }: Appoint
 
   // All completed (or absent) appointments for the selected date
   const modeForDate = useMemo(
-    () => (appointments as any[]).filter(a => a.date === selectedDate && (a.status || '').toLowerCase() === (viewMode === 'complete' ? 'completed' : 'missed')),
+    () => appointments.filter(a => a.date === selectedDate && (a.status || '').toLowerCase() === (viewMode === 'complete' ? 'completed' : 'missed')),
     [appointments, selectedDate, viewMode]
   );
   const filtered = modeForDate;
@@ -120,11 +169,11 @@ export default function AppointmentHistorySection({ appointments = [] }: Appoint
     [filtered]
   );
 
-  const completionTimeLabel = (a: any) => {
-    const t = a.consultationEndTime || a.updatedAt || a.createdAt;
+  const completionTimeLabel = (a: Partial<Appointment>) => {
+    const t = a.consultationEndTime || (a as { updatedAt?: string }).updatedAt || a.createdAt;
     return t ? new Date(t).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '';
   };
-  const completionLabel = (a: any) => completionTimeLabel(a) || 'Completed';
+  const completionLabel = (a: Partial<Appointment>) => completionTimeLabel(a) || 'Completed';
 
   const hourSlots = useMemo(() => getHourSlots(), []);
   const [selectedHour, setSelectedHour] = useState<string | null>(null);
@@ -155,11 +204,11 @@ export default function AppointmentHistorySection({ appointments = [] }: Appoint
 
   // Status overview
   const completedAll = useMemo(
-    () => (appointments as any[]).filter(a => (a.status || '').toLowerCase() === 'completed'),
+    () => appointments.filter(a => (a.status || '').toLowerCase() === 'completed'),
     [appointments]
   );
   const absentAll = useMemo(
-    () => (appointments as any[]).filter(a => (a.status || '').toLowerCase() === 'missed'),
+    () => appointments.filter(a => (a.status || '').toLowerCase() === 'missed'),
     [appointments]
   );
 
@@ -170,7 +219,7 @@ export default function AppointmentHistorySection({ appointments = [] }: Appoint
   const avgPerDay = useMemo(() => {
     if (!completedAll.length) return 0;
     const dates = completedAll.map(a => a.date || '').filter(Boolean).sort();
-    const first = dates[0];
+    const first = dates[0] || today;
     const days = Math.max(1, Math.floor((new Date(today).getTime() - new Date(first).getTime()) / 86400000) + 1);
     return (completedAll.length / days).toFixed(1);
   }, [completedAll, today]);
@@ -190,7 +239,7 @@ export default function AppointmentHistorySection({ appointments = [] }: Appoint
   }, [completedAll]);
 
   const recent = useMemo(() => {
-    return [...(appointments as any[])]
+    return [...appointments]
       .filter(a => (a.status || '').toLowerCase() === (viewMode === 'complete' ? 'completed' : 'missed') && a.date !== selectedDate)
       .sort((a, b) => (b.date || '').localeCompare(a.date || '') || (parseTime(b.time).hour || 0) - (parseTime(a.time).hour || 0));
   }, [appointments, selectedDate, viewMode]);
@@ -261,7 +310,7 @@ export default function AppointmentHistorySection({ appointments = [] }: Appoint
               const dateStr = `${calDate.getFullYear()}-${String(calDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
               const isSelected = dateStr === selectedDate;
               const isToday = dateStr === today;
-              const hasCompleted = (appointments as any[]).some(a => a.date === dateStr && (a.status || '').toLowerCase() === (viewMode === 'complete' ? 'completed' : 'missed'));
+              const hasCompleted = (appointments || []).some(a => a.date === dateStr && (a.status || '').toLowerCase() === (viewMode === 'complete' ? 'completed' : 'missed'));
               return (
                 <button
                   key={day}
@@ -641,7 +690,7 @@ export default function AppointmentHistorySection({ appointments = [] }: Appoint
 }
 
 /* ── Status tile for the Status Overview panel ── */
-function StatusTile({ icon: Icon, label, value, tone = 'primary' }: { icon: any; label: string; value: number | string; tone?: 'primary' | 'success' | 'warning' | 'danger' }) {
+function StatusTile({ icon: Icon, label, value, tone = 'primary' }: { icon: LucideIcon; label: string; value: number | string; tone?: 'primary' | 'success' | 'warning' | 'danger' }) {
   const toneMap = {
     primary: 'text-primary',
     success: 'text-success',
@@ -660,27 +709,27 @@ function StatusTile({ icon: Icon, label, value, tone = 'primary' }: { icon: any;
 }
 
 /* ── Payment helpers ── */
-const paymentStatusConfig: Record<string, { label: string; color: string; icon: any }> = {
+const paymentStatusConfig: Record<string, { label: string; color: string; icon: LucideIcon }> = {
   completed: { label: 'Paid', color: 'bg-emerald-500/10 text-emerald-600', icon: CheckCircle },
   pending: { label: 'Pending', color: 'bg-amber-500/10 text-amber-600', icon: Clock },
   failed: { label: 'Failed', color: 'bg-red-500/10 text-red-600', icon: AlertCircle },
   refunded: { label: 'Refunded', color: 'bg-blue-500/10 text-blue-600', icon: RotateCcw },
 };
-const methodIcons: Record<string, any> = { card: CreditCard, upi: Smartphone, netbanking: Landmark, cash: Wallet };
+const methodIcons: Record<string, LucideIcon> = { card: CreditCard, upi: Smartphone, netbanking: Landmark, cash: Wallet };
 
-function formatDateTime(d: any) {
+function formatDateTime(d: string | number | Date | null | undefined) {
   if (!d) return '';
   return new Date(d).toLocaleString('en-IN', {
     day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
   });
 }
 
-function formatShortDate(d: any) {
+function formatShortDate(d: string | number | Date | null | undefined) {
   if (!d) return '';
   return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-function calcAge(dob: any) {
+function calcAge(dob: string | number | Date | null | undefined) {
   if (!dob) return '';
   const birth = new Date(dob);
   const now = new Date();
@@ -690,7 +739,7 @@ function calcAge(dob: any) {
   return age >= 0 ? `${age} yrs` : '';
 }
 
-function PayInfoRow({ icon: Icon, label, value, color = 'text-muted-foreground' }: { icon: any; label: string; value: any; color?: string }) {
+function PayInfoRow({ icon: Icon, label, value, color = 'text-muted-foreground' }: { icon: LucideIcon; label: string; value: React.ReactNode; color?: string }) {
   if (!value) return null;
   return (
     <div className="flex items-center gap-2 py-0.5">
@@ -702,15 +751,15 @@ function PayInfoRow({ icon: Icon, label, value, color = 'text-muted-foreground' 
 }
 
 /* ── Payment card ── */
-function PaymentCard({ txn }: { txn: any }) {
+function PaymentCard({ txn }: { txn: PaymentRecord }) {
   const isAppt = txn.serviceType === 'appointment';
   const isTest = txn.serviceType === 'test';
   const isMed = txn.serviceType === 'medicine';
-  const patient = txn.patient || {};
-  const ref = txn.reference || {};
+  const patient: PaymentPatient = (typeof txn.patient === 'object' && txn.patient !== null ? txn.patient : {});
+  const ref: PaymentReference = txn.reference || {};
 
-  const StatusIcon = paymentStatusConfig[txn.status]?.icon || CheckCircle;
-  const MethodIcon = methodIcons[txn.method] || CreditCard;
+  const StatusIcon = paymentStatusConfig[txn.status || '']?.icon || CheckCircle;
+  const MethodIcon = methodIcons[txn.method || ''] || CreditCard;
   const TypeIcon = isAppt ? Stethoscope : isTest ? Beaker : Pill;
   const typeBadgeColor = isAppt ? 'bg-blue-500/10 text-blue-600' : isTest ? 'bg-purple-500/10 text-purple-600' : 'bg-rose-500/10 text-rose-600';
   const serviceName = isAppt ? 'Appointment Booking' : isTest ? 'Lab Test' : 'Medicine Order';
@@ -730,8 +779,8 @@ function PaymentCard({ txn }: { txn: any }) {
                 <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${typeBadgeColor}`}>
                   <TypeIcon className="w-3 h-3" /> {typeLabel}
                 </span>
-                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${paymentStatusConfig[txn.status]?.color || ''}`}>
-                  <StatusIcon className="w-3 h-3" /> {paymentStatusConfig[txn.status]?.label || txn.status}
+                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${paymentStatusConfig[txn.status || '']?.color || ''}`}>
+                  <StatusIcon className="w-3 h-3" /> {paymentStatusConfig[txn.status || '']?.label || txn.status}
                 </span>
               </div>
               <p className="font-heading font-semibold text-foreground text-sm">{serviceName}</p>
@@ -751,7 +800,7 @@ function PaymentCard({ txn }: { txn: any }) {
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
             <PayInfoRow icon={User} label="Full Name" value={patient.name || txn.patient_name || 'N/A'} color="text-primary" />
-            <PayInfoRow icon={Cake} label="Age" value={calcAge(patient.dateOfBirth)} color="text-blue-500" />
+            <PayInfoRow icon={Cake} label="Age" value={calcAge(patient.dateOfBirth || patient.dob)} color="text-blue-500" />
             <PayInfoRow icon={User} label="Gender" value={patient.gender} color="text-purple-500" />
             <PayInfoRow icon={Droplet} label="Blood Group" value={patient.bloodGroup} color="text-red-500" />
             <PayInfoRow icon={Phone} label="Phone" value={patient.phone} color="text-emerald-500" />
@@ -771,7 +820,7 @@ function PaymentCard({ txn }: { txn: any }) {
             <PayInfoRow icon={IndianRupee} label="Fee Paid" value={`₹${txn.amount?.toLocaleString('en-IN') || 0}`} color="text-orange-500" />
             <PayInfoRow icon={MethodIcon} label="Method" value={(txn.method || '').toUpperCase()} color="text-emerald-500" />
             <PayInfoRow icon={CalendarDays} label="Date & Time" value={formatDateTime(txn.createdAt)} color="text-blue-500" />
-            <PayInfoRow icon={StatusIcon} label="Status" value={paymentStatusConfig[txn.status]?.label || txn.status} color={paymentStatusConfig[txn.status]?.color?.split(' ')[1] || 'text-muted-foreground'} />
+            <PayInfoRow icon={StatusIcon} label="Status" value={paymentStatusConfig[txn.status || '']?.label || txn.status} color={paymentStatusConfig[txn.status || '']?.color?.split(' ')[1] || 'text-muted-foreground'} />
             <PayInfoRow icon={Hash} label="Transaction ID" value={txn.transaction_id} color="text-muted-foreground" />
             <PayInfoRow icon={Ticket} label="Invoice ID" value={txn.invoice_id} color="text-cyan-500" />
             <PayInfoRow icon={FileText} label="Bill ID" value={txn.invoice_id ? txn.invoice_id.replace(/INV/i, 'BILL') : ''} color="text-violet-500" />
@@ -798,13 +847,17 @@ function PaymentCard({ txn }: { txn: any }) {
           <Button size="sm" variant="ghost" className="gap-1.5 rounded-xl h-9 text-xs"
             onClick={() => {
               const billName = txn.invoice_id ? txn.invoice_id.replace('INV', 'BILL') : 'bill';
-              api.downloadBillPdf(txn._id, `${billName}.pdf`).catch((err: any) => toast.error(err.message));
+              api.downloadBillPdf(txn._id, `${billName}.pdf`).catch((err: unknown) => {
+                toast.error(err instanceof Error ? err.message : 'Download failed');
+              });
             }}>
             <Download className="w-3.5 h-3.5" /> Download Bill
           </Button>
           {txn.status === 'completed' && (
             <Button size="sm" variant="outline" className="gap-1.5 rounded-xl h-9 text-xs"
-              onClick={() => api.downloadPaymentInvoice(txn._id, `${txn.invoice_id || 'invoice'}.pdf`).catch((err: any) => toast.error(err.message))}>
+              onClick={() => api.downloadPaymentInvoice(txn._id, `${txn.invoice_id || 'invoice'}.pdf`).catch((err: unknown) => {
+                toast.error(err instanceof Error ? err.message : 'Download failed');
+              })}>
               <Download className="w-3.5 h-3.5" /> Invoice
             </Button>
           )}

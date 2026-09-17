@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { Plus, X, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -59,7 +59,9 @@ export default function PrescriptionModal({
     ...initialData,
   });
 
-  useEffect(() => {
+  const [prevInitial, setPrevInitial] = useState(initialData);
+  if (prevInitial !== initialData) {
+    setPrevInitial(initialData);
     if (initialData) {
       setFormData(prev => ({
         ...prev,
@@ -69,7 +71,7 @@ export default function PrescriptionModal({
           : prev.medications,
       }));
     }
-  }, [initialData]);
+  }
 
   if (!isOpen) return null;
 

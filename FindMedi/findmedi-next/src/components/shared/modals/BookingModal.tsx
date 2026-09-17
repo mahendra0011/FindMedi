@@ -44,11 +44,51 @@ import { getISTDateString, formatDisplayDate } from '@/lib/dateUtils';
 import type { Doctor } from '@/types/models/doctor';
 import type { Hospital } from '@/types/models/hospital';
 
+export type BookingDoctor = Partial<Doctor> & {
+  _id: string;
+  name?: string;
+  specialization?: string;
+  clinic_id?: string;
+  clinicId?: string;
+  hospitalId?: string;
+  role?: string;
+  slotDuration?: number;
+  consultation_fees?: number;
+  fees?: number;
+  chat_fee?: number;
+  video_fee?: number;
+  audio_fee?: number;
+  voice_fee?: number;
+  offline_fee?: number;
+  home_visit_fee?: number;
+  autoConfirmAppointment?: boolean;
+  experienceYears?: number;
+  experience?: string;
+  time_slots?: string[];
+  clinicProfile?: {
+    clinic_id?: string;
+    [key: string]: unknown;
+  };
+};
+
+export type BookingFacility = Partial<Hospital> & {
+  _id?: string;
+  name?: string;
+  address?: string;
+  phone?: string;
+  clinic_id?: string;
+  type?: string;
+  doctors?: BookingDoctor[];
+  settings?: Hospital['settings'] | {
+    autoConfirmAppointment?: boolean;
+  };
+};
+
 export interface BookingModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  doctor?: (Partial<Doctor> & Pick<Doctor, '_id'> & Record<string, any>) | null;
-  facility?: any;
+  doctor?: BookingDoctor | null;
+  facility?: BookingFacility | null;
   onSuccess?: () => void;
 }
 
@@ -67,6 +107,31 @@ interface OtherPatientDetails {
   phone: string;
   age: string;
   bloodGroup: string;
+}
+
+export interface BookingWindow {
+  value?: number;
+  unit?: string;
+  start?: string;
+  end?: string;
+}
+
+interface SlotCheckResult {
+  counts?: Record<string, number>;
+  fullSlots?: string[];
+  lockedSlots?: string[];
+  dateDisabled?: string[];
+  pendingDisabledSlots?: string[];
+  bookingWindow?: BookingWindow | null;
+}
+
+interface PayResultType {
+  success?: boolean;
+  message?: string;
+  appointmentStatus?: string;
+  appointment?: Record<string, unknown>;
+  transaction_id?: string;
+  invoice_id?: string;
 }
 
 interface BookingDetailsState {
@@ -105,8 +170,8 @@ export default function BookingModal({
   const { user } = useAuth();
 
   const [bookingStep, setBookingStep] = useState(doctor ? 0 : -1);
-  const [selectedDoctor, setSelectedDoctor] = useState<any>(doctor || null);
-  const [fetchedDoctors, setFetchedDoctors] = useState<any[]>([]);
+  const [selectedDoctor, setSelectedDoctor] = useState<BookingDoctor | null>(doctor || null);
+  const [fetchedDoctors, setFetchedDoctors] = useState<BookingDoctor[]>([]);
   const [fetchingDoctors, setFetchingDoctors] = useState(false);
   const [bookingDate, setBookingDate] = useState('');
   const [bookingTime, setBookingTime] = useState('');
@@ -118,7 +183,7 @@ export default function BookingModal({
   const [slotCounts, setSlotCounts] = useState<Record<string, number>>({});
   const [dateDisabledSlots, setDateDisabledSlots] = useState<string[]>([]);
   const [pendingDisabledSlots, setPendingDisabledSlots] = useState<string[]>([]);
-  const [bookingWindow, setBookingWindow] = useState<{ value: number; unit: string } | null>(null);
+  const [bookingWindow, setBookingWindow] = useState<BookingWindow | null>(null);
   const [selectedHour, setSelectedHour] = useState<string | null>(null);
   const [paymentMethod, setPaymentMethod] = useState('card');
   const [paymentLoading, setPaymentLoading] = useState(false);
@@ -170,10 +235,11 @@ export default function BookingModal({
   }
 
   useEffect(() => {
-    if (open) {
-      const doc = doctor || null;
-      let active = true;
+    if (!open) return;
+    const doc = doctor || null;
+    let active = true;
 
+    const timer = setTimeout(() => {
       // Fetch family members
       if (user) {
         setFetchingFamily(true);
@@ -183,36 +249,37 @@ export default function BookingModal({
           .finally(() => { if (active) setFetchingFamily(false); });
       }
 
-      if (!doc && facility && (!facility.doctors || facility.doctors.length === 0)) {
+      if (!doc && facility && (!facility.doctors || (facility.doctors as unknown[]).length === 0)) {
         setFetchingDoctors(true);
-        const query = facility.type === 'clinic' ? { clinicId: facility._id } : { hospitalId: facility._id };
+        const query = facility.type === 'clinic' ? { clinicId: facility._id as string } : { hospitalId: facility._id as string };
         api.getDoctors(query)
           .then(res => {
             if (!active) return;
-            const docs = Array.isArray(res) ? res : ((res as any)?.data || (res as any)?.doctors || []);
-            setFetchedDoctors(docs);
+            const docs = Array.isArray(res) ? res : (((res as { data?: BookingDoctor[]; doctors?: BookingDoctor[] })?.data) || ((res as { data?: BookingDoctor[]; doctors?: BookingDoctor[] })?.doctors) || []);
+            setFetchedDoctors(docs as BookingDoctor[]);
           })
           .catch(err => console.error('Failed to fetch facility doctors:', err))
           .finally(() => { if (active) setFetchingDoctors(false); });
       } else {
-        setFetchedDoctors(facility?.doctors || []);
+        setFetchedDoctors((facility?.doctors as BookingDoctor[]) || []);
       }
+    }, 0);
 
-      return () => {
-        active = false;
-      };
-    }
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
   }, [open, doctor, facility, user]);
 
   const isOnlineMode = ['chat', 'video', 'audio', 'call', 'voice'].includes(appointmentMode);
   const isAutoConfirm = isOnlineMode
     ? (currentDoc?.autoConfirmAppointment === true)
-    : (currentDoc?.autoConfirmAppointment ?? facility?.settings?.autoConfirmAppointment ?? true);
+    : (currentDoc?.autoConfirmAppointment ?? (facility?.settings as { autoConfirmAppointment?: boolean } | undefined)?.autoConfirmAppointment ?? true);
 
   // Compute fee based on selected appointment mode
-  const getModeBasedFee = (mode: string, doc: any) => {
+  const getModeBasedFee = (mode: string, doc?: BookingDoctor | null) => {
     if (!doc) return 0;
-    const fees = doc.appointmentFees || {};
+    const fees = (doc.appointmentFees || {}) as Record<string, number>;
     if (mode === 'chat') return Number(fees.chat || doc.chat_fee || doc.consultation_fees || doc.fees || 0);
     if (mode === 'video') return Number(fees.video || doc.video_fee || doc.consultation_fees || doc.fees || 0);
     if (mode === 'audio' || mode === 'call' || mode === 'voice') return Number(fees.audio || fees.call || doc.audio_fee || doc.voice_fee || fees.video || doc.video_fee || doc.consultation_fees || doc.fees || 0);
@@ -248,17 +315,18 @@ export default function BookingModal({
     if (!currentDoc?._id || !bookingDate) return;
     let active = true;
     api.getBookedSlots({ doctorId: currentDoc._id, date: bookingDate })
-      .then((res: any) => {
+      .then((res: unknown) => {
         if (!active) return;
-        if (res && typeof res === 'object' && !Array.isArray(res) && res.counts) {
-          setSlotCounts(res.counts || {});
-          setBookedSlots(res.fullSlots || Object.keys(res.counts || {}));
-          setLockedSlots(res.lockedSlots || []);
-          setDateDisabledSlots(res.dateDisabled || []);
-          setPendingDisabledSlots(res.pendingDisabledSlots || []);
-          setBookingWindow(res.bookingWindow || null);
+        const result = res as SlotCheckResult | string[] | undefined;
+        if (result && typeof result === 'object' && !Array.isArray(result) && result.counts) {
+          setSlotCounts(result.counts || {});
+          setBookedSlots(result.fullSlots || Object.keys(result.counts || {}));
+          setLockedSlots(result.lockedSlots || []);
+          setDateDisabledSlots(result.dateDisabled || []);
+          setPendingDisabledSlots(result.pendingDisabledSlots || []);
+          setBookingWindow(result.bookingWindow || null);
         } else {
-          const arr = Array.isArray(res) ? res : [];
+          const arr = Array.isArray(result) ? result : [];
           setBookedSlots(arr);
           setLockedSlots([]);
           const counts: Record<string, number> = {};
@@ -305,7 +373,7 @@ export default function BookingModal({
         if (bookingTime) {
           api.releaseAppointmentSlot({ doctorId: currentDoc._id, date: bookingDate, time: bookingTime }).catch(() => {});
         }
-        const lockRes: any = await api.lockAppointmentSlot({ doctorId: currentDoc._id, date: bookingDate, time: t });
+        const lockRes = (await api.lockAppointmentSlot({ doctorId: currentDoc._id, date: bookingDate, time: t })) as { success?: boolean; lockedByOther?: boolean; message?: string } | undefined;
         if (lockRes && !lockRes.success && lockRes.lockedByOther) {
           toast.error(String(lockRes.message || 'This slot is currently being booked by another patient.'));
           setLockingSlot(false);
@@ -360,15 +428,16 @@ export default function BookingModal({
 
     try {
       try {
-        const slotCheck = await api.getBookedSlots({ doctorId: currentDoc._id, date: bookingDate });
-        const counts = (slotCheck && (slotCheck as any).counts) ? (slotCheck as any).counts : {};
+        const slotCheckRaw = await api.getBookedSlots({ doctorId: currentDoc._id, date: bookingDate });
+        const slotCheck = slotCheckRaw as SlotCheckResult | undefined;
+        const counts = slotCheck?.counts || {};
         if ((counts[bookingTime] || 0) >= 1) {
           toast.error('This slot is already booked. Please try another slot.');
           setBookingTime('');
           setBookingStep(0);
           setSlotCounts(counts);
-          setBookedSlots((slotCheck as any).fullSlots || Object.keys(counts));
-          setDateDisabledSlots((slotCheck as any).dateDisabled || []);
+          setBookedSlots(slotCheck?.fullSlots || Object.keys(counts));
+          setDateDisabledSlots(slotCheck?.dateDisabled || []);
           setBookingLoading(false);
           processingRef.current = false;
           return;
@@ -382,14 +451,14 @@ export default function BookingModal({
         throw new Error('Doctor consultation fee is not set. Please contact support.');
       }
 
-      const payResult = await api.payTransaction({
+      const payResultRaw = await api.payTransaction({
         serviceType: 'appointment',
         appointment: {
           doctorId: currentDoc._id,
           doctor: currentDoc.name,
           doctorName: currentDoc.name,
           department: currentDoc.specialization || 'General',
-          facilityId: facility?._id || currentDoc.clinicProfile?.clinic_id,
+          facilityId: (facility?._id as string | undefined) || currentDoc.clinicProfile?.clinic_id,
           date: bookingDate,
           time: bookingTime,
           notes: bookingNotes,
@@ -412,7 +481,7 @@ export default function BookingModal({
         amount: fees,
         method: paymentMethod,
         description: `Consultation with ${currentDoc.name}`,
-        provider: facility?.name || currentDoc.name,
+        provider: (facility?.name as string | undefined) || currentDoc.name,
         lineItems: [{
           name: `${
             appointmentMode === 'chat'
@@ -430,13 +499,14 @@ export default function BookingModal({
         }],
       });
 
+      const payResult = payResultRaw as PayResultType | undefined;
       if (!payResult?.success) {
-        throw new Error((payResult as any)?.message || 'Payment failed');
+        throw new Error(payResult?.message || 'Payment failed');
       }
 
-      const appointmentStatus = (payResult as any).appointmentStatus || 'Confirmed';
-      const appointmentData = (payResult as any).appointment || {};
-      apptId = appointmentData._id || '';
+      const appointmentStatus = payResult.appointmentStatus || 'Confirmed';
+      const appointmentData = payResult.appointment || {};
+      apptId = (appointmentData._id as string) || '';
 
       toast.success(appointmentStatus === 'Confirmed' ? 'Payment successful! Appointment confirmed.' : 'Payment successful! Awaiting confirmation.');
       setBookingDetails({
@@ -446,15 +516,16 @@ export default function BookingModal({
         date: bookingDate,
         time: bookingTime,
         fees,
-        transactionId: (payResult as any).transaction_id,
-        invoiceId: (payResult as any).invoice_id,
+        transactionId: payResult.transaction_id,
+        invoiceId: payResult.invoice_id,
         appointmentStatus,
       });
       setBookingStep(5);
       if (onSuccess) onSuccess();
-    } catch (e: any) {
-      const msg = e.response?.data?.message || e.message || '';
-      const status = e.response?.status;
+    } catch (e: unknown) {
+      const err = e as { response?: { status?: number; data?: { message?: string } }; message?: string };
+      const msg = err.response?.data?.message || err.message || '';
+      const status = err.response?.status;
       if (status === 200 && msg.includes('already be completed')) {
         toast.success('Appointment already booked');
         setBookingStep(5);
@@ -465,21 +536,24 @@ export default function BookingModal({
         setBookingStep(0);
         if (currentDoc?._id && bookingDate) {
           api.getBookedSlots({ doctorId: currentDoc._id, date: bookingDate })
-            .then((res: any) => {
-              if (res && typeof res === 'object' && !Array.isArray(res) && res.counts) {
-                setSlotCounts(res.counts || {});
-                setBookedSlots(res.fullSlots || Object.keys(res.counts || {}));
-                setDateDisabledSlots(res.dateDisabled || []);
-                setPendingDisabledSlots(res.pendingDisabledSlots || []);
-                setBookingWindow(res.bookingWindow || null);
+            .then((res: unknown) => {
+              const result = res as SlotCheckResult | string[] | undefined;
+              if (result && typeof result === 'object' && !Array.isArray(result) && result.counts) {
+                setSlotCounts(result.counts || {});
+                setBookedSlots(result.fullSlots || Object.keys(result.counts || {}));
+                setDateDisabledSlots(result.dateDisabled || []);
+                setPendingDisabledSlots(result.pendingDisabledSlots || []);
+                setBookingWindow(result.bookingWindow || null);
               } else {
-                const arr = Array.isArray(res) ? res : [];
+                const arr = Array.isArray(result) ? result : [];
                 setBookedSlots(arr);
+                setLockedSlots([]);
                 const counts: Record<string, number> = {};
                 arr.forEach((s: string) => { counts[s] = (counts[s] || 0) + 1; });
                 setSlotCounts(counts);
                 setDateDisabledSlots([]);
                 setPendingDisabledSlots([]);
+                setBookingWindow(null);
               }
             })
             .catch(() => {});
@@ -495,7 +569,7 @@ export default function BookingModal({
     processingRef.current = false;
   };
 
-  const slotDuration = currentDoc?.slotDuration || 15;
+  const slotDuration = Number(currentDoc?.slotDuration) || 15;
 
   const maxBookableDate = useMemo(() => {
     const bw = bookingWindow;

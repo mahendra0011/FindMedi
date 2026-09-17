@@ -650,10 +650,10 @@ function PatientDetailCard({
           <ArrowLeft className="w-4 h-4" /> Back
         </button>
         <h3 className="font-heading text-base font-bold text-foreground mb-1">
-          Remember Your Patient's Next Appointment
+          Remember Your Patient&apos;s Next Appointment
         </h3>
         <p className="text-xs text-muted-foreground mb-4">
-          Add quick notes here so you don't forget important details about your patient's upcoming visit.
+          Add quick notes here so you don&apos;t forget important details about your patient&apos;s upcoming visit.
         </p>
         <Textarea
           placeholder="Type quick notes for the next visit…"

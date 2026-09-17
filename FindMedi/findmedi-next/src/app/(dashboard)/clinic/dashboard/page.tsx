@@ -15,17 +15,22 @@ import {
   HospitalConsultationHub,
   HospitalAppointmentsSection,
   HospitalFinancialSummary,
+  type AppointmentRecord,
+  type HospitalFinancialReview,
+  type HospitalFinancialTestRequest,
+  type HospitalFinancialRefund,
+  type HospitalFinancialPayment,
 } from '@/components/hospital';
 
 export default function ClinicDashboardPage() {
   const { user } = useAuth();
-  const [appointments, setAppointments] = useState<any[]>([]);
-  const [bills, setBills] = useState<any[]>([]);
-  const [payments, setPayments] = useState<any[]>([]);
-  const [reviews, setReviews] = useState<any[]>([]);
-  const [refunds, setRefunds] = useState<any[]>([]);
+  const [appointments, setAppointments] = useState<AppointmentRecord[]>([]);
+  const [bills, setBills] = useState<Array<ReturnType<typeof txToEarningsBill>>>([]);
+  const [payments, setPayments] = useState<HospitalFinancialPayment[]>([]);
+  const [reviews, setReviews] = useState<HospitalFinancialReview[]>([]);
+  const [refunds, setRefunds] = useState<HospitalFinancialRefund[]>([]);
   const [patients, setPatients] = useState<string[]>([]);
-  const [testRequests, setTestRequests] = useState<any[]>([]);
+  const [testRequests, setTestRequests] = useState<HospitalFinancialTestRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [apptTab, setApptTab] = useState('pending');
   const mounted = useRef(true);
@@ -50,6 +55,8 @@ export default function ClinicDashboardPage() {
     }
   };
 
+  const userName = user?.name;
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -61,26 +68,30 @@ export default function ClinicDashboardPage() {
       ]);
       if (!mounted.current) return;
       const [a, tx, r, lb] = results.map(res => res.status === 'fulfilled' ? res.value : []);
-      const apptsRaw: any = a;
-      const appts = apptsRaw?.data || (Array.isArray(apptsRaw) ? apptsRaw : []);
-      const docName = user?.name?.toLowerCase() || '';
-      const myAppts = appts?.filter((apt: any) => apt.doctor?.toLowerCase().includes(docName)) || [];
+      const apptsRaw = a as { data?: AppointmentRecord[] } | AppointmentRecord[] | undefined;
+      const appts: AppointmentRecord[] = Array.isArray(apptsRaw) ? apptsRaw : (apptsRaw?.data || []);
+      const docName = userName?.toLowerCase() || '';
+      const myAppts = appts.filter(apt =>
+        typeof apt.doctor === 'string'
+          ? apt.doctor.toLowerCase().includes(docName)
+          : apt.doctor?.name?.toLowerCase().includes(docName)
+      );
       setAppointments(myAppts);
 
-      const txRaw: any = tx;
-      const txList: any[] = txRaw?.data || txRaw?.payments || (Array.isArray(txRaw) ? txRaw : []);
-      setBills(txList.filter((t: any) => t.status === 'completed' || t.status === 'pending').map(txToEarningsBill));
-      setPayments(txList.filter((t: any) => t.status === 'completed'));
-      setRefunds(txList.filter((t: any) => t.status === 'refunded' || t.status === 'pending'));
+      const txRaw = tx as { data?: Record<string, unknown>[]; payments?: Record<string, unknown>[] } | Record<string, unknown>[] | undefined;
+      const txList: Record<string, unknown>[] = Array.isArray(txRaw) ? txRaw : (txRaw?.data || txRaw?.payments || []);
+      setBills(txList.filter(t => t.status === 'completed' || t.status === 'pending').map(txToEarningsBill));
+      setPayments(txList.filter(t => t.status === 'completed') as unknown as HospitalFinancialPayment[]);
+      setRefunds(txList.filter(t => t.status === 'refunded' || t.status === 'pending') as unknown as HospitalFinancialRefund[]);
 
-      const rRaw: any = r;
-      const rList: any[] = Array.isArray(rRaw) ? rRaw : (rRaw?.data || []);
-      setReviews(rList.filter((rv: any) => rv.doctorName === user?.name) || []);
+      const rRaw = r as { data?: HospitalFinancialReview[] } | HospitalFinancialReview[] | undefined;
+      const rList: HospitalFinancialReview[] = Array.isArray(rRaw) ? rRaw : (rRaw?.data || []);
+      setReviews(rList.filter(rv => rv.doctorName === userName) || []);
 
-      setPatients(Array.from(new Set(myAppts.map((apt: any) => apt.patient).filter(Boolean))) as string[]);
+      setPatients(Array.from(new Set(myAppts.map(apt => (typeof apt.patient === 'string' ? apt.patient : '')).filter(Boolean))));
 
-      const lbRaw: any = lb;
-      const labBookingsArray = lbRaw?.bookings || lbRaw?.data || (Array.isArray(lbRaw) ? lbRaw : []);
+      const lbRaw = lb as { bookings?: HospitalFinancialTestRequest[]; data?: HospitalFinancialTestRequest[] } | HospitalFinancialTestRequest[] | undefined;
+      const labBookingsArray: HospitalFinancialTestRequest[] = Array.isArray(lbRaw) ? lbRaw : (lbRaw?.bookings || lbRaw?.data || []);
       setTestRequests(labBookingsArray);
 
       const failed = results.filter(res => res.status === 'rejected');
@@ -90,7 +101,7 @@ export default function ClinicDashboardPage() {
       toast.error('Failed to load dashboard data');
     }
     if (mounted.current) setLoading(false);
-  }, [user?.name]);
+  }, [userName]);
 
   useEffect(() => {
     mounted.current = true;
@@ -107,7 +118,7 @@ export default function ClinicDashboardPage() {
 
   const today = getISTDateString();
   const todayAppts = appointments.filter(a => a.date === today);
-  const upcomingAppts = appointments.filter(a => a.date >= today && a.status !== 'Completed' && a.status !== 'Cancelled');
+  const upcomingAppts = appointments.filter(a => a.date && a.date >= today && a.status !== 'Completed' && a.status !== 'Cancelled');
   const pendingAppts = appointments.filter(a => a.status === 'Pending');
   const completedAppts = appointments.filter(a => a.status === 'Completed');
   const todayRevenue = bills.filter(b => b.date === today && b.status === 'Paid').reduce((s, b) => s + (b.paid || b.amount || 0), 0);
@@ -115,10 +126,10 @@ export default function ClinicDashboardPage() {
   weekStart.setDate(weekStart.getDate() - weekStart.getDay());
   const weekStartStr = weekStart.toISOString().split('T')[0] ?? '';
   const weekRevenue = bills.filter(b => b.date >= weekStartStr && b.date <= today && b.status === 'Paid').reduce((s, b) => s + (b.paid || b.amount || 0), 0);
-  const totalRefunded = refunds.reduce((s, r) => s + (r.refund_amount || r.amount || 0), 0);
+  const totalRefunded = refunds.reduce((s, r) => s + (Number(r.amount) || 0), 0);
   const pendingRefunds = refunds.filter(r => r.status === 'pending' || r.status === 'Pending').length;
 
-  const statValues: Record<string, any> = {
+  const statValues: Record<string, string | number> = {
     'Pending': pendingAppts.length,
     'Upcoming': upcomingAppts.length,
     "Today's Appts": todayAppts.length,

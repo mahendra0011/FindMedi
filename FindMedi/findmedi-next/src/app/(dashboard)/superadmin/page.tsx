@@ -52,7 +52,12 @@ export default function SuperAdminDashboard() {
 
         if (!mounted.current) return;
 
-        const dashVal = dash.status === 'fulfilled' ? dash.value : {};
+        const dashVal = (dash.status === 'fulfilled' ? dash.value : null) as {
+          stats?: Record<string, unknown>;
+          weeklyAppointments?: { day: string; count: number }[];
+          revenueData?: { month: string; revenue: number }[];
+          [key: string]: unknown;
+        } | null;
         const commVal = commission.status === 'fulfilled' ? commission.value : null;
         const hospVal = hospitals.status === 'fulfilled' ? hospitals.value : null;
         const userVal = users.status === 'fulfilled' ? users.value : null;
@@ -60,7 +65,7 @@ export default function SuperAdminDashboard() {
         const facVal = facilities.status === 'fulfilled' ? facilities.value : null;
 
         setData({
-          stats: dashVal?.stats || dashVal,
+          stats: (dashVal?.stats || dashVal || undefined) as SuperAdminStats['stats'],
           weeklyAppointments: dashVal?.weeklyAppointments || [
             { day: 'Mon', count: 12 },
             { day: 'Tue', count: 19 },
@@ -72,9 +77,9 @@ export default function SuperAdminDashboard() {
           ],
           revenueData: dashVal?.revenueData || [],
           commission: commVal,
-          hospitalCount: (hospVal as any)?.total || (Array.isArray(hospVal) ? hospVal.length : 0),
-          userCount: (userVal as any)?.total || (Array.isArray(userVal) ? userVal.length : 0),
-          facilityCount: (facVal as any)?.total || (Array.isArray(facVal) ? facVal.length : 0),
+          hospitalCount: (hospVal as { total?: number })?.total || (Array.isArray(hospVal) ? hospVal.length : 0),
+          userCount: (userVal as { total?: number })?.total || (Array.isArray(userVal) ? userVal.length : 0),
+          facilityCount: (facVal as { total?: number })?.total || (Array.isArray(facVal) ? facVal.length : 0),
           pendingCount: Array.isArray(pendingVal) ? pendingVal.length : 0,
         });
       } catch (e) {
