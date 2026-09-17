@@ -7,9 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "typecheck": "tsc --noEmit",
+    "test": "node scripts/run-vitest.js run",
+    "test:watch": "node scripts/run-vitest.js",
+    "test:coverage": "node scripts/run-vitest.js run --coverage"
   },
   "dependencies": {
     "@emotion/is-prop-valid": "^1.4.0",

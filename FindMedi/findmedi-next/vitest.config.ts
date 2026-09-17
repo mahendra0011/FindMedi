@@ -7,6 +7,10 @@ import path from 'node:path';
  *
  * Uses jsdom for DOM tests, and Node environment for pure utility tests
  * (overrides per-file via the environment pragma or file naming convention).
+ *
+ * NOTE: on Windows, run these tests through `npm test`, which normalises the
+ * drive-letter case of the working directory first — see the explanation in
+ * scripts/run-vitest.js.
  */
 export default defineConfig({
   plugins: [react()],
