@@ -6,7 +6,7 @@
   "scripts": {
     "build": "napi build --platform --dts index.d.ts",
     "build:release": "napi build --platform --dts index.d.ts --release",
-    "test": "node test.js"
+    "test": "node tests/test.js"
   },
   "binary": {
     "napi": true,

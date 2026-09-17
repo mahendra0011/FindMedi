@@ -18,19 +18,19 @@ jobs:
       with:
         node-version: 20.x
         cache: 'npm'
-        cache-dependency-path: client/package-lock.json
+        cache-dependency-path: FindMedi/client/package-lock.json
 
     - name: Install Dependencies
-      run: cd client && npm install --legacy-peer-deps
+      run: cd FindMedi/client && npm install --legacy-peer-deps
 
     - name: Lint
-      run: cd client && npm run lint
+      run: cd FindMedi/client && npm run lint
 
     - name: Build
-      run: cd client && npm run build
+      run: cd FindMedi/client && npm run build
 
     - name: Test
-      run: cd client && npm test
+      run: cd FindMedi/client && npm test
 
   server:
     runs-on: ubuntu-latest
@@ -43,13 +43,13 @@ jobs:
       with:
         node-version: 20.x
         cache: 'npm'
-        cache-dependency-path: server/package-lock.json
+        cache-dependency-path: FindMedi/server/package-lock.json
 
     - name: Install Dependencies
-      run: cd server && npm install
+      run: cd FindMedi/server && npm install
 
     - name: Test
-      run: cd server && npm test
+      run: cd FindMedi/server && npm test
 
   build-rust:
     name: Build Rust Native Module
@@ -67,16 +67,16 @@ jobs:
       with:
         node-version: 20.x
         cache: 'npm'
-        cache-dependency-path: server/napi-core/package-lock.json
+        cache-dependency-path: FindMedi/server/napi-core/package-lock.json
 
     - name: Install Rust toolchain
       uses: dtolnay/rust-toolchain@stable
 
     - name: Install Dependencies
-      run: cd server/napi-core && npm install
+      run: cd FindMedi/server/napi-core && npm install
 
     - name: Build Native Module
-      run: cd server/napi-core && npm run build:release
+      run: cd FindMedi/server/napi-core && npm run build:release
 
     - name: Test Native Module
-      run: cd server/napi-core && node test.js
+      run: cd FindMedi/server/napi-core && node tests/test.js
