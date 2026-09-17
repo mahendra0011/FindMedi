@@ -80,3 +80,43 @@ jobs:
 
     - name: Test Native Module
       run: cd FindMedi/server/napi-core && node tests/test.js
+
+  findmedi-next:
+    name: findmedi-next (Next.js app)
+    runs-on: ubuntu-latest
+
+    env:
+      NEXT_TELEMETRY_DISABLED: 1
+
+    steps:
+    - uses: actions/checkout@v4
+
+    # Node 22+ is required: this app runs Vitest 5 (engines: ^22.12.0 || ^24.0.0 || >=26)
+    # and @testing-library/jest-dom 7 (engines: >=22), unlike the client/server jobs.
+    - name: Use Node.js 22.x
+      uses: actions/setup-node@v4
+      with:
+        node-version: 22.x
+        cache: 'npm'
+        cache-dependency-path: FindMedi/findmedi-next/package-lock.json
+
+    - name: Install Dependencies
+      run: cd FindMedi/findmedi-next && npm ci --no-audit --no-fund
+
+    - name: Type Check
+      run: cd FindMedi/findmedi-next && npm run typecheck
+
+    - name: Test
+      run: cd FindMedi/findmedi-next && npm test
+
+    - name: Build
+      run: cd FindMedi/findmedi-next && npm run build
+
+    # Intentionally non-blocking: this app currently carries a legacy lint baseline
+    # of 394 problems (158 errors / 236 warnings, dominated by
+    # @typescript-eslint/no-explicit-any and setState-in-effect patterns).
+    # Reporting it here stops it from growing unnoticed; remove `continue-on-error`
+    # once the baseline is burned down.
+    - name: Lint (non-blocking until lint baseline is cleared)
+      continue-on-error: true
+      run: cd FindMedi/findmedi-next && npm run lint

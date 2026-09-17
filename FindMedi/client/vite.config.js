@@ -25,6 +25,18 @@ export default defineConfig({
     outDir: path.resolve(__dirname, "dist"),
     emptyOutDir: true,
     sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('maplibre-gl')) {
+            return 'maplibre-vendor';
+          }
+          if (id.includes('recharts')) {
+            return 'recharts-vendor';
+          }
+        },
+      },
+    },
   },
   test: {
     environment: "jsdom",
