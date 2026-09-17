@@ -20,3 +20,19 @@ export function useCreatePrescription() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['prescriptions'] }),
   });
 }
+
+export function usePrescriptions(search = '') {
+  return useQuery({
+    queryKey: ['prescriptions', 'list', search],
+    queryFn: () => prescriptionsApi.get(search ? { search } : {}),
+    staleTime: 30_000,
+  });
+}
+
+export function useDeletePrescription() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => prescriptionsApi.delete(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['prescriptions'] }),
+  });
+}

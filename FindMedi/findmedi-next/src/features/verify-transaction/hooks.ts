@@ -1,0 +1,1 @@
+﻿import { useMutation } from '@tanstack/react-query'; import { verifyTransaction } from './api'; export function useVerifyTransaction(){ return useMutation({ mutationFn: (id:string)=>verifyTransaction(id)}); }

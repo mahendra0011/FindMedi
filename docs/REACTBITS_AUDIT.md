@@ -1,42 +1,76 @@
-# ReactBits Component Audit & Retirement Strategy
+# ReactBits Component Audit & Decision Log
 
-**Date**: September 17, 2026  
-**Audited Directory**: `FindMedi/client/src/components/reactbits/` (9 files)
-
----
-
-## 1. Inventory of Files
-
-The legacy Vite client contains 5 ReactBits components and 4 associated CSS files:
-
-| File | Type | Lines / Size | Dependencies | Description |
-|------|------|-------------|--------------|-------------|
-| `BlurText.jsx` | Component | ~2.9 KB | React, CSS | Staggered blur-in animated text |
-| `ElectricBorder.jsx` + `.css` | Component + Style | ~8.3 KB + ~1.2 KB | React, Canvas / SVG | Glowing electric border animation effect |
-| `FlowingMenu.jsx` + `.css` | Component + Style | ~5.3 KB + ~1.6 KB | React, CSS | Infinite flowing circular/linear menu |
-| `ScrollVelocity.jsx` + `.css` | Component + Style | ~3.5 KB + ~1.5 KB | React, CSS | Velocity-based horizontal scrolling text marquee |
-| `SplitText.jsx` + `.css` | Component + Style | ~4.4 KB + ~0.5 KB | React, CSS | Split-by-word / split-by-letter spring text animation |
+**Date**: September 17, 2026
+**Audited Directory**: `FindMedi/client/src/components/reactbits/` (9 files — 5 components + 4 CSS)
+**Target**: `FindMedi/findmedi-next/src/components/shared/`
 
 ---
 
-## 2. Usage Assessment in Next.js (`findmedi-next`)
+## Usage in Legacy Client
 
-1. **Native Motion Stack**: `findmedi-next` standardizes on `motion/react` (Framer Motion v12) alongside Tailwind CSS animations.
-2. **SSR & Hydration Safety**: ReactBits components in `client` rely heavily on un-hydrated DOM measurements, `window` access without `use client` / dynamic import guard, and ad-hoc global CSS files that conflict with Next.js module scoping.
-3. **Typography & Staggers**: Staggered text animations like `BlurText` and `SplitText` are implemented natively in Next.js pages using clean Framer Motion variants:
-   ```tsx
-   const container = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.05 } } };
-   const item = { hidden: { opacity: 0, y: 10, filter: 'blur(4px)' }, show: { opacity: 1, y: 0, filter: 'blur(0px)' } };
-   ```
-4. **Performance Impact**: Direct migration of raw ReactBits CSS and JS files would add unnecessary client bundle bloat and potential hydration mismatches on server components.
+All 5 ReactBits components are consumed by `FindMedi/client/src/pages/Home.jsx`
+(imports at lines 12–16; usages at lines 260, 274, 288, 304, 428, 545, 585, 746):
+
+| Component | Effect | Used for |
+|-----------|--------|----------|
+| `SplitText` | Per-char / per-word staggered reveal on scroll | Hero headline ("FindMedi", "Healthcare Solutions", …) |
+| `BlurText` | Staggered word blur-in on Intersection | Hero sub-description |
+| `ScrollVelocity` | Scroll-linked horizontal velocity marquee | Scroll-velocity strip below hero |
+| `ElectricBorder` | Canvas noise + glow animated border | "Why Choose Us" card frame |
+| `FlowingMenu` | Edge-detection marquee hover menu | "Fast Navigation" section |
 
 ---
 
-## 3. Decision & Migration Roadmap
+## Audit Methodology
 
-- **Status**: **Retire in `findmedi-next`** in favor of native `motion/react` + Tailwind utilities.
-- **Legacy Retention**: Keep intact in `FindMedi/client/` to preserve backwards compatibility for legacy Vite client demos.
-- **Next.js Implementation**:
-  - For marquee scrolling -> Use native CSS Tailwind `animate-marquee` or lightweight Framer Motion transforms.
-  - For animated text staggers -> Use standard Framer Motion `motion.span` wrappers.
-  - For borders / cards -> Use Tailwind glassmorphism borders (`border border-border/50 bg-card/80 backdrop-blur-sm`).
+A repo-wide content search (`motion.*`, `gsap`, `stagger`, `marquee`, `velocity`,
+`split`, `BlurText`, `FlowingMenu`, `ScrollVelocity`, `SplitText`, `ElectricBorder`)
+was run against `FindMedi/findmedi-next/src`.
+
+**Findings:**
+
+1. `motion/react` is already a dependency and is used for basic `opacity` / `y` /
+   `scale` transitions (51 call-sites). It is **not** used for any staggered text,
+   char-split, scroll-velocity, or canvas effects.
+2. `gsap` 3.15 and `@gsap/react` 2.1 are installed dependencies but have **zero**
+   usages anywhere in `findmedi-next`.
+3. **None** of the 5 ReactBits visual effects are currently replicated in
+   `findmedi-next`. The prior audit note claiming "staggered text animations are
+   implemented natively" was incorrect — no such patterns exist.
+4. The existing landing page (`(public)/page.tsx`) is a static server component
+   with animations deferred to Phase 5.
+
+---
+
+## Per-File Decision
+
+| # | File | Animation lib | Already covered in findmedi-next? | Decision |
+|---|------|---------------|-----------------------------------|----------|
+| 1 | `BlurText.jsx` | `motion/react` | **No** — no word-stagger/blur pattern exists | **Port** → `components/shared/BlurText.tsx` |
+| 2 | `ElectricBorder.jsx` + `.css` | raw `<canvas>` + `rAF` | **No** — no canvas-border effect | **Port** → `components/shared/ElectricBorder.tsx` (+ `.css`) |
+| 3 | `FlowingMenu.jsx` + `.css` | `gsap` | **No** — no edge-detection marquee | **Port** → `components/shared/FlowingMenu.tsx` (+ `.css`) |
+| 4 | `ScrollVelocity.jsx` + `.css` | `motion/react` | **No** — no scroll-velocity/parallax text | **Port** → `components/shared/ScrollVelocity.tsx` (+ `.css`) |
+| 5 | `SplitText.jsx` + `.css` | `gsap` + `SplitText` plugin + `@gsap/react` | **No** — no char-split animation | **Port** → `components/shared/SplitText.tsx` (+ `.css`) |
+
+All 5 are **genuinely unique effects** not covered by findmedi-next's existing
+motion usage, and all are used on the home page. Per the migration plan they are
+**ported as typed `.tsx`** (with `"use client"` directives and proper TS props)
+rather than dropped as raw `.jsx`.
+
+---
+
+## Migration Notes
+
+- `toast` / `toaster` ReactBits shadcn components are **deprecated** in favour of
+  the `sonner` component; `findmedi-next` already has `src/components/ui/sonner.tsx`
+  which exports both `Toaster` and `toast`. No ReactBits toast needed.
+- The 4 CSS files are co-located beside their `.tsx` components and imported
+  directly (valid in Next.js App Router client components).
+- `react-resizable-panels@4.x` exports `Group` / `Panel` / `Separator` (not the
+  legacy `PanelGroup` / `PanelResizeHandle`); `resizable.tsx` was patched at
+  creation time to map these while preserving the public API.
+
+## Legacy Retention
+
+The original 9 files **remain untouched** in `FindMedi/client/src/components/reactbits/`
+until Phase 5 cut-over, so the legacy Vite client retains a clean rollback path.

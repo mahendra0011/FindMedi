@@ -21,10 +21,7 @@ export default function BillingPage() {
           <CardTitle>Billing</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground">
-            This page is under migration from the legacy Vite app.
-            Full implementation coming soon.
-          </p>
+          <p className="text-muted-foreground">Shared across roles — view invoices from your role billing section.</p>
         </CardContent>
       </Card>
     </div>

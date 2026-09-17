@@ -12,3 +12,5 @@ export type { PrescriptionFormData, PrescriptionModalProps, MedicationItem } fro
 export type { LabReportFormData, LabReportModalProps, LabReportTestItem } from './LabReportModal';
 export type { DischargeFormData, DischargeSummaryModalProps } from './DischargeSummaryModal';
 export type { BillModalProps } from './BillModal';
+export * from './DoctorCalendarWidget';
+export * from './reportPayloads';

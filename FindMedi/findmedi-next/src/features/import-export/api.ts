@@ -1,0 +1,1 @@
+﻿/** Import-export placeholder */ export const exportData = (_type: string, _format: string): Promise<void> => Promise.resolve(); export const importData = (_type: string, _file: File): Promise<Record<string,unknown>> => Promise.resolve({ success: true, imported: 0 });

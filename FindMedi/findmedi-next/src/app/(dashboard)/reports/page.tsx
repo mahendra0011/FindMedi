@@ -21,10 +21,7 @@ export default function PDFReportsPage() {
           <CardTitle>PDF Reports</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground">
-            This page is under migration from the legacy Vite app.
-            Full implementation coming soon.
-          </p>
+          <p className="text-muted-foreground">Shared across roles — PDF export hub.</p>
         </CardContent>
       </Card>
     </div>

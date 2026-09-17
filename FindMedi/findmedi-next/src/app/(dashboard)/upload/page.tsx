@@ -21,10 +21,7 @@ export default function FileUploadPage() {
           <CardTitle>File Upload</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground">
-            This page is under migration from the legacy Vite app.
-            Full implementation coming soon.
-          </p>
+          <p className="text-muted-foreground">Shared across roles — centralized upload hub.</p>
         </CardContent>
       </Card>
     </div>

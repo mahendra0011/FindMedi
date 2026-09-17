@@ -1,0 +1,1 @@
+﻿import { useMutation } from '@tanstack/react-query'; import { exportData, importData } from './api'; export function useExportData(){ return useMutation({ mutationFn: ({type, format}:{type:string; format:string})=>exportData(type, format)}); } export function useImportData(){ return useMutation({ mutationFn: ({type, file}:{type:string; file:File})=>importData(type,file)}); }
