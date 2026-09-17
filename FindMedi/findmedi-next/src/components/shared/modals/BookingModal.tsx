@@ -144,7 +144,9 @@ export default function BookingModal({
   const currentDoc = selectedDoctor || doctor;
 
   // Reset state when opened
-  useEffect(() => {
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (prevOpen !== open) {
+    setPrevOpen(open);
     if (open) {
       const doc = doctor || null;
       setSelectedDoctor(doc);
@@ -164,14 +166,21 @@ export default function BookingModal({
       setBookingFor('self');
       setSelectedFamilyMember(null);
       setOtherPatient({ name: '', gender: 'Male', phone: '', age: '', bloodGroup: '' });
+    }
+  }
+
+  useEffect(() => {
+    if (open) {
+      const doc = doctor || null;
+      let active = true;
 
       // Fetch family members
       if (user) {
         setFetchingFamily(true);
         request<{ members?: FamilyMember[] }>('/patient/family')
-          .then(res => setFamilyMembers(res?.members || []))
-          .catch(() => setFamilyMembers([]))
-          .finally(() => setFetchingFamily(false));
+          .then(res => { if (active) setFamilyMembers(res?.members || []); })
+          .catch(() => { if (active) setFamilyMembers([]); })
+          .finally(() => { if (active) setFetchingFamily(false); });
       }
 
       if (!doc && facility && (!facility.doctors || facility.doctors.length === 0)) {
@@ -179,14 +188,19 @@ export default function BookingModal({
         const query = facility.type === 'clinic' ? { clinicId: facility._id } : { hospitalId: facility._id };
         api.getDoctors(query)
           .then(res => {
+            if (!active) return;
             const docs = Array.isArray(res) ? res : ((res as any)?.data || (res as any)?.doctors || []);
             setFetchedDoctors(docs);
           })
           .catch(err => console.error('Failed to fetch facility doctors:', err))
-          .finally(() => setFetchingDoctors(false));
+          .finally(() => { if (active) setFetchingDoctors(false); });
       } else {
         setFetchedDoctors(facility?.doctors || []);
       }
+
+      return () => {
+        active = false;
+      };
     }
   }, [open, doctor, facility, user]);
 
@@ -231,17 +245,11 @@ export default function BookingModal({
 
   // Doctor + date change: fetch already-booked slots WITH COUNTS
   useEffect(() => {
-    if (!currentDoc?._id || !bookingDate) {
-      setBookedSlots([]);
-      setLockedSlots([]);
-      setSlotCounts({});
-      setDateDisabledSlots([]);
-      setPendingDisabledSlots([]);
-      setBookingWindow(null);
-      return;
-    }
+    if (!currentDoc?._id || !bookingDate) return;
+    let active = true;
     api.getBookedSlots({ doctorId: currentDoc._id, date: bookingDate })
       .then((res: any) => {
+        if (!active) return;
         if (res && typeof res === 'object' && !Array.isArray(res) && res.counts) {
           setSlotCounts(res.counts || {});
           setBookedSlots(res.fullSlots || Object.keys(res.counts || {}));
@@ -262,13 +270,18 @@ export default function BookingModal({
         }
       })
       .catch(() => {
-        setBookedSlots([]);
-        setLockedSlots([]);
-        setSlotCounts({});
-        setDateDisabledSlots([]);
-        setPendingDisabledSlots([]);
-        setBookingWindow(null);
+        if (active) {
+          setBookedSlots([]);
+          setLockedSlots([]);
+          setSlotCounts({});
+          setDateDisabledSlots([]);
+          setPendingDisabledSlots([]);
+          setBookingWindow(null);
+        }
       });
+    return () => {
+      active = false;
+    };
   }, [currentDoc?._id, bookingDate]);
 
   const isSlotFull = (time: string) => {

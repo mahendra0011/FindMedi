@@ -165,7 +165,7 @@ export default function ChatDashboard() {
   const [messageInfo, setMessageInfo] = useState<MessageInfoState | null>(null);
 
   // ── Prefs & privacy ──
-  const [prefs, setPrefsState] = useState<ChatPrefs>(DEFAULT_CHAT_PREFS);
+  const [prefs, setPrefsState] = useState<ChatPrefs>(() => readChatPrefs());
   const [privacy, setPrivacy] = useState<PrivacySettingsState>({});
   const [theme, setTheme] = useState('system');
   const [storage, setStorage] = useState<{
@@ -326,9 +326,8 @@ export default function ChatDashboard() {
     return out;
   }, [messages]);
 
-  /* ── Boot: prefs + server data ── */
+  /* ── Boot: server data ── */
   useEffect(() => {
-    setPrefsState(readChatPrefs());
     refreshPrivacy();
     refreshConversations();
     refreshSideData();
@@ -340,7 +339,7 @@ export default function ChatDashboard() {
   const selectedIdRef = useRef<string | null>(null);
   const replyToRef = useRef<ChatMessage | null>(null);
   const typingTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [drafts, setDrafts] = useState<Record<string, string>>(() => readDrafts());
 
   useEffect(() => {
     selectedIdRef.current = selectedId;
@@ -348,9 +347,6 @@ export default function ChatDashboard() {
   useEffect(() => {
     replyToRef.current = replyTo;
   }, [replyTo]);
-  useEffect(() => {
-    setDrafts(readDrafts());
-  }, []);
 
   const scrollToBottom = useCallback((smooth = true) => {
     const el = scrollRef.current;

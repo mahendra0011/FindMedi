@@ -11,6 +11,7 @@ import { uploadFileToCloudinary } from '../services/cloudinaryService.js';
 import { uploadFileToDrive, isConfigured as isDriveConfigured } from '../services/driveService.js';
 import { getISTDateString } from '../utils/dateUtils.js';
 import { validateFileContent } from '../middleware/upload.js';
+import { resizeToFit as napiResizeToFit, NATIVE_AVAILABLE } from '../services/napiImageService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -98,6 +99,21 @@ router.post('/', protect, upload.single('file'), async (req, res, next) => {
       return res.status(400).json({
         error: 'File content does not match its claimed type. Upload rejected for security.',
       });
+    }
+
+    // Native Rust image optimization (resize & compress)
+    if (req.file.mimetype.startsWith('image/') && req.file.mimetype !== 'image/gif') {
+      try {
+        if (NATIVE_AVAILABLE) {
+          const optimized = napiResizeToFit(req.file.buffer, 1920, 1920, 85);
+          if (optimized && optimized.length > 0) {
+            req.file.buffer = optimized;
+            req.file.size = optimized.length;
+          }
+        }
+      } catch (optErr) {
+        console.warn('Native image optimization skipped:', optErr?.message || optErr);
+      }
     }
 
     const storedIn = req.body?.storedIn || 'cloudinary';

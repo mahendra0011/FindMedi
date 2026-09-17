@@ -51,17 +51,19 @@ export default function MediaViewer({
   onSendToChat,
 }: MediaViewerProps) {
   const [current, setCurrent] = useState(index);
+  const [prevCurrent, setPrevCurrent] = useState(index);
   const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [dragFrom, setDragFrom] = useState<{ x: number; y: number } | null>(null);
   const [caption, setCaption] = useState('');
 
-  const item: MediaItem | undefined = items[current];
-
-  useEffect(() => {
+  if (prevCurrent !== current) {
+    setPrevCurrent(current);
     setZoom(1);
     setOffset({ x: 0, y: 0 });
-  }, [current]);
+  }
+
+  const item: MediaItem | undefined = items[current];
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

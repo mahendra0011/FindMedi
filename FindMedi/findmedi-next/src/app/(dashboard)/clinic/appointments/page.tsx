@@ -27,30 +27,14 @@ import { useAppointmentRealtime } from '@/hooks/useAppointmentRealtime';
 import type { Appointment } from '@/types/models/appointment';
 import type { AppointmentStatus } from '@/types/enums';
 
+import {
+  RescheduleModal,
+  PrescriptionModal,
+  BillModal,
+  type PrescriptionFormData,
+} from '@/components/doctor';
+
 const timeSlots = ['9:00 AM', '9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM', '2:00 PM', '2:30 PM', '3:00 PM', '3:30 PM', '4:00 PM', '4:30 PM'];
-
-interface MedicationItem {
-  name: string;
-  dosage: string;
-  frequency: string;
-  instructions?: string;
-}
-
-interface PrescriptionFormData {
-  patientName: string;
-  age: string;
-  gender: string;
-  phone: string;
-  email: string;
-  address: string;
-  doctorName: string;
-  specialization: string;
-  chiefComplaints: string;
-  diagnosis: string;
-  medications: MedicationItem[];
-  advice: string;
-  followUp: string;
-}
 
 const prescriptionInitialState: PrescriptionFormData = {
   patientName: '', age: '', gender: '', phone: '', email: '', address: '',
@@ -78,11 +62,7 @@ export default function ClinicAppointments({ initialView }: ClinicAppointmentsPr
     ? 'history'
     : queryTab || initialView || 'today';
 
-  const [view, setView] = useState<'today' | 'upcoming' | 'history' | 'approve'>(inferredView);
-
-  useEffect(() => {
-    setView(inferredView);
-  }, [inferredView]);
+  const view = inferredView;
 
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -122,7 +102,12 @@ export default function ClinicAppointments({ initialView }: ClinicAppointmentsPr
     setLoading(false);
   }, []);
 
-  useEffect(() => { loadAppointments(); }, [loadAppointments]);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      loadAppointments();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [loadAppointments]);
 
   // Realtime updates
   useAppointmentRealtime(loadAppointments);
@@ -146,13 +131,15 @@ export default function ClinicAppointments({ initialView }: ClinicAppointmentsPr
   // Fetch booked slots for reschedule
   useEffect(() => {
     if (!rescheduleId || !newDate) {
-      setBookedSlots([]); setDateDisabledSlots([]); return;
+      return;
     }
+    let active = true;
     const apt = appointments.find(a => a._id === rescheduleId);
     const doctorId = typeof apt?.doctorId === 'object' ? (apt?.doctorId as any)?._id : apt?.doctorId;
     if (!doctorId) return;
     api.getBookedSlots({ doctorId, date: newDate })
       .then((res: any) => {
+        if (!active) return;
         if (res && typeof res === 'object' && !Array.isArray(res)) {
           setBookedSlots(res.fullSlots || Object.keys(res.counts || {}));
           setDateDisabledSlots(res.dateDisabled || []);
@@ -162,6 +149,7 @@ export default function ClinicAppointments({ initialView }: ClinicAppointmentsPr
         }
       })
       .catch(err => console.error('Failed to fetch booked slots:', err));
+    return () => { active = false; };
   }, [rescheduleId, newDate, appointments]);
 
   const today = getISTDateString();
@@ -179,12 +167,12 @@ export default function ClinicAppointments({ initialView }: ClinicAppointmentsPr
     }
   };
 
-  const handleReschedule = async () => {
-    if (!newDate || !newTime || !rescheduleId) return;
+  const handleReschedule = async (date: string, time: string) => {
+    if (!date || !time || !rescheduleId) return;
     try {
-      await api.updateAppointment(rescheduleId, { date: newDate, time: newTime, status: 'Confirmed' as AppointmentStatus });
+      await api.updateAppointment(rescheduleId, { date, time, status: 'Confirmed' as AppointmentStatus });
       toast.success('Appointment rescheduled');
-      setRescheduleId(null); setNewDate(''); setNewTime('');
+      setRescheduleId(null);
       loadAppointments();
     } catch (e) {
       console.error(e);
@@ -210,42 +198,29 @@ export default function ClinicAppointments({ initialView }: ClinicAppointmentsPr
     return () => window.removeEventListener('open-prescription', handler);
   }, [openPrescriptionModal]);
 
-  const addMedication = () => {
-    setPrescriptionData({ ...prescriptionData, medications: [...prescriptionData.medications, { name: '', dosage: '', frequency: '', instructions: '' }] });
-  };
-  const removeMedication = (index: number) => {
-    setPrescriptionData({ ...prescriptionData, medications: prescriptionData.medications.filter((_, i) => i !== index) });
-  };
-  const updateMedication = (index: number, field: keyof MedicationItem, value: string) => {
-    const meds = [...prescriptionData.medications];
-    const current = meds[index] ?? { name: '', dosage: '', frequency: '' };
-    meds[index] = { ...current, [field]: value };
-    setPrescriptionData({ ...prescriptionData, medications: meds });
-  };
-
-  const handleGeneratePrescription = async () => {
+  const handleGeneratePrescription = async (data: PrescriptionFormData) => {
     const apt = appointments.find(a => a._id === completeId);
     if (!apt) return toast.error('Appointment not found');
-    if (!prescriptionData.diagnosis) return toast.error('Please enter a diagnosis');
+    if (!data.diagnosis) return toast.error('Please enter a diagnosis');
     try {
-      const meds = prescriptionData.medications.filter(m => m.name.trim());
+      const meds = data.medications.filter(m => m.name.trim());
       const patientId = typeof apt.patientId === 'object' ? (apt.patientId as any)?._id : apt.patientId;
       await api.createRecord({
-        patient: prescriptionData.patientName,
+        patient: data.patientName,
         patientId,
-        doctor: prescriptionData.doctorName,
-        diagnosis: prescriptionData.diagnosis,
-        prescription: prescriptionData.medications.map(m => `${m.name} - ${m.dosage} - ${m.frequency} ${m.instructions ? `(${m.instructions})` : ''}`).join('\n'),
+        doctor: data.doctorName,
+        diagnosis: data.diagnosis,
+        prescription: meds.map(m => `${m.name} - ${m.dosage} - ${m.frequency} ${m.instructions ? `(${m.instructions})` : ''}`).join('\n'),
         type: 'prescription',
-        notes: `Chief Complaints: ${prescriptionData.chiefComplaints}\nAdvice: ${prescriptionData.advice}\nFollow-up: ${prescriptionData.followUp}`,
+        notes: `Chief Complaints: ${data.chiefComplaints}\nAdvice: ${data.advice}\nFollow-up: ${data.followUp}`,
         data: {
-          patient: { name: prescriptionData.patientName, age: prescriptionData.age, gender: prescriptionData.gender, phone: prescriptionData.phone, email: prescriptionData.email, address: prescriptionData.address },
-          doctor: { name: prescriptionData.doctorName, specialization: prescriptionData.specialization },
-          chiefComplaints: prescriptionData.chiefComplaints,
-          diagnosis: prescriptionData.diagnosis,
+          patient: { name: data.patientName, age: data.age, gender: data.gender, phone: data.phone, email: data.email, address: data.address },
+          doctor: { name: data.doctorName, specialization: data.specialization },
+          chiefComplaints: data.chiefComplaints,
+          diagnosis: data.diagnosis,
           medications: meds,
-          advice: prescriptionData.advice,
-          followUp: prescriptionData.followUp,
+          advice: data.advice,
+          followUp: data.followUp,
           date: getISTDateString(),
         },
       });
@@ -259,7 +234,7 @@ export default function ClinicAppointments({ initialView }: ClinicAppointmentsPr
     }
   };
 
-  const handleGenerateBill = async () => {
+  const handleGenerateBill = async (amount: number) => {
     if (!completeId) return toast.error('No appointment selected');
     const apt = appointments.find(a => a._id === completeId);
     if (!apt) return toast.error('Appointment not found');
@@ -270,13 +245,13 @@ export default function ClinicAppointments({ initialView }: ClinicAppointmentsPr
         patientId,
         doctor: user?.name,
         service: `${apt.type} - ${(apt as any).department || 'Clinic'}`,
-        amount: billAmount,
+        amount,
         date: getISTDateString(),
         status: 'Pending',
       });
       await api.createNotification({
         title: 'New Invoice',
-        message: `Invoice of ₹${billAmount} generated for ${(apt as any).patient}`,
+        message: `Invoice of ₹${amount} generated for ${(apt as any).patient}`,
         type: 'payment',
         userId: patientId || (apt as any).patient,
       });
@@ -538,107 +513,31 @@ export default function ClinicAppointments({ initialView }: ClinicAppointmentsPr
       )}
 
       {/* Reschedule Modal */}
-      {rescheduleId && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setRescheduleId(null)}>
-          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-card rounded-2xl border border-border w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
-            <h3 className="font-heading text-lg font-bold text-foreground mb-4">Reschedule Appointment</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium text-foreground mb-1.5 block">New Date</label>
-                <Input type="date" value={newDate} onChange={e => setNewDate(e.target.value)} min={getISTDateString()} />
-              </div>
-              {newDate && (
-                <div>
-                  <label className="text-sm font-medium text-foreground mb-1.5 block">New Time</label>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {timeSlots.map(t => {
-                      const isBooked = bookedSlots.includes(t);
-                      const isDisabled = dateDisabledSlots.includes(t);
-                      const isUnavailable = isBooked || isDisabled;
-                      return (
-                        <button key={t} onClick={() => !isUnavailable && setNewTime(t)} disabled={isUnavailable}
-                          className={`px-2 py-1.5 rounded-lg text-xs font-medium transition-colors ${newTime === t ? 'bg-primary text-primary-foreground' : isUnavailable ? 'bg-muted/40 text-muted-foreground cursor-not-allowed' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>
-                          {t}{isBooked && <span className="ml-1 text-[9px]">(full)</span>}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-            <div className="flex gap-3 mt-4">
-              <Button variant="outline" className="flex-1" onClick={() => setRescheduleId(null)}>Cancel</Button>
-              <Button className="flex-1" onClick={handleReschedule} disabled={!newDate || !newTime}>Confirm</Button>
-            </div>
-          </motion.div>
-        </div>
-      )}
+      <RescheduleModal
+        isOpen={Boolean(rescheduleId)}
+        onClose={() => setRescheduleId(null)}
+        onConfirm={handleReschedule}
+        timeSlots={timeSlots}
+        bookedSlots={bookedSlots}
+        dateDisabledSlots={dateDisabledSlots}
+      />
 
       {/* Prescription Modal */}
-      {showPrescriptionModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setShowPrescriptionModal(false)}>
-          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-card rounded-2xl border border-border w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <h3 className="font-heading text-lg font-bold text-foreground mb-4">Create New Prescription</h3>
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div><label className="text-sm font-medium text-foreground mb-1.5 block">Patient Name</label><Input value={prescriptionData.patientName} onChange={e => setPrescriptionData({ ...prescriptionData, patientName: e.target.value })} placeholder="Enter patient name" /></div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div><label className="text-sm font-medium text-foreground mb-1.5 block">Age</label><Input type="number" value={prescriptionData.age} onChange={e => setPrescriptionData({ ...prescriptionData, age: e.target.value })} placeholder="Age" /></div>
-                  <div><label className="text-sm font-medium text-foreground mb-1.5 block">Gender</label><select value={prescriptionData.gender} onChange={e => setPrescriptionData({ ...prescriptionData, gender: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm"><option value="">Select</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></select></div>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div><label className="text-sm font-medium text-foreground mb-1.5 block">Phone</label><Input value={prescriptionData.phone} onChange={e => setPrescriptionData({ ...prescriptionData, phone: e.target.value })} placeholder="Phone number" /></div>
-                <div><label className="text-sm font-medium text-foreground mb-1.5 block">Email</label><Input type="email" value={prescriptionData.email} onChange={e => setPrescriptionData({ ...prescriptionData, email: e.target.value })} placeholder="Email" /></div>
-              </div>
-              <div><label className="text-sm font-medium text-foreground mb-1.5 block">Chief Complaints</label><Input value={prescriptionData.chiefComplaints} onChange={e => setPrescriptionData({ ...prescriptionData, chiefComplaints: e.target.value })} placeholder="Enter chief complaints" /></div>
-              <div><label className="text-sm font-medium text-foreground mb-1.5 block">Diagnosis</label><Input value={prescriptionData.diagnosis} onChange={e => setPrescriptionData({ ...prescriptionData, diagnosis: e.target.value })} placeholder="Enter diagnosis" /></div>
-              <div>
-                <div className="flex items-center justify-between mb-2"><label className="text-sm font-medium text-foreground">Medications</label><Button type="button" size="sm" variant="outline" className="gap-1" onClick={addMedication}><Plus className="w-3 h-3" /> Add Medication</Button></div>
-                {prescriptionData.medications.map((med, idx) => (
-                  <div key={idx} className="flex gap-2 mb-2 items-start">
-                    <Input value={med.name} onChange={e => updateMedication(idx, 'name', e.target.value)} placeholder="Medicine name" className="flex-1" />
-                    <Input value={med.dosage} onChange={e => updateMedication(idx, 'dosage', e.target.value)} placeholder="Dosage" className="w-24" />
-                    <Input value={med.frequency} onChange={e => updateMedication(idx, 'frequency', e.target.value)} placeholder="Frequency" className="w-28" />
-                    <Input value={med.instructions} onChange={e => updateMedication(idx, 'instructions', e.target.value)} placeholder="Instructions" className="flex-1" />
-                    <Button variant="ghost" size="icon" className="text-destructive" onClick={() => removeMedication(idx)}><X className="w-4 h-4" /></Button>
-                  </div>
-                ))}
-              </div>
-              <div><label className="text-sm font-medium text-foreground mb-1.5 block">Advice</label><Input value={prescriptionData.advice} onChange={e => setPrescriptionData({ ...prescriptionData, advice: e.target.value })} placeholder="Advice for patient" /></div>
-              <div><label className="text-sm font-medium text-foreground mb-1.5 block">Follow-up</label><Input value={prescriptionData.followUp} onChange={e => setPrescriptionData({ ...prescriptionData, followUp: e.target.value })} placeholder="Follow-up date" /></div>
-            </div>
-            <div className="flex gap-3 mt-6">
-              <Button variant="outline" className="flex-1" onClick={() => setShowPrescriptionModal(false)}>Cancel</Button>
-              <Button className="flex-1 gap-2" onClick={handleGeneratePrescription} disabled={!prescriptionData.diagnosis}><Send className="w-4 h-4" /> Generate &amp; Send</Button>
-            </div>
-          </motion.div>
-        </div>
-      )}
+      <PrescriptionModal
+        isOpen={showPrescriptionModal}
+        onClose={() => setShowPrescriptionModal(false)}
+        onSubmit={handleGeneratePrescription}
+        initialData={prescriptionData}
+      />
 
       {/* Complete & Bill Modal */}
-      {billModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setBillModal(false)}>
-          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-            className="bg-card rounded-2xl border border-border w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
-            <h3 className="font-heading text-lg font-bold text-foreground mb-4">Complete &amp; Generate Bill</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium text-foreground mb-1.5 block">Service</label>
-                <Input value={appointments.find(a => a._id === completeId)?.type || 'Consultation'} disabled />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-foreground mb-1.5 block">Amount (₹)</label>
-                <Input type="number" value={billAmount} onChange={e => setBillAmount(Number(e.target.value))} min={0} />
-              </div>
-            </div>
-            <div className="flex gap-3 mt-6">
-              <Button variant="outline" className="flex-1" onClick={() => setBillModal(false)}>Cancel</Button>
-              <Button className="flex-1 gap-2" onClick={handleGenerateBill}><Send className="w-4 h-4" /> Generate Bill</Button>
-            </div>
-          </motion.div>
-        </div>
-      )}
+      <BillModal
+        isOpen={billModal}
+        onClose={() => setBillModal(false)}
+        onConfirm={handleGenerateBill}
+        serviceName={`${appointments.find(a => a._id === completeId)?.type || 'Consultation'} - ${(appointments.find(a => a._id === completeId) as any)?.department || 'Clinic'}`}
+        initialAmount={billAmount}
+      />
 
       {/* Walk-in Modal */}
       <Dialog open={showWalkInModal} onOpenChange={setShowWalkInModal}>

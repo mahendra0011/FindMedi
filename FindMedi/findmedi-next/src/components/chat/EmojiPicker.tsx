@@ -54,50 +54,52 @@ export default function EmojiPicker({
 }: EmojiPickerProps) {
   const [tab, setTab] = useState<'emoji' | 'sticker' | 'gif'>('emoji');
   const [query, setQuery] = useState('');
-  const [recent, setRecent] = useState<string[]>([]);
+  const [recent, setRecent] = useState<string[]>(() => readRecent());
   const [gifs, setGifs] = useState<GifItem[]>([]);
   const [gifLoading, setGifLoading] = useState(false);
   const [gifError, setGifError] = useState('');
-
-  useEffect(() => {
-    setRecent(readRecent());
-  }, []);
 
   const groups = useMemo(() => searchEmoji(query), [query]);
 
   useEffect(() => {
     if (tab !== 'gif') return;
     let cancelled = false;
-    setGifLoading(true);
-    setGifError('');
     const q = query.trim() || 'health care';
-    fetch(
-      `https://api.giphy.com/v1/gifs/search?api_key=${GIPHY_KEY}&q=${encodeURIComponent(
-        q
-      )}&limit=18&rating=g`
-    )
-      .then((r) => r.json())
-      .then((data) => {
-        if (cancelled) return;
-        const items: GifItem[] = ((data?.data as Array<Record<string, unknown>>) || []).map((g) => {
-          const images = g.images as Record<string, { url?: string }> | undefined;
-          return {
-            id: String(g.id),
-            url: images?.fixed_height?.url || images?.original?.url || '',
-            preview: images?.fixed_height_small?.url || images?.preview_gif?.url || '',
-          };
+
+    const t = setTimeout(() => {
+      if (cancelled) return;
+      setGifLoading(true);
+      setGifError('');
+      fetch(
+        `https://api.giphy.com/v1/gifs/search?api_key=${GIPHY_KEY}&q=${encodeURIComponent(
+          q
+        )}&limit=18&rating=g`
+      )
+        .then((r) => r.json())
+        .then((data) => {
+          if (cancelled) return;
+          const items: GifItem[] = ((data?.data as Array<Record<string, unknown>>) || []).map((g) => {
+            const images = g.images as Record<string, { url?: string }> | undefined;
+            return {
+              id: String(g.id),
+              url: images?.fixed_height?.url || images?.original?.url || '',
+              preview: images?.fixed_height_small?.url || images?.preview_gif?.url || '',
+            };
+          });
+          setGifs(items);
+          if (!items.length) setGifError('No GIFs found — try another keyword.');
+        })
+        .catch(() => {
+          if (!cancelled) setGifError('GIF service unreachable. Emoji/stickers use karein.');
+        })
+        .finally(() => {
+          if (!cancelled) setGifLoading(false);
         });
-        setGifs(items);
-        if (!items.length) setGifError('No GIFs found — try another keyword.');
-      })
-      .catch(() => {
-        if (!cancelled) setGifError('GIF service unreachable. Emoji/stickers use karein.');
-      })
-      .finally(() => {
-        if (!cancelled) setGifLoading(false);
-      });
+    }, 0);
+
     return () => {
       cancelled = true;
+      clearTimeout(t);
     };
   }, [tab, query]);
 

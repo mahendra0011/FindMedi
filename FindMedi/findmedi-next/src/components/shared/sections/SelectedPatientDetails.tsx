@@ -73,11 +73,13 @@ export default function SelectedPatientDetails({
   const [showDetails, setShowDetails] = useState(false);
 
   // Reset when activeApt changes
-  useEffect(() => {
+  const [prevAptId, setPrevAptId] = useState(activeApt?._id);
+  if (prevAptId !== activeApt?._id) {
+    setPrevAptId(activeApt?._id);
     setShowCompleteFlow(false);
     setQuickNotes('');
     setShowDetails(false);
-  }, [activeApt?._id]);
+  }
 
   if (!activeApt) {
     return (

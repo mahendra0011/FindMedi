@@ -206,19 +206,35 @@ export default function PatientHistoryModal({ patient, patientName, onClose }: P
   const name = patient?.name || patientName || 'Patient';
 
   useEffect(() => {
-    if (!patientId) { setRecords([]); return; }
-    setLoading(true);
-    setError('');
-    request<{ records?: PatientHistoryRecord[] }>(`/patients/${patientId}/records`)
-      .then(res => {
-        const list = res?.records || [];
-        setRecords(list);
-      })
-      .catch((err: unknown) => {
-        console.error('Failed to fetch patient history:', err);
-        setError('Could not load patient history. Please try again.');
-      })
-      .finally(() => setLoading(false));
+    if (!patientId) return;
+    let active = true;
+
+    const t = setTimeout(() => {
+      if (!active) return;
+      setLoading(true);
+      setError('');
+      request<{ records?: PatientHistoryRecord[] }>(`/patients/${patientId}/records`)
+        .then(res => {
+          if (active) {
+            const list = res?.records || [];
+            setRecords(list);
+          }
+        })
+        .catch((err: unknown) => {
+          if (active) {
+            console.error('Failed to fetch patient history:', err);
+            setError('Could not load patient history. Please try again.');
+          }
+        })
+        .finally(() => {
+          if (active) setLoading(false);
+        });
+    }, 0);
+
+    return () => {
+      active = false;
+      clearTimeout(t);
+    };
   }, [patientId]);
 
   if (!patient && !patientName) return null;

@@ -848,6 +848,17 @@ export const api = {
     request(`/calls/${id}`, { method: 'DELETE' }),
   clearAllCallLogs: (): Promise<{ success: boolean; message: string }> =>
     request('/calls/clear/all', { method: 'DELETE' }),
+  // ── Dashboard & Superadmin ──
+  dashboardStats: (): Promise<any> => request('/dashboard/stats'),
+  getCommissionStats: (): Promise<any> => request('/superadmin/commission/stats'),
+  getPendingHospitals: (): Promise<any> => request('/superadmin/pending-hospitals'),
+  // ── Delivery Partner ──
+  getDeliveryProfile: (): Promise<any> => request('/delivery-partners/profile/me'),
+  getMyDeliveries: (): Promise<any> => request('/delivery-partners/my-deliveries'),
+  updateDeliveryProfile: (id: string, body: unknown): Promise<any> =>
+    request(`/delivery-partners/profile/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  updateDeliveryStatus: (id: string, status: string): Promise<any> =>
+    request(`/delivery-partners/deliveries/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) }),
   // Generic dispatch passthrough
   dispatch: (path: string, options: { method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'; body?: unknown; headers?: Record<string, string> }) =>
     request(path, { method: options.method, body: options.body, headers: options.headers }),
