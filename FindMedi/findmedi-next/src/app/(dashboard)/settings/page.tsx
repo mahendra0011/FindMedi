@@ -1,4 +1,7 @@
 /**
+ * Intentionally shared across roles — do not move.
+ */
+/**
  * Settings — Dashboard page stub.
  *
  * Migrated from client/src/pages/.

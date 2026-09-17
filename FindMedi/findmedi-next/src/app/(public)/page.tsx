@@ -21,8 +21,8 @@ const SERVICE_CARDS = [
   { icon: Building2, title: 'Hospitals', desc: 'Book appointments at top hospitals and clinics', href: '/hospitals', color: 'text-emerald-600' },
   { icon: Microscope, title: 'Lab Tests', desc: 'Book diagnostic tests at trusted centers', href: '/diagnostic-centers', color: 'text-purple-600' },
   { icon: ShoppingBag, title: 'Medicine Store', desc: 'Order medicines with home delivery', href: '/buy-medicine', color: 'text-amber-600' },
-  { icon: Video, title: 'Online Consultation', desc: 'Video chat with doctors anytime', href: '/doctor-consultation', color: 'text-red-600' },
-  { icon: Calendar, title: 'OPD Booking', desc: 'Book OPD slots with token management', href: '/opd-token', color: 'text-cyan-600' },
+  { icon: Video, title: 'Online Consultation', desc: 'Video chat with doctors anytime', href: '/doctor/consultations', color: 'text-red-600' },
+  { icon: Calendar, title: 'OPD Booking', desc: 'Book OPD slots with token management', href: '/hospital/opd-token', color: 'text-cyan-600' },
 ];
 
 const FEATURES = [
