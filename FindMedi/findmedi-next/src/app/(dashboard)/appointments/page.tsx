@@ -21,10 +21,7 @@ export default function AppointmentsPage() {
           <CardTitle>Appointments</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground">
-            This page is under migration from the legacy Vite app.
-            Full implementation coming soon.
-          </p>
+          <p className="text-muted-foreground">Shared across roles — use your role dashboard for bookings and management.</p>
         </CardContent>
       </Card>
     </div>

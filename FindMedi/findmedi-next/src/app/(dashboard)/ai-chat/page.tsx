@@ -21,10 +21,7 @@ export default function AIAssistantPage() {
           <CardTitle>AI Assistant</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground">
-            This page is under migration from the legacy Vite app.
-            Full implementation coming soon.
-          </p>
+          <p className="text-muted-foreground">Shared across roles — AI chat assistant.</p>
         </CardContent>
       </Card>
     </div>

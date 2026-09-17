@@ -1,0 +1,1 @@
+﻿/** Verify transaction placeholder */ import type { TransactionResult } from './types'; export const verifyTransaction = (id: string): Promise<TransactionResult> => { void id; return Promise.resolve({}); };

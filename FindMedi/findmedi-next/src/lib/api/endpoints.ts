@@ -10,7 +10,7 @@
  * The backend is kept SEPARATE from Next.js — Next.js consumes it as an
  * external API via the NEXT_PUBLIC_API_URL env var.
  */
-import { request, downloadFile, type getApiBaseUrl, type getServerOrigin } from './client';
+import { request, downloadFile, getApiBaseUrl, getServerOrigin } from './client';
 import { resolveFileUrl, withQuery } from '@/lib/utils';
 import type { User, AuthResponse, LoginCredentials, RegisterPayload } from '@/types/models/user';
 import type { Doctor } from '@/types/models/doctor';
@@ -737,6 +737,17 @@ export const announcements = {
  * Backward-compatible flat aliases are provided for auth methods
  * (used by authSlice.ts) and legacy download/patient aliases.
  */
+// ─── Clinic-specific aliases (compat with old client src/lib/api.js) ─
+export const clinic = {
+  getProfile: (): Promise<Record<string, unknown>> => request('/facilities/mine'),
+  updateProfile: (body: Record<string, unknown>): Promise<Record<string, unknown>> => request('/facilities/mine', { method: 'PUT', body: JSON.stringify(body) }),
+  getStaff: (params: ListParams = {}): Promise<Record<string, unknown>[]> => request(withQuery('/facilities/staff', params)),
+  createStaff: (body: Record<string, unknown>): Promise<Record<string, unknown>> => request('/facilities/staff', { method: 'POST', body: JSON.stringify(body) }),
+  updateStaff: (id: string, body: Record<string, unknown>): Promise<Record<string, unknown>> => request('/facilities/staff/'+id, { method: 'PUT', body: JSON.stringify(body) }),
+  deleteStaff: (id: string): Promise<{message:string}> => request('/facilities/staff/'+id, { method: 'DELETE' }),
+};
+
+
 export const api = {
   auth,
   doctors,
@@ -859,9 +870,95 @@ export const api = {
     request(`/delivery-partners/profile/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
   updateDeliveryStatus: (id: string, status: string): Promise<Record<string, unknown>> =>
     request(`/delivery-partners/deliveries/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) }),
+  // ── Superadmin legacy aliases (compat with old client) ─
+  getUsers: (p: Record<string, unknown> = {}): Promise<Record<string, unknown>> => request(withQuery('/users', p as Record<string, string | number | boolean>)),
+  deleteUser: (id: string): Promise<{ message: string }> => request(`/users/${id}`, { method: 'DELETE' }),
+  blockUser: (id: string): Promise<Record<string, unknown>> => request(`/users/${id}/block`, { method: 'PUT' }),
+  flagUser: (id: string, body: Record<string, unknown>): Promise<Record<string, unknown>> => request(`/users/${id}/flag`, { method: 'PUT', body: JSON.stringify(body) }),
+  unflagUser: (id: string): Promise<Record<string, unknown>> => request(`/users/${id}/unflag`, { method: 'PUT' }),
+  getHospitals: (p: Record<string, unknown> = {}): Promise<Record<string, unknown>> => request(withQuery('/hospitals', p as Record<string, string | number | boolean>)),
+  suspendHospital: (id: string): Promise<Record<string, unknown>> => request(`/hospitals/${id}/suspend`, { method: 'PUT' }),
+  deleteHospital: (id: string): Promise<{ message: string }> => request(`/hospitals/${id}`, { method: 'DELETE' }),
+  approveHospital: (id: string): Promise<Record<string, unknown>> => request(`/hospitals/${id}/approve`, { method: 'PUT' }),
+  rejectHospital: (id: string, body: Record<string, unknown>): Promise<Record<string, unknown>> => request(`/hospitals/${id}/reject`, { method: 'PUT', body: JSON.stringify(body) }),
+  getPendingFacilities: (type?: string): Promise<Record<string, unknown>> => request(withQuery('/facilities/pending', type ? { type } : {})),
+  approveFacility: (id: string): Promise<Record<string, unknown>> => request(`/facilities/${id}/approve`, { method: 'PUT' }),
+  rejectFacility: (id: string, body: Record<string, unknown>): Promise<Record<string, unknown>> => request(`/facilities/${id}/reject`, { method: 'PUT', body: JSON.stringify(body) }),
+  getSupportTickets: (p: Record<string, unknown> = {}): Promise<Record<string, unknown>> => request(withQuery('/support-tickets', p as Record<string, string | number | boolean>)),
+  getTicketStats: (): Promise<Record<string, unknown>> => request('/support-tickets/stats'),
+  addTicketMessage: (id: string, body: Record<string, unknown>): Promise<Record<string, unknown>> => request(`/support-tickets/${id}/messages`, { method: 'POST', body: JSON.stringify(body) }),
+  updateTicketStatus: (id: string, body: Record<string, unknown>): Promise<Record<string, unknown>> => request(`/support-tickets/${id}/status`, { method: 'PUT', body: JSON.stringify(body) }),
+  getDisputes: (p: Record<string, unknown> = {}): Promise<Record<string, unknown>> => request(withQuery('/disputes', p as Record<string, string | number | boolean>)),
+  getDisputeStats: (): Promise<Record<string, unknown>> => request('/disputes/stats'),
+  updateDisputeStatus: (id: string, body: Record<string, unknown>): Promise<Record<string, unknown>> => request(`/disputes/${id}/status`, { method: 'PUT', body: JSON.stringify(body) }),
+  getFlaggedReviews: (p: Record<string, unknown> = {}): Promise<Record<string, unknown>> => request(withQuery('/reviews/moderation', p as Record<string, string | number | boolean>)),
+  flagReview: (id: string, body: Record<string, unknown>): Promise<Record<string, unknown>> => request(`/reviews/moderation/${id}/flag`, { method: 'PUT', body: JSON.stringify(body) }),
+  unflagReview: (id: string): Promise<Record<string, unknown>> => request(`/reviews/moderation/${id}/unflag`, { method: 'PUT' }),
+  deleteReview: (id: string): Promise<{ message: string }> => request(`/reviews/${id}`, { method: 'DELETE' }),
+  getCategories: (p: Record<string, unknown> = {}): Promise<Record<string, unknown>> => request(withQuery('/categories', p as Record<string, string | number | boolean>)),
+  createCategory: (body: Record<string, unknown>): Promise<Record<string, unknown>> => request('/categories', { method: 'POST', body: JSON.stringify(body) }),
+  updateCategory: (id: string, body: Record<string, unknown>): Promise<Record<string, unknown>> => request(`/categories/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  deleteCategory: (id: string): Promise<{ message: string }> => request(`/categories/${id}`, { method: 'DELETE' }),
+  getPlatformCoupons: (p: Record<string, unknown> = {}): Promise<Record<string, unknown>> => request(withQuery('/platform-coupons', p as Record<string, string | number | boolean>)),
+  getPlatformCouponStats: (): Promise<Record<string, unknown>> => request('/platform-coupons/stats'),
+  createPlatformCoupon: (body: Record<string, unknown>): Promise<Record<string, unknown>> => request('/platform-coupons', { method: 'POST', body: JSON.stringify(body) }),
+  updatePlatformCoupon: (id: string, body: Record<string, unknown>): Promise<Record<string, unknown>> => request(`/platform-coupons/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  getFeaturedListings: (p: Record<string, unknown> = {}): Promise<Record<string, unknown>> => request(withQuery('/featured-listings', p as Record<string, string | number | boolean>)),
+  createFeaturedListing: (body: Record<string, unknown>): Promise<Record<string, unknown>> => request('/featured-listings', { method: 'POST', body: JSON.stringify(body) }),
+  deleteFeaturedListing: (id: string): Promise<{ message: string }> => request(`/featured-listings/${id}`, { method: 'DELETE' }),
+  getCities: (p: Record<string, unknown> = {}): Promise<Record<string, unknown>> => request(withQuery('/cities', p as Record<string, string | number | boolean>)),
+  createCity: (body: Record<string, unknown>): Promise<Record<string, unknown>> => request('/cities', { method: 'POST', body: JSON.stringify(body) }),
+  updateCity: (id: string, body: Record<string, unknown>): Promise<Record<string, unknown>> => request(`/cities/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  deleteCity: (id: string): Promise<{ message: string }> => request(`/cities/${id}`, { method: 'DELETE' }),
+  getIntegrations: (): Promise<Record<string, unknown>> => request('/integrations'),
+  updateIntegration: (key: string, body: Record<string, unknown>): Promise<Record<string, unknown>> => request(`/integrations/${key}`, { method: 'PUT', body: JSON.stringify(body) }),
+  testIntegration: (key: string): Promise<Record<string, unknown>> => request(`/integrations/${key}/test`, { method: 'POST' }),
+  getWebhooks: (provider: string): Promise<Record<string, unknown>> => request(`/integrations/${provider}/webhooks`),
+  createWebhook: (provider: string, body: Record<string, unknown>): Promise<Record<string, unknown>> => request(`/integrations/${provider}/webhooks`, { method: 'POST', body: JSON.stringify(body) }),
+  deleteWebhook: (provider: string, webhookId: string): Promise<{ message: string }> => request(`/integrations/${provider}/webhooks/${webhookId}`, { method: 'DELETE' }),
+  getSystemSettings: (): Promise<Record<string, unknown>> => request('/system-settings'),
+  updateSystemSetting: (key: string, body: Record<string, unknown>): Promise<Record<string, unknown>> => request(`/system-settings/${key}`, { method: 'PUT', body: JSON.stringify(body) }),
+  getPlatformContent: (key: string): Promise<Record<string, unknown>> => request(`/platform-content/${key}`),
+  updatePlatformContent: (key: string, body: Record<string, unknown>): Promise<Record<string, unknown>> => request(`/platform-content/${key}`, { method: 'PUT', body: JSON.stringify(body) }),
+  getBroadcasts: (p: Record<string, unknown> = {}): Promise<Record<string, unknown>> => request(withQuery('/broadcast', p as Record<string, string | number | boolean>)),
+  createBroadcast: (body: Record<string, unknown>): Promise<Record<string, unknown>> => request('/broadcast', { method: 'POST', body: JSON.stringify(body) }),
+  getAuditLogs: (p: Record<string, unknown> = {}): Promise<Record<string, unknown>> => request(withQuery('/audit-logs', p as Record<string, string | number | boolean>)),
+  getAuditLogStats: (): Promise<Record<string, unknown>> => request('/audit-logs/stats'),
+  getCommissionConfigs: (): Promise<Record<string, unknown>> => request('/commission/config'),
+  updateCommissionConfig: (id: string, body: Record<string, unknown>): Promise<Record<string, unknown>> => request(`/commission/config/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  getTransactionLedger: (p: Record<string, unknown> = {}): Promise<Record<string, unknown>> => request(withQuery('/transactions/ledger', p as Record<string, string | number | boolean>)),
+  getPayouts: (p: Record<string, unknown> = {}): Promise<Record<string, unknown>> => request(withQuery('/commission/payouts', p as Record<string, string | number | boolean>)),
+  markPayoutPaid: (id: string, body: Record<string, unknown>): Promise<Record<string, unknown>> => request(`/commission/payouts/${id}/pay`, { method: 'PUT', body: JSON.stringify(body) }),
+  getTests: (p: Record<string, unknown> = {}): Promise<Record<string, unknown>> => request(withQuery('/tests', p as Record<string, string | number | boolean>)),
+  getMedicines: (p: Record<string, unknown> = {}): Promise<Record<string, unknown>> => request(withQuery('/pharmacy/medicines', p as Record<string, string | number | boolean>)),
+  getClinicProfile: clinic.getProfile,
+  updateClinicProfile: clinic.updateProfile,
+  getClinicStaff: clinic.getStaff,
+  createClinicStaff: clinic.createStaff,
+  updateClinicStaff: clinic.updateStaff,
+  deleteClinicStaff: clinic.deleteStaff,
+  getMyFacility: (): Promise<Record<string, unknown>> => request('/facilities/mine'),
+  getDoctorAnalytics: (params?: Record<string, unknown>): Promise<Record<string, unknown>> => request(withQuery('/analytics/doctor', params as Record<string,string> || {})),
+  updateDoctorSchedule: doctors.updateSchedule,
+  updateDoctor: doctors.update,
+  getTestStats: tests.getStats,
+  createTest: tests.create,
+  updateTest: tests.update,
+  deleteTest: tests.delete,
+  updateNotification: (id:string, body:Record<string,unknown>):Promise<Record<string,unknown>> => request('/notifications/'+id, {method:'PUT', body: JSON.stringify(body)}),
+  deleteNotification: (id:string):Promise<{message:string}> => request('/notifications/'+id, {method:'DELETE'}),
+  updateBill: billing.update,
+  deleteBill: billing.delete,
+  updateLabBooking: lab.updateBooking,
+  deleteLabBooking: lab.deleteBooking,
+  getLabEquipment: lab.getEquipment,
   // Generic dispatch passthrough
   dispatch: (path: string, options: { method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'; body?: unknown; headers?: Record<string, string> }) =>
     request(path, { method: options.method, body: options.body, headers: options.headers }),
+  get: (path: string): Promise<unknown> => request(path),
+  put: (path: string, body?: unknown): Promise<unknown> => request(path, { method: 'PUT', body: body ? JSON.stringify(body) : undefined }),
+  post: (path: string, body?: unknown): Promise<unknown> => request(path, { method: 'POST', body: body ? JSON.stringify(body) : undefined }),
+  del: (path: string): Promise<unknown> => request(path, { method: 'DELETE' }),
 };
 
 export { request, downloadFile } from './client';

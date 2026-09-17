@@ -1,29 +1,11 @@
 /**
- * My Appointments — Dashboard page stub.
- *
- * Migrated from client/src/pages/.
- * Full component implementation will be ported in Phase 4.
- * This stub provides the correct route structure and Client Component wrapper.
+ * My Appointments — renders the shared booking history scoped to appointments.
+ * Mirrors client/src/pages/patient/PatientAppointments.jsx.
  */
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PatientBookingHistory } from '@/components/patient';
 
 export default function MyAppointmentsPage() {
-  return (
-    <div className="container mx-auto py-6">
-      <h1 className="text-2xl font-bold mb-4">My Appointments</h1>
-      <Card>
-        <CardHeader>
-          <CardTitle>My Appointments</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">
-            This page is under migration from the legacy Vite app.
-            Full implementation coming soon.
-          </p>
-        </CardContent>
-      </Card>
-    </div>
-  );
+  return <PatientBookingHistory initialType="appointment" />;
 }

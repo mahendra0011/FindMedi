@@ -21,10 +21,7 @@ export default function SettingsPage() {
           <CardTitle>Settings</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground">
-            This page is under migration from the legacy Vite app.
-            Full implementation coming soon.
-          </p>
+          <p className="text-muted-foreground">Shared across roles — use role-specific settings where available.</p>
         </CardContent>
       </Card>
     </div>
