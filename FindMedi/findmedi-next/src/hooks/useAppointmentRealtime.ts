@@ -10,7 +10,7 @@ import { getSocket, joinRoom } from '@/lib/socket';
  */
 export function useAppointmentRealtime(onUpdate?: () => void): void {
   const { user } = useAuth();
-  const userId = user?._id || (user as any)?.id;
+  const userId = user?._id || (user as { id?: string })?.id;
 
   useEffect(() => {
     if (!userId) return;

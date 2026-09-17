@@ -836,28 +836,28 @@ export const api = {
   getPharmacyMedicines: pharmacy.getMedicines,
   getPharmacyReturns: pharmacy.getReturns,
   // ── Calls & Video Calls ──
-  getCalls: (p: Record<string, unknown> = {}): Promise<{ success: boolean; data: any[] }> =>
+  getCalls: (p: Record<string, unknown> = {}): Promise<{ success: boolean; data: Record<string, unknown>[] }> =>
     request(withQuery('/calls', p as Record<string, string | number | boolean>)),
-  getCallStats: (): Promise<{ success: boolean; stats: any }> => request('/calls/stats'),
-  getCallContacts: (): Promise<{ success: boolean; contacts: any[] }> => request('/calls/contacts'),
-  initiateCallLog: (body: unknown): Promise<{ success: boolean; data: any }> =>
+  getCallStats: (): Promise<{ success: boolean; stats: Record<string, unknown> }> => request('/calls/stats'),
+  getCallContacts: (): Promise<{ success: boolean; contacts: Record<string, unknown>[] }> => request('/calls/contacts'),
+  initiateCallLog: (body: unknown): Promise<{ success: boolean; data: Record<string, unknown> }> =>
     request('/calls/initiate', { method: 'POST', body: JSON.stringify(body) }),
-  updateCallStatus: (id: string, body: unknown): Promise<{ success: boolean; data: any }> =>
+  updateCallStatus: (id: string, body: unknown): Promise<{ success: boolean; data: Record<string, unknown> }> =>
     request(`/calls/${id}/status`, { method: 'PUT', body: JSON.stringify(body) }),
   deleteCallLog: (id: string): Promise<{ success: boolean; message: string }> =>
     request(`/calls/${id}`, { method: 'DELETE' }),
   clearAllCallLogs: (): Promise<{ success: boolean; message: string }> =>
     request('/calls/clear/all', { method: 'DELETE' }),
   // ── Dashboard & Superadmin ──
-  dashboardStats: (): Promise<any> => request('/dashboard/stats'),
-  getCommissionStats: (): Promise<any> => request('/superadmin/commission/stats'),
-  getPendingHospitals: (): Promise<any> => request('/superadmin/pending-hospitals'),
+  dashboardStats: (): Promise<Record<string, unknown>> => request('/dashboard/stats'),
+  getCommissionStats: (): Promise<Record<string, unknown>> => request('/superadmin/commission/stats'),
+  getPendingHospitals: (): Promise<Record<string, unknown>> => request('/superadmin/pending-hospitals'),
   // ── Delivery Partner ──
-  getDeliveryProfile: (): Promise<any> => request('/delivery-partners/profile/me'),
-  getMyDeliveries: (): Promise<any> => request('/delivery-partners/my-deliveries'),
-  updateDeliveryProfile: (id: string, body: unknown): Promise<any> =>
+  getDeliveryProfile: (): Promise<Record<string, unknown>> => request('/delivery-partners/profile/me'),
+  getMyDeliveries: (): Promise<Record<string, unknown>> => request('/delivery-partners/my-deliveries'),
+  updateDeliveryProfile: (id: string, body: unknown): Promise<Record<string, unknown>> =>
     request(`/delivery-partners/profile/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
-  updateDeliveryStatus: (id: string, status: string): Promise<any> =>
+  updateDeliveryStatus: (id: string, status: string): Promise<Record<string, unknown>> =>
     request(`/delivery-partners/deliveries/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) }),
   // Generic dispatch passthrough
   dispatch: (path: string, options: { method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'; body?: unknown; headers?: Record<string, string> }) =>

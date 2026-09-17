@@ -41,8 +41,9 @@ export const initializeAuth = createAsyncThunk<
         settings: mergeSettings(readStoredSettings(), user.settings),
       };
       return mergedUser;
-    } catch (err: any) {
-      const status = err?.response?.status || err?.status;
+    } catch (err: unknown) {
+      const e = err as { status?: number; response?: { status?: number } };
+      const status = e?.response?.status || e?.status;
       if (status === 401 || status === 400 || status === 403) {
         return null; // session genuinely invalid
       }
@@ -64,8 +65,9 @@ export const loginUser = createAsyncThunk<User, LoginCredentials, { rejectValue:
         settings: mergeSettings(readStoredSettings(), data.user?.settings),
       };
       return mergedUser;
-    } catch (err: any) {
-      const message = err?.response?.data?.message || err.message || 'Login failed';
+    } catch (err: unknown) {
+      const e = err as { message?: string; response?: { data?: { message?: string } } };
+      const message = e?.response?.data?.message || e.message || 'Login failed';
       return rejectWithValue(message);
     }
   },
@@ -87,8 +89,9 @@ export const registerUser = createAsyncThunk<
       settings: mergeSettings(readStoredSettings(), data.user?.settings),
     };
     return { user: mergedUser, requiresVerification: false };
-  } catch (err: any) {
-    const message = err?.response?.data?.message || err.message || 'Registration failed';
+  } catch (err: unknown) {
+    const e = err as { message?: string; response?: { data?: { message?: string } } };
+    const message = e?.response?.data?.message || e.message || 'Registration failed';
     return rejectWithValue(message);
   }
 });
@@ -104,8 +107,9 @@ export const verifyOtp = createAsyncThunk<User, { email: string; otp: string }, 
         settings: mergeSettings(readStoredSettings(), data.user?.settings),
       };
       return mergedUser;
-    } catch (err: any) {
-      const message = err?.response?.data?.message || err.message || 'OTP verification failed';
+    } catch (err: unknown) {
+      const e = err as { message?: string; response?: { data?: { message?: string } } };
+      const message = e?.response?.data?.message || e.message || 'OTP verification failed';
       return rejectWithValue(message);
     }
   },

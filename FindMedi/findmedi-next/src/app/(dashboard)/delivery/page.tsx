@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import {
   Package, IndianRupee, Star, TrendingUp, Bike, Wifi, WifiOff,
-  MapPin, Clock, Phone, CheckCircle, ChevronRight
+  MapPin, Clock, Phone, CheckCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -65,7 +65,7 @@ export default function DeliveryDashboard() {
         if (!mounted.current) return;
 
         if (prof.status === 'fulfilled') {
-          setProfile(prof.value);
+          setProfile(prof.value as unknown as DeliveryProfile);
         }
         if (dels.status === 'fulfilled') {
           const val = dels.value;

@@ -169,7 +169,7 @@ function HistoryRecordCard({ record }: { record: PatientHistoryRecord }) {
       {/* Doctor notes / advice */}
       {notes && (
         <div className="mb-2">
-          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Doctor's Notes</span>
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Doctor&apos;s Notes</span>
           <p className="text-sm text-muted-foreground line-clamp-3">{notes}</p>
         </div>
       )}

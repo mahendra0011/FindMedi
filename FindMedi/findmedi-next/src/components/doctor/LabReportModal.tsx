@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { Plus, X, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -57,7 +57,9 @@ export default function LabReportModal({
     ...initialData,
   });
 
-  useEffect(() => {
+  const [prevInitial, setPrevInitial] = useState(initialData);
+  if (prevInitial !== initialData) {
+    setPrevInitial(initialData);
     if (initialData) {
       setFormData(prev => ({
         ...prev,
@@ -65,7 +67,7 @@ export default function LabReportModal({
         tests: initialData.tests && initialData.tests.length > 0 ? initialData.tests : prev.tests,
       }));
     }
-  }, [initialData]);
+  }
 
   if (!isOpen) return null;
 

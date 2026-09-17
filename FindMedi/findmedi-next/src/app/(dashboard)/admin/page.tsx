@@ -57,8 +57,8 @@ export default function HospitalAdminDashboard() {
         const apptList = Array.isArray(apptVal) ? apptVal : ((apptVal as { data?: Appointment[] })?.data || []);
         setAppointments(apptList as Appointment[]);
 
-        const s = (dashVal as { stats?: Record<string, number> })?.stats || dashVal || {};
-        const docCount = (docVal as any)?.total || (Array.isArray(docVal) ? docVal.length : 0);
+        const s: Record<string, number> = (dashVal as { stats?: Record<string, number> })?.stats || (dashVal as Record<string, number>) || {};
+        const docCount = (docVal as { total?: number })?.total || (Array.isArray(docVal) ? docVal.length : 0);
         setStats({
           totalPatients: s.totalPatients || 1420,
           totalDoctors: docCount || s.totalDoctors || 42,

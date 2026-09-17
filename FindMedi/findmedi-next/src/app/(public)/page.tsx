@@ -43,9 +43,10 @@ async function fetchHomeData() {
       api.hospitals.get({ limit: 6, featured: true }).catch(() => []),
       api.facilities.get({ limit: 6, type: 'lab', approved: true }).catch(() => []),
     ]);
-    const toArray = (res: any) => {
+    const toArray = (res: unknown) => {
       if (Array.isArray(res)) return res;
-      return res?.doctors || res?.hospitals || res?.facilities || res?.data || [];
+      const r = res as { doctors?: unknown[]; hospitals?: unknown[]; facilities?: unknown[]; data?: unknown[] } | undefined;
+      return r?.doctors || r?.hospitals || r?.facilities || r?.data || [];
     };
     return {
       doctors: toArray(doctorsRes),

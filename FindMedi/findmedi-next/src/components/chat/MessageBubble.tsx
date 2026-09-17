@@ -207,10 +207,16 @@ function AudioPlayer({
   const [speed, setSpeed] = useState(1);
   const [progress, setProgress] = useState(0);
   const [total, setTotal] = useState(Number(duration) || 0);
-  const bars = useMemo(
-    () => Array.from({ length: 34 }, () => 18 + Math.round(Math.random() * 82)),
-    [url]
-  );
+  const bars = useMemo(() => {
+    let s = 0;
+    for (let i = 0; i < (url?.length || 0); i++) s = (s * 31 + (url?.charCodeAt(i) || 0)) | 0;
+    const result: number[] = [];
+    for (let i = 0; i < 34; i++) {
+      s = (s * 1103515245 + 12345) & 0x7fffffff;
+      result.push(18 + (s % 83));
+    }
+    return result;
+  }, [url]);
 
   const toggle = () => {
     const el = ref.current;

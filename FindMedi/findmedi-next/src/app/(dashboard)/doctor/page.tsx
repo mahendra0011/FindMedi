@@ -42,6 +42,8 @@ export default function DoctorDashboardPage() {
   const [apptTab, setApptTab] = useState<'pending' | 'upcoming' | 'today' | 'complete'>('today');
   const mounted = useRef(true);
 
+  const userName = user?.name;
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -60,7 +62,7 @@ export default function DoctorDashboardPage() {
         ? (apptRaw as AppointmentItem[])
         : (apptRaw as { appointments?: AppointmentItem[]; data?: AppointmentItem[] })?.appointments ||
           (apptRaw as { data?: AppointmentItem[] })?.data || [];
-      const docName = user?.name?.toLowerCase();
+      const docName = userName?.toLowerCase();
       const myAppts = apptList.filter(apt =>
         apt.doctor?.toLowerCase() === docName ||
         apt.doctor?.toLowerCase().includes(docName || '')
@@ -118,7 +120,7 @@ export default function DoctorDashboardPage() {
       toast.error('Failed to load dashboard data');
     }
     if (mounted.current) setLoading(false);
-  }, [user?.name]);
+  }, [userName]);
 
   useEffect(() => {
     mounted.current = true;

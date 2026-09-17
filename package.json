@@ -8,7 +8,7 @@
   "scripts": {
     "postinstall": "npm run install:all",
     "install:all": "npm install --prefix FindMedi/server && npm install --prefix FindMedi/client && npm install --prefix FindMedi/findmedi-next",
-    "dev": "concurrently \"npm run dev --prefix FindMedi/server\" \"npm run dev --prefix FindMedi/client\" \"npm run dev --prefix FindMedi/findmedi-next\"",
+    "dev": "npx concurrently \"npm run dev --prefix FindMedi/server\" \"npm run dev --prefix FindMedi/client\" \"npm run dev --prefix FindMedi/findmedi-next\"",
     "dev:server": "npm run dev --prefix FindMedi/server",
     "dev:client": "npm run dev --prefix FindMedi/client",
     "dev:next": "npm run dev --prefix FindMedi/findmedi-next",
@@ -19,6 +19,6 @@
     "build:next": "npm run build --prefix FindMedi/findmedi-next"
   },
   "devDependencies": {
-    "concurrently": "^9.1.0"
+    "concurrently": "^9.2.4"
   }
 }

@@ -21,6 +21,21 @@ interface UpcomingAppointmentsSectionProps {
   } | null;
 }
 
+interface EmbeddedPatient {
+  _id?: string;
+  name?: string;
+  phone?: string;
+  email?: string;
+  avatar?: string;
+  profilePicture?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  address?: string;
+  bloodGroup?: string;
+  age?: number;
+  uhid?: string;
+}
+
 /**
  * Calculates human-readable relative days from today (IST YYYY-MM-DD)
  */
@@ -46,10 +61,10 @@ function getRelativeDays(targetDate: string, todayStr: string): string {
   return `${Math.abs(diffDays)} days ago`;
 }
 
-function getModeDetails(appt: any) {
+function getModeDetails(appt: Partial<Appointment> & { type?: string }) {
   const mode = (appt.appointmentMode || '').toLowerCase();
   const type = (appt.type || '').toLowerCase();
-  const intakeMode = (appt.preConsultationDetails?.appointmentMode || appt.preConsultationDetails?.mode || '').toLowerCase();
+  const intakeMode = ((appt.preConsultationDetails as { appointmentMode?: string; mode?: string } | undefined)?.appointmentMode || (appt.preConsultationDetails as { appointmentMode?: string; mode?: string } | undefined)?.mode || '').toLowerCase();
 
   if (mode === 'video' || type.includes('video') || intakeMode === 'video') {
     return {
@@ -95,7 +110,7 @@ export default function UpcomingAppointmentsSection({
 
   // Filter only future confirmed/scheduled online appointments
   const upcomingList = useMemo(() => {
-    return (appointments as any[]).filter(a => {
+    return appointments.filter(a => {
       const s = (a.status || '').toLowerCase();
       // Must be future date and confirmed or scheduled
       const isFuture = (a.date || '') > today;
@@ -161,7 +176,8 @@ export default function UpcomingAppointmentsSection({
       if (search.trim()) {
         const q = search.toLowerCase();
         const pName = (a.patient || '').toLowerCase();
-        const pPhone = (a.patientId?.phone || a.phone || '').toLowerCase();
+        const patObj = typeof a.patientId === 'object' && a.patientId !== null ? (a.patientId as EmbeddedPatient) : null;
+        const pPhone = (patObj?.phone || (a as { phone?: string }).phone || '').toLowerCase();
         const sym = (a.symptoms || '').toLowerCase();
         const tok = (a.tokenNumber || '').toLowerCase();
         const dStr = (a.date || '').toLowerCase();
@@ -176,7 +192,7 @@ export default function UpcomingAppointmentsSection({
 
   // Group filtered appointments by date for structured reading
   const groupedByDate = useMemo(() => {
-    const groups: Record<string, any[]> = {};
+    const groups: Record<string, Appointment[]> = {};
     filteredAppointments.forEach(apt => {
       const dateKey = apt.date || 'Unknown';
       if (!groups[dateKey]) groups[dateKey] = [];
@@ -381,10 +397,11 @@ export default function UpcomingAppointmentsSection({
                   {list.map(apt => {
                     const modeDetails = getModeDetails(apt);
                     const ModeIcon = modeDetails.icon;
-                    const patient = apt.patientId;
+                    const patient = typeof apt.patientId === 'object' && apt.patientId !== null ? (apt.patientId as EmbeddedPatient) : null;
+                    const patientPhone = patient?.phone || (apt as { phone?: string }).phone || '';
                     const age = patient?.dateOfBirth
                       ? Math.floor((new Date().getTime() - new Date(patient.dateOfBirth).getTime()) / 31557600000)
-                      : null;
+                      : patient?.age || null;
 
                     return (
                       <div
@@ -407,8 +424,8 @@ export default function UpcomingAppointmentsSection({
                           {/* Patient Header */}
                           <div className="flex items-start gap-3 mb-3">
                             <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary shrink-0 overflow-hidden border border-primary/20">
-                              {patient?.avatar ? (
-                                <img src={patient.avatar} alt={apt.patient} className="w-full h-full object-cover" />
+                              {patient?.avatar || patient?.profilePicture ? (
+                                <img src={patient.avatar || patient.profilePicture} alt={apt.patient} className="w-full h-full object-cover" />
                               ) : (
                                 (apt.patient || '?').slice(0, 2).toUpperCase()
                               )}
@@ -435,10 +452,10 @@ export default function UpcomingAppointmentsSection({
                           </div>
 
                           {/* Phone / Contact */}
-                          {(patient?.phone || apt.phone) && (
+                          {patientPhone && (
                             <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1">
                               <Phone className="w-3 h-3 text-muted-foreground/70" />
-                              {patient?.phone || apt.phone}
+                              {patientPhone}
                             </p>
                           )}
 

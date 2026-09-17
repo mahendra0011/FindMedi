@@ -433,7 +433,7 @@ export default function ApproveAppointmentSection({ appointments, onConfirm, onR
               <h3 className="font-heading text-lg font-bold text-foreground">Reject Appointment</h3>
             </div>
             <p className="text-sm text-muted-foreground mb-4">
-              You are about to reject <span className="font-semibold text-foreground">{rejectTarget.patient}</span>'s appointment request. Please tell the reason for rejection (required).
+              You are about to reject <span className="font-semibold text-foreground">{rejectTarget.patient}</span>&apos;s appointment request. Please tell the reason for rejection (required).
             </p>
             <Textarea
               value={rejectReasonInput}

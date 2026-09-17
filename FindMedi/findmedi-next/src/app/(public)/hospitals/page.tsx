@@ -29,8 +29,8 @@ async function fetchHospitals(searchParams: SearchParams): Promise<Hospital[]> {
   if (searchParams.limit) params.limit = parseInt(searchParams.limit, 10);
   try {
     const res = await api.hospitals.get(params);
-    if (Array.isArray(res)) return res;
-    return (res as any)?.hospitals || (res as any)?.data || [];
+    const r = res as { hospitals?: Hospital[]; data?: Hospital[] };
+    return r?.hospitals || r?.data || [];
   } catch {
     return [];
   }

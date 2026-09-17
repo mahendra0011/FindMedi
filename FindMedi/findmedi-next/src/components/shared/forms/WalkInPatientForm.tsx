@@ -168,7 +168,7 @@ export default function WalkInPatientForm({ timeSlots, onPatientCreated }: WalkI
       });
     });
     return Object.entries(groups);
-  }, [doctorProfile?.time_slots, timeSlots]);
+  }, [doctorProfile, timeSlots]);
 
   const rangeFor = (slotStr: string) => {
     const start = slotToMinutes(slotStr);
