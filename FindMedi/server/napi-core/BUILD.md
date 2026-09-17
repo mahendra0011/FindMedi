@@ -40,7 +40,7 @@ Or manually:
 
 ```bash
 set RUSTC_BOOTSTRAP=1
-set DLLTOOL=%cd%\dlltool.exe
+set DLLTOOL=%cd%\tests\dlltool.exe
 npx napi build --platform --dts index.d.ts --release
 ```
 
@@ -77,9 +77,13 @@ The GitHub Actions workflow (`.github/workflows/ci.yml`) includes a `build-rust`
 
 ```bash
 cd server/napi-core
-node test.js          # ffi-napi based test
+node tests/test.js    # ffi-napi based test
 node -e "require('./index.js')"  # napi-rs wrapper test
 ```
+
+> Note: `test-image.js` currently stalls at the raw→PNG encode step (sharp/libvips
+> promise never settles in this environment) — JPEG paths all pass. Known issue,
+> tracked in the dev notes.
 
 ## Adding New Functions
 

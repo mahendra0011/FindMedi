@@ -25,7 +25,7 @@ REM Enable rustc internal APIs that cargo build scripts need under App Control
 set RUSTC_BOOTSTRAP=1
 
 REM Point cargo/rustc to the dlltool.exe replacement for GNU target
-set DLLTOOL=%~dp0dlltool.exe
+set DLLTOOL=%~dp0tests\dlltool.exe
 set PATH=%~dp0;%PATH%
 
 if "%~1"=="release" (

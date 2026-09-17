@@ -1,7 +1,7 @@
 const ffi = require('ffi-napi');
 const path = require('path');
 
-const libPath = path.join(__dirname, 'medi_core_napi.dll');
+const libPath = path.join(__dirname, '..', 'medi_core_napi.dll');
 const lib = ffi.Library(libPath, {
   hello: ['int', []],
   add: ['int', ['int', 'int']],
@@ -34,7 +34,7 @@ console.log('\n✓ Rust native module loads and runs from Node.js');
 console.log('\n=== Extended Tests (CSV + OTP) ===');
 
 try {
-  const napi = require('./index.js');
+  const napi = require('../index.js');
 
   // CSV tests
   console.log('\n-- CSV Export --');

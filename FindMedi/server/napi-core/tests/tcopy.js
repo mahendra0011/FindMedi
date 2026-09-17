@@ -1,5 +1,5 @@
 const sharp = require('sharp');
-const { hello, add, validateMagicBytes, resizeImage, getImageInfo } = require('./index.js');
+const { hello, add, validateMagicBytes, resizeImage, getImageInfo } = require('../index.js');
 
 async function makeTestImage(w, h, channels = 3) {
   const buf = Buffer.alloc(w * h * channels, 0);
