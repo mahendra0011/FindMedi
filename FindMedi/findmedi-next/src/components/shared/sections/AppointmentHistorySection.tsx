@@ -65,11 +65,17 @@ export default function AppointmentHistorySection({ appointments = [] }: Appoint
     } catch (e) {
       console.error(e);
       toast.error('Failed to load payment history');
+    } finally {
+      setPaymentsLoading(false);
     }
-    setPaymentsLoading(false);
   }, []);
 
-  useEffect(() => { loadPayments(); }, [loadPayments]);
+  useEffect(() => {
+    const t = setTimeout(() => {
+      void loadPayments();
+    }, 0);
+    return () => clearTimeout(t);
+  }, [loadPayments]);
 
   const filteredPayments = useMemo(() => {
     if (!paymentSearch.trim()) return payments;

@@ -1522,10 +1522,12 @@ export default function ChatSettingsPanel({
   initialSection = 'privacy',
 }: ChatSettingsPanelProps) {
   const [section, setSection] = useState(initialSection);
+  const [prevInitialSection, setPrevInitialSection] = useState(initialSection);
 
-  useEffect(() => {
+  if (prevInitialSection !== initialSection) {
+    setPrevInitialSection(initialSection);
     setSection(initialSection);
-  }, [initialSection]);
+  }
 
   if (!open) return null;
 

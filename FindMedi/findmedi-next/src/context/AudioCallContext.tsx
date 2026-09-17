@@ -122,13 +122,32 @@ export function AudioCallProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    refreshAudioDevices();
+    let active = true;
+    const fetchAudioDevices = async () => {
+      if (typeof navigator !== 'undefined' && navigator.mediaDevices?.enumerateDevices) {
+        try {
+          const devices = await navigator.mediaDevices.enumerateDevices();
+          if (active) {
+            setAudioDevices(devices.filter((d) => d.kind === 'audiooutput'));
+          }
+        } catch (e) {
+          console.warn('Audio devices enumeration error:', e);
+        }
+      }
+    };
+
+    void fetchAudioDevices();
+
     if (typeof navigator !== 'undefined' && navigator.mediaDevices?.addEventListener) {
       navigator.mediaDevices.addEventListener('devicechange', refreshAudioDevices);
       return () => {
+        active = false;
         navigator.mediaDevices.removeEventListener('devicechange', refreshAudioDevices);
       };
     }
+    return () => {
+      active = false;
+    };
   }, [refreshAudioDevices]);
 
   const cleanupMediaAndPeer = useCallback(() => {

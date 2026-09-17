@@ -82,15 +82,11 @@ export default function WalkInPatientForm({ timeSlots, onPatientCreated }: WalkI
 
   // Booked/disabled slots fetch for this doctor + date (real-time)
   useEffect(() => {
-    if (!doctorId || !date) {
-      setSlotCounts({});
-      setFullSlots([]);
-      setDateDisabledSlots([]);
-      setPendingDisabledSlots([]);
-      return;
-    }
+    if (!doctorId || !date) return;
+    let active = true;
     api.getBookedSlots({ doctorId, date })
       .then(res => {
+        if (!active) return;
         const data = res as unknown as { counts?: Record<string, number>; fullSlots?: string[]; dateDisabled?: string[]; pendingDisabledSlots?: string[] };
         if (data && typeof data === 'object' && !Array.isArray(data) && data.counts) {
           setSlotCounts(data.counts || {});
@@ -107,7 +103,17 @@ export default function WalkInPatientForm({ timeSlots, onPatientCreated }: WalkI
           setPendingDisabledSlots([]);
         }
       })
-      .catch(() => { setSlotCounts({}); setFullSlots([]); setDateDisabledSlots([]); setPendingDisabledSlots([]); });
+      .catch(() => {
+        if (active) {
+          setSlotCounts({});
+          setFullSlots([]);
+          setDateDisabledSlots([]);
+          setPendingDisabledSlots([]);
+        }
+      });
+    return () => {
+      active = false;
+    };
   }, [doctorId, date]);
 
   // ─── Slot helpers ───

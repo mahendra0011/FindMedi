@@ -134,17 +134,22 @@ export default function ChatInfoPanel({
   const [showWallpapers, setShowWallpapers] = useState(false);
 
   useEffect(() => {
-    if (!query.trim() || query.trim().length < 2) {
-      setResults([]);
-      return;
-    }
+    const trimmed = query.trim();
+    if (trimmed.length < 2) return;
+
+    let active = true;
     const t = setTimeout(async () => {
       setSearching(true);
-      const found = await onSearch?.(query.trim());
-      setResults(found || []);
-      setSearching(false);
+      const found = await onSearch?.(trimmed);
+      if (active) {
+        setResults(found || []);
+        setSearching(false);
+      }
     }, 400);
-    return () => clearTimeout(t);
+    return () => {
+      active = false;
+      clearTimeout(t);
+    };
   }, [query, onSearch]);
 
   const groupedMedia = useMemo(() => {
@@ -230,7 +235,13 @@ export default function ChatInfoPanel({
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
             <input
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                setQuery(val);
+                if (!val.trim() || val.trim().length < 2) {
+                  setResults([]);
+                }
+              }}
               placeholder="Search in conversation…"
               className="w-full bg-muted/60 border border-border rounded-full pl-8 pr-3 py-1.5 text-[12px] focus:outline-none focus:ring-1 focus:ring-primary/40"
             />

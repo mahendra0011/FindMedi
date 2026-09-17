@@ -25,30 +25,18 @@ import { useAppointmentRealtime } from '@/hooks/useAppointmentRealtime';
 import type { Appointment } from '@/types/models/appointment';
 import type { AppointmentStatus } from '@/types/enums';
 
+import {
+  RescheduleModal,
+  PrescriptionModal,
+  LabReportModal,
+  DischargeSummaryModal,
+  BillModal,
+  type PrescriptionFormData,
+  type LabReportFormData,
+  type DischargeFormData,
+} from '@/components/doctor';
+
 const timeSlots = ['9:00 AM', '9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM', '2:00 PM', '2:30 PM', '3:00 PM', '3:30 PM', '4:00 PM', '4:30 PM'];
-
-interface MedicationItem {
-  name: string;
-  dosage: string;
-  frequency: string;
-  instructions?: string;
-}
-
-interface PrescriptionFormData {
-  patientName: string;
-  age: string;
-  gender: string;
-  phone: string;
-  email: string;
-  address: string;
-  doctorName: string;
-  specialization: string;
-  chiefComplaints: string;
-  diagnosis: string;
-  medications: MedicationItem[];
-  advice: string;
-  followUp: string;
-}
 
 const initialPrescriptionData: PrescriptionFormData = {
   patientName: '', age: '', gender: '', phone: '', email: '', address: '',
@@ -58,28 +46,6 @@ const initialPrescriptionData: PrescriptionFormData = {
   advice: '', followUp: '',
 };
 
-interface LabReportTestItem {
-  name: string;
-  result: string;
-  unit: string;
-  referenceRange: string;
-}
-
-interface LabReportFormData {
-  patientName: string;
-  age: string;
-  gender: string;
-  phone: string;
-  email: string;
-  doctorName: string;
-  specialization: string;
-  reportId: string;
-  testDate: string;
-  reportDate: string;
-  tests: LabReportTestItem[];
-  notes: string;
-}
-
 const initialLabReportData: LabReportFormData = {
   patientName: '', age: '', gender: '', phone: '', email: '',
   doctorName: '', specialization: '',
@@ -87,27 +53,6 @@ const initialLabReportData: LabReportFormData = {
   tests: [{ name: '', result: '', unit: '', referenceRange: '' }],
   notes: '',
 };
-
-interface DischargeFormData {
-  patientName: string;
-  age: string;
-  gender: string;
-  phone: string;
-  email: string;
-  address: string;
-  doctorName: string;
-  specialization: string;
-  admissionId: string;
-  admissionDate: string;
-  dischargeDate: string;
-  chiefComplaints: string;
-  diagnosis: string;
-  treatmentGiven: string;
-  surgery: string;
-  medications: Array<{ name: string; dosage: string; frequency: string }>;
-  dischargeAdvice: string;
-  followUpInstructions: string;
-}
 
 const initialDischargeData: DischargeFormData = {
   patientName: '', age: '', gender: '', phone: '', email: '', address: '',
@@ -182,7 +127,10 @@ export default function DoctorAppointments({ initialView }: DoctorAppointmentsPr
   }, []);
 
   useEffect(() => {
-    loadAppointments();
+    const timer = setTimeout(() => {
+      loadAppointments();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [loadAppointments]);
 
   // Realtime hook
@@ -201,15 +149,15 @@ export default function DoctorAppointments({ initialView }: DoctorAppointmentsPr
   // Real slot availability on reschedule date change
   useEffect(() => {
     if (!rescheduleId || !newDate) {
-      setBookedSlots([]);
-      setDateDisabledSlots([]);
       return;
     }
+    let active = true;
     const apt = appointments.find(a => a._id === rescheduleId);
     const docId = (apt?.doctorId as unknown as { _id?: string })?._id || (apt?.doctorId as unknown as string);
     if (!docId) return;
     api.getBookedSlots({ doctorId: docId, date: newDate })
       .then(res => {
+        if (!active) return;
         const data = res as unknown as { fullSlots?: string[]; counts?: Record<string, number>; dateDisabled?: string[] };
         if (data && typeof data === 'object' && !Array.isArray(data)) {
           setBookedSlots(data.fullSlots || Object.keys(data.counts || {}));
@@ -220,6 +168,7 @@ export default function DoctorAppointments({ initialView }: DoctorAppointmentsPr
         }
       })
       .catch(err => console.error('Failed to fetch booked slots:', err));
+    return () => { active = false; };
   }, [rescheduleId, newDate, appointments]);
 
   const today = getISTDateString();
@@ -239,14 +188,12 @@ export default function DoctorAppointments({ initialView }: DoctorAppointmentsPr
     }
   };
 
-  const handleReschedule = async () => {
-    if (!newDate || !newTime || !rescheduleId) return;
+  const handleReschedule = async (date: string, time: string) => {
+    if (!date || !time || !rescheduleId) return;
     try {
-      await api.updateAppointment(rescheduleId, { date: newDate, time: newTime, status: 'Confirmed' as AppointmentStatus });
+      await api.updateAppointment(rescheduleId, { date, time, status: 'Confirmed' as AppointmentStatus });
       toast.success('Appointment rescheduled');
       setRescheduleId(null);
-      setNewDate('');
-      setNewTime('');
       loadAppointments();
     } catch (e) {
       console.error(e);
@@ -300,75 +247,29 @@ export default function DoctorAppointments({ initialView }: DoctorAppointmentsPr
     return () => window.removeEventListener('open-prescription', handler);
   }, [openReportModal]);
 
-  const addMedication = (type: 'Prescription' | 'Discharge') => {
-    if (type === 'Prescription') {
-      setPrescriptionData({
-        ...prescriptionData,
-        medications: [...prescriptionData.medications, { name: '', dosage: '', frequency: '', instructions: '' }]
-      });
-    } else {
-      setDischargeData({
-        ...dischargeData,
-        medications: [...dischargeData.medications, { name: '', dosage: '', frequency: '' }]
-      });
-    }
-  };
-
-  const removeMedication = (type: 'Prescription' | 'Discharge', index: number) => {
-    if (type === 'Prescription') {
-      setPrescriptionData({
-        ...prescriptionData,
-        medications: prescriptionData.medications.filter((_, i) => i !== index)
-      });
-    } else {
-      setDischargeData({
-        ...dischargeData,
-        medications: dischargeData.medications.filter((_, i) => i !== index)
-      });
-    }
-  };
-
-  const updateMedication = (type: 'Prescription' | 'Discharge', index: number, field: string, value: string) => {
-    if (type === 'Prescription') {
-      const meds = [...prescriptionData.medications];
-      const target = meds[index];
-      if (target) {
-        meds[index] = { ...target, [field]: value };
-        setPrescriptionData({ ...prescriptionData, medications: meds });
-      }
-    } else {
-      const meds = [...dischargeData.medications];
-      const target = meds[index];
-      if (target) {
-        meds[index] = { ...target, [field]: value };
-        setDischargeData({ ...dischargeData, medications: meds });
-      }
-    }
-  };
-
-  const handleGeneratePrescription = async () => {
+  const handleGeneratePrescription = async (data: PrescriptionFormData) => {
     const apt = appointments.find(a => a._id === completeId);
     if (!apt) return toast.error('Appointment not found');
-    if (!prescriptionData.diagnosis) return toast.error('Please enter a diagnosis');
+    if (!data.diagnosis) return toast.error('Please enter a diagnosis');
     try {
-      const meds = prescriptionData.medications.filter(m => m.name.trim());
+      const meds = data.medications.filter(m => m.name.trim());
       const patientId = (apt.patientId as unknown as { _id?: string })?._id || (apt.patientId as unknown as string);
       await api.createRecord({
-        patient: prescriptionData.patientName,
+        patient: data.patientName,
         patientId,
-        doctor: prescriptionData.doctorName,
-        diagnosis: prescriptionData.diagnosis,
-        prescription: prescriptionData.medications.map(m => `${m.name} - ${m.dosage} - ${m.frequency} ${m.instructions ? `(${m.instructions})` : ''}`).join('\n'),
+        doctor: data.doctorName,
+        diagnosis: data.diagnosis,
+        prescription: meds.map(m => `${m.name} - ${m.dosage} - ${m.frequency} ${m.instructions ? `(${m.instructions})` : ''}`).join('\n'),
         type: 'prescription',
-        notes: `Chief Complaints: ${prescriptionData.chiefComplaints}\nAdvice: ${prescriptionData.advice}\nFollow-up: ${prescriptionData.followUp}`,
+        notes: `Chief Complaints: ${data.chiefComplaints}\nAdvice: ${data.advice}\nFollow-up: ${data.followUp}`,
         data: {
-          patient: { name: prescriptionData.patientName, age: prescriptionData.age, gender: prescriptionData.gender, phone: prescriptionData.phone, email: prescriptionData.email, address: prescriptionData.address },
-          doctor: { name: prescriptionData.doctorName, specialization: prescriptionData.specialization },
-          chiefComplaints: prescriptionData.chiefComplaints,
-          diagnosis: prescriptionData.diagnosis,
+          patient: { name: data.patientName, age: data.age, gender: data.gender, phone: data.phone, email: data.email, address: data.address },
+          doctor: { name: data.doctorName, specialization: data.specialization },
+          chiefComplaints: data.chiefComplaints,
+          diagnosis: data.diagnosis,
           medications: meds,
-          advice: prescriptionData.advice,
-          followUp: prescriptionData.followUp,
+          advice: data.advice,
+          followUp: data.followUp,
           date: getISTDateString(),
         },
       });
@@ -387,30 +288,30 @@ export default function DoctorAppointments({ initialView }: DoctorAppointmentsPr
     }
   };
 
-  const handleGenerateLabReport = async () => {
+  const handleGenerateLabReport = async (data: LabReportFormData) => {
     const apt = appointments.find(a => a._id === completeId);
     if (!apt) return toast.error('Appointment not found');
-    if (!labReportData.reportId) return toast.error('Please enter a Report ID');
+    if (!data.reportId) return toast.error('Please enter a Report ID');
     try {
-      const tests = labReportData.tests.filter(t => t.name.trim());
+      const tests = data.tests.filter(t => t.name.trim());
       const patientId = (apt.patientId as unknown as { _id?: string })?._id || (apt.patientId as unknown as string);
       await api.createRecord({
-        patient: labReportData.patientName,
+        patient: data.patientName,
         patientId,
-        doctor: labReportData.doctorName,
+        doctor: data.doctorName,
         diagnosis: 'Lab Report',
         prescription: '',
         type: 'lab_report',
-        notes: labReportData.notes,
+        notes: data.notes,
         data: {
-          patient: { name: labReportData.patientName, age: labReportData.age, gender: labReportData.gender, phone: labReportData.phone, email: labReportData.email },
-          doctor: { name: labReportData.doctorName, specialization: labReportData.specialization },
-          reportId: labReportData.reportId,
-          testDate: labReportData.testDate,
-          reportDate: labReportData.reportDate,
+          patient: { name: data.patientName, age: data.age, gender: data.gender, phone: data.phone, email: data.email },
+          doctor: { name: data.doctorName, specialization: data.specialization },
+          reportId: data.reportId,
+          testDate: data.testDate,
+          reportDate: data.reportDate,
           tests,
-          notes: labReportData.notes,
-          date: labReportData.reportDate,
+          notes: data.notes,
+          date: data.reportDate,
         },
       });
       await api.createNotification({
@@ -428,35 +329,35 @@ export default function DoctorAppointments({ initialView }: DoctorAppointmentsPr
     }
   };
 
-  const handleGenerateDischargeSummary = async () => {
+  const handleGenerateDischargeSummary = async (data: DischargeFormData) => {
     const apt = appointments.find(a => a._id === completeId);
     if (!apt) return toast.error('Appointment not found');
-    if (!dischargeData.diagnosis) return toast.error('Please enter a diagnosis');
+    if (!data.diagnosis) return toast.error('Please enter a diagnosis');
     try {
-      const meds = dischargeData.medications.filter(m => m.name.trim());
+      const meds = data.medications.filter(m => m.name.trim());
       const patientId = (apt.patientId as unknown as { _id?: string })?._id || (apt.patientId as unknown as string);
       await api.createRecord({
-        patient: dischargeData.patientName,
+        patient: data.patientName,
         patientId,
-        doctor: dischargeData.doctorName,
-        diagnosis: dischargeData.diagnosis,
-        prescription: dischargeData.medications.map(m => `${m.name} - ${m.dosage} - ${m.frequency}`).join('\n'),
+        doctor: data.doctorName,
+        diagnosis: data.diagnosis,
+        prescription: meds.map(m => `${m.name} - ${m.dosage} - ${m.frequency}`).join('\n'),
         type: 'discharge_summary',
-        notes: `Chief Complaints: ${dischargeData.chiefComplaints}\nTreatment: ${dischargeData.treatmentGiven}\nSurgery: ${dischargeData.surgery}\nDischarge Advice: ${dischargeData.dischargeAdvice}\nFollow-up: ${dischargeData.followUpInstructions}`,
+        notes: `Chief Complaints: ${data.chiefComplaints}\nTreatment: ${data.treatmentGiven}\nSurgery: ${data.surgery}\nDischarge Advice: ${data.dischargeAdvice}\nFollow-up: ${data.followUpInstructions}`,
         data: {
-          patient: { name: dischargeData.patientName, age: dischargeData.age, gender: dischargeData.gender, phone: dischargeData.phone, email: dischargeData.email, address: dischargeData.address },
-          doctor: { name: dischargeData.doctorName, specialization: dischargeData.specialization },
-          admissionId: dischargeData.admissionId,
-          admissionDate: dischargeData.admissionDate,
-          dischargeDate: dischargeData.dischargeDate,
-          chiefComplaints: dischargeData.chiefComplaints,
-          diagnosis: dischargeData.diagnosis,
-          treatment: dischargeData.treatmentGiven,
-          surgery: dischargeData.surgery,
+          patient: { name: data.patientName, age: data.age, gender: data.gender, phone: data.phone, email: data.email, address: data.address },
+          doctor: { name: data.doctorName, specialization: data.specialization },
+          admissionId: data.admissionId,
+          admissionDate: data.admissionDate,
+          dischargeDate: data.dischargeDate,
+          chiefComplaints: data.chiefComplaints,
+          diagnosis: data.diagnosis,
+          treatment: data.treatmentGiven,
+          surgery: data.surgery,
           medications: meds,
-          dischargeAdvice: dischargeData.dischargeAdvice,
-          followUpInstructions: dischargeData.followUpInstructions,
-          date: dischargeData.dischargeDate,
+          dischargeAdvice: data.dischargeAdvice,
+          followUpInstructions: data.followUpInstructions,
+          date: data.dischargeDate,
         },
       });
       await api.createNotification({
@@ -474,11 +375,11 @@ export default function DoctorAppointments({ initialView }: DoctorAppointmentsPr
     }
   };
 
-  const handleGenerateBill = async () => {
+  const handleGenerateBill = async (amount: number) => {
     if (!completeId) return toast.error('No appointment selected');
     const apt = appointments.find(a => a._id === completeId);
     if (!apt) return toast.error('Appointment not found');
-    if (!billAmount) return toast.error('Please enter a bill amount');
+    if (!amount) return toast.error('Please enter a bill amount');
     try {
       const patientId = (apt.patientId as unknown as { _id?: string })?._id || (apt.patientId as unknown as string);
       await api.createBill({
@@ -486,13 +387,13 @@ export default function DoctorAppointments({ initialView }: DoctorAppointmentsPr
         patientId,
         doctor: user?.name,
         service: `${apt.type} - ${apt.department || ''}`,
-        amount: billAmount,
+        amount,
         date: getISTDateString(),
         status: 'Pending',
       });
       await api.createNotification({
         title: 'New Invoice',
-        message: `New invoice of ₹${billAmount} generated for ${apt.type} - ${apt.department || ''}`,
+        message: `New invoice of ₹${amount} generated for ${apt.type} - ${apt.department || ''}`,
         type: 'payment',
         userId: (patientId || apt.patient) as string,
       });
@@ -722,195 +623,47 @@ export default function DoctorAppointments({ initialView }: DoctorAppointmentsPr
       )}
 
       {/* Reschedule Modal */}
-      {rescheduleId && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setRescheduleId(null)}>
-          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-card rounded-2xl border border-border w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
-            <h3 className="font-heading text-lg font-bold text-foreground mb-4">Reschedule Appointment</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium text-foreground mb-1.5 block">New Date</label>
-                <Input type="date" value={newDate} onChange={e => setNewDate(e.target.value)} min={getISTDateString()} />
-              </div>
-              {newDate && (
-                <div>
-                  <label className="text-sm font-medium text-foreground mb-1.5 block">New Time</label>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {timeSlots.map(t => {
-                      const isBooked = bookedSlots.includes(t);
-                      const isDisabled = dateDisabledSlots.includes(t);
-                      const isUnavailable = isBooked || isDisabled;
-                      return (
-                        <button key={t} onClick={() => !isUnavailable && setNewTime(t)} disabled={isUnavailable}
-                          className={`px-2 py-1.5 rounded-lg text-xs font-medium transition-colors ${newTime === t ? 'bg-primary text-primary-foreground' : isUnavailable ? 'bg-muted/40 text-muted-foreground cursor-not-allowed' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}>
-                          {t}{isBooked && <span className="ml-1 text-[9px]">(full)</span>}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-            <div className="flex gap-3 mt-4">
-              <Button variant="outline" className="flex-1" onClick={() => setRescheduleId(null)}>Cancel</Button>
-              <Button className="flex-1" onClick={handleReschedule} disabled={!newDate || !newTime}>Confirm</Button>
-            </div>
-          </motion.div>
-        </div>
-      )}
+      <RescheduleModal
+        isOpen={Boolean(rescheduleId)}
+        onClose={() => setRescheduleId(null)}
+        onConfirm={handleReschedule}
+        timeSlots={timeSlots}
+        bookedSlots={bookedSlots}
+        dateDisabledSlots={dateDisabledSlots}
+      />
 
       {/* Prescription Modal */}
-      {showReportModal && reportType === 'Prescription' && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setShowReportModal(false)}>
-          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-card rounded-2xl border border-border w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <h3 className="font-heading text-lg font-bold text-foreground mb-4">Create New Prescription</h3>
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div><label className="text-sm font-medium text-foreground mb-1.5 block">Patient Name</label><Input value={prescriptionData.patientName} onChange={e => setPrescriptionData({ ...prescriptionData, patientName: e.target.value })} placeholder="Enter patient name" /></div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div><label className="text-sm font-medium text-foreground mb-1.5 block">Age</label><Input type="number" value={prescriptionData.age} onChange={e => setPrescriptionData({ ...prescriptionData, age: e.target.value })} placeholder="Age" /></div>
-                  <div><label className="text-sm font-medium text-foreground mb-1.5 block">Gender</label><select value={prescriptionData.gender} onChange={e => setPrescriptionData({ ...prescriptionData, gender: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm"><option value="">Select</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></select></div>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div><label className="text-sm font-medium text-foreground mb-1.5 block">Phone</label><Input value={prescriptionData.phone} onChange={e => setPrescriptionData({ ...prescriptionData, phone: e.target.value })} placeholder="Phone number" /></div>
-                <div><label className="text-sm font-medium text-foreground mb-1.5 block">Email</label><Input type="email" value={prescriptionData.email} onChange={e => setPrescriptionData({ ...prescriptionData, email: e.target.value })} placeholder="Email" /></div>
-              </div>
-              <div><label className="text-sm font-medium text-foreground mb-1.5 block">Chief Complaints</label><Input value={prescriptionData.chiefComplaints} onChange={e => setPrescriptionData({ ...prescriptionData, chiefComplaints: e.target.value })} placeholder="Enter chief complaints" /></div>
-              <div><label className="text-sm font-medium text-foreground mb-1.5 block">Diagnosis</label><Input value={prescriptionData.diagnosis} onChange={e => setPrescriptionData({ ...prescriptionData, diagnosis: e.target.value })} placeholder="Enter diagnosis" /></div>
-              <div>
-                <div className="flex items-center justify-between mb-2"><label className="text-sm font-medium text-foreground">Medications</label><Button type="button" size="sm" variant="outline" className="gap-1" onClick={() => addMedication('Prescription')}><Plus className="w-3 h-3" /> Add Medication</Button></div>
-                {prescriptionData.medications.map((med, idx) => (
-                  <div key={idx} className="flex gap-2 mb-2 items-start">
-                    <Input value={med.name} onChange={e => updateMedication('Prescription', idx, 'name', e.target.value)} placeholder="Medicine name" className="flex-1" />
-                    <Input value={med.dosage} onChange={e => updateMedication('Prescription', idx, 'dosage', e.target.value)} placeholder="Dosage" className="w-24" />
-                    <Input value={med.frequency} onChange={e => updateMedication('Prescription', idx, 'frequency', e.target.value)} placeholder="Frequency" className="w-28" />
-                    <Input value={med.instructions} onChange={e => updateMedication('Prescription', idx, 'instructions', e.target.value)} placeholder="Instructions" className="flex-1" />
-                    <Button variant="ghost" size="icon" className="text-destructive" onClick={() => removeMedication('Prescription', idx)}><X className="w-4 h-4" /></Button>
-                  </div>
-                ))}
-              </div>
-              <div><label className="text-sm font-medium text-foreground mb-1.5 block">Advice</label><Input value={prescriptionData.advice} onChange={e => setPrescriptionData({ ...prescriptionData, advice: e.target.value })} placeholder="Advice for patient" /></div>
-              <div><label className="text-sm font-medium text-foreground mb-1.5 block">Follow-up</label><Input value={prescriptionData.followUp} onChange={e => setPrescriptionData({ ...prescriptionData, followUp: e.target.value })} placeholder="Follow-up date" /></div>
-            </div>
-            <div className="flex gap-3 mt-6">
-              <Button variant="outline" className="flex-1" onClick={() => setShowReportModal(false)}>Cancel</Button>
-              <Button className="flex-1 gap-2" onClick={handleGeneratePrescription} disabled={!prescriptionData.diagnosis}><Send className="w-4 h-4" /> Generate &amp; Send</Button>
-            </div>
-          </motion.div>
-        </div>
-      )}
+      <PrescriptionModal
+        isOpen={showReportModal && reportType === 'Prescription'}
+        onClose={() => setShowReportModal(false)}
+        onSubmit={handleGeneratePrescription}
+        initialData={prescriptionData}
+      />
 
       {/* Lab Report Modal */}
-      {showReportModal && reportType === 'Lab Report' && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setShowReportModal(false)}>
-          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-card rounded-2xl border border-border w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <h3 className="font-heading text-lg font-bold text-foreground mb-4">Generate Lab Report</h3>
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div><label className="text-sm font-medium text-foreground mb-1.5 block">Patient Name</label><Input value={labReportData.patientName} onChange={e => setLabReportData({ ...labReportData, patientName: e.target.value })} /></div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div><label className="text-sm font-medium text-foreground mb-1.5 block">Age</label><Input type="number" value={labReportData.age} onChange={e => setLabReportData({ ...labReportData, age: e.target.value })} /></div>
-                  <div><label className="text-sm font-medium text-foreground mb-1.5 block">Gender</label><select value={labReportData.gender} onChange={e => setLabReportData({ ...labReportData, gender: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm"><option value="">Select</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></select></div>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div><label className="text-sm font-medium text-foreground mb-1.5 block">Phone</label><Input value={labReportData.phone} onChange={e => setLabReportData({ ...labReportData, phone: e.target.value })} /></div>
-                <div><label className="text-sm font-medium text-foreground mb-1.5 block">Email</label><Input type="email" value={labReportData.email} onChange={e => setLabReportData({ ...labReportData, email: e.target.value })} /></div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div><label className="text-sm font-medium text-foreground mb-1.5 block">Report ID</label><Input value={labReportData.reportId} onChange={e => setLabReportData({ ...labReportData, reportId: e.target.value })} /></div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div><label className="text-sm font-medium text-foreground mb-1.5 block">Test Date</label><Input type="date" value={labReportData.testDate} onChange={e => setLabReportData({ ...labReportData, testDate: e.target.value })} /></div>
-                  <div><label className="text-sm font-medium text-foreground mb-1.5 block">Report Date</label><Input type="date" value={labReportData.reportDate} onChange={e => setLabReportData({ ...labReportData, reportDate: e.target.value })} /></div>
-                </div>
-              </div>
-              <div>
-                <div className="flex items-center justify-between mb-2"><label className="text-sm font-medium text-foreground">Tests</label><Button type="button" size="sm" variant="outline" className="gap-1" onClick={() => setLabReportData({ ...labReportData, tests: [...labReportData.tests, { name: '', result: '', unit: '', referenceRange: '' }] })}><Plus className="w-3 h-3" /> Add Test</Button></div>
-                {labReportData.tests.map((t, idx) => (
-                  <div key={idx} className="flex gap-2 mb-2 items-start">
-                    <Input value={t.name} onChange={e => { const tests = [...labReportData.tests]; const curr = tests[idx]; if (curr) { tests[idx] = { ...curr, name: e.target.value }; setLabReportData({ ...labReportData, tests }); } }} placeholder="Test name" className="flex-1" />
-                    <Input value={t.result} onChange={e => { const tests = [...labReportData.tests]; const curr = tests[idx]; if (curr) { tests[idx] = { ...curr, result: e.target.value }; setLabReportData({ ...labReportData, tests }); } }} placeholder="Result" className="w-20" />
-                    <Input value={t.unit} onChange={e => { const tests = [...labReportData.tests]; const curr = tests[idx]; if (curr) { tests[idx] = { ...curr, unit: e.target.value }; setLabReportData({ ...labReportData, tests }); } }} placeholder="Unit" className="w-20" />
-                    <Input value={t.referenceRange} onChange={e => { const tests = [...labReportData.tests]; const curr = tests[idx]; if (curr) { tests[idx] = { ...curr, referenceRange: e.target.value }; setLabReportData({ ...labReportData, tests }); } }} placeholder="Ref range" className="w-24" />
-                    <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setLabReportData({ ...labReportData, tests: labReportData.tests.filter((_, i) => i !== idx) })}><X className="w-4 h-4" /></Button>
-                  </div>
-                ))}
-              </div>
-              <div><label className="text-sm font-medium text-foreground mb-1.5 block">Notes</label><Input value={labReportData.notes} onChange={e => setLabReportData({ ...labReportData, notes: e.target.value })} placeholder="Additional notes" /></div>
-            </div>
-            <div className="flex gap-3 mt-6">
-              <Button variant="outline" className="flex-1" onClick={() => setShowReportModal(false)}>Cancel</Button>
-              <Button className="flex-1 gap-2" onClick={handleGenerateLabReport} disabled={!labReportData.reportId}><Send className="w-4 h-4" /> Generate &amp; Send</Button>
-            </div>
-          </motion.div>
-        </div>
-      )}
+      <LabReportModal
+        isOpen={showReportModal && reportType === 'Lab Report'}
+        onClose={() => setShowReportModal(false)}
+        onSubmit={handleGenerateLabReport}
+        initialData={labReportData}
+      />
 
       {/* Discharge Summary Modal */}
-      {showReportModal && reportType === 'Discharge Summary' && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setShowReportModal(false)}>
-          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-card rounded-2xl border border-border w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <h3 className="font-heading text-lg font-bold text-foreground mb-4">Discharge Summary</h3>
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div><label className="text-sm font-medium text-foreground mb-1.5 block">Patient Name</label><Input value={dischargeData.patientName} onChange={e => setDischargeData({ ...dischargeData, patientName: e.target.value })} /></div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div><label className="text-sm font-medium text-foreground mb-1.5 block">Age</label><Input type="number" value={dischargeData.age} onChange={e => setDischargeData({ ...dischargeData, age: e.target.value })} /></div>
-                  <div><label className="text-sm font-medium text-foreground mb-1.5 block">Gender</label><select value={dischargeData.gender} onChange={e => setDischargeData({ ...dischargeData, gender: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm"><option value="">Select</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></select></div>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div><label className="text-sm font-medium text-foreground mb-1.5 block">Phone</label><Input value={dischargeData.phone} onChange={e => setDischargeData({ ...dischargeData, phone: e.target.value })} /></div>
-                <div><label className="text-sm font-medium text-foreground mb-1.5 block">Email</label><Input type="email" value={dischargeData.email} onChange={e => setDischargeData({ ...dischargeData, email: e.target.value })} /></div>
-              </div>
-              <div><label className="text-sm font-medium text-foreground mb-1.5 block">Address</label><Input value={dischargeData.address} onChange={e => setDischargeData({ ...dischargeData, address: e.target.value })} /></div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div><label className="text-sm font-medium text-foreground mb-1.5 block">Admission ID</label><Input value={dischargeData.admissionId} onChange={e => setDischargeData({ ...dischargeData, admissionId: e.target.value })} /></div>
-                <div><label className="text-sm font-medium text-foreground mb-1.5 block">Admission Date</label><Input type="date" value={dischargeData.admissionDate} onChange={e => setDischargeData({ ...dischargeData, admissionDate: e.target.value })} /></div>
-                <div><label className="text-sm font-medium text-foreground mb-1.5 block">Discharge Date</label><Input type="date" value={dischargeData.dischargeDate} onChange={e => setDischargeData({ ...dischargeData, dischargeDate: e.target.value })} /></div>
-              </div>
-              <div><label className="text-sm font-medium text-foreground mb-1.5 block">Chief Complaints</label><Input value={dischargeData.chiefComplaints} onChange={e => setDischargeData({ ...dischargeData, chiefComplaints: e.target.value })} /></div>
-              <div><label className="text-sm font-medium text-foreground mb-1.5 block">Diagnosis</label><Input value={dischargeData.diagnosis} onChange={e => setDischargeData({ ...dischargeData, diagnosis: e.target.value })} /></div>
-              <div><label className="text-sm font-medium text-foreground mb-1.5 block">Treatment Given</label><Input value={dischargeData.treatmentGiven} onChange={e => setDischargeData({ ...dischargeData, treatmentGiven: e.target.value })} /></div>
-              <div><label className="text-sm font-medium text-foreground mb-1.5 block">Surgery</label><Input value={dischargeData.surgery} onChange={e => setDischargeData({ ...dischargeData, surgery: e.target.value })} /></div>
-              <div>
-                <div className="flex items-center justify-between mb-2"><label className="text-sm font-medium text-foreground">Medications</label><Button type="button" size="sm" variant="outline" className="gap-1" onClick={() => addMedication('Discharge')}><Plus className="w-3 h-3" /> Add Medication</Button></div>
-                {dischargeData.medications.map((med, idx) => (
-                  <div key={idx} className="flex gap-2 mb-2 items-start">
-                    <Input value={med.name} onChange={e => updateMedication('Discharge', idx, 'name', e.target.value)} placeholder="Medicine name" className="flex-1" />
-                    <Input value={med.dosage} onChange={e => updateMedication('Discharge', idx, 'dosage', e.target.value)} placeholder="Dosage" className="w-24" />
-                    <Input value={med.frequency} onChange={e => updateMedication('Discharge', idx, 'frequency', e.target.value)} placeholder="Frequency" className="w-24" />
-                    <Button variant="ghost" size="icon" className="text-destructive" onClick={() => removeMedication('Discharge', idx)}><X className="w-4 h-4" /></Button>
-                  </div>
-                ))}
-              </div>
-              <div><label className="text-sm font-medium text-foreground mb-1.5 block">Discharge Advice</label><Input value={dischargeData.dischargeAdvice} onChange={e => setDischargeData({ ...dischargeData, dischargeAdvice: e.target.value })} /></div>
-              <div><label className="text-sm font-medium text-foreground mb-1.5 block">Follow-up Instructions</label><Input value={dischargeData.followUpInstructions} onChange={e => setDischargeData({ ...dischargeData, followUpInstructions: e.target.value })} /></div>
-            </div>
-            <div className="flex gap-3 mt-6">
-              <Button variant="outline" className="flex-1" onClick={() => setShowReportModal(false)}>Cancel</Button>
-              <Button className="flex-1 gap-2" onClick={handleGenerateDischargeSummary} disabled={!dischargeData.diagnosis}><Send className="w-4 h-4" /> Generate &amp; Send</Button>
-            </div>
-          </motion.div>
-        </div>
-      )}
+      <DischargeSummaryModal
+        isOpen={showReportModal && reportType === 'Discharge Summary'}
+        onClose={() => setShowReportModal(false)}
+        onSubmit={handleGenerateDischargeSummary}
+        initialData={dischargeData}
+      />
 
       {/* Bill Modal */}
-      {billModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setBillModal(null)}>
-          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-card rounded-2xl border border-border w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
-            <h3 className="font-heading text-lg font-bold text-foreground mb-4">Generate Invoice</h3>
-            <div className="space-y-4">
-              <div><label className="text-sm font-medium text-foreground mb-1.5 block">Service</label><Input value={`${appointments.find(a => a._id === completeId)?.type || 'Consultation'} - ${appointments.find(a => a._id === completeId)?.department || ''}`} disabled /></div>
-              <div><label className="text-sm font-medium text-foreground mb-1.5 block">Amount (₹)</label><Input type="number" value={billAmount} onChange={e => setBillAmount(Number(e.target.value))} min={0} /></div>
-            </div>
-            <div className="flex gap-3 mt-6">
-              <Button variant="outline" className="flex-1" onClick={() => setBillModal(null)}>Cancel</Button>
-              <Button className="flex-1 gap-2" onClick={handleGenerateBill} disabled={!billAmount}><Send className="w-4 h-4" /> Generate &amp; Send</Button>
-            </div>
-          </motion.div>
-        </div>
-      )}
+      <BillModal
+        isOpen={Boolean(billModal)}
+        onClose={() => setBillModal(null)}
+        onConfirm={handleGenerateBill}
+        serviceName={`${appointments.find(a => a._id === completeId)?.type || 'Consultation'} - ${appointments.find(a => a._id === completeId)?.department || ''}`}
+        initialAmount={billAmount}
+      />
 
       {/* Walk-in Patient Modal */}
       <Dialog open={showWalkInModal} onOpenChange={setShowWalkInModal}>

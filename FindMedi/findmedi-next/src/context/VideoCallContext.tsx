@@ -136,7 +136,33 @@ export function VideoCallProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    refreshDevices();
+    let active = true;
+    const fetchVideoDevices = async () => {
+      if (typeof navigator !== 'undefined' && navigator.mediaDevices?.enumerateDevices) {
+        try {
+          const devices = await navigator.mediaDevices.enumerateDevices();
+          if (active) {
+            setAvailableCameras(devices.filter((d) => d.kind === 'videoinput'));
+            setAudioOutputDevices(devices.filter((d) => d.kind === 'audiooutput'));
+          }
+        } catch (e) {
+          console.warn('Devices enumeration error:', e);
+        }
+      }
+    };
+
+    void fetchVideoDevices();
+
+    if (typeof navigator !== 'undefined' && navigator.mediaDevices?.addEventListener) {
+      navigator.mediaDevices.addEventListener('devicechange', refreshDevices);
+      return () => {
+        active = false;
+        navigator.mediaDevices.removeEventListener('devicechange', refreshDevices);
+      };
+    }
+    return () => {
+      active = false;
+    };
   }, [refreshDevices]);
 
   const cleanupMediaAndPeer = useCallback(() => {
