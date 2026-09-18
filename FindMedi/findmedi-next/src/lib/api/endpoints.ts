@@ -10,7 +10,7 @@
  * The backend is kept SEPARATE from Next.js — Next.js consumes it as an
  * external API via the NEXT_PUBLIC_API_URL env var.
  */
-import { request, downloadFile, getApiBaseUrl, getServerOrigin } from './client';
+import { request, downloadFile, getApiBaseUrl } from './client';
 import { resolveFileUrl, withQuery } from '@/lib/utils';
 import type { User, AuthResponse, LoginCredentials, RegisterPayload } from '@/types/models/user';
 import type { Doctor } from '@/types/models/doctor';
@@ -709,7 +709,7 @@ export const deliveryBoys = {
   updateLocation: (id: string, body: { lat: number; lng: number }): Promise<Record<string, unknown>> =>
     request<Record<string, unknown>>(`/delivery-boy/location/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
   getNearby: (lat: number, lng: number, radius = 10): Promise<Record<string, unknown>[]> =>
-    request<Record<string, unknown>[]>('/delivery-boy/nearby'),
+    request<Record<string, unknown>[]>(withQuery('/delivery-boy/nearby', { lat, lng, radius })),
   getProfile: (id: string): Promise<Record<string, unknown>> => request(`/delivery-boy/profile/${id}`),
   updateProfile: (id: string, body: Record<string, unknown>): Promise<Record<string, unknown>> =>
     request<Record<string, unknown>>(`/delivery-boy/profile/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
