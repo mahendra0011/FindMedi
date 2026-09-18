@@ -11,7 +11,7 @@
 
 import { useRouter } from 'next/navigation';
 import { motion } from 'motion/react';
-import { Star, MapPin, Award, ChevronRight, Microscope, Clock } from 'lucide-react';
+import { Star, MapPin, Award, ChevronRight, Microscope } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -74,7 +74,7 @@ export default function TechnicianCard({ technician, index = 0 }: TechnicianCard
 
   const {
     _id, id, name, role, rating = 0, exp, experience,
-    distance, area, address, phone,
+    distance, area,
   } = technician;
 
   const techId = _id || id;

@@ -8,7 +8,7 @@ use image::GenericImageView;
 mod pdf_gen;
 
 use pdf_gen::{PdfPage, PAGE_WIDTH, PAGE_HEIGHT, MARGIN};
-use pdf_gen::{render_pdf, C_PRIMARY, C_PRIMARY_DARK, C_BORDER, C_WHITE, C_SOFT};
+use pdf_gen::{render_pdf, helvetica_text_width, C_PRIMARY, C_PRIMARY_DARK, C_BORDER, C_WHITE, C_SOFT};
 use serde::Deserialize;
 
 // ── Hello World (N-API exported) ──────────────────────────────────────────
@@ -91,6 +91,9 @@ pub fn validate_magic_bytes(buffer: &[u8], mimetype: String) -> bool {
   }
 }
 
+pub const MIN_IMAGE_DIMENSION: u32 = 1;
+pub const MAX_IMAGE_DIMENSION: u32 = 4096;
+
 /// Resize an image to exact dimensions and re-encode as JPEG.
 ///
 /// `quality` is 1-100 where higher is better (matches Sharp's quality scale).
@@ -102,6 +105,23 @@ pub fn resize_image(
   height: u32,
   quality: u8,
 ) -> napi::Result<Vec<u8>> {
+  if width < MIN_IMAGE_DIMENSION || width > MAX_IMAGE_DIMENSION || height < MIN_IMAGE_DIMENSION || height > MAX_IMAGE_DIMENSION {
+    return Err(napi::Error::new(
+      napi::Status::InvalidArg,
+      format!(
+        "Image dimensions must be between {} and {} pixels (received {}x{})",
+        MIN_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION, width, height
+      ),
+    ));
+  }
+
+  if quality < 1 || quality > 100 {
+    return Err(napi::Error::new(
+      napi::Status::InvalidArg,
+      format!("Image quality must be between 1 and 100 (received {})", quality),
+    ));
+  }
+
   let img = image::load_from_memory(input)
     .map_err(|e| napi::Error::new(napi::Status::GenericFailure, format!("Failed to decode image: {}", e)))?;
 
@@ -150,8 +170,8 @@ fn money_str(val: f64) -> String {
 }
 
 fn text_width_approx(s: &str, font_size: f32) -> f32 {
-  // Approximate width: average char width ~ 0.55 * font_size for Helvetica
-  s.len() as f32 * font_size * 0.55
+  // Uses exact Helvetica Adobe Font Metrics (AFM) character widths
+  helvetica_text_width(s, font_size)
 }
 
 /// Generate a payment invoice PDF.
@@ -178,8 +198,32 @@ pub fn generate_invoice_pdf(data_json: String) -> napi::Result<Vec<u8>> {
     line_items: Vec<LineItem>,
   }
 
-  let inv: InvoiceData = serde_json::from_str(&data_json)
+  let mut inv: InvoiceData = serde_json::from_str(&data_json)
     .map_err(|e| napi::Error::new(napi::Status::GenericFailure, format!("Invalid invoice JSON: {}", e)))?;
+
+  // Cap free-text fields to prevent PDF layout overflow
+  let truncate_str = |s: &str, max_len: usize| -> String {
+    if s.chars().count() > max_len {
+      s.chars().take(max_len).collect()
+    } else {
+      s.to_string()
+    }
+  };
+
+  inv.patient_name = truncate_str(&inv.patient_name, 120);
+  inv.patient_phone = inv.patient_phone.map(|p| truncate_str(&p, 30));
+  inv.provider = inv.provider.map(|p| truncate_str(&p, 120));
+  inv.service_type = inv.service_type.map(|s| truncate_str(&s, 120));
+  inv.invoice_id = inv.invoice_id.map(|id| truncate_str(&id, 100));
+  inv.transaction_id = inv.transaction_id.map(|tx| truncate_str(&tx, 100));
+
+  // Cap line items to prevent unbounded memory growth / off-page drawing
+  if inv.line_items.len() > 50 {
+    inv.line_items.truncate(50);
+  }
+  for item in &mut inv.line_items {
+    item.name = truncate_str(&item.name, 120);
+  }
 
   let mut page = PdfPage::new(PAGE_WIDTH, PAGE_HEIGHT, MARGIN);
 
@@ -417,19 +461,44 @@ pub fn hash_otp(otp: String) -> String {
   )
 }
 
+/// Classification of stored OTP hash format.
+#[napi(string_enum)]
+#[derive(Debug, PartialEq, Eq)]
+pub enum OtpHashKind {
+  Sha256,
+  Bcrypt,
+  Unknown,
+}
+
+/// Classify a stored OTP hash format into Sha256, Bcrypt, or Unknown.
+///
+/// Bcrypt hashes start with $2a$, $2b$, or $2y$.
+/// Sha256 hashes are formatted as `salt_hex:hash_hex` (32 hex chars + ':' + 64 hex chars).
+#[napi]
+pub fn classify_otp_hash(stored: String) -> OtpHashKind {
+  if stored.starts_with("$2a$") || stored.starts_with("$2b$") || stored.starts_with("$2y$") {
+    OtpHashKind::Bcrypt
+  } else {
+    let parts: Vec<&str> = stored.splitn(2, ':').collect();
+    if parts.len() == 2 && parts[0].len() == 32 && parts[1].len() == 64 {
+      OtpHashKind::Sha256
+    } else {
+      OtpHashKind::Unknown
+    }
+  }
+}
+
 /// Verify an OTP against a stored hash using constant-time comparison.
 ///
 /// Supports two hash formats:
 /// - New format: `salt_hex:hash_hex` (produced by `hash_otp`)
 /// - Legacy bcrypt format: `$2a$...` or `$2b$...` (falls through to JS bcrypt)
 ///
-/// Returns `false` for legacy bcrypt hashes (caller should fall back to JS).
+/// Returns `false` for non-Sha256 hashes (caller should check classify_otp_hash and fall back to JS bcrypt).
 /// Mirrors `OTP.compareOTP()` in server/models/OTP.js.
 #[napi]
 pub fn verify_otp_hash(otp: String, stored: String) -> bool {
-  // Legacy bcrypt hashes start with $2a$, $2b$, or $2y$
-  if stored.starts_with("$2a$") || stored.starts_with("$2b$") || stored.starts_with("$2y$") {
-    // Cannot verify bcrypt in Rust without bcrypt crate — signal fallback
+  if classify_otp_hash(stored.clone()) != OtpHashKind::Sha256 {
     return false;
   }
 

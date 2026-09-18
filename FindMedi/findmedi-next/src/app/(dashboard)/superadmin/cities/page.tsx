@@ -1,7 +1,8 @@
+ 
 // @ts-nocheck
 'use client';
 import React, { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
+
 import { MapPin, Plus, Search, CheckCircle, XCircle, ToggleLeft, ToggleRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,6 +27,8 @@ export default function Cities() {
     setLoading(false);
   };
 
+   
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- load is a plain inline fetch helper re-created each render; effect intentionally depends on search only (adding load would refetch every render)
   useEffect(() => { load(); }, [search]);
 
   const handleCreate = async (e) => {

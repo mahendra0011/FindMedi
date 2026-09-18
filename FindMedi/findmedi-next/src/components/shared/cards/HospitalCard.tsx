@@ -13,33 +13,23 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion } from 'motion/react';
-import { toast } from 'sonner';
-import { useAuth } from '@/hooks/useAuth';
-import {
-  Building2, MapPin, Phone, Star, CalendarDays, Users,
-  ShieldCheck, Truck, BedDouble, Stethoscope, Heart, Brain,
-  Bone, Baby, Eye, Activity, Droplets, ArrowRight, Ambulance,
-  FlaskConical, BadgeCheck, Clock, Mail, Navigation, CheckCircle2,
-} from 'lucide-react';
+
+
+import { Building2, MapPin, Phone, Star, CalendarDays, Users, ShieldCheck, BedDouble, Stethoscope, Heart, Brain, Bone, Baby, Eye, Activity, Ambulance, FlaskConical, BadgeCheck, Clock, Mail, Navigation } from 'lucide-react';
 import type { Hospital } from '@/types/models/hospital';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
+
+
+
 import BookingModal from '@/components/shared/modals/BookingModal';
 import type { Doctor as DoctorModel } from '@/types/models/doctor';
-import { formatDate } from '@/lib/utils';
+
 
 const ACCREDITATION_COLORS: Record<string, string> = {
   NABH: 'bg-emerald-50 text-emerald-700 border-emerald-200',
   NABL: 'bg-blue-50 text-blue-700 border-blue-200',
   ISO: 'bg-amber-50 text-amber-700 border-amber-200',
-};
-
-const HOSPITAL_TYPE_STYLES: Record<string, string> = {
-  'Government': 'bg-violet-500/15 text-violet-600 border-violet-500/30',
-  'Private': 'bg-sky-500/15 text-sky-600 border-sky-500/30',
 };
 
 const SPECIALTY_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -102,8 +92,6 @@ function getSpecialtyColor(spec: string): string {
 
 export default function HospitalCard({ hospital, index = 0, distance }: HospitalCardProps) {
   const navigate = useRouter();
-  const { user } = useAuth();
-  const [showDoctors, setShowDoctors] = useState(false);
   const [showBooking, setShowBooking] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState<(Partial<DoctorModel> & Pick<DoctorModel, '_id'>) | null>(null);
 

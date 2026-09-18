@@ -1,15 +1,13 @@
+ 
 // @ts-nocheck
 'use client';
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import {
-  Shield, Users, UserRound, ShieldCheck, ShieldOff, Trash2, Mail, Clock,
-  Search, AlertTriangle
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Shield, ShieldCheck, ShieldOff, Trash2, Mail, Clock, Search } from 'lucide-react';
+
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
 
@@ -27,6 +25,7 @@ export default function SuperAdminTeam() {
     setLoading(false);
   };
 
+   
   useEffect(() => { load(); }, []);
 
   const handleToggleBlock = async (id, name) => {

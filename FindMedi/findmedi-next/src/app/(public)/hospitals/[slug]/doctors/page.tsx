@@ -3,9 +3,9 @@
  * Lists all doctors affiliated with a hospital.
  */
 import { notFound } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Star, MapPin, Stethoscope } from 'lucide-react';
+import { Star, Stethoscope } from 'lucide-react';
 import { api } from '@/lib/api';
 import type { Hospital } from '@/types/models/hospital';
 import type { Doctor } from '@/types/models/doctor';

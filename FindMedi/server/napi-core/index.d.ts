@@ -57,6 +57,15 @@ export declare function toCsv(rowsJson: string, fieldsJson: string): string
  * Mirrors `OTP.hashOTP()` in server/models/OTP.js.
  */
 export declare function hashOtp(otp: string): string
+export const enum OtpHashKind {
+  Sha256 = 'Sha256',
+  Bcrypt = 'Bcrypt',
+  Unknown = 'Unknown'
+}
+/**
+ * Classify a stored OTP hash format into Sha256, Bcrypt, or Unknown.
+ */
+export declare function classifyOtpHash(stored: string): OtpHashKind
 /**
  * Verify an OTP against a stored hash using constant-time comparison.
  *

@@ -2,17 +2,9 @@
 
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { toast } from 'sonner';
-import { getSocket } from '@/lib/socket';
-import { useAuth } from '@/hooks/useAuth';
-import {
-  playRingtone,
-  playRingbackTone,
-  playConnectSound,
-  playEndSound,
-  playBusySound,
-  triggerVibration,
-  stopVibration,
-} from '@/lib/audioCallSounds';
+
+
+import { playRingbackTone, playConnectSound, playEndSound, playBusySound, stopVibration } from '@/lib/audioCallSounds';
 
 export type CallState = 'idle' | 'calling' | 'ringing' | 'connecting' | 'connected' | 'ended' | 'busy' | 'timeout';
 
@@ -58,24 +50,13 @@ export interface AudioCallContextValue {
 
 const AudioCallContext = createContext<AudioCallContextValue | null>(null);
 
-const ICE_SERVERS: RTCConfiguration = {
-  iceServers: [
-    { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun1.l.google.com:19302' },
-    { urls: 'stun:stun2.l.google.com:19302' },
-    { urls: 'stun:stun3.l.google.com:19302' },
-  ],
-};
-
 const CALL_TIMEOUT_SECONDS = 30;
 
 export function AudioCallProvider({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
-
   const [callState, setCallState] = useState<CallState>('idle');
   const [activePeer, setActivePeer] = useState<ActivePeer | null>(null);
   const [isCaller, setIsCaller] = useState(false);
-  const [currentCallLogId, setCurrentCallLogId] = useState<string | null>(null);
+  const [currentCallLogId] = useState<string | null>(null);
 
   const [isMuted, setIsMuted] = useState(false);
   const [isSpeakerOn, setIsSpeakerOn] = useState(true);
@@ -83,11 +64,11 @@ export function AudioCallProvider({ children }: { children: React.ReactNode }) {
   const [selectedOutputId, setSelectedOutputId] = useState('default');
 
   const [callDuration, setCallDuration] = useState(0);
-  const [callQuality, setCallQuality] = useState('good');
+  const [callQuality] = useState('good');
   const [isMinimized, setIsMinimized] = useState(false);
 
   const [isRecording, setIsRecording] = useState(false);
-  const [recordingDuration, setRecordingDuration] = useState(0);
+  const [recordingDuration] = useState(0);
   const [clinicalNotes, setClinicalNotes] = useState('');
 
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
@@ -277,6 +258,7 @@ export function AudioCallProvider({ children }: { children: React.ReactNode }) {
   }, [activePeer, endCall]);
 
   const startCall = useCallback(async (peer: ActivePeer, _metadata?: Record<string, unknown>) => {
+    void _metadata;
     try {
       setActivePeer(peer);
       setIsCaller(true);

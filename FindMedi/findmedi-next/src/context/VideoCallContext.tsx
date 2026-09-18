@@ -2,17 +2,9 @@
 
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { toast } from 'sonner';
-import { getSocket } from '@/lib/socket';
+
 import { useAuth } from '@/hooks/useAuth';
-import {
-  playRingtone,
-  playRingbackTone,
-  playConnectSound,
-  playEndSound,
-  playBusySound,
-  triggerVibration,
-  stopVibration,
-} from '@/lib/audioCallSounds';
+import { playRingbackTone, playConnectSound, playEndSound, playBusySound, stopVibration } from '@/lib/audioCallSounds';
 
 export type VideoCallState = 'idle' | 'calling' | 'ringing' | 'connecting' | 'connected' | 'ended' | 'busy' | 'timeout';
 
@@ -89,17 +81,17 @@ export function VideoCallProvider({ children }: { children: React.ReactNode }) {
   const [callState, setCallState] = useState<VideoCallState>('idle');
   const [activePeer, setActivePeer] = useState<ActiveVideoPeer | null>(null);
   const [isCaller, setIsCaller] = useState(false);
-  const [currentCallLogId, setCurrentCallLogId] = useState<string | null>(null);
+  const [currentCallLogId] = useState<string | null>(null);
 
   const [isAudioMuted, setIsAudioMuted] = useState(false);
   const [isVideoMuted, setIsVideoMuted] = useState(false);
-  const [isRemoteVideoMuted, setIsRemoteVideoMuted] = useState(false);
-  const [isRemoteAudioMuted, setIsRemoteAudioMuted] = useState(false);
-  const [isSpeakerOn, setIsSpeakerOn] = useState(true);
+  const [isRemoteVideoMuted] = useState(false);
+  const [isRemoteAudioMuted] = useState(false);
+  const [isSpeakerOn] = useState(true);
   const [isLowLightEnhanced, setIsLowLightEnhanced] = useState(false);
 
   const [availableCameras, setAvailableCameras] = useState<MediaDeviceInfo[]>([]);
-  const [selectedCameraId, setSelectedCameraId] = useState('');
+  const [selectedCameraId] = useState('');
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
   const [audioOutputDevices, setAudioOutputDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedOutputId, setSelectedOutputId] = useState('default');
@@ -109,8 +101,8 @@ export function VideoCallProvider({ children }: { children: React.ReactNode }) {
   const [clinicalNotes, setClinicalNotes] = useState('');
 
   const [callDuration, setCallDuration] = useState(0);
-  const [networkQuality, setNetworkQuality] = useState('1080p-fullhd');
-  const [resolutionLabel, setResolutionLabel] = useState('1080p Full HD');
+  const [networkQuality] = useState('1080p-fullhd');
+  const [resolutionLabel] = useState('1080p Full HD');
   const [isMinimized, setIsMinimized] = useState(false);
 
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
@@ -294,6 +286,7 @@ export function VideoCallProvider({ children }: { children: React.ReactNode }) {
   }, [activePeer, endCall]);
 
   const startCall = useCallback(async (peer: ActiveVideoPeer, _metadata?: Record<string, unknown>) => {
+    void _metadata;
     try {
       setActivePeer(peer);
       setIsCaller(true);

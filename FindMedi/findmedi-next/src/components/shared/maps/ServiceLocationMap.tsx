@@ -12,31 +12,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import * as maplibregl from 'maplibre-gl';
-import {
-  AlertCircle,
-  Clock,
-  Loader2,
-  LocateFixed,
-  MapPin,
-  Navigation,
-  Phone,
-  Route,
-  Star,
-} from 'lucide-react';
+import { AlertCircle, Clock, Loader2, LocateFixed, MapPin, Navigation, Phone, Route, Star } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Map, MapControls, MapMarker, MapRoute, MarkerContent, MarkerTooltip, useMap } from '@/components/ui/map';
 import { api } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { useAppDispatch, useAppSelector } from '@/store';
-import {
-  fetchRoute,
-  geocodePlace,
-  selectMapPlace,
-  setCurrentLocation,
-  setLocateError,
-  upsertMapPlace,
-} from '@/store/slices/mapSlice';
+import { fetchRoute, geocodePlace, selectMapPlace, setCurrentLocation, setLocateError, upsertMapPlace } from '@/store/slices/mapSlice';
 import { cn } from '@/lib/utils';
 import type { MapPlace } from '@/store/slices/mapSlice';
 
@@ -302,28 +285,6 @@ function RouteViewport({ coordinates }: RouteViewportProps) {
       { padding: 84, maxZoom: 14, duration: 800 },
     );
   }, [map, isLoaded, routeCoordinates]);
-
-  return null;
-}
-
-interface SelectedPlaceViewportProps {
-  coordinates: unknown;
-}
-
-function SelectedPlaceViewport({ coordinates }: SelectedPlaceViewportProps) {
-  const { map, isLoaded } = useMap();
-  const selectedCoordinates = useMemo(() => coordinatePair(coordinates), [coordinates]);
-
-  useEffect(() => {
-    if (!map || !isLoaded || !selectedCoordinates) return;
-    map.easeTo({
-      center: selectedCoordinates,
-      zoom: Math.max(map.getZoom(), 13),
-      offset: [0, 132],
-      duration: 520,
-      essential: true,
-    });
-  }, [map, isLoaded, selectedCoordinates]);
 
   return null;
 }
@@ -817,76 +778,6 @@ function MapBoundsController({ places, fitToPlaces }: MapBoundsControllerProps) 
   return null;
 }
 
-interface RouteLineProps {
-  coordinates: [number, number][];
-}
-
-function RouteLine({ coordinates }: RouteLineProps) {
-  const { map, isLoaded } = useMap();
-
-  useEffect(() => {
-    if (!map || !isLoaded || coordinates.length < 2) return undefined;
-
-    const sourceId = 'route-line-source';
-    const haloLayerId = 'route-line-halo-layer';
-    const layerId = 'route-line-layer';
-    const routeData = {
-      type: 'Feature' as const,
-      geometry: { type: 'LineString' as const, coordinates },
-      properties: {},
-    };
-
-    if (map.getSource(sourceId)) {
-      (map.getSource(sourceId) as maplibregl.GeoJSONSource).setData(routeData);
-    } else {
-      map.addSource(sourceId, { type: 'geojson' as const, lineMetrics: true, data: routeData });
-      map.addLayer({
-        id: haloLayerId,
-        type: 'line',
-        source: sourceId,
-        layout: { 'line-cap': 'round', 'line-join': 'round' },
-        paint: { 'line-color': '#ffffff', 'line-width': 10, 'line-opacity': 0.92 },
-      });
-      map.addLayer({
-        id: layerId,
-        type: 'line',
-        source: sourceId,
-        layout: { 'line-cap': 'round', 'line-join': 'round' },
-        paint: {
-          'line-gradient': [
-            'interpolate', ['linear'], ['line-progress'],
-            0, '#2563eb',
-            0.55, '#7c3aed',
-            1, '#f97316',
-          ],
-          'line-width': 5.5,
-          'line-opacity': 0.95,
-        },
-      });
-    }
-
-    const bounds = coordinates.reduce(
-      (b, coord) => b.extend(coord),
-      new maplibregl.LngLatBounds(coordinates[0], coordinates[0]),
-    );
-    map.fitBounds(bounds, {
-      padding: { top: 92, bottom: 168, left: 72, right: 72 },
-      maxZoom: 15,
-      duration: 650,
-    });
-
-    return () => {
-      try {
-        if (map.getLayer(layerId)) map.removeLayer(layerId);
-        if (map.getLayer(haloLayerId)) map.removeLayer(haloLayerId);
-        if (map.getSource(sourceId)) map.removeSource(sourceId);
-      } catch { /* map layer already removed */ }
-    };
-  }, [coordinates, isLoaded, map]);
-
-  return null;
-}
-
 interface CurrentLocationMarkerProps {
   location: { longitude: number; latitude: number; accuracy?: number } | null;
 }
@@ -929,29 +820,21 @@ export default function ServiceLocationMap({ entityType = 'hospital', entity, cl
 
   const address = useMemo(
     () => buildAddress(entity),
-    [entity?.address, entity?.city, entity?.state, entity?.pincode],
+    [entity],
   );
   const id = useMemo(() => getEntityId(entity, entityType), [entity, entityType]);
   const fallbackCoordinates = useMemo(
     () => getFallbackCoordinates(entity, address),
-    [entity?.city, entity?.state, address],
+    [entity, address],
   );
   const explicitCoordinates = useMemo(
     () => extractCoordinates(entity),
-    [
-      entity?.coordinates,
-      entity?.location,
-      entity?.geo,
-      entity?.longitude,
-      entity?.latitude,
-      entity?.lng,
-      entity?.lat,
-    ],
+    [entity],
   );
 
   const place = useMemo(
     () => buildMapPlace(entity, entityType, 0, id),
-    [entity, entity?.name, entityType, id],
+    [entity, entityType, id],
   );
   const placeSignature = useMemo(() => JSON.stringify(place), [place]);
 
@@ -1001,7 +884,7 @@ export default function ServiceLocationMap({ entityType = 'hospital', entity, cl
   useEffect(() => {
     dispatch(upsertMapPlace(place));
     dispatch(selectMapPlace(id));
-  }, [dispatch, id, placeSignature]);
+  }, [dispatch, id, placeSignature]); // eslint-disable-line react-hooks/exhaustive-deps -- effect intentionally depends on placeSignature (stable JSON snapshot) instead of place object identity to avoid redundant store dispatches on every parent re-render
 
   const placesLoadedRef = useRef(new Set<string>());
   useEffect(() => {
@@ -1023,7 +906,7 @@ export default function ServiceLocationMap({ entityType = 'hospital', entity, cl
           ...(Array.isArray(labs) ? labs : []).map((item: unknown, index: number) => buildMapPlace(item as Record<string, unknown>, 'lab', index + 6, id)),
           ...(Array.isArray(pharmacies) ? pharmacies : []).map((item: unknown, index: number) => buildMapPlace(item as Record<string, unknown>, 'pharmacy', index + 9, id)),
         ];
-        setNearbyPlaces(prev => [...list]);
+        setNearbyPlaces([...list]);
         list.forEach((item) => dispatch(upsertMapPlace(item)));
       } catch {
         setNearbyPlaces([]);

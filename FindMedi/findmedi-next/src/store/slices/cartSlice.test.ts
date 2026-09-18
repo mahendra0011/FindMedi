@@ -5,18 +5,7 @@
 /// <reference types="vitest/globals" />
 
 import { describe, it, expect } from 'vitest';
-import cartReducer, {
-  addItem,
-  updateQty,
-  removeItem,
-  clearCart,
-  selectCartEntries,
-  selectCartStores,
-  selectCartTotalItems,
-  type CartItem,
-  type CartEntry,
-  type CartState,
-} from './cartSlice';
+import cartReducer, { addItem, updateQty, removeItem, clearCart, selectCartEntries, selectCartStores, selectCartTotalItems, type CartItem, type CartState } from './cartSlice';
 
 const mockCartItem: CartItem = {
   id: 'med-1',

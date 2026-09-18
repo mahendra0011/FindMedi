@@ -1,8 +1,9 @@
+ 
 // @ts-nocheck
 'use client';
 import React, { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
-import { Tag, Plus, Search, Percent, DollarSign, CalendarDays, Users, CheckCircle, XCircle, Star } from 'lucide-react';
+
+import { Tag, Plus, Search, Users, CheckCircle, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -37,6 +38,8 @@ export default function Promotions() {
     setLoading(false);
   };
 
+   
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- load is a plain inline fetch helper re-created each render; effect intentionally depends on search only (adding load would refetch every render)
   useEffect(() => { load(); }, [search]);
 
   const handleCreateCoupon = async (e) => {

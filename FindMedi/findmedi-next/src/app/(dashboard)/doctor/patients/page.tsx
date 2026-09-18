@@ -6,20 +6,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import {
-  Search,
-  Plus,
-  UserRound,
-  X,
-  Trash2,
-  Users,
-  CheckCircle,
-  AlertTriangle,
-  CalendarDays,
-  Sparkles,
-  HeartPulse,
-  UserPlus,
-} from 'lucide-react';
+import { Search, UserRound, X, Trash2, Users, CheckCircle, AlertTriangle, CalendarDays, Sparkles, HeartPulse, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useDoctorPatients, useCreateDoctorPatient, useDeleteDoctorPatient } from '@/features/patients/hooks';
@@ -60,6 +47,7 @@ export default function PatientsPage() {
 
   useEffect(() => {
     const h = new Date().getHours();
+     
     if (h < 12) setGreeting('Good morning');
     else if (h < 17) setGreeting('Good afternoon');
     else setGreeting('Good evening');

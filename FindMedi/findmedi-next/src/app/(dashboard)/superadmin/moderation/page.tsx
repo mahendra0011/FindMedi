@@ -1,7 +1,8 @@
+ 
 // @ts-nocheck
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
-import { motion } from 'motion/react';
+
 import { Flag, Star, Eye, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -23,6 +24,7 @@ function ContentModerationTab() {
     setLoading(false);
   }, [filter]);
 
+   
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { fetchReviews(); }, [filter]);
 

@@ -168,12 +168,12 @@ export function Map({
       setMapInstance(null);
       setIsLoaded(false);
     };
-  }, [activeStyle]);
+  }, [activeStyle]); // eslint-disable-line react-hooks/exhaustive-deps -- map init must run once per style only; adding center/onReady/options/isLoaded would destroy and re-create the map instance (and its listeners) on every parent re-render
 
   React.useEffect(() => {
     if (!mapRef.current || !isLoaded) return;
     mapRef.current.setStyle(activeStyle as string | maplibregl.StyleSpecification);
-  }, [activeStyle]);
+  }, [activeStyle, isLoaded]);
 
   React.useEffect(() => {
     if (!mapRef.current || !isLoaded) return;
@@ -183,7 +183,7 @@ export function Map({
       duration: 700,
       essential: true,
     });
-  }, [center?.[0], center?.[1], isLoaded, zoom]);
+  }, [center?.[0], center?.[1], isLoaded, zoom]); // eslint-disable-line react-hooks/exhaustive-deps -- camera effect intentionally depends on derived center coordinates (not the center array identity) so a new-but-equal array from the parent does not retrigger easeTo and make the map jitter
 
   React.useEffect(() => {
     if (!mapRef.current || !onViewportChange) return undefined;
@@ -409,11 +409,11 @@ export function MapMarker({
       marker.remove();
       markerRef.current = null;
     };
-  }, [map, isLoaded, draggable, markerPosition?.[0], markerPosition?.[1], onDragStart, onDrag, onDragEnd, markerOptions]);
+  }, [map, isLoaded, draggable, markerPosition?.[0], markerPosition?.[1], onDragStart, onDrag, onDragEnd, markerOptions]); // eslint-disable-line react-hooks/exhaustive-deps -- marker creation intentionally depends on derived markerPosition coordinates (not the array identity) so parent re-renders do not destroy/recreate the marker
 
   React.useEffect(() => {
     if (markerPosition) markerRef.current?.setLngLat(markerPosition);
-  }, [markerPosition?.[0], markerPosition?.[1]]);
+  }, [markerPosition?.[0], markerPosition?.[1]]); // eslint-disable-line react-hooks/exhaustive-deps -- position sync intentionally depends on derived coordinates (not the markerPosition array identity) so equal positions from a new array do not retrigger setLngLat
 
   React.useEffect(() => {
     if (!elementRef.current) return undefined;
@@ -544,11 +544,11 @@ export function MapPopup({
       popupRef.current = null;
       contentRef.current = null;
     };
-  }, [map, isLoaded, popupPosition?.[0], popupPosition?.[1], closeButton, closeOnClick, focusAfterOpen, className, popupOptions, onClose]);
+  }, [map, isLoaded, popupPosition?.[0], popupPosition?.[1], closeButton, closeOnClick, focusAfterOpen, className, popupOptions, onClose]); // eslint-disable-line react-hooks/exhaustive-deps -- popup creation intentionally depends on derived popupPosition coordinates (not the array identity) so parent re-renders do not destroy/recreate the popup
 
   React.useEffect(() => {
     if (popupPosition) popupRef.current?.setLngLat(popupPosition);
-  }, [popupPosition?.[0], popupPosition?.[1]]);
+  }, [popupPosition?.[0], popupPosition?.[1]]); // eslint-disable-line react-hooks/exhaustive-deps -- position sync intentionally depends on derived coordinates (not the popupPosition array identity) so equal positions from a new array do not retrigger setLngLat
 
   React.useEffect(() => {
     rootRef.current?.render(children);

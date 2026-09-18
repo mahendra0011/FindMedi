@@ -1,11 +1,10 @@
+ 
 // @ts-nocheck
 'use client';
 import React, { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
-import {
-  FileText, Search, FlaskConical, Pill, AlertTriangle, CheckCircle, X, Layers
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
+
+import { Search, FlaskConical, Pill, AlertTriangle, CheckCircle, Layers } from 'lucide-react';
+
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -54,6 +53,7 @@ export default function GlobalCatalog() {
     setLoading(false);
   };
 
+   
   useEffect(() => { load(); }, []);
 
   const filteredTests = tests.filter(t =>

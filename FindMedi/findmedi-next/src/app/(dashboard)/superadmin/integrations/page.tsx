@@ -1,11 +1,9 @@
+ 
 // @ts-nocheck
 'use client';
 import React, { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
-import {
-  CreditCard, MessageSquare, Mail, HardDrive, Map, Webhook, Settings, Wifi,
-  WifiOff, TestTube, Plus, Trash2, Eye, EyeOff
-} from 'lucide-react';
+
+import { CreditCard, MessageSquare, Mail, HardDrive, Map, Webhook, Settings, Wifi, WifiOff, TestTube, Plus, Trash2, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -42,6 +40,7 @@ export default function Integrations() {
     setLoading(false);
   };
 
+   
   useEffect(() => { load(); }, []);
 
   const loadWebhooks = async (provider) => {

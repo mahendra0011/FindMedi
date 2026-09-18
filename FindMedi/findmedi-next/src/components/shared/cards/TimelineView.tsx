@@ -11,7 +11,7 @@
 import { motion } from 'motion/react';
 import { Check } from 'lucide-react';
 import type { Appointment } from '@/types/models/appointment';
-import { formatDate } from '@/lib/utils';
+
 
 export interface TimelineViewProps {
   appointments: (Appointment & { _delay?: number; patient?: string })[];

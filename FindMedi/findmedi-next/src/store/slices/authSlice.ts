@@ -24,7 +24,7 @@ export const initializeAuth = createAsyncThunk<
   User | null,
   void,
   { rejectValue: string }
->('auth/initialize', async (_, { rejectWithValue }) => {
+>('auth/initialize', async () => {
   const hasLocalToken =
     typeof window !== 'undefined' &&
     (localStorage.getItem('token') || localStorage.getItem('refreshToken'));

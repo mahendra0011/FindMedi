@@ -7,3 +7,4 @@ export type { RefundRecord } from './RefundsSection';
 
 export { default as PlatformSettingsSection } from './PlatformSettingsSection';
 export { default as QuickActions } from './QuickActions';
+export { default as PrescriptionsHub } from './PrescriptionsHub';

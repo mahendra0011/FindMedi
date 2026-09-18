@@ -32,7 +32,6 @@ interface BookingsHubProps {
 }
 
 export default function BookingsHub({
-  bookings,
   bookingTab,
   setBookingTab,
   pendingBookings,

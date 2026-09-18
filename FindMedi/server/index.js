@@ -234,7 +234,7 @@ app.use((req, res, next) => {
       '/disputes', '/support-tickets', '/leave-requests', '/schedule-change-requests',
       '/categories', '/licenses', '/announcements', '/broadcast', '/platform-coupons',
       '/featured-listings', '/cities', '/platform-content', '/export', '/integrations',
-      '/delivery-partners', '/delivery-boy', '/ai-chat', '/drive', '/calls', '/health'
+      '/delivery-partners', '/delivery-boy', '/delivery', '/ai-chat', '/drive', '/calls', '/health'
     ];
     if (knownApiPrefixes.some(p => req.url.startsWith(p))) {
       req.url = `/api${req.url}`;
@@ -318,6 +318,7 @@ import platformContentRoutes from './routes/platformContent.js';
 import exportRoutes from './routes/export.js';
 import integrationRoutes from './routes/integrations.js';
 import deliveryPartnerRoutes from './routes/deliveryPartners.js';
+import deliveryRoutes from './routes/delivery.js';
 import aiChatRoutes from './routes/aiChat.js';
 import driveRoutes from './routes/drive.js';
 import analyticsRoutes from './routes/analytics.js';
@@ -385,6 +386,7 @@ app.use('/api/export', exportRoutes);
 app.use('/api/integrations', integrationRoutes);
 app.use('/api/delivery-partners', deliveryPartnerRoutes);
 app.use('/api/delivery-boy', deliveryPartnerRoutes);
+app.use('/api/delivery', deliveryRoutes);
 app.use('/api/ai-chat', aiChatRoutes);
 app.use('/api/drive', driveRoutes);
 app.use('/api/chat', chatRoutes);

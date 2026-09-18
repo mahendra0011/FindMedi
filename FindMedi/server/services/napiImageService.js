@@ -42,13 +42,19 @@ export function validateMagicBytes(buffer, mimetype) {
   }
 }
 
+export const MIN_IMAGE_DIMENSION = 1;
+export const MAX_IMAGE_DIMENSION = 4096;
+
 /**
  * Resize an image buffer to exact dimensions and re-encode as JPEG.
- * `quality` is 1-100.
+ * `quality` is 1-100. Clamps dimensions between 1 and 4096 for DoS protection.
  */
 export function resizeImage(inputBuffer, width, height, quality = 75) {
+  const w = Math.max(MIN_IMAGE_DIMENSION, Math.min(Math.round(width || 1), MAX_IMAGE_DIMENSION));
+  const h = Math.max(MIN_IMAGE_DIMENSION, Math.min(Math.round(height || 1), MAX_IMAGE_DIMENSION));
+  const q = Math.max(1, Math.min(Math.round(quality || 75), 100));
   const napi = getNapi();
-  return Buffer.from(napi.resizeImage(inputBuffer, width, height, quality));
+  return Buffer.from(napi.resizeImage(inputBuffer, w, h, q));
 }
 
 /**
@@ -63,23 +69,28 @@ export function getImageInfo(inputBuffer) {
 /**
  * Resize to fit inside maxW × maxH while maintaining aspect ratio.
  * Does not enlarge if the source is smaller than the target.
+ * Clamps bounds to MAX_IMAGE_DIMENSION (4096).
  */
 export function resizeToFit(inputBuffer, maxWidth, maxHeight, quality = 80) {
   const napi = getNapi();
   const info = JSON.parse(napi.getImageInfo(inputBuffer));
   let { width, height } = info;
 
+  const maxW = Math.min(maxWidth || 4096, MAX_IMAGE_DIMENSION);
+  const maxH = Math.min(maxHeight || 4096, MAX_IMAGE_DIMENSION);
+  const q = Math.max(1, Math.min(Math.round(quality || 80), 100));
+
   // Don't enlarge
-  if (width <= maxWidth && height <= maxHeight) {
+  if (width <= maxW && height <= maxH) {
     // Still re-encode to ensure consistent quality
-    return Buffer.from(napi.resizeImage(inputBuffer, width, height, quality));
+    return Buffer.from(napi.resizeImage(inputBuffer, width, height, q));
   }
 
-  const ratio = Math.min(maxWidth / width, maxHeight / height, 1);
-  const targetW = Math.round(width * ratio);
-  const targetH = Math.round(height * ratio);
+  const ratio = Math.min(maxW / width, maxH / height, 1);
+  const targetW = Math.max(1, Math.round(width * ratio));
+  const targetH = Math.max(1, Math.round(height * ratio));
 
-  return Buffer.from(napi.resizeImage(inputBuffer, targetW, targetH, quality));
+  return Buffer.from(napi.resizeImage(inputBuffer, targetW, targetH, q));
 }
 
 export const NATIVE_AVAILABLE = (() => {

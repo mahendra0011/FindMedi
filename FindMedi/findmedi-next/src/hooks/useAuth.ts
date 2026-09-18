@@ -11,23 +11,8 @@
 'use client';
 
 import { useAppDispatch, useAppSelector } from '@/store';
-import {
-  loginUser,
-  registerUser,
-  verifyOtp,
-  logoutUser,
-  setUser,
-  updateUser,
-  completeOtpLogin,
-  completeGoogleLogin,
-  selectCurrentUser,
-  selectAuthLoading,
-  selectIsAuthenticated,
-  selectUserRole,
-  selectUserSettings,
-  selectIsDoctorApproved,
-} from '@/store/slices/authSlice';
-import { mergeSettings, readStoredSettings } from '@/lib/settings';
+import { loginUser, registerUser, verifyOtp, logoutUser, setUser, updateUser, completeOtpLogin, completeGoogleLogin, selectCurrentUser, selectAuthLoading, selectIsAuthenticated, selectUserRole, selectUserSettings, selectIsDoctorApproved } from '@/store/slices/authSlice';
+
 import type { User, LoginCredentials, RegisterPayload, AuthResponse } from '@/types/models/user';
 import type { UserRole, ApprovalStatus } from '@/types/enums';
 import type { AppDispatch } from '@/store';

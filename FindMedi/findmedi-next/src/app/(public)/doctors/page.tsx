@@ -3,7 +3,7 @@
  * Ported from client/src/pages/Doctors.jsx.
  */
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { Star, MapPin, Stethoscope } from 'lucide-react';
 import { api } from '@/lib/api';
 import type { Doctor } from '@/types/models/doctor';

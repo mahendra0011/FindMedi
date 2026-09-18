@@ -9,3 +9,6 @@ export * from './PatientRefundsSection';
 export * from './PatientModal';
 export * from './SupportTicketForm';
 export * from './PatientBookingHistory';
+export * from './MentalHealthHub';
+export * from './PatientBookingsHub';
+export * from './DietHub';

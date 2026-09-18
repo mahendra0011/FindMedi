@@ -1,3 +1,4 @@
+ 
 // @ts-nocheck
 'use client';
 import React, { useState, useEffect } from 'react';
@@ -9,13 +10,6 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
-
-const statusColors = {
-  approved: 'bg-success/10 text-success',
-  pending: 'bg-warning/10 text-warning',
-  rejected: 'bg-destructive/10 text-destructive',
-  suspended: 'bg-muted-foreground/10 text-muted-foreground',
-};
 
 export default function PendingApprovals() {
   const [pendingHospitals, setPendingHospitals] = useState([]);

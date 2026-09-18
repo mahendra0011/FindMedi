@@ -12,8 +12,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Stethoscope, Building2, Microscope, ShoppingBag, Video, Calendar, Shield, Clock } from 'lucide-react';
 import type { Doctor } from '@/types/models/doctor';
-import type { Hospital } from '@/types/models/hospital';
-import type { Facility } from '@/types/models/facility';
+
+
 import { api } from '@/lib/api';
 
 const SERVICE_CARDS = [
@@ -59,7 +59,7 @@ async function fetchHomeData() {
 }
 
 export default async function HomePage() {
-  const { doctors, hospitals, labs } = await fetchHomeData();
+  const { doctors } = await fetchHomeData();
 
   return (
     <div className="min-h-screen">

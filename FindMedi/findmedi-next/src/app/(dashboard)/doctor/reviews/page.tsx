@@ -42,7 +42,7 @@ export default function ReviewsPage() {
       setLoading(false);
     };
     void load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [user?.name]);
 
   const handleReply = async (reviewId: string) => {

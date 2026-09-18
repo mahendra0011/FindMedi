@@ -436,14 +436,16 @@ export const updateScheduleChangeStatusSchema = z.object({
 // ─── Payment Schemas ─────────────────────────────────────────────────────────
 export const createPaymentSchema = z.object({
   patient_id: z.string().min(1, 'Patient ID is required'),
-  patient_name: z.string().optional(),
+  patient_name: z.string().trim().max(120, 'Patient name cannot exceed 120 characters').optional(),
   amount: positiveNumber,
-  method: z.string().optional(),
-  invoice_id: z.string().optional(),
-  description: z.string().optional(),
+  method: z.string().trim().max(50, 'Method cannot exceed 50 characters').optional(),
+  invoice_id: z.string().trim().max(100, 'Invoice ID cannot exceed 100 characters').optional(),
+  description: z.string().trim().max(250, 'Description cannot exceed 250 characters').optional(),
   appointment_id: z.string().optional(),
   bill_id: z.string().optional(),
   status: z.string().optional(),
+  provider: z.string().trim().max(120, 'Provider cannot exceed 120 characters').optional(),
+  serviceType: z.string().trim().max(50, 'Service type cannot exceed 50 characters').optional(),
 });
 
 export const updatePaymentSchema = z.object({

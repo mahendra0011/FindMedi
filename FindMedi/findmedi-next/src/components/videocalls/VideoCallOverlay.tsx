@@ -2,13 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import {
-  Mic, MicOff, Video, VideoOff, PhoneOff, Minimize2, Maximize2,
-  Volume2, VolumeX, Sparkles, SwitchCamera, ShieldCheck, Wifi,
-  ChevronDown, User, RefreshCw, Monitor,
-  Camera, FileText, MessageSquare, Send, X, Save,
-  Stethoscope
-} from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, PhoneOff, Minimize2, Maximize2, Volume2, VolumeX, Sparkles, SwitchCamera, ShieldCheck, Wifi, RefreshCw, Monitor, FileText, MessageSquare, Send, X, Save, Stethoscope } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';

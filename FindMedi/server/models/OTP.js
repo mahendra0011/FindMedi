@@ -44,16 +44,13 @@ otpSchema.statics.hashOTP = async (otp) => {
  * Compare plain OTP with stored hash
  */
 otpSchema.methods.compareOTP = async function(plainOtp) {
-  if (NATIVE_OTP_AVAILABLE) {
-    try {
-      return verifyOtpHash(plainOtp, this.otpHash);
-    } catch (e) {
-      // Fall through to bcrypt
-    }
+  try {
+    return await verifyOtpHash(plainOtp, this.otpHash);
+  } catch (e) {
+    // Fallback to bcrypt if verifyOtpHash threw an unexpected error
+    const bcrypt = (await import('bcryptjs')).default;
+    return await bcrypt.compare(plainOtp, this.otpHash);
   }
-  // Fallback: bcrypt
-  const bcrypt = (await import('bcryptjs')).default;
-  return await bcrypt.compare(plainOtp, this.otpHash);
 };
 
 /**

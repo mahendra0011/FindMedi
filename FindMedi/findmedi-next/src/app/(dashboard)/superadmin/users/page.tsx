@@ -1,7 +1,8 @@
+ 
 // @ts-nocheck
 'use client';
 import React, { useState, useCallback, useEffect } from 'react';
-import { Search, Shield, Stethoscope, UserRound, CheckCircle, Ban, Trash2, Activity, Flag, Filter } from 'lucide-react';
+import { Search, Shield, Stethoscope, UserRound, CheckCircle, Ban, Trash2, Activity, Flag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -26,7 +27,8 @@ export default function UserManagementTab() {
     setLoading(false);
   }, [search, roleFilter, showFlagged]);
 
-  useEffect(() => { loadUsers(); }, [search, roleFilter, showFlagged]);
+   
+  useEffect(() => { loadUsers(); }, [loadUsers]);
 
   const handleDelete = async (id) => {
     if (!confirm('Permanently delete this user?')) return;

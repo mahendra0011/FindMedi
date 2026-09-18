@@ -17,3 +17,8 @@ flate2 = { version = "1", default-features = false, features = ["miniz_oxide"] }
 csv = "1"
 sha2 = "0.10"
 rand = "0.8"
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"

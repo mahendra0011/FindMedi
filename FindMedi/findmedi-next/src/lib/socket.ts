@@ -46,7 +46,7 @@ export function getSocket(): Socket {
       console.warn('[Socket] disconnected:', reason);
     });
     socket.on('reconnect', (attempt: number) => {
-      console.info('[Socket] reconnected after', attempt, 'attempts');
+      console.warn('[Socket] reconnected after', attempt, 'attempts');
     });
   }
   return socket;

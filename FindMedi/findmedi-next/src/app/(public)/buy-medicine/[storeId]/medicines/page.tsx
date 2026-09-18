@@ -5,7 +5,7 @@
 import { notFound } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart } from 'lucide-react';
+
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import type { Facility } from '@/types/models/facility';
@@ -22,8 +22,7 @@ async function fetchPharmacy(storeId: string): Promise<Facility | null> {
   }
 }
 
-export async function generateMetadata({ params }: PageProps) {
-  const { storeId } = await params;
+export async function generateMetadata() {
   return {
     title: `Medicines | FindMedi Pharmacy`,
     description: 'Browse all available medicines from this pharmacy.',

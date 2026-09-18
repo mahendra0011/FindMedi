@@ -1,3 +1,4 @@
+ 
 // @ts-nocheck
 'use client';
 import React, { useState, useCallback, useEffect } from 'react';
@@ -27,6 +28,7 @@ function CategoriesTab() {
     setLoading(false);
   }, [typeFilter]);
 
+   
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { load(); }, [typeFilter]);
 

@@ -24,6 +24,12 @@ if errorlevel 1 (
 REM Enable rustc internal APIs that cargo build scripts need under App Control
 set RUSTC_BOOTSTRAP=1
 
+REM Compile dlltool.exe replacement from source if missing
+if not exist "%~dp0tests\dlltool.exe" (
+    echo Compiling dlltool helper from src/dlltool_repl.rs...
+    rustc "%~dp0src\dlltool_repl.rs" -o "%~dp0tests\dlltool.exe"
+)
+
 REM Point cargo/rustc to the dlltool.exe replacement for GNU target
 set DLLTOOL=%~dp0tests\dlltool.exe
 set PATH=%~dp0;%PATH%

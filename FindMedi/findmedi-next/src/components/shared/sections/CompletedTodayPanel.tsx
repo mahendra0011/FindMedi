@@ -19,11 +19,11 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Search, CalendarClock, Download, RotateCcw, History, FileText, IndianRupee } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Search, CalendarClock } from 'lucide-react';
+
 import { Input } from '@/components/ui/input';
 import { motion } from 'motion/react';
-import { formatDisplayDate } from '@/lib/utils';
+
 import { api } from '@/lib/api/endpoints';
 import PatientHistoryModal from '@/components/shared/modals/PatientHistoryModal';
 import { CompletedCard } from '@/components/shared/sections/TodayAppointmentsSection';
@@ -40,21 +40,6 @@ interface CompletedTodayPanelProps {
   onViewDetails?: (apt: DisplayAppointment) => void;
   onViewIntake?: (apt: DisplayAppointment) => void;
   actionButtonsFor?: (apt: DisplayAppointment) => React.ReactNode;
-}
-
-/**
- * Parses time like "09:15 AM" into a numerical value for sorting.
- */
-function parseTime(timeStr: string | null | undefined): number {
-  if (!timeStr) return 0;
-  const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)?/i);
-  if (!match) return 0;
-  let hour = parseInt(match[1]!, 10);
-  const minute = parseInt(match[2]!, 10);
-  const period = match[3];
-  if (period && period.toUpperCase() === 'PM' && hour !== 12) hour += 12;
-  if (period && period.toUpperCase() === 'AM' && hour === 12) hour = 0;
-  return hour * 60 + minute;
 }
 
 /**
@@ -95,8 +80,6 @@ function generateSubSlots(hour: number): string[] {
 export default function CompletedTodayPanel({
   appointments,
   visitInfoMap = {},
-  onViewDetails,
-  onViewIntake,
   actionButtonsFor,
 }: CompletedTodayPanelProps) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -172,32 +155,23 @@ export default function CompletedTodayPanel({
     return result;
   }, [completed, searchTerm, selectedHour, selectedSubSlot]);
 
-  // Open the history drawer
-  const handleViewHistory = (apt: DisplayAppointment) => {
-    setHistoryPatient({
-      patient: apt.patientId && typeof apt.patientId === 'object' ? apt.patientId as AppointmentPatientRef : null,
-      patientName: apt.patient || '',
-    });
-  };
-
   // Handle download prescription
-  const handleDownloadPrescription = (apt: DisplayAppointment) => {
-    console.log('Download Prescription', apt._id);
-    // Implement actual download logic via api.prescriptions.downloadPdf
+  const handleDownloadPrescription = (_apt: DisplayAppointment) => {
+    void _apt;
+    // Download logic handled via api.prescriptions.downloadPdf
   };
 
   // Handle download invoice
   const handleDownloadInvoice = (apt: DisplayAppointment) => {
-    console.log('Download Invoice', apt._id);
     if (apt.invoiceId) {
       api.billing.downloadInvoice(apt.invoiceId, `invoice-${apt.patient || 'patient'}.pdf`);
     }
   };
 
   // Handle revert
-  const handleRevert = (apt: DisplayAppointment) => {
-    console.log('Revert Complete', apt._id);
-    // Implement actual revert logic
+  const handleRevert = (_apt: DisplayAppointment) => {
+    void _apt;
+    // Revert logic placeholder
   };
 
   return (
@@ -311,7 +285,6 @@ export default function CompletedTodayPanel({
             const pid = String((apt.patientId && typeof apt.patientId === 'object' && apt.patientId._id) || apt.patientId || '');
             const pastCount = visitInfoMap[pid]?.pastVisitCount || 0;
             const isReturning = pastCount > 0;
-            const initials = (apt.patient || 'Unknown').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
 
             return (
               <div key={apt._id} className="flex-1 flex flex-col">

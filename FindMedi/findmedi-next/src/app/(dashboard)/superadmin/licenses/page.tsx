@@ -1,9 +1,10 @@
+ 
 // @ts-nocheck
 'use client';
 import React, { useState, useCallback, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { FileCheck } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
@@ -24,6 +25,7 @@ function LicensesTab() {
     setLoading(false);
   }, []);
 
+   
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { load(); }, []);
 

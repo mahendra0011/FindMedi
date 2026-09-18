@@ -2,38 +2,11 @@
 
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
-import {
-  Wallet, IndianRupee, Clock, ArrowUpRight, ArrowDownRight,
-  CreditCard, Smartphone, Landmark, Banknote, Sparkles,
-  Stethoscope, Receipt, TrendingUp, Trophy, Activity,
-  CalendarDays, CalendarRange, Eye, EyeOff,
-  Zap, PiggyBank, BarChart3, LineChart as LineChartIcon, PieChart as PieChartIcon,
-  CircleDollarSign, Flame, Timer, Layers,
-  Check, TrendingDown, type LucideIcon,
-} from 'lucide-react';
-import {
-  AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  ComposedChart, LineChart, Line,
-  RadarChart, Radar, PolarGrid, PolarAngleAxis,
-} from 'recharts';
+import { Wallet, IndianRupee, Clock, ArrowUpRight, ArrowDownRight, Sparkles, Stethoscope, Receipt, TrendingUp, Trophy, Activity, CalendarDays, CalendarRange, Eye, EyeOff, Zap, BarChart3, LineChart as LineChartIcon, PieChart as PieChartIcon, CircleDollarSign, Flame, Timer, Layers, Check, type LucideIcon } from 'lucide-react';
+import { AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, RadarChart, Radar, PolarGrid, PolarAngleAxis } from 'recharts';
 import { Tooltip as RadixTooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 /* ─── Constants ───────────────────────────────────── */
-const STATUS_CONFIG: Record<string, { color: string; dot: string; bg: string; text: string }> = {
-  Paid:    { color: 'hsl(var(--success))',     dot: 'bg-success',     bg: 'bg-success/10',     text: 'text-success' },
-  Pending: { color: 'hsl(var(--warning))',     dot: 'bg-warning',     bg: 'bg-warning/10',     text: 'text-warning' },
-  Partial: { color: 'hsl(var(--info))',        dot: 'bg-info',        bg: 'bg-info/10',        text: 'text-info' },
-  Overdue: { color: 'hsl(var(--destructive))', dot: 'bg-destructive', bg: 'bg-destructive/10', text: 'text-destructive' },
-};
-
-const METHOD_META: Record<string, { label: string; icon: LucideIcon; color: string; gradient: string }> = {
-  card:       { label: 'Card',       icon: CreditCard, color: 'hsl(var(--primary))',     gradient: 'from-primary/20 to-primary/5' },
-  upi:        { label: 'UPI',        icon: Smartphone, color: 'hsl(var(--success))',     gradient: 'from-success/20 to-success/5' },
-  netbanking: { label: 'Netbanking', icon: Landmark,   color: 'hsl(var(--info))',        gradient: 'from-info/20 to-info/5' },
-  cash:       { label: 'Cash',       icon: Banknote,   color: 'hsl(var(--warning))',     gradient: 'from-warning/20 to-warning/5' },
-};
-
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 

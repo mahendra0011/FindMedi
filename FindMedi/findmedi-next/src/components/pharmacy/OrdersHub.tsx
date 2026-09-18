@@ -31,7 +31,6 @@ interface OrdersHubProps {
 }
 
 export default function OrdersHub({
-  orders,
   orderTab,
   setOrderTab,
   pendingOrders,

@@ -1,10 +1,9 @@
+ 
 // @ts-nocheck
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
-import { motion } from 'motion/react';
-import {
-  TrendingUp, Users, Stethoscope, Activity, DollarSign, FileText, Settings, CheckCircle
-} from 'lucide-react';
+
+import { TrendingUp, Users, Stethoscope, Activity, DollarSign, FileText, Settings, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -52,7 +51,7 @@ function RevenueOverview() {
         <div className="bg-card rounded-xl border p-5">
           <div className="w-10 h-10 rounded-xl bg-warning/10 flex items-center justify-center mb-3"><Activity className="w-5 h-5 text-warning" /></div>
           <p className="text-2xl font-bold text-foreground">{stats?.todayAppointments || 0}</p>
-          <p className="text-xs text-muted-foreground">Today's Appointments</p>
+          <p className="text-xs text-muted-foreground">Today&apos;s Appointments</p>
         </div>
       </div>
 
@@ -142,6 +141,7 @@ function CommissionConfigTab() {
     setLoading(false);
   }, []);
 
+   
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { fetchConfigs(); }, []);
 
@@ -286,6 +286,7 @@ function TransactionLedgerTab() {
     setLoading(false);
   }, [page, sourceFilter]);
 
+   
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { fetchLedger(1); }, [sourceFilter]);
 
@@ -392,6 +393,7 @@ function PayoutsTab() {
     setLoading(false);
   }, [page]);
 
+   
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { fetchPayouts(1); }, []);
 

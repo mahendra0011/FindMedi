@@ -12,10 +12,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'motion/react';
-import {
-  Star, MapPin, Clock, IndianRupee, GraduationCap, Languages,
-  CalendarDays, Stethoscope, BadgeCheck, Award, User, Award as Exp,
-} from 'lucide-react';
+import { Star, MapPin, IndianRupee, GraduationCap, Languages, CalendarDays, Stethoscope, BadgeCheck, User, Award as Exp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import BookingModal from '@/components/shared/modals/BookingModal';
@@ -58,7 +55,7 @@ export default function DoctorCard({ doctor, index = 0 }: DoctorCardProps) {
     _id, name, specialization, experience, consultation_fees,
     rating = 0, reviews_count = 0, patients = 0, available = true,
     phone, location, profile_photo, bio, qualifications,
-    languages = [], areas_of_expertise = [], education = [],
+    languages = [], areas_of_expertise = [],
     department, doctor_type,
   } = doctor;
 

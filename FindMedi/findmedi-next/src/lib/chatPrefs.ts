@@ -70,8 +70,10 @@ export const WALLPAPERS = [
   { value: 'plain', label: 'Plain', css: 'hsl(var(--background))' },
 ];
 
-export const wallpaperCss = (value?: string, _isDark?: boolean): string =>
-  (WALLPAPERS.find((w) => w.value === value) || WALLPAPERS[0] || { css: '' }).css;
+export const wallpaperCss = (value?: string, _isDark?: boolean): string => {
+  void _isDark;
+  return (WALLPAPERS.find((w) => w.value === value) || WALLPAPERS[0] || { css: '' }).css;
+};
 
 const WALLPAPER_KEY = 'medicore_chat_wallpapers';
 
