@@ -80,7 +80,8 @@ export default function HospitalDoctors() {
           api.getDoctors({ hospitalId }),
         ]);
         setHospital(hosp);
-        setAllDoctors(docs?.doctors || docs?.data || docs || []);
+        const docList = Array.isArray(docs) ? docs : (docs?.doctors || docs?.data || []);
+        setAllDoctors(Array.isArray(docList) ? docList : []);
       } catch (e) {
         console.error(e);
         setLoadError('Failed to load doctors. Please try again.');
@@ -90,7 +91,7 @@ export default function HospitalDoctors() {
   }, [hospitalId]);
 
   useEffect(() => {
-    let filtered = [...allDoctors];
+    let filtered = Array.isArray(allDoctors) ? [...allDoctors] : [];
 
     // Search filter
     if (search) {

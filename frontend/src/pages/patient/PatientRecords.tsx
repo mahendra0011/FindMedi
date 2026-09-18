@@ -34,8 +34,8 @@ export default function PatientRecords() {
         api.getAppointments(),
         api.getRecords(),
       ]);
-      setAppointments(a?.appointments || a?.data || a || []);
-      const recordsArray = r?.records || r?.data || [];
+      setAppointments(Array.isArray(a) ? a : (a?.appointments || a?.data || []));
+      const recordsArray = Array.isArray(r) ? r : (r?.records || r?.data || []);
       setRecords(recordsArray);
     } catch (e) { console.error(e); toast.error('Failed to load records'); }
     setLoading(false);

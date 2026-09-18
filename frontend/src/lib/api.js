@@ -142,6 +142,15 @@ export function dispatch(_fallback, path, options = {}) {
   return request(path, options);
 }
 
+function normalizePaginated(res) {
+  if (res && typeof res === 'object' && Array.isArray(res.data) && !Array.isArray(res)) {
+    const arr = [...res.data];
+    Object.assign(arr, res);
+    return arr;
+  }
+  return res;
+}
+
 async function request(path, options = {}) {
   const { method = 'GET', body, headers: extraHeaders } = options;
   const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
@@ -154,7 +163,7 @@ async function request(path, options = {}) {
       ...extraHeaders,
     },
   });
-  return response.data;
+  return normalizePaginated(response.data);
 }
 
 export async function downloadInvoicePdf(billId, filename = 'invoice.pdf') {

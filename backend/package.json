@@ -6,7 +6,7 @@
     "node": ">=20.0.0"
   },
   "scripts": {
-    "dev": "node --watch-path=./src/index.js --watch-path=./src/routes --watch-path=./src/middleware --watch-path=./src/models --watch-path=./src/services --watch-path=./src/utils --watch-path=./src/config src/index.js",
+    "dev": "node --watch-path=./.env --watch-path=./src/index.js --watch-path=./src/routes --watch-path=./src/middleware --watch-path=./src/models --watch-path=./src/services --watch-path=./src/utils --watch-path=./src/config src/index.js",
     "start": "node src/index.js",
     "seed": "node seed-demo.mjs",
     "seed:all": "node seed-demo.mjs",

@@ -19,7 +19,7 @@ export default function BookingModal({
   doctor,
   facility,
   onSuccess,
-}) {
+}: any) {
   const [bookingStep, setBookingStep] = useState(doctor ? 0 : -1);
   const [selectedDoctor, setSelectedDoctor] = useState(doctor || null);
   const [fetchedDoctors, setFetchedDoctors] = useState([]);
@@ -115,6 +115,8 @@ export default function BookingModal({
       }
     }
   }, [open, doctor, facility]);
+
+  const currentDoc = selectedDoctor || doctor || null;
 
   const isOnlineMode = ['chat', 'video', 'audio', 'call', 'voice'].includes(appointmentMode);
   const isAutoConfirm = isOnlineMode
@@ -458,7 +460,7 @@ export default function BookingModal({
       ...pendingDisabledSlots.filter(s => !enabledSlots.includes(s) && !dateDisabledSlots.includes(s))];
     // Fallback if nothing
     const slots = allSlots.length > 0 ? allSlots : ['09:00 AM', '10:00 AM', '11:00 AM', '02:00 PM', '03:00 PM', '04:00 PM'];
-    const groups = {};
+    const groups: Record<string, string[]> = {};
     slots.forEach(t => {
       const mins = slotToMinutes(t);
       if (mins == null) return;

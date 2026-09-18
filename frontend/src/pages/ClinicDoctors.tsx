@@ -131,7 +131,8 @@ const loadDoctors = async () => {
       const params = { doctor_type: 'clinic' };
       if (search) params.search = search;
       const data = await api.getDoctors(params).catch(() => { throw new Error('Failed to load doctors'); });
-      setAllDoctors(data?.doctors || data?.data || data || []);
+      const docList = Array.isArray(data) ? data : (data?.doctors || data?.data || []);
+      setAllDoctors(Array.isArray(docList) ? docList : []);
     } catch (e) { setLoadError(e.message || 'Failed to load doctors'); setAllDoctors([]); }
     setLoading(false);
   };
@@ -141,7 +142,7 @@ const loadDoctors = async () => {
 
   const insuranceProviders = useMemo(() => {
     const providers = new Set();
-    allDoctors.forEach(d => {
+    (Array.isArray(allDoctors) ? allDoctors : []).forEach(d => {
       (d.clinicProfile?.clinic_insurance || d.insurance_accepted || []).forEach(i => {
         if (typeof i === 'string') providers.add(i);
         else if (i?.provider) providers.add(i.provider);
@@ -151,7 +152,7 @@ const loadDoctors = async () => {
   }, [allDoctors]);
 
   useEffect(() => {
-    let filtered = [...allDoctors];
+    let filtered = Array.isArray(allDoctors) ? [...allDoctors] : [];
 
     if (specFilter !== 'All') filtered = filtered.filter(d => matchesSpecialty(d, specFilter));
     if (clinicFilter) filtered = filtered.filter(d => getClinicName(d) === clinicFilter);

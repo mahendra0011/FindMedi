@@ -40,9 +40,10 @@ export default function DeliveryReviews() {
     );
   }
 
-  const avgRating = reviews.length > 0 ? (reviews.reduce((s, r) => s + (r.rating || 0), 0) / reviews.length).toFixed(1) : '0.0';
+  const reviewList = Array.isArray(reviews) ? reviews : [];
+  const avgRating = reviewList.length > 0 ? (reviewList.reduce((s, r) => s + (r.rating || 0), 0) / reviewList.length).toFixed(1) : '0.0';
   const distribution = [0, 0, 0, 0, 0];
-  reviews.forEach((r) => { if (r.rating >= 1 && r.rating <= 5) distribution[5 - r.rating]++; });
+  reviewList.forEach((r) => { if (r.rating >= 1 && r.rating <= 5) distribution[5 - r.rating]++; });
 
   return (
     <div className="space-y-6">

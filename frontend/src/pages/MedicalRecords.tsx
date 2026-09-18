@@ -28,11 +28,11 @@ export default function MedicalRecords() {
         ...(search && { search }), 
         ...(categoryFilter !== 'All' && { type: categoryFilter }) 
       });
-      return result?.data || result?.records || result || [];
+      return Array.isArray(result) ? result : (result?.records || result?.data || []);
     },
   });
 
-  const records = data || [];
+  const records = Array.isArray(data) ? data : (data?.records || data?.data || []);
 
   // Group records by doctor
   const doctorGroups = records.reduce((acc, rec) => {
@@ -53,7 +53,7 @@ export default function MedicalRecords() {
   const getCategoryCounts = (recs) => {
     const counts = {};
     Object.keys(categoryConfig).forEach(key => counts[key] = 0);
-    recs.forEach(r => {
+    (Array.isArray(recs) ? recs : []).forEach(r => {
       const type = (r.type || '').toLowerCase().replace(/\s+/g, '_');
       if (counts[type] !== undefined) counts[type]++;
     });

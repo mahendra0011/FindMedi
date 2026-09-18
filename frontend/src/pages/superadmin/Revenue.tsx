@@ -403,7 +403,7 @@ function PayoutsTab() {
   };
 
   const statusTotals = {};
-  payoutStats.forEach(s => { statusTotals[s._id] = { total: s.total || 0, count: s.count || 0 }; });
+  (Array.isArray(payoutStats) ? payoutStats : []).forEach(s => { statusTotals[s._id] = { total: s.total || 0, count: s.count || 0 }; });
 
   return (
     <div className="space-y-5">

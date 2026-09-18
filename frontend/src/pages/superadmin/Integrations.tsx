@@ -89,7 +89,7 @@ export default function Integrations() {
   };
 
   const grouped = {};
-  integrations.forEach(i => {
+  (Array.isArray(integrations) ? integrations : []).forEach(i => {
     if (!grouped[i.category]) grouped[i.category] = [];
     grouped[i.category].push(i);
   });

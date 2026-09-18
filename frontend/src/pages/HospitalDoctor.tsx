@@ -94,8 +94,8 @@ export default function HospitalDoctor() {
         if (Array.isArray(rv) && rv.length > 0) setReviews(rv);
 
         const allDocs = await api.getDoctors({}).catch(() => ({ data: [] }));
-        const allList = allDocs?.data || allDocs || [];
-        const filtered = allList.filter(d => d._id !== id);
+        const allList = Array.isArray(allDocs) ? allDocs : (allDocs?.data || allDocs?.doctors || []);
+        const filtered = Array.isArray(allList) ? allList.filter(d => d._id !== id) : [];
         if (doc.hospitalId?._id || doc.hospitalId) {
           const hospitalId = doc.hospitalId._id || doc.hospitalId;
           setRelatedDoctors(filtered.filter(d => (d.hospitalId?._id || d.hospitalId)?.toString() === hospitalId.toString()).slice(0, 4));
@@ -145,7 +145,7 @@ export default function HospitalDoctor() {
 
   const ratingBreakdown = () => {
     const counts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
-    reviews.forEach(r => { if (r.rating >= 1 && r.rating <= 5) counts[r.rating]++; });
+    (Array.isArray(reviews) ? reviews : []).forEach(r => { if (r.rating >= 1 && r.rating <= 5) counts[r.rating]++; });
     const max = Math.max(...Object.values(counts), 1);
     return Object.entries(counts).reverse().map(([star, count]) => (
       <div key={star} className="flex items-center gap-2 text-sm">

@@ -8,7 +8,7 @@ import { Upload, Loader2, FileText, CheckCircle2, ChevronDown, ChevronUp, ArrowR
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 
-export default function IntakeFormStep({ formData, setFormData, onNext, onBack }) {
+export default function IntakeFormStep({ formData, setFormData, onNext, onBack }: any) {
   const [uploadingPrescription, setUploadingPrescription] = useState(false);
   const [uploadingReport, setUploadingReport] = useState(false);
   const [uploadMenu, setUploadMenu] = useState(null); // 'prescription' | 'report' | null

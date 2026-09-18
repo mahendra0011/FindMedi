@@ -252,7 +252,7 @@ const navConfig = {
 
 const roleBadgeColor = { hospital_admin: 'bg-primary/20 text-primary', doctor: 'bg-info/20 text-info', patient: 'bg-success/20 text-success', clinic_doctor: 'bg-warning/20 text-warning', lab_owner: 'bg-purple-500/20 text-purple-600', pharmacy_owner: 'bg-rose-500/20 text-rose-600', delivery_boy: 'bg-blue-500/20 text-blue-600' };
 
-function SidebarContent({ collapsed, onToggleCollapse, onNavClick }) {
+function SidebarContent({ collapsed, onToggleCollapse, onNavClick }: any) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();

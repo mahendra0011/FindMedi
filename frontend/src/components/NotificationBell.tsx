@@ -3,7 +3,7 @@ import { Bell } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useNotificationCount } from '@/context/NotificationContext';
 
-export default function NotificationBell({ className = '', onClick }) {
+export default function NotificationBell({ className = '', onClick }: any = {}) {
   const { count, refreshCount } = useNotificationCount();
   
   const handleClick = async (e) => {

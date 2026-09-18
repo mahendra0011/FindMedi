@@ -13,7 +13,7 @@ export default function BillCheckout({
   deliveryCharges,
   discount = 0,
   discountCode = '',
-}) {
+}: any) {
   const TypeIcon = serviceType === 'appointment' ? Stethoscope : serviceType === 'test' ? Beaker : Pill;
   const serviceLabel = { appointment: 'Appointment', test: 'Lab Test', medicine: 'Medicine Order' };
 

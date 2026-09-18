@@ -34,7 +34,7 @@ export default function OrderConfirmation() {
       if (storeIds.length > 0) {
         try {
           const facilities = await api.getFacilities({ type: 'pharmacy' });
-          const list = Array.isArray(facilities) ? facilities : facilities?.facilities || [];
+          const list = Array.isArray(facilities) ? facilities : (facilities?.facilities || facilities?.data || []);
           const map = {};
           list.forEach(f => { map[f._id] = f.name; map[f.id] = f.name; });
           storeIds.forEach(sid => {

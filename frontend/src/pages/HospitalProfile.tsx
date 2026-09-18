@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -156,7 +156,8 @@ export default function HospitalProfile() {
       if (revs && revs.length > 0) setReviews(revs);
       // Fetch suggested hospitals
       try {
-        const allHospitals = await api.getHospitals({});
+        const rawHosp = await api.getHospitals({});
+        const allHospitals = Array.isArray(rawHosp) ? rawHosp : (rawHosp?.data || rawHosp?.hospitals || []);
         const currentCity = hosp.city?.toLowerCase();
         const currentSpecs = new Set((hosp.specialties || []).map(s => s.toLowerCase()));
         const scored = allHospitals

@@ -26,7 +26,7 @@ export default function PharmacyDeliveryTab() {
       const { latitude, longitude } = pos.coords;
       try {
         const data = await api.get(`/delivery-partners/nearby?lat=${latitude}&lng=${longitude}&radiusKm=10`);
-        setNearby(data);
+        setNearby(Array.isArray(data) ? data : (data?.partners || data?.data || []));
       } catch {
         toast.error('Failed to load nearby partners');
       }
@@ -37,7 +37,7 @@ export default function PharmacyDeliveryTab() {
   const fetchAll = async () => {
     try {
       const data = await api.get('/delivery-partners/all');
-      setAllPartners(data);
+      setAllPartners(Array.isArray(data) ? data : (data?.partners || data?.data || []));
     } catch {
       toast.error('Failed to load partners');
     }
