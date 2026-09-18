@@ -20,7 +20,7 @@ function getNapi() {
   if (_loadError !== null) throw Object.assign(new Error(_loadError.message), { code: NATIVE_NOT_AVAILABLE });
 
   try {
-    _napi = require('../rust-helper/index.js');
+    _napi = require('../../rust-helper/index.js');
   } catch (e) {
     _loadError = e;
   }

@@ -12,7 +12,7 @@ async function migrate() {
   await mongoose.connect(MONGO_URI);
   console.log('Connected to MongoDB.');
 
-  const Hospital = (await import('../models/Hospital.js')).default;
+  const Hospital = (await import('../src/models/Hospital.js')).default;
 
   // 1. Create default hospital
   let defaultHospital = await Hospital.findOne({ name: 'FindMedi Demo Hospital' });
@@ -39,33 +39,33 @@ async function migrate() {
 
   // 2. Update all hospital-scoped models
   const models = [
-    { name: 'Doctor', file: '../models/Doctor.js' },
-    { name: 'Department', file: '../models/Department.js' },
-    { name: 'Appointment', file: '../models/Appointment.js' },
-    { name: 'Billing', file: '../models/Billing.js' },
-    { name: 'Record', file: '../models/Record.js' },
-    { name: 'Staff', file: '../models/Staff.js' },
-    { name: 'LabOrder', file: '../models/LabOrder.js' },
-    { name: 'Medicine', file: '../models/Medicine.js' },
-    { name: 'Bed', file: '../models/Bed.js' },
-    { name: 'Admission', file: '../models/Admission.js' },
-    { name: 'OperationTheatre', file: '../models/OperationTheatre.js' },
-    { name: 'Physiotherapy', file: '../models/Physiotherapy.js' },
-    { name: 'DietOrder', file: '../models/DietOrder.js' },
-    { name: 'NursingChart', file: '../models/NursingChart.js' },
-    { name: 'Triage', file: '../models/Triage.js' },
-    { name: 'Housekeeping', file: '../models/Housekeeping.js' },
-    { name: 'Inventory', file: '../models/Inventory.js' },
-    { name: 'Insurance', file: '../models/Insurance.js' },
-    { name: 'Radiology', file: '../models/Radiology.js' },
-    { name: 'PurchaseOrder', file: '../models/PurchaseOrder.js' },
-    { name: 'Supplier', file: '../models/Supplier.js' },
-    { name: 'MentalHealth', file: '../models/MentalHealth.js' },
-    { name: 'Emergency', file: '../models/Emergency.js' },
-    { name: 'Prescription', file: '../models/Prescription.js' },
-    { name: 'Token', file: '../models/Token.js' },
-    { name: 'Review', file: '../models/Review.js' },
-    { name: 'Payment', file: '../models/Payment.js' },
+    { name: 'Doctor', file: '../src/models/Doctor.js' },
+    { name: 'Department', file: '../src/models/Department.js' },
+    { name: 'Appointment', file: '../src/models/Appointment.js' },
+    { name: 'Billing', file: '../src/models/Billing.js' },
+    { name: 'Record', file: '../src/models/Record.js' },
+    { name: 'Staff', file: '../src/models/Staff.js' },
+    { name: 'LabOrder', file: '../src/models/LabOrder.js' },
+    { name: 'Medicine', file: '../src/models/Medicine.js' },
+    { name: 'Bed', file: '../src/models/Bed.js' },
+    { name: 'Admission', file: '../src/models/Admission.js' },
+    { name: 'OperationTheatre', file: '../src/models/OperationTheatre.js' },
+    { name: 'Physiotherapy', file: '../src/models/Physiotherapy.js' },
+    { name: 'DietOrder', file: '../src/models/DietOrder.js' },
+    { name: 'NursingChart', file: '../src/models/NursingChart.js' },
+    { name: 'Triage', file: '../src/models/Triage.js' },
+    { name: 'Housekeeping', file: '../src/models/Housekeeping.js' },
+    { name: 'Inventory', file: '../src/models/Inventory.js' },
+    { name: 'Insurance', file: '../src/models/Insurance.js' },
+    { name: 'Radiology', file: '../src/models/Radiology.js' },
+    { name: 'PurchaseOrder', file: '../src/models/PurchaseOrder.js' },
+    { name: 'Supplier', file: '../src/models/Supplier.js' },
+    { name: 'MentalHealth', file: '../src/models/MentalHealth.js' },
+    { name: 'Emergency', file: '../src/models/Emergency.js' },
+    { name: 'Prescription', file: '../src/models/Prescription.js' },
+    { name: 'Token', file: '../src/models/Token.js' },
+    { name: 'Review', file: '../src/models/Review.js' },
+    { name: 'Payment', file: '../src/models/Payment.js' },
   ];
 
   for (const { name, file } of models) {
@@ -85,7 +85,7 @@ async function migrate() {
 
   // 3. Update BloodBank models separately
   try {
-    const { BloodUnit, BloodRequest } = await import('../models/BloodBank.js');
+    const { BloodUnit, BloodRequest } = await import('../src/models/BloodBank.js');
     let r = await BloodUnit.updateMany(
       { $or: [{ hospitalId: { $exists: false } }, { hospitalId: null }] },
       { $set: { hospitalId: defaultHospitalId } }
@@ -102,7 +102,7 @@ async function migrate() {
 
   // 4. Update existing admin users with default hospitalId
   try {
-    const User = (await import('../models/User.js')).default;
+    const User = (await import('../src/models/User.js')).default;
     const result = await User.updateMany(
       { role: 'hospital_admin', $or: [{ hospitalId: { $exists: false } }, { hospitalId: null }] },
       { $set: { hospitalId: defaultHospitalId } }

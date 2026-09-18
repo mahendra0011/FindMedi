@@ -1,5 +1,5 @@
 import request from 'supertest';
-import app from '../index.js';
+import app from '../src/index.js';
 
 const userId = '64d9f8c2e1b2c3d4e5f6a7b8';
 

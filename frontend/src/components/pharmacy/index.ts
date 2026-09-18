@@ -8,3 +8,5 @@ export { default as ReturnsSection } from './ReturnsSection';
 export type { ReturnItem } from './ReturnsSection';
 
 export { default as PlatformSettingsSection } from './PlatformSettingsSection';
+export { default as StatCard } from './StatCard';
+export type { StatCardProps } from './StatCard';

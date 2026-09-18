@@ -15,7 +15,7 @@ function getNapi() {
   if (_napi !== null) return _napi;
   if (_loadError !== null) return null;
   try {
-    _napi = require('../rust-helper/index.js');
+    _napi = require('../../rust-helper/index.js');
   } catch (e) {
     _loadError = e;
   }

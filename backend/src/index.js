@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-dotenv.config({ path: path.join(__dirname, '.env') });
+dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
 import express from 'express';
 import http from 'http';
@@ -256,7 +256,7 @@ app.use('/uploads', (req, res, next) => {
     return res.status(401).json({ message: 'Authentication required for medical file access' });
   }
   next();
-}, express.static(path.join(__dirname, 'public/uploads')));
+}, express.static(path.join(__dirname, '..', 'public/uploads')));
 
 // Import routes
 import authRoutes from './routes/auth.js';
@@ -406,7 +406,7 @@ app.get('/', (_, res) => res.json({ status: 'ok', message: 'FindMedi API running
 // ── Serve frontend in production (only if client/dist exists - single-service deploy) ──
 import fs from 'fs';
 if (process.env.NODE_ENV === 'production') {
-  const clientDist = path.join(__dirname, '../client/dist');
+  const clientDist = path.join(__dirname, '..', '..', 'client', 'dist');
   if (fs.existsSync(clientDist)) {
     app.use(express.static(clientDist));
     // SPA fallback: serve index.html for non-API routes (must be before 404)

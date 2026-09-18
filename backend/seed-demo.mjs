@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url';
 import fs from 'fs';
 import bcrypt from 'bcryptjs';
 import mongoose from 'mongoose';
-import { configureMongoDns } from './config/mongoDns.js';
+import { configureMongoDns } from './src/config/mongoDns.js';
 
 configureMongoDns();
 
@@ -13,21 +13,21 @@ dotenv.config({ path: path.join(__dirname, '.env') });
 
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/findmedi';
 
-import Hospital from './models/Hospital.js';
-import Facility from './models/Facility.js';
-import User from './models/User.js';
-import Doctor from './models/Doctor.js';
-import Patient from './models/Patient.js';
-import Appointment from './models/Appointment.js';
-import Test from './models/Test.js';
-import Medicine from './models/Medicine.js';
-import Bed from './models/Bed.js';
-import Department from './models/Department.js';
-import Staff from './models/Staff.js';
-import Inventory from './models/Inventory.js';
-import ClinicProfile from './models/ClinicProfile.js';
-import Review from './models/Review.js';
-import DeliveryPartner from './models/DeliveryPartner.js';
+import Hospital from './src/models/Hospital.js';
+import Facility from './src/models/Facility.js';
+import User from './src/models/User.js';
+import Doctor from './src/models/Doctor.js';
+import Patient from './src/models/Patient.js';
+import Appointment from './src/models/Appointment.js';
+import Test from './src/models/Test.js';
+import Medicine from './src/models/Medicine.js';
+import Bed from './src/models/Bed.js';
+import Department from './src/models/Department.js';
+import Staff from './src/models/Staff.js';
+import Inventory from './src/models/Inventory.js';
+import ClinicProfile from './src/models/ClinicProfile.js';
+import Review from './src/models/Review.js';
+import DeliveryPartner from './src/models/DeliveryPartner.js';
 
 const readJSON = (file) => JSON.parse(fs.readFileSync(path.join(__dirname, 'mock-data', file), 'utf-8'));
 

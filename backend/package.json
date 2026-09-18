@@ -6,8 +6,8 @@
     "node": ">=20.0.0"
   },
   "scripts": {
-    "dev": "node --watch-path=./index.js --watch-path=./routes --watch-path=./middleware --watch-path=./models --watch-path=./services --watch-path=./utils --watch-path=./config index.js",
-    "start": "node index.js",
+    "dev": "node --watch-path=./src/index.js --watch-path=./src/routes --watch-path=./src/middleware --watch-path=./src/models --watch-path=./src/services --watch-path=./src/utils --watch-path=./src/config src/index.js",
+    "start": "node src/index.js",
     "seed": "node seed-demo.mjs",
     "seed:all": "node seed-demo.mjs",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --forceExit"

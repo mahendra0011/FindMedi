@@ -5,7 +5,7 @@ import { Pill, ShoppingCart, DollarSign, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api';
-import StatCard from '@/components/shared/cards/StatCard';
+import StatCard from '@/components/pharmacy/StatCard';
 import LicenseExpiryReminder from '@/components/shared/sections/LicenseExpiryReminder';
 import {
   OrdersHub,

@@ -88,7 +88,7 @@ const handleAvatarUpload = (req, res, next) => {
 };
 
 const saveAvatarLocally = async (file, req) => {
-  const uploadDir = path.join(__dirname, '../public/uploads/avatars');
+  const uploadDir = path.join(__dirname, '..', '..', 'public', 'uploads', 'avatars');
   await fs.mkdir(uploadDir, { recursive: true });
 
   const extFromName = path.extname(file.originalname || '').toLowerCase();

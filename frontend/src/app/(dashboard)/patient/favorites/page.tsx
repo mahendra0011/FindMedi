@@ -23,18 +23,18 @@ import type { LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import DoctorCard from '@/components/shared/cards/DoctorCard';
-import HospitalCard from '@/components/shared/cards/HospitalCard';
-import ClinicCard from '@/components/shared/cards/ClinicCard';
-import DiagnosticCenterCard from '@/components/shared/cards/DiagnosticCenterCard';
-import PharmacyCard from '@/components/shared/cards/PharmacyCard';
+import DoctorCard from '@/components/patient/DoctorCard';
+import HospitalCard from '@/components/patient/HospitalCard';
+import ClinicCard from '@/components/patient/ClinicCard';
+import DiagnosticCenterCard from '@/components/patient/DiagnosticCenterCard';
+import PharmacyCard from '@/components/patient/PharmacyCard';
 import { useFavorites, useRemoveFavorite } from '@/features/favorites/hooks';
 import type { FavoriteItem } from '@/features/favorites/types';
 import type { Doctor } from '@/types/models/doctor';
 import type { Hospital } from '@/types/models/hospital';
-import type { Clinic } from '@/components/shared/cards/ClinicCard';
-import type { DiagnosticCenter } from '@/components/shared/cards/DiagnosticCenterCard';
-import type { Pharmacy } from '@/components/shared/cards/PharmacyCard';
+import type { Clinic } from '@/components/patient/ClinicCard';
+import type { DiagnosticCenter } from '@/components/patient/DiagnosticCenterCard';
+import type { Pharmacy } from '@/components/patient/PharmacyCard';
 
 const typeConfig: Record<string, { icon: LucideIcon; label: string; color: string; bg: string; activeBg: string }> = {
   all: { icon: Sparkles, label: 'All', color: 'text-foreground', bg: 'bg-muted', activeBg: 'bg-primary text-primary-foreground' },

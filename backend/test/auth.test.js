@@ -1,5 +1,5 @@
 import request from 'supertest';
-import app from '../index.js';
+import app from '../src/index.js';
 
 describe('Auth Endpoints', () => {
   it('should reject registration with missing required fields', async () => {
