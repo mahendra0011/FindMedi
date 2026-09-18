@@ -7,31 +7,6 @@ on:
     branches: [ "main" ]
 
 jobs:
-  client:
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Use Node.js 20.x
-      uses: actions/setup-node@v4
-      with:
-        node-version: 20.x
-        cache: 'npm'
-        cache-dependency-path: apps/client/package-lock.json
-
-    - name: Install Dependencies
-      run: cd apps/client && npm install --legacy-peer-deps
-
-    - name: Lint
-      run: cd apps/client && npm run lint
-
-    - name: Build
-      run: cd apps/client && npm run build
-
-    - name: Test
-      run: cd apps/client && npm test
-
   server:
     runs-on: ubuntu-latest
 
@@ -43,13 +18,13 @@ jobs:
       with:
         node-version: 20.x
         cache: 'npm'
-        cache-dependency-path: apps/api/package-lock.json
+        cache-dependency-path: backend/package-lock.json
 
     - name: Install Dependencies
-      run: cd apps/api && npm install
+      run: cd backend && npm install
 
     - name: Test
-      run: cd apps/api && npm test
+      run: cd backend && npm test
 
   build-rust:
     name: Build Rust Native Module
@@ -67,19 +42,19 @@ jobs:
       with:
         node-version: 20.x
         cache: 'npm'
-        cache-dependency-path: apps/api/napi-core/package-lock.json
+        cache-dependency-path: backend/rust-helper/package-lock.json
 
     - name: Install Rust toolchain
       uses: dtolnay/rust-toolchain@stable
 
     - name: Install Dependencies
-      run: cd apps/api/napi-core && npm install
+      run: cd backend/rust-helper && npm install
 
     - name: Build Native Module
-      run: cd apps/api/napi-core && npm run build:release
+      run: cd backend/rust-helper && npm run build:release
 
     - name: Test Native Module
-      run: cd apps/api/napi-core && node tests/test.js
+      run: cd backend/rust-helper && node tests/test.js
 
   findmedi-next:
     name: findmedi-next (Next.js app)
@@ -92,25 +67,25 @@ jobs:
     - uses: actions/checkout@v4
 
     # Node 22+ is required: this app runs Vitest 5 (engines: ^22.12.0 || ^24.0.0 || >=26)
-    # and @testing-library/jest-dom 7 (engines: >=22), unlike the client/server jobs.
+    # and @testing-library/jest-dom 7 (engines: >=22), unlike the api job.
     - name: Use Node.js 22.x
       uses: actions/setup-node@v4
       with:
         node-version: 22.x
         cache: 'npm'
-        cache-dependency-path: apps/web/package-lock.json
+        cache-dependency-path: frontend/package-lock.json
 
     - name: Install Dependencies
-      run: cd apps/web && npm ci --no-audit --no-fund
+      run: cd frontend && npm ci --no-audit --no-fund
 
     - name: Type Check
-      run: cd apps/web && npm run typecheck
+      run: cd frontend && npm run typecheck
 
     - name: Test
-      run: cd apps/web && npm test
+      run: cd frontend && npm test
 
     - name: Build
-      run: cd apps/web && npm run build
+      run: cd frontend && npm run build
 
     - name: Lint
-      run: cd apps/web && npm run lint
+      run: cd frontend && npm run lint
