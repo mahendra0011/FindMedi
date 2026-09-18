@@ -1,15 +1,23 @@
-'use client';
-
-import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { Mic, MicOff, Video, VideoOff, PhoneOff, Minimize2, Maximize2, Volume2, VolumeX, Sparkles, SwitchCamera, ShieldCheck, Wifi, RefreshCw, Monitor, FileText, MessageSquare, Send, X, Save, Stethoscope } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Mic, MicOff, Video, VideoOff, PhoneOff, Minimize2, Maximize2,
+  Volume2, VolumeX, Sparkles, SwitchCamera, ShieldCheck, Wifi,
+  ChevronDown, Settings, User, AlertCircle, RefreshCw, Monitor,
+  Camera, FileText, MessageSquare, Send, X, CheckCircle2, Save,
+  Heart, Activity, Stethoscope, Droplet
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+  DropdownMenuLabel, DropdownMenuSeparator
+} from '@/components/ui/dropdown-menu';
 import { useVideoCall } from '@/context/VideoCallContext';
 
-function formatDuration(secs: number) {
+function formatDuration(secs) {
   const m = Math.floor(secs / 60);
   const s = secs % 60;
   return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
@@ -19,6 +27,7 @@ export default function VideoCallOverlay() {
   const {
     callState,
     activePeer,
+    isCaller,
     isAudioMuted,
     isVideoMuted,
     isRemoteVideoMuted,
@@ -37,22 +46,28 @@ export default function VideoCallOverlay() {
     networkQuality,
     resolutionLabel,
     isMinimized,
+    isFullScreen,
     localStream,
     remoteStream,
+    remoteVideoElemRef,
+    localVideoElemRef,
     endVideoCall,
     toggleAudioMute,
+    toggleVideoMute,
     switchCamera,
+    flipFacingMode,
+    toggleSpeaker,
+    setAudioOutput,
+    toggleLowLightEnhancer,
     toggleScreenShare,
-    toggleLowLight,
-    toggleMinimize,
     sendInCallMessage,
     setClinicalNotes,
     saveClinicalNotes,
-    setAudioOutput,
+    captureSnapshot,
+    togglePiP,
+    toggleMinimize,
+    toggleFullScreen,
   } = useVideoCall();
-
-  const remoteVideoElemRef = useRef<HTMLVideoElement | null>(null);
-  const localVideoElemRef = useRef<HTMLVideoElement | null>(null);
 
   // Self-preview drag coordinates
   const [selfPos, setSelfPos] = useState({ x: 24, y: 24 });
@@ -60,15 +75,12 @@ export default function VideoCallOverlay() {
   const dragStartRef = useRef({ mouseX: 0, mouseY: 0, posX: 0, posY: 0 });
 
   // Self-preview resize size: 'normal' (200px) | 'large' (320px)
-  const [selfSize, setSelfSize] = useState<'normal' | 'large'>('normal');
+  const [selfSize, setSelfSize] = useState('normal');
 
-  // Telemedicine Drawer State: null | 'notes' | 'chat'
-  const [drawerTab, setDrawerTab] = useState<'notes' | 'chat' | null>(null);
+  // Telemedicine Drawer State: null | 'notes' | 'chat' | 'vitals'
+  const [drawerTab, setDrawerTab] = useState(null);
   const [chatInput, setChatInput] = useState('');
-  const chatBottomRef = useRef<HTMLDivElement | null>(null);
-
-  const [showCameraMenu, setShowCameraMenu] = useState(false);
-  const [showAudioMenu, setShowAudioMenu] = useState(false);
+  const chatBottomRef = useRef(null);
 
   // Auto-scroll chat drawer
   useEffect(() => {
@@ -82,16 +94,16 @@ export default function VideoCallOverlay() {
     if (localStream && localVideoElemRef.current) {
       localVideoElemRef.current.srcObject = localStream;
     }
-  }, [localStream]);
+  }, [localStream, localVideoElemRef]);
 
   useEffect(() => {
     if (remoteStream && remoteVideoElemRef.current) {
       remoteVideoElemRef.current.srcObject = remoteStream;
     }
-  }, [remoteStream]);
+  }, [remoteStream, remoteVideoElemRef]);
 
   // Drag handlers for moveable self-preview
-  const handleMouseDown = (e: React.MouseEvent) => {
+  const handleMouseDown = (e) => {
     setIsDragging(true);
     dragStartRef.current = {
       mouseX: e.clientX,
@@ -102,7 +114,7 @@ export default function VideoCallOverlay() {
   };
 
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
+    const handleMouseMove = (e) => {
       if (!isDragging) return;
       const dx = dragStartRef.current.mouseX - e.clientX;
       const dy = dragStartRef.current.mouseY - e.clientY;
@@ -126,8 +138,8 @@ export default function VideoCallOverlay() {
     };
   }, [isDragging]);
 
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (e.touches.length === 1 && e.touches[0]) {
+  const handleTouchStart = (e) => {
+    if (e.touches.length === 1) {
       setIsDragging(true);
       dragStartRef.current = {
         mouseX: e.touches[0].clientX,
@@ -138,8 +150,8 @@ export default function VideoCallOverlay() {
     }
   };
 
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isDragging || e.touches.length !== 1 || !e.touches[0]) return;
+  const handleTouchMove = (e) => {
+    if (!isDragging || e.touches.length !== 1) return;
     const dx = dragStartRef.current.mouseX - e.touches[0].clientX;
     const dy = dragStartRef.current.mouseY - e.touches[0].clientY;
     setSelfPos({
@@ -152,7 +164,7 @@ export default function VideoCallOverlay() {
     setIsDragging(false);
   };
 
-  const handleSendChat = (e: React.FormEvent) => {
+  const handleSendChat = (e) => {
     e.preventDefault();
     if (!chatInput.trim()) return;
     sendInCallMessage(chatInput);
@@ -200,10 +212,9 @@ export default function VideoCallOverlay() {
                 className="relative mb-6"
               >
                 {activePeer?.avatar ? (
-                  // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={activePeer.avatar}
-                    alt={activePeer.name || 'Peer'}
+                    alt={activePeer.name}
                     className="w-32 h-32 md:w-40 md:h-40 rounded-full object-cover border-4 border-cyan-500/40 shadow-2xl shadow-cyan-500/20"
                   />
                 ) : (
@@ -341,6 +352,17 @@ export default function VideoCallOverlay() {
             >
               <Minimize2 className="w-4 h-4" />
             </Button>
+
+            {/* Fullscreen Button */}
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={toggleFullScreen}
+              title="Toggle Fullscreen"
+              className="w-10 h-10 rounded-xl bg-neutral-900/80 border-white/10 hover:bg-neutral-800 text-white hidden sm:flex"
+            >
+              <Maximize2 className="w-4 h-4" />
+            </Button>
           </div>
         </div>
 
@@ -379,13 +401,13 @@ export default function VideoCallOverlay() {
             </div>
           )}
 
-          {/* Overlay controls on self preview */}
+          {/* Overlay controls on self preview (Flip Camera & Resize) */}
           <div className="absolute top-1.5 inset-x-1.5 flex items-center justify-between pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                switchCamera();
+                flipFacingMode();
               }}
               title="Flip Front / Rear Camera"
               className="pointer-events-auto p-1.5 rounded-lg bg-neutral-900/80 hover:bg-neutral-800 text-white border border-white/10"
@@ -475,7 +497,7 @@ export default function VideoCallOverlay() {
 
                   <Button
                     size="sm"
-                    onClick={() => saveClinicalNotes()}
+                    onClick={() => saveClinicalNotes(clinicalNotes)}
                     className="w-full h-9 bg-cyan-600 hover:bg-cyan-700 text-white text-xs gap-1.5 rounded-xl font-medium shadow-md shadow-cyan-600/20"
                   >
                     <Save className="w-3.5 h-3.5" /> Save to Consultation History
@@ -494,21 +516,24 @@ export default function VideoCallOverlay() {
                         <p className="text-[11px] text-neutral-500 mt-0.5">Send medicine names, dosage, or links.</p>
                       </div>
                     ) : (
-                      inCallMessages.map((msg) => (
-                        <div
-                          key={msg.id}
-                          className={`flex flex-col ${msg.sender === 'Me' ? 'items-end' : 'items-start'}`}
-                        >
-                          <span className="text-[10px] text-neutral-400 mb-0.5">{msg.sender}</span>
+                      inCallMessages.map((msg, i) => {
+                        const isMe = msg.senderId === String(activePeer?.id) ? false : true;
+                        return (
                           <div
-                            className={`p-2.5 rounded-2xl max-w-[85%] text-xs ${
-                              msg.sender === 'Me' ? 'bg-cyan-600 text-white rounded-br-none' : 'bg-neutral-800 text-neutral-200 rounded-bl-none'
-                            }`}
+                            key={i}
+                            className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}
                           >
-                            {msg.text}
+                            <span className="text-[10px] text-neutral-400 mb-0.5">{msg.senderName}</span>
+                            <div
+                              className={`p-2.5 rounded-2xl max-w-[85%] text-xs ${
+                                isMe ? 'bg-cyan-600 text-white rounded-br-none' : 'bg-neutral-800 text-neutral-200 rounded-bl-none'
+                              }`}
+                            >
+                              {msg.text}
+                            </div>
                           </div>
-                        </div>
-                      ))
+                        );
+                      })
                     )}
                     <div ref={chatBottomRef} />
                   </div>
@@ -552,11 +577,15 @@ export default function VideoCallOverlay() {
             <Button
               variant="outline"
               size="icon"
-              onClick={switchCamera}
-              title="Camera switch"
-              className="w-11 h-11 sm:w-12 sm:h-12 rounded-full border-0 bg-neutral-800/80 text-white hover:bg-neutral-700"
+              onClick={toggleVideoMute}
+              title={isVideoMuted ? 'Turn Camera ON' : 'Turn Camera OFF'}
+              className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full border-0 transition-all ${
+                isVideoMuted
+                  ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 ring-2 ring-red-500/50'
+                  : 'bg-neutral-800/80 text-white hover:bg-neutral-700'
+              }`}
             >
-              <Video className="w-5 h-5" />
+              {isVideoMuted ? <VideoOff className="w-5 h-5" /> : <Video className="w-5 h-5" />}
             </Button>
 
             {/* Screen Share Toggle */}
@@ -564,7 +593,7 @@ export default function VideoCallOverlay() {
               variant="outline"
               size="icon"
               onClick={toggleScreenShare}
-              title={isScreenSharing ? 'Stop Screen Share' : 'Share Screen'}
+              title={isScreenSharing ? 'Stop Screen Share' : 'Share Screen (Reports/X-Rays)'}
               className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full border-0 transition-all ${
                 isScreenSharing
                   ? 'bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30 ring-2 ring-cyan-400/50'
@@ -574,48 +603,54 @@ export default function VideoCallOverlay() {
               <Monitor className="w-5 h-5" />
             </Button>
 
-            {/* Camera Switcher Menu */}
-            <div className="relative">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setShowCameraMenu(p => !p)}
-                title="Select Camera Device"
-                className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-neutral-800/80 text-white hover:bg-neutral-700 border-0"
-              >
-                <SwitchCamera className="w-5 h-5" />
-              </Button>
-              {showCameraMenu && (
-                <div className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 w-56 bg-neutral-900 text-white border border-neutral-800 rounded-xl shadow-2xl p-2 z-50">
-                  <p className="text-[11px] text-neutral-400 px-2 py-1 font-semibold">Available Cameras</p>
-                  <button
-                    type="button"
-                    onClick={() => { switchCamera(); setShowCameraMenu(false); }}
-                    className="w-full text-left px-2.5 py-1.5 text-xs rounded-lg hover:bg-neutral-800 flex items-center gap-2"
+            {/* Medical Snapshot Capture Button */}
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={captureSnapshot}
+              title="Capture Clinical Snapshot Frame"
+              className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-neutral-800/80 text-white hover:bg-neutral-700 border-0"
+            >
+              <Camera className="w-5 h-5" />
+            </Button>
+
+            {/* Camera Switcher Menu (Front/Back/External) */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  title="Select Camera Device"
+                  className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-neutral-800/80 text-white hover:bg-neutral-700 border-0"
+                >
+                  <SwitchCamera className="w-5 h-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="center" side="top" className="bg-neutral-900 text-white border-neutral-800 w-56">
+                <DropdownMenuLabel className="text-xs text-neutral-400">Available Cameras</DropdownMenuLabel>
+                <DropdownMenuSeparator className="bg-neutral-800" />
+                <DropdownMenuItem onClick={flipFacingMode} className="text-xs cursor-pointer hover:bg-neutral-800">
+                  <SwitchCamera className="w-4 h-4 mr-2" /> Flip to {facingMode === 'user' ? 'Rear' : 'Front'} Camera
+                </DropdownMenuItem>
+                {availableCameras.map((cam, idx) => (
+                  <DropdownMenuItem
+                    key={cam.deviceId || idx}
+                    onClick={() => switchCamera(cam.deviceId)}
+                    className={`text-xs cursor-pointer hover:bg-neutral-800 ${
+                      selectedCameraId === cam.deviceId ? 'text-cyan-400 font-semibold' : ''
+                    }`}
                   >
-                    <SwitchCamera className="w-3.5 h-3.5" /> Flip to {facingMode === 'user' ? 'Rear' : 'Front'}
-                  </button>
-                  {availableCameras.map((cam, idx) => (
-                    <button
-                      key={cam.deviceId || idx}
-                      type="button"
-                      onClick={() => { setShowCameraMenu(false); }}
-                      className={`w-full text-left px-2.5 py-1.5 text-xs rounded-lg hover:bg-neutral-800 truncate ${
-                        selectedCameraId === cam.deviceId ? 'text-cyan-400 font-semibold' : ''
-                      }`}
-                    >
-                      {cam.label || `Camera ${idx + 1}`}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+                    {cam.label || `Camera ${idx + 1}`}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             {/* Low-Light Enhancer Filter */}
             <Button
               variant="outline"
               size="icon"
-              onClick={toggleLowLight}
+              onClick={toggleLowLightEnhancer}
               title={isLowLightEnhanced ? 'Disable Low-Light Enhancement' : 'Enhance Low-Light Video'}
               className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full border-0 transition-all ${
                 isLowLightEnhanced
@@ -626,48 +661,43 @@ export default function VideoCallOverlay() {
               <Sparkles className="w-5 h-5" />
             </Button>
 
-            {/* Speaker Output Selector */}
-            <div className="relative">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setShowAudioMenu(p => !p)}
-                title="Audio Output / Speaker"
-                className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-neutral-800/80 text-white hover:bg-neutral-700 border-0"
-              >
-                {isSpeakerOn ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
-              </Button>
-              {showAudioMenu && (
-                <div className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 w-56 bg-neutral-900 text-white border border-neutral-800 rounded-xl shadow-2xl p-2 z-50">
-                  <p className="text-[11px] text-neutral-400 px-2 py-1 font-semibold">Audio Output Device</p>
-                  <button
-                    type="button"
-                    onClick={() => { setAudioOutput('default'); setShowAudioMenu(false); }}
-                    className="w-full text-left px-2.5 py-1.5 text-xs rounded-lg hover:bg-neutral-800"
+            {/* Speaker & Audio Output Selector */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  title="Audio Output / Speaker"
+                  className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-neutral-800/80 text-white hover:bg-neutral-700 border-0"
+                >
+                  {isSpeakerOn ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="center" side="top" className="bg-neutral-900 text-white border-neutral-800 w-56">
+                <DropdownMenuLabel className="text-xs text-neutral-400">Audio Output Device</DropdownMenuLabel>
+                <DropdownMenuSeparator className="bg-neutral-800" />
+                <DropdownMenuItem onClick={toggleSpeaker} className="text-xs cursor-pointer hover:bg-neutral-800">
+                  {isSpeakerOn ? 'Turn Volume Down (40%)' : 'Turn Speaker Full (100%)'}
+                </DropdownMenuItem>
+                {audioOutputDevices.map((dev, idx) => (
+                  <DropdownMenuItem
+                    key={dev.deviceId || idx}
+                    onClick={() => setAudioOutput(dev.deviceId)}
+                    className={`text-xs cursor-pointer hover:bg-neutral-800 ${
+                      selectedOutputId === dev.deviceId ? 'text-cyan-400 font-semibold' : ''
+                    }`}
                   >
-                    System Default
-                  </button>
-                  {audioOutputDevices.map((dev, idx) => (
-                    <button
-                      key={dev.deviceId || idx}
-                      type="button"
-                      onClick={() => { setAudioOutput(dev.deviceId); setShowAudioMenu(false); }}
-                      className={`w-full text-left px-2.5 py-1.5 text-xs rounded-lg hover:bg-neutral-800 truncate ${
-                        selectedOutputId === dev.deviceId ? 'text-cyan-400 font-semibold' : ''
-                      }`}
-                    >
-                      {dev.label || `Speaker ${idx + 1}`}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+                    {dev.label || `Speaker / Headset ${idx + 1}`}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             {/* END VIDEO CALL BUTTON */}
             <Button
               variant="destructive"
               size="icon"
-              onClick={() => endVideoCall()}
+              onClick={endVideoCall}
               title="End Video Call"
               className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-red-600 hover:bg-red-700 text-white shadow-xl shadow-red-600/30 font-semibold transition-transform hover:scale-105 active:scale-95"
             >

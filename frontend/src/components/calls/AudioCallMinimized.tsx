@@ -1,11 +1,8 @@
-'use client';
-
-import React from 'react';
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 import { PhoneOff, Mic, MicOff, Maximize2, User, Disc } from 'lucide-react';
 import { useAudioCall } from '@/context/AudioCallContext';
 
-function formatTimer(secs: number) {
+function formatTimer(secs) {
   const m = Math.floor(secs / 60).toString().padStart(2, '0');
   const s = (secs % 60).toString().padStart(2, '0');
   return `${m}:${s}`;
@@ -38,8 +35,7 @@ export default function AudioCallMinimized() {
       {/* Mini Avatar */}
       <div className="relative w-10 h-10 rounded-full overflow-hidden bg-muted border border-primary/30 flex items-center justify-center flex-shrink-0">
         {activePeer.avatar ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={activePeer.avatar} alt={activePeer.name || 'Caller'} className="w-full h-full object-cover" />
+          <img src={activePeer.avatar} alt={activePeer.name} className="w-full h-full object-cover" />
         ) : (
           <User className="w-5 h-5 text-muted-foreground" />
         )}
@@ -78,7 +74,7 @@ export default function AudioCallMinimized() {
 
         <button
           type="button"
-          onClick={() => endCall()}
+          onClick={endCall}
           className="w-8 h-8 rounded-full bg-destructive text-white hover:bg-destructive/90 flex items-center justify-center transition-all shadow-sm active:scale-95"
           title="End Call"
         >

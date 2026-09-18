@@ -1,58 +1,41 @@
-'use client';
-
-import React, { useEffect, useRef } from 'react';
-
-interface AudioWaveVisualizerProps {
-  stream?: MediaStream | null;
-  isMuted?: boolean;
-  active?: boolean;
-  barCount?: number;
-}
+import { useEffect, useRef } from 'react';
 
 /**
  * Audio wave animation bars.
  * If an active MediaStream is passed, analyzes actual volume frequency data via AnalyserNode.
  * Otherwise provides a smooth rhythmic breathing wave.
  */
-export default function AudioWaveVisualizer({
-  stream,
-  isMuted = false,
-  active = true,
-  barCount = 18,
-}: AudioWaveVisualizerProps) {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+export default function AudioWaveVisualizer({ stream, isMuted = false, active = true, barCount = 18 }) {
+  const canvasRef = useRef(null);
 
   useEffect(() => {
     if (!active || isMuted) {
       const canvas = canvasRef.current;
       if (!canvas) return;
       const ctx = canvas.getContext('2d');
-      if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
       return;
     }
 
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
 
-    let animationFrameId: number;
-    let analyser: AnalyserNode | null = null;
-    let dataArray: Uint8Array | null = null;
-    let audioContext: AudioContext | null = null;
+    let animationFrameId;
+    let analyser = null;
+    let dataArray = null;
+    let audioContext = null;
 
     if (stream && stream.getAudioTracks().length > 0) {
       try {
-        const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-        if (AudioCtx) {
-          audioContext = new AudioCtx();
-          const source = audioContext.createMediaStreamSource(stream);
-          analyser = audioContext.createAnalyser();
-          analyser.fftSize = 64;
-          source.connect(analyser);
-          dataArray = new Uint8Array(analyser.frequencyBinCount);
-        }
-      } catch {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        audioContext = new AudioCtx();
+        const source = audioContext.createMediaStreamSource(stream);
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 64;
+        source.connect(analyser);
+        dataArray = new Uint8Array(analyser.frequencyBinCount);
+      } catch (e) {
         // Fallback to simulated rhythm
       }
     }
@@ -68,13 +51,13 @@ export default function AudioWaveVisualizer({
       const spacing = (width - barCount * barWidth) / (barCount + 1);
 
       if (analyser && dataArray) {
-        analyser.getByteFrequencyData(dataArray as Uint8Array<ArrayBuffer>);
+        analyser.getByteFrequencyData(dataArray);
       }
 
       for (let i = 0; i < barCount; i++) {
-        let barHeight: number;
+        let barHeight;
         if (analyser && dataArray) {
-          const sample = (dataArray[i % dataArray.length] ?? 0) / 255;
+          const sample = dataArray[i % dataArray.length] / 255;
           barHeight = Math.max(4, sample * height * 0.85);
         } else {
           // Smooth sinusoidal ambient wave
@@ -115,12 +98,12 @@ export default function AudioWaveVisualizer({
   }, [stream, isMuted, active, barCount]);
 
   return (
-    <div className="w-full flex items-center justify-center py-2">
+    <div className="flex items-center justify-center w-full py-2">
       <canvas
         ref={canvasRef}
         width={240}
         height={48}
-        className="w-full max-w-[240px] h-12 rounded-xl"
+        className="w-full max-w-[260px] h-12 rounded-lg"
       />
     </div>
   );
