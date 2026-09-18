@@ -6,23 +6,7 @@
 
 import { useState } from 'react';
 import { motion } from 'motion/react';
-import {
-  User,
-  Calendar,
-  Activity,
-  FileText,
-  Pipette,
-  Clock,
-  Search,
-  AlertCircle,
-  Pill,
-  FlaskConical,
-  Receipt,
-  Wallet,
-  Eye,
-  Download,
-  X,
-} from 'lucide-react';
+import { User, Calendar, FileText, Pipette, Clock, Search, AlertCircle, Pill, FlaskConical, Receipt, Wallet, Eye, Download, X } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

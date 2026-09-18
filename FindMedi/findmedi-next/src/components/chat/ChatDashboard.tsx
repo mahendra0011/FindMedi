@@ -6,67 +6,15 @@ import { getSocket, joinRoom } from '@/lib/socket';
 import api, { getServerOrigin } from '@/lib/axios';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import {
-  Send,
-  Paperclip,
-  Smile,
-  Mic,
-  X,
-  Phone,
-  Video,
-  ArrowLeft,
-  ChevronDown,
-  Check,
-  CheckCheck,
-  Pin,
-  Forward,
-  Reply,
-  Pencil,
-  Info,
-  CheckSquare,
-  Settings as SettingsIcon,
-  User as UserIcon,
-  MessageCircle,
-  WifiOff,
-  Star,
-} from 'lucide-react';
-import ChatList, {
-  type ChatConversation,
-  type ChatContact,
-  type ChatRequest,
-  type ChatParticipant,
-} from './ChatList';
-import MessageBubble, {
-  DateSeparator,
-  type ChatMessage,
-  type ChatAttachment,
-} from './MessageBubble';
-import ChatSettingsPanel, {
-  type PrivacySettingsState,
-} from './ChatSettingsPanel';
-import ChatInfoPanel, {
-  type ChatInfoMediaItem,
-  type ChatInfoLinkItem,
-  type ChatInfoFileItem,
-} from './ChatInfoPanel';
+import { Send, Paperclip, Smile, Mic, X, Phone, Video, ArrowLeft, ChevronDown, Check, CheckCheck, Pin, Forward, Reply, Pencil, Info, CheckSquare, Settings as SettingsIcon, User as UserIcon, MessageCircle, WifiOff, Star } from 'lucide-react';
+import ChatList, { type ChatConversation, type ChatContact, type ChatRequest, type ChatParticipant } from './ChatList';
+import MessageBubble, { DateSeparator, type ChatMessage, type ChatAttachment } from './MessageBubble';
+import ChatSettingsPanel, { type PrivacySettingsState } from './ChatSettingsPanel';
+import ChatInfoPanel, { type ChatInfoMediaItem, type ChatInfoLinkItem, type ChatInfoFileItem } from './ChatInfoPanel';
 import EmojiPicker from './EmojiPicker';
 import MediaViewer, { type MediaItem } from './MediaViewer';
 import VoiceRecorder, { type VoiceData } from './VoiceRecorder';
-import {
-  DEFAULT_CHAT_PREFS,
-  type ChatPrefs,
-  readChatPrefs,
-  writeChatPrefs,
-  readDrafts,
-  saveDraft,
-  enqueueMessage,
-  dequeueMessage,
-  readQueue,
-  messagePreview,
-  wallpaperCss,
-  readConversationWallpapers,
-  setConversationWallpaper,
-} from '@/lib/chatPrefs';
+import { type ChatPrefs, readChatPrefs, writeChatPrefs, readDrafts, saveDraft, enqueueMessage, dequeueMessage, readQueue, messagePreview, wallpaperCss, readConversationWallpapers, setConversationWallpaper } from '@/lib/chatPrefs';
 import { useAudioCall } from '@/context/AudioCallContext';
 import { useVideoCall } from '@/context/VideoCallContext';
 

@@ -19,7 +19,6 @@ interface HospitalAppointmentsHubProps {
 }
 
 export default function HospitalAppointmentsHub({
-  appointments,
   apptTab,
   setApptTab,
   pendingAppts,

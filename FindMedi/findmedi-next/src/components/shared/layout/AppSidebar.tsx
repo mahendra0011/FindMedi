@@ -12,18 +12,10 @@
 'use client';
 
 import { useState, type ComponentType } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import {
-  LayoutDashboard, UserRound, Stethoscope, CalendarDays, FileText,
-  CreditCard, Percent, Settings, ChevronLeft, ChevronRight, Activity, LogOut,
-  Home, Search, Star, Users, BarChart3, Bell, Building2, Clock, Calendar, CalendarClock,
-  DollarSign, FileUp, Download, TestTube, AlertTriangle, Menu, X, Bed, Pill,
-  FlaskConical, Hospital, Heart, Brain, Syringe, ClipboardList, ShieldCheck,
-  Baby, Ambulance, IndianRupee, History, Flag, ShoppingCart, Megaphone, Settings2,
-  Truck, Microscope, HelpCircle, MapPinned, User, Bookmark, Upload, TrendingUp,
-  FileCheck, Tags, Headset, Shield, Tag, MapPin, Globe, Package, RotateCcw, Bot,
-} from 'lucide-react';
+import { LayoutDashboard, UserRound, Stethoscope, CalendarDays, FileText, CreditCard, Percent, Settings, ChevronLeft, ChevronRight, Activity, LogOut, Home, Star, Users, BarChart3, Bell, Building2, Clock, Calendar, CalendarClock, DollarSign, FileUp, Download, TestTube, AlertTriangle, Menu, Bed, Pill, FlaskConical, Hospital, Heart, Brain, Syringe, ClipboardList, ShieldCheck, Baby, Ambulance, IndianRupee, History, Flag, ShoppingCart, Megaphone, Settings2, Truck, Microscope, HelpCircle, MapPinned, User, Bookmark, Upload, TrendingUp, FileCheck, Tags, Headset, Shield, Tag, MapPin, Globe, Package, RotateCcw, Bot } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent, SheetTitle, SheetDescription, SheetTrigger, SheetClose } from '@/components/ui/sheet';
@@ -377,7 +369,7 @@ function SidebarContent({ collapsed, onToggleCollapse, onNavClick }: SidebarCont
     <div className={`flex flex-col h-full bg-sidebar text-sidebar-foreground ${collapsed ? 'w-[72px]' : 'w-64'}`}>
       {/* Logo */}
       <div className={`flex items-center gap-3 px-4 py-5 border-b border-sidebar-border ${collapsed ? 'justify-center' : ''}`}>
-        <img src="/logo.png" alt="FindMedi Logo" className="w-12 h-12 object-contain drop-shadow-md flex-shrink-0 rounded-xl" />
+        <Image src="/logo.png" alt="FindMedi Logo" width={48} height={48} className="w-12 h-12 object-contain drop-shadow-md flex-shrink-0 rounded-xl" />
         {!collapsed && (
           <div>
             <h1 className="font-heading text-base font-bold text-sidebar-primary-foreground leading-none">FindMedi</h1>

@@ -12,7 +12,7 @@
 'use client';
 
 import { motion } from 'motion/react';
-import { X, CalendarDays, Clock, Hash, UserCheck, Activity, IndianRupee, Phone, Mail, FileText, AlertCircle, Hospital } from 'lucide-react';
+import { X, CalendarDays, Clock, IndianRupee, Phone, Mail, FileText, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatDate } from '@/lib/utils';
 import { statusColors } from '@/components/shared/cards/AppointmentCard';

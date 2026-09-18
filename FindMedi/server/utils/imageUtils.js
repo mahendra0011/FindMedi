@@ -101,7 +101,9 @@ export const compressImage = async (file, options = {}) => {
   // Use native Rust resize for JPEG output
   if ((format === 'jpeg' || format === 'jpg') && NATIVE_AVAILABLE) {
     const info = napiGetImageInfo(file.buffer);
-    buffer = napiResizeImage(file.buffer, info.width, info.height, quality);
+    const targetW = Math.min(info.width, 4096);
+    const targetH = Math.min(info.height, 4096);
+    buffer = napiResizeImage(file.buffer, targetW, targetH, quality);
   } else {
     let pipeline = sharp(file.buffer);
 

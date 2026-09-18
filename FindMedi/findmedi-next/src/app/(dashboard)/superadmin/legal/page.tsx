@@ -1,8 +1,9 @@
+ 
 // @ts-nocheck
 'use client';
 import React, { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
-import { FileText, Save, History, Eye, Clock, Shield } from 'lucide-react';
+
+import { FileText, Save, History, Clock, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -39,6 +40,8 @@ export default function Legal() {
     setLoading(false);
   };
 
+   
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- load is a plain inline fetch helper re-created each render; effect intentionally depends on activeKey only (adding load would refetch every render)
   useEffect(() => { load(); }, [activeKey]);
 
   const handleSave = async () => {

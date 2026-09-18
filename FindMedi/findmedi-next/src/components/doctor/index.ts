@@ -14,3 +14,4 @@ export type { DischargeFormData, DischargeSummaryModalProps } from './DischargeS
 export type { BillModalProps } from './BillModal';
 export * from './DoctorCalendarWidget';
 export * from './reportPayloads';
+export * from './DoctorProfileHub';

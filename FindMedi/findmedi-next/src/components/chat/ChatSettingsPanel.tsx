@@ -1,28 +1,7 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import {
-  X,
-  Lock,
-  Shield,
-  Bell,
-  Palette,
-  HardDrive,
-  ShieldAlert,
-  KeyRound,
-  Cloud,
-  Eye,
-  Accessibility,
-  Info,
-  User as UserIcon,
-  MessageSquare,
-  Check,
-  Ban,
-  Flag,
-  Loader2,
-  Mic,
-  Phone as PhoneIcon,
-} from 'lucide-react';
+import React, { useState } from 'react';
+import { X, Lock, Shield, Bell, Palette, HardDrive, ShieldAlert, KeyRound, Cloud, Eye, Accessibility, Info, User as UserIcon, MessageSquare, Check, Ban, Flag, Loader2, Mic, Phone as PhoneIcon } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { toast } from 'sonner';

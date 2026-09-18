@@ -11,9 +11,9 @@
  */
 'use client';
 
-import { useState, useEffect } from 'react';
-import { CalendarDays, Clock, Phone, Mail, MapPin, Droplet, FileText, History, PenTool, CheckCircle, ArrowLeft, Check, ChevronDown, ChevronUp, User } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { Clock, Phone, Mail, MapPin, Droplet, FileText, History, PenTool, CheckCircle, ArrowLeft, Check, ChevronDown, ChevronUp, User } from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { formatDisplayDate } from '@/lib/utils';
@@ -56,18 +56,14 @@ interface SelectedPatientDetailsProps {
 }
 
 export default function SelectedPatientDetails({
-  appointments,
   activeApt,
-  setActiveApt,
   visitNumber = 1,
   pastVisitCount = 0,
   lastVisit = null,
   onViewHistory,
   onWritePrescription,
   onComplete,
-  user,
 }: SelectedPatientDetailsProps) {
-  const navigate = useRouter();
   const [showCompleteFlow, setShowCompleteFlow] = useState(false);
   const [quickNotes, setQuickNotes] = useState('');
   const [showDetails, setShowDetails] = useState(false);

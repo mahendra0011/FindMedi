@@ -1,4 +1,4 @@
-/* eslint-disable react-hooks/preserve-manual-memoization, prefer-const, react/no-unescaped-entities, react-hooks/exhaustive-deps, @typescript-eslint/no-unused-expressions, @next/next/no-img-element,  @typescript-eslint/ban-ts-comment, react-hooks/set-state-in-effect, @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any */
+/* eslint-disable @next/next/no-img-element, @typescript-eslint/no-unused-vars */
 // @ts-nocheck
 'use client';
 
@@ -31,9 +31,9 @@ export default function ClinicPlatformSettings() {
   useEffect(() => {
     const load = async () => {
       try {
-        const settings = await (api as any).getFacilitySettings || (api as any).facilities?.getSettings || (()=> Promise.resolve({}))();
+        const settings = (await api.facilities?.getSettings?.().catch(() => ({}))) as Record<string, unknown> | undefined;
         if (settings?.autoConfirmAppointment !== undefined) {
-          setAutoConfirm(settings.autoConfirmAppointment);
+          setAutoConfirm(Boolean(settings.autoConfirmAppointment));
         }
       } catch (err) {
         console.error('Failed to load facility settings:', err);
@@ -79,8 +79,12 @@ export default function ClinicPlatformSettings() {
     setSaving(true);
     setSaved(false);
     try {
-      await (api as any).updateFacilitySettings || (api as any).facilities?.updateSettings || (()=> Promise.resolve({}))({ autoConfirmAppointment: autoConfirm });
-      await (api as any).updateMyAutoConfirm || (()=> Promise.resolve({}))(autoConfirm).catch(() => {});
+      if (typeof api.facilities?.updateSettings === 'function') {
+        await api.facilities.updateSettings({ autoConfirmAppointment: autoConfirm });
+      }
+      if (typeof api.doctors?.updateAutoConfirm === 'function' && doctorId) {
+        await api.doctors.updateAutoConfirm(doctorId, autoConfirm).catch(() => {});
+      }
       if (doctorId) {
         await api.updateDoctor(doctorId, {
           appointmentModes,
@@ -108,9 +112,11 @@ export default function ClinicPlatformSettings() {
     if (!file || !doctorId) return;
     setSignatureUploading(true);
     try {
-      const res = await (api as any).uploadDoctorSignature || (()=> Promise.resolve({}))(doctorId, file);
-      setSignatureUrl(res.signatureUrl);
-      toast.success('Signature uploaded successfully');
+      if (typeof api.doctors?.uploadSignature === 'function') {
+        const res = await api.doctors.uploadSignature(doctorId, file);
+        setSignatureUrl(res?.url || '');
+        toast.success('Signature uploaded successfully');
+      }
     } catch (err) {
       toast.error(err.message || 'Failed to upload signature');
     }

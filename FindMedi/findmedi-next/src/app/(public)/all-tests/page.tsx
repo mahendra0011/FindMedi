@@ -3,8 +3,8 @@
  * Lists all diagnostic tests available on the platform.
  */
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Microscope, Search, MapPin } from 'lucide-react';
+
+import { Microscope } from 'lucide-react';
 
 interface TestCategory {
   id: string;

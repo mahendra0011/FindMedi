@@ -16,7 +16,9 @@
     "seed:admin": "npm run seed:admin --prefix FindMedi/server",
     "seed:cluster": "npm run seed:cluster --prefix FindMedi/server",
     "build": "npm run build --prefix FindMedi/client",
-    "build:next": "npm run build --prefix FindMedi/findmedi-next"
+    "build:next": "npm run build --prefix FindMedi/findmedi-next",
+    "typecheck": "npm run typecheck --prefix FindMedi/findmedi-next",
+    "type-check": "npm run typecheck --prefix FindMedi/findmedi-next"
   },
   "devDependencies": {
     "concurrently": "^9.2.4"

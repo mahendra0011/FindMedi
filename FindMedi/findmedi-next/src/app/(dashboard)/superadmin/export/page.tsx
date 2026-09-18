@@ -1,3 +1,4 @@
+ 
 // @ts-nocheck
 'use client';
 import React, { useState } from 'react';
@@ -6,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { api, getApiBaseUrl } from '@/lib/api';
+import { getApiBaseUrl } from '@/lib/api';
 import { getISTDateString } from '@/lib/dateUtils';
 
 const EXPORTS = [

@@ -1,11 +1,9 @@
+ 
 // @ts-nocheck
 'use client';
 import React, { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
-import {
-  TrendingUp, Users, Stethoscope, Activity, DollarSign, Building2, FlaskConical, Pill,
-  Clock, AlertTriangle, CalendarDays, BarChart3, Hospital, ShieldCheck
-} from 'lucide-react';
+
+import { TrendingUp, Users, Stethoscope, Activity, DollarSign, Building2, Clock, AlertTriangle, BarChart3, Hospital, ShieldCheck } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
@@ -95,7 +93,7 @@ export default function PlatformKPIs() {
               <Activity className="w-5 h-5 text-amber-600 dark:text-amber-400" />
             </div>
             <p className="text-2xl font-bold text-foreground">{(stats?.todayAppointments || 0).toLocaleString()}</p>
-            <p className="text-xs text-muted-foreground">Today's Bookings</p>
+            <p className="text-xs text-muted-foreground">Today&apos;s Bookings</p>
           </CardContent>
         </Card>
       </div>

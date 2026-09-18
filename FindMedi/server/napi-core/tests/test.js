@@ -50,19 +50,51 @@ try {
   console.log('Row 0:', parsedRows[0]);
 
   // OTP tests
-  console.log('\n-- OTP Hash/Verify --');
+  console.log('\n-- OTP Hash/Verify & Classification --');
   const otp = '123456';
   const hash = napi.hashOtp(otp);
   console.log('hashOtp:', hash.substring(0, 33) + '...');
+  console.log('classifyOtpHash (Sha256):', napi.classifyOtpHash(hash));
+  console.log('classifyOtpHash (Bcrypt):', napi.classifyOtpHash('$2b$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy'));
+  console.log('classifyOtpHash (Unknown):', napi.classifyOtpHash('malformed_hash'));
   console.log('verifyOtpHash (correct):', napi.verifyOtpHash(otp, hash));
   console.log('verifyOtpHash (wrong):', napi.verifyOtpHash('999999', hash));
+  console.log('verifyOtpHash (bcrypt fallback signal):', napi.verifyOtpHash(otp, '$2b$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy') === false);
 
   // Constant-time compare
   console.log('\n-- Constant-Time Compare --');
   console.log('constantTimeCompare(abc, abc):', napi.constantTimeCompare('abc', 'abc'));
   console.log('constantTimeCompare(abc, abd):', napi.constantTimeCompare('abc', 'abd'));
 
+  // Bounds & DoS validation
+  console.log('\n-- Bounds & DoS Validation --');
+  let boundsCaught = false;
+  try {
+    napi.resizeImage(Buffer.from([0]), 50000, 50000, 80);
+  } catch (err) {
+    boundsCaught = true;
+    console.log('resizeImage bounds check correctly caught oversized dimensions:', err.message);
+  }
+  if (!boundsCaught) throw new Error('Expected resizeImage to reject 50000x50000 dimensions');
+
+  // Invoice PDF generation
+  console.log('\n-- Invoice PDF Generation (AFM Helvetica widths) --');
+  const invoiceData = {
+    patient_name: 'John Doe with an Extra Long Name That Will Be Safely Truncated',
+    provider: 'FindMedi Specialty Hospital',
+    service_type: 'Consultation',
+    amount: 500,
+    invoice_id: 'INV-TEST-001',
+    transaction_id: 'TXN-TEST-001',
+    line_items: [
+      { name: 'Specialist Consultation', qty: 1, price: 500 }
+    ]
+  };
+  const pdfBytes = napi.generateInvoicePdf(JSON.stringify(invoiceData));
+  console.log('Generated PDF bytes:', pdfBytes.length, 'bytes (PDF magic:', Buffer.from(pdfBytes.slice(0, 4)).toString(), ')');
+
   console.log('\n✓ All extended tests passed!');
 } catch (e) {
   console.error('Extended tests failed:', e.message);
+  process.exit(1);
 }

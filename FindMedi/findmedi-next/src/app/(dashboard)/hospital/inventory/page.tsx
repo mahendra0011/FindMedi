@@ -73,8 +73,10 @@ export default function InventoryPage() {
 
   const isLowStock = (item: InventoryItem) => item.currentStock <= item.minStockLevel;
   const isExpiring = (item: InventoryItem) =>
+     
     Boolean(item.expiryDate) && new Date(item.expiryDate as string).getTime() < Date.now() + THIRTY_DAYS;
   const isDeadStock = (item: InventoryItem) =>
+     
     Boolean(item.lastIssued) && new Date(item.lastIssued as string).getTime() < Date.now() - HALF_YEAR;
 
   if (isLoading) {

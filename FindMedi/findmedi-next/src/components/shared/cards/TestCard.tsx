@@ -10,12 +10,7 @@
 'use client';
 
 import { motion } from 'motion/react';
-import {
-  Star, Clock, MapPin, Home, ShieldCheck,
-  Lock, Stethoscope, Building2, Microscope, BadgeCheck,
-  Tag, Percent, ArrowRight, ClipboardList, Zap, Eye,
-  Syringe, Scan, Wifi, Radio, Droplets,
-} from 'lucide-react';
+import { Star, Clock, MapPin, Home, ShieldCheck, Lock, Stethoscope, Building2, Microscope, BadgeCheck, Tag, Percent, ArrowRight, ClipboardList, Zap, Eye, Syringe, Scan, Wifi, Radio, Droplets } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -197,7 +192,6 @@ export default function TestCard({ test, index = 0 }: TestCardProps) {
   const isPhlebotomist = providerType === 'phlebotomist';
   const isRadiographer = providerType === 'radiographer';
   const isSonographer = providerType === 'sonographer';
-  const isTechnician = isLabTechnician || isPhlebotomist;
 
   const getViewButtonLabel = () => {
     if (isHospital) return 'View Hospital';

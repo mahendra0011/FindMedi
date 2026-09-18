@@ -1,3 +1,4 @@
+ 
 // @ts-nocheck
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
@@ -28,6 +29,7 @@ function SupportTicketsTab() {
     setLoading(false);
   }, []);
 
+   
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { load(); }, []);
 

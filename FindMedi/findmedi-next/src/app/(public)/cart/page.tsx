@@ -13,7 +13,7 @@ import { Trash2 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function CartPage() {
-  const { entries, totalItems, stores, removeItem, updateQty, clearCart } = useCart();
+  const { totalItems, stores, removeItem, updateQty, clearCart } = useCart();
 
   if (totalItems === 0) {
     return (

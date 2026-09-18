@@ -10,7 +10,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { generateSubSlots, generateWorkingHours, subSlotFor } from '@/lib/timeSlots';
+import { generateSubSlots, generateWorkingHours } from '@/lib/timeSlots';
 import type { Appointment } from '@/types/models/appointment';
 
 interface DisplayAppointment extends Appointment {

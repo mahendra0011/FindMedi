@@ -1,13 +1,11 @@
+ 
 // @ts-nocheck
 'use client';
 import { useState, useEffect } from 'react';
-import {
-  Truck, CheckCircle, XCircle, Search, Users, Package,
-  TrendingUp, Clock, MapPin, Star, Filter, RefreshCw
-} from 'lucide-react';
+import { Truck, CheckCircle, XCircle, Search, Clock, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
+
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 
@@ -27,10 +25,6 @@ export default function SuperAdminDelivery() {
   const [rejectingId, setRejectingId] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -45,6 +39,11 @@ export default function SuperAdminDelivery() {
     }
     setLoading(false);
   };
+  useEffect(() => {
+     
+    fetchData();
+  }, []);
+
 
   const handleApprove = async (id) => {
     try {

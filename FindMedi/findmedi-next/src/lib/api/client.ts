@@ -1,10 +1,5 @@
-import axios, {
-  AxiosInstance,
-  AxiosRequestConfig,
-  AxiosResponse,
-  InternalAxiosRequestConfig,
-} from 'axios';
-import type { ApiResponse, ApiError } from '@/types/api';
+import axios, { AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
+
 
 /**
  * Normalize BASE API URL so that even if NEXT_PUBLIC_API_URL is configured without "/api"

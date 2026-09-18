@@ -302,6 +302,18 @@ export const pharmacy = {
     request<Record<string, unknown>>(`/pharmacy/deliveries/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
   getDeliveries: (params: ListParams = {}): Promise<Record<string, unknown>[]> =>
     request<Record<string, unknown>[]>(withQuery('/pharmacy/deliveries', { ...params })),
+  getDeliveryHistory: (userId: string): Promise<{ tasks: Record<string, unknown>[] }> =>
+    request<{ tasks: Record<string, unknown>[] }>(withQuery('/delivery/history', { userId })),
+  getDeliveryOrders: (userId: string): Promise<{ orders: Record<string, unknown>[] }> =>
+    request<{ orders: Record<string, unknown>[] }>(withQuery('/delivery/orders', { userId })),
+  getDeliveryZones: (userId: string): Promise<{ zones: Record<string, unknown>[] }> =>
+    request<{ zones: Record<string, unknown>[] }>(withQuery('/delivery/zones', { userId })),
+  getDeliveryEarnings: (userId: string): Promise<{ earnings: Record<string, unknown>[] }> =>
+    request<{ earnings: Record<string, unknown>[] }>(withQuery('/delivery/earnings', { userId })),
+  getDeliveryDocuments: (userId: string): Promise<{ documents: Record<string, unknown>[] }> =>
+    request<{ documents: Record<string, unknown>[] }>(withQuery('/delivery/documents', { userId })),
+  getDeliveryReviews: (userId: string): Promise<{ reviews: Record<string, unknown>[] }> =>
+    request<{ reviews: Record<string, unknown>[] }>(withQuery('/delivery/reviews', { userId })),
 };
 
 // ─── Lab endpoints ────────────────────────────────────────────────────────
@@ -870,6 +882,12 @@ export const api = {
     request(`/delivery-partners/profile/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
   updateDeliveryStatus: (id: string, status: string): Promise<Record<string, unknown>> =>
     request(`/delivery-partners/deliveries/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) }),
+  getDeliveryHistory: pharmacy.getDeliveryHistory,
+  getDeliveryOrders: pharmacy.getDeliveryOrders,
+  getDeliveryZones: pharmacy.getDeliveryZones,
+  getDeliveryEarnings: pharmacy.getDeliveryEarnings,
+  getDeliveryDocuments: pharmacy.getDeliveryDocuments,
+  getDeliveryReviews: pharmacy.getDeliveryReviews,
   // ── Superadmin legacy aliases (compat with old client) ─
   getUsers: (p: Record<string, unknown> = {}): Promise<Record<string, unknown>> => request(withQuery('/users', p as Record<string, string | number | boolean>)),
   deleteUser: (id: string): Promise<{ message: string }> => request(`/users/${id}`, { method: 'DELETE' }),

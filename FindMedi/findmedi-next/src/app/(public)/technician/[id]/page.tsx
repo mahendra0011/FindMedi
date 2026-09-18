@@ -2,17 +2,16 @@
  * Technician profile page — Server Component (SEO-critical).
  * Shows a single lab technician's profile and availability.
  */
-import { notFound } from 'next/navigation';
+
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Star, MapPin, Award, Calendar } from 'lucide-react';
+
+import { Calendar } from 'lucide-react';
 
 interface PageProps {
   params: Promise<{ id: string }>;
 }
 
-export async function generateMetadata({ params }: PageProps) {
-  const { id } = await params;
+export async function generateMetadata() {
   return {
     title: `Technician Profile | FindMedi`,
     description: `View technician profile and book appointments.`,

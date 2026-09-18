@@ -386,7 +386,7 @@ export default function ApproveAppointmentSection({ appointments, onConfirm, onR
                           <div className="flex items-center gap-1 shrink-0">
                             <button
                               title="Confirm request"
-                              onClick={(e: React.MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); onConfirm && onConfirm(apt); }}
+                              onClick={(e: React.MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); onConfirm?.(apt); }}
                               className="w-7 h-7 rounded-lg bg-success/10 text-success flex items-center justify-center transition-colors hover:bg-success hover:text-white"
                             >
                               <CheckCircle className="w-4 h-4" />
@@ -454,7 +454,7 @@ export default function ApproveAppointmentSection({ appointments, onConfirm, onR
                 disabled={rejectReasonInput.trim().length < 10}
                 onClick={() => {
                   if (rejectReasonInput.trim().length >= 10) {
-                    onReject && onReject(rejectTarget, rejectReasonInput.trim());
+                    onReject?.(rejectTarget, rejectReasonInput.trim());
                   }
                   setRejectTarget(null);
                   setRejectReasonInput('');

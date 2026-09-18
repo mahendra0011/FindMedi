@@ -319,7 +319,7 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { hello, add, benchmarkHello, benchmarkAdd, validateMagicBytes, resizeImage, getImageInfo, generateInvoicePdf, parseCsv, toCsv, hashOtp, verifyOtpHash, constantTimeCompare } = nativeBinding
+const { hello, add, benchmarkHello, benchmarkAdd, validateMagicBytes, resizeImage, getImageInfo, generateInvoicePdf, parseCsv, toCsv, hashOtp, verifyOtpHash, constantTimeCompare, classifyOtpHash, OtpHashKind } = nativeBinding
 
 module.exports.hello = hello
 module.exports.add = add
@@ -334,3 +334,15 @@ module.exports.toCsv = toCsv
 module.exports.hashOtp = hashOtp
 module.exports.verifyOtpHash = verifyOtpHash
 module.exports.constantTimeCompare = constantTimeCompare
+module.exports.classifyOtpHash = classifyOtpHash || function(stored) {
+  if (typeof stored !== 'string') return 'Unknown';
+  if (stored.startsWith('$2a$') || stored.startsWith('$2b$') || stored.startsWith('$2y$')) return 'Bcrypt';
+  const parts = stored.split(':');
+  if (parts.length === 2 && parts[0].length === 32 && parts[1].length === 64) return 'Sha256';
+  return 'Unknown';
+};
+module.exports.OtpHashKind = OtpHashKind || {
+  Sha256: 'Sha256',
+  Bcrypt: 'Bcrypt',
+  Unknown: 'Unknown',
+};

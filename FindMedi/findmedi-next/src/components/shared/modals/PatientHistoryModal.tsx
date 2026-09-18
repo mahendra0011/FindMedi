@@ -12,7 +12,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { X, CalendarDays, Stethoscope, FileText, Pill, Clock, User, AlertCircle, FlaskConical, Activity, ClipboardList } from 'lucide-react';
+import { X, CalendarDays, Stethoscope, FileText, Pill, User, AlertCircle, FlaskConical, Activity, ClipboardList } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { request } from '@/lib/api/client';
 import { formatDate } from '@/lib/utils';

@@ -12,7 +12,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'motion/react';
-import { Building2, MapPin, Star, Users, BadgeCheck, Clock, CalendarDays, Stethoscope } from 'lucide-react';
+import { Building2, MapPin, Star, Users, BadgeCheck, Clock, CalendarDays } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';

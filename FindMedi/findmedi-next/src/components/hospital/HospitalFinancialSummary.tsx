@@ -4,20 +4,9 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import {
-  IndianRupee, ChevronRight, Download, Users, Star, Quote, MessageCircle,
-  TestTube, Zap, RotateCcw, CreditCard, Smartphone, Landmark, Wallet,
-  CalendarDays, ClipboardList, Syringe, Stethoscope, FileText, type LucideIcon
-} from 'lucide-react';
+import { IndianRupee, ChevronRight, Users, Star, Quote, MessageCircle, TestTube, Zap, RotateCcw, CalendarDays, ClipboardList, Syringe, Stethoscope } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { downloadPaymentInvoice } from '@/lib/api';
 
-const methodIcons: Record<string, LucideIcon> = {
-  card: CreditCard,
-  upi: Smartphone,
-  netbanking: Landmark,
-  cash: Wallet,
-};
 
 const quickActions = [
   { label: 'Schedule', icon: CalendarDays, link: '/clinic/schedule', desc: 'Manage slots' },
@@ -107,7 +96,6 @@ export function HospitalFinancialSummary({
   refunds,
   totalRefunded,
   pendingRefunds,
-  payments,
 }: HospitalFinancialSummaryProps) {
   const router = useRouter();
 

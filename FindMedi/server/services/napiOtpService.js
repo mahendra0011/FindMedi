@@ -51,36 +51,69 @@ export async function hashOtp(otp) {
   return await bcrypt.hash(otp, 10);
 }
 
+export const OtpHashKind = {
+  Sha256: 'Sha256',
+  Bcrypt: 'Bcrypt',
+  Unknown: 'Unknown',
+};
+
+/**
+ * Classify the format of a stored OTP hash.
+ * Delegates to Rust native module when available.
+ *
+ * @param {string} storedHash - Stored hash string
+ * @returns {'Sha256' | 'Bcrypt' | 'Unknown'}
+ */
+export function classifyOtpHash(storedHash) {
+  const napi = getNapi();
+  if (napi && typeof napi.classifyOtpHash === 'function') {
+    return napi.classifyOtpHash(storedHash);
+  }
+  if (typeof storedHash !== 'string') return OtpHashKind.Unknown;
+  if (storedHash.startsWith('$2a$') || storedHash.startsWith('$2b$') || storedHash.startsWith('$2y$')) {
+    return OtpHashKind.Bcrypt;
+  }
+  const parts = storedHash.split(':');
+  if (parts.length === 2 && parts[0].length === 32 && parts[1].length === 64) {
+    return OtpHashKind.Sha256;
+  }
+  return OtpHashKind.Unknown;
+}
+
 /**
  * Verify an OTP against a stored hash.
- * Uses Rust constant-time comparison when available (and hash is in new format).
- * Falls back to bcrypt for legacy hashes.
+ * Branches on explicit OtpHashKind:
+ * - Bcrypt: falls back to JS bcrypt.compare
+ * - Sha256: verifies via Rust constant-time comparison (or crypto fallback)
+ * - Unknown: returns false
  *
  * @param {string} otp - Plain-text OTP to verify
  * @param {string} storedHash - Stored hash (new format or legacy bcrypt)
  * @returns {Promise<boolean>} True if OTP matches
  */
 export async function verifyOtpHash(otp, storedHash) {
-  const napi = getNapi();
-  if (napi) {
-    // Rust verifyOtpHash returns:
-    // - true: match found
-    // - false: no match OR legacy bcrypt hash (caller should try bcrypt)
-    const result = napi.verifyOtpHash(otp, storedHash);
-    if (result) return true;
+  const kind = classifyOtpHash(storedHash);
 
-    // Check if this is a legacy bcrypt hash that needs JS fallback
-    if (storedHash.startsWith('$2a$') || storedHash.startsWith('$2b$') || storedHash.startsWith('$2y$')) {
-      return await bcrypt.compare(otp, storedHash);
-    }
-    return false;
-  }
-
-  // Fallback: bcrypt
-  if (storedHash.startsWith('$2a$') || storedHash.startsWith('$2b$') || storedHash.startsWith('$2y$')) {
+  if (kind === OtpHashKind.Bcrypt) {
     return await bcrypt.compare(otp, storedHash);
   }
-  // If it's in the new format but Rust is unavailable, try bcrypt compare (unlikely to match)
+
+  if (kind === OtpHashKind.Sha256) {
+    const napi = getNapi();
+    if (napi) {
+      return napi.verifyOtpHash(otp, storedHash);
+    }
+    // JS fallback for Sha256 format when native module unavailable
+    try {
+      const crypto = await import('crypto');
+      const [saltHex, expectedHashHex] = storedHash.split(':');
+      const computed = crypto.default.createHash('sha256').update(Buffer.from(saltHex, 'hex')).update(otp).digest('hex');
+      return crypto.default.timingSafeEqual(Buffer.from(computed, 'utf8'), Buffer.from(expectedHashHex, 'utf8'));
+    } catch {
+      return false;
+    }
+  }
+
   return false;
 }
 

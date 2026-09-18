@@ -19,22 +19,7 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import type { Appointment } from '@/types/models/appointment';
 import type { AppointmentStatus } from '@/types/enums';
 
-import {
-  RescheduleModal,
-  PrescriptionModal,
-  LabReportModal,
-  DischargeSummaryModal,
-  BillModal,
-  DoctorCalendarWidget,
-  buildPrescriptionRecord,
-  buildLabReportRecord,
-  buildDischargeRecord,
-  buildBillBody,
-  getAppointmentPatientId,
-  type PrescriptionFormData,
-  type LabReportFormData,
-  type DischargeFormData,
-} from '@/components/doctor';
+import { RescheduleModal, PrescriptionModal, LabReportModal, DischargeSummaryModal, BillModal, DoctorCalendarWidget, buildPrescriptionRecord, buildLabReportRecord, buildDischargeRecord, buildBillBody, getAppointmentPatientId, type PrescriptionFormData, type LabReportFormData, type DischargeFormData } from '@/components/doctor';
 import { useDoctorAppointments } from '@/features/appointments/hooks';
 
 const timeSlots = ['9:00 AM', '9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM', '2:00 PM', '2:30 PM', '3:00 PM', '3:30 PM', '4:00 PM', '4:30 PM'];
@@ -101,8 +86,7 @@ export default function DoctorAppointments({ initialView }: DoctorAppointmentsPr
 
   // Modals
   const [rescheduleId, setRescheduleId] = useState<string | null>(null);
-  const [newDate, setNewDate] = useState('');
-  const [newTime, setNewTime] = useState('');
+  const [newDate] = useState('');
   const [bookedSlots, setBookedSlots] = useState<string[]>([]);
   const [dateDisabledSlots, setDateDisabledSlots] = useState<string[]>([]);
   const [completeId, setCompleteId] = useState<string | null>(null);
@@ -192,7 +176,7 @@ export default function DoctorAppointments({ initialView }: DoctorAppointmentsPr
       }
       setShowReportModal(true);
     },
-    [user?.name, user],
+    [user],
   );
 
   // Custom event listener for "Write Prescription" from TodayAppointmentsSection

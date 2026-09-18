@@ -98,7 +98,7 @@ export default function EarningsPage() {
       setLoading(false);
     };
     void load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [user?.name]);
 
   if (loading) {

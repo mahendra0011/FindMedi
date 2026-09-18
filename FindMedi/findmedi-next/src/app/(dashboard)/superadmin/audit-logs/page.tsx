@@ -1,3 +1,4 @@
+ 
 // @ts-nocheck
 'use client';
 import React, { useState, useCallback, useEffect } from 'react';
@@ -40,7 +41,10 @@ function AuditLogsTab() {
     } catch { toast.error('Failed to load audit stats'); }
   }, []);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
+   
+   
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchLogs is memoized on page/search/filter; effect intentionally refetches page 1 only when actionFilter changes (search uses the Search button, pagination is manual)
   useEffect(() => { fetchLogs(1); }, [actionFilter]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { fetchStats(); }, []);

@@ -5,7 +5,7 @@
 import { notFound } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Star, MapPin, Phone, Microscope, Calendar } from 'lucide-react';
+import { Star, MapPin, Phone, Calendar } from 'lucide-react';
 import { api } from '@/lib/api';
 import type { Facility } from '@/types/models/facility';
 

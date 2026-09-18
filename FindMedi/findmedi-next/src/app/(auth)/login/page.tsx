@@ -13,11 +13,11 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'motion/react';
-import { Shield, Stethoscope, UserRound, Building2, Microscope, Pill, Truck, Heart, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Shield, Stethoscope, UserRound, Microscope, Pill, Truck, Heart, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/useAuth';
-import { setAuthTokens } from '@/lib/api/client';
+
 import type { LoginCredentials } from '@/types/models/user';
 import type { UserRole } from '@/types/enums';
 

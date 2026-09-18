@@ -156,6 +156,17 @@ router.post('/pay', protect, async (req, res, next) => {
       return res.status(400).json({ message: 'Payment amount must be greater than 0. Please check doctor consultation fee.' });
     }
 
+    // Defense-in-depth: cap free-text inputs and line items for invoice generation safety
+    if (provider && typeof provider === 'string') provider = provider.trim().slice(0, 120);
+    if (description && typeof description === 'string') description = description.trim().slice(0, 120);
+    if (serviceType && typeof serviceType === 'string') serviceType = serviceType.trim().slice(0, 50);
+    if (Array.isArray(lineItems)) {
+      lineItems = lineItems.slice(0, 50).map(item => ({
+        ...item,
+        name: typeof item.name === 'string' ? item.name.trim().slice(0, 120) : item.name,
+      }));
+    }
+
     // ── If appointment data is provided, create appointment first (atomic flow) ──
     if (apptData && serviceType === 'appointment') {
       try {

@@ -74,6 +74,7 @@ export function applyUserSettings(settings: Partial<UserSettings> = {}): UserSet
 // For now, we export a minimal t() function that returns the key.
 
 export function t(key: string, language = 'en'): string {
+  void language;
   // TODO: Migrate full i18n dictionaries to next-intl in Phase 4
   return key;
 }

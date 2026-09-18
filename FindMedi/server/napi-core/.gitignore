@@ -9,6 +9,10 @@ release/
 *.dll.a
 *.so
 *.dylib
+*.exe
+*.bak
+*.log
+*.pdf
 
 # npm / node
 node_modules/

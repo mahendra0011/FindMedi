@@ -110,7 +110,7 @@ export default function ScheduleChangeRequestModal({ request, doctor, onClose, o
   const [rejectionNote, setRejectionNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const rc = request?.requestedChanges || {};
+  const rc = useMemo(() => request?.requestedChanges || {}, [request?.requestedChanges]);
   const current = useMemo(() => ({
     slotDuration: doctor?.slotDuration ?? 15,
     workingHours: doctor?.workingHours || { start: '09:00', end: '17:00' },

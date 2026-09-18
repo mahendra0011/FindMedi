@@ -1,11 +1,9 @@
+ 
 // @ts-nocheck
 'use client';
 import React, { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
-import {
-  Megaphone, Send, AlertTriangle, History, Users, Stethoscope, Building2,
-  FlaskConical, Pill, UserRound
-} from 'lucide-react';
+
+import { Megaphone, Send, History, Users, Stethoscope, Building2, FlaskConical, Pill, UserRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -46,6 +44,7 @@ export default function Broadcast() {
     setLoading(false);
   };
 
+   
   useEffect(() => { load(); }, []);
 
   const handleSubmit = async (e) => {

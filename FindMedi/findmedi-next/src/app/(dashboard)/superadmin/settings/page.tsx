@@ -1,7 +1,8 @@
+ 
 // @ts-nocheck
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
-import { motion } from 'motion/react';
+
 import { Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,6 +25,7 @@ function SystemSettingsTab() {
     setLoading(false);
   }, []);
 
+   
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { fetchSettings(); }, []);
 

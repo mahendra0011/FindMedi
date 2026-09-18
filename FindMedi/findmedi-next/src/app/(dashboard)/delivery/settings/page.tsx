@@ -1,6 +1,6 @@
 'use client';
 
-/* eslint-disable react-hooks/set-state-in-effect */
+ 
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { User, Phone, Mail, MapPin, Save, Loader2, Camera } from 'lucide-react';

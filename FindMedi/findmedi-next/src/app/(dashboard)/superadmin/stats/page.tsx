@@ -1,22 +1,13 @@
+ 
 // @ts-nocheck
 'use client';
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import {
-  Building2, CheckCircle, Clock, XCircle, Ban, TrendingUp, BarChart3,
-  Activity, DollarSign, Users, Stethoscope, CalendarDays, ArrowUp, ArrowDown
-} from 'lucide-react';
+import { Building2, CheckCircle, Clock, XCircle, Ban, TrendingUp, BarChart3, Activity, ArrowUp, ArrowDown } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
-
-const statusColors = {
-  approved: 'bg-success/10 text-success',
-  pending: 'bg-warning/10 text-warning',
-  rejected: 'bg-destructive/10 text-destructive',
-  suspended: 'bg-muted-foreground/10 text-muted-foreground',
-};
 
 export default function PlatformStats() {
   const [allHospitals, setAllHospitals] = useState([]);

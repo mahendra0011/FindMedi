@@ -21,12 +21,7 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  Clock, Phone, Mail, MapPin, Droplet, User, CalendarDays,
-  ChevronDown, ChevronUp, FileText, Stethoscope, CheckCircle,
-  ArrowLeft, Download, Receipt, RotateCcw, Search, Info, X,
-  UserX, Ban, Loader2, ExternalLink, Video, MessageSquare,
-} from 'lucide-react';
+import { Clock, Phone, Mail, MapPin, Droplet, User, CalendarDays, FileText, Stethoscope, CheckCircle, ArrowLeft, Download, Receipt, RotateCcw, Search, Info, X, UserX, Ban, Loader2, ExternalLink, Video } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -34,9 +29,7 @@ import { toast } from 'sonner';
 import { api } from '@/lib/api/endpoints';
 import { request } from '@/lib/api/client';
 import { resolveFileUrl, isValidFileUrl, getFilePreviewUrl } from '@/lib/utils';
-import {
-  getHourSlots, getSubSlotsForHour, hourBoxFor, subSlotFor, parseTime,
-} from '@/lib/timeSlots';
+import { getHourSlots, getSubSlotsForHour, hourBoxFor, subSlotFor, parseTime } from '@/lib/timeSlots';
 import { formatDisplayDate } from '@/lib/utils';
 import PatientHistoryModal from '@/components/shared/modals/PatientHistoryModal';
 import type { Appointment, AppointmentPatientRef } from '@/types/models/appointment';
@@ -82,7 +75,6 @@ export default function TodayAppointmentsSection({
   user,
   onViewDetails,
 }: TodayAppointmentsSectionProps) {
-  const navigate = useRouter();
   const hourSlots = useMemo(() => getHourSlots(), []);
 
   // Sort by actual clock time so cards/list follow the day's time-slot sequence
@@ -1011,7 +1003,7 @@ export function CompletedCard({ apt, subSlotFor, onRevert, onDownloadPrescriptio
   const patient = apt.patientId && typeof apt.patientId === 'object' ? apt.patientId as EmbeddedPatient : undefined;
   const intake = apt.preConsultationDetails;
 
-  const [showDetails, setShowDetails] = useState(false);
+  const [showDetails] = useState(false);
   const [showIntake, setShowIntake] = useState(true);
 
   return (

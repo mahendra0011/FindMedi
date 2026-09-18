@@ -11,15 +11,9 @@
 
 import { useRouter } from 'next/navigation';
 import { motion } from 'motion/react';
-import {
-  Star, ShieldCheck, Home, Clock, MapPin, Phone, Mail,
-  FlaskConical, Eye, BadgeCheck, Zap,
-  ChevronRight, Sparkles, Calendar,
-  GraduationCap, Briefcase, Award, PhoneCall, Microscope,
-  Building2, Stethoscope,
-} from 'lucide-react';
+import { Star, ShieldCheck, Home, Clock, MapPin, Phone, Mail, FlaskConical, Eye, BadgeCheck, Zap, ChevronRight, Sparkles, Calendar, GraduationCap, Briefcase, Award, PhoneCall, Microscope } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { BadgeCheck as BadgeCheckIcon } from 'lucide-react';
+
 import { cn } from '@/lib/utils';
 
 export interface TechnicianInfo {
@@ -176,22 +170,6 @@ function InfoRow({ icon: Icon, label, value, highlight }: InfoRowProps) {
 function Divider() {
   return <div className="h-px bg-border/20" />;
 }
-
-function ProviderIcon({ type }: { type: string }) {
-  const icons: Record<string, React.ComponentType<{ className?: string }>> = {
-    hospital: Building2,
-    clinic: Stethoscope,
-    lab_technician: Microscope,
-    phlebotomist: Syringe,
-    radiographer: Radio,
-    sonographer: Scan,
-  };
-  const Icon = icons[type] || Microscope;
-  return <Icon className="w-4 h-4" />;
-}
-
-// Syringe and Radio icons imported lazily to avoid unused import churn
-import { Syringe, Radio, Scan } from 'lucide-react';
 
 export default function DiagnosticCenterCard({ clinic, index = 0 }: DiagnosticCenterCardProps) {
   const navigate = useRouter();

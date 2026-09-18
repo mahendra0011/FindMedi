@@ -1,38 +1,10 @@
 'use client';
 
 import React, { useEffect, useState, useRef, useMemo } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  CalendarDays,
-  CheckCircle,
-  CheckCircle2,
-  ChevronRight,
-  CreditCard,
-  Landmark,
-  Smartphone,
-  Wallet,
-  ArrowLeft,
-  Users,
-  FileDown,
-  Clock,
-  User,
-  UserPlus,
-  Heart,
-  Phone,
-  MessageSquare,
-  Video,
-  MapPin,
-  Home,
-} from 'lucide-react';
+import { CalendarDays, CheckCircle, CheckCircle2, ChevronRight, CreditCard, Landmark, Smartphone, Wallet, ArrowLeft, Users, FileDown, Clock, User, UserPlus, Heart, Phone, MessageSquare, Video, MapPin, Home } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import BillCheckout from '@/components/shared/forms/BillCheckout';
@@ -177,7 +149,7 @@ export default function BookingModal({
   const [bookingTime, setBookingTime] = useState('');
   const [bookingNotes, setBookingNotes] = useState('');
   const [bookingLoading, setBookingLoading] = useState(false);
-  const [bookedSlots, setBookedSlots] = useState<string[]>([]);
+  const [, setBookedSlots] = useState<string[]>([]);
   const [lockedSlots, setLockedSlots] = useState<string[]>([]);
   const [lockingSlot, setLockingSlot] = useState(false);
   const [slotCounts, setSlotCounts] = useState<Record<string, number>>({});

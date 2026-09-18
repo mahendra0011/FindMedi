@@ -9,14 +9,11 @@
  */
 'use client';
 
-import {
-  CalendarDays, Clock, Phone, Mail, Hash, UserCheck,
-  Activity, IndianRupee, FileText, ChevronRight, History, Info,
-} from 'lucide-react';
+import { CalendarDays, Clock, Phone, Mail, Hash, UserCheck, Activity, IndianRupee, FileText, History, Info } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Button } from '@/components/ui/button';
 import type { Appointment, AppointmentPatientRef, AppointmentDoctorRef, LastVisitRef } from '@/types/models/appointment';
-import type { AppointmentStatus, AppointmentPriority } from '@/types/enums';
+
 import { formatDate } from '@/lib/utils';
 
 /** Convert a number to an ordinal string: 1 → "1st", 2 → "2nd", 3 → "3rd". */
@@ -86,7 +83,6 @@ export interface AppointmentCardProps {
 export default function AppointmentCard({
   apt,
   actionButtons,
-  visitNumber = 1,
   pastVisitCount = 0,
   lastVisit = null,
   onViewDetails,
@@ -97,7 +93,6 @@ export default function AppointmentCard({
   const status: string = apt?.status || 'Pending';
   const patient = apt?.patientId as AppointmentPatientRef | undefined;
   const isReturning = pastVisitCount > 0;
-  const isFirstVisit = visitNumber === 1;
 
   // Resolve patient name: prefer populated patient object, fall back to legacy apt.patient string
   const patientName =
