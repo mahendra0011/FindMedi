@@ -1,7 +1,4 @@
-'use client';
-
-import React from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Video, PhoneOff, ShieldCheck, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useVideoCall } from '@/context/VideoCallContext';
@@ -42,10 +39,9 @@ export default function IncomingVideoCallDialog() {
             />
 
             {activePeer?.avatar ? (
-              // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={activePeer.avatar}
-                alt={activePeer.name || 'Caller'}
+                alt={activePeer.name}
                 className="relative z-10 w-24 h-24 rounded-full object-cover border-2 border-emerald-500 shadow-xl"
               />
             ) : (
@@ -79,7 +75,7 @@ export default function IncomingVideoCallDialog() {
               <Button
                 variant="destructive"
                 size="icon"
-                onClick={() => rejectVideoCall()}
+                onClick={rejectVideoCall}
                 className="w-14 h-14 rounded-full bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-600/30 transition-transform active:scale-95"
               >
                 <PhoneOff className="w-6 h-6" />
@@ -91,7 +87,7 @@ export default function IncomingVideoCallDialog() {
             <div className="flex flex-col items-center gap-1.5">
               <Button
                 size="icon"
-                onClick={() => acceptVideoCall()}
+                onClick={acceptVideoCall}
                 className="w-14 h-14 rounded-full bg-emerald-500 hover:bg-emerald-600 text-neutral-950 shadow-lg shadow-emerald-500/30 transition-transform active:scale-95"
               >
                 <Video className="w-6 h-6" />
@@ -102,7 +98,7 @@ export default function IncomingVideoCallDialog() {
 
           <div className="mt-6 flex items-center justify-center gap-1.5 text-[10px] text-neutral-500">
             <ShieldCheck className="w-3 h-3 text-emerald-500" />
-            <span>End-to-End Encrypted WebRTC Stream</span>
+            <span>End-to-End Encrypted Medical Video Call</span>
           </div>
         </motion.div>
       </div>

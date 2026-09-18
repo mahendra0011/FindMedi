@@ -1,54 +1,37 @@
-'use client';
-
 import React, { useEffect, useRef, useState } from 'react';
 import { Mic, Trash2, Send, Lock, LockOpen, Pause, Play, Square } from 'lucide-react';
 import { formatDuration } from '@/lib/chatPrefs';
 
-export interface VoiceData {
-  blob: Blob;
-  dataUrl: string;
-  duration: number;
-  waveform: number[];
-}
-
-interface VoiceRecorderProps {
-  onSend?: (data: VoiceData) => void;
-  onCancel?: () => void;
-  onRecordingChange?: (isRecording: boolean) => void;
-}
-
 /**
  * WhatsApp-style voice recorder.
- *  - Mic press & hold / click → record
- *  - Lock → hands-free recording
+ *  - Mic par press & hold → record
+ *  - Lock → hands-free recording (mouse chhodne par bhi chalta rahe)
  *  - Pause / Resume, Cancel/Delete, Send
  *  - Live waveform (Web Audio AnalyserNode) + recording timer
+ *
+ * onSend({ blob, dataUrl, duration, waveform })
  */
-export default function VoiceRecorder({ onSend, onCancel, onRecordingChange }: VoiceRecorderProps) {
+export default function VoiceRecorder({ onSend, onCancel, onRecordingChange }) {
   const [recording, setRecording] = useState(false);
   const [paused, setPaused] = useState(false);
   const [locked, setLocked] = useState(false);
   const [seconds, setSeconds] = useState(0);
-  const [bars, setBars] = useState<number[]>([]);
+  const [bars, setBars] = useState([]);
   const [error, setError] = useState('');
 
-  const mediaRef = useRef<MediaRecorder | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
-  const rafRef = useRef<number | null>(null);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const audioCtxRef = useRef<AudioContext | null>(null);
+  const mediaRef = useRef(null);
+  const streamRef = useRef(null);
+  const chunksRef = useRef([]);
+  const rafRef = useRef(null);
+  const timerRef = useRef(null);
+  const audioCtxRef = useRef(null);
   const secondsRef = useRef(0);
 
   const stopStream = () => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
     if (audioCtxRef.current) {
-      try {
-        audioCtxRef.current.close().catch(() => {});
-      } catch {
-        /* ignore */
-      }
+      try { audioCtxRef.current.close(); } catch { /* ignore */ }
       audioCtxRef.current = null;
     }
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
@@ -69,17 +52,14 @@ export default function VoiceRecorder({ onSend, onCancel, onRecordingChange }: V
       const rec = new MediaRecorder(stream);
       mediaRef.current = rec;
 
-      rec.ondataavailable = (e) => {
-        if (e.data?.size) chunksRef.current.push(e.data);
-      };
-
+      rec.ondataavailable = (e) => { if (e.data?.size) chunksRef.current.push(e.data); };
       rec.onstop = async () => {
         const blob = new Blob(chunksRef.current, { type: rec.mimeType || 'audio/webm' });
         const duration = secondsRef.current;
         const waveform = bars.slice(-40);
-        const dataUrl = await new Promise<string>((resolve) => {
+        const dataUrl = await new Promise((resolve) => {
           const fr = new FileReader();
-          fr.onload = () => resolve(fr.result as string);
+          fr.onload = () => resolve(fr.result);
           fr.readAsDataURL(blob);
         });
         stopStream();
@@ -95,46 +75,41 @@ export default function VoiceRecorder({ onSend, onCancel, onRecordingChange }: V
       setBars([]);
       onRecordingChange?.(true);
 
-      const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-      if (AudioCtx) {
-        const ctx = new AudioCtx();
-        audioCtxRef.current = ctx;
-        const analyser = ctx.createAnalyser();
-        analyser.fftSize = 256;
-        ctx.createMediaStreamSource(stream).connect(analyser);
-        const data = new Uint8Array(analyser.frequencyBinCount);
-        const draw = () => {
-          analyser.getByteFrequencyData(data);
-          const level = data.reduce((a, b) => a + b, 0) / data.length;
-          setBars((prev) => [...prev.slice(-59), Math.min(100, Math.round(level * 1.6))]);
-          rafRef.current = requestAnimationFrame(draw);
-        };
+      // Live waveform — AnalyserNode se amplitude nikaal kar bars banate hain
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      audioCtxRef.current = ctx;
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 256;
+      ctx.createMediaStreamSource(stream).connect(analyser);
+      const data = new Uint8Array(analyser.frequencyBinCount);
+      const draw = () => {
+        analyser.getByteFrequencyData(data);
+        const level = data.reduce((a, b) => a + b, 0) / data.length;
+        setBars((prev) => [...prev.slice(-59), Math.min(100, Math.round(level * 1.6))]);
         rafRef.current = requestAnimationFrame(draw);
-      }
+      };
+      rafRef.current = requestAnimationFrame(draw);
 
       timerRef.current = setInterval(() => {
         secondsRef.current += 1;
         setSeconds(secondsRef.current);
-        if (secondsRef.current >= 300) mediaRef.current?.stop();
+        if (secondsRef.current >= 300) mediaRef.current?.stop(); // 5 min safety cap
       }, 1000);
     } catch {
-      setError('Microphone permission denied.');
+      setError('Microphone permission denied — voice message ke liye mic allow karein.');
       setRecording(false);
       stopStream();
     }
   };
 
-  const finish = (send: boolean) => {
+  const finish = (send) => {
     if (!mediaRef.current) return;
     if (!send) {
+      // Cancel: chunks khaali → duration 0 → send skip
       chunksRef.current = [];
       secondsRef.current = 0;
     }
-    try {
-      mediaRef.current.stop();
-    } catch {
-      /* ignore */
-    }
+    try { mediaRef.current.stop(); } catch { /* ignore */ }
     setRecording(false);
     setPaused(false);
     setLocked(false);
@@ -143,13 +118,7 @@ export default function VoiceRecorder({ onSend, onCancel, onRecordingChange }: V
   const togglePause = () => {
     const rec = mediaRef.current;
     if (!rec) return;
-    if (paused) {
-      rec.resume();
-      setPaused(false);
-    } else {
-      rec.pause();
-      setPaused(true);
-    }
+    if (paused) { rec.resume(); setPaused(false); } else { rec.pause(); setPaused(true); }
   };
 
   if (!recording) {
@@ -158,23 +127,20 @@ export default function VoiceRecorder({ onSend, onCancel, onRecordingChange }: V
         <button
           type="button"
           onMouseDown={start}
-          onTouchStart={(e) => {
-            e.preventDefault();
-            start();
-          }}
+          onTouchStart={(e) => { e.preventDefault(); start(); }}
           className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center hover:bg-primary/20 transition-colors"
           title="Hold to record a voice message"
         >
           <Mic className="w-5 h-5" />
         </button>
-        {error && <span className="ml-2 text-[11px] text-destructive max-w-[190px] leading-tight">{error}</span>}
+        {error && <span className="ml-2 text-[11px] text-red-500 max-w-[190px] leading-tight">{error}</span>}
       </div>
     );
   }
 
   return (
     <div className="flex-1 flex items-center gap-2 bg-muted/60 rounded-full px-3 py-1.5">
-      <span className="w-2.5 h-2.5 rounded-full bg-destructive animate-pulse flex-shrink-0" />
+      <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse flex-shrink-0" />
       <span className="text-[12px] font-mono tabular-nums w-10 flex-shrink-0">{formatDuration(seconds)}</span>
 
       <div className="flex-1 flex items-center gap-[2px] h-7 overflow-hidden">
@@ -183,15 +149,9 @@ export default function VoiceRecorder({ onSend, onCancel, onRecordingChange }: V
         ))}
       </div>
 
-      <button
-        type="button"
-        onClick={togglePause}
-        className="p-1.5 rounded-full hover:bg-background text-muted-foreground"
-        title={paused ? 'Resume' : 'Pause'}
-      >
+      <button type="button" onClick={togglePause} className="p-1.5 rounded-full hover:bg-background text-muted-foreground" title={paused ? 'Resume' : 'Pause'}>
         {paused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
       </button>
-
       <button
         type="button"
         onClick={() => setLocked((v) => !v)}
@@ -200,23 +160,11 @@ export default function VoiceRecorder({ onSend, onCancel, onRecordingChange }: V
       >
         {locked ? <Lock className="w-4 h-4" /> : <LockOpen className="w-4 h-4" />}
       </button>
-
-      <button
-        type="button"
-        onClick={() => finish(false)}
-        className="p-1.5 rounded-full text-destructive hover:bg-destructive/10"
-        title="Cancel"
-      >
+      <button type="button" onClick={() => finish(false)} className="p-1.5 rounded-full text-red-500 hover:bg-red-500/10" title="Cancel">
         <Trash2 className="w-4 h-4" />
       </button>
-
       {locked ? (
-        <button
-          type="button"
-          onClick={() => finish(true)}
-          className="p-1.5 rounded-full text-primary hover:bg-primary/10"
-          title="Send"
-        >
+        <button type="button" onClick={() => finish(true)} className="p-1.5 rounded-full text-primary hover:bg-primary/10" title="Send">
           <Send className="w-4 h-4" />
         </button>
       ) : (
@@ -230,16 +178,8 @@ export default function VoiceRecorder({ onSend, onCancel, onRecordingChange }: V
           <Square className="w-3.5 h-3.5" />
         </button>
       )}
-
       {onCancel && (
-        <button
-          type="button"
-          onClick={() => {
-            finish(false);
-            onCancel();
-          }}
-          className="text-[11px] text-muted-foreground hover:text-foreground"
-        >
+        <button type="button" onClick={() => { finish(false); onCancel(); }} className="text-[11px] text-muted-foreground hover:text-foreground">
           close
         </button>
       )}

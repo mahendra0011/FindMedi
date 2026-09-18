@@ -1,1 +1,0 @@
-﻿/** Schedule manage placeholder */ import type { DoctorScheduleItem } from './types'; export const getDoctorsForSchedule = (): Promise<DoctorScheduleItem[]> => Promise.resolve([]); export const getPendingScheduleRequests = (): Promise<unknown[]> => Promise.resolve([]);

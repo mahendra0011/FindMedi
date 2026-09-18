@@ -1,11 +1,10 @@
-'use client';
-
-import React, { useState, useEffect, useRef } from 'react';
-import { Maximize2, PhoneOff, Mic, MicOff } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
+import { Maximize2, PhoneOff, Mic, MicOff, Video, VideoOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useVideoCall } from '@/context/VideoCallContext';
 
-function formatDuration(secs: number) {
+function formatDuration(secs) {
   const m = Math.floor(secs / 60);
   const s = secs % 60;
   return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
@@ -18,13 +17,14 @@ export default function VideoCallMinimized() {
     callDuration,
     isMinimized,
     isAudioMuted,
+    isVideoMuted,
     remoteStream,
     toggleMinimize,
     endVideoCall,
     toggleAudioMute,
   } = useVideoCall();
 
-  const miniVideoRef = useRef<HTMLVideoElement | null>(null);
+  const miniVideoRef = useRef(null);
 
   // Position coordinates for draggable floating widget
   const [pos, setPos] = useState({ x: 24, y: 24 });
@@ -37,7 +37,7 @@ export default function VideoCallMinimized() {
     }
   }, [remoteStream]);
 
-  const handleMouseDown = (e: React.MouseEvent) => {
+  const handleMouseDown = (e) => {
     setIsDragging(true);
     dragRef.current = {
       mouseX: e.clientX,
@@ -48,7 +48,7 @@ export default function VideoCallMinimized() {
   };
 
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
+    const handleMouseMove = (e) => {
       if (!isDragging) return;
       const dx = dragRef.current.mouseX - e.clientX;
       const dy = dragRef.current.mouseY - e.clientY;
@@ -134,7 +134,7 @@ export default function VideoCallMinimized() {
         <Button
           size="sm"
           variant="destructive"
-          onClick={() => endVideoCall()}
+          onClick={endVideoCall}
           className="h-8 px-3 rounded-full bg-red-600 hover:bg-red-700 text-xs font-semibold gap-1"
         >
           <PhoneOff className="w-3.5 h-3.5" /> End

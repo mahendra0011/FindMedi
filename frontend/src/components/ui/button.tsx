@@ -35,15 +35,16 @@ export interface ButtonProps
   asChild?: boolean;
 }
 
+import { Slot } from '@radix-ui/react-slot';
+
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, ...props }, ref) => {
-    // asChild is accepted for API compatibility but intentionally ignored (always renders <button>)
-    void asChild;
+    const Comp = asChild ? Slot : 'button';
     return (
-      <button
+      <Comp
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
-        {...props}
+        {...(props as any)}
       />
     );
   },

@@ -1,7 +1,4 @@
-'use client';
-
-import React from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Phone, PhoneOff, User, ShieldCheck } from 'lucide-react';
 import { useAudioCall } from '@/context/AudioCallContext';
 
@@ -38,8 +35,7 @@ export default function IncomingCallDialog() {
             <div className="absolute -inset-2 rounded-full border border-emerald-500/30 animate-spin" style={{ animationDuration: '6s' }} />
             <div className="relative w-24 h-24 rounded-full overflow-hidden border-2 border-emerald-500 shadow-lg bg-muted flex items-center justify-center">
               {activePeer.avatar ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={activePeer.avatar} alt={activePeer.name || 'Caller'} className="w-full h-full object-cover" />
+                <img src={activePeer.avatar} alt={activePeer.name} className="w-full h-full object-cover" />
               ) : (
                 <User className="w-10 h-10 text-muted-foreground" />
               )}
@@ -68,7 +64,7 @@ export default function IncomingCallDialog() {
           <div className="grid grid-cols-2 gap-4 pt-2">
             <button
               type="button"
-              onClick={() => rejectCall()}
+              onClick={rejectCall}
               className="flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-destructive/10 hover:bg-destructive text-destructive hover:text-white transition-all duration-200 font-semibold text-sm shadow-sm border border-destructive/20 active:scale-95"
             >
               <PhoneOff className="w-4 h-4" />
@@ -77,7 +73,7 @@ export default function IncomingCallDialog() {
 
             <button
               type="button"
-              onClick={() => acceptCall()}
+              onClick={acceptCall}
               className="flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white transition-all duration-200 font-semibold text-sm shadow-lg shadow-emerald-600/30 active:scale-95 animate-bounce"
               style={{ animationDuration: '2s' }}
             >
