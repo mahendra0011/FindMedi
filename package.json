@@ -7,18 +7,13 @@
   },
   "scripts": {
     "postinstall": "npm run install:all",
-    "install:all": "npm install --prefix apps/server && npm install --prefix apps/client && npm install --prefix apps/findmedi-next",
-    "dev": "npx concurrently \"npm run dev --prefix apps/server\" \"npm run dev --prefix apps/client\" \"npm run dev --prefix apps/findmedi-next\"",
-    "dev:server": "npm run dev --prefix apps/server",
-    "dev:client": "npm run dev --prefix apps/client",
-    "dev:next": "npm run dev --prefix apps/findmedi-next",
-    "seed": "npm run seed --prefix apps/server",
-    "seed:admin": "npm run seed:admin --prefix apps/server",
-    "seed:cluster": "npm run seed:cluster --prefix apps/server",
-    "build": "npm run build --prefix apps/client",
-    "build:next": "npm run build --prefix apps/findmedi-next",
-    "typecheck": "npm run typecheck --prefix apps/findmedi-next",
-    "type-check": "npm run typecheck --prefix apps/findmedi-next"
+    "install:all": "npm install --prefix backend && npm install --prefix frontend",
+    "dev": "npx concurrently \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
+    "build": "npm run build --prefix frontend",
+    "typecheck": "npm run typecheck --prefix frontend",
+    "seed": "npm run seed --prefix backend",
+    "seed:admin": "npm run seed:admin --prefix backend",
+    "seed:cluster": "npm run seed:cluster --prefix backend"
   },
   "devDependencies": {
     "concurrently": "^9.2.4"

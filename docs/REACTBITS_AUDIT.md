@@ -1,14 +1,14 @@
 # ReactBits Component Audit & Decision Log
 
 **Date**: September 17, 2026
-**Audited Directory**: `apps/client/src/components/reactbits/` (9 files — 5 components + 4 CSS)
-**Target**: `apps/web/src/components/shared/`
+**Audited Directory**: `client/src/components/reactbits/` (legacy app, since removed — was `apps/client/...`) (9 files — 5 components + 4 CSS)
+**Target**: `frontend/src/components/shared/`
 
 ---
 
 ## Usage in Legacy Client
 
-All 5 ReactBits components are consumed by `apps/client/src/pages/Home.jsx`
+All 5 ReactBits components are consumed by `client/src/pages/Home.jsx` (legacy app, since removed)
 (imports at lines 12–16; usages at lines 260, 274, 288, 304, 428, 545, 585, 746):
 
 | Component | Effect | Used for |
@@ -25,7 +25,7 @@ All 5 ReactBits components are consumed by `apps/client/src/pages/Home.jsx`
 
 A repo-wide content search (`motion.*`, `gsap`, `stagger`, `marquee`, `velocity`,
 `split`, `BlurText`, `FlowingMenu`, `ScrollVelocity`, `SplitText`, `ElectricBorder`)
-was run against `apps/web/src`.
+was run against `frontend/src`.
 
 **Findings:**
 
@@ -72,5 +72,5 @@ rather than dropped as raw `.jsx`.
 
 ## Legacy Retention
 
-The original 9 files **remain untouched** in `apps/client/src/components/reactbits/`
+The original 9 files remained untouched in legacy `client/` until cutover (completed — legacy app deleted, all 5 effects live in `frontend/src/components/shared/`).
 until Phase 5 cut-over, so the legacy Vite client retains a clean rollback path.

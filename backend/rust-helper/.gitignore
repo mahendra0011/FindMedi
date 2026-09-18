@@ -1,0 +1,31 @@
+# Rust build artifacts
+target/
+debug/
+release/
+
+# Native module binaries (built locally, not committed)
+*.node
+*.dll
+*.dll.a
+*.so
+*.dylib
+*.exe
+*.bak
+*.log
+*.pdf
+
+# CI-built prebuilt binaries (not committed; .gitkeep keeps the dir)
+prebuilt/*
+!prebuilt/.gitkeep
+
+# npm / node
+node_modules/
+
+# Build helper artifacts
+cargo-cache/
+
+# Editor
+*.swp
+*.swo
+*~
+.DS_Store
