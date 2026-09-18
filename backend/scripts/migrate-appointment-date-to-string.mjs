@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
-import Appointment from '../models/Appointment.js';
-import { getISTDateString } from '../utils/dateUtils.js';
+import Appointment from '../src/models/Appointment.js';
+import { getISTDateString } from '../src/utils/dateUtils.js';
 
 const mongoUri = process.env.MONGO_URI || 'mongodb://localhost:27017/findmedi';
 

@@ -20,10 +20,10 @@ const MAX_ALL_SIZE = 10 * 1024 * 1024;  // 10MB
 
 // Ensure upload directories exist
 const uploadDirs = {
-  avatars: path.join(__dirname, '..', 'public', 'uploads', 'avatars'),
-  documents: path.join(__dirname, '..', 'public', 'uploads', 'documents'),
-  signatures: path.join(__dirname, '..', 'public', 'uploads', 'signatures'),
-  reports: path.join(__dirname, '..', 'public', 'uploads', 'reports'),
+  avatars: path.join(__dirname, '..', '..', 'public', 'uploads', 'avatars'),
+  documents: path.join(__dirname, '..', '..', 'public', 'uploads', 'documents'),
+  signatures: path.join(__dirname, '..', '..', 'public', 'uploads', 'signatures'),
+  reports: path.join(__dirname, '..', '..', 'public', 'uploads', 'reports'),
 };
 
 Object.values(uploadDirs).forEach(dir => {

@@ -15,7 +15,7 @@ import { resizeToFit as napiResizeToFit, NATIVE_AVAILABLE } from '../services/na
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const UPLOAD_DIR = path.join(__dirname, '..', 'public', 'uploads', 'documents');
+const UPLOAD_DIR = path.join(__dirname, '..', '..', 'public', 'uploads', 'documents');
 if (!fs.existsSync(UPLOAD_DIR)) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 }

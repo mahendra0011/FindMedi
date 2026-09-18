@@ -1,5 +1,5 @@
 import request from 'supertest';
-import app from '../index.js';
+import app from '../src/index.js';
 
 describe('OTP / Two-Factor Verification Endpoints', () => {
   // ── One-time password (email verification during registration) ──

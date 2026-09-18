@@ -1,5 +1,5 @@
 import request from 'supertest';
-import app from '../index.js';
+import app from '../src/index.js';
 
 describe('Pharmacy Order Endpoints', () => {
   it('should reject listing orders without authentication', async () => {

@@ -19,7 +19,7 @@ const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
 const MAX_DOCUMENT_SIZE = 25 * 1024 * 1024;
 
 const getUploadDir = (subDir = '') => {
-  const baseDir = path.join(__dirname, '..', 'public', 'uploads', subDir);
+  const baseDir = path.join(__dirname, '..', '..', 'public', 'uploads', subDir);
   if (!fs.existsSync(baseDir)) {
     fs.mkdirSync(baseDir, { recursive: true });
   }

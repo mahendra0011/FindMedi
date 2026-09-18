@@ -15,7 +15,7 @@ import logger from '../config/logger.js';
 const router = express.Router();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const RECORDINGS_DIR = path.join(__dirname, '..', 'public', 'uploads', 'call-recordings');
+const RECORDINGS_DIR = path.join(__dirname, '..', '..', 'public', 'uploads', 'call-recordings');
 
 if (!fs.existsSync(RECORDINGS_DIR)) {
   fs.mkdirSync(RECORDINGS_DIR, { recursive: true });

@@ -16,7 +16,7 @@ import { emitChatEvent, emitChatNotification } from '../services/socketService.j
 
 const router = express.Router();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const UPLOAD_DIR = path.join(__dirname, '..', 'public', 'uploads', 'chat');
+const UPLOAD_DIR = path.join(__dirname, '..', '..', 'public', 'uploads', 'chat');
 const MAX_UPLOAD_BYTES = 25 * 1024 * 1024; // 25MB
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────

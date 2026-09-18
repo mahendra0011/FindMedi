@@ -1,5 +1,5 @@
 import request from 'supertest';
-import app from '../index.js';
+import app from '../src/index.js';
 
 // Smoke tests: each role's core dashboard endpoint must be auth-gated (401 without token).
 // These are not testing business logic, just that the route is mounted and protected.

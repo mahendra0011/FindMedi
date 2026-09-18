@@ -1,5 +1,5 @@
 import request from 'supertest';
-import app from '../index.js';
+import app from '../src/index.js';
 
 describe('Appointments Endpoints', () => {
   it('should reject fetching appointments without authentication', async () => {
