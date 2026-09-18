@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { constantTimeCompare, NATIVE_OTP_AVAILABLE } from './napiOtpService.js';
+import { constantTimeCompare, OTP_HASH_ALGO, ACTIVE_OTP_HASH_ALGO } from './napiOtpService.js';
 
 const BACKUP_CODE_COUNT = 10;
 const BACKUP_CODE_LENGTH = 10;
@@ -111,8 +111,10 @@ export function verifyBackupCode(code, hashedCodes) {
   if (!code || !hashedCodes?.length) return { valid: false, codeIndex: -1 };
   const hashed = hashBackupCode(code.toUpperCase());
 
-  // Constant-time comparison to prevent timing attacks
-  if (NATIVE_OTP_AVAILABLE) {
+  // Explicit contract: native constant-time compare is available exactly
+  // when the active OTP hash backend is Rust ('rust-sha256').
+  // Same behavior as the former implicit NATIVE_OTP_AVAILABLE check.
+  if (ACTIVE_OTP_HASH_ALGO === OTP_HASH_ALGO.RUST_SHA256) {
     let found = false;
     let foundIndex = -1;
     hashedCodes.forEach((stored, i) => {
