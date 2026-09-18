@@ -18,19 +18,19 @@ jobs:
       with:
         node-version: 20.x
         cache: 'npm'
-        cache-dependency-path: FindMedi/client/package-lock.json
+        cache-dependency-path: apps/client/package-lock.json
 
     - name: Install Dependencies
-      run: cd FindMedi/client && npm install --legacy-peer-deps
+      run: cd apps/client && npm install --legacy-peer-deps
 
     - name: Lint
-      run: cd FindMedi/client && npm run lint
+      run: cd apps/client && npm run lint
 
     - name: Build
-      run: cd FindMedi/client && npm run build
+      run: cd apps/client && npm run build
 
     - name: Test
-      run: cd FindMedi/client && npm test
+      run: cd apps/client && npm test
 
   server:
     runs-on: ubuntu-latest
@@ -43,13 +43,13 @@ jobs:
       with:
         node-version: 20.x
         cache: 'npm'
-        cache-dependency-path: FindMedi/server/package-lock.json
+        cache-dependency-path: apps/api/package-lock.json
 
     - name: Install Dependencies
-      run: cd FindMedi/server && npm install
+      run: cd apps/api && npm install
 
     - name: Test
-      run: cd FindMedi/server && npm test
+      run: cd apps/api && npm test
 
   build-rust:
     name: Build Rust Native Module
@@ -67,19 +67,19 @@ jobs:
       with:
         node-version: 20.x
         cache: 'npm'
-        cache-dependency-path: FindMedi/server/napi-core/package-lock.json
+        cache-dependency-path: apps/api/napi-core/package-lock.json
 
     - name: Install Rust toolchain
       uses: dtolnay/rust-toolchain@stable
 
     - name: Install Dependencies
-      run: cd FindMedi/server/napi-core && npm install
+      run: cd apps/api/napi-core && npm install
 
     - name: Build Native Module
-      run: cd FindMedi/server/napi-core && npm run build:release
+      run: cd apps/api/napi-core && npm run build:release
 
     - name: Test Native Module
-      run: cd FindMedi/server/napi-core && node tests/test.js
+      run: cd apps/api/napi-core && node tests/test.js
 
   findmedi-next:
     name: findmedi-next (Next.js app)
@@ -98,19 +98,19 @@ jobs:
       with:
         node-version: 22.x
         cache: 'npm'
-        cache-dependency-path: FindMedi/findmedi-next/package-lock.json
+        cache-dependency-path: apps/web/package-lock.json
 
     - name: Install Dependencies
-      run: cd FindMedi/findmedi-next && npm ci --no-audit --no-fund
+      run: cd apps/web && npm ci --no-audit --no-fund
 
     - name: Type Check
-      run: cd FindMedi/findmedi-next && npm run typecheck
+      run: cd apps/web && npm run typecheck
 
     - name: Test
-      run: cd FindMedi/findmedi-next && npm test
+      run: cd apps/web && npm test
 
     - name: Build
-      run: cd FindMedi/findmedi-next && npm run build
+      run: cd apps/web && npm run build
 
     - name: Lint
-      run: cd FindMedi/findmedi-next && npm run lint
+      run: cd apps/web && npm run lint
