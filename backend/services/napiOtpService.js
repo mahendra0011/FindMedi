@@ -36,6 +36,64 @@ function getNapi() {
 export const NATIVE_OTP_AVAILABLE = (() => !!getNapi())();
 
 /**
+ * Explicit shared contract for which backend produced / verifies an OTP hash.
+ *
+ * Single source of truth — every consumer (OTP model, twoFactorService)
+ * must reference these values instead of implicitly assuming a backend
+ * from `NATIVE_OTP_AVAILABLE` or from the hash string shape.
+ *
+ * - `RUST_SHA256` ('rust-sha256'): salted SHA-256 produced/verified by the
+ *   Rust native module (`salt_hex:hash_hex`, SHA256(salt ++ otp)).
+ * - `JS_SHA256_FALLBACK` ('js-sha256-fallback'): same `salt_hex:hash_hex`
+ *   format but verified via the Node.js `crypto` fallback because the
+ *   native module is unavailable in this process.
+ * - `BCRYPT` ('bcrypt'): legacy/fallback `$2a$`/`$2b$`/`$2y$` hash produced
+ *   and verified via `bcryptjs`.
+ * - `UNKNOWN` ('unknown'): unrecognized format (verification returns false).
+ */
+export const OTP_HASH_ALGO = {
+  RUST_SHA256: 'rust-sha256',
+  JS_SHA256_FALLBACK: 'js-sha256-fallback',
+  BCRYPT: 'bcrypt',
+  UNKNOWN: 'unknown',
+};
+
+/**
+ * Which backend `hashOtp()` in this process will use for NEW hashes.
+ * Explicit alias over the implicit `NATIVE_OTP_AVAILABLE` flag.
+ */
+export const ACTIVE_OTP_HASH_ALGO = NATIVE_OTP_AVAILABLE
+  ? OTP_HASH_ALGO.RUST_SHA256
+  : OTP_HASH_ALGO.BCRYPT;
+
+/**
+ * Live check of the production backend (re-queries the native binding
+ * instead of relying on the import-time `ACTIVE_OTP_HASH_ALGO` snapshot).
+ *
+ * @returns {'rust-sha256' | 'bcrypt'}
+ */
+export function getActiveOtpHashAlgo() {
+  return getNapi() ? OTP_HASH_ALGO.RUST_SHA256 : OTP_HASH_ALGO.BCRYPT;
+}
+
+/**
+ * Resolve which backend verifies a given stored hash in this process.
+ * Maps the structural `OtpHashKind` to the explicit `OTP_HASH_ALGO` contract,
+ * distinguishing native vs JS-fallback verification for SHA-256 hashes.
+ *
+ * @param {string} storedHash - Stored hash string
+ * @returns {'rust-sha256' | 'js-sha256-fallback' | 'bcrypt' | 'unknown'}
+ */
+export function resolveOtpHashAlgo(storedHash) {
+  const kind = classifyOtpHash(storedHash);
+  if (kind === OtpHashKind.Bcrypt) return OTP_HASH_ALGO.BCRYPT;
+  if (kind === OtpHashKind.Sha256) {
+    return getNapi() ? OTP_HASH_ALGO.RUST_SHA256 : OTP_HASH_ALGO.JS_SHA256_FALLBACK;
+  }
+  return OTP_HASH_ALGO.UNKNOWN;
+}
+
+/**
  * Hash an OTP for storage.
  * Uses Rust SHA-256 with random salt when available, falls back to bcrypt.
  *
@@ -49,6 +107,19 @@ export async function hashOtp(otp) {
   }
   // Fallback: bcrypt (slower but still secure)
   return await bcrypt.hash(otp, 10);
+}
+
+/**
+ * Hash an OTP and report which backend produced the hash.
+ * Same behavior as `hashOtp()` plus the explicit `OTP_HASH_ALGO` value,
+ * so callers can store which backend produced each hash.
+ *
+ * @param {string} otp - Plain-text OTP (e.g. "123456")
+ * @returns {Promise<{ hash: string, algo: string }>} Hash + `OTP_HASH_ALGO` value
+ */
+export async function hashOtpWithMeta(otp) {
+  const hash = await hashOtp(otp);
+  return { hash, algo: resolveOtpHashAlgo(hash) };
 }
 
 export const OtpHashKind = {

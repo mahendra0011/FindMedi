@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { isPublicRoute, getServerSession, checkRoleAccess } from '@/lib/auth/guards';
+import { isPublicRoute, checkRoleAccess } from '@/lib/auth/guards';
+import { getServerSession } from '@/lib/server-only/guards';
 import { ROLE_CONFIG } from '@/config/roles';
 import type { UserRole } from '@/types/enums';
 
