@@ -91,7 +91,8 @@ export default function HospitalDirectory() {
       if (cityFilter && cityFilter !== 'All') params.city = cityFilter;
       if (specFilter && specFilter !== 'All') params.specialty = specFilter;
       const data = await api.getHospitals(params);
-      setAllHospitals(data);
+      const list = Array.isArray(data) ? data : (data?.data || data?.hospitals || []);
+      setAllHospitals(list);
     } catch (e) { console.error(e); }
     setLoading(false);
   };
@@ -101,13 +102,15 @@ export default function HospitalDirectory() {
 
   const insuranceProviders = useMemo(() => {
     const providers = new Set();
-    allHospitals.forEach(h => (h.insuranceAccepted || []).forEach(i => providers.add(i.provider || i)));
+    const list = Array.isArray(allHospitals) ? allHospitals : (allHospitals?.data || allHospitals?.hospitals || []);
+    list.forEach(h => (h?.insuranceAccepted || []).forEach(i => providers.add(i?.provider || i)));
     return [...providers].sort();
   }, [allHospitals]);
 
   // Unified filter + sort effect
   useEffect(() => {
-    let filtered = [...allHospitals];
+    const list = Array.isArray(allHospitals) ? allHospitals : (allHospitals?.data || allHospitals?.hospitals || []);
+    let filtered = [...list];
 
     // Department
     if (selectedDept) {

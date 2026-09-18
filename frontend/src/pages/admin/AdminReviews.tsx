@@ -15,7 +15,7 @@ export default function AdminReviews() {
     setLoading(true);
     try {
       const data = await api.getReviews();
-      setReviews(data);
+      setReviews(Array.isArray(data) ? data : (data?.reviews || data?.data || []));
     } catch { toast.error('Failed to load reviews'); }
     setLoading(false);
   }, []);

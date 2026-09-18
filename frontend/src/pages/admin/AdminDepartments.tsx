@@ -17,7 +17,7 @@ export default function AdminDepartments() {
     setLoading(true);
     try {
       const data = await api.getDepartments();
-      setDepartments(data);
+      setDepartments(Array.isArray(data) ? data : (data?.departments || data?.data || []));
     } catch { toast.error('Failed to load departments'); }
     setLoading(false);
   }, []);

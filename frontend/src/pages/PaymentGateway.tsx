@@ -46,7 +46,7 @@ export default function PaymentGateway() {
     const load = async () => {
       try {
         const res = await api.getFacilities({ type: 'pharmacy' });
-        const list = Array.isArray(res) ? res : res?.facilities || [];
+        const list = Array.isArray(res) ? res : (res?.facilities || res?.data || []);
         const map = {};
         list.forEach(f => { map[f._id] = f.name; map[f.id] = f.name; });
         storeIds.forEach(sid => {

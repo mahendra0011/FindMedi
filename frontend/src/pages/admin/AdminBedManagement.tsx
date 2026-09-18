@@ -30,8 +30,8 @@ export default function AdminBedManagement() {
         api.getBeds(params),
         api.getBedStats(),
       ]);
-      setBeds(data);
-      setStats(statsData);
+      setBeds(Array.isArray(data) ? data : (data?.beds || data?.data || []));
+      setStats(statsData || {});
     } catch { toast.error('Failed to load beds'); }
     setLoading(false);
   }, [wardFilter, statusFilter]);

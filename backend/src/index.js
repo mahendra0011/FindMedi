@@ -26,6 +26,7 @@ import { initSocket } from './services/socketService.js';
 
 const app = express();
 configureMongoDns();
+// Database target: medicore
 
 // Security middleware
 app.use(helmet({

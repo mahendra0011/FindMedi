@@ -97,7 +97,7 @@ export default function Checkout() {
     const load = async () => {
       try {
         const res = await api.getFacilities({ type: 'pharmacy' });
-        const list = Array.isArray(res) ? res : res?.facilities || [];
+        const list = Array.isArray(res) ? res : (res?.facilities || res?.data || []);
         const map = {};
         list.forEach(f => {
           const id = f._id || f.id;

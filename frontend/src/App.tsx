@@ -251,23 +251,23 @@ const loadingFallback = (
 );
 
 // Auth initializer component
-function AuthInitializer({ children }) {
+function AuthInitializer({ children }: { children?: React.ReactNode }) {
   const dispatch = useDispatch();
   useEffect(() => {
-    dispatch(initializeAuth());
+    (dispatch as any)(initializeAuth());
   }, [dispatch]);
   // Proactive silent token refresh — access token (15m) expire hone se pehle
   // background me refresh karta hai. Iske bina code change / HMR reload ke waqt
   // expired access token → 401 → refresh → agar koi hiccup to logout ho jata tha.
   // Yeh real-world me "logout na hona" ki guarantee deta hai.
   useProactiveTokenRefresh();
-  return children;
+  return <>{children}</>;
 }
 
 function SettingsInitializer() {
   const dispatch = useDispatch();
   const { user } = useAuth();
-  const reduxSettings = useSelector(state => state.settings);
+  const reduxSettings = useSelector((state: any) => state.settings);
 
   // Apply settings from localStorage on first mount
   useEffect(() => {
@@ -310,7 +310,7 @@ function BlockedAccountRedirect() {
   return <Navigate to="/login" replace />;
 }
 
-function ProtectedRoute({ children, allowedRoles }) {
+function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode; allowedRoles?: string[] }) {
   const { user, loading } = useAuth();
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-background">
@@ -327,7 +327,7 @@ function ProtectedRoute({ children, allowedRoles }) {
     return <Navigate to="/delivery/documents" replace />;
   }
   if (allowedRoles && !allowedRoles.includes(user.role)) return <Navigate to="/dashboard" replace />;
-  return children;
+  return <>{children}</>;
 }
 
 function DashboardShell() {
@@ -340,10 +340,10 @@ function DashboardShell() {
   );
 }
 
-function RoleRoute({ children, allowedRoles }) {
+function RoleRoute({ children, allowedRoles }: { children: React.ReactNode; allowedRoles?: string[] }) {
   const { user } = useAuth();
   if (allowedRoles && !allowedRoles.includes(user?.role)) return <Navigate to="/dashboard" replace />;
-  return children;
+  return <>{children}</>;
 }
 
 function getDefaultDashboardPath(user) {
@@ -404,7 +404,7 @@ function RoleDashboard() {
 }
 
 // Wrapper that uses Redux for auth instead of context
-function ReduxAuthProvider({ children }) {
+function ReduxAuthProvider({ children }: { children?: React.ReactNode }) {
   return (
     <Provider store={store}>
       <AuthInitializer>

@@ -33,16 +33,16 @@ export default function GlobalCatalog() {
         api.getMedicines({ limit: 200 }).catch(() => ({ data: [] })),
         api.getCategories({}).catch(() => ({ categories: [] })),
       ]);
-      const testList = tRes.tests || [];
-      const medList = mRes.data || [];
-      const catList = cRes.categories || [];
+      const testList = Array.isArray(tRes) ? tRes : (tRes?.tests || tRes?.data || []);
+      const medList = Array.isArray(mRes) ? mRes : (mRes?.data || mRes?.medicines || []);
+      const catList = Array.isArray(cRes) ? cRes : (cRes?.categories || cRes?.data || []);
       setTests(testList);
       setMedicines(medList);
       setCategories(catList);
 
       const seen = {};
       const dups = [];
-      testList.forEach(t => {
+      (Array.isArray(testList) ? testList : []).forEach(t => {
         const key = t.name?.toLowerCase().trim();
         if (seen[key]) { dups.push({ a: seen[key], b: t }); }
         else seen[key] = t;

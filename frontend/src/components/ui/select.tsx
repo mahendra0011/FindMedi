@@ -68,10 +68,12 @@ const SelectItem = React.forwardRef<
         <ChevronDown className="h-4 w-4" />
       </SelectPrimitive.ItemIndicator>
     </span>
-    <SelectPrimitive.Label>{children}</SelectPrimitive.Label>
+    <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
   </SelectPrimitive.Item>
 ));
 SelectItem.displayName = 'SelectItem';
+
+const SelectGroup = SelectPrimitive.Group;
 
 const SelectLabel = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Label>,
@@ -89,6 +91,7 @@ const SelectSeparator = SelectPrimitive.Separator;
 
 export {
   Select,
+  SelectGroup,
   SelectValue,
   SelectTrigger,
   SelectContent,

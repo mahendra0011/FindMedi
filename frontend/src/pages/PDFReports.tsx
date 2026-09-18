@@ -33,13 +33,29 @@ export default function PDFReports() {
     notes: '', impression: ''
   });
 
-  const [dischargeSummary, setDischargeSummary] = useState({
+  const [discharge, setDischarge] = useState({
     patientName: '', patientAge: '', patientGender: '', patientPhone: '', patientEmail: '', patientAddress: '',
-    doctorName: '', admissionDate: '', dischargeDate: '',
-    admissionDiagnosis: '', dischargeDiagnosis: '', treatmentSummary: '',
-    conditionAtDischarge: 'Stable', hospitalCourse: '', dischargeMedications: '',
-    dietInstructions: '', activityRestrictions: '', followUpInstructions: ''
+    doctorName: '', doctorSpecialization: '', admissionId: '', admissionDate: '', dischargeDate: '',
+    admissionDiagnosis: '', diagnosis: '', chiefComplaints: '', treatment: '', surgery: '',
+    conditionAtDischarge: 'Stable', hospitalCourse: '',
+    medications: [{ name: '', dosage: '', frequency: '' }],
+    dischargeAdvice: '', followUpInstructions: '', dietInstructions: '', activityRestrictions: ''
   });
+
+  const addDischargeMed = () => {
+    setDischarge(prev => ({
+      ...prev,
+      medications: [...prev.medications, { name: '', dosage: '', frequency: '' }]
+    }));
+  };
+
+  const updateDischargeMed = (index, field, value) => {
+    setDischarge(prev => {
+      const next = [...prev.medications];
+      next[index] = { ...next[index], [field]: value };
+      return { ...prev, medications: next };
+    });
+  };
 
   const handleMedicationChange = (index, field, value) => {
     const next = [...prescription.medications];
@@ -122,25 +138,27 @@ export default function PDFReports() {
     }
     return {
       patient: {
-        name: dischargeSummary.patientName,
-        age: dischargeSummary.patientAge,
-        gender: dischargeSummary.patientGender,
-        phone: dischargeSummary.patientPhone,
-        email: dischargeSummary.patientEmail,
-        address: dischargeSummary.patientAddress
+        name: discharge.patientName,
+        age: discharge.patientAge,
+        gender: discharge.patientGender,
+        phone: discharge.patientPhone,
+        email: discharge.patientEmail,
+        address: discharge.patientAddress
       },
-      doctorName: dischargeSummary.doctorName || user?.name,
-      admissionDate: dischargeSummary.admissionDate,
-      dischargeDate: dischargeSummary.dischargeDate,
-      admissionDiagnosis: dischargeSummary.admissionDiagnosis,
-      dischargeDiagnosis: dischargeSummary.dischargeDiagnosis,
-      treatmentSummary: dischargeSummary.treatmentSummary,
-      conditionAtDischarge: dischargeSummary.conditionAtDischarge,
-      hospitalCourse: dischargeSummary.hospitalCourse,
-      dischargeMedications: dischargeSummary.dischargeMedications,
-      dietInstructions: dischargeSummary.dietInstructions,
-      activityRestrictions: dischargeSummary.activityRestrictions,
-      followUpInstructions: dischargeSummary.followUpInstructions
+      doctorName: discharge.doctorName || user?.name,
+      doctorSpecialization: discharge.doctorSpecialization,
+      admissionId: discharge.admissionId,
+      admissionDate: discharge.admissionDate,
+      dischargeDate: discharge.dischargeDate,
+      admissionDiagnosis: discharge.admissionDiagnosis || discharge.diagnosis,
+      dischargeDiagnosis: discharge.diagnosis,
+      treatmentSummary: discharge.treatment,
+      conditionAtDischarge: discharge.conditionAtDischarge,
+      hospitalCourse: discharge.hospitalCourse,
+      dischargeMedications: discharge.medications,
+      dietInstructions: discharge.dietInstructions,
+      activityRestrictions: discharge.activityRestrictions,
+      followUpInstructions: discharge.followUpInstructions || discharge.dischargeAdvice
     };
   };
 

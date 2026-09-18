@@ -82,7 +82,7 @@ export default function PatientFavorites() {
     setLoading(true);
     try {
       const res = await patientApi.getFavorites();
-      setFavorites(res?.favorites || []);
+      setFavorites(Array.isArray(res) ? res : (res?.favorites || res?.data || []));
     } catch {
       toast.error('Failed to load favorites');
     }
@@ -94,7 +94,7 @@ export default function PatientFavorites() {
   const handleRemove = async (id) => {
     // Optimistic removal
     const prev = favorites;
-    setFavorites((fs) => fs.filter((f) => f._id !== id));
+    setFavorites((fs) => (Array.isArray(fs) ? fs : []).filter((f) => f._id !== id));
     try {
       await patientApi.removeFavorite(id);
       toast.success('Removed from favorites');
@@ -106,17 +106,18 @@ export default function PatientFavorites() {
 
   // Live counts per type
   const counts = useMemo(() => {
-    const c = { all: favorites.length };
-    favorites.forEach((f) => { c[f.refType] = (c[f.refType] || 0) + 1; });
+    const list = Array.isArray(favorites) ? favorites : [];
+    const c = { all: list.length };
+    list.forEach((f) => { c[f.refType] = (c[f.refType] || 0) + 1; });
     return c;
   }, [favorites]);
 
-  const filtered = useMemo(
-    () => activeFilter === 'all'
-      ? favorites
-      : favorites.filter((f) => f.refType === activeFilter),
-    [favorites, activeFilter]
-  );
+  const filtered = useMemo(() => {
+    const list = Array.isArray(favorites) ? favorites : [];
+    return activeFilter === 'all'
+      ? list
+      : list.filter((f) => f.refType === activeFilter);
+  }, [favorites, activeFilter]);
 
   // Render the matching full card for a favorite
   const renderCard = (f, index) => {

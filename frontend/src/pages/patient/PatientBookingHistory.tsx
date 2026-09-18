@@ -33,7 +33,7 @@ function formatShortDate(d) {
   return dt.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-export default function PatientBookingHistory({ initialType }) {
+export default function PatientBookingHistory({ initialType }: { initialType?: string } = {}) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [bookings, setBookings] = useState([]);

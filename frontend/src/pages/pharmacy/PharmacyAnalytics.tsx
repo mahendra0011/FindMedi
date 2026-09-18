@@ -36,9 +36,9 @@ export default function PharmacyAnalytics() {
       api.getPharmacyStats(),
       api.getPharmacyOrders({}),
     ]).then(([stats, ordersRes]) => {
-      const orders = ordersRes.orders || [];
+      const orders = Array.isArray(ordersRes) ? ordersRes : (ordersRes?.orders || ordersRes?.data || []);
       const medRevenue = {};
-      orders.forEach(o => o.items?.forEach(item => {
+      orders.forEach(o => (o.items || []).forEach(item => {
         medRevenue[item.medicineName] = (medRevenue[item.medicineName] || 0) + (item.price * item.qty);
       }));
       const popular = Object.entries(medRevenue)

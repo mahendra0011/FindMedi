@@ -5,6 +5,7 @@ import {
   redisPub,
   redisSub,
   connectRedis,
+  isRedisReady,
   updateDeliveryBoyLocation,
   setUserPresence,
   removeUserPresence,
@@ -54,12 +55,16 @@ export async function initSocket(server) {
     },
   });
 
-  // Redis adapter sirf tab lagao jab REDIS_URL set ho aur connect ho sake.
+  // Redis adapter sirf tab lagao jab REDIS_URL set ho aur actual connect ho sake.
   if (process.env.REDIS_URL) {
     try {
       await connectRedis();
-      io.adapter(createAdapter(redisPub, redisSub));
-      logger.info('Socket.IO initialized (with Redis adapter)');
+      if (isRedisReady()) {
+        io.adapter(createAdapter(redisPub, redisSub));
+        logger.info('Socket.IO initialized (with Redis adapter)');
+      } else {
+        logger.warn('Redis not ready — using in-memory Socket.IO adapter');
+      }
     } catch (err) {
       logger.warn(`Redis unavailable (${err.message}) — falling back to in-memory Socket.IO adapter`);
     }
