@@ -11,6 +11,10 @@ import Facility from '../models/Facility.js';
 import Hospital from '../models/Hospital.js';
 import Patient from '../models/Patient.js';
 import Notification from '../models/Notification.js';
+import Vehicle from '../models/Vehicle.js';
+import RiderProfile from '../models/RiderProfile.js';
+import AssistantProfile from '../models/AssistantProfile.js';
+import LawyerProfile from '../models/LawyerProfile.js';
 import { protect } from '../middleware/auth.js';
 import { createAndSendOTP, verifyOTP, resendOTP } from '../services/otpService.js';
 import { uploadFileToCloudinary } from '../services/cloudinaryService.js';
@@ -194,6 +198,9 @@ const userResponse = async (user) => {
     entityApproved = facility?.status === 'approved';
   } else if (user.role === 'delivery_boy') {
     entityApproved = user.approvalStatus === 'approved';
+  } else if (user.role === 'rider') {
+    const riderProfile = await RiderProfile.findOne({ userId: user._id }).populate('vehicleId').lean();
+    entityApproved = riderProfile?.riderStatus === 'active';
   } else if (user.role === 'hospital_admin' && user.hospitalId) {
     const hospital = await Hospital.findById(user.hospitalId).select('status');
     entityApproved = hospital?.status === 'approved';
@@ -201,6 +208,22 @@ const userResponse = async (user) => {
   const approval = user.role === 'doctor'
     ? (doctorProfile?.approved ? 'approved' : user.approvalStatus || 'pending')
     : entityApproved ? 'approved' : user.approvalStatus || 'pending';
+
+  let riderData = null;
+  if (user.role === 'rider') {
+    const rp = await RiderProfile.findOne({ userId: user._id }).populate('vehicleId').lean();
+    if (rp) {
+      riderData = {
+        riderProfileId: rp._id,
+        riderStatus: rp.riderStatus,
+        isOnline: rp.isOnline,
+        rating: rp.rating || { avg: 5.0, count: 0 },
+        vehicle: rp.vehicleId,
+        bankDetails: rp.bankDetails,
+        operatingArea: rp.operatingArea,
+      };
+    }
+  }
 
    return {
      id: user._id,
@@ -234,6 +257,7 @@ const userResponse = async (user) => {
        workingHours: user.workingHours,
        emergencyContact: user.emergencyContact,
      }),
+     ...(user.role === 'rider' && (riderData || {})),
    };
 };
 
@@ -275,7 +299,7 @@ router.post('/register', validate(registerSchema), async (req, res) => {
       consultationFee = 0,
     } = req.body;
 
-    const normalizedRole = ['hospital_admin', 'doctor', 'patient', 'technician'].includes(role) ? role : 'patient';
+    const normalizedRole = ['hospital_admin', 'doctor', 'patient', 'technician', 'rider', 'assistant', 'lawyer'].includes(role) ? role : 'patient';
     const lowerEmail = email.toLowerCase();
 
     if (normalizedRole === 'doctor' && (!specialization || !licenseNumber || !(qualification || qualifications))) {
@@ -283,6 +307,66 @@ router.post('/register', validate(registerSchema), async (req, res) => {
     }
     if (normalizedRole === 'technician' && !specialization) {
       return res.status(400).json({ message: 'Technician role is required' });
+    }
+
+    if (normalizedRole === 'rider') {
+      const { rcNumber, drivingLicenseNumber, drivingLicenseExpiry, insuranceExpiry } = req.body;
+      if (!rcNumber) {
+        return res.status(400).json({ message: 'Vehicle Registration Number (RC No.) is required' });
+      }
+      if (!drivingLicenseNumber) {
+        return res.status(400).json({ message: 'Driving License Number is required' });
+      }
+      if (drivingLicenseExpiry && new Date(drivingLicenseExpiry) <= new Date()) {
+        return res.status(400).json({ message: 'Driving License expiry date must be in the future' });
+      }
+      if (insuranceExpiry && new Date(insuranceExpiry) <= new Date()) {
+        return res.status(400).json({ message: 'Insurance expiry date must be in the future' });
+      }
+      const existingVehicle = await Vehicle.findOne({ rcNumber: rcNumber.trim().toUpperCase() });
+      if (existingVehicle) {
+        return res.status(400).json({ message: 'This Vehicle Registration Number (RC No.) is already registered' });
+      }
+    }
+
+    if (normalizedRole === 'assistant') {
+      const { govtIdNumber, serviceCategories, hospitalsCovered, pricePerHour } = req.body;
+      if (!govtIdNumber) {
+        return res.status(400).json({ message: 'Government ID Number is required for Assistant registration' });
+      }
+      if (!serviceCategories || !serviceCategories.length) {
+        return res.status(400).json({ message: 'At least one service category must be selected' });
+      }
+      if (!hospitalsCovered || !hospitalsCovered.length) {
+        return res.status(400).json({ message: 'At least one hospital must be selected' });
+      }
+      if (!pricePerHour || Number(pricePerHour) <= 0) {
+        return res.status(400).json({ message: 'Price per hour must be greater than 0' });
+      }
+      const existingAssistant = await AssistantProfile.findOne({ govtIdNumber: govtIdNumber.trim().toUpperCase() });
+      if (existingAssistant) {
+        return res.status(400).json({ message: 'This Government ID is already registered' });
+      }
+    }
+
+    if (normalizedRole === 'lawyer') {
+      const { barCouncilNumber, stateBarCouncil, practiceCategories, consultationFee: lFee } = req.body;
+      if (!barCouncilNumber) {
+        return res.status(400).json({ message: 'Bar Council Enrollment Number is required for Lawyer registration' });
+      }
+      if (!stateBarCouncil) {
+        return res.status(400).json({ message: 'State Bar Council name is required' });
+      }
+      if (!practiceCategories || !practiceCategories.length) {
+        return res.status(400).json({ message: 'At least one practice area / category must be selected' });
+      }
+      if (lFee !== undefined && Number(lFee) < 0) {
+        return res.status(400).json({ message: 'Consultation fee cannot be negative' });
+      }
+      const existingLawyer = await LawyerProfile.findOne({ barCouncilNumber: barCouncilNumber.trim().toUpperCase() });
+      if (existingLawyer) {
+        return res.status(400).json({ message: 'This Bar Council Enrollment Number is already registered' });
+      }
     }
 
     if (await User.findOne({ email: lowerEmail })) {
@@ -296,6 +380,7 @@ router.post('/register', validate(registerSchema), async (req, res) => {
       role: normalizedRole,
       phone,
       gender,
+      address: req.body.address || '',
       dateOfBirth: dateOfBirth || undefined,
       specialization,
       experience,
@@ -304,8 +389,139 @@ router.post('/register', validate(registerSchema), async (req, res) => {
       consultationFee: Number(consultationFee) || 0,
       isVerified: false,
       status: 'active',
-      approvalStatus: normalizedRole === 'doctor' || normalizedRole === 'technician' ? 'pending' : 'not_required',
+      approvalStatus: ['doctor', 'technician', 'rider', 'assistant', 'lawyer'].includes(normalizedRole) ? 'pending' : 'not_required',
     });
+
+    if (normalizedRole === 'assistant') {
+      await AssistantProfile.create({
+        userId: user._id,
+        govtIdType: req.body.govtIdType || 'Aadhaar',
+        govtIdNumber: (req.body.govtIdNumber || `ID-${Date.now()}`).trim().toUpperCase(),
+        govtIdDocUrl: req.body.govtIdDocUrl || '',
+        policeVerificationDocUrl: req.body.policeVerificationDocUrl || '',
+        emergencyContact: {
+          name: req.body.emergencyContactName || '',
+          phone: req.body.emergencyContactPhone || '',
+        },
+        experienceYears: Number(req.body.experienceYears) || 1,
+        experienceTypes: req.body.experienceTypes || ['Hospital Attendant'],
+        certifications: req.body.certifications || [],
+        languages: req.body.languages || ['Hindi', 'English'],
+        bio: req.body.bio || 'Compassionate and dedicated hospital attendant/caretaker.',
+        serviceCategories: req.body.serviceCategories || ['paperwork', 'errand'],
+        hospitalsCovered: req.body.hospitalsCovered || ['City Hospital'],
+        shiftTypes: req.body.shiftTypes || ['2hr', '4hr', 'full_day'],
+        pricePerHour: Number(req.body.pricePerHour) || 150,
+        pricePerFullDay: Number(req.body.pricePerFullDay) || (Number(req.body.pricePerHour || 150) * 8 * 0.85),
+        extraSkills: req.body.extraSkills || {},
+        bankDetails: {
+          accountHolder: req.body.bankAccountHolder || name,
+          accountNumber: req.body.bankAccountNumber || '',
+          ifsc: req.body.bankIfsc || '',
+          upiId: req.body.bankUpi || '',
+        },
+        availableDays: req.body.availableDays || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+        availableTimeSlots: req.body.availableTimeSlots || [{ start: '08:00', end: '20:00' }],
+        assistantStatus: 'pending_approval',
+        isAvailable: false,
+        isDocumentVerified: false,
+      });
+
+      await notifyAdmins({
+        title: '🧑‍⚕️ Assistant Approval Required',
+        message: `${name} registered as a Hospital Assistant and needs document verification.`,
+      });
+    }
+
+    if (normalizedRole === 'lawyer') {
+      await LawyerProfile.create({
+        userId: user._id,
+        barCouncilNumber: (req.body.barCouncilNumber || `BAR-${Date.now()}`).trim().toUpperCase(),
+        barCouncilCertUrl: req.body.barCouncilCertUrl || '',
+        stateBarCouncil: req.body.stateBarCouncil || 'Bar Council of India',
+        yearOfEnrollment: Number(req.body.yearOfEnrollment) || new Date().getFullYear(),
+        lawDegreeCertUrl: req.body.lawDegreeCertUrl || '',
+        govtIdType: req.body.govtIdType || 'Aadhaar',
+        govtIdNumber: req.body.govtIdNumber || '',
+        govtIdDocUrl: req.body.govtIdDocUrl || '',
+        practiceCategories: req.body.practiceCategories || ['general_consultation'],
+        yearsOfPractice: Number(req.body.yearsOfPractice) || 1,
+        courtsPracticedIn: req.body.courtsPracticedIn || ['District Court'],
+        jurisdictionCity: req.body.jurisdictionCity || 'Jabalpur',
+        lawFirmName: req.body.lawFirmName || '',
+        bio: req.body.bio || 'Practicing advocate dedicated to legal advisory & justice.',
+        languages: req.body.languages || ['Hindi', 'English'],
+        consultationModes: req.body.consultationModes || ['video', 'phone', 'chat'],
+        consultationFee: Number(req.body.consultationFee) || 800,
+        followUpFee: Number(req.body.followUpFee) || 500,
+        freeFirstConsultation: Boolean(req.body.freeFirstConsultation),
+        sessionDuration: Number(req.body.sessionDuration) || 30,
+        bankDetails: {
+          accountHolder: req.body.bankAccountHolder || name,
+          accountNumber: req.body.bankAccountNumber || '',
+          ifsc: req.body.bankIfsc || '',
+          upiId: req.body.bankUpi || '',
+        },
+        availableDays: req.body.availableDays || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+        availableTimeSlots: req.body.availableTimeSlots || [{ start: '10:00 AM', end: '06:00 PM' }],
+        acceptsUrgent: req.body.acceptsUrgent !== undefined ? Boolean(req.body.acceptsUrgent) : true,
+        lawyerStatus: 'pending_approval',
+        isAvailable: false,
+        isDocumentVerified: false,
+      });
+
+      await notifyAdmins({
+        title: '⚖️ Lawyer Approval Required',
+        message: `Adv. ${name} registered as a Lawyer and needs Bar Council verification.`,
+      });
+    }
+
+    if (normalizedRole === 'rider') {
+      const vehicle = await Vehicle.create({
+        riderId: user._id,
+        type: req.body.vehicleType || 'car',
+        brand: req.body.vehicleBrand || 'Standard',
+        model: req.body.vehicleModel || 'Model',
+        rcNumber: (req.body.rcNumber || `RC-${Date.now()}`).trim().toUpperCase(),
+        rcDocUrl: req.body.rcDocUrl || '',
+        insuranceNumber: req.body.insuranceNumber || 'INS-PENDING',
+        insuranceDocUrl: req.body.insuranceDocUrl || '',
+        insuranceExpiry: req.body.insuranceExpiry ? new Date(req.body.insuranceExpiry) : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+        color: req.body.vehicleColor || '',
+        photos: req.body.vehiclePhotos || [],
+        capacity: Number(req.body.seatingCapacity) || 4,
+        fuelType: req.body.fuelType || 'Petrol',
+        extraFields: req.body.extraFields || {},
+        isDocumentVerified: false,
+      });
+
+      await RiderProfile.create({
+        userId: user._id,
+        vehicleId: vehicle._id,
+        govtIdType: req.body.govtIdType || 'Aadhaar',
+        govtIdNumber: req.body.govtIdNumber || 'PENDING',
+        govtIdDocUrl: req.body.govtIdDocUrl || '',
+        drivingLicenseNumber: req.body.drivingLicenseNumber || 'DL-PENDING',
+        drivingLicenseDocUrl: req.body.drivingLicenseDocUrl || '',
+        drivingLicenseExpiry: req.body.drivingLicenseExpiry ? new Date(req.body.drivingLicenseExpiry) : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+        bankDetails: {
+          accountHolder: req.body.bankAccountHolder || name,
+          accountNumber: req.body.bankAccountNumber || '',
+          ifsc: req.body.bankIfsc || '',
+          upiId: req.body.bankUpi || '',
+        },
+        operatingArea: req.body.operatingArea || '',
+        availableDays: req.body.availableDays || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+        availableTimeSlot: req.body.availableTimeSlot || { start: '08:00', end: '20:00' },
+        riderStatus: 'pending_approval',
+        isOnline: false,
+      });
+
+      await notifyAdmins({
+        title: 'Rider Approval Required',
+        message: `${name} registered as a ${req.body.vehicleType || 'vehicle'} driver and needs document verification.`,
+      });
+    }
 
     if (normalizedRole === 'doctor') {
       await Doctor.create({

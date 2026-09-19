@@ -1,0 +1,122 @@
+import PDFDocument from 'pdfkit';
+
+const C = {
+  primary: '#0f766e',
+  primaryDark: '#134e4a',
+  ink: '#111827',
+  muted: '#6b7280',
+  border: '#e5e7eb',
+  soft: '#f9fafb',
+  success: '#15803d',
+};
+
+const money = (v = 0) => `Rs. ${Number(v || 0).toLocaleString('en-IN')}`;
+
+export async function generateRideReceiptPdf(ride, user, rider, vehicle) {
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({ size: 'A4', margin: 40 });
+    const chunks = [];
+
+    doc.on('data', chunk => chunks.push(chunk));
+    doc.on('end', () => resolve(Buffer.concat(chunks)));
+    doc.on('error', reject);
+
+    // Header with branding
+    doc.rect(0, 0, doc.page.width, 100).fill(C.primaryDark);
+
+    doc.fillColor('#ffffff').fontSize(22).font('Helvetica-Bold').text('FindMedi Transport', 40, 30);
+    doc.fontSize(11).font('Helvetica').text('Patient & Emergency Transport Service', 40, 58);
+    doc.fontSize(10).text('Official Ride Receipt', doc.page.width - 160, 35, { align: 'right' });
+    doc.fontSize(9).text(`Booking #${ride.bookingNumber || String(ride._id).slice(-6).toUpperCase()}`, doc.page.width - 160, 52, { align: 'right' });
+
+    doc.fillColor(C.ink);
+    let y = 130;
+
+    // Ride Summary Card
+    doc.rect(40, y, doc.page.width - 80, 110).fillAndStroke(C.soft, C.border);
+
+    doc.fillColor(C.ink).fontSize(13).font('Helvetica-Bold').text('Trip Summary', 55, y + 15);
+
+    doc.fontSize(10).font('Helvetica');
+    doc.text(`Date & Time: ${new Date(ride.createdAt || Date.now()).toLocaleString('en-IN')}`, 55, y + 38);
+    doc.text(`Vehicle: ${(ride.vehicleType || 'Vehicle').toUpperCase()} ${ride.isEmergency ? '(EMERGENCY PRIORITY)' : ''}`, 55, y + 56);
+    doc.text(`Distance: ${ride.distanceKm || 0} km   |   Estimated Duration: ${ride.durationMin || 0} mins`, 55, y + 74);
+
+    const passengerName = user?.name || 'Customer';
+    const riderName = rider?.name || 'Assigned Driver';
+    const vehiclePlate = vehicle?.rcNumber || 'Verified Vehicle';
+
+    doc.text(`Passenger: ${passengerName}`, 320, y + 38);
+    doc.text(`Driver: ${riderName}`, 320, y + 56);
+    doc.text(`Registration: ${vehiclePlate}`, 320, y + 74);
+
+    y += 135;
+
+    // Route Details Card
+    doc.rect(40, y, doc.page.width - 80, 90).fillAndStroke('#ffffff', C.border);
+    doc.fillColor(C.ink).fontSize(12).font('Helvetica-Bold').text('Route Details', 55, y + 15);
+
+    doc.fontSize(10).font('Helvetica');
+    doc.fillColor(C.success).text('Pickup: ', 55, y + 38, { continued: true });
+    doc.fillColor(C.ink).text(ride.pickup?.address || 'Pickup location');
+
+    doc.fillColor('#dc2626').text('Dropoff: ', 55, y + 60, { continued: true });
+    doc.fillColor(C.ink).text(ride.drop?.address || 'Dropoff location');
+
+    y += 115;
+
+    // Fare Breakdown Table
+    doc.rect(40, y, doc.page.width - 80, 150).fillAndStroke('#ffffff', C.border);
+    doc.fillColor(C.primaryDark).rect(40, y, doc.page.width - 80, 28).fill();
+
+    doc.fillColor('#ffffff').fontSize(11).font('Helvetica-Bold').text('Fare Breakdown', 55, y + 8);
+    doc.text('Amount', doc.page.width - 120, y + 8, { align: 'right' });
+
+    let itemY = y + 40;
+    const baseFare = ride.fare?.base || 0;
+    const distanceCharge = ride.fare?.distanceCharge || 0;
+    const surge = ride.fare?.surge || 0;
+    const total = ride.fare?.total || baseFare + distanceCharge + surge;
+
+    doc.fillColor(C.ink).fontSize(10).font('Helvetica');
+    doc.text('Base Fare', 55, itemY);
+    doc.text(money(baseFare), doc.page.width - 120, itemY, { align: 'right' });
+
+    itemY += 22;
+    doc.text(`Distance Charges (${ride.distanceKm || 0} km)`, 55, itemY);
+    doc.text(money(distanceCharge), doc.page.width - 120, itemY, { align: 'right' });
+
+    if (surge > 0) {
+      itemY += 22;
+      doc.text('Emergency Priority Dispatch Surge', 55, itemY);
+      doc.text(money(surge), doc.page.width - 120, itemY, { align: 'right' });
+    }
+
+    itemY += 25;
+    doc.moveTo(55, itemY).lineTo(doc.page.width - 55, itemY).stroke(C.border);
+
+    itemY += 10;
+    doc.fontSize(12).font('Helvetica-Bold').fillColor(C.primaryDark);
+    doc.text('Total Fare', 55, itemY);
+    doc.text(money(total), doc.page.width - 120, itemY, { align: 'right' });
+
+    y += 175;
+
+    // Payment Information
+    const paymentStatus = (ride.payment?.status || 'paid').toUpperCase();
+    const paymentMethod = (ride.payment?.method || 'Demo Wallet').replace('_', ' ').toUpperCase();
+    const txnRef = ride.payment?.transactionRef || `DEMO-TXN-${ride._id}`;
+
+    doc.rect(40, y, doc.page.width - 80, 65).fillAndStroke(C.soft, C.border);
+    doc.fillColor(C.ink).fontSize(11).font('Helvetica-Bold').text('Payment Information', 55, y + 12);
+    doc.fontSize(9).font('Helvetica').fillColor(C.muted);
+    doc.text(`Status: ${paymentStatus}   |   Method: ${paymentMethod}   |   Txn Ref: ${txnRef}`, 55, y + 32);
+    doc.text('Note: This is a verified simulated transaction receipt generated by FindMedi Transport.', 55, y + 48);
+
+    // Footer
+    const footerY = doc.page.height - 50;
+    doc.fontSize(8).fillColor(C.muted).text('FindMedi Hospital & Transport Management System — Need help? Contact support@findmedi.online', 40, footerY, { align: 'center', width: doc.page.width - 80 });
+
+    doc.end();
+  });
+}

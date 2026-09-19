@@ -12,7 +12,7 @@ function getISTDateString() {
 const notificationSchema = new mongoose.Schema({
   title: { type: String, required: true },
   message: { type: String, required: true },
-  type: { type: String, enum: ['reminder', 'payment', 'appointment', 'records', 'system'], default: 'system' },
+  type: { type: String, enum: ['reminder', 'payment', 'appointment', 'records', 'system', 'ride', 'assistant', 'lawyer'], default: 'system' },
   read: { type: Boolean, default: false },
   userId: { type: String, required: true },
   date: { type: String, default: () => getISTDateString() },

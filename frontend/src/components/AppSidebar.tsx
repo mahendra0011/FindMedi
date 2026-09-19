@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, UserRound, Stethoscope, CalendarDays, FileText,
   CreditCard, Percent, Settings, ChevronLeft, ChevronRight, Activity, LogOut,
-  Home, Search, Star, Users, BarChart3, Bell, Building2, Clock, Calendar, CalendarClock, DollarSign, FileUp, Download, TestTube, AlertTriangle, Menu, X, Bed, Pill, FlaskConical, Hospital, Heart, Brain, Syringe, ClipboardList, ShieldCheck, Baby, Ambulance, IndianRupee, History, Flag, ShoppingCart, Megaphone, Settings2, Truck, Microscope, HelpCircle, MapPinned, User, Bookmark, Upload, TrendingUp, FileCheck, Tags, Headset, Shield, Tag, MapPin, Globe, Package, RotateCcw, Bot, Video, MessageCircle, Phone, CheckCircle2
+  Home, Search, Star, Users, BarChart3, Bell, Building2, Clock, Calendar, CalendarClock, DollarSign, FileUp, Download, TestTube, AlertTriangle, Menu, X, Bed, Pill, FlaskConical, Hospital, Heart, Brain, Syringe, ClipboardList, ShieldCheck, Baby, Ambulance, IndianRupee, History, Flag, ShoppingCart, Megaphone, Settings2, Truck, Microscope, HelpCircle, MapPinned, User, Bookmark, Upload, TrendingUp, FileCheck, Tags, Headset, Shield, Tag, MapPin, Globe, Package, RotateCcw, Bot, Video, MessageCircle, Phone, CheckCircle2, Car, UserCheck, Scale, Briefcase
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { t } from '@/lib/settings';
@@ -37,6 +37,9 @@ const navConfig = {
     { icon: Download,        labelKey: 'nav.saExport',         path: '/superadmin/export' },
     { icon: MapPin,          labelKey: 'nav.saCities',         path: '/superadmin/cities' },
     { icon: Truck,           labelKey: 'nav.deliveryPartners',  path: '/superadmin/delivery-partners' },
+    { icon: Ambulance,       labelKey: 'nav.vehicleRides',      path: '/admin/vehicle-rides' },
+    { icon: UserCheck,       labelKey: 'nav.hospitalAssistants', path: '/admin/assistants' },
+    { icon: Scale,           labelKey: 'nav.legalServices',      path: '/admin/lawyers' },
     { icon: FileText,        labelKey: 'nav.saLegal',          path: '/superadmin/legal' },
     { icon: Settings,        labelKey: 'nav.saIntegrations',   path: '/superadmin/integrations' },
     { icon: Bell,            labelKey: 'nav.notifications',    path: '/notifications'    },
@@ -87,6 +90,9 @@ const navConfig = {
     { icon: Star,            labelKey: 'nav.reviews',          path: '/admin/reviews'    },
     { icon: BarChart3,       labelKey: 'nav.analytics',        path: '/admin/analytics'  },
     { icon: AlertTriangle,   labelKey: 'nav.emergency',        path: '/admin/emergency'  },
+    { icon: Ambulance,       labelKey: 'nav.vehicleRides',      path: '/admin/vehicle-rides' },
+    { icon: UserCheck,       labelKey: 'nav.hospitalAssistants', path: '/admin/assistants' },
+    { icon: Scale,           labelKey: 'nav.legalServices',      path: '/admin/lawyers' },
     { icon: FileUp,          labelKey: 'nav.importExport',     path: '/import-export'    },
     { icon: Settings2,       labelKey: 'nav.hospitalSettings', path: '/admin/hospital-settings' },
     { icon: Megaphone,       labelKey: 'nav.announcements',    path: '/admin/announcements' },
@@ -226,6 +232,12 @@ const navConfig = {
     { icon: Upload,          labelKey: 'nav.upload',                 path: '/upload'                     },
     { icon: Bookmark,        labelKey: 'nav.favorites',              path: '/patient/favorites'          },
     { icon: History,         labelKey: 'nav.bookingHistory',        path: '/patient/booking-history'    },
+    { icon: Ambulance,       labelKey: 'nav.myRides',               path: '/patient/rides'              },
+    { icon: Car,             labelKey: 'nav.findVehicle',           path: '/find-vehicle'               },
+    { icon: UserCheck,       labelKey: 'nav.myAssistants',          path: '/patient/assistants'         },
+    { icon: Users,           labelKey: 'nav.bookAssistant',         path: '/book-assistant'             },
+    { icon: Scale,           labelKey: 'nav.myLawyers',             path: '/patient/lawyers'            },
+    { icon: Scale,           labelKey: 'nav.findLawyer',            path: '/find-lawyer'                },
     { icon: IndianRupee,     labelKey: 'nav.paymentHistory',        path: '/patient/history'            },
     { icon: MapPinned,       labelKey: 'nav.addresses',             path: '/patient/addresses'          },
     { icon: Bell,            labelKey: 'nav.notifications',         path: '/notifications'              },
@@ -249,9 +261,45 @@ const navConfig = {
     { icon: Bell,            labelKey: 'nav.notifications',    path: '/notifications'        },
     { icon: User,            labelKey: 'nav.profileSettings',  path: '/delivery/settings'    },
   ],
+  rider: [
+    { icon: LayoutDashboard, labelKey: 'nav.dashboard',        path: '/rider/dashboard'            },
+    { icon: Bot,             labelKey: 'nav.chatWithAI',       path: '/ai-chat'                    },
+    { icon: Bell,            labelKey: 'nav.rideRequests',     path: '/rider/dashboard?tab=requests' },
+    { icon: MapPin,          labelKey: 'nav.activeRide',       path: '/rider/dashboard?tab=active' },
+    { icon: History,         labelKey: 'nav.rideHistory',      path: '/rider/dashboard?tab=history' },
+    { icon: IndianRupee,     labelKey: 'nav.earnings',         path: '/rider/dashboard?tab=earnings' },
+    { icon: Ambulance,       labelKey: 'nav.vehicleDetails',   path: '/rider/dashboard?tab=vehicle' },
+    { icon: FileText,        labelKey: 'nav.myDocuments',      path: '/rider/dashboard?tab=documents' },
+    { icon: Star,            labelKey: 'nav.myReviews',        path: '/rider/dashboard?tab=ratings' },
+    { icon: Settings,        labelKey: 'nav.settings',         path: '/rider/dashboard?tab=settings' },
+  ],
+  assistant: [
+    { icon: LayoutDashboard, labelKey: 'nav.dashboard',         path: '/assistant/dashboard' },
+    { icon: Bot,             labelKey: 'nav.chatWithAI',       path: '/ai-chat' },
+    { icon: Bell,            labelKey: 'nav.assistantRequests', path: '/assistant/dashboard?tab=requests' },
+    { icon: Clock,           labelKey: 'nav.activeShift',       path: '/assistant/dashboard?tab=active' },
+    { icon: History,         labelKey: 'nav.shiftHistory',      path: '/assistant/dashboard?tab=history' },
+    { icon: IndianRupee,     labelKey: 'nav.assistantEarnings', path: '/assistant/dashboard?tab=earnings' },
+    { icon: UserRound,       labelKey: 'nav.assistantProfile',  path: '/assistant/dashboard?tab=profile' },
+    { icon: Bell,            labelKey: 'nav.notifications',    path: '/notifications' },
+    { icon: Settings,        labelKey: 'nav.settings',         path: '/settings' },
+  ],
+  lawyer: [
+    { icon: LayoutDashboard, labelKey: 'nav.dashboard',         path: '/lawyer/dashboard' },
+    { icon: Bot,             labelKey: 'nav.chatWithAI',       path: '/ai-chat' },
+    { icon: Bell,            labelKey: 'nav.lawyerRequests',   path: '/lawyer/dashboard?tab=requests' },
+    { icon: Scale,           labelKey: 'nav.activeCase',       path: '/lawyer/dashboard?tab=active' },
+    { icon: History,         labelKey: 'nav.caseHistory',      path: '/lawyer/dashboard?tab=cases' },
+    { icon: IndianRupee,     labelKey: 'nav.lawyerEarnings',   path: '/lawyer/dashboard?tab=earnings' },
+    { icon: Briefcase,       labelKey: 'nav.practiceProfile',  path: '/lawyer/dashboard?tab=profile' },
+    { icon: ShieldCheck,     labelKey: 'nav.verificationDocs', path: '/lawyer/dashboard?tab=documents' },
+    { icon: Star,            labelKey: 'nav.myReviews',        path: '/lawyer/dashboard?tab=reviews' },
+    { icon: Settings,        labelKey: 'nav.settings',         path: '/lawyer/dashboard?tab=settings' },
+  ],
 };
 
-const roleBadgeColor = { hospital_admin: 'bg-primary/20 text-primary', doctor: 'bg-info/20 text-info', patient: 'bg-success/20 text-success', clinic_doctor: 'bg-warning/20 text-warning', lab_owner: 'bg-purple-500/20 text-purple-600', pharmacy_owner: 'bg-rose-500/20 text-rose-600', delivery_boy: 'bg-blue-500/20 text-blue-600' };
+const roleBadgeColor = { hospital_admin: 'bg-primary/20 text-primary', doctor: 'bg-info/20 text-info', patient: 'bg-success/20 text-success', clinic_doctor: 'bg-warning/20 text-warning', lab_owner: 'bg-purple-500/20 text-purple-600', pharmacy_owner: 'bg-rose-500/20 text-rose-600', delivery_boy: 'bg-blue-500/20 text-blue-600', rider: 'bg-teal-500/20 text-teal-600', assistant: 'bg-emerald-500/20 text-emerald-600', lawyer: 'bg-indigo-500/20 text-indigo-600' };
+
 
 function SidebarContent({ collapsed, onToggleCollapse, onNavClick }: any) {
   const location = useLocation();

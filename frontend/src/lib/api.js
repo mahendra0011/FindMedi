@@ -677,4 +677,168 @@ export const api = {
   updateCallStatus:       (id,body) => request(`/calls/${id}/status`, { method:'PUT', body: JSON.stringify(body) }),
   deleteCallLog:          (id)      => request(`/calls/${id}`, { method:'DELETE' }),
   clearAllCallLogs:       ()        => request('/calls/clear/all', { method:'DELETE' }),
+
+  // ── Vehicle Booking & Rides ──
+  estimateRide:           (body)    => request('/ride/estimate', { method: 'POST', body: JSON.stringify(body) }),
+  bookRide:               (body)    => request('/ride/book', { method: 'POST', body: JSON.stringify(body) }),
+  getActiveRide:          ()        => request('/ride/active'),
+  getMyRides:             (p={})    => request('/ride/my-rides?' + new URLSearchParams(p)),
+  getRiderHistory:        (p={})    => request('/ride/rider-history?' + new URLSearchParams(p)),
+  getRide:                (id)      => request(`/ride/${id}`),
+  acceptRide:             (id)      => request(`/ride/${id}/accept`, { method: 'POST' }),
+  declineRide:            (id)      => request(`/ride/${id}/decline`, { method: 'POST' }),
+  markRideArrived:        (id)      => request(`/ride/${id}/arrived`, { method: 'POST' }),
+  startRide:              (id)      => request(`/ride/${id}/start`, { method: 'POST' }),
+  completeRide:           (id)      => request(`/ride/${id}/complete`, { method: 'POST' }),
+  cancelRide:             (id, reason) => request(`/ride/${id}/cancel`, { method: 'POST', body: JSON.stringify({ reason }) }),
+  rateRide:               (id, body) => request(`/ride/${id}/rate`, { method: 'POST', body: JSON.stringify(body) }),
+  getRideReceiptUrl:      (id)      => `${BASE}/ride/${id}/receipt`,
+  downloadRideReceipt:    async (id, filename) => {
+    const res = await fetch(`${BASE}/ride/${id}/receipt`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
+    });
+    if (!res.ok) throw new Error('Failed to download receipt');
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename || `Ride-Receipt-${id}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  },
+
+  // ── Rider Driver APIs ──
+  getRiderProfile:        ()        => request('/rider/profile'),
+  updateRiderProfile:     (body)    => request('/rider/profile', { method: 'PUT', body: JSON.stringify(body) }),
+  setRiderStatus:         (isOnline)=> request('/rider/status', { method: 'PUT', body: JSON.stringify({ isOnline }) }),
+  updateRiderLocation:    (lat, lng)=> request('/rider/location', { method: 'PUT', body: JSON.stringify({ lat, lng }) }),
+  getRiderEarnings:       ()        => request('/rider/earnings'),
+  withdrawRiderDemo:      (amount)  => request('/rider/withdraw-demo', { method: 'POST', body: JSON.stringify({ amount }) }),
+
+  // ── Demo Payment ──
+  payDemoRide:            (body)    => request('/payment/demo/pay', { method: 'POST', body: JSON.stringify(body) }),
+  getDemoPaymentStatus:   (rideId)  => request(`/payment/demo/${rideId}`),
+
+  // ── Admin Vehicle & Rides Management ──
+  getPendingRiders:       ()        => request('/admin/riders/pending'),
+  approveRider:           (id)      => request(`/admin/riders/${id}/approve`, { method: 'PUT' }),
+  rejectRider:            (id, reason) => request(`/admin/riders/${id}/reject`, { method: 'PUT', body: JSON.stringify({ reason }) }),
+  suspendRider:           (id, suspend = true) => request(`/admin/riders/${id}/suspend`, { method: 'PUT', body: JSON.stringify({ suspend }) }),
+  getAdminRiders:         (p={})    => request('/admin/riders/all?' + new URLSearchParams(p)),
+  getAdminVehicles:       (p={})    => request('/admin/riders/vehicles?' + new URLSearchParams(p)),
+  getAdminRides:          (p={})    => request('/admin/riders/rides?' + new URLSearchParams(p)),
+  getRideAnalytics:       ()        => request('/admin/riders/analytics'),
+
+  // ── Public Document Upload (for Registration) ──
+  uploadPublicDocument:   (file)    => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return request('/upload/public', { method: 'POST', body: formData });
+  },
+
+  // ── Hospital Assistant & Attendant Booking ──
+  searchAssistants:          (body)    => request('/assistant/search', { method: 'POST', body: JSON.stringify(body) }),
+  getAssistantById:          (id)      => request(`/assistant/${id}`),
+  getMyAssistantProfile:     ()        => request('/assistant/profile'),
+  updateAssistantProfile:    (body)    => request('/assistant/profile', { method: 'PUT', body: JSON.stringify(body) }),
+  setAssistantStatus:        (isAvailable) => request('/assistant/status', { method: 'PUT', body: JSON.stringify({ isAvailable }) }),
+  getAssistantEarnings:      ()        => request('/assistant/earnings'),
+  withdrawAssistantDemo:     (amount)  => request('/assistant/withdraw-demo', { method: 'POST', body: JSON.stringify({ amount }) }),
+
+  // ── Assistant Booking Management ──
+  bookAssistant:             (body)    => request('/assistant-booking/book', { method: 'POST', body: JSON.stringify(body) }),
+  getActiveAssistantBooking: ()        => request('/assistant-booking/active'),
+  getMyAssistantBookings:    (p={})    => request('/assistant-booking/my-bookings?' + new URLSearchParams(p)),
+  getAssistantBookingHistory:(p={})    => request('/assistant-booking/assistant-history?' + new URLSearchParams(p)),
+  getAssistantBooking:       (id)      => request(`/assistant-booking/${id}`),
+  acceptAssistantBooking:    (id)      => request(`/assistant-booking/${id}/accept`, { method: 'POST' }),
+  declineAssistantBooking:   (id, reason) => request(`/assistant-booking/${id}/decline`, { method: 'POST', body: JSON.stringify({ reason }) }),
+  checkInAssistantBooking:   (id)      => request(`/assistant-booking/${id}/check-in`, { method: 'POST' }),
+  updateAssistantTask:       (id, taskId, isDone) => request(`/assistant-booking/${id}/task/${taskId}`, { method: 'PUT', body: JSON.stringify({ isDone }) }),
+  addAssistantCustomTask:    (id, label, category) => request(`/assistant-booking/${id}/task`, { method: 'POST', body: JSON.stringify({ label, category }) }),
+  completeAssistantBooking:  (id, completionSummary) => request(`/assistant-booking/${id}/complete`, { method: 'POST', body: JSON.stringify({ completionSummary }) }),
+  cancelAssistantBooking:    (id, reason) => request(`/assistant-booking/${id}/cancel`, { method: 'POST', body: JSON.stringify({ reason }) }),
+  rescheduleAssistantBooking:(id, body) => request(`/assistant-booking/${id}/reschedule`, { method: 'POST', body: JSON.stringify(body) }),
+  rateAssistantBooking:      (id, body) => request(`/assistant-booking/${id}/rate`, { method: 'POST', body: JSON.stringify(body) }),
+  getFavoriteAssistants:     ()        => request('/assistant-booking/favorites'),
+  downloadAssistantReceipt:  async (id, filename) => {
+    const res = await fetch(`${BASE}/assistant-booking/${id}/receipt`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
+    });
+    if (!res.ok) throw new Error('Failed to download receipt');
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename || `Assistant-Receipt-${id}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  },
+
+  // ── Admin Assistant Management ──
+  getPendingAssistants:      ()        => request('/admin/assistants/pending'),
+  approveAssistant:          (id)      => request(`/admin/assistants/${id}/approve`, { method: 'PUT' }),
+  rejectAssistant:           (id, reason) => request(`/admin/assistants/${id}/reject`, { method: 'PUT', body: JSON.stringify({ reason }) }),
+  suspendAssistant:          (id, suspend = true, reason) => request(`/admin/assistants/${id}/suspend`, { method: 'PUT', body: JSON.stringify({ suspend, reason }) }),
+  getAdminAssistants:        (p={})    => request('/admin/assistants/all?' + new URLSearchParams(p)),
+  getAdminAssistantBookings: (p={})    => request('/admin/assistants/bookings?' + new URLSearchParams(p)),
+  getAssistantAnalytics:     ()        => request('/admin/assistants/analytics'),
+
+  // ── Lawyer & Legal Services ──
+  searchLawyers:             (body)    => request('/lawyer/search', { method: 'POST', body: JSON.stringify(body) }),
+  getLawyerById:             (id)      => request(`/lawyer/${id}`),
+  getMyLawyerProfile:        ()        => request('/lawyer/profile'),
+  updateLawyerProfile:       (body)    => request('/lawyer/profile', { method: 'PUT', body: JSON.stringify(body) }),
+  setLawyerStatus:           (isAvailable) => request('/lawyer/status', { method: 'PUT', body: JSON.stringify({ isAvailable }) }),
+  getLawyerEarnings:         ()        => request('/lawyer/earnings'),
+  withdrawLawyerDemo:        ()        => request('/lawyer/withdraw-demo', { method: 'POST' }),
+
+  // ── Lawyer Booking & Case Management ──
+  bookLawyer:                (body)    => request('/lawyer-booking/book', { method: 'POST', body: JSON.stringify(body) }),
+  getActiveLawyerBooking:    ()        => request('/lawyer-booking/active'),
+  getMyLawyerBookings:       ()        => request('/lawyer-booking/my-bookings'),
+  getMyLawyerCases:          ()        => request('/lawyer-booking/my-cases'),
+  closeLawyerCase:           (threadId)=> request(`/lawyer-booking/case/${threadId}/close`, { method: 'PUT' }),
+  getLawyerBookingHistory:   ()        => request('/lawyer-booking/lawyer-history'),
+  getLawyerBooking:          (id)      => request(`/lawyer-booking/${id}`),
+  acceptLawyerBooking:       (id)      => request(`/lawyer-booking/${id}/accept`, { method: 'POST' }),
+  proposeLawyerTime:         (id, body)=> request(`/lawyer-booking/${id}/propose-time`, { method: 'POST', body: JSON.stringify(body) }),
+  declineLawyerBooking:      (id, reason) => request(`/lawyer-booking/${id}/decline`, { method: 'POST', body: JSON.stringify({ reason }) }),
+  startLawyerConsultation:   (id)      => request(`/lawyer-booking/${id}/start`, { method: 'POST' }),
+  addLawyerCaseNote:         (id, body)=> request(`/lawyer-booking/${id}/note`, { method: 'POST', body: JSON.stringify(body) }),
+  completeLawyerConsultation:(id, finalCaseSummary) => request(`/lawyer-booking/${id}/complete`, { method: 'POST', body: JSON.stringify({ finalCaseSummary }) }),
+  cancelLawyerBooking:       (id, reason) => request(`/lawyer-booking/${id}/cancel`, { method: 'POST', body: JSON.stringify({ reason }) }),
+  rescheduleLawyerBooking:   (id, body)=> request(`/lawyer-booking/${id}/reschedule`, { method: 'POST', body: JSON.stringify(body) }),
+  bookLawyerFollowUp:        (id, body)=> request(`/lawyer-booking/${id}/follow-up`, { method: 'POST', body: JSON.stringify(body) }),
+  rateLawyerBooking:         (id, body)=> request(`/lawyer-booking/${id}/rate`, { method: 'POST', body: JSON.stringify(body) }),
+  getLawyerDocuments:        ()        => request('/lawyer-booking/documents'),
+  getFavoriteLawyers:        ()        => request('/lawyer-booking/favorites'),
+  downloadLawyerReceipt:     async (id, filename) => {
+    const res = await fetch(`${BASE}/lawyer-booking/${id}/receipt`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
+    });
+    if (!res.ok) throw new Error('Failed to download legal receipt');
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename || `Lawyer-Receipt-${id}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  },
+
+  // ── Admin Lawyer Management ──
+  getAdminPendingLawyers:    ()        => request('/admin/lawyers/pending'),
+  getAdminAllLawyers:        (p={})    => request('/admin/lawyers/all?' + new URLSearchParams(p)),
+  approveAdminLawyer:        (id)      => request(`/admin/lawyers/${id}/approve`, { method: 'PUT' }),
+  rejectAdminLawyer:         (id, reason) => request(`/admin/lawyers/${id}/reject`, { method: 'PUT', body: JSON.stringify({ reason }) }),
+  suspendAdminLawyer:        (id)      => request(`/admin/lawyers/${id}/suspend`, { method: 'PUT' }),
+  getAdminLawyerBookings:    (p={})    => request('/admin/lawyers/bookings?' + new URLSearchParams(p)),
+  getAdminLawyerAnalytics:   ()        => request('/admin/lawyers/analytics'),
 };

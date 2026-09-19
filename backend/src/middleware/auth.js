@@ -107,6 +107,7 @@ export const requireRole = (roles) => (req, res, next) => {
 };
 
 export const roleOnly = requireRole;
+export const restrictTo = (...roles) => requireRole(roles.flat());
 
 export const superadminOnly = (req, res, next) => {
   if (req.user?.role !== 'superadmin') {

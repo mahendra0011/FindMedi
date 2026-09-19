@@ -266,4 +266,55 @@ router.post('/', protect, upload.single('file'), async (req, res, next) => {
   }
 });
 
+// ─── Public Document / Photo Upload (for Registration / Onboarding) ─────────
+router.post('/public', upload.single('file'), async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    if (!validateFileContent(req.file.buffer, req.file.mimetype)) {
+      return res.status(400).json({
+        error: 'File content does not match its claimed type. Upload rejected for security.',
+      });
+    }
+
+    if (req.file.mimetype.startsWith('image/') && req.file.mimetype !== 'image/gif') {
+      try {
+        if (NATIVE_AVAILABLE) {
+          const optimized = napiResizeToFit(req.file.buffer, 1920, 1920, 85);
+          if (optimized && optimized.length > 0) {
+            req.file.buffer = optimized;
+            req.file.size = optimized.length;
+          }
+        }
+      } catch (optErr) {
+        console.warn('Native image optimization skipped:', optErr?.message || optErr);
+      }
+    }
+
+    let cloudResult;
+    try {
+      cloudResult = await uploadFileToCloudinary(
+        req.file.buffer,
+        req.file.originalname,
+        req.file.mimetype
+      );
+    } catch (cloudErr) {
+      console.warn('Cloudinary public upload failed, using local storage:', cloudErr.message);
+      cloudResult = saveFileLocally(req.file, `${req.protocol}://${req.get('host')}`);
+    }
+
+    res.json({
+      success: true,
+      url: cloudResult.url,
+      filename: req.file.originalname,
+      size: cloudResult.size || req.file.size,
+      fileId: cloudResult.fileId,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;

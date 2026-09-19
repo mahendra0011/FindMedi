@@ -13,7 +13,7 @@ export default function PendingApproval() {
   const rejected = status === 'rejected';
   const [checking, setChecking] = useState(false);
 
-  const roleLabel = { doctor: 'doctor', technician: 'technician', admin: 'hospital admin', clinic_doctor: 'clinic', lab_owner: 'lab owner', pharmacy_owner: 'pharmacy owner' }[role] || role;
+  const roleLabel = { doctor: 'doctor', technician: 'technician', admin: 'hospital admin', clinic_doctor: 'clinic', lab_owner: 'lab owner', pharmacy_owner: 'pharmacy owner', rider: 'vehicle rider / driver', assistant: 'hospital assistant', lawyer: 'advocate / lawyer' }[role] || role;
 
   useEffect(() => {
     if (rejected) return;

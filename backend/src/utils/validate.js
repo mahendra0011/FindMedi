@@ -31,22 +31,78 @@ export const registerSchema = z.object({
   name: z.string().trim().min(2, 'Name is required'),
   email: emailSchema,
   password: passwordSchema,
-  role: z.enum(['patient', 'doctor', 'hospital_admin', 'technician']).optional().default('patient'),
+  role: z.enum(['patient', 'doctor', 'hospital_admin', 'technician', 'rider', 'assistant']).optional().default('patient'),
   phone: phoneSchema,
-  gender: z.enum(['Male', 'Female', 'Other']).optional().default(''),
+  gender: z.enum(['Male', 'Female', 'Other', '']).optional().default(''),
   dateOfBirth: z.string().optional(),
+  address: z.string().optional().default(''),
   specialization: z.string().optional().default(''),
   experience: z.string().optional().default(''),
   qualification: z.string().optional().default(''),
   qualifications: z.string().optional().default(''),
   licenseNumber: z.string().optional().default(''),
   consultationFee: z.union([z.string(), z.number()]).optional().default(0),
-});
+
+  // Rider-specific legal fields (Doc 02)
+  govtIdType: z.enum(['Aadhaar', 'PAN', 'Voter ID', 'Passport']).optional(),
+  govtIdNumber: z.string().optional(),
+  govtIdDocUrl: z.string().optional(),
+  drivingLicenseNumber: z.string().optional(),
+  drivingLicenseDocUrl: z.string().optional(),
+  drivingLicenseExpiry: z.string().optional(),
+
+  // Rider vehicle fields (Doc 02)
+  vehicleType: z.enum(['bike', 'auto', 'e_rickshaw', 'car', 'van', 'ambulance']).optional(),
+  vehicleBrand: z.string().optional(),
+  vehicleModel: z.string().optional(),
+  rcNumber: z.string().optional(),
+  rcDocUrl: z.string().optional(),
+  insuranceNumber: z.string().optional(),
+  insuranceDocUrl: z.string().optional(),
+  insuranceExpiry: z.string().optional(),
+  vehicleColor: z.string().optional(),
+  vehiclePhotos: z.array(z.string()).optional(),
+  seatingCapacity: z.union([z.string(), z.number()]).optional(),
+  fuelType: z.string().optional(),
+  extraFields: z.record(z.any()).optional(),
+
+  // Assistant-specific fields (Doc 02)
+  policeVerificationDocUrl: z.string().optional(),
+  emergencyContactName: z.string().optional(),
+  emergencyContactPhone: z.string().optional(),
+  experienceYears: z.union([z.string(), z.number()]).optional(),
+  experienceTypes: z.array(z.string()).optional(),
+  certifications: z.array(z.string()).optional(),
+  languages: z.array(z.string()).optional(),
+  bio: z.string().optional(),
+  serviceCategories: z.array(z.string()).optional(),
+  hospitalsCovered: z.array(z.string()).optional(),
+  shiftTypes: z.array(z.string()).optional(),
+  pricePerHour: z.union([z.string(), z.number()]).optional(),
+  pricePerFullDay: z.union([z.string(), z.number()]).optional(),
+  extraSkills: z.record(z.any()).optional(),
+
+  // Banking & Availability (Doc 02)
+  bankAccountHolder: z.string().optional(),
+  bankAccountNumber: z.string().optional(),
+  bankIfsc: z.string().optional(),
+  bankUpi: z.string().optional(),
+  operatingArea: z.string().optional(),
+  availableDays: z.array(z.string()).optional(),
+  availableTimeSlot: z.object({
+    start: z.string().optional(),
+    end: z.string().optional(),
+  }).optional(),
+  availableTimeSlots: z.array(z.object({
+    start: z.string().optional(),
+    end: z.string().optional(),
+  })).optional(),
+}).passthrough();
 
 export const loginSchema = z.object({
   email: emailSchema,
   password: z.string().min(1, 'Password is required'),
-  role: z.enum(['superadmin', 'hospital_admin', 'doctor', 'clinic_doctor', 'patient', 'lab_owner', 'lab_receptionist', 'lab_technician', 'pathologist', 'pharmacy_owner', 'pharmacist', 'nurse', 'radiologist', 'dietitian', 'physiotherapist', 'counselor', 'accountant', 'security', 'technician', 'helper', 'delivery_boy']).optional(),
+  role: z.enum(['superadmin', 'hospital_admin', 'doctor', 'clinic_doctor', 'patient', 'lab_owner', 'lab_receptionist', 'lab_technician', 'pathologist', 'pharmacy_owner', 'pharmacist', 'nurse', 'radiologist', 'dietitian', 'physiotherapist', 'counselor', 'accountant', 'security', 'technician', 'helper', 'delivery_boy', 'rider', 'assistant']).optional(),
 });
 
 export const changePasswordSchema = z.object({
@@ -868,3 +924,163 @@ export const patientSearchSchema = z.object({
   page: z.string().regex(/^\d+$/).optional(),
   limit: z.string().regex(/^\d+$/).optional(),
 });
+
+// ─── Vehicle Booking Schemas ────────────────────────────────────────────────
+export const estimateRideSchema = z.object({
+  pickup: z.object({
+    address: z.string().min(1, 'Pickup address is required'),
+    lat: z.number(),
+    lng: z.number(),
+  }),
+  drop: z.object({
+    address: z.string().min(1, 'Drop address is required'),
+    lat: z.number(),
+    lng: z.number(),
+  }),
+  vehicleType: z.enum(['bike', 'auto', 'e_rickshaw', 'car', 'van', 'ambulance']).optional(),
+  isEmergency: z.boolean().optional().default(false),
+});
+
+export const bookRideSchema = z.object({
+  pickup: z.object({
+    address: z.string().min(1, 'Pickup address is required'),
+    lat: z.number(),
+    lng: z.number(),
+  }),
+  drop: z.object({
+    address: z.string().min(1, 'Drop address is required'),
+    lat: z.number(),
+    lng: z.number(),
+  }),
+  vehicleType: z.enum(['bike', 'auto', 'e_rickshaw', 'car', 'van', 'ambulance']),
+  isEmergency: z.boolean().optional().default(false),
+  distanceKm: z.number().optional(),
+  durationMin: z.number().optional(),
+});
+
+export const rateRideSchema = z.object({
+  stars: z.number().min(1).max(5),
+  comment: z.string().max(500).optional().default(''),
+});
+
+export const demoPaySchema = z.object({
+  rideId: z.string().optional(),
+  bookingId: z.string().optional(),
+  bookingType: z.enum(['ride', 'assistant', 'lawyer']).optional().default('ride'),
+  method: z.enum(['demo_wallet', 'cash']).default('demo_wallet'),
+});
+
+export const riderStatusSchema = z.object({
+  isOnline: z.boolean(),
+});
+
+export const riderLocationSchema = z.object({
+  lat: z.number(),
+  lng: z.number(),
+});
+
+// ─── Assistant Booking Schemas ──────────────────────────────────────────────
+export const searchAssistantSchema = z.object({
+  hospital: z.string().optional(),
+  categories: z.array(z.string()).optional(),
+  date: z.string().optional(),
+  startTime: z.string().optional(),
+  durationType: z.enum(['2hr', '4hr', 'full_day', 'overnight']).optional(),
+  isUrgent: z.boolean().optional().default(false),
+  minRating: z.number().optional(),
+  maxPrice: z.number().optional(),
+  language: z.string().optional(),
+});
+
+export const bookAssistantSchema = z.object({
+  assistantId: z.string().optional(),
+  hospital: z.string().min(1, 'Hospital name is required'),
+  serviceCategories: z
+    .array(z.enum(['paperwork', 'medicine', 'reports', 'errand', 'full_attendant', 'elderly_care']))
+    .min(1, 'At least one service category is required'),
+  isUrgent: z.boolean().optional().default(false),
+  scheduledDate: z.string().min(1, 'Date is required'),
+  startTime: z.string().min(1, 'Start time is required'),
+  durationType: z.enum(['2hr', '4hr', 'full_day', 'overnight']).default('4hr'),
+  specialInstructions: z.string().max(1000).optional().default(''),
+});
+
+export const assistantStatusSchema = z.object({
+  isAvailable: z.boolean(),
+});
+
+export const customTaskSchema = z.object({
+  label: z.string().trim().min(2, 'Task description is required').max(200),
+  category: z.string().optional().default('custom'),
+});
+
+export const rateAssistantSchema = z.object({
+  stars: z.number().min(1).max(5),
+  comment: z.string().max(500).optional().default(''),
+});
+
+// ─── Lawyer Booking Schemas ─────────────────────────────────────────────────
+export const searchLawyerSchema = z.object({
+  category: z.string().optional(),
+  mode: z.enum(['video', 'phone', 'in_person', 'chat']).optional(),
+  date: z.string().optional(),
+  city: z.string().optional(),
+  isUrgent: z.boolean().optional().default(false),
+  minRating: z.number().optional(),
+  maxFee: z.number().optional(),
+  minExperience: z.number().optional(),
+  language: z.string().optional(),
+  court: z.string().optional(),
+});
+
+export const bookLawyerSchema = z.object({
+  lawyerId: z.string().optional(),
+  category: z.enum([
+    'medical_negligence',
+    'insurance',
+    'accident_mlc',
+    'consumer_rights',
+    'family_law',
+    'criminal_law',
+    'civil_property',
+    'corporate_contract',
+    'general_consultation',
+  ]),
+  caseDescription: z.string().min(5, 'Brief description of your issue is required'),
+  urgency: z.enum(['normal', 'urgent']).default('normal'),
+  consultationMode: z.enum(['video', 'phone', 'in_person', 'chat']).default('video'),
+  scheduledDate: z.string().min(1, 'Date is required'),
+  scheduledTime: z.string().min(1, 'Time is required'),
+  budgetRange: z
+    .object({
+      min: z.number().optional(),
+      max: z.number().optional(),
+    })
+    .optional(),
+  documents: z.array(z.string()).optional().default([]),
+  fee: z.number().optional(),
+  isFollowUp: z.boolean().optional().default(false),
+  caseThreadId: z.string().optional(),
+});
+
+export const proposeTimeSchema = z.object({
+  date: z.string().min(1, 'Proposed date is required'),
+  time: z.string().min(1, 'Proposed time is required'),
+  reason: z.string().optional().default(''),
+});
+
+export const caseNoteSchema = z.object({
+  note: z.string().trim().min(3, 'Case note content is required').max(2000),
+  sessionNumber: z.number().optional().default(1),
+});
+
+export const rateLawyerSchema = z.object({
+  stars: z.number().min(1).max(5),
+  comment: z.string().max(500).optional().default(''),
+});
+
+export const lawyerStatusSchema = z.object({
+  isAvailable: z.boolean(),
+});
+
+
