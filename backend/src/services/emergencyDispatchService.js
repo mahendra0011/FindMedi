@@ -4,41 +4,57 @@ import Ambulance from '../models/Ambulance.js';
 import Hospital from '../models/Hospital.js';
 import RiderProfile from '../models/RiderProfile.js';
 import Vehicle from '../models/Vehicle.js';
-import Staff from '../models/Staff.js';
 import User from '../models/User.js';
 import { getIO } from './socketService.js';
 import { calculateDistanceKm, estimateETA } from './rideService.js';
 export { calculateDistanceKm, estimateETA };
 import logger from '../config/logger.js';
 
-// Phase 1: Ambulance escalation radii in km
-const AMBULANCE_RADII = [5, 10, 20, 35];
-// Phase 2: Non-ambulance vehicle escalation radii in km (bikes excluded)
-const VEHICLE_RADII = [5, 10, 20];
-// Acceptance window per wave
-const WINDOW_SECONDS = 30;
+// Doc 01 §3 — no hardcodes
+const AMBULANCE_RADII = (process.env.SOS_AMBULANCE_RADII || '5,10,15').split(',').map(Number);
+const VEHICLE_RADII = (process.env.SOS_VEHICLE_RADII || '5,10,15').split(',').map(Number);
+const WINDOW_MS = Number(process.env.SOS_WINDOW_SECONDS || 30) * 1000;
+const LOC_MAX_AGE_MS = Number(process.env.SOS_LOCATION_MAX_AGE_SECONDS || 120) * 1000;
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+export const SOS_CONFIG = {
+  AMBULANCE_RADII, VEHICLE_RADII,
+  WINDOW_SECONDS: WINDOW_MS / 1000,
+  LOC_MAX_AGE_SECONDS: LOC_MAX_AGE_MS / 1000,
+};
+
+const WINDOW_SECONDS = WINDOW_MS / 1000;
 
 /**
- * Sync hospital's ambulanceService flag based on whether ≥1 ambulance is online
+ * Sync hospital's ambulanceAvailability flag (Doc 04 §5):
+   - ambulanceService: static flag from Join Platform / hospital settings (service provides ambulance or not)
+   - ambulancesAvailable: live count of online, on-duty, emergency-support ambulances
+   These are kept separate so patient SOS badges show correct state.
  */
 export async function syncHospitalAmbulanceFlag(hospitalId) {
   try {
     if (!hospitalId) return;
-    const count = await Ambulance.countDocuments({ hospitalId, isOnline: true });
-    await Hospital.findByIdAndUpdate(hospitalId, { ambulanceService: count > 0 });
+    const available = await Ambulance.countDocuments({
+      hospitalId, isOnline: true, isOnDuty: false, emergencySupport: true,
+    });
+    await Hospital.findByIdAndUpdate(hospitalId, { ambulancesAvailable: available });
   } catch (err) {
     logger.warn(`syncHospitalAmbulanceFlag error: ${err.message}`);
   }
 }
 
+const freshnessCutoff = () => new Date(Date.now() - LOC_MAX_AGE_MS);
+
 /**
  * Find nearby hospital-owned ambulances eligible for emergency dispatch
+ * Doc 01 §5: GPS must be fresh (≤2min), Doc 02: userId direct (no Staff lookup)
  */
-export async function findEligibleAmbulances(pickupLng, pickupLat, radiusKm = 10) {
+export async function findEligibleAmbulances(pickupLng, pickupLat, radiusKm = 10, excludeIds = []) {
   try {
     if (mongoose.connection.readyState !== 1) return [];
     const radiusMeters = radiusKm * 1000;
 
+    const ex = excludeIds.map(id => new mongoose.Types.ObjectId(id));
     const ambulances = await Ambulance.aggregate([
       {
         $geoNear: {
@@ -54,6 +70,8 @@ export async function findEligibleAmbulances(pickupLng, pickupLat, radiusKm = 10
             isOnline: true,
             isOnDuty: false,
             emergencySupport: true,
+            'currentLocation.updatedAt': { $gte: freshnessCutoff() },
+            _id: { $nin: ex.length > 0 ? ex : [] },
           },
         },
       },
@@ -66,28 +84,19 @@ export async function findEligibleAmbulances(pickupLng, pickupLat, radiusKm = 10
         },
       },
       { $unwind: '$hospital' },
-      // Hospital must have master emergencySupport enabled and approved status
       {
         $match: {
           'hospital.emergencySupport': true,
           'hospital.status': 'approved',
         },
       },
-      {
-        $lookup: {
-          from: 'staffs',
-          localField: 'currentDriverId',
-          foreignField: '_id',
-          as: 'driverStaff',
-        },
-      },
-      { $unwind: { path: '$driverStaff', preserveNullAndEmptyArrays: true } },
-      { $limit: 10 },
+      { $limit: Number(process.env.SOS_MAX_CANDIDATES_PER_WAVE || 30) },
     ]);
 
     return ambulances.map(a => ({
       ...a,
       distanceKm: Math.round(((a.distanceMeters || 0) / 1000) * 10) / 10,
+      userId: a.userId ? String(a.userId) : null,
     }));
   } catch (err) {
     logger.error(`findEligibleAmbulances error: ${err.message}`);
@@ -97,20 +106,35 @@ export async function findEligibleAmbulances(pickupLng, pickupLat, radiusKm = 10
 
 /**
  * Find nearby independent vehicles (Auto, Car, Van, E-Rickshaw) with Emergency Support
- * Note: Bikes are strictly excluded.
+ * Bikes strictly excluded. Freshness-checked.
  */
-export async function findEligibleEmergencyVehicles(pickupLng, pickupLat, radiusKm = 10) {
+export async function findEligibleEmergencyVehicles(pickupLng, pickupLat, radiusKm = 10, excludeIds = []) {
   try {
     if (mongoose.connection.readyState !== 1) return [];
     const radiusMeters = radiusKm * 1000;
 
-    // First find vehicles of non-bike types
     const matchingVehicles = await Vehicle.find({
       type: { $in: ['auto', 'car', 'van', 'e_rickshaw'] },
     }).select('_id type brand model rcNumber');
     const vehicleIds = matchingVehicles.map(v => v._id);
 
     if (vehicleIds.length === 0) return [];
+
+    // Exclude users already notified (everNotified) + riders on active ride + riders already assigned to another SOS
+    const excludeUserIds = new Set(excludeIds.map(id => String(id)));
+
+    // Active ride statuses
+    const ACTIVE_RIDE_STATUSES = ['accepted', 'rider_arriving', 'arrived', 'in_progress'];
+    const busyOnRide = await RideBooking.distinct('riderId', { status: { $in: ACTIVE_RIDE_STATUSES } });
+    busyOnRide.forEach(id => excludeUserIds.add(id));
+
+    const busyOnSOS = await EmergencyRequest.distinct('assignedProviderId', {
+      assignedProviderType: 'rider',
+      status: { $in: ['assigned', 'en_route'] },
+    });
+    busyOnSOS.forEach(id => excludeUserIds.add(id));
+
+    const skipUsers = [...excludeUserIds].map(id => new mongoose.Types.ObjectId(id));
 
     const riders = await RiderProfile.aggregate([
       {
@@ -128,6 +152,8 @@ export async function findEligibleEmergencyVehicles(pickupLng, pickupLat, radius
             riderStatus: 'active',
             emergencySupport: true,
             vehicleId: { $in: vehicleIds },
+            'currentLocation.updatedAt': { $gte: freshnessCutoff() },
+            userId: { $nin: skipUsers },
           },
         },
       },
@@ -149,7 +175,7 @@ export async function findEligibleEmergencyVehicles(pickupLng, pickupLat, radius
         },
       },
       { $unwind: { path: '$vehicle', preserveNullAndEmptyArrays: true } },
-      { $limit: 10 },
+      { $limit: Number(process.env.SOS_MAX_CANDIDATES_PER_WAVE || 30) },
     ]);
 
     return riders.map(r => ({
@@ -162,8 +188,227 @@ export async function findEligibleEmergencyVehicles(pickupLng, pickupLat, radius
   }
 }
 
+function emitSearchUpdate(io, requestId, phase, radiusKm) {
+  if (!io) return;
+  const statusText = phase === 'ambulance'
+    ? `Searching for nearest hospital ambulance within ${radiusKm} km…`
+    : `No ambulance found nearby — checking available vehicles within ${radiusKm} km…`;
+  io.to(`emergency:${requestId}`).emit('emergency_searching_update', {
+    requestId: String(requestId),
+    phase,
+    radiusKm,
+    statusText,
+  });
+}
+
+function buildExcludeQuery(everNotified) {
+  const ex = everNotified ? everNotified.map(id => new mongoose.Types.ObjectId(id)) : [];
+  return { everNotified: { $nin: ex } };
+}
+
+function buildAmbulanceAlert(request, amb) {
+  return {
+    requestId: String(request._id),
+    category: request.category,
+    isSelf: request.reporterMode === 'self',
+    patient: request.patientDetails,
+    reporter: request.reporterOwnDetailsShared ? request.reporterDetails : null,
+    location: request.location,
+    distanceKm: amb.distanceKm,
+    windowSeconds: WINDOW_SECONDS,
+    hospitalName: amb.hospital?.name || 'Hospital Ambulance',
+    ambulanceId: String(amb._id),
+    providerType: 'ambulance',
+  };
+}
+
+function buildRiderAlert(request, veh) {
+  return {
+    requestId: String(request._id),
+    category: request.category,
+    isSelf: request.reporterMode === 'self',
+    patient: request.patientDetails,
+    reporter: request.reporterOwnDetailsShared ? request.reporterDetails : null,
+    location: request.location,
+    distanceKm: veh.distanceKm,
+    windowSeconds: WINDOW_SECONDS,
+    vehicleType: veh.vehicle?.type || 'Vehicle',
+    providerId: String(veh.user?._id),
+    providerType: 'rider',
+  };
+}
+
+function sendAlert(io, requestId, candidate) {
+  if (!io) return;
+  const payload = candidate.raw;
+  io.to(`user:${candidate.userId}`).emit('incoming_emergency', payload);
+  if (candidate.providerType === 'ambulance') {
+    io.to(`ambulance:${candidate.providerId}`).emit('incoming_emergency', payload);
+  } else {
+    io.of('/ride').to(`rider:${candidate.userId}`).emit('incoming_emergency', payload);
+  }
+}
+
 /**
- * Start the Two-Phase Tiered Emergency SOS Dispatch
+ * Doc 01 §6.2 wave runner — 30s window, nearest-acceptor wins
+ */
+export async function runWave({ requestId, phase, radiusKm, candidates, emitAlert }) {
+  const existing = await EmergencyRequest.findById(requestId).select('everNotified');
+  const prevEverNotified = existing?.everNotified || [];
+
+  await EmergencyRequest.findByIdAndUpdate(requestId, {
+    $set: {
+      currentSearchPhase: phase,
+      currentSearchRadiusKm: radiusKm,
+      notified: candidates.map(c => ({
+        providerId: c.providerId, providerType: c.providerType, userId: c.userId,
+      })),
+      acceptances: [],
+      rejections: [],
+      windowEndsAt: new Date(Date.now() + WINDOW_MS),
+    },
+    $addToSet: { everNotified: { $each: candidates.map(c => c.providerId) } },
+    $push: { dispatchLog: { radiusKm, phase, candidateCount: candidates.length, outcome: 'escalated' } },
+  });
+
+  candidates.forEach(emitAlert);
+
+  const deadline = Date.now() + WINDOW_MS;
+  while (Date.now() < deadline) {
+    await sleep(1000);
+    const r = await EmergencyRequest.findById(requestId).select('status notified acceptances rejections everNotified');
+    if (!r || r.status !== 'searching') return { done: true };
+    if (r.notified?.length && (r.acceptances.length + r.rejections.length) >= r.notified.length) break;
+  }
+
+  return finalizeWave(requestId);
+}
+
+/**
+ * Doc 01 §6.2 — pick nearest acceptor. Exported for unit tests.
+ * Tie → earliest acceptedAt wins.
+ */
+export async function finalizeWave(requestId) {
+  const r = await EmergencyRequest.findById(requestId);
+  if (!r || r.status !== 'searching') return { done: true };
+  if (!r.acceptances?.length) return { done: false };
+
+  const sorted = [...r.acceptances].sort((a, b) =>
+    (a.distanceKm - b.distanceKm) || (new Date(a.acceptedAt) - new Date(b.acceptedAt)));
+  const winner = sorted[0];
+  const ok = await assignWinner(r, winner, sorted.slice(1));
+  return { done: ok, winner };
+}
+
+async function getProviderLocation(providerId, providerType) {
+  if (providerType === 'ambulance') {
+    const amb = await Ambulance.findById(providerId).select('currentLocation').lean();
+    const coords = amb?.currentLocation?.coordinates;
+    if (!coords?.length) return null;
+    return { lng: coords[0], lat: coords[1] };
+  }
+  const rp = await RiderProfile.findOne({ userId: providerId }).select('currentLocation').lean();
+  const coords = rp?.currentLocation?.coordinates;
+  if (!coords?.length) return null;
+  return { lng: coords[0], lat: coords[1] };
+}
+
+async function buildResponderPayload(winner) {
+  if (winner.providerType === 'ambulance') {
+    const ambulance = await Ambulance.findById(winner.providerId).populate('hospitalId');
+    const hospitalName = ambulance?.hospitalId?.name || 'Hospital';
+    const etaMin = estimateETA(winner.distanceKm || 2.5, 'ambulance');
+    const driverUser = winner.userId ? await User.findById(winner.userId).select('name phone').lean() : null;
+    return {
+      providerType: 'ambulance',
+      hospitalName,
+      registrationNumber: ambulance?.registrationNumber,
+      ambulanceType: ambulance?.ambulanceType,
+      equipmentLevel: ambulance?.equipmentLevel,
+      driverName: driverUser?.name || ambulance?.driverName || ambulance?.currentDriverPhone || 'Ambulance Driver',
+      driverPhone: driverUser?.phone || ambulance?.driverPhone || ambulance?.currentDriverPhone,
+      currentLocation: ambulance?.currentLocation,
+      distanceKm: winner.distanceKm,
+      etaMin,
+    };
+  }
+  const riderUser = await User.findById(winner.providerId).select('name phone').lean();
+  const riderProfile = await RiderProfile.findOne({ userId: winner.providerId }).populate('vehicleId').lean();
+  const vehicleType = riderProfile?.vehicleId?.type || 'car';
+  return {
+    providerType: 'rider',
+    vehicleType,
+    driverName: riderUser?.name || 'Emergency Driver',
+    driverPhone: riderUser?.phone,
+    currentLocation: riderProfile?.currentLocation,
+    distanceKm: winner.distanceKm,
+    etaMin: estimateETA(winner.distanceKm || 2.5, vehicleType),
+  };
+}
+
+/**
+ * Doc 01 §6.4 — atomic winner assign
+ */
+export async function assignWinner(request, winner, losers = []) {
+  let assignedHospitalId;
+  if (winner.providerType === 'ambulance') {
+    const amb = await Ambulance.findById(winner.providerId).select('hospitalId').lean();
+    assignedHospitalId = amb?.hospitalId || undefined;
+  }
+  const update = {
+    status: 'assigned',
+    assignedProviderId: winner.providerId,
+    assignedProviderType: winner.providerType,
+    assignedAt: new Date(),
+  };
+  if (assignedHospitalId) update.assignedHospitalId = assignedHospitalId;
+  if (winner.providerType === 'rider') {
+    const rp = await RiderProfile.findOne({ userId: winner.providerId }).populate('vehicleId').lean();
+    if (rp?.vehicleId?.type) update.assignedVehicleType = rp.vehicleId.type;
+  }
+
+  const updated = await EmergencyRequest.findOneAndUpdate(
+    { _id: request._id, status: 'searching' },
+    update,
+    { new: true }
+  );
+  if (!updated) return false;
+
+  if (winner.providerType === 'ambulance') {
+    await Ambulance.findByIdAndUpdate(winner.providerId, {
+      isOnDuty: true,
+      currentEmergencyId: request._id,
+    });
+  }
+
+  const io = getIO();
+  const payload = await buildResponderPayload(winner);
+  if (io) {
+    io.to(`user:${winner.userId}`).emit('emergency_assigned_to_you', {
+      requestId: String(request._id), ...payload,
+    });
+    if (winner.providerType === 'ambulance') {
+      io.to(`ambulance:${winner.providerId}`).emit('emergency_assigned_to_you', {
+        requestId: String(request._id), ...payload,
+      });
+    }
+    io.to(`emergency:${request._id}`).emit('emergency_assigned', {
+      requestId: String(request._id), ...payload,
+    });
+    losers.forEach(l => io.to(`user:${l.userId}`).emit('emergency_lost', {
+      requestId: String(request._id),
+      message: 'Ye emergency kisi aur paas wale responder ko assign ho gayi.',
+    }));
+    // Close overlay for notified non-responders
+    (request.notified || [])
+      .filter(n => n.userId !== winner.userId)
+      .forEach(n => io.to(`user:${n.userId}`).emit('emergency_closed', { requestId: String(request._id) }));
+  }
+  return true;
+}
+
+/**
+ * Start the Two-Phase Tiered Emergency SOS Dispatch (Doc 01 §6.1)
  */
 export async function startEmergencyDispatch(requestId) {
   try {
@@ -173,150 +418,58 @@ export async function startEmergencyDispatch(requestId) {
     const io = getIO();
     const [lng, lat] = request.location.coordinates;
 
-    // ─── PHASE 1: Hospital-Owned Ambulances First ───────────────────────────
+    // ─── PHASE 1: Hospital ambulances 5 → 10 → 15 ───
     for (const radiusKm of AMBULANCE_RADII) {
       const current = await EmergencyRequest.findById(requestId);
       if (!current || current.status !== 'searching') return;
-
-      current.currentSearchRadiusKm = radiusKm;
-      current.currentSearchPhase = 'ambulance';
-      await current.save();
-
-      // Notify user of search radius / phase update
-      if (io) {
-        io.to(`emergency:${requestId}`).emit('emergency_searching_update', {
-          requestId: String(requestId),
-          phase: 'ambulance',
-          radiusKm,
-          statusText: `Searching for nearest hospital ambulance within ${radiusKm} km…`,
-        });
-      }
-
-      const ambulances = await findEligibleAmbulances(lng, lat, radiusKm);
-
-      if (ambulances.length > 0 && io) {
-        // Broadcast incoming_emergency to driver & ambulance rooms
-        ambulances.forEach(amb => {
-          const payload = {
-            requestId: String(requestId),
-            category: current.category,
-            isSelf: current.reporterMode === 'self',
-            patient: current.patientDetails,
-            reporter: current.reporterOwnDetailsShared ? current.reporterDetails : null,
-            location: current.location,
-            distanceKm: amb.distanceKm,
-            windowSeconds: WINDOW_SECONDS,
-            hospitalName: amb.hospital?.name || 'Hospital Ambulance',
-            ambulanceId: String(amb._id),
-            providerType: 'ambulance',
-          };
-
-          // Notify driver user room if linked, and ambulance room
-          if (amb.driverStaff?.userId) {
-            io.to(`user:${amb.driverStaff.userId}`).emit('incoming_emergency', payload);
-          }
-          io.to(`ambulance:${amb._id}`).emit('incoming_emergency', payload);
-        });
-
-        // Log wave
-        await EmergencyRequest.findByIdAndUpdate(requestId, {
-          $push: {
-            dispatchLog: {
-              radiusKm,
-              phase: 'ambulance',
-              candidateCount: ambulances.length,
-              outcome: 'escalated',
-              at: new Date(),
-            },
-          },
-        });
-
-        // Wait up to WINDOW_SECONDS, poll every 1s for early accept
-        const startWait = Date.now();
-        while (Date.now() - startWait < WINDOW_SECONDS * 1000) {
-          await new Promise(r => setTimeout(r, 1000));
-          const check = await EmergencyRequest.findById(requestId).select('status');
-          if (!check || check.status !== 'searching') {
-            return; // Accepted by an ambulance!
-          }
-        }
-      }
+      emitSearchUpdate(io, requestId, 'ambulance', radiusKm);
+      const found = await findEligibleAmbulances(lng, lat, radiusKm, current.everNotified || []);
+      const cands = found
+        .filter(a => a.userId)
+        .map(a => ({
+          providerId: String(a._id),
+          providerType: 'ambulance',
+          userId: String(a.userId),
+          distanceKm: a.distanceKm,
+          raw: buildAmbulanceAlert(current, a),
+        }));
+      if (!cands.length) continue;
+      const { done } = await runWave({
+        requestId, phase: 'ambulance', radiusKm, candidates: cands,
+        emitAlert: (c) => sendAlert(io, requestId, c),
+      });
+      if (done) return;
     }
 
-    // ─── PHASE 2: Non-Ambulance Independent Vehicles (Cars/Autos/Vans) ─────
+    // ─── PHASE 2: Independent vehicles 5 → 10 → 15 ───
     const checkBeforePhase2 = await EmergencyRequest.findById(requestId);
     if (!checkBeforePhase2 || checkBeforePhase2.status !== 'searching') return;
 
     for (const radiusKm of VEHICLE_RADII) {
       const current = await EmergencyRequest.findById(requestId);
       if (!current || current.status !== 'searching') return;
-
-      current.currentSearchRadiusKm = radiusKm;
-      current.currentSearchPhase = 'vehicle';
-      await current.save();
-
-      if (io) {
-        io.to(`emergency:${requestId}`).emit('emergency_searching_update', {
-          requestId: String(requestId),
-          phase: 'vehicle',
-          radiusKm,
-          statusText: `No ambulance found nearby — checking available vehicles within ${radiusKm} km…`,
-        });
-      }
-
-      const vehicles = await findEligibleEmergencyVehicles(lng, lat, radiusKm);
-
-      if (vehicles.length > 0 && io) {
-        vehicles.forEach(veh => {
-          const payload = {
-            requestId: String(requestId),
-            category: current.category,
-            isSelf: current.reporterMode === 'self',
-            patient: current.patientDetails,
-            reporter: current.reporterOwnDetailsShared ? current.reporterDetails : null,
-            location: current.location,
-            distanceKm: veh.distanceKm,
-            windowSeconds: WINDOW_SECONDS,
-            vehicleType: veh.vehicle?.type || 'Vehicle',
-            providerId: String(veh.user?._id),
-            providerType: 'rider',
-          };
-
-          io.to(`user:${veh.user._id}`).emit('incoming_emergency', payload);
-          io.of('/ride').to(`rider:${veh.user._id}`).emit('incoming_emergency', payload);
-        });
-
-        // Log wave
-        await EmergencyRequest.findByIdAndUpdate(requestId, {
-          $push: {
-            dispatchLog: {
-              radiusKm,
-              phase: 'vehicle',
-              candidateCount: vehicles.length,
-              outcome: 'escalated',
-              at: new Date(),
-            },
-          },
-        });
-
-        // Wait up to WINDOW_SECONDS
-        const startWait = Date.now();
-        while (Date.now() - startWait < WINDOW_SECONDS * 1000) {
-          await new Promise(r => setTimeout(r, 1000));
-          const check = await EmergencyRequest.findById(requestId).select('status');
-          if (!check || check.status !== 'searching') {
-            return; // Accepted by a vehicle!
-          }
-        }
-      }
+      emitSearchUpdate(io, requestId, 'vehicle', radiusKm);
+      const found = await findEligibleEmergencyVehicles(lng, lat, radiusKm, current.everNotified || []);
+      const cands = found.map(veh => ({
+        providerId: String(veh.user?._id),
+        providerType: 'rider',
+        userId: String(veh.user?._id),
+        distanceKm: veh.distanceKm,
+        raw: buildRiderAlert(current, veh),
+      }));
+      if (!cands.length) continue;
+      const { done } = await runWave({
+        requestId, phase: 'vehicle', radiusKm, candidates: cands,
+        emitAlert: (c) => sendAlert(io, requestId, c),
+      });
+      if (done) return;
     }
 
-    // ─── PHASE 3: All exhausted, no responders found ────────────────────────
+    // ─── All exhausted ───
     const finalCheck = await EmergencyRequest.findById(requestId);
     if (finalCheck && finalCheck.status === 'searching') {
       finalCheck.status = 'no_responders_found';
       await finalCheck.save();
-
       if (io) {
         io.to(`emergency:${requestId}`).emit('emergency_no_responders_found', {
           requestId: String(requestId),
@@ -331,116 +484,39 @@ export async function startEmergencyDispatch(requestId) {
 }
 
 /**
- * Handle Provider Accept (Ambulance Driver or Independent Rider)
+ * Doc 01 §6.3 — Accept is only a vote, not instant assign
  */
 export async function handleProviderAccept(requestId, providerId, providerType, user) {
   try {
-    const request = await EmergencyRequest.findById(requestId);
+    const request = await EmergencyRequest.findById(requestId).select('status notified location windowEndsAt');
     if (!request) return { status: 'not_found' };
+    if (request.status !== 'searching')
+      return { status: 'too_late', message: 'Ye emergency kisi aur responder ko assign ho chuki hai.' };
 
-    if (request.status !== 'searching') {
-      return { status: 'too_late', message: 'This emergency was already assigned to another responder.' };
-    }
+    const n = (request.notified || []).find(
+      x => x.providerId === String(providerId) && x.providerType === providerType);
+    if (!n || n.userId !== String(user._id || user.id))
+      return { status: 'not_eligible', message: 'Ye alert aapko nahi bheja gaya tha.' };
 
-    let assignedHospitalId = null;
-    let assignedVehicleType = null;
-    let responderPayload = {};
-    let distanceKm = 2.5;
-
+    // Ownership check for ambulance (Doc 02): must own the ambulance login
     if (providerType === 'ambulance') {
-      const ambulance = await Ambulance.findById(providerId).populate('hospitalId');
-      if (!ambulance) return { status: 'invalid_provider', message: 'Ambulance not found' };
-
-      // Mark ambulance on duty
-      ambulance.isOnDuty = true;
-      await ambulance.save();
-
-      assignedHospitalId = ambulance.hospitalId?._id || ambulance.hospitalId;
-      const hospitalName = ambulance.hospitalId?.name || 'Hospital';
-
-      const [pLng, pLat] = request.location.coordinates;
-      const [aLng, aLat] = ambulance.currentLocation.coordinates;
-      distanceKm = calculateDistanceKm(pLat, pLng, aLat, aLng);
-      const etaMin = estimateETA(distanceKm, 'ambulance');
-
-      responderPayload = {
-        providerType: 'ambulance',
-        hospitalName,
-        registrationNumber: ambulance.registrationNumber,
-        ambulanceType: ambulance.ambulanceType,
-        equipmentLevel: ambulance.equipmentLevel,
-        driverName: user?.name || ambulance.currentDriverPhone || 'Ambulance Driver',
-        driverPhone: user?.phone || ambulance.currentDriverPhone,
-        currentLocation: ambulance.currentLocation,
-        distanceKm,
-        etaMin,
-      };
-    } else {
-      // Independent rider
-      const riderProfile = await RiderProfile.findOne({ userId: providerId }).populate('vehicleId');
-      assignedVehicleType = riderProfile?.vehicleId?.type || 'car';
-
-      const [pLng, pLat] = request.location.coordinates;
-      const [rLng, rLat] = riderProfile?.currentLocation?.coordinates || [79.9864, 23.1815];
-      distanceKm = calculateDistanceKm(pLat, pLng, rLat, rLng);
-      const etaMin = estimateETA(distanceKm, assignedVehicleType);
-
-      responderPayload = {
-        providerType: 'rider',
-        vehicleType: assignedVehicleType,
-        driverName: user?.name || 'Emergency Driver',
-        driverPhone: user?.phone,
-        currentLocation: riderProfile?.currentLocation,
-        distanceKm,
-        etaMin,
-      };
+      const amb = await Ambulance.findById(providerId).select('userId').lean();
+      if (!amb || String(amb.userId) !== String(user._id || user.id))
+        return { status: 'not_eligible', message: 'Ye alert aapko nahi bheja gaya tha.' };
     }
 
-    // Atomic assignment lock
-    const updated = await EmergencyRequest.findOneAndUpdate(
-      { _id: requestId, status: 'searching' },
-      {
-        status: 'assigned',
-        assignedProviderId: providerId,
-        assignedProviderType: providerType,
-        assignedVehicleType,
-        assignedHospitalId,
-        assignedAt: new Date(),
-      },
-      { new: true }
+    const loc = await getProviderLocation(providerId, providerType);
+    if (!loc) return { status: 'too_late', message: 'Window band ho gayi.' };
+    const [pLng, pLat] = request.location.coordinates;
+    const distanceKm = calculateDistanceKm(pLat, pLng, loc.lat, loc.lng);
+
+    const r = await EmergencyRequest.updateOne(
+      { _id: requestId, status: 'searching', 'acceptances.providerId': { $ne: String(providerId) } },
+      { $push: { acceptances: { providerId: String(providerId), providerType, userId: String(user._id || user.id), distanceKm } } }
     );
+    if (!r.modifiedCount) return { status: 'too_late', message: 'Window band ho gayi.' };
 
-    if (!updated) {
-      // Someone beat them by milliseconds
-      if (providerType === 'ambulance') {
-        await Ambulance.findByIdAndUpdate(providerId, { isOnDuty: false });
-      }
-      return { status: 'too_late', message: 'This emergency was already assigned to another responder.' };
-    }
-
-    const io = getIO();
-    if (io) {
-      // Notify the winning provider
-      if (providerType === 'ambulance') {
-        io.to(`ambulance:${providerId}`).emit('emergency_assigned_to_you', {
-          requestId: String(requestId),
-          ...responderPayload,
-        });
-      } else {
-        io.to(`user:${providerId}`).emit('emergency_assigned_to_you', {
-          requestId: String(requestId),
-          ...responderPayload,
-        });
-      }
-
-      // Notify user with full responder details
-      io.to(`emergency:${requestId}`).emit('emergency_assigned', {
-        requestId: String(requestId),
-        ...responderPayload,
-      });
-    }
-
-    return { status: 'assigned', request: updated, responder: responderPayload };
+    return { status: 'accepted_pending', windowEndsAt: request.windowEndsAt, distanceKm };
   } catch (err) {
     logger.error(`handleProviderAccept error: ${err.message}`);
     return { status: 'error', message: err.message };
@@ -473,5 +549,22 @@ export async function selectDestinationHospital(requestId, hospitalId) {
   } catch (err) {
     logger.error(`selectDestinationHospital error: ${err.message}`);
     return { status: 'error', message: err.message };
+  }
+}
+
+/**
+ * Doc 01 §7 — server restart recovery (single instance)
+ */
+export async function recoverStuckRequests() {
+  try {
+    await EmergencyRequest.updateMany(
+      { status: 'searching', createdAt: { $lt: new Date(Date.now() - 5 * 60 * 1000) } },
+      { status: 'no_responders_found' }
+    );
+    const live = await EmergencyRequest.find({ status: 'searching' }).select('_id');
+    live.forEach(r => startEmergencyDispatch(r._id).catch(() => {}));
+    if (live.length) logger.info(`recoverStuckRequests: resumed ${live.length} searching requests`);
+  } catch (err) {
+    logger.error(`recoverStuckRequests error: ${err.message}`);
   }
 }

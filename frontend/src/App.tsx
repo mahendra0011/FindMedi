@@ -99,6 +99,9 @@ const PaymentGateway = lazy(() => import('./pages/PaymentGateway'));
 const FindVehicle = lazy(() => import('./pages/FindVehicle'));
 const PatientRides = lazy(() => import('./pages/patient/PatientRides'));
 const RiderDashboard = lazy(() => import('./pages/rider/RiderDashboard'));
+const AmbulanceDashboard = lazy(() => import('./pages/ambulance/AmbulanceDashboard'));
+const AmbulanceSetup = lazy(() => import('./pages/ambulance/AmbulanceSetup'));
+const AmbulanceJobs = lazy(() => import('./pages/ambulance/AmbulanceJobs'));
 const AdminVehicleRides = lazy(() => import('./pages/admin/AdminVehicleRides'));
 
 const BookAssistant = lazy(() => import('./pages/BookAssistant'));
@@ -438,6 +441,7 @@ function RoleDashboard() {
   if (user?.role === 'hospital_admin') return <Dashboard />;
   if (user?.role === 'delivery_boy') return <DeliveryDashboard />;
   if (user?.role === 'rider') return <Navigate to="/rider/dashboard" replace />;
+  if (user?.role === 'ambulance') return <Navigate to="/ambulance/dashboard" replace />;
   if (user?.role === 'assistant') return <Navigate to="/assistant/dashboard" replace />;
   if (user?.role === 'lawyer') return <Navigate to="/lawyer/dashboard" replace />;
   if (user?.role === 'lab_owner') return <Navigate to="/lab-business/dashboard" replace />;
@@ -492,6 +496,7 @@ const App = () => (
                   <Route path="/verify-otp" element={<OTPVerification />} />
                   <Route path="/pending-approval" element={<PendingApproval />} />
                   <Route path="/doctor-setup" element={<DoctorSetup />} />
+                  <Route path="/ambulance-setup" element={<AmbulanceSetup />} />
 <Route path="/hospitals" element={<PublicLayout><HospitalDirectory /></PublicLayout>} />
                    <Route path="/hospitals/:id" element={<PublicLayout><HospitalProfile /></PublicLayout>} />
 <Route path="/hospitals/:hospitalId/doctors" element={<PublicLayout><HospitalDoctors /></PublicLayout>} />
@@ -786,6 +791,10 @@ const App = () => (
                     <Route path="/rider/documents" element={<RoleRoute allowedRoles={['rider']}><RiderDashboard /></RoleRoute>} />
                     <Route path="/rider/reviews" element={<RoleRoute allowedRoles={['rider']}><RiderDashboard /></RoleRoute>} />
                     <Route path="/rider/settings" element={<RoleRoute allowedRoles={['rider']}><RiderDashboard /></RoleRoute>} />
+
+                    {/* Ambulance driver routes (Doc 02 §5.1) */}
+                    <Route path="/ambulance/dashboard" element={<RoleRoute allowedRoles={['ambulance']}><AmbulanceDashboard /></RoleRoute>} />
+                    <Route path="/ambulance/jobs" element={<RoleRoute allowedRoles={['ambulance']}><AmbulanceJobs /></RoleRoute>} />
 
                     {/* Assistant Partner routes */}
                     <Route path="/assistant/dashboard" element={<RoleRoute allowedRoles={['assistant']}><AssistantDashboard /></RoleRoute>} />

@@ -1146,6 +1146,9 @@ export const createAmbulanceSchema = z.object({
   equipmentLevel: z.string().max(300).optional().default(''),
   currentDriverId: z.string().optional().nullable(),
   currentDriverPhone: z.string().optional().default(''),
+  driverName: z.string().max(100).optional().default(''),
+  driverPhone: z.string().max(20).optional().default(''),
+  loginEmail: z.string().email().optional().or(z.literal('')).optional().default(''),
 });
 
 export const updateAmbulanceSchema = z.object({
@@ -1155,6 +1158,9 @@ export const updateAmbulanceSchema = z.object({
   equipmentLevel: z.string().max(300).optional(),
   currentDriverId: z.string().optional().nullable(),
   currentDriverPhone: z.string().optional(),
+  driverName: z.string().max(100).optional(),
+  driverPhone: z.string().max(20).optional(),
+  loginEmail: z.string().email().optional().or(z.literal('')).optional(),
   isOnline: z.boolean().optional(),
   isOnDuty: z.boolean().optional(),
   emergencySupport: z.boolean().optional(),

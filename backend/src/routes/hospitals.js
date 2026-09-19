@@ -242,10 +242,10 @@ router.get('/ambulances', protect, hospitalAdminOnly, async (req, res) => {
   }
 });
 
-// Register new ambulance
+// Register new ambulance (Doc 02 §3.1 — optional driver login invite)
 router.post('/ambulances', protect, hospitalAdminOnly, validate(createAmbulanceSchema), async (req, res) => {
   try {
-    const { registrationNumber, vehicleModel, ambulanceType, equipmentLevel, currentDriverId, currentDriverPhone } = req.body;
+    const { registrationNumber, vehicleModel, ambulanceType, equipmentLevel, currentDriverId, currentDriverPhone, driverName, driverPhone, loginEmail } = req.body;
 
     const existing = await Ambulance.findOne({ registrationNumber: registrationNumber.toUpperCase() });
     if (existing) {
@@ -259,7 +259,11 @@ router.post('/ambulances', protect, hospitalAdminOnly, validate(createAmbulanceS
       ambulanceType: ambulanceType || 'BLS',
       equipmentLevel,
       currentDriverId: currentDriverId || null,
-      currentDriverPhone: currentDriverPhone || '',
+      currentDriverPhone: currentDriverPhone || driverPhone || '',
+      driverName: driverName || '',
+      driverPhone: driverPhone || currentDriverPhone || '',
+      loginEmail: loginEmail?.toLowerCase() || '',
+      loginStatus: 'none',
       isOnline: false,
       isOnDuty: false,
     });
@@ -268,9 +272,62 @@ router.post('/ambulances', protect, hospitalAdminOnly, validate(createAmbulanceS
       await Staff.findByIdAndUpdate(currentDriverId, { assignedAmbulanceId: ambulance._id });
     }
 
+    if (loginEmail) {
+      try {
+        const { createAmbulanceLogin } = await import('../services/ambulanceLoginService.js');
+        await createAmbulanceLogin(ambulance, req.user);
+      } catch (e) {
+        return res.status(400).json({ message: e.message });
+      }
+    }
+
     res.status(201).json({ success: true, ambulance });
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+});
+
+// Resend login invite (Doc 02 §3.2)
+router.post('/ambulances/:id/resend-invite', protect, hospitalAdminOnly, async (req, res) => {
+  try {
+    const ambulance = await Ambulance.findOne({ _id: req.params.id, hospitalId: req.user.hospitalId });
+    if (!ambulance) return res.status(404).json({ message: 'Ambulance not found' });
+    if (!ambulance.loginEmail) return res.status(400).json({ message: 'Is ambulance ke liye login email set nahi hai' });
+    const { default: User } = await import('../models/User.js');
+    const existing = await User.findOne({ email: ambulance.loginEmail.toLowerCase() });
+    const { createAmbulanceLogin } = await import('../services/ambulanceLoginService.js');
+    if (existing && String(existing._id) === String(ambulance.userId)) {
+      // Re-issue token only
+      const jwt = (await import('jsonwebtoken')).default;
+      const token = jwt.sign({ email: ambulance.loginEmail.toLowerCase(), type: 'ambulance_setup' }, process.env.JWT_SECRET, { expiresIn: '48h' });
+      return res.json({ success: true, message: 'Invite re-issued' });
+    }
+    if (existing) return res.status(400).json({ message: 'Is email se user pehle se hai' });
+    ambulance.userId = undefined;
+    await ambulance.save();
+    await createAmbulanceLogin(ambulance, req.user);
+    res.json({ success: true, message: 'Invite bhej diya' });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
+// Create login for an existing ambulance (no email user yet)
+router.post('/ambulances/:id/login', protect, hospitalAdminOnly, async (req, res) => {
+  try {
+    const ambulance = await Ambulance.findOne({ _id: req.params.id, hospitalId: req.user.hospitalId });
+    if (!ambulance) return res.status(404).json({ message: 'Ambulance not found' });
+    const email = (req.body.loginEmail || ambulance.loginEmail || '').toLowerCase().trim();
+    if (!email) return res.status(400).json({ message: 'loginEmail chahiye' });
+    ambulance.loginEmail = email;
+    if (req.body.driverName) ambulance.driverName = req.body.driverName;
+    if (req.body.driverPhone) { ambulance.driverPhone = req.body.driverPhone; ambulance.currentDriverPhone = req.body.driverPhone; }
+    await ambulance.save();
+    const { createAmbulanceLogin } = await import('../services/ambulanceLoginService.js');
+    await createAmbulanceLogin(ambulance, req.user);
+    res.status(201).json({ success: true, ambulance });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
   }
 });
 
@@ -287,6 +344,8 @@ router.put('/ambulances/:id', protect, hospitalAdminOnly, validate(updateAmbulan
       equipmentLevel,
       currentDriverId,
       currentDriverPhone,
+      driverName,
+      driverPhone,
       isOnline,
       emergencySupport,
     } = req.body;
@@ -296,6 +355,8 @@ router.put('/ambulances/:id', protect, hospitalAdminOnly, validate(updateAmbulan
     if (ambulanceType !== undefined) ambulance.ambulanceType = ambulanceType;
     if (equipmentLevel !== undefined) ambulance.equipmentLevel = equipmentLevel;
     if (currentDriverPhone !== undefined) ambulance.currentDriverPhone = currentDriverPhone;
+    if (driverName !== undefined) ambulance.driverName = driverName;
+    if (driverPhone !== undefined) { ambulance.driverPhone = driverPhone; if (!currentDriverPhone) ambulance.currentDriverPhone = driverPhone; }
     if (emergencySupport !== undefined) ambulance.emergencySupport = emergencySupport;
 
     if (currentDriverId !== undefined) {
@@ -321,7 +382,7 @@ router.put('/ambulances/:id', protect, hospitalAdminOnly, validate(updateAmbulan
   }
 });
 
-// Delete ambulance from fleet
+// Delete ambulance from fleet (also deactivates linked login — Doc 02 §3.2)
 router.delete('/ambulances/:id', protect, hospitalAdminOnly, async (req, res) => {
   try {
     const ambulance = await Ambulance.findOneAndDelete({ _id: req.params.id, hospitalId: req.user.hospitalId });
@@ -329,6 +390,9 @@ router.delete('/ambulances/:id', protect, hospitalAdminOnly, async (req, res) =>
 
     if (ambulance.currentDriverId) {
       await Staff.findByIdAndUpdate(ambulance.currentDriverId, { assignedAmbulanceId: null });
+    }
+    if (ambulance.userId) {
+      await User.updateOne({ _id: ambulance.userId }, { status: 'blocked' });
     }
 
     await syncHospitalAmbulanceFlag(req.user.hospitalId);

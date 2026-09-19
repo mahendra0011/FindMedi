@@ -340,6 +340,7 @@ import medicineReminderRoutes from './routes/medicineReminders.js';
 import vitalsRoutes from './routes/vitals.js';
 import carePlanRoutes from './routes/carePlans.js';
 import emergencySOSRoutes from './routes/emergencySOS.js';
+import ambulanceDriverRoutes from './routes/ambulanceDriver.js';
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -425,6 +426,7 @@ app.use('/api/lawyer-bookings', lawyerBookingRoutes);
 app.use('/api/admin/lawyers', adminLawyerRoutes);
 app.use('/api/payment/demo', demoPaymentRoutes);
 app.use('/api/emergency-sos', emergencySOSRoutes);
+app.use('/api/ambulance', ambulanceDriverRoutes);
 app.use('/api/service-cities', serviceCityRoutes);
 app.use('/api/medicine-reminders', medicineReminderRoutes);
 app.use('/api/vitals', vitalsRoutes);
@@ -485,8 +487,24 @@ if (process.env.NODE_ENV !== 'test') {
   const server = http.createServer(app);
   initSocket(server).catch((err) => logger.error(`Socket.IO init failed: ${err.message}`));
   mongoose.connect(MONGO_URI, mongooseOptions)
-    .then(() => {
+    .then(async () => {
       logger.info('✅ MongoDB connected successfully');
+      try {
+        const { recoverStuckRequests } = await import('./services/emergencyDispatchService.js');
+        await recoverStuckRequests();
+      } catch (e) {
+        logger.warn('recoverStuckRequests failed: ' + e.message);
+      }
+      // Doc 02 §4.3: stale GPS → auto offline (unless on duty), every 60s
+      setInterval(async () => {
+        try {
+          const { default: Ambulance } = await import('./models/Ambulance.js');
+          await Ambulance.updateMany(
+            { isOnline: true, isOnDuty: { $ne: true }, lastPingAt: { $lt: new Date(Date.now() - 3 * 60 * 1000) } },
+            { isOnline: false }
+          );
+        } catch {}
+      }, 60 * 1000);
       server.listen(PORT, () => {
         const serverUrl = `http://localhost:${PORT}`;
         logger.info(`🚀 Server running on ${serverUrl}`);

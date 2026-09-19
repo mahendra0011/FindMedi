@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useCallback } from 'react';
+import { emergencyOverlayActive } from '@/lib/emergencyState';
 import { useDispatch, useSelector } from 'react-redux';
 import { useAuth } from '@/context/AuthContext';
 import { fetchNotifications, selectNotificationCount, addNotification } from '@/store/slices/notificationsSlice';
@@ -33,6 +34,7 @@ export function NotificationProvider({ children }) {
     const cleanupJoin = joinRoom('join', user.id);
 
     const onNotification = (notification) => {
+      if (emergencyOverlayActive?.current) return;
       dispatch(addNotification(notification));
     };
     socket.on('notification', onNotification);

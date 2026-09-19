@@ -62,16 +62,22 @@ router.put('/profile', protect, async (req, res) => {
 });
 
 // ─── PUT /api/rider/emergency-toggle ────────────────────────────────────────
-// Toggle Emergency Support participation for independent riders
+// Toggle Emergency Support (Doc 01 §9.3: active rider + non-bike only)
 router.put('/emergency-toggle', protect, async (req, res) => {
   try {
     const { emergencySupport } = req.body;
-    const rider = await RiderProfile.findOneAndUpdate(
-      { userId: req.user._id },
-      { emergencySupport: Boolean(emergencySupport) },
-      { new: true }
-    );
+    const rider = await RiderProfile.findOne({ userId: req.user._id }).populate('vehicleId');
     if (!rider) return res.status(404).json({ message: 'Rider profile not found' });
+    if (Boolean(emergencySupport)) {
+      if (rider.riderStatus !== 'active') {
+        return res.status(403).json({ message: 'Account active hone par hi Emergency Support ON kar sakte ho.' });
+      }
+      if (rider.vehicleId?.type === 'bike') {
+        return res.status(403).json({ message: 'Bike se emergency support nahi milta.' });
+      }
+    }
+    rider.emergencySupport = Boolean(emergencySupport);
+    await rider.save();
     res.json({ success: true, emergencySupport: rider.emergencySupport });
   } catch (err) {
     res.status(500).json({ message: err.message });

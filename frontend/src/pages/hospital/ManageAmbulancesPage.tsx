@@ -43,6 +43,7 @@ import {
 } from '@/components/ui/select';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
+import { EmergencyToggleConfirm } from '@/components/emergency/EmergencyToggleConfirm';
 
 interface StaffMember {
   _id: string;
@@ -63,6 +64,11 @@ interface AmbulanceItem {
     contactNumber?: string;
   } | null;
   currentDriverPhone?: string;
+  driverName?: string;
+  driverPhone?: string;
+  loginEmail?: string;
+  loginStatus?: 'none' | 'invited' | 'active';
+  lastPingAt?: string;
   isOnline: boolean;
   isOnDuty: boolean;
   emergencySupport: boolean;
@@ -93,15 +99,21 @@ export default function ManageAmbulancesPage() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  // Form Fields
+  // Form Fields (Doc 02: driver name/phone + login email, no Staff dropdown)
   const [formData, setFormData] = useState({
     registrationNumber: '',
     vehicleModel: '',
     ambulanceType: 'BLS' as 'BLS' | 'ALS' | 'PATIENT_TRANSPORT' | 'MORTUARY',
     equipmentLevel: 'Oxygen, Stretcher, First Aid Kit',
-    currentDriverId: '',
+    driverName: '',
+    driverPhone: '',
+    loginEmail: '',
     currentDriverPhone: '',
   });
+
+  // Confirm dialogs (Doc 01 §9.3)
+  const [masterConfirm, setMasterConfirm] = useState<{ open: boolean; value: boolean }>({ open: false, value: false });
+  const [perAmbConfirm, setPerAmbConfirm] = useState<{ open: boolean; amb: AmbulanceItem | null; value: boolean }>({ open: false, amb: null, value: false });
 
   const fetchData = async () => {
     try {
@@ -140,13 +152,17 @@ export default function ManageAmbulancesPage() {
     fetchData();
   }, []);
 
-  // Handle Master SOS Toggle
+  // Handle Master SOS Toggle (confirm first — Doc 01 §9.3)
   const handleMasterToggle = async (checked: boolean) => {
+    setMasterConfirm({ open: true, value: checked });
+  };
+  const confirmMasterToggle = async () => {
+    const checked = masterConfirm.value;
+    setMasterConfirm({ open: false, value: false });
     const onlineCount = ambulances.filter(a => a.isOnline).length;
     if (checked && onlineCount === 0) {
       toast.warning('Warning: No ambulances are currently marked Online. SOS dispatch will escalate to marketplace vehicles until an ambulance is online.');
     }
-
     try {
       setMasterToggling(true);
       await api.put('/hospitals/emergency-toggle', { emergencySupport: checked });
@@ -173,15 +189,20 @@ export default function ManageAmbulancesPage() {
     }
   };
 
-  // Toggle individual ambulance emergency support
+  // Toggle individual ambulance emergency support (confirm — Doc 01 §9.3)
   const handleToggleEmergencySupport = async (amb: AmbulanceItem) => {
-    const newStatus = !amb.emergencySupport;
+    setPerAmbConfirm({ open: true, amb, value: !amb.emergencySupport });
+  };
+  const confirmPerAmbToggle = async () => {
+    const { amb, value } = perAmbConfirm;
+    setPerAmbConfirm({ open: false, amb: null, value: false });
+    if (!amb) return;
     try {
-      await api.put(`/hospitals/ambulances/${amb._id}`, { emergencySupport: newStatus });
+      await api.put(`/hospitals/ambulances/${amb._id}`, { emergencySupport: value });
       setAmbulances(prev =>
-        prev.map(a => (a._id === amb._id ? { ...a, emergencySupport: newStatus } : a))
+        prev.map(a => (a._id === amb._id ? { ...a, emergencySupport: value } : a))
       );
-      toast.success(`${amb.registrationNumber} SOS support set to ${newStatus ? 'Enabled' : 'Disabled'}`);
+      toast.success(`${amb.registrationNumber} SOS support set to ${value ? 'Enabled' : 'Disabled'}`);
     } catch (err: any) {
       toast.error('Failed to update emergency support.');
     }
@@ -196,8 +217,10 @@ export default function ManageAmbulancesPage() {
         vehicleModel: amb.vehicleModel || '',
         ambulanceType: amb.ambulanceType || 'BLS',
         equipmentLevel: amb.equipmentLevel || '',
-        currentDriverId: amb.currentDriverId?._id || '',
-        currentDriverPhone: amb.currentDriverPhone || amb.currentDriverId?.contactNumber || '',
+        driverName: (amb as any).driverName || amb.currentDriverId?.name || '',
+        driverPhone: (amb as any).driverPhone || amb.currentDriverPhone || '',
+        loginEmail: (amb as any).loginEmail || '',
+        currentDriverPhone: amb.currentDriverPhone || (amb as any).driverPhone || '',
       });
     } else {
       setEditingAmbulance(null);
@@ -206,7 +229,9 @@ export default function ManageAmbulancesPage() {
         vehicleModel: '',
         ambulanceType: 'BLS',
         equipmentLevel: 'Oxygen, Stretcher, First Aid Kit',
-        currentDriverId: '',
+        driverName: '',
+        driverPhone: '',
+        loginEmail: '',
         currentDriverPhone: '',
       });
     }
@@ -228,8 +253,10 @@ export default function ManageAmbulancesPage() {
         vehicleModel: formData.vehicleModel.trim(),
         ambulanceType: formData.ambulanceType,
         equipmentLevel: formData.equipmentLevel.trim(),
-        currentDriverId: formData.currentDriverId || null,
-        currentDriverPhone: formData.currentDriverPhone.trim(),
+        driverName: formData.driverName.trim(),
+        driverPhone: formData.driverPhone.trim(),
+        currentDriverPhone: (formData.driverPhone || formData.currentDriverPhone).trim(),
+        ...(formData.loginEmail.trim() ? { loginEmail: formData.loginEmail.trim().toLowerCase() } : {}),
       };
 
       if (editingAmbulance) {
@@ -510,6 +537,26 @@ export default function ManageAmbulancesPage() {
                   </div>
                 )}
 
+                {/* Login badge + GPS freshness (Doc 02 §3.4) */}
+                <div className="flex flex-wrap items-center gap-2 text-[11px]">
+                  <Badge className={amb.loginStatus === 'active' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : amb.loginStatus === 'invited' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-slate-800 text-slate-400 border border-slate-700'}>
+                    Login: {amb.loginStatus === 'active' ? 'Active' : amb.loginStatus === 'invited' ? 'Invited' : 'None'}
+                  </Badge>
+                  {amb.loginStatus !== 'active' && amb.loginEmail && (
+                    <button onClick={async () => { try { await api.post(`/hospitals/ambulances/${amb._id}/resend-invite`, {}); toast.success('Invite bhej diya'); } catch (e: any) { toast.error(e.response?.data?.message || 'Invite failed'); } }}
+                      className="text-sky-300 underline">Resend invite</button>
+                  )}
+                  {(() => {
+                    const upd = amb.currentLocation?.updatedAt ? new Date(amb.currentLocation.updatedAt).getTime() : 0;
+                    const stale = !upd || Date.now() - upd > 120000;
+                    return (
+                      <span className={stale ? 'text-amber-300' : 'text-slate-400'}>
+                        {stale ? '⚠ GPS nahi mil raha, dispatch me nahi aayegi' : `📍 GPS ${Math.max(0, Math.round((Date.now() - upd) / 1000))}s pehle`}
+                      </span>
+                    );
+                  })()}
+                </div>
+
                 {/* Driver Info */}
                 <div className="rounded-2xl bg-white/5 border border-white/5 p-3 flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2.5">
@@ -518,23 +565,29 @@ export default function ManageAmbulancesPage() {
                     </div>
                     <div>
                       <p className="font-bold text-white">
-                        {amb.currentDriverId?.name || 'No Driver Assigned'}
+                        {amb.driverName || amb.currentDriverId?.name || 'No Driver Assigned'}
                       </p>
                       <p className="text-[11px] text-slate-400">
-                        {amb.currentDriverPhone || amb.currentDriverId?.contactNumber || 'No phone set'}
+                        {amb.driverPhone || amb.currentDriverPhone || amb.currentDriverId?.contactNumber || 'No phone set'}
                       </p>
                     </div>
                   </div>
 
-                  {amb.currentDriverPhone && (
+                  {(amb.driverPhone || amb.currentDriverPhone) && (
                     <a
-                      href={`tel:${amb.currentDriverPhone}`}
+                      href={`tel:${amb.driverPhone || amb.currentDriverPhone}`}
                       className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white transition-colors"
                       title="Call Driver"
                     >
                       <Phone className="w-3.5 h-3.5" />
                     </a>
                   )}
+                </div>
+
+                {/* Emergency support toggle */}
+                <div className="flex items-center justify-between text-xs rounded-xl bg-white/5 border border-white/5 px-3 py-2">
+                  <span className="text-slate-300 font-semibold">Emergency Support</span>
+                  <Switch checked={amb.emergencySupport} onCheckedChange={() => handleToggleEmergencySupport(amb)} className="data-[state=checked]:bg-emerald-500" />
                 </div>
 
                 {/* Toggles: Online & Emergency Support */}
@@ -640,45 +693,26 @@ export default function ManageAmbulancesPage() {
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-slate-300">
-                  Assign Staff Driver
-                </Label>
-                <Select
-                  value={formData.currentDriverId}
-                  onValueChange={val => {
-                    const selected = drivers.find(d => d._id === val);
-                    setFormData({
-                      ...formData,
-                      currentDriverId: val,
-                      currentDriverPhone: selected?.contactNumber || formData.currentDriverPhone,
-                    });
-                  }}
-                >
-                  <SelectTrigger className="bg-slate-950 border-slate-700 text-white text-xs h-10">
-                    <SelectValue placeholder="Select Staff..." />
-                  </SelectTrigger>
-                  <SelectContent className="bg-slate-900 border-slate-700 text-white">
-                    <SelectItem value="">-- None --</SelectItem>
-                    {drivers.map(driver => (
-                      <SelectItem key={driver._id} value={driver._id}>
-                        {driver.name} ({driver.role})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label className="text-xs font-semibold text-slate-300">Driver Name</Label>
+                <Input placeholder="Driver ka naam" value={formData.driverName}
+                  onChange={e => setFormData({ ...formData, driverName: e.target.value })}
+                  className="bg-slate-950 border-slate-700 text-white text-xs h-10" />
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-slate-300">
-                Driver Contact Phone
-              </Label>
-              <Input
-                placeholder="Driver mobile number for emergency dispatch call"
-                value={formData.currentDriverPhone}
-                onChange={e => setFormData({ ...formData, currentDriverPhone: e.target.value })}
-                className="bg-slate-950 border-slate-700 text-white text-xs h-10"
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-300">Driver Phone</Label>
+                <Input placeholder="10 digit mobile" value={formData.driverPhone}
+                  onChange={e => setFormData({ ...formData, driverPhone: e.target.value })}
+                  className="bg-slate-950 border-slate-700 text-white text-xs h-10" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-300">Login Email (optional)</Label>
+                <Input placeholder="driver@email.com" value={formData.loginEmail}
+                  onChange={e => setFormData({ ...formData, loginEmail: e.target.value })}
+                  className="bg-slate-950 border-slate-700 text-white text-xs h-10" />
+              </div>
             </div>
 
             <div className="space-y-1.5">
@@ -713,6 +747,11 @@ export default function ManageAmbulancesPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <EmergencyToggleConfirm open={masterConfirm.open} turningOn={masterConfirm.value}
+        onConfirm={confirmMasterToggle} onCancel={() => setMasterConfirm({ open: false, value: false })} />
+      <EmergencyToggleConfirm open={perAmbConfirm.open} turningOn={perAmbConfirm.value}
+        onConfirm={confirmPerAmbToggle} onCancel={() => setPerAmbConfirm({ open: false, amb: null, value: false })} />
 
       {/* Delete Confirmation Modal */}
       <Dialog open={Boolean(deleteConfirmId)} onOpenChange={() => setDeleteConfirmId(null)}>

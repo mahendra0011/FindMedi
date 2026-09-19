@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { getSocket } from '@/lib/socket';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
+import { emergencyOverlayActive } from '@/lib/emergencyState';
 import SOSButton from './SOSButton';
 import SOSConfirmModal from './SOSConfirmModal';
 import SOSSearchingScreen from './SOSSearchingScreen';
@@ -13,79 +14,129 @@ import ProviderHospitalSelect from './ProviderHospitalSelect';
 export default function EmergencyFlowController() {
   const { user } = useAuth();
 
-  // User / Patient State
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [activeRequest, setActiveRequest] = useState<any>(null);
   const [searching, setSearching] = useState(false);
+  const [noResponders, setNoResponders] = useState(false);
   const [searchPhase, setSearchPhase] = useState<'ambulance' | 'vehicle'>('ambulance');
   const [searchRadius, setSearchRadius] = useState<number>(5);
   const [assignedData, setAssignedData] = useState<any>(null);
 
-  // Provider State
   const [incomingEmergency, setIncomingEmergency] = useState<any>(null);
+  const [pendingAccept, setPendingAccept] = useState<{ requestId: string; endsAt: number } | null>(null);
   const [hospitalSelectRequestId, setHospitalSelectRequestId] = useState<string | null>(null);
 
-  // Socket Listeners
+  const activeRequestRef = useRef<any>(null);
+  activeRequestRef.current = activeRequest;
+  const incomingRef = useRef<any>(null);
+  incomingRef.current = incomingEmergency;
+
+  emergencyOverlayActive.current = !!incomingEmergency;
+
+  // Sync state after room join (missed-event protection, Doc 03 §6)
+  const syncRequestState = useCallback(async (requestId: string) => {
+    try {
+      const res: any = await api.get(`/emergency-sos/${requestId}`);
+      const em = res?.emergency;
+      if (!em) return;
+      if (em.status === 'assigned' || em.status === 'en_route') {
+        setSearching(false);
+        setAssignedData(em.responder || { requestId });
+      } else if (em.status === 'no_responders_found') {
+        setSearching(false);
+        setNoResponders(true);
+      } else if (em.status === 'cancelled_by_user' || em.status === 'completed') {
+        setSearching(false);
+        setActiveRequest(null);
+        setAssignedData(null);
+      }
+    } catch {}
+  }, []);
+
   useEffect(() => {
     const socket = getSocket();
     if (!socket) return;
 
-    // 1. Incoming Emergency Alert for Provider / Driver
-    const onIncomingEmergency = (data: any) => {
-      console.log('[EmergencyFlow] incoming_emergency received:', data);
-      setIncomingEmergency(data);
+    const matches = (data: any) => {
+      const cur = activeRequestRef.current;
+      return cur && (cur._id === data.requestId || cur.id === data.requestId || String(cur._id) === String(data.requestId));
     };
 
-    // 2. Search Update (Phase & Radius Escalation)
+    const onIncomingEmergency = (data: any) => {
+      // Dedupe two tabs: same requestId already ringing
+      if (incomingRef.current?.requestId === data.requestId) return;
+      setIncomingEmergency(data);
+      setPendingAccept(null);
+    };
+
     const onSearchingUpdate = (data: any) => {
-      console.log('[EmergencyFlow] emergency_searching_update:', data);
-      if (activeRequest && (activeRequest._id === data.requestId || activeRequest.id === data.requestId)) {
+      if (matches(data)) {
         if (data.phase) setSearchPhase(data.phase);
         if (data.radiusKm) setSearchRadius(data.radiusKm);
       }
     };
 
-    // 3. Responder Assigned to Patient Request
     const onEmergencyAssigned = (data: any) => {
-      console.log('[EmergencyFlow] emergency_assigned:', data);
-      if (activeRequest && (activeRequest._id === data.requestId || activeRequest.id === data.requestId)) {
+      if (matches(data)) {
         setSearching(false);
         setAssignedData(data);
         toast.success('Emergency responder assigned and on the way!');
       }
     };
 
-    // 4. Winning Provider Assigned
     const onAssignedToYou = (data: any) => {
-      console.log('[EmergencyFlow] emergency_assigned_to_you:', data);
+      setPendingAccept(null);
       setIncomingEmergency(null);
       setHospitalSelectRequestId(data.requestId);
       toast.success('You have secured the emergency dispatch! En route to pickup.');
     };
 
-    // 5. No Responders Found Fallback
+    const onLost = (data: any) => {
+      setPendingAccept(null);
+      setIncomingEmergency(null);
+      toast.info(data?.message || 'Ye emergency kisi aur paas wale responder ko assign ho gayi.');
+    };
+
+    const onClosed = () => {
+      setPendingAccept(null);
+      setIncomingEmergency(null);
+    };
+
     const onNoResponders = (data: any) => {
-      console.log('[EmergencyFlow] emergency_no_responders_found:', data);
-      if (activeRequest && (activeRequest._id === data.requestId || activeRequest.id === data.requestId)) {
+      if (matches(data)) {
         setSearching(false);
-        toast.error('No emergency vehicles responded in time. Please dial 108 or 112 immediately!', {
-          duration: 12000,
-        });
+        setNoResponders(true);
+        toast.error('No emergency vehicles responded in time. Please dial 108 or 112 immediately!', { duration: 12000 });
       }
     };
 
-    // 6. Emergency Cancelled
     const onEmergencyCancelled = (data: any) => {
-      console.log('[EmergencyFlow] emergency_cancelled:', data);
-      if (activeRequest && (activeRequest._id === data.requestId || activeRequest.id === data.requestId)) {
+      if (matches(data)) {
         setSearching(false);
         setAssignedData(null);
         setActiveRequest(null);
+        setNoResponders(false);
         toast.info('Emergency request was cancelled.');
       }
-      if (incomingEmergency && incomingEmergency.requestId === data.requestId) {
+      if (incomingRef.current?.requestId === data.requestId) {
         setIncomingEmergency(null);
+        setPendingAccept(null);
         toast.info('The emergency request was cancelled by the requester.');
+      }
+    };
+
+    const onCompleted = (data: any) => {
+      if (matches(data)) {
+        setAssignedData(null);
+        setActiveRequest(null);
+        setSearching(false);
+        toast.success('Emergency completed.');
+      }
+    };
+
+    const onHospitalSelected = (data: any) => {
+      if (matches(data)) {
+        setAssignedData((prev: any) => prev ? { ...prev, hospital: data.hospital } : prev);
       }
     };
 
@@ -93,32 +144,39 @@ export default function EmergencyFlowController() {
     socket.on('emergency_searching_update', onSearchingUpdate);
     socket.on('emergency_assigned', onEmergencyAssigned);
     socket.on('emergency_assigned_to_you', onAssignedToYou);
+    socket.on('emergency_lost', onLost);
+    socket.on('emergency_closed', onClosed);
     socket.on('emergency_no_responders_found', onNoResponders);
     socket.on('emergency_cancelled', onEmergencyCancelled);
+    socket.on('emergency_completed', onCompleted);
+    socket.on('emergency_hospital_selected', onHospitalSelected);
 
     return () => {
       socket.off('incoming_emergency', onIncomingEmergency);
       socket.off('emergency_searching_update', onSearchingUpdate);
       socket.off('emergency_assigned', onEmergencyAssigned);
       socket.off('emergency_assigned_to_you', onAssignedToYou);
+      socket.off('emergency_lost', onLost);
+      socket.off('emergency_closed', onClosed);
       socket.off('emergency_no_responders_found', onNoResponders);
       socket.off('emergency_cancelled', onEmergencyCancelled);
+      socket.off('emergency_completed', onCompleted);
+      socket.off('emergency_hospital_selected', onHospitalSelected);
     };
-  }, [activeRequest, incomingEmergency]);
+  }, []);
 
-  // Join socket room whenever an activeRequest is created
+  // Join room immediately when activeRequest set + one GET sync (Doc 01 §12 race fix)
   useEffect(() => {
     if (!activeRequest?._id) return;
     const socket = getSocket();
     if (!socket) return;
-
     socket.emit('join_emergency_room', { requestId: activeRequest._id });
+    syncRequestState(String(activeRequest._id));
     return () => {
       socket.emit('leave_emergency_room', { requestId: activeRequest._id });
     };
-  }, [activeRequest]);
+  }, [activeRequest?._id, syncRequestState]);
 
-  // Submit Emergency SOS
   const handleSubmitSOS = async (payload: any) => {
     try {
       const res = await api.post('/emergency-sos', payload);
@@ -127,6 +185,8 @@ export default function EmergencyFlowController() {
         setActiveRequest(created);
         setConfirmModalOpen(false);
         setSearching(true);
+        setNoResponders(false);
+        setAssignedData(null);
         setSearchPhase('ambulance');
         setSearchRadius(5);
         toast.success('Emergency SOS triggered! Broadcasting to nearest hospital ambulances.');
@@ -137,7 +197,6 @@ export default function EmergencyFlowController() {
     }
   };
 
-  // Cancel Emergency SOS by User
   const handleCancelSOS = async () => {
     if (!activeRequest?._id) return;
     try {
@@ -146,56 +205,61 @@ export default function EmergencyFlowController() {
       });
       setSearching(false);
       setActiveRequest(null);
+      setNoResponders(false);
       toast.info('Emergency request cancelled.');
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Failed to cancel emergency.');
     }
   };
 
-  // Provider Accept
   const handleProviderAccept = async (requestId: string) => {
     if (!incomingEmergency) return;
     try {
-      const res = await api.post(`/emergency-sos/${requestId}/accept`, {
+      const res: any = await api.post(`/emergency-sos/${requestId}/accept`, {
         providerType: incomingEmergency.providerType,
-        providerId: incomingEmergency.ambulanceId || user?._id,
+        providerId: incomingEmergency.ambulanceId || incomingEmergency.providerId || (user as any)?.id || (user as any)?._id,
       });
 
-      if (res.status === 'assigned') {
-        setIncomingEmergency(null);
-        setHospitalSelectRequestId(requestId);
-        toast.success('Emergency request assigned to you!');
+      if (res.status === 'accepted_pending') {
+        setPendingAccept({
+          requestId,
+          endsAt: res.windowEndsAt ? new Date(res.windowEndsAt).getTime() : Date.now() + 30000,
+        });
+        // overlay stays open in "confirmation ka wait" state — do NOT clear incomingEmergency
       } else if (res.status === 'too_late') {
         toast.warning(res.message || 'Another responder already accepted this request.');
         setIncomingEmergency(null);
-      } else {
+      } else if (!res.success) {
         toast.error(res.message || 'Could not accept emergency request.');
       }
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to accept emergency.');
+      const msg = err.response?.data?.message || err.message || '';
+      const status = err.response?.data?.status;
+      if (status === 'too_late') {
+        toast.warning(msg);
+        setIncomingEmergency(null);
+      } else {
+        toast.error(msg || 'Failed to accept emergency.');
+      }
     }
   };
 
-  // Provider Reject / Decline
   const handleProviderReject = async (requestId: string) => {
     setIncomingEmergency(null);
+    setPendingAccept(null);
     try {
       await api.post(`/emergency-sos/${requestId}/reject`, {
-        providerId: incomingEmergency?.ambulanceId || user?._id,
+        providerId: incomingEmergency?.ambulanceId || incomingEmergency?.providerId || (user as any)?.id || (user as any)?._id,
       }).catch(() => {});
-    } catch {
-      // ignore
-    }
+    } catch {}
   };
 
   return (
     <>
-      {/* Floating SOS Trigger Button (Visible when not actively searching/assigned) */}
       {!searching && !assignedData && (
         <SOSButton onClick={() => setConfirmModalOpen(true)} />
       )}
 
-      {/* Patient: 1s Hold-to-Confirm & Details Modal */}
       <SOSConfirmModal
         open={confirmModalOpen}
         onOpenChange={setConfirmModalOpen}
@@ -203,7 +267,6 @@ export default function EmergencyFlowController() {
         currentUser={user}
       />
 
-      {/* Patient: Fullscreen Radar Searching Screen */}
       {searching && (
         <SOSSearchingScreen
           radiusKm={searchRadius}
@@ -213,7 +276,16 @@ export default function EmergencyFlowController() {
         />
       )}
 
-      {/* Patient: Dispatched Responder Screen */}
+      {(!searching && noResponders) && (
+        <SOSSearchingScreen
+          radiusKm={searchRadius}
+          phase={searchPhase}
+          onCancel={() => { setNoResponders(false); setActiveRequest(null); }}
+          requestDetails={activeRequest}
+          noResponders
+        />
+      )}
+
       {assignedData && (
         <SOSAssignedScreen
           emergency={{ responder: assignedData }}
@@ -221,17 +293,16 @@ export default function EmergencyFlowController() {
         />
       )}
 
-      {/* Provider: Fullscreen Call Alert with 30s Countdown */}
       {incomingEmergency && (
         <ProviderIncomingCall
           data={incomingEmergency}
+          acceptedWaiting={!!pendingAccept}
           onAccept={handleProviderAccept}
           onReject={handleProviderReject}
           onTimeout={handleProviderReject}
         />
       )}
 
-      {/* Provider: Destination Hospital Picker Dialog */}
       {hospitalSelectRequestId && (
         <ProviderHospitalSelect
           requestId={hospitalSelectRequestId}

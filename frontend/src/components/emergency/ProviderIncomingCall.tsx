@@ -34,6 +34,7 @@ interface IncomingEmergencyData {
 
 interface ProviderIncomingCallProps {
   data: IncomingEmergencyData;
+  acceptedWaiting?: boolean;
   onAccept: (requestId: string) => Promise<void> | void;
   onReject: (requestId: string) => void;
   onTimeout?: (requestId: string) => void;
@@ -41,6 +42,7 @@ interface ProviderIncomingCallProps {
 
 export default function ProviderIncomingCall({
   data,
+  acceptedWaiting,
   onAccept,
   onReject,
   onTimeout,
@@ -148,8 +150,30 @@ export default function ProviderIncomingCall({
     other: 'Critical Medical Emergency',
   };
 
+  if (acceptedWaiting) {
+    return (
+      <div role="alertdialog" aria-modal="true" aria-label="Emergency confirmation wait"
+        className="fixed inset-0 z-[9999] bg-slate-950/95 backdrop-blur-2xl flex flex-col items-center justify-center p-6 text-white select-none">
+        <style>{`@media (prefers-reduced-motion: reduce){.ring-icon{animation:none!important}}`}</style>
+        <div className="w-full max-w-md rounded-3xl border-2 border-emerald-500/40 bg-slate-900 p-8 text-center space-y-3">
+          <div className="w-10 h-10 mx-auto border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+          <h2 className="text-lg font-black">Aapne accept kiya</h2>
+          <p className="text-sm text-slate-300">Sabse paas wale responder ko assign hoga, confirmation ka wait…</p>
+          <p className="text-xs text-slate-500">Window band hone par result aayega. Overlay band mat karo.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="fixed inset-0 z-[9999] bg-slate-950/95 backdrop-blur-2xl flex flex-col items-center justify-between p-4 sm:p-6 text-white select-none">
+    <div role="alertdialog" aria-modal="true" aria-label="Incoming emergency call"
+      className="fixed inset-0 z-[9999] bg-slate-950/95 backdrop-blur-2xl flex flex-col items-center justify-between p-4 sm:p-6 text-white select-none"
+      onClick={(e) => e.stopPropagation()} onKeyDown={(e) => { if (e.key === 'Escape') e.stopPropagation(); }}>
+      <style>{`
+        @keyframes ring-shake { 0%,100%{transform:rotate(0)} 10%,30%,50%,70%,90%{transform:rotate(-12deg)} 20%,40%,60%,80%{transform:rotate(12deg)} }
+        .ring-icon { animation: ring-shake 1.2s ease-in-out infinite; }
+        @media (prefers-reduced-motion: reduce){ .ring-icon{animation:none!important} }
+      `}</style>
       {/* Top Header */}
       <div className="w-full max-w-md pt-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -296,6 +320,11 @@ export default function ProviderIncomingCall({
                 <span className="font-bold">Conditions:</span> {data.patient.knownConditions}
               </p>
             )}
+            {(data.patient as any)?.knownAllergies && (
+              <p className="text-[10px] text-amber-300/90 pt-1">
+                <span className="font-bold">Allergies:</span> {(data.patient as any).knownAllergies}
+              </p>
+            )}
 
             {data.reporter?.name && (
               <p className="text-[10px] text-slate-400 pt-1 border-t border-white/5">
@@ -339,7 +368,7 @@ export default function ProviderIncomingCall({
             <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
           ) : (
             <>
-              <PhoneCall className="w-5 h-5 animate-pulse" />
+              <PhoneCall className="w-5 h-5 ring-icon" />
               Accept SOS
             </>
           )}

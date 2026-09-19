@@ -30,6 +30,15 @@ const ambulanceSchema = new mongoose.Schema({
   },
   currentDriverPhone: { type: String, default: '' },
 
+  // Ambulance login (Doc 02) — User(role=ambulance) linked profile
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', unique: true, sparse: true, index: true },
+  driverName: { type: String, default: '' },
+  driverPhone: { type: String, default: '' },
+  loginEmail: { type: String, default: '', lowercase: true, trim: true },
+  loginStatus: { type: String, enum: ['none', 'invited', 'active'], default: 'none', index: true },
+  lastPingAt: { type: Date, default: null },
+  currentEmergencyId: { type: mongoose.Schema.Types.ObjectId, ref: 'EmergencyRequest', default: null },
+
   isOnline: { type: Boolean, default: false, index: true },
   isOnDuty: { type: Boolean, default: false, index: true },
   emergencySupport: { type: Boolean, default: true, index: true },
@@ -41,10 +50,10 @@ const ambulanceSchema = new mongoose.Schema({
       default: 'Point',
     },
     coordinates: {
-      type: [Number], // [longitude, latitude]
-      default: [79.9864, 23.1815], // Default center
+      type: [Number], // [longitude, latitude] — undefined until first GPS ping (never default Jabalpur)
+      default: undefined,
     },
-    updatedAt: { type: Date, default: Date.now },
+    updatedAt: { type: Date, default: null },
   },
 
   createdAt: { type: Date, default: Date.now },
