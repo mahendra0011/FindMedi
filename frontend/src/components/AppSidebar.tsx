@@ -90,6 +90,7 @@ const navConfig = {
     { icon: Star,            labelKey: 'nav.reviews',          path: '/admin/reviews'    },
     { icon: BarChart3,       labelKey: 'nav.analytics',        path: '/admin/analytics'  },
     { icon: AlertTriangle,   labelKey: 'nav.emergency',        path: '/admin/emergency'  },
+    { icon: Ambulance,       labelKey: 'nav.ambulances',       path: '/admin/ambulances' },
     { icon: Ambulance,       labelKey: 'nav.vehicleRides',      path: '/admin/vehicle-rides' },
     { icon: UserCheck,       labelKey: 'nav.hospitalAssistants', path: '/admin/assistants' },
     { icon: Scale,           labelKey: 'nav.legalServices',      path: '/admin/lawyers' },

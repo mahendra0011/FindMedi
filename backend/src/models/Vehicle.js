@@ -4,7 +4,7 @@ const vehicleSchema = new mongoose.Schema({
   riderId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', index: true },
   type: {
     type: String,
-    enum: ['bike', 'auto', 'e_rickshaw', 'car', 'van', 'ambulance'],
+    enum: ['bike', 'auto', 'e_rickshaw', 'car', 'van'],
     required: true,
     index: true,
   },

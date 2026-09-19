@@ -134,16 +134,7 @@ export default function VehicleTypeSelector({
               <p className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">{v.desc}</p>
             </div>
 
-            {/* Bottom: Pay after ride & ETA */}
-            <div className="mt-2.5 pt-2 border-t border-border/50 flex items-center justify-between text-xs">
-              <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
-                Pay after ride
-              </span>
-              <span className="text-[11px] text-muted-foreground flex items-center gap-0.5">
-                <Clock className="w-3 h-3 text-primary" />
-                {estimate?.etaMin || 4}m arrival
-              </span>
-            </div>
+
           </motion.div>
         );
       })}

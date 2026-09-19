@@ -61,6 +61,23 @@ router.put('/profile', protect, async (req, res) => {
   }
 });
 
+// ─── PUT /api/rider/emergency-toggle ────────────────────────────────────────
+// Toggle Emergency Support participation for independent riders
+router.put('/emergency-toggle', protect, async (req, res) => {
+  try {
+    const { emergencySupport } = req.body;
+    const rider = await RiderProfile.findOneAndUpdate(
+      { userId: req.user._id },
+      { emergencySupport: Boolean(emergencySupport) },
+      { new: true }
+    );
+    if (!rider) return res.status(404).json({ message: 'Rider profile not found' });
+    res.json({ success: true, emergencySupport: rider.emergencySupport });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // ─── PUT /api/rider/status ──────────────────────────────────────────────────
 // Toggle online/offline
 router.put('/status', protect, validate(riderStatusSchema), async (req, res) => {

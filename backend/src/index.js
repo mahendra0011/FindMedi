@@ -339,6 +339,7 @@ import serviceCityRoutes from './routes/serviceCities.js';
 import medicineReminderRoutes from './routes/medicineReminders.js';
 import vitalsRoutes from './routes/vitals.js';
 import carePlanRoutes from './routes/carePlans.js';
+import emergencySOSRoutes from './routes/emergencySOS.js';
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -423,6 +424,7 @@ app.use('/api/lawyer-booking', lawyerBookingRoutes);
 app.use('/api/lawyer-bookings', lawyerBookingRoutes);
 app.use('/api/admin/lawyers', adminLawyerRoutes);
 app.use('/api/payment/demo', demoPaymentRoutes);
+app.use('/api/emergency-sos', emergencySOSRoutes);
 app.use('/api/service-cities', serviceCityRoutes);
 app.use('/api/medicine-reminders', medicineReminderRoutes);
 app.use('/api/vitals', vitalsRoutes);

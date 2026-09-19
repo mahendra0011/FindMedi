@@ -26,7 +26,7 @@ const rideBookingSchema = new mongoose.Schema({
   },
   vehicleType: {
     type: String,
-    enum: ['bike', 'auto', 'e_rickshaw', 'car', 'van', 'ambulance'],
+    enum: ['bike', 'auto', 'e_rickshaw', 'car', 'van'],
     required: true,
     index: true,
   },
@@ -76,6 +76,16 @@ const rideBookingSchema = new mongoose.Schema({
       note: { type: String, default: '' },
     },
   ],
+  dispatchAttempts: [
+    {
+      riderId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      distanceKm: { type: Number },
+      sentAt: { type: Date, default: Date.now },
+      respondedAt: { type: Date },
+      outcome: { type: String, enum: ['pending', 'accepted', 'rejected', 'timeout'], default: 'pending' },
+    },
+  ],
+  currentDispatchRadius: { type: Number, default: 5 },
   payment: {
     method: { type: String, enum: ['demo_wallet', 'cash', 'pending', ''], default: 'pending' },
     status: { type: String, enum: ['pending', 'paid', 'failed'], default: 'pending' },

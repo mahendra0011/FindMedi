@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import RideBooking from '../models/RideBooking.js';
 import RiderProfile from '../models/RiderProfile.js';
 import Vehicle from '../models/Vehicle.js';
@@ -114,11 +115,28 @@ export function estimateDurationMin(distanceKm, vehicleType) {
 }
 
 /**
- * Estimate rider arrival time (ETA)
+ * Estimate rider arrival time (ETA) in minutes
+ * Supports both estimateETA(distanceKm, vehicleType) and legacy estimateETA(pickupLat, pickupLng, vehicleType)
  */
-export function estimateETA(pickupLat, pickupLng, vehicleType) {
-  // Typical dispatch response time between 3 and 7 mins
-  return Math.floor(Math.random() * 4) + 3;
+export function estimateETA(arg1, arg2, arg3) {
+  let distanceKm;
+  let vehicleType;
+
+  if (arg3 !== undefined) {
+    // Called as estimateETA(pickupLat, pickupLng, vehicleType)
+    // Approximate typical response distance of nearby fleet (~2.5 km)
+    distanceKm = 2.5;
+    vehicleType = arg3;
+  } else {
+    // Called as estimateETA(distanceKm, vehicleType)
+    distanceKm = typeof arg1 === 'number' && !isNaN(arg1) ? arg1 : 2.5;
+    vehicleType = arg2;
+  }
+
+  const speedKmh = vehicleType === 'bike' ? 35 : vehicleType === 'ambulance' ? 45 : 30;
+  const hours = distanceKm / speedKmh;
+  const mins = Math.round(hours * 60) + 1; // +1 min pickup reaction buffer
+  return Math.max(2, mins);
 }
 
 /**
@@ -146,17 +164,29 @@ export function getEstimatesForRoute(pickup, drop, isEmergency = false) {
 }
 
 /**
- * Find nearby online riders eligible for a ride booking
+ * Find nearby online riders eligible for a ride booking,
+ * sorted nearest-first using MongoDB $geoNear geospatial aggregation.
+ *
+ * @param {string} vehicleType
+ * @param {number} pickupLat
+ * @param {number} pickupLng
+ * @param {boolean} isEmergency
+ * @param {number|null} radiusKm - search radius in km (defaults: 15 for emergency, 5 for normal)
  */
-export async function findEligibleRiders(vehicleType, pickupLat, pickupLng, isEmergency = false) {
+export async function findEligibleRiders(vehicleType, pickupLat, pickupLng, isEmergency = false, radiusKm = null) {
   try {
-    // Look for active & online riders
+    if (mongoose.connection.readyState !== 1) {
+      return [];
+    }
+
+    const searchRadiusKm = radiusKm ?? (isEmergency ? 15 : 5);
+    const radiusInMeters = searchRadiusKm * 1000;
+
     const query = {
       isOnline: true,
       riderStatus: 'active',
     };
 
-    // Find riders with vehicles of matching type
     const matchingVehicles = await Vehicle.find({ type: vehicleType }).select('_id');
     const vehicleIds = matchingVehicles.map(v => v._id);
 
@@ -164,16 +194,74 @@ export async function findEligibleRiders(vehicleType, pickupLat, pickupLng, isEm
       query.vehicleId = { $in: vehicleIds };
     }
 
-    // Emergency ambulance queries all ambulance drivers in wider region
-    const riders = await RiderProfile.find(query)
-      .populate('userId', 'name phone email avatar')
-      .populate('vehicleId')
-      .lean();
+    // If coordinates are invalid or missing, fallback to non-geo query
+    if (pickupLat == null || pickupLng == null || isNaN(Number(pickupLat)) || isNaN(Number(pickupLng))) {
+      logger.warn(`findEligibleRiders: Invalid coordinates (${pickupLat}, ${pickupLng}), falling back to non-geo query`);
+      const riders = await RiderProfile.find(query)
+        .populate('userId', 'name phone email avatar')
+        .populate('vehicleId')
+        .lean();
+      return riders.map(r => ({ ...r, distanceKm: 0 }));
+    }
 
-    return riders;
+    // $geoNear must be the first stage in an aggregation pipeline.
+    // It automatically sorts results by distance ascending (nearest first).
+    const riders = await RiderProfile.aggregate([
+      {
+        $geoNear: {
+          near: {
+            type: 'Point',
+            coordinates: [Number(pickupLng), Number(pickupLat)],
+          },
+          key: 'currentLocation.coordinates',
+          distanceField: 'distanceMeters',
+          maxDistance: radiusInMeters,
+          spherical: true,
+          query,
+        },
+      },
+      { $limit: 20 },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'userId',
+          foreignField: '_id',
+          as: 'userId',
+        },
+      },
+      { $unwind: { path: '$userId', preserveNullAndEmptyArrays: true } },
+      {
+        $lookup: {
+          from: 'vehicles',
+          localField: 'vehicleId',
+          foreignField: '_id',
+          as: 'vehicleId',
+        },
+      },
+      { $unwind: { path: '$vehicleId', preserveNullAndEmptyArrays: true } },
+    ]);
+
+    return riders.map(r => ({
+      ...r,
+      distanceKm: Math.round(((r.distanceMeters || 0) / 1000) * 10) / 10,
+    }));
   } catch (err) {
-    logger.error(`findEligibleRiders error: ${err.message}`);
-    return [];
+    logger.error(`findEligibleRiders $geoNear error: ${err.message}`);
+    // Resilient fallback if geo index is building or query error occurs
+    try {
+      const fallbackQuery = { isOnline: true, riderStatus: 'active' };
+      const matchingVehicles = await Vehicle.find({ type: vehicleType }).select('_id');
+      if (matchingVehicles.length > 0) {
+        fallbackQuery.vehicleId = { $in: matchingVehicles.map(v => v._id) };
+      }
+      const riders = await RiderProfile.find(fallbackQuery)
+        .populate('userId', 'name phone email avatar')
+        .populate('vehicleId')
+        .lean();
+      return riders.map(r => ({ ...r, distanceKm: 0 }));
+    } catch {
+      return [];
+    }
   }
 }
 
@@ -187,6 +275,11 @@ export async function broadcastRideBooking(ride) {
   const { vehicleType, pickup, drop, fare, distanceKm, isEmergency, _id, bookingNumber } = ride;
   const eligibleRiders = await findEligibleRiders(vehicleType, pickup.lat, pickup.lng, isEmergency);
 
+  if (!eligibleRiders || eligibleRiders.length === 0) {
+    logger.warn(`No eligible riders found within radius for ride ${bookingNumber}`);
+    return;
+  }
+
   const requestPayload = {
     rideId: String(_id),
     bookingNumber,
@@ -195,19 +288,163 @@ export async function broadcastRideBooking(ride) {
     pickup,
     drop,
     distanceKm,
-    estimatedFare: fare.total,
+    estimatedFare: fare?.total || 0,
     durationMin: ride.durationMin,
     createdAt: ride.createdAt,
   };
 
-  eligibleRiders.forEach(rider => {
-    if (rider.userId?._id) {
-      io.to(`user:${rider.userId._id}`).emit('new_ride_request', requestPayload);
-      io.of('/ride').to(`rider:${rider.userId._id}`).emit('new_ride_request', requestPayload);
+  eligibleRiders.forEach((rider, index) => {
+    const riderUserId = rider.userId?._id || rider.userId;
+    if (riderUserId) {
+      const payload = {
+        ...requestPayload,
+        riderDistanceKm: rider.distanceKm,
+        priorityRank: index + 1,
+      };
+      io.to(`user:${riderUserId}`).emit('new_ride_request', payload);
+      io.of('/ride').to(`rider:${riderUserId}`).emit('new_ride_request', payload);
     }
   });
 
-  logger.info(`Broadcasted ride ${bookingNumber} to ${eligibleRiders.length} online riders`);
+  logger.info(`Broadcasted ride ${bookingNumber} to ${eligibleRiders.length} online riders within radius, nearest first`);
+}
+
+const DISPATCH_TIMEOUT_MS = 15000; // 15s per batch for standard rides
+const EMERGENCY_TIMEOUT_MS = 10000; // 10s per batch for urgent ambulance rides
+const STANDARD_RADIUS_STEPS = [5, 10, 20, 40]; // escalation tiers in km
+const EMERGENCY_RADIUS_STEPS = [15, 30, 50]; // escalation tiers for emergency
+
+/**
+ * Sequential / tiered dispatch with expanding radius escalation
+ */
+export async function dispatchSequentially(rideId) {
+  try {
+    const ride = await RideBooking.findById(rideId);
+    if (!ride || ride.status !== 'searching') return;
+
+    const radiusSteps = ride.isEmergency ? EMERGENCY_RADIUS_STEPS : STANDARD_RADIUS_STEPS;
+    const batchSize = ride.isEmergency ? 3 : 1;
+    const timeoutMs = ride.isEmergency ? EMERGENCY_TIMEOUT_MS : DISPATCH_TIMEOUT_MS;
+
+    for (const radiusKm of radiusSteps) {
+      const currentRide = await RideBooking.findById(rideId);
+      if (!currentRide || currentRide.status !== 'searching') return;
+
+      const riders = await findEligibleRiders(
+        currentRide.vehicleType,
+        currentRide.pickup.lat,
+        currentRide.pickup.lng,
+        currentRide.isEmergency,
+        radiusKm
+      );
+
+      const alreadyTried = new Set((currentRide.dispatchAttempts || []).map(a => String(a.riderId)));
+      const freshRiders = riders.filter(r => {
+        const id = String(r.userId?._id || r.userId);
+        return !alreadyTried.has(id);
+      });
+
+      if (freshRiders.length === 0) {
+        continue;
+      }
+
+      const batch = freshRiders.slice(0, batchSize);
+      await notifyBatchAndWait(currentRide, batch, timeoutMs);
+
+      const checkAfter = await RideBooking.findById(rideId);
+      if (!checkAfter || checkAfter.status !== 'searching') return;
+
+      await RideBooking.findByIdAndUpdate(rideId, { currentDispatchRadius: radiusKm });
+    }
+
+    // All radius tiers exhausted without acceptance
+    const finalCheck = await RideBooking.findById(rideId);
+    if (finalCheck && finalCheck.status === 'searching') {
+      finalCheck.status = 'no_riders_found';
+      finalCheck.statusHistory.push({
+        status: 'no_riders_found',
+        at: new Date(),
+        note: 'No drivers accepted within maximum dispatch radius',
+      });
+      await finalCheck.save();
+      notifyRideUpdate(finalCheck, 'ride_status_update');
+      logger.info(`Ride ${finalCheck.bookingNumber} transitioned to no_riders_found`);
+    }
+  } catch (err) {
+    logger.error(`dispatchSequentially error: ${err.message}`);
+  }
+}
+
+async function notifyBatchAndWait(ride, batch, timeoutMs) {
+  const io = getIO();
+  const requestPayload = {
+    rideId: String(ride._id),
+    bookingNumber: ride.bookingNumber,
+    vehicleType: ride.vehicleType,
+    isEmergency: ride.isEmergency,
+    pickup: ride.pickup,
+    drop: ride.drop,
+    distanceKm: ride.distanceKm,
+    estimatedFare: ride.fare?.total || 0,
+    durationMin: ride.durationMin,
+    createdAt: ride.createdAt,
+  };
+
+  if (io) {
+    batch.forEach((rider, idx) => {
+      const riderUserId = rider.userId?._id || rider.userId;
+      if (riderUserId) {
+        const payload = {
+          ...requestPayload,
+          riderDistanceKm: rider.distanceKm,
+          priorityRank: idx + 1,
+        };
+        io.to(`user:${riderUserId}`).emit('new_ride_request', payload);
+        io.of('/ride').to(`rider:${riderUserId}`).emit('new_ride_request', payload);
+      }
+    });
+  }
+
+  // Record dispatch attempts
+  const attempts = batch.map(r => ({
+    riderId: r.userId?._id || r.userId,
+    distanceKm: r.distanceKm,
+    sentAt: new Date(),
+    outcome: 'pending',
+  }));
+
+  await RideBooking.findByIdAndUpdate(ride._id, {
+    $push: { dispatchAttempts: { $each: attempts } },
+  });
+
+  // Short polling check loop so we exit early as soon as ride is accepted
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    const current = await RideBooking.findById(ride._id).select('status');
+    if (!current || current.status !== 'searching') {
+      return;
+    }
+  }
+
+  // Mark pending attempts in this batch as timed out
+  await RideBooking.updateOne(
+    { _id: ride._id },
+    {
+      $set: {
+        'dispatchAttempts.$[elem].outcome': 'timeout',
+        'dispatchAttempts.$[elem].respondedAt': new Date(),
+      },
+    },
+    {
+      arrayFilters: [
+        {
+          'elem.riderId': { $in: batch.map(r => r.userId?._id || r.userId) },
+          'elem.outcome': 'pending',
+        },
+      ],
+    }
+  );
 }
 
 /**

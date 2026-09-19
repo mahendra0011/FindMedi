@@ -196,6 +196,53 @@ function attachLawyerSocketHandlers(socket, namespace) {
   });
 }
 
+function attachEmergencySocketHandlers(socket, namespace) {
+  socket.on('join_emergency_room', ({ requestId }) => {
+    if (requestId) socket.join(`emergency:${requestId}`);
+  });
+  socket.on('leave_emergency_room', ({ requestId }) => {
+    if (requestId) socket.leave(`emergency:${requestId}`);
+  });
+  socket.on('join_ambulance_room', ({ ambulanceId }) => {
+    if (ambulanceId) socket.join(`ambulance:${ambulanceId}`);
+  });
+  socket.on('leave_ambulance_room', ({ ambulanceId }) => {
+    if (ambulanceId) socket.leave(`ambulance:${ambulanceId}`);
+  });
+  socket.on('emergency_provider_location', async ({ requestId, providerId, providerType, lat, lng }) => {
+    try {
+      if (providerType === 'ambulance' && providerId) {
+        const Ambulance = (await import('../models/Ambulance.js')).default;
+        await Ambulance.findByIdAndUpdate(providerId, {
+          'currentLocation.coordinates': [lng, lat],
+          'currentLocation.updatedAt': new Date(),
+        }).catch(() => {});
+      } else if (providerId) {
+        const RiderProfile = (await import('../models/RiderProfile.js')).default;
+        await RiderProfile.findOneAndUpdate(
+          { userId: providerId },
+          {
+            'currentLocation.lat': lat,
+            'currentLocation.lng': lng,
+            'currentLocation.coordinates': [lng, lat],
+            'currentLocation.updatedAt': new Date(),
+          }
+        ).catch(() => {});
+      }
+
+      if (requestId) {
+        const updatePayload = { requestId, lat, lng, timestamp: Date.now() };
+        namespace.to(`emergency:${requestId}`).emit('emergency_provider_location_update', updatePayload);
+        if (io && namespace !== io) {
+          io.to(`emergency:${requestId}`).emit('emergency_provider_location_update', updatePayload);
+        }
+      }
+    } catch (err) {
+      logger.error(`emergency_provider_location error: ${err.message}`);
+    }
+  });
+}
+
 
 const getAllowedSocketOrigins = () => {
   const envOrigins = [
@@ -316,6 +363,9 @@ export async function initSocket(server) {
 
     // ─── Lawyer & Legal Events (Doc 05 §4) ─────────────────────────────
     attachLawyerSocketHandlers(socket, io);
+
+    // ─── Emergency SOS Events ──────────────────────────────────────────
+    attachEmergencySocketHandlers(socket, io);
 
     // Chat Events
     socket.on('chat:join', (conversationId) => {

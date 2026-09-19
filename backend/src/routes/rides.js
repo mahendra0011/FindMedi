@@ -12,6 +12,7 @@ import {
   calculateDistanceKm,
   estimateDurationMin,
   broadcastRideBooking,
+  dispatchSequentially,
   notifyRideUpdate,
   VEHICLE_RATES,
 } from '../services/rideService.js';
@@ -81,9 +82,9 @@ router.post('/book', protect, validate(bookRideSchema), async (req, res) => {
       statusHistory: [{ status: 'searching', at: new Date(), note: 'Booking initiated' }],
     });
 
-    // Broadcast to eligible riders via Socket.IO
-    broadcastRideBooking(ride).catch(err => {
-      logger.warn(`Ride broadcast warning: ${err.message}`);
+    // Dispatch to eligible riders nearest-first with tiered escalation
+    dispatchSequentially(ride._id).catch(err => {
+      logger.warn(`Ride dispatch warning: ${err.message}`);
     });
 
     res.status(201).json({
@@ -466,8 +467,8 @@ router.post('/:id/cancel', protect, async (req, res) => {
         { $inc: { cancellationStrikes: 1 } }
       );
 
-      // Re-broadcast
-      broadcastRideBooking(ride).catch(() => {});
+      // Re-dispatch sequentially nearest-first
+      dispatchSequentially(ride._id).catch(() => {});
       notifyRideUpdate(ride, 'ride_status_update');
 
       return res.json({ success: true, message: 'Ride cancelled and returned to matching', ride });
