@@ -30,6 +30,7 @@ import AppMotion from './components/AppMotion';
 import { LenisScroll } from './components/LenisScroll';
 import ErrorBoundary from './components/ErrorBoundary';
 import { useProactiveTokenRefresh } from '@/lib/useProactiveTokenRefresh';
+import EmergencyFlowController from '@/components/emergency/EmergencyFlowController';
 
 // Keep layouts that are always needed
 const Home = lazy(() => import('./pages/Home'));
@@ -225,6 +226,7 @@ const AdminAnalytics = lazy(() => import('./pages/admin/AdminAnalytics'));
 const AdminDepartments = lazy(() => import('./pages/admin/AdminDepartments'));
 const AdminReviews = lazy(() => import('./pages/admin/AdminReviews'));
 const AdminEmergency = lazy(() => import('./pages/admin/AdminEmergency'));
+const ManageAmbulancesPage = lazy(() => import('./pages/hospital/ManageAmbulancesPage'));
 const AdminBedManagement = lazy(() => import('./pages/admin/AdminBedManagement'));
 const AdminTestCatalog = lazy(() => import('./pages/admin/AdminTestCatalog'));
 const AdminHospitalSettings = lazy(() => import('./pages/admin/AdminHospitalSettings'));
@@ -476,6 +478,7 @@ const App = () => (
             <Toaster />
             <Sonner />
             <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+            <EmergencyFlowController />
             <LenisScroll>
               <AppMotion>
                 <Suspense fallback={loadingFallback}>
@@ -617,6 +620,7 @@ const App = () => (
                     <Route path="/admin/analytics" element={<RoleRoute allowedRoles={['hospital_admin']}><AdminAnalytics /></RoleRoute>} />
                     <Route path="/admin/departments" element={<RoleRoute allowedRoles={['hospital_admin']}><AdminDepartments /></RoleRoute>} />
                     <Route path="/admin/emergency" element={<RoleRoute allowedRoles={['hospital_admin']}><AdminEmergency /></RoleRoute>} />
+                    <Route path="/admin/ambulances" element={<RoleRoute allowedRoles={['hospital_admin']}><ManageAmbulancesPage /></RoleRoute>} />
                     <Route path="/admin/reviews" element={<RoleRoute allowedRoles={['hospital_admin']}><AdminReviews /></RoleRoute>} />
                     <Route path="/admin/beds" element={<RoleRoute allowedRoles={['hospital_admin']}><AdminBedManagement /></RoleRoute>} />
                     <Route path="/admin/test-catalog" element={<RoleRoute allowedRoles={['hospital_admin']}><AdminTestCatalog /></RoleRoute>} />

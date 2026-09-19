@@ -45,6 +45,7 @@ const riderProfileSchema = new mongoose.Schema({
   },
   rejectionReason: { type: String, default: '' },
   isOnline: { type: Boolean, default: false, index: true },
+  emergencySupport: { type: Boolean, default: false, index: true },
   currentLocation: {
     type: {
       type: String,

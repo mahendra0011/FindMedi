@@ -516,7 +516,7 @@ export default function RiderDashboard() {
                 >
                   <div className="flex items-start justify-between">
                     <div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         {req.isEmergency && (
                           <Badge variant="destructive" className="animate-pulse text-[10px]">
                             EMERGENCY PRIORITY
@@ -525,6 +525,17 @@ export default function RiderDashboard() {
                         <Badge variant="outline" className="font-mono text-[10px]">
                           {req.bookingNumber}
                         </Badge>
+                        {req.priorityRank != null && (
+                          <Badge
+                            className={`text-[10px] font-semibold ${
+                              req.priorityRank === 1
+                                ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                                : 'bg-primary/15 text-primary border border-primary/20'
+                            }`}
+                          >
+                            {req.priorityRank === 1 ? '⭐ Nearest Driver' : `#${req.priorityRank} in Queue`}
+                          </Badge>
+                        )}
                       </div>
                       <h4 className="font-bold text-base text-foreground mt-1 capitalize">
                         {req.vehicleType?.replace('_', ' ')} Booking
@@ -543,6 +554,12 @@ export default function RiderDashboard() {
                   </div>
 
                   <div className="space-y-1.5 text-xs">
+                    {req.riderDistanceKm != null && (
+                      <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg w-fit border border-emerald-500/20">
+                        <MapPin className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Pickup is {req.riderDistanceKm} km away from you</span>
+                      </div>
+                    )}
                     <p className="text-muted-foreground truncate">
                       <span className="text-emerald-600 font-bold mr-1">Pickup:</span>
                       {req.pickup?.address}
@@ -552,7 +569,7 @@ export default function RiderDashboard() {
                       {req.drop?.address}
                     </p>
                     <p className="text-[11px] text-muted-foreground">
-                      Estimated Distance: {req.distanceKm || 0} km
+                      Trip Distance: {req.distanceKm || 0} km
                     </p>
                   </div>
 

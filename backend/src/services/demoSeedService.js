@@ -61,6 +61,8 @@ export async function ensureDemoUsers() {
         gender: 'Male',
         operatingCity: 'Jabalpur',
         operatingArea: 'Civil Lines & Wright Town',
+        lat: 23.1815,
+        lng: 79.9864, // Jabalpur center (~0 km)
         govtIdType: 'Aadhaar',
         govtIdNumber: '123456789012',
         drivingLicenseNumber: 'MP20-20220012345',
@@ -78,10 +80,12 @@ export async function ensureDemoUsers() {
         email: 'rider2@findmedi.com',
         name: 'Amit Patel',
         phone: '9876543226',
-        address: 'Vijay Nagar, Indore, MP',
+        address: 'Vijay Nagar, Jabalpur, MP',
         gender: 'Male',
-        operatingCity: 'Indore',
-        operatingArea: 'Vijay Nagar & Palasia',
+        operatingCity: 'Jabalpur',
+        operatingArea: 'Vijay Nagar & Madan Mahal',
+        lat: 23.1895,
+        lng: 79.9920, // ~1.2 km away
         govtIdType: 'Aadhaar',
         govtIdNumber: '123456789013',
         drivingLicenseNumber: 'MP09-20210045678',
@@ -99,10 +103,12 @@ export async function ensureDemoUsers() {
         email: 'rider3@findmedi.com',
         name: 'Ravi Kumar',
         phone: '9876543227',
-        address: 'MP Nagar, Bhopal, MP',
+        address: 'Adhartal, Jabalpur, MP',
         gender: 'Male',
-        operatingCity: 'Bhopal',
-        operatingArea: 'MP Nagar & Arera Colony',
+        operatingCity: 'Jabalpur',
+        operatingArea: 'Adhartal & Ghamapur',
+        lat: 23.1600,
+        lng: 79.9650, // ~3.4 km away
         govtIdType: 'PAN',
         govtIdNumber: 'ABCDE1234F',
         drivingLicenseNumber: 'MP04-20200078901',
@@ -120,10 +126,12 @@ export async function ensureDemoUsers() {
         email: 'rider4@findmedi.com',
         name: 'Sanjay Verma',
         phone: '9876543228',
-        address: 'Kothrud, Pune, MH',
+        address: 'Gorakhpur, Jabalpur, MP',
         gender: 'Male',
-        operatingCity: 'Pune',
-        operatingArea: 'Kothrud & Shivaji Nagar',
+        operatingCity: 'Jabalpur',
+        operatingArea: 'Medical College & Gorakhpur',
+        lat: 23.1950,
+        lng: 79.9750, // ~2.1 km away (Ambulance)
         govtIdType: 'Aadhaar',
         govtIdNumber: '123456789015',
         drivingLicenseNumber: 'MH12-20190033445',
@@ -141,10 +149,12 @@ export async function ensureDemoUsers() {
         email: 'rider5@findmedi.com',
         name: 'Deepak Sharma',
         phone: '9876543229',
-        address: 'Lajpat Nagar, New Delhi',
+        address: 'Sihora Highway, Jabalpur Outskirts, MP',
         gender: 'Male',
-        operatingCity: 'Delhi',
-        operatingArea: 'South Delhi & Central Delhi',
+        operatingCity: 'Jabalpur',
+        operatingArea: 'Highway & Outskirts',
+        lat: 23.4500,
+        lng: 80.2500, // ~35 km away (Out of standard 5km/15km radius)
         govtIdType: 'Aadhaar',
         govtIdNumber: '123456789016',
         drivingLicenseNumber: 'DL01-20220055667',
@@ -201,6 +211,16 @@ export async function ensureDemoUsers() {
         await v.save();
       }
 
+      const riderLat = r.lat ?? 23.1815;
+      const riderLng = r.lng ?? 79.9864;
+      const locData = {
+        type: 'Point',
+        coordinates: [Number(riderLng), Number(riderLat)],
+        lat: Number(riderLat),
+        lng: Number(riderLng),
+        updatedAt: new Date(),
+      };
+
       let p = await RiderProfile.findOne({ userId: u._id });
       if (!p) {
         p = new RiderProfile({
@@ -216,6 +236,7 @@ export async function ensureDemoUsers() {
           availableDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
           riderStatus: 'active',
           isOnline: true,
+          currentLocation: locData,
         });
         await p.save();
       } else {
@@ -224,6 +245,7 @@ export async function ensureDemoUsers() {
         p.operatingArea = r.operatingArea;
         p.riderStatus = 'active';
         p.isOnline = true;
+        p.currentLocation = locData;
         await p.save();
       }
     }

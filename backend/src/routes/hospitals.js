@@ -4,6 +4,10 @@ import User from '../models/User.js';
 import Doctor from '../models/Doctor.js';
 import { protect, superadminOnly, hospitalAdminOnly } from '../middleware/auth.js';
 import { validate, registerHospitalSchema } from '../utils/validate.js';
+import Ambulance from '../models/Ambulance.js';
+import Staff from '../models/Staff.js';
+import { createAmbulanceSchema, updateAmbulanceSchema } from '../utils/validate.js';
+import { syncHospitalAmbulanceFlag } from '../services/emergencyDispatchService.js';
 import { auditLog } from '../middleware/audit.js';
 import logger from '../config/logger.js';
 import { getCache, setCache, flushCachePattern } from '../config/redis.js';
@@ -206,6 +210,156 @@ router.get('/admin/mine', protect, hospitalAdminOnly, async (req, res) => {
     if (!hospital) return res.status(404).json({ message: 'Hospital not found' });
     res.json(hospital);
   } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// ─── Emergency SOS & Ambulance Fleet Endpoints ──────────────────────────────
+// Toggle hospital master Emergency SOS acceptance
+router.put('/emergency-toggle', protect, hospitalAdminOnly, async (req, res) => {
+  try {
+    const { emergencySupport } = req.body;
+    const hospital = await Hospital.findByIdAndUpdate(
+      req.user.hospitalId,
+      { emergencySupport: Boolean(emergencySupport) },
+      { new: true }
+    );
+    if (!hospital) return res.status(404).json({ message: 'Hospital not found' });
+    res.json({ success: true, emergencySupport: hospital.emergencySupport });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// List hospital's ambulances
+router.get('/ambulances', protect, hospitalAdminOnly, async (req, res) => {
+  try {
+    const ambulances = await Ambulance.find({ hospitalId: req.user.hospitalId })
+      .populate('currentDriverId', 'name contactNumber designation shift')
+      .sort({ createdAt: -1 })
+      .lean();
+    res.json({ success: true, ambulances });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Register new ambulance
+router.post('/ambulances', protect, hospitalAdminOnly, validate(createAmbulanceSchema), async (req, res) => {
+  try {
+    const { registrationNumber, vehicleModel, ambulanceType, equipmentLevel, currentDriverId, currentDriverPhone } = req.body;
+
+    const existing = await Ambulance.findOne({ registrationNumber: registrationNumber.toUpperCase() });
+    if (existing) {
+      return res.status(400).json({ message: 'An ambulance with this registration number already exists.' });
+    }
+
+    const ambulance = await Ambulance.create({
+      hospitalId: req.user.hospitalId,
+      registrationNumber: registrationNumber.toUpperCase(),
+      vehicleModel,
+      ambulanceType: ambulanceType || 'BLS',
+      equipmentLevel,
+      currentDriverId: currentDriverId || null,
+      currentDriverPhone: currentDriverPhone || '',
+      isOnline: false,
+      isOnDuty: false,
+    });
+
+    if (currentDriverId) {
+      await Staff.findByIdAndUpdate(currentDriverId, { assignedAmbulanceId: ambulance._id });
+    }
+
+    res.status(201).json({ success: true, ambulance });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Update ambulance details / assign driver / toggle online
+router.put('/ambulances/:id', protect, hospitalAdminOnly, validate(updateAmbulanceSchema), async (req, res) => {
+  try {
+    const ambulance = await Ambulance.findOne({ _id: req.params.id, hospitalId: req.user.hospitalId });
+    if (!ambulance) return res.status(404).json({ message: 'Ambulance not found in your hospital' });
+
+    const {
+      registrationNumber,
+      vehicleModel,
+      ambulanceType,
+      equipmentLevel,
+      currentDriverId,
+      currentDriverPhone,
+      isOnline,
+      emergencySupport,
+    } = req.body;
+
+    if (registrationNumber) ambulance.registrationNumber = registrationNumber.toUpperCase();
+    if (vehicleModel !== undefined) ambulance.vehicleModel = vehicleModel;
+    if (ambulanceType !== undefined) ambulance.ambulanceType = ambulanceType;
+    if (equipmentLevel !== undefined) ambulance.equipmentLevel = equipmentLevel;
+    if (currentDriverPhone !== undefined) ambulance.currentDriverPhone = currentDriverPhone;
+    if (emergencySupport !== undefined) ambulance.emergencySupport = emergencySupport;
+
+    if (currentDriverId !== undefined) {
+      if (ambulance.currentDriverId && ambulance.currentDriverId.toString() !== currentDriverId) {
+        await Staff.findByIdAndUpdate(ambulance.currentDriverId, { assignedAmbulanceId: null });
+      }
+      ambulance.currentDriverId = currentDriverId || null;
+      if (currentDriverId) {
+        await Staff.findByIdAndUpdate(currentDriverId, { assignedAmbulanceId: ambulance._id });
+      }
+    }
+
+    if (isOnline !== undefined) {
+      ambulance.isOnline = isOnline;
+    }
+
+    await ambulance.save();
+    await syncHospitalAmbulanceFlag(req.user.hospitalId);
+
+    res.json({ success: true, ambulance });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Delete ambulance from fleet
+router.delete('/ambulances/:id', protect, hospitalAdminOnly, async (req, res) => {
+  try {
+    const ambulance = await Ambulance.findOneAndDelete({ _id: req.params.id, hospitalId: req.user.hospitalId });
+    if (!ambulance) return res.status(404).json({ message: 'Ambulance not found' });
+
+    if (ambulance.currentDriverId) {
+      await Staff.findByIdAndUpdate(ambulance.currentDriverId, { assignedAmbulanceId: null });
+    }
+
+    await syncHospitalAmbulanceFlag(req.user.hospitalId);
+    res.json({ success: true, message: 'Ambulance removed from fleet' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Ambulance driver pushes live GPS location
+router.put('/ambulances/:id/location', protect, async (req, res) => {
+  try {
+    const { lat, lng } = req.body;
+    if (lat == null || lng == null) {
+      return res.status(400).json({ message: 'Latitude and longitude are required' });
+    }
+
+    const ambulance = await Ambulance.findByIdAndUpdate(
+      req.params.id,
+      {
+        'currentLocation.coordinates': [Number(lng), Number(lat)],
+        'currentLocation.updatedAt': new Date(),
+      },
+      { new: true }
+    );
+
+    if (!ambulance) return res.status(404).json({ message: 'Ambulance not found' });
+    res.json({ success: true, lat, lng });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
 export default router;

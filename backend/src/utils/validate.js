@@ -1101,4 +1101,63 @@ export const lawyerStatusSchema = z.object({
   isAvailable: z.boolean(),
 });
 
+// ─── Emergency SOS Schemas ─────────────────────────────────────────────────
+export const emergencySOSSchema = z.object({
+  reporterMode: z.enum(['self', 'other']),
+  patientDetails: z
+    .object({
+      name: z.string().max(100).optional().default(''),
+      age: z.union([z.number(), z.string().transform(v => (v ? Number(v) : null))]).optional().nullable(),
+      bloodGroup: z.string().max(10).optional().default(''),
+      knownAllergies: z.string().max(500).optional().default(''),
+      knownConditions: z.string().max(500).optional().default(''),
+      phone: z.string().max(20).optional().default(''),
+    })
+    .optional(),
+  reporterOwnDetailsShared: z.boolean().optional().default(false),
+  reporterDetails: z
+    .object({
+      name: z.string().optional().default(''),
+      phone: z.string().optional().default(''),
+    })
+    .optional(),
+  category: z
+    .enum(['accident', 'heart_attack', 'breathing_issue', 'burn', 'fall', 'stroke', 'other', ''])
+    .optional()
+    .default(''),
+  lat: z.number().optional(),
+  lng: z.number().optional(),
+  address: z.string().optional().default(''),
+  location: z
+    .object({
+      coordinates: z.array(z.number()).length(2),
+      address: z.string().optional(),
+    })
+    .optional(),
+}).refine(
+  data => (data.lat !== undefined && data.lng !== undefined) || (data.location?.coordinates?.length === 2),
+  { message: 'Valid GPS coordinates [lng, lat] or lat/lng required' }
+);
+
+export const createAmbulanceSchema = z.object({
+  registrationNumber: z.string().trim().min(3).max(20),
+  vehicleModel: z.string().max(100).optional().default(''),
+  ambulanceType: z.enum(['BLS', 'ALS', 'PATIENT_TRANSPORT', 'MORTUARY']).optional().default('BLS'),
+  equipmentLevel: z.string().max(300).optional().default(''),
+  currentDriverId: z.string().optional().nullable(),
+  currentDriverPhone: z.string().optional().default(''),
+});
+
+export const updateAmbulanceSchema = z.object({
+  registrationNumber: z.string().trim().min(3).max(20).optional(),
+  vehicleModel: z.string().max(100).optional(),
+  ambulanceType: z.enum(['BLS', 'ALS', 'PATIENT_TRANSPORT', 'MORTUARY']).optional(),
+  equipmentLevel: z.string().max(300).optional(),
+  currentDriverId: z.string().optional().nullable(),
+  currentDriverPhone: z.string().optional(),
+  isOnline: z.boolean().optional(),
+  isOnDuty: z.boolean().optional(),
+  emergencySupport: z.boolean().optional(),
+});
+
 
