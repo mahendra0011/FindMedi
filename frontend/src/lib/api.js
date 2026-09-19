@@ -662,33 +662,12 @@ export const api = {
     return request(`/analytics/doctor?${query.toString()}`);
   },
 
-  // ── Payments & Transactions & Billing ──
-  getPayments:            (p={})    => request('/payments?' + new URLSearchParams(p)),
-  createPayment:          (body)    => request('/payments', { method:'POST', body: JSON.stringify(body) }),
-  updatePayment:          (id,body) => request(`/payments/${id}`, { method:'PUT', body: JSON.stringify(body) }),
-  refundPayment:          (id,body) => request(`/payments/${id}/refund`, { method:'PUT', body: JSON.stringify(body) }),
-
-  getTransactions:        (p={})    => request('/transactions?' + new URLSearchParams(p)),
+  // ── Additional Transactions & Billing aliases ──
   getTransaction:         (id)      => request(`/transactions/${id}`),
-  payTransaction:         (body)    => request('/transactions/pay', { method:'POST', body: JSON.stringify(body) }),
-  verifyTransaction:      (id)      => request(`/transactions/verify/${id}`),
-  getTransactionLedger:   (p={})    => request('/transactions/ledger?' + new URLSearchParams(p)),
-
-  getBilling:             (p={})    => request('/billing?' + new URLSearchParams(p)),
   getBill:                (id)      => request(`/billing/${id}`),
-  createBill:             (body)    => request('/billing', { method:'POST', body: JSON.stringify(body) }),
   createBilling:          (body)    => request('/billing', { method:'POST', body: JSON.stringify(body) }),
-  updateBill:             (id,body) => request(`/billing/${id}`, { method:'PUT', body: JSON.stringify(body) }),
   updateBilling:          (id,body) => request(`/billing/${id}`, { method:'PUT', body: JSON.stringify(body) }),
-  deleteBill:             (id)      => request(`/billing/${id}`, { method:'DELETE' }),
   deleteBilling:          (id)      => request(`/billing/${id}`, { method:'DELETE' }),
-  payBill:                (id,body) => request('/transactions/pay', { method:'POST', body: JSON.stringify({ ...body, referenceId: id, serviceType: body.serviceType || 'bill' }) }),
-
-  getPayouts:             (p={})    => request('/commission/payouts?' + new URLSearchParams(p)),
-  markPayoutPaid:         (id,body) => request(`/commission/payouts/${id}/pay`, { method:'PUT', body: JSON.stringify(body) }),
-  getCommissionConfigs:   ()        => request('/commission/configs'),
-  getCommissionStats:     ()        => request('/commission/stats'),
-  updateCommissionConfig: (id,body) => request(`/commission/configs/${id}`, { method:'PUT', body: JSON.stringify(body) }),
 
   // ── 1-to-1 Audio Calls ──
   getCalls:               (p={})    => request('/calls?' + new URLSearchParams(p)),

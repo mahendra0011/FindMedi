@@ -95,7 +95,7 @@ const refreshSession = async () => {
         : undefined);
       if (res.data?.token) {
         accessTokenCache = res.data.token;
-        try { localStorage.setItem('token', res.data.token); } catch {}
+        try { localStorage.setItem('token', res.data.token); } catch { /* ignore storage error */ }
       }
       return res.status === 200;
     } catch (err) {
@@ -127,11 +127,11 @@ apiClient.interceptors.response.use(
         url.startsWith('/auth/google') || url.startsWith('/auth/refresh')) {
       if (response.data?.token) {
         accessTokenCache = response.data.token;
-        try { localStorage.setItem('token', response.data.token); } catch {}
+        try { localStorage.setItem('token', response.data.token); } catch { /* ignore storage error */ }
       }
       if (response.data?.refreshToken) {
         refreshTokenCache = response.data.refreshToken;
-        try { localStorage.setItem('refreshToken', response.data.refreshToken); } catch {}
+        try { localStorage.setItem('refreshToken', response.data.refreshToken); } catch { /* ignore storage error */ }
       }
     }
     return response;

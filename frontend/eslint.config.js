@@ -8,7 +8,7 @@ export default [
   { ignores: ["dist"] },
   js.configs.recommended,
   {
-    files: ["**/*.{js,jsx}"],
+    files: ["**/*.{js,jsx,cjs,mjs}"],
     languageOptions: {
       ecmaVersion: 2021,
       globals: { ...globals.browser, ...globals.node },

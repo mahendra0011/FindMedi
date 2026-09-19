@@ -30,8 +30,10 @@ export default function AppMotion({ children }) {
   const location = useLocation();
 
   useEffect(() => {
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (prefersReducedMotion) return undefined;
+    const prefersReducedMotion = typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+      ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      : false;
+    if (prefersReducedMotion || typeof IntersectionObserver === 'undefined') return undefined;
 
     const root = document.getElementById('root');
     if (!root) return undefined;

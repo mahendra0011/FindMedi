@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useLocation } from 'react-router-dom';
 import {
   CalendarDays, CheckCircle, XCircle, FileText, IndianRupee, Send, Plus, X,
   CalendarClock, FileCheck, ChevronLeft, ChevronRight, RefreshCw, AlertCircle, MapPin,
+  Building2, Globe, History, Clock,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,8 +24,8 @@ import {
   AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel, AlertDialogFooter,
 } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
 import { useAppointmentRealtime } from '@/lib/useAppointmentRealtime';
+import { isOfflineAppointment, isOfflineClinicAppointment, isHomeVisitAppointment } from '@/lib/appointmentModes';
 
 const timeSlots = ['9:00 AM', '9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM', '2:00 PM', '2:30 PM', '3:00 PM', '3:30 PM', '4:00 PM', '4:30 PM'];
 
@@ -57,7 +58,12 @@ const initialDischargeData = {
 export default function DoctorAppointments() {
   const { user } = useAuth();
   const location = useLocation();
-  const view = location.pathname.endsWith('/approve') ? 'approve' : location.pathname.endsWith('/upcoming') ? 'upcoming' : location.pathname.endsWith('/history') ? 'history' : 'today';
+  const view = location.pathname.endsWith('/approve')
+    ? 'approve'
+    : location.pathname.endsWith('/history')
+    ? 'history'
+    : 'approved';
+  const [approvedSubTab, setApprovedSubTab] = useState(location.pathname.endsWith('/upcoming') ? 'upcoming' : 'today');
   const [appointments, setAppointments] = useState([]);
   const [calDate, setCalDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(getISTDateString());
@@ -88,7 +94,8 @@ export default function DoctorAppointments() {
     setLoading(true);
     try {
       const data = await api.getAppointments({ status: 'All', limit: 100, ...searchParams });
-      setAppointments(data?.appointments || data?.data || data || []);
+      const raw = data?.appointments || data?.data || data || [];
+      setAppointments(raw);
     } catch (e) {
       console.error(e);
       // Transient network errors interceptor me already retry ho jaate hain —
@@ -133,11 +140,24 @@ export default function DoctorAppointments() {
   }, [rescheduleId, newDate, appointments]);
 
   const today = getISTDateString();
-  const pendingAppointments = appointments.filter(a => (a.status || '').toLowerCase() === 'pending');
-  const upcomingAppointments = appointments.filter(a => a.date > today && ((a.status || '').toLowerCase() === 'confirmed' || (a.status || '').toLowerCase() === 'approved'));
-  const todayAppointments = appointments.filter(a => a.date === today);
-  const dayAppointments = appointments.filter(a => a.date === selectedDate);
+  const offlineAppointments = useMemo(() => appointments.filter(isOfflineAppointment), [appointments]);
+  const pendingAppointments = offlineAppointments.filter(a => (a.status || '').toLowerCase() === 'pending');
+  const approvedAppointments = offlineAppointments.filter(a => {
+    const s = (a.status || '').toLowerCase();
+    return s === 'confirmed' || s === 'approved' || s === 'scheduled';
+  });
+  const upcomingAppointments = approvedAppointments.filter(a => a.date > today);
+  const todayAppointments = offlineAppointments.filter(a => a.date === today);
+  const dayAppointments = offlineAppointments.filter(a => a.date === selectedDate);
   const approveAppointments = dayAppointments.filter(a => (a.status || '').toLowerCase() === 'pending');
+  const onlinePendingCount = appointments.filter(a => {
+    const s = (a.status || '').toLowerCase();
+    if (s !== 'pending') return false;
+    const m = (a.appointmentMode || '').toLowerCase();
+    const t = (a.type || '').toLowerCase();
+    return m === 'voice' || m === 'audio' || m === 'video' || m === 'chat' ||
+           t.includes('voice') || t.includes('audio') || t.includes('video') || t.includes('chat') || t.includes('online');
+  }).length;
 
   const handleStatus = async (id, status, extra = {}) => {
     try { await api.updateAppointment(id, { status, ...extra }); loadAppointments(); } catch (e) { console.error(e); toast.error('Failed to update appointment'); }
@@ -417,71 +437,102 @@ export default function DoctorAppointments() {
 
   return (
     <div className="space-y-6 md:h-full md:flex md:flex-col">
-      {/* Header + Tab switcher */}
-      <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap">
-        <h1 className="font-heading text-xl font-bold text-foreground flex items-center gap-2 shrink-0">
-          {view === 'approve'
-            ? <><FileCheck className="w-5 h-5 text-amber-500" /> Pending Approvals</>
-            : view === 'upcoming'
-            ? <><CalendarClock className="w-5 h-5 text-purple-600 dark:text-purple-400" /> Upcoming Appointments</>
-            : view === 'history'
-            ? <><CalendarDays className="w-5 h-5 text-emerald-600 dark:text-emerald-400" /> Appointment History</>
-            : <><CalendarClock className="w-5 h-5 text-primary" /> Today Appointments</>
-          }
-          {view === 'approve' && pendingAppointments.length > 0 && (
-            <span className="px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/15 text-amber-600">{pendingAppointments.length} pending</span>
-          )}
-          {view === 'upcoming' && upcomingAppointments.length > 0 && (
-            <span className="px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-purple-500/15 text-purple-600 dark:text-purple-400">{upcomingAppointments.length} upcoming</span>
-          )}
-          {view === 'today' && todayAppointments.filter(a => a.status !== 'Pending').length > 0 && (
-            <span className="px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-primary/10 text-primary">{todayAppointments.filter(a => a.status !== 'Pending').length} today</span>
-          )}
-        </h1>
-        <p className="text-xs text-muted-foreground hidden xl:inline shrink-0">
-          {view === 'approve' ? 'Review pending requests' : view === 'upcoming' ? 'Confirmed future bookings' : view === 'history' ? 'Completed history' : 'Scheduled for today'}
-        </p>
-        {/* 4 Tabs: Pending, Upcoming, Today, Complete + Home Visit */}
-        <div className="flex items-center bg-muted/60 border border-border/50 rounded-full p-0.5 gap-0.5">
-          <Link to="/doctor/appointments/approve">
-            <button aria-label="Pending appointments" className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold transition-all duration-300 ${view === 'approve' ? 'bg-amber-500 text-white shadow-md' : 'text-muted-foreground hover:text-foreground'}`}>
-              <FileCheck className="w-4 h-4" /> Pending
-              {pendingAppointments.length > 0 && (
-                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${view === 'approve' ? 'bg-white/25 text-white' : 'bg-amber-500 text-white'}`}>{pendingAppointments.length}</span>
+      {/* ── Top Header Row: Left (Channel Tabs) & Right (3 Offline Sub-Tabs) ── */}
+      <div className="flex flex-wrap items-center justify-between gap-3 shrink-0">
+        {/* Left: 2 Channels Tabs */}
+        <div className="flex items-center gap-2 bg-card p-1.5 rounded-2xl border border-border/80 shadow-sm w-fit shrink-0">
+          <Link to={
+            view === 'approve' ? '/doctor/appointments/approve'
+            : view === 'history' ? '/doctor/appointments/history'
+            : '/doctor/appointments'
+          }>
+            <button className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all bg-primary text-primary-foreground shadow-md">
+              <Building2 className="w-4 h-4" />
+              Offline Appointments
+              {view === 'approve' && pendingAppointments.length > 0 && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-white/20 text-white">
+                  {pendingAppointments.length}
+                </span>
               )}
             </button>
           </Link>
-          <Link to="/doctor/appointments/upcoming">
-            <button aria-label="Upcoming appointments" className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold transition-all duration-300 ${view === 'upcoming' ? 'bg-purple-600 text-white shadow-md' : 'text-muted-foreground hover:text-foreground'}`}>
-              <CalendarClock className="w-4 h-4" /> Upcoming
-              {upcomingAppointments.length > 0 && (
-                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${view === 'upcoming' ? 'bg-white/25 text-white' : 'bg-purple-500/20 text-purple-600 dark:text-purple-400'}`}>{upcomingAppointments.length}</span>
+          <Link to={
+            view === 'approve' ? '/doctor/online-appointments?tab=approve'
+            : view === 'history' ? '/doctor/online-appointments?tab=history'
+            : '/doctor/online-appointments?tab=approved'
+          }>
+            <button className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all text-muted-foreground hover:text-foreground hover:bg-muted/50">
+              <Globe className="w-4 h-4 text-muted-foreground" />
+              Online Appointments
+              {onlinePendingCount > 0 && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-500 text-white">
+                  {onlinePendingCount}
+                </span>
+              )}
+            </button>
+          </Link>
+        </div>
+
+        {/* Right: 3 Sub-Tabs (Approve Offline, Approved Offline, Offline History) */}
+        <div className="flex items-center bg-muted/60 p-1 rounded-full border border-border/60 gap-1 shadow-sm w-fit flex-wrap">
+          <Link to="/doctor/appointments/approve">
+            <button className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all ${
+              view === 'approve' ? 'bg-amber-500 text-white shadow-md' : 'text-muted-foreground hover:text-foreground'
+            }`}>
+              <Clock className="w-3.5 h-3.5" />
+              Approve Offline Appointments
+              {pendingAppointments.length > 0 && (
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                  view === 'approve' ? 'bg-white/25 text-white' : 'bg-amber-500 text-white'
+                }`}>
+                  {pendingAppointments.length}
+                </span>
               )}
             </button>
           </Link>
           <Link to="/doctor/appointments">
-            <button aria-label="Today appointments" className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold transition-all duration-300 ${view === 'today' ? 'bg-primary text-primary-foreground shadow-md' : 'text-muted-foreground hover:text-foreground'}`}>
-              <CalendarClock className="w-4 h-4" /> Today
-              {todayAppointments.filter(a => a.status !== 'Pending').length > 0 && (
-                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${view === 'today' ? 'bg-white/25 text-white' : 'bg-primary/20 text-primary'}`}>
-                  {todayAppointments.filter(a => a.status !== 'Pending').length}
+            <button className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all ${
+              view === 'approved' ? 'bg-primary text-primary-foreground shadow-md' : 'text-muted-foreground hover:text-foreground'
+            }`}>
+              <CheckCircle className="w-3.5 h-3.5" />
+              Approved Offline Appointments
+              {approvedAppointments.length > 0 && (
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                  view === 'approved' ? 'bg-white/20 text-white' : 'bg-primary/20 text-primary'
+                }`}>
+                  {approvedAppointments.length}
                 </span>
               )}
             </button>
           </Link>
           <Link to="/doctor/appointments/history">
-            <button aria-label="Appointment history" className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold transition-all duration-300 ${view === 'history' ? 'bg-emerald-600 text-white shadow-md' : 'text-muted-foreground hover:text-foreground'}`}>
-              <CalendarDays className="w-4 h-4" /> Complete
-            </button>
-          </Link>
-          <Link to="/doctor/home-visit">
-            <button aria-label="Home visits" className="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold text-muted-foreground hover:text-foreground transition-all duration-300">
-              <MapPin className="w-4 h-4 text-violet-500" /> Home Visit
+            <button className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all ${
+              view === 'history' ? 'bg-emerald-600 text-white shadow-md' : 'text-muted-foreground hover:text-foreground'
+            }`}>
+              <History className="w-3.5 h-3.5" />
+              Offline Appointment History
             </button>
           </Link>
         </div>
-        {view === 'today' && (
-          <Button onClick={() => setShowWalkInModal(true)} size="sm" className="h-7 rounded-full gap-1 shrink-0 px-3 text-xs">
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+        <h1 className="font-heading text-xl font-bold text-foreground flex items-center gap-2 shrink-0">
+          {view === 'approve'
+            ? <><Clock className="w-5 h-5 text-amber-500" /> Approve Offline Appointments</>
+            : view === 'history'
+            ? <><History className="w-5 h-5 text-emerald-600 dark:text-emerald-400" /> Offline Appointment History</>
+            : <><CheckCircle className="w-5 h-5 text-primary" /> Approved Offline Appointments</>
+          }
+          {view === 'approve' && pendingAppointments.length > 0 && (
+            <span className="px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/15 text-amber-600">{pendingAppointments.length} pending</span>
+          )}
+          {view === 'approved' && approvedAppointments.length > 0 && (
+            <span className="px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-primary/10 text-primary">{approvedAppointments.length} confirmed</span>
+          )}
+        </h1>
+        {view === 'approved' && (
+          <Button onClick={() => setShowWalkInModal(true)} size="sm" className="h-9 rounded-xl gap-1 text-xs px-3 ml-auto shadow-sm">
             <Plus className="w-3.5 h-3.5" /> Walk-in
           </Button>
         )}
@@ -498,29 +549,23 @@ export default function DoctorAppointments() {
             </div>
           ))}
         </div>
-      ) : view === 'today' ? (
+      ) : view === 'history' ? (
+        <AppointmentHistorySection appointments={offlineAppointments} />
+      ) : view === 'approve' ? (
+        <ApproveAppointmentSection
+          appointments={offlineAppointments}
+          allAppointments={appointments}
+          onConfirm={(a) => handleStatus(a._id, 'Confirmed')}
+          onReject={(a, reason) => handleStatus(a._id, 'Cancelled', { notes: reason })}
+        />
+      ) : (
         <TodayAppointmentsSection
-          appointments={appointments}
+          appointments={approvedAppointments}
           selectedDate={selectedDate}
           calendar={CalendarWidget}
           onRefresh={loadAppointments}
           user={user}
           onViewDetails={(a) => setDetailsApt(a)}
-        />
-      ) : view === 'upcoming' ? (
-        <UpcomingAppointmentsSection
-          appointments={appointments}
-          onViewDetails={(a) => setDetailsApt(a)}
-          user={user}
-        />
-      ) : view === 'history' ? (
-        <AppointmentHistorySection appointments={appointments} />
-      ) : (
-        /* ════════ APPROVE VIEW (History layout: calendar + patients left, time filter + cards middle, overview right) ════════ */
-        <ApproveAppointmentSection
-          appointments={appointments}
-          onConfirm={(a) => handleStatus(a._id, 'Confirmed')}
-          onReject={(a, reason) => handleStatus(a._id, 'Cancelled', { notes: reason })}
         />
       )}
 

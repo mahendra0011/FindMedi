@@ -143,7 +143,7 @@ export default function AppointmentDetailsModal({ apt, onClose }) {
   );
 }
 
-function DetailChip({ icon: Icon, label, value, valueClass }) {
+function DetailChip({ icon: Icon, label, value, valueClass }: any) {
   return (
     <div className="flex items-center gap-1.5 bg-muted/20 rounded-lg px-3 py-2">
       <Icon className="w-3.5 h-3.5 text-primary/70 shrink-0" />

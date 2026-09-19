@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, UserRound, Stethoscope, CalendarDays, FileText,
   CreditCard, Percent, Settings, ChevronLeft, ChevronRight, Activity, LogOut,
-  Home, Search, Star, Users, BarChart3, Bell, Building2, Clock, Calendar, CalendarClock, DollarSign, FileUp, Download, TestTube, AlertTriangle, Menu, X, Bed, Pill, FlaskConical, Hospital, Heart, Brain, Syringe, ClipboardList, ShieldCheck, Baby, Ambulance, IndianRupee, History, Flag, ShoppingCart, Megaphone, Settings2, Truck, Microscope, HelpCircle, MapPinned, User, Bookmark, Upload, TrendingUp, FileCheck, Tags, Headset, Shield, Tag, MapPin, Globe, Package, RotateCcw, Bot, Video, MessageCircle, Phone
+  Home, Search, Star, Users, BarChart3, Bell, Building2, Clock, Calendar, CalendarClock, DollarSign, FileUp, Download, TestTube, AlertTriangle, Menu, X, Bed, Pill, FlaskConical, Hospital, Heart, Brain, Syringe, ClipboardList, ShieldCheck, Baby, Ambulance, IndianRupee, History, Flag, ShoppingCart, Megaphone, Settings2, Truck, Microscope, HelpCircle, MapPinned, User, Bookmark, Upload, TrendingUp, FileCheck, Tags, Headset, Shield, Tag, MapPin, Globe, Package, RotateCcw, Bot, Video, MessageCircle, Phone, CheckCircle2
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { t } from '@/lib/settings';
@@ -46,8 +46,7 @@ const navConfig = {
   hospital_admin: [
     { icon: LayoutDashboard, labelKey: 'nav.dashboard',        path: '/dashboard'        },
     { icon: Bot,             labelKey: 'nav.chatWithAI',       path: '/ai-chat'          },
-    // 5 Consultation Modes
-    { icon: Building2,       labelKey: 'nav.inHospitalAppointments', path: '/appointments' },
+    // Consultation Channels
     { icon: MapPin,          labelKey: 'nav.inPersonAppointments', path: '/doctor/home-visit' },
     { icon: Video,           labelKey: 'nav.videoCalls',        path: '/doctor/video-calls' },
     { icon: Phone,           labelKey: 'nav.calls',             path: '/doctor/calls'     },
@@ -101,18 +100,19 @@ const navConfig = {
   clinic_doctor: [
     { icon: LayoutDashboard, labelKey: 'nav.dashboard',         path: '/clinic/dashboard'     },
     { icon: Bot,             labelKey: 'nav.chatWithAI',       path: '/ai-chat'              },
-    // 5 Consultation Modes
-    { icon: Building2,       labelKey: 'nav.inClinicAppointments', path: '/clinic/appointments' },
+    // Consultation Channels
     { icon: MapPin,          labelKey: 'nav.inPersonAppointments', path: '/clinic/home-visit' },
     { icon: Video,           labelKey: 'nav.videoCalls',        path: '/clinic/video-calls'   },
     { icon: Phone,           labelKey: 'nav.calls',             path: '/clinic/calls'         },
     { icon: MessageCircle,   labelKey: 'nav.messages',          path: '/clinic/chat'          },
-    // 4 Appointment Tabs
-    { icon: Clock,           labelKey: 'nav.approveAppointments', path: '/clinic/appointments/approve' },
-    { icon: CalendarClock,   labelKey: 'nav.upcomingAppointments', path: '/clinic/appointments/upcoming' },
-    { icon: CalendarDays,    labelKey: 'nav.todayAppointments', path: '/clinic/appointments'  },
-    { icon: History,         labelKey: 'nav.appointmentHistory', path: '/clinic/appointments/history' },
-    { icon: Globe,           labelKey: 'nav.onlineAppointments',path: '/clinic/online-appointments' },
+    // 3 Offline Appointment Tabs
+    { icon: Clock,           labelKey: 'nav.approveOfflineAppointments', path: '/clinic/appointments/approve' },
+    { icon: CheckCircle2,    labelKey: 'nav.approvedOfflineAppointments', path: '/clinic/appointments' },
+    { icon: History,         labelKey: 'nav.offlineAppointmentHistory', path: '/clinic/appointments/history' },
+    // 3 Online Appointment Tabs
+    { icon: Globe,           labelKey: 'nav.approveOnlineAppointments', path: '/clinic/online-appointments?tab=approve' },
+    { icon: Video,           labelKey: 'nav.approvedOnlineAppointments', path: '/clinic/online-appointments?tab=approved' },
+    { icon: CalendarDays,    labelKey: 'nav.onlineAppointmentHistory', path: '/clinic/online-appointments?tab=history' },
     { icon: Calendar,        labelKey: 'nav.mySchedule',        path: '/clinic/schedule'      },
     { icon: UserRound,       labelKey: 'nav.myPatients',        path: '/clinic/patients'      },
     { icon: FileText,        labelKey: 'nav.consultations',     path: '/clinic/consultations' },
@@ -134,18 +134,19 @@ const navConfig = {
   doctor: [
     { icon: LayoutDashboard, labelKey: 'nav.dashboard',         path: '/dashboard'            },
     { icon: Bot,             labelKey: 'nav.chatWithAI',       path: '/ai-chat'              },
-    // 5 Consultation Modes
-    { icon: Building2,       labelKey: 'nav.inHospitalAppointments', path: '/doctor/appointments' },
+    // Consultation Channels
     { icon: MapPin,          labelKey: 'nav.inPersonAppointments', path: '/doctor/home-visit' },
     { icon: Video,           labelKey: 'nav.videoCalls',        path: '/doctor/video-calls'   },
     { icon: Phone,           labelKey: 'nav.calls',             path: '/doctor/calls'         },
     { icon: MessageCircle,   labelKey: 'nav.messages',          path: '/doctor/chat'          },
-    // 4 Appointment Tabs
-    { icon: Clock,           labelKey: 'nav.approveAppointments', path: '/doctor/appointments/approve' },
-    { icon: CalendarClock,   labelKey: 'nav.upcomingAppointments', path: '/doctor/appointments/upcoming' },
-    { icon: CalendarDays,    labelKey: 'nav.todayAppointments', path: '/doctor/appointments'  },
-    { icon: History,         labelKey: 'nav.appointmentHistory', path: '/doctor/appointments/history' },
-    { icon: Globe,           labelKey: 'nav.onlineAppointments',path: '/doctor/online-appointments' },
+    // 3 Offline Appointment Tabs
+    { icon: Clock,           labelKey: 'nav.approveOfflineAppointments', path: '/doctor/appointments/approve' },
+    { icon: CheckCircle2,    labelKey: 'nav.approvedOfflineAppointments', path: '/doctor/appointments' },
+    { icon: History,         labelKey: 'nav.offlineAppointmentHistory', path: '/doctor/appointments/history' },
+    // 3 Online Appointment Tabs
+    { icon: Globe,           labelKey: 'nav.approveOnlineAppointments', path: '/doctor/online-appointments?tab=approve' },
+    { icon: Video,           labelKey: 'nav.approvedOnlineAppointments', path: '/doctor/online-appointments?tab=approved' },
+    { icon: CalendarDays,    labelKey: 'nav.onlineAppointmentHistory', path: '/doctor/online-appointments?tab=history' },
     { icon: Calendar,        labelKey: 'nav.mySchedule',        path: '/doctor/schedule'      },
     { icon: CalendarClock,   labelKey: 'nav.leaveRequests',     path: '/doctor/leave-requests'},
     { icon: UserRound,       labelKey: 'nav.myPatients',        path: '/doctor/patients'      },
@@ -296,11 +297,25 @@ function SidebarContent({ collapsed, onToggleCollapse, onNavClick }: any) {
 
       {/* Navigation */}
       <nav className="sidebar-nav min-h-0 flex-1 py-3 px-2 space-y-0.5 overflow-y-auto overscroll-contain">
-        {navItems.map(({ icon: Icon, labelKey, path }) => {
-          const isActive = location.pathname === path;
+        {navItems.map(({ icon: Icon, labelKey, path }, idx) => {
+          const currentFull = location.pathname + (location.search || '');
+          let isActive = false;
+          if (path.includes('?tab=approve')) {
+            isActive = location.pathname.includes('/online-appointments') && (location.search === '?tab=approve' || location.search === '?tab=pending' || !location.search);
+          } else if (path.includes('?tab=approved')) {
+            isActive = location.pathname.includes('/online-appointments') && (location.search === '?tab=approved' || location.search === '?tab=today' || location.search === '?tab=upcoming');
+          } else if (path.includes('?tab=history')) {
+            isActive = location.pathname.includes('/online-appointments') && (location.search === '?tab=history' || location.search === '?tab=complete');
+          } else if (path === '/clinic/appointments' || path === '/doctor/appointments') {
+            isActive = (location.pathname === path || location.pathname === `${path}/upcoming` || location.pathname === `${path}/approved`) && !location.search;
+          } else if (path.includes('?')) {
+            isActive = currentFull === path;
+          } else {
+            isActive = location.pathname === path;
+          }
           const label = t(labelKey, language);
           return (
-            <Link key={path} to={path} onClick={onNavClick}
+            <Link key={`${path}-${labelKey}-${idx}`} to={path} onClick={onNavClick}
               title={collapsed ? label : undefined}
               className={`sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${isActive ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-lg shadow-sidebar-primary/20' : 'text-sidebar-foreground/65 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'} ${collapsed ? 'justify-center' : ''}`}>
               <Icon className={`w-[18px] h-[18px] flex-shrink-0 ${!isActive ? 'group-hover:scale-110 transition-transform' : ''}`} />

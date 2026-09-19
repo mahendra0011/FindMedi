@@ -1,23 +1,20 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useLocation } from 'react-router-dom';
 import {
-  CheckCircle, XCircle, Send, Plus, X,
-  ChevronLeft, ChevronRight, CalendarClock, FileCheck, FileText, Clock,
-  RefreshCw, IndianRupee, Search, MapPin,
+  CheckCircle, XCircle, Plus, X, Send,
+  ChevronLeft, ChevronRight, FileText, Clock,
+  RefreshCw, MapPin, Building2, Globe, History,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
-import { api, downloadInvoicePdf, resolveFileUrl, isValidFileUrl } from '@/lib/api';
+import { api, resolveFileUrl } from '@/lib/api';
 import { toast } from 'sonner';
 import { getISTDateString } from '@/lib/dateUtils';
 import AppointmentDetailsModal from '@/components/AppointmentDetailsModal';
 import TodayAppointmentsSection from '@/components/TodayAppointmentsSection';
 import AppointmentHistorySection from '@/components/AppointmentHistorySection';
-import UpcomingAppointmentsSection from '@/components/UpcomingAppointmentsSection';
-import { CompletedCard } from '@/components/TodayAppointmentsSection';
-import { subSlotFor } from '@/lib/timeSlots';
 import WalkInPatientForm from '@/components/WalkInPatientForm';
 import ApproveAppointmentSection from '@/components/ApproveAppointmentSection';
 import {
@@ -26,6 +23,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useAppointmentRealtime } from '@/lib/useAppointmentRealtime';
+import { isOfflineAppointment } from '@/lib/appointmentModes';
 
 const timeSlots = ['9:00 AM', '9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM', '2:00 PM', '2:30 PM', '3:00 PM', '3:30 PM', '4:00 PM', '4:30 PM'];
 
@@ -40,12 +38,15 @@ const prescriptionInitialState = {
 export default function ClinicAppointments() {
   const { user } = useAuth();
   const location = useLocation();
-  const mode = location.pathname.endsWith('/approve') ? 'approve' : location.pathname.endsWith('/upcoming') ? 'upcoming' : location.pathname.endsWith('/history') ? 'history' : 'today';
+  const mode = location.pathname.endsWith('/approve')
+    ? 'approve'
+    : location.pathname.endsWith('/history')
+    ? 'history'
+    : 'approved';
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [calDate, setCalDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(getISTDateString());
-  const [searchTerm, setSearchTerm] = useState('');
 
   // Modals
   const [rescheduleId, setRescheduleId] = useState(null);
@@ -70,7 +71,8 @@ export default function ClinicAppointments() {
     setLoading(true);
     try {
       const data = await api.getAppointments({ status: 'All', limit: 100, ...searchParams });
-      setAppointments(data?.appointments || data?.data || data || []);
+      const raw = data?.appointments || data?.data || data || [];
+      setAppointments(raw);
     } catch (e) {
       console.error(e);
       // Transient network errors interceptor me already retry ho jaate hain —
@@ -93,13 +95,6 @@ export default function ClinicAppointments() {
     return () => clearInterval(timer);
   }, [loadAppointments]);
 
-  // Debounced search
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      loadAppointments(searchTerm ? { search: searchTerm } : {});
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchTerm, loadAppointments]);
 
   // Fetch booked slots for reschedule
   useEffect(() => {
@@ -123,9 +118,22 @@ export default function ClinicAppointments() {
   }, [rescheduleId, newDate, appointments]);
 
   const today = getISTDateString();
-  const pendingAppointments = appointments.filter(a => (a.status || '').toLowerCase() === 'pending');
-  const upcomingAppointments = appointments.filter(a => a.date > today && ((a.status || '').toLowerCase() === 'confirmed' || (a.status || '').toLowerCase() === 'approved'));
-  const todayAppointments = appointments.filter(a => a.date === today);
+  const offlineAppointments = useMemo(() => appointments.filter(isOfflineAppointment), [appointments]);
+  const pendingAppointments = offlineAppointments.filter(a => (a.status || '').toLowerCase() === 'pending');
+  const approvedAppointments = offlineAppointments.filter(a => {
+    const s = (a.status || '').toLowerCase();
+    return s === 'confirmed' || s === 'approved' || s === 'scheduled';
+  });
+  const upcomingAppointments = approvedAppointments.filter(a => a.date > today);
+  const todayAppointments = offlineAppointments.filter(a => a.date === today);
+  const onlinePendingCount = appointments.filter(a => {
+    const s = (a.status || '').toLowerCase();
+    if (s !== 'pending') return false;
+    const m = (a.appointmentMode || '').toLowerCase();
+    const t = (a.type || '').toLowerCase();
+    return m === 'voice' || m === 'audio' || m === 'video' || m === 'chat' ||
+           t.includes('voice') || t.includes('audio') || t.includes('video') || t.includes('chat') || t.includes('online');
+  }).length;
 
   const handleStatus = async (id, status, extra = {}) => {
     try { await api.updateAppointment(id, { status, ...extra }); loadAppointments(); } catch (e) { console.error(e); toast.error('Failed to update appointment'); }
@@ -348,81 +356,106 @@ export default function ClinicAppointments() {
 
   return (
     <div className="space-y-6 md:h-full md:flex md:flex-col">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+      {/* ── Top Header Row: Left (Channel Tabs) & Right (3 Offline Sub-Tabs) ── */}
+      <div className="flex flex-wrap items-center justify-between gap-3 shrink-0">
+        {/* Left: 2 Channels Tabs */}
+        <div className="flex items-center gap-2 bg-card p-1.5 rounded-2xl border border-border/80 shadow-sm w-fit shrink-0">
+          <Link to={
+            mode === 'approve' ? '/clinic/appointments/approve'
+            : mode === 'history' ? '/clinic/appointments/history'
+            : '/clinic/appointments'
+          }>
+            <button className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all bg-primary text-primary-foreground shadow-md">
+              <Building2 className="w-4 h-4" />
+              Offline Appointments
+              {pendingAppointments.length > 0 && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-white/20 text-white">
+                  {pendingAppointments.length}
+                </span>
+              )}
+            </button>
+          </Link>
+          <Link to={
+            mode === 'approve' ? '/clinic/online-appointments?tab=approve'
+            : mode === 'history' ? '/clinic/online-appointments?tab=history'
+            : '/clinic/online-appointments?tab=approved'
+          }>
+            <button className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all text-muted-foreground hover:text-foreground hover:bg-muted/50">
+              <Globe className="w-4 h-4 text-muted-foreground" />
+              Online Appointments
+              {onlinePendingCount > 0 && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-500 text-white">
+                  {onlinePendingCount}
+                </span>
+              )}
+            </button>
+          </Link>
+        </div>
+
+        {/* Right: 3 Sub-Tabs (Approve Offline, Approved Offline, Offline History) */}
+        <div className="flex items-center bg-muted/60 p-1 rounded-full border border-border/60 gap-1 shadow-sm w-fit flex-wrap">
+          <Link to="/clinic/appointments/approve">
+            <button className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all ${
+              mode === 'approve' ? 'bg-amber-500 text-white shadow-md' : 'text-muted-foreground hover:text-foreground'
+            }`}>
+              <Clock className="w-3.5 h-3.5" />
+              Approve Offline Appointments
+              {pendingAppointments.length > 0 && (
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                  mode === 'approve' ? 'bg-white/25 text-white' : 'bg-amber-500 text-white'
+                }`}>
+                  {pendingAppointments.length}
+                </span>
+              )}
+            </button>
+          </Link>
+          <Link to="/clinic/appointments">
+            <button className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all ${
+              mode === 'approved' ? 'bg-primary text-primary-foreground shadow-md' : 'text-muted-foreground hover:text-foreground'
+            }`}>
+              <CheckCircle className="w-3.5 h-3.5" />
+              Approved Offline Appointments
+              {approvedAppointments.length > 0 && (
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                  mode === 'approved' ? 'bg-white/20 text-white' : 'bg-primary/20 text-primary'
+                }`}>
+                  {approvedAppointments.length}
+                </span>
+              )}
+            </button>
+          </Link>
+          <Link to="/clinic/appointments/history">
+            <button className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all ${
+              mode === 'history' ? 'bg-emerald-600 text-white shadow-md' : 'text-muted-foreground hover:text-foreground'
+            }`}>
+              <History className="w-3.5 h-3.5" />
+              Offline Appointment History
+            </button>
+          </Link>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
         <h1 className="font-heading text-2xl font-bold text-foreground flex items-center gap-2 shrink-0">
           {mode === 'approve'
-            ? <><FileCheck className="w-6 h-6 text-amber-500" /> Pending Approvals</>
-            : mode === 'upcoming'
-            ? <><CalendarClock className="w-6 h-6 text-purple-600 dark:text-purple-400" /> Upcoming Appointments</>
+            ? <><Clock className="w-6 h-6 text-amber-500" /> Approve Offline Appointments</>
             : mode === 'history'
-            ? <><CalendarClock className="w-6 h-6 text-emerald-600 dark:text-emerald-400" /> Appointment History</>
-            : <><CalendarClock className="w-6 h-6 text-primary" /> Today Appointments</>
+            ? <><History className="w-6 h-6 text-emerald-600 dark:text-emerald-400" /> Offline Appointment History</>
+            : <><CheckCircle className="w-6 h-6 text-primary" /> Approved Offline Appointments</>
           }
           {mode === 'approve' && pendingAppointments.length > 0 && (
             <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-600">{pendingAppointments.length} pending</span>
           )}
-          {mode === 'upcoming' && upcomingAppointments.length > 0 && (
-            <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-500/15 text-purple-600 dark:text-purple-400">{upcomingAppointments.length} upcoming</span>
-          )}
-          {mode === 'today' && todayAppointments.length > 0 && (
-            <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary">{todayAppointments.length} today</span>
+          {mode === 'approved' && approvedAppointments.length > 0 && (
+            <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary">{approvedAppointments.length} confirmed</span>
           )}
         </h1>
-        <p className="text-sm text-muted-foreground">
-          {mode === 'approve'
-            ? 'Review and confirm pending appointment requests'
-            : mode === 'upcoming'
-            ? 'Confirmed future consultations'
-            : mode === 'history'
-            ? 'Completed appointment history'
-            : 'All appointments scheduled for today'}
-        </p>
-        <div className="bg-muted/80 p-1 rounded-2xl border border-border/50 flex items-center shrink-0 gap-0.5">
-            <Link to="/clinic/appointments/approve">
-              <button className={`px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all relative ${mode === 'approve' ? 'bg-amber-500 text-white shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
-                Pending
-                {pendingAppointments.length > 0 && (
-                  <span className={`ml-1.5 px-1.5 py-0.2 rounded-full text-[10px] font-bold ${mode === 'approve' ? 'bg-white/25 text-white' : 'bg-amber-500 text-white'}`}>{pendingAppointments.length}</span>
-                )}
-              </button>
-            </Link>
-            <Link to="/clinic/appointments/upcoming">
-              <button className={`px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all relative ${mode === 'upcoming' ? 'bg-purple-600 text-white shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
-                Upcoming
-                {upcomingAppointments.length > 0 && (
-                  <span className={`ml-1.5 px-1.5 py-0.2 rounded-full text-[10px] font-bold ${mode === 'upcoming' ? 'bg-white/25 text-white' : 'bg-purple-500/20 text-purple-600 dark:text-purple-400'}`}>{upcomingAppointments.length}</span>
-                )}
-              </button>
-            </Link>
-            <Link to="/clinic/appointments">
-              <button className={`px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all ${mode === 'today' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
-                Today
-                {todayAppointments.length > 0 && (
-                  <span className={`ml-1.5 px-1.5 py-0.2 rounded-full text-[10px] font-bold ${mode === 'today' ? 'bg-white/25 text-white' : 'bg-primary/20 text-primary'}`}>{todayAppointments.length}</span>
-                )}
-              </button>
-            </Link>
-            <Link to="/clinic/appointments/history">
-              <button className={`px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all ${mode === 'history' ? 'bg-emerald-600 text-white shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
-                Complete
-              </button>
-            </Link>
-            <Link to="/clinic/home-visit">
-              <button className="px-3 py-1.5 text-xs font-bold rounded-xl transition-all text-muted-foreground hover:text-foreground flex items-center gap-1">
-                <MapPin className="w-3.5 h-3.5 text-violet-500" />
-                Home Visit
-              </button>
-            </Link>
-          </div>
-          {mode === 'today' && (
-            <Button onClick={() => setShowWalkInModal(true)} size="sm" className="ml-2 h-8 rounded-full gap-1">
-              <Plus className="w-3.5 h-3.5" /> Walk-in
-            </Button>
-          )}
-          <div className="ml-3 relative flex-1 max-w-xl">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input type="text" placeholder="Search by patient, phone, or ID..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full h-9 pl-9" aria-label="Global search" />
-          </div>
+
+        {mode === 'approved' && (
+          <Button onClick={() => setShowWalkInModal(true)} size="sm" className="h-9 rounded-xl gap-1 text-xs px-3 ml-auto shadow-sm">
+            <Plus className="w-3.5 h-3.5" /> Walk-in
+          </Button>
+        )}
       </div>
 
       {loading ? (
@@ -436,85 +469,23 @@ export default function ClinicAppointments() {
             </div>
           ))}
         </div>
-      ) : searchTerm.trim() !== '' ? (
-        <div className="space-y-4 animate-in fade-in zoom-in-95 duration-300">
-          <div className="flex items-center justify-between">
-            <h3 className="font-heading text-xl font-bold text-foreground">
-              Search Results
-            </h3>
-          </div>
-          {appointments.filter(a =>
-            a.patient?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            a.phone?.includes(searchTerm) ||
-            a._id?.includes(searchTerm)
-          ).length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <Search className="w-10 h-10 mx-auto mb-2 opacity-30" />
-              <p className="font-medium">No matching appointments</p>
-              <p className="text-xs mt-1">Try a different name, phone, or ID</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {appointments.filter(a =>
-                a.patient?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                a.phone?.includes(searchTerm) ||
-                a._id?.includes(searchTerm)
-              ).map(a => (
-                <div key={a._id} className="bg-card rounded-2xl border border-border/60 p-4">
-                  <CompletedCard
-                    apt={a}
-                    onOpenBill={() => { setCompleteId(a._id); setBillModal(true); }}
-                    onOpenPrescription={() => {
-                      setPrescriptionData({
-                        patientName: a.patient || '',
-                        age: a.age || '',
-                        gender: a.gender || '',
-                        phone: a.phone || '',
-                        email: a.email || '',
-                        address: a.address || '',
-                        doctorName: user?.name || '',
-                        specialization: user?.specialization || '',
-                        chiefComplaints: '',
-                        diagnosis: '',
-                        medications: [{ name: '', dosage: '', frequency: '', instructions: '' }],
-                        advice: '',
-                        followUp: '',
-                      });
-                      setShowPrescriptionModal(true);
-                    }}
-                    onOpenReport={(url) => {
-                      window.open(resolveFileUrl(url), '_blank');
-                    }}
-                    subSlotFor={subSlotFor}
-                  />
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      ) : mode === 'today' ? (
+      ) : mode === 'history' ? (
+        <AppointmentHistorySection appointments={offlineAppointments} />
+      ) : mode === 'approve' ? (
+        <ApproveAppointmentSection
+          appointments={offlineAppointments}
+          allAppointments={appointments}
+          onConfirm={(a) => handleStatus(a._id, 'Confirmed')}
+          onReject={(a, reason) => handleStatus(a._id, 'Cancelled', { notes: reason })}
+        />
+      ) : (
         <TodayAppointmentsSection
-          appointments={appointments}
+          appointments={approvedAppointments}
           selectedDate={selectedDate}
           calendar={CalendarWidget}
           onRefresh={loadAppointments}
           user={user}
           onViewDetails={(a) => setDetailsApt(a)}
-        />
-      ) : mode === 'upcoming' ? (
-        <UpcomingAppointmentsSection
-          appointments={appointments}
-          onViewDetails={(a) => setDetailsApt(a)}
-          user={user}
-        />
-      ) : mode === 'history' ? (
-        <AppointmentHistorySection appointments={appointments} />
-      ) : (
-        /* ════════ APPROVE VIEW (History layout: calendar + patients left, time filter + cards middle, overview right) ════════ */
-        <ApproveAppointmentSection
-          appointments={appointments}
-          onConfirm={(a) => handleStatus(a._id, 'Confirmed')}
-          onReject={(a, reason) => handleStatus(a._id, 'Cancelled', { notes: reason })}
         />
       )}
 

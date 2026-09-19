@@ -26,7 +26,6 @@
  *   node scripts/run-vitest.cjs run
  *   node scripts/run-vitest.cjs            # watch mode
  */
-/* global console, process */
 const { spawn } = require('node:child_process');
 const path = require('node:path');
 

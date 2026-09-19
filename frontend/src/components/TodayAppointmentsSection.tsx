@@ -717,9 +717,48 @@ function PatientDetailCard({
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="font-heading text-base font-bold text-foreground truncate">{apt.patient}</h3>
-          <span className="inline-block mt-1 text-[10px] px-2 py-0.5 rounded-full font-semibold bg-success/10 text-success">
-            {apt.status}
-          </span>
+          <div className="flex flex-wrap items-center gap-1.5 mt-1">
+            <span className="inline-block text-[10px] px-2 py-0.5 rounded-full font-semibold bg-success/10 text-success">
+              {apt.status}
+            </span>
+            {(() => {
+              const m = (apt.appointmentMode || '').toLowerCase();
+              const t = (apt.type || '').toLowerCase();
+              if (m === 'video' || t.includes('video')) {
+                return (
+                  <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-semibold bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">
+                    <Video className="w-2.5 h-2.5" /> Video Call
+                  </span>
+                );
+              }
+              if (m === 'voice' || m === 'audio' || t.includes('voice') || t.includes('audio')) {
+                return (
+                  <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                    <Phone className="w-2.5 h-2.5" /> Audio Call
+                  </span>
+                );
+              }
+              if (m === 'chat' || t.includes('chat')) {
+                return (
+                  <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
+                    <MessageSquare className="w-2.5 h-2.5" /> Live Chat
+                  </span>
+                );
+              }
+              if (m === 'home_visit' || m === 'home' || t.includes('home')) {
+                return (
+                  <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                    <MapPin className="w-2.5 h-2.5" /> Home Visit
+                  </span>
+                );
+              }
+              return (
+                <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-semibold bg-primary/10 text-primary border border-primary/20">
+                  <Stethoscope className="w-2.5 h-2.5" /> In-Clinic
+                </span>
+              );
+            })()}
+          </div>
         </div>
       </div>
 
@@ -809,29 +848,64 @@ function PatientDetailCard({
         </Button>
       </div>
 
-      {/* Online Consultation Action Button */}
+      {/* Online Consultation & Home Visit Action Section */}
       {(() => {
         const mode = (apt.appointmentMode || '').toLowerCase();
         const type = (apt.type || '').toLowerCase();
         const isOnline = mode === 'voice' || mode === 'audio' || mode === 'video' || mode === 'chat' || type.includes('voice') || type.includes('audio') || type.includes('video') || type.includes('chat') || type.includes('online');
-        if (!isOnline) return null;
-        
-        const isVideo = mode === 'video' || type.includes('video');
-        
+        const isHome = mode === 'home_visit' || mode === 'home' || type.includes('home');
         const routePrefix = user?.role === 'clinic_doctor' ? '/clinic' : '/doctor';
+
+        if (isHome) {
+          return (
+            <div className="mt-3 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-foreground flex items-center gap-1">
+                  <MapPin className="w-3.5 h-3.5 text-amber-600" /> Home Visit Consultation
+                </span>
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300">
+                  Patient Home
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                <strong className="text-foreground">Visit Address:</strong> {apt.address || patient?.address || 'Patient Home Address'}
+              </p>
+              {patient?.phone && (
+                <div className="pt-1">
+                  <a
+                    href={`tel:${patient.phone}`}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
+                  >
+                    <Phone className="w-3 h-3" /> Call Patient ({patient.phone})
+                  </a>
+                </div>
+              )}
+            </div>
+          );
+        }
+
+        if (!isOnline) return null;
+
+        const isVideo = mode === 'video' || type.includes('video');
+        const isChat = mode === 'chat' || type.includes('chat');
+        const isAudio = mode === 'voice' || mode === 'audio' || type.includes('voice') || type.includes('audio');
 
         return (
           <div className="mt-3 p-3 bg-muted/20 border border-border/40 rounded-xl space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-foreground">Consultation Mode:</span>
-              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${isVideo ? 'bg-emerald-500/10 text-emerald-600' : 'bg-amber-500/10 text-amber-600'}`}>
-                {isVideo ? 'Video Call' : 'Voice Call'}
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                isVideo ? 'bg-cyan-500/10 text-cyan-600' :
+                isChat ? 'bg-purple-500/10 text-purple-600' :
+                'bg-emerald-500/10 text-emerald-600'
+              }`}>
+                {isVideo ? 'Video Call' : isChat ? 'Live Chat' : 'Audio Call'}
               </span>
             </div>
-            <div className="grid grid-cols-2 gap-2 pt-1">
+            <div className="grid grid-cols-3 gap-1.5 pt-1">
               <Button
                 size="sm"
-                className="gap-1.5 text-xs h-8 bg-cyan-600 hover:bg-cyan-700 text-white shadow-sm font-semibold"
+                className={`gap-1 text-[11px] h-8 font-semibold ${isVideo ? 'bg-cyan-600 hover:bg-cyan-700 text-white' : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'}`}
                 onClick={() => {
                   const targetId = patient?.userId || patient?._id || apt.patientId;
                   if (targetId && initiateVideoCall) {
@@ -847,12 +921,12 @@ function PatientDetailCard({
                   }
                 }}
               >
-                <Video className="w-3.5 h-3.5" /> Video Call
+                <Video className="w-3 h-3" /> Video
               </Button>
               <Button
                 size="sm"
-                variant="outline"
-                className="gap-1.5 text-xs h-8 border-emerald-600/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 font-semibold"
+                variant={isAudio ? 'default' : 'outline'}
+                className={`gap-1 text-[11px] h-8 font-semibold ${isAudio ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'border-emerald-600/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10'}`}
                 onClick={() => {
                   const targetId = patient?.userId || patient?._id || apt.patientId;
                   if (targetId && initiateCall) {
@@ -868,7 +942,17 @@ function PatientDetailCard({
                   }
                 }}
               >
-                <Phone className="w-3.5 h-3.5" /> Audio Call
+                <Phone className="w-3 h-3" /> Audio
+              </Button>
+              <Button
+                size="sm"
+                variant={isChat ? 'default' : 'outline'}
+                className={`gap-1 text-[11px] h-8 font-semibold ${isChat ? 'bg-purple-600 hover:bg-purple-700 text-white' : 'border-purple-600/40 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10'}`}
+                onClick={() => {
+                  navigate(`${routePrefix}/chat`);
+                }}
+              >
+                <MessageSquare className="w-3 h-3" /> Chat
               </Button>
             </div>
           </div>
@@ -1031,9 +1115,28 @@ export function CompletedCard({ apt, subSlotFor, onRevert, onDownloadPrescriptio
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="font-heading text-base font-bold text-foreground truncate">{apt.patient}</h3>
-          <div className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full font-semibold bg-success/10 text-success text-[10px]">
-            <CheckCircle className="w-3 h-3" />
-            Completed {apt.consultationEndTime ? new Date(apt.consultationEndTime).toLocaleTimeString('en-IN', {hour: '2-digit', minute:'2-digit'}) : ''}
+          <div className="flex flex-wrap items-center gap-1.5 mt-1">
+            <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-semibold bg-success/10 text-success text-[10px]">
+              <CheckCircle className="w-3 h-3" />
+              Completed {apt.consultationEndTime ? new Date(apt.consultationEndTime).toLocaleTimeString('en-IN', {hour: '2-digit', minute:'2-digit'}) : ''}
+            </div>
+            {(() => {
+              const m = (apt.appointmentMode || '').toLowerCase();
+              const t = (apt.type || '').toLowerCase();
+              if (m === 'video' || t.includes('video')) {
+                return <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">Video Call</span>;
+              }
+              if (m === 'voice' || m === 'audio' || t.includes('voice') || t.includes('audio')) {
+                return <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">Audio Call</span>;
+              }
+              if (m === 'chat' || t.includes('chat')) {
+                return <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">Live Chat</span>;
+              }
+              if (m === 'home_visit' || m === 'home' || t.includes('home')) {
+                return <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">Home Visit</span>;
+              }
+              return <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">In-Clinic</span>;
+            })()}
           </div>
         </div>
       </div>
@@ -1229,9 +1332,28 @@ function AbsentCard({ apt, subSlotFor }) {
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="font-heading text-base font-bold text-foreground truncate">{apt.patient}</h3>
-          <div className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full font-semibold bg-destructive/10 text-destructive text-[10px]">
-            <UserX className="w-3 h-3" />
-            Absent / Missed
+          <div className="flex flex-wrap items-center gap-1.5 mt-1">
+            <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-semibold bg-destructive/10 text-destructive text-[10px]">
+              <UserX className="w-3 h-3" />
+              Absent / Missed
+            </div>
+            {(() => {
+              const m = (apt.appointmentMode || '').toLowerCase();
+              const t = (apt.type || '').toLowerCase();
+              if (m === 'video' || t.includes('video')) {
+                return <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">Video Call</span>;
+              }
+              if (m === 'voice' || m === 'audio' || t.includes('voice') || t.includes('audio')) {
+                return <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">Audio Call</span>;
+              }
+              if (m === 'chat' || t.includes('chat')) {
+                return <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">Live Chat</span>;
+              }
+              if (m === 'home_visit' || m === 'home' || t.includes('home')) {
+                return <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">Home Visit</span>;
+              }
+              return <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">In-Clinic</span>;
+            })()}
           </div>
         </div>
       </div>

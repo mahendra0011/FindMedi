@@ -14,8 +14,10 @@ export function LenisScroll({ children }) {
   }, [location.hash, location.pathname, location.search, useSmoothScroll]);
 
   useEffect(() => {
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (!useSmoothScroll || prefersReducedMotion) return undefined;
+    const prefersReducedMotion = typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+      ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      : false;
+    if (!useSmoothScroll || prefersReducedMotion || typeof ResizeObserver === 'undefined') return undefined;
 
     const lenis = new Lenis({
       duration: 0.9,

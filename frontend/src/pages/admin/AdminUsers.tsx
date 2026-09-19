@@ -113,7 +113,7 @@ export default function AdminUsers() {
                 </tr>
               </thead>
               <tbody>
-                {users.map(u => {
+                {users.map((u, i) => {
                   const RoleIcon = roleIcons[u.role] || UserRound;
                   return (
                      <tr key={u._id || u.id || i} className="border-b border-border/30 hover:bg-muted/30">

@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import {
   CalendarDays, CheckCircle, XCircle, FileText, IndianRupee, Plus,
   CalendarClock, FileCheck, ChevronLeft, ChevronRight, RefreshCw,
-  Video, MessageSquare, Clock, CheckCircle2,
+  Video, MessageSquare, Clock, CheckCircle2, Building2, Globe, History,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,16 +29,37 @@ const initialPrescriptionData = {
   advice: '', followUp: '',
 };
 
-function isOnlineMode(appt) {
-  const mode = (appt.appointmentMode || '').toLowerCase();
-  const type = (appt.type || '').toLowerCase();
-  return mode === 'chat' || mode === 'video' || mode === 'voice' || mode === 'audio' || type.includes('chat') || type.includes('video') || type.includes('voice') || type.includes('audio');
-}
+import { isOnlineAppointment, isOfflineAppointment } from '@/lib/appointmentModes';
 
 export default function DoctorOnlineAppointments() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState('pending'); // 'pending' | 'today' | 'complete'
+  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const isClinic = location.pathname.startsWith('/clinic') || user?.role === 'clinic_doctor';
+  const tabParam = searchParams.get('tab');
+  const normalizeTab = (t) => {
+    if (t === 'approve' || t === 'pending') return 'approve';
+    if (t === 'history' || t === 'complete') return 'history';
+    if (t === 'approved' || t === 'today' || t === 'upcoming') return 'approved';
+    return 'approve';
+  };
+  const [activeTab, setActiveTab] = useState(normalizeTab(tabParam));
+  const [approvedSubTab, setApprovedSubTab] = useState(tabParam === 'upcoming' ? 'upcoming' : 'today');
+
+  useEffect(() => {
+    const t = searchParams.get('tab');
+    if (t) {
+      setActiveTab(normalizeTab(t));
+      if (t === 'upcoming' || t === 'today') setApprovedSubTab(t);
+    }
+  }, [searchParams]);
+
+  const handleTabChange = (t) => {
+    setActiveTab(t);
+    setSearchParams({ tab: t });
+  };
   const [appointments, setAppointments] = useState([]);
+  const [allAppointments, setAllAppointments] = useState([]);
   const [calDate, setCalDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(getISTDateString());
   const [loading, setLoading] = useState(true);
@@ -56,7 +78,8 @@ export default function DoctorOnlineAppointments() {
     try {
       const data = await api.getAppointments({ status: 'All', limit: 200, ...searchParams });
       const all = data?.appointments || data?.data || data || [];
-      setAppointments(all.filter(isOnlineMode));
+      setAllAppointments(all);
+      setAppointments(all.filter(isOnlineAppointment));
     } catch (e) {
       const status = e?.status || e?.response?.status;
       if (status && status !== 503) toast.error('Failed to load online appointments');
@@ -76,12 +99,19 @@ export default function DoctorOnlineAppointments() {
 
   const today = getISTDateString();
   const pendingAppointments = appointments.filter(a => (a.status || '').toLowerCase() === 'pending');
-  const upcomingAppointments = appointments.filter(a => {
+  const approvedAppointments = appointments.filter(a => {
     const s = (a.status || '').toLowerCase();
-    return (a.date || '') > today && (s === 'confirmed' || s === 'scheduled');
+    return s === 'confirmed' || s === 'approved' || s === 'scheduled';
   });
-  const todayAppointments = appointments.filter(a => a.date === today && (a.status || '').toLowerCase() !== 'cancelled');
-  const completeAppointments = appointments.filter(a => (a.status || '').toLowerCase() === 'completed');
+  const upcomingAppointments = approvedAppointments.filter(a => a.date > today);
+  const todayAppointments = approvedAppointments.filter(a => a.date === today);
+  const completeAppointments = appointments.filter(a => {
+    const s = (a.status || '').toLowerCase();
+    return s === 'completed' || s === 'cancelled' || s === 'missed' || s === 'absent';
+  });
+  const offlinePendingCount = useMemo(() => {
+    return allAppointments.filter(a => isOfflineAppointment(a) && (a.status || '').toLowerCase() === 'pending').length;
+  }, [allAppointments]);
 
   const handleStatus = async (id, status, extra = {}) => {
     try {
@@ -271,7 +301,96 @@ export default function DoctorOnlineAppointments() {
 
   return (
     <div className="space-y-6 md:h-full md:flex md:flex-col">
-      {/* Top Bar with Title + 3 Switch Buttons */}
+      {/* ── Top Header Row: Left (Channel Tabs) & Right (3 Online Sub-Tabs) ── */}
+      <div className="flex flex-wrap items-center justify-between gap-3 shrink-0">
+        {/* Left: 2 Channels Tabs */}
+        <div className="flex items-center gap-2 bg-card p-1.5 rounded-2xl border border-border/80 shadow-sm w-fit shrink-0">
+          <Link to={
+            activeTab === 'approve'
+              ? (isClinic ? '/clinic/appointments/approve' : '/doctor/appointments/approve')
+              : activeTab === 'history'
+              ? (isClinic ? '/clinic/appointments/history' : '/doctor/appointments/history')
+              : (isClinic ? '/clinic/appointments' : '/doctor/appointments')
+          }>
+            <button className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all text-muted-foreground hover:text-foreground hover:bg-muted/50">
+              <Building2 className="w-4 h-4 text-muted-foreground" />
+              Offline Appointments
+              {offlinePendingCount > 0 && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-500 text-white">
+                  {offlinePendingCount}
+                </span>
+              )}
+            </button>
+          </Link>
+          <Link to={isClinic ? `/clinic/online-appointments?tab=${activeTab}` : `/doctor/online-appointments?tab=${activeTab}`}>
+            <button className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all bg-primary text-primary-foreground shadow-md">
+              <Globe className="w-4 h-4" />
+              Online Appointments
+              {pendingAppointments.length > 0 && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-white/20 text-white">
+                  {pendingAppointments.length}
+                </span>
+              )}
+            </button>
+          </Link>
+        </div>
+
+        {/* Right: 3 Sub-Tabs (Approve Online, Approved Online, Online Appointment History) */}
+        <div className="flex items-center bg-muted/60 p-1 rounded-full border border-border/60 gap-1 shadow-sm w-fit flex-wrap">
+          <button
+            onClick={() => handleTabChange('approve')}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all ${
+              activeTab === 'approve'
+                ? 'bg-amber-500 text-white shadow-md'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Clock className="w-3.5 h-3.5" />
+            Approve Online Appointments
+            {pendingAppointments.length > 0 && (
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${activeTab === 'approve' ? 'bg-white/20 text-white' : 'bg-amber-500 text-white'}`}>
+                {pendingAppointments.length}
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => handleTabChange('approved')}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all ${
+              activeTab === 'approved'
+                ? 'bg-primary text-primary-foreground shadow-md'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <CheckCircle className="w-3.5 h-3.5" />
+            Approved Online Appointments
+            {approvedAppointments.length > 0 && (
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${activeTab === 'approved' ? 'bg-white/20 text-white' : 'bg-primary/20 text-primary'}`}>
+                {approvedAppointments.length}
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => handleTabChange('history')}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all ${
+              activeTab === 'history'
+                ? 'bg-emerald-600 text-white shadow-md'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <History className="w-3.5 h-3.5" />
+            Online Appointment History
+            {completeAppointments.length > 0 && (
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${activeTab === 'history' ? 'bg-white/20 text-white' : 'bg-emerald-500/20 text-emerald-600'}`}>
+                {completeAppointments.length}
+              </span>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Top Bar with Title */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-500/20 to-emerald-500/20 flex items-center justify-center border border-blue-500/30 shadow-sm">
@@ -279,109 +398,31 @@ export default function DoctorOnlineAppointments() {
           </div>
           <div>
             <h1 className="font-heading text-xl font-bold text-foreground flex items-center gap-2">
-              Online Appointments
-              {activeTab === 'pending' && pendingAppointments.length > 0 && (
+              {activeTab === 'approve'
+                ? 'Approve Online Appointments'
+                : activeTab === 'history'
+                ? 'Online Appointment History'
+                : 'Approved Online Appointments'
+              }
+              {activeTab === 'approve' && pendingAppointments.length > 0 && (
                 <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-600">
                   {pendingAppointments.length} pending
                 </span>
               )}
-              {activeTab === 'upcoming' && upcomingAppointments.length > 0 && (
-                <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-500/15 text-purple-600">
-                  {upcomingAppointments.length} upcoming
-                </span>
-              )}
-              {activeTab === 'today' && todayAppointments.length > 0 && (
+              {activeTab === 'approved' && approvedAppointments.length > 0 && (
                 <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary">
-                  {todayAppointments.length} today
-                </span>
-              )}
-              {activeTab === 'complete' && completeAppointments.length > 0 && (
-                <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-600">
-                  {completeAppointments.length} completed
+                  {approvedAppointments.length} confirmed
                 </span>
               )}
             </h1>
             <p className="text-xs text-muted-foreground">
-              {activeTab === 'pending'
+              {activeTab === 'approve'
                 ? 'Review & approve incoming chat, voice & video call requests'
-                : activeTab === 'upcoming'
-                ? 'Confirmed future online consultations & bookings'
-                : activeTab === 'today'
-                ? "Today's scheduled chat & video consultations"
-                : 'Completed online consultation history & records'}
+                : activeTab === 'approved'
+                ? "Manage scheduled consultations & active online sessions"
+                : 'Completed online consultation history & past records'}
             </p>
           </div>
-        </div>
-
-        {/* ── 4 Switch Buttons (Pending / Upcoming / Today / Complete) ── */}
-        <div className="flex items-center bg-muted/60 p-1 rounded-full border border-border/60 gap-1 shadow-sm flex-wrap">
-          <button
-            onClick={() => setActiveTab('pending')}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${
-              activeTab === 'pending'
-                ? 'bg-amber-500 text-white shadow-md'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            <Clock className="w-3.5 h-3.5" />
-            Pending
-            {pendingAppointments.length > 0 && (
-              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${activeTab === 'pending' ? 'bg-white/20 text-white' : 'bg-amber-500 text-white'}`}>
-                {pendingAppointments.length}
-              </span>
-            )}
-          </button>
-
-          <button
-            onClick={() => setActiveTab('upcoming')}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${
-              activeTab === 'upcoming'
-                ? 'bg-purple-600 text-white shadow-md'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            <CalendarClock className="w-3.5 h-3.5" />
-            Upcoming
-            {upcomingAppointments.length > 0 && (
-              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${activeTab === 'upcoming' ? 'bg-white/20 text-white' : 'bg-purple-600 text-white'}`}>
-                {upcomingAppointments.length}
-              </span>
-            )}
-          </button>
-
-          <button
-            onClick={() => setActiveTab('today')}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${
-              activeTab === 'today'
-                ? 'bg-primary text-primary-foreground shadow-md'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            <CalendarDays className="w-3.5 h-3.5" />
-            Today
-            {todayAppointments.length > 0 && (
-              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${activeTab === 'today' ? 'bg-white/20 text-white' : 'bg-primary/20 text-primary'}`}>
-                {todayAppointments.length}
-              </span>
-            )}
-          </button>
-
-          <button
-            onClick={() => setActiveTab('complete')}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${
-              activeTab === 'complete'
-                ? 'bg-emerald-600 text-white shadow-md'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            <CheckCircle2 className="w-3.5 h-3.5" />
-            Complete
-            {completeAppointments.length > 0 && (
-              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${activeTab === 'complete' ? 'bg-white/20 text-white' : 'bg-emerald-500/20 text-emerald-600'}`}>
-                {completeAppointments.length}
-              </span>
-            )}
-          </button>
         </div>
       </div>
 
@@ -397,33 +438,27 @@ export default function DoctorOnlineAppointments() {
             </div>
           ))}
         </div>
-      ) : activeTab === 'pending' ? (
-        /* ════════ PENDING VIEW (Approve / Reject Online Requests) ════════ */
+      ) : activeTab === 'approve' ? (
+        /* ════════ APPROVE VIEW (Approve / Reject Online Requests) ════════ */
         <ApproveAppointmentSection
-          appointments={appointments}
+          appointments={pendingAppointments}
+          allAppointments={appointments}
           onConfirm={(a) => handleStatus(a._id, 'Confirmed')}
           onReject={(a, reason) => handleStatus(a._id, 'Cancelled', { notes: reason })}
         />
-      ) : activeTab === 'upcoming' ? (
-        /* ════════ UPCOMING VIEW (Future Confirmed Online Consultations) ════════ */
-        <UpcomingAppointmentsSection
-          appointments={appointments}
-          onViewDetails={(a) => setDetailsApt(a)}
-          user={user}
-        />
-      ) : activeTab === 'today' ? (
-        /* ════════ TODAY VIEW (Today Online Consultations + Join Call / Chat) ════════ */
+      ) : activeTab === 'history' ? (
+        /* ════════ HISTORY VIEW (Online Appointment History) ════════ */
+        <AppointmentHistorySection appointments={completeAppointments} />
+      ) : (
+        /* ════════ APPROVED ONLINE VIEW ════════ */
         <TodayAppointmentsSection
-          appointments={appointments}
+          appointments={approvedAppointments}
           selectedDate={selectedDate}
           calendar={CalendarWidget}
           onRefresh={loadAppointments}
           user={user}
           onViewDetails={(a) => setDetailsApt(a)}
         />
-      ) : (
-        /* ════════ COMPLETE VIEW (Online Appointment History) ════════ */
-        <AppointmentHistorySection appointments={appointments} />
       )}
 
       {/* Prescription Modal */}

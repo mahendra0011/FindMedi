@@ -96,7 +96,13 @@ export default function AppointmentHistorySection({ appointments }) {
 
   // All completed (or absent) appointments for the selected date — switch ke hisaab se
   const modeForDate = useMemo(
-    () => appointments.filter(a => a.date === selectedDate && (a.status || '').toLowerCase() === (viewMode === 'complete' ? 'completed' : 'missed')),
+    () => appointments.filter(a => {
+      if (a.date !== selectedDate) return false;
+      const s = (a.status || '').toLowerCase();
+      if (viewMode === 'complete') return s === 'completed';
+      if (viewMode === 'absent') return s === 'missed' || s === 'absent' || s === 'cancelled' || s === 'no-show';
+      return true;
+    }),
     [appointments, selectedDate, viewMode]
   );
   const filtered = modeForDate;
@@ -150,7 +156,10 @@ export default function AppointmentHistorySection({ appointments }) {
     [appointments]
   );
   const absentAll = useMemo(
-    () => appointments.filter(a => (a.status || '').toLowerCase() === 'missed'),
+    () => appointments.filter(a => {
+      const s = (a.status || '').toLowerCase();
+      return s === 'missed' || s === 'absent' || s === 'cancelled' || s === 'no-show';
+    }),
     [appointments]
   );
 
@@ -162,7 +171,7 @@ export default function AppointmentHistorySection({ appointments }) {
     if (!completedAll.length) return 0;
     const dates = completedAll.map(a => a.date || '').filter(Boolean).sort();
     const first = dates[0];
-    const days = Math.max(1, Math.floor((new Date(today) - new Date(first)) / 86400000) + 1);
+    const days = Math.max(1, Math.floor((new Date(today).getTime() - new Date(first).getTime()) / 86400000) + 1);
     return (completedAll.length / days).toFixed(1);
   }, [completedAll, today]);
 
@@ -183,7 +192,7 @@ export default function AppointmentHistorySection({ appointments }) {
   const recent = useMemo(() => {
     return [...appointments]
       .filter(a => (a.status || '').toLowerCase() === (viewMode === 'complete' ? 'completed' : 'missed') && a.date !== selectedDate)
-      .sort((a, b) => (b.date || '').localeCompare(a.date || '') || parseTime(b.time) - parseTime(a.time));
+      .sort((a, b) => (b.date || '').localeCompare(a.date || '') || ((parseTime(b.time)?.hour ?? 0) - (parseTime(a.time)?.hour ?? 0)));
   }, [appointments, selectedDate, viewMode]);
   const handleHourClick = (h) => {
     setSelectedHour(selectedHour === h ? null : h); // toggle
