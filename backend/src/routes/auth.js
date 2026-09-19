@@ -225,6 +225,24 @@ const userResponse = async (user) => {
     }
   }
 
+  let ambulanceData = null;
+  if (user.role === 'ambulance') {
+    const { default: Ambulance } = await import('../models/Ambulance.js');
+    const amb = await Ambulance.findOne({ userId: user._id })
+      .populate('hospitalId', 'name address phone').lean();
+    if (amb) {
+      ambulanceData = {
+        ambulanceId: amb._id,
+        registrationNumber: amb.registrationNumber,
+        ambulanceType: amb.ambulanceType,
+        hospitalName: amb.hospitalId?.name || '',
+        hospitalId: amb.hospitalId?._id || amb.hospitalId || null,
+        isOnline: amb.isOnline,
+        isOnDuty: amb.isOnDuty,
+      };
+    }
+  }
+
    return {
      id: user._id,
      name: user.name,
@@ -257,8 +275,9 @@ const userResponse = async (user) => {
        workingHours: user.workingHours,
        emergencyContact: user.emergencyContact,
      }),
-     ...(user.role === 'rider' && (riderData || {})),
-   };
+      ...(user.role === 'rider' && (riderData || {})),
+      ...(user.role === 'ambulance' && { ambulanceData }),
+    };
 };
 
 const notifyAdmins = async ({ title, message }) => {
@@ -1182,6 +1201,39 @@ router.post('/doctor-setup', validate(doctorSetupSchema), async (req, res) => {
   } catch (err) {
     if (err.name === 'TokenExpiredError') {
       return res.status(400).json({ message: 'Setup link has expired. Please contact your administrator.' });
+    }
+    res.status(400).json({ message: 'Invalid or expired setup token' });
+  }
+});
+
+// POST /api/auth/ambulance-setup (Doc 02 §3.2 — copy of doctor-setup)
+router.post('/ambulance-setup', validate(doctorSetupSchema), async (req, res) => {
+  try {
+    const { token, password } = req.body;
+    if (!token || !password) {
+      return res.status(400).json({ message: 'Token and password are required' });
+    }
+    const pwResult = passwordSchema.safeParse(password);
+    if (!pwResult.success) {
+      return res.status(400).json({ message: pwResult.error.issues[0].message });
+    }
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (decoded.type !== 'ambulance_setup') {
+      return res.status(400).json({ message: 'Invalid setup token' });
+    }
+    const user = await User.findOne({ email: decoded.email });
+    if (!user || user.role !== 'ambulance') {
+      return res.status(404).json({ message: 'Ambulance user not found' });
+    }
+    user.password = password;
+    user.isVerified = true;
+    await user.save();
+    const { default: Ambulance } = await import('../models/Ambulance.js');
+    await Ambulance.updateOne({ userId: user._id }, { loginStatus: 'active' });
+    res.json({ message: 'Password set successfully. You can now login.' });
+  } catch (err) {
+    if (err.name === 'TokenExpiredError') {
+      return res.status(400).json({ message: 'Setup link has expired. Please contact your hospital admin.' });
     }
     res.status(400).json({ message: 'Invalid or expired setup token' });
   }

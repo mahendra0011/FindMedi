@@ -8,6 +8,7 @@ interface SOSSearchingScreenProps {
   phase: 'ambulance' | 'vehicle';
   onCancel: () => void;
   requestDetails?: any;
+  noResponders?: boolean;
 }
 
 export default function SOSSearchingScreen({
@@ -15,7 +16,25 @@ export default function SOSSearchingScreen({
   phase,
   onCancel,
   requestDetails,
+  noResponders,
 }: SOSSearchingScreenProps) {
+  if (noResponders) {
+    return (
+      <div className="fixed inset-0 z-[9999] bg-slate-950/95 backdrop-blur-xl flex flex-col items-center justify-center p-6 text-white select-none">
+        <div className="max-w-md w-full text-center space-y-4 rounded-3xl border border-red-500/40 bg-red-950/30 p-8">
+          <p className="text-2xl">🚨</p>
+          <h2 className="text-xl font-black">Koi responder nahi mila</h2>
+          <p className="text-sm text-slate-300">Turant <strong>108</strong> ya <strong>112</strong> pe call karein.</p>
+          <div className="flex gap-3 justify-center pt-2">
+            <a href="tel:108" className="px-6 h-12 rounded-2xl bg-red-600 flex items-center font-bold">Call 108</a>
+            <a href="tel:112" className="px-6 h-12 rounded-2xl bg-white text-slate-900 flex items-center font-bold">Call 112</a>
+          </div>
+          <button onClick={onCancel} className="text-xs text-slate-400 underline pt-2">Band karein</button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-[9999] bg-slate-950/95 backdrop-blur-xl flex flex-col items-center justify-between py-10 px-4 text-white select-none animate-in fade-in duration-300">
       {/* Top Bar */}
@@ -70,8 +89,13 @@ export default function SOSSearchingScreen({
         </div>
 
         <p className="text-[11px] text-slate-400">
-          In case of extreme immediate danger, please dial <strong>108</strong> (Ambulance) or <strong>112</strong> (National Emergency).
+          In case of extreme immediate danger, please dial <a href="tel:108" className="underline font-bold">108</a> (Ambulance) or <a href="tel:112" className="underline font-bold">112</a> (National Emergency).
         </p>
+        <div className="flex items-center justify-center gap-2 pt-1">
+          {[5, 10, 15].map((r) => (
+            <span key={r} className={`h-2 w-2 rounded-full ${radiusKm >= r ? 'bg-red-500' : 'bg-slate-700'}`} />
+          ))}
+        </div>
 
         {/* Cancel Button */}
         <div className="pt-2">

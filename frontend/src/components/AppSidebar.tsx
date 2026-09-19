@@ -301,9 +301,14 @@ const navConfig = {
     { icon: Star,            labelKey: 'nav.myReviews',        path: '/lawyer/dashboard?tab=reviews' },
     { icon: Settings,        labelKey: 'nav.settings',         path: '/lawyer/dashboard?tab=settings' },
   ],
+  ambulance: [
+    { icon: LayoutDashboard, labelKey: 'nav.dashboard', path: '/ambulance/dashboard' },
+    { icon: History, labelKey: 'nav.jobHistory', path: '/ambulance/jobs' },
+    { icon: User, labelKey: 'nav.profileSettings', path: '/settings' },
+  ],
 };
 
-const roleBadgeColor = { hospital_admin: 'bg-primary/20 text-primary', doctor: 'bg-info/20 text-info', patient: 'bg-success/20 text-success', clinic_doctor: 'bg-warning/20 text-warning', lab_owner: 'bg-purple-500/20 text-purple-600', pharmacy_owner: 'bg-rose-500/20 text-rose-600', delivery_boy: 'bg-blue-500/20 text-blue-600', rider: 'bg-teal-500/20 text-teal-600', assistant: 'bg-emerald-500/20 text-emerald-600', lawyer: 'bg-indigo-500/20 text-indigo-600' };
+const roleBadgeColor = { hospital_admin: 'bg-primary/20 text-primary', doctor: 'bg-info/20 text-info', patient: 'bg-success/20 text-success', clinic_doctor: 'bg-warning/20 text-warning', lab_owner: 'bg-purple-500/20 text-purple-600', pharmacy_owner: 'bg-rose-500/20 text-rose-600', delivery_boy: 'bg-blue-500/20 text-blue-600', rider: 'bg-teal-500/20 text-teal-600', assistant: 'bg-emerald-500/20 text-emerald-600', lawyer: 'bg-indigo-500/20 text-indigo-600', ambulance: 'bg-red-500/20 text-red-600' };
 
 
 function SidebarContent({ collapsed, onToggleCollapse, onNavClick }: any) {

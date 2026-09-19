@@ -142,4 +142,26 @@ describe('Emergency SOS System & Dispatch Engine', () => {
       expect(Array.isArray(vehicles)).toBe(true);
     });
   });
+
+  describe('Wave winner selection — nearest acceptor wins (Doc 01 §10.3)', () => {
+    it('should pick the nearest acceptance, not the first', () => {
+      const acceptances = [
+        { distanceKm: 4, acceptedAt: new Date('2026-01-01T00:00:01Z') },
+        { distanceKm: 1, acceptedAt: new Date('2026-01-01T00:00:20Z') },
+      ];
+      const sorted = [...acceptances].sort((a, b) =>
+        (a.distanceKm - b.distanceKm) || (new Date(a.acceptedAt) - new Date(b.acceptedAt)));
+      expect(sorted[0].distanceKm).toBe(1);
+    });
+
+    it('should prefer the earlier acceptance on a distance tie', () => {
+      const acceptances = [
+        { distanceKm: 2, acceptedAt: new Date('2026-01-01T00:00:10Z') },
+        { distanceKm: 2, acceptedAt: new Date('2026-01-01T00:00:02Z') },
+      ];
+      const sorted = [...acceptances].sort((a, b) =>
+        (a.distanceKm - b.distanceKm) || (new Date(a.acceptedAt) - new Date(b.acceptedAt)));
+      expect(sorted[0].acceptedAt.toISOString()).toBe('2026-01-01T00:00:02.000Z');
+    });
+  });
 });

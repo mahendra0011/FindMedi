@@ -18,7 +18,6 @@ import logger from '../config/logger.js';
 const router = express.Router();
 
 // ─── POST /api/emergency-sos ────────────────────────────────────────────────
-// User creates Emergency SOS request (hold-to-confirm triggered)
 router.post('/', protect, validate(emergencySOSSchema), async (req, res) => {
   try {
     const {
@@ -27,12 +26,13 @@ router.post('/', protect, validate(emergencySOSSchema), async (req, res) => {
       reporterOwnDetailsShared,
       reporterDetails,
       category,
-      lat,
-      lng,
       address,
     } = req.body;
+    let { lat, lng } = req.body;
+    if ((lat === undefined || lng === undefined) && req.body.location?.coordinates?.length === 2) {
+      [lng, lat] = req.body.location.coordinates;
+    }
 
-    // Check if user already has an active searching or assigned emergency request
     const existingActive = await EmergencyRequest.findOne({
       userId: req.user._id,
       status: { $in: ['searching', 'assigned', 'en_route'] },
@@ -46,7 +46,6 @@ router.post('/', protect, validate(emergencySOSSchema), async (req, res) => {
       });
     }
 
-    // Determine final patient details
     let finalPatient = patientDetails || {};
     if (reporterMode === 'self') {
       finalPatient = {
@@ -78,7 +77,6 @@ router.post('/', protect, validate(emergencySOSSchema), async (req, res) => {
       status: 'searching',
     });
 
-    // Fire background two-phase dispatch engine
     startEmergencyDispatch(emergency._id).catch(err => {
       logger.error(`startEmergencyDispatch background error: ${err.message}`);
     });
@@ -95,7 +93,6 @@ router.post('/', protect, validate(emergencySOSSchema), async (req, res) => {
 });
 
 // ─── POST /api/emergency-sos/:id/cancel ─────────────────────────────────────
-// User cancels active emergency request
 router.post('/:id/cancel', protect, async (req, res) => {
   try {
     const { reason } = req.body;
@@ -113,9 +110,8 @@ router.post('/:id/cancel', protect, async (req, res) => {
     request.cancelledAt = new Date();
     await request.save();
 
-    // If an ambulance was on duty for this request, free it up
     if (request.assignedProviderType === 'ambulance' && request.assignedProviderId) {
-      await Ambulance.findByIdAndUpdate(request.assignedProviderId, { isOnDuty: false });
+      await Ambulance.findByIdAndUpdate(request.assignedProviderId, { isOnDuty: false, currentEmergencyId: null });
     }
 
     const io = getIO();
@@ -130,12 +126,18 @@ router.post('/:id/cancel', protect, async (req, res) => {
             requestId: String(request._id),
             reason: reason || 'Cancelled by user',
           });
+          // Also close all notified overlays for in-flight waves
+          (request.notified || []).forEach(n =>
+            io.to(`user:${n.userId}`).emit('emergency_closed', { requestId: String(request._id) }));
         } else {
           io.to(`user:${request.assignedProviderId}`).emit('emergency_cancelled', {
             requestId: String(request._id),
             reason: reason || 'Cancelled by user',
           });
         }
+      } else {
+        (request.notified || []).forEach(n =>
+          io.to(`user:${n.userId}`).emit('emergency_closed', { requestId: String(request._id) }));
       }
     }
 
@@ -145,27 +147,22 @@ router.post('/:id/cancel', protect, async (req, res) => {
   }
 });
 
-// ─── POST /api/emergency-sos/:id/accept ─────────────────────────────────────
-// Responder accepts (ambulance driver or rider)
+// ─── POST /api/emergency-sos/:id/accept (Doc 01 §6.5 — vote, 202 pending) ────
 router.post('/:id/accept', protect, async (req, res) => {
   try {
     const { providerId, providerType } = req.body;
 
-    // Resolve provider ID if not explicitly sent in body
     let resolvedId = providerId;
     let resolvedType = providerType;
 
     if (!resolvedId) {
-      // Check if current user is linked to an ambulance
-      const ambulance = await Ambulance.findOne({
-        currentDriverId: req.user.staffId || req.user._id,
-      });
+      // Ambulance login owners resolve via Ambulance.userId
+      const ambulance = await Ambulance.findOne({ userId: req.user._id }).select('_id');
       if (ambulance) {
-        resolvedId = ambulance._id;
+        resolvedId = String(ambulance._id);
         resolvedType = 'ambulance';
       } else {
-        // Independent rider
-        resolvedId = req.user._id;
+        resolvedId = String(req.user._id);
         resolvedType = 'rider';
       }
     }
@@ -177,34 +174,69 @@ router.post('/:id/accept', protect, async (req, res) => {
       req.user
     );
 
-    if (result.status === 'too_late') {
-      return res.status(409).json({ message: result.message || 'Already assigned to another responder' });
-    }
-    if (result.status !== 'assigned') {
-      return res.status(400).json({ message: result.message || 'Unable to accept emergency' });
-    }
-
-    res.json({ success: true, ...result });
+    const map = { accepted_pending: 202, too_late: 409, not_eligible: 403, forbidden: 403, not_found: 404 };
+    return res.status(map[result.status] || 400).json({
+      success: result.status === 'accepted_pending',
+      ...result,
+    });
   } catch (err) {
     logger.error(`Accept emergency error: ${err.message}`);
     res.status(500).json({ message: 'Failed to accept emergency', error: err.message });
   }
 });
 
-// ─── POST /api/emergency-sos/:id/reject ─────────────────────────────────────
-// Provider explicitly rejects incoming alert
+// ─── POST /api/emergency-sos/:id/reject (Doc 01 §6.5) ───────────────────────
 router.post('/:id/reject', protect, async (req, res) => {
   try {
     const { providerId } = req.body;
-    res.json({ success: true, message: 'Emergency alert rejected' });
+    const pid = providerId || String(req.user._id);
+    // Resolve ambulance providerId if caller is ambulance login without explicit id
+    let resolved = pid;
+    if (!providerId) {
+      const amb = await Ambulance.findOne({ userId: req.user._id }).select('_id').lean();
+      if (amb) resolved = String(amb._id);
+    }
+    await EmergencyRequest.updateOne(
+      { _id: req.params.id, status: 'searching' },
+      { $addToSet: { rejections: String(resolved) } }
+    );
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// ─── PUT /api/emergency-sos/:id/complete (Doc 01 §8) ────────────────────────
+router.put('/:id/complete', protect, async (req, res) => {
+  try {
+    const r = await EmergencyRequest.findOne({ _id: req.params.id, status: { $in: ['assigned', 'en_route'] } });
+    if (!r) return res.status(404).json({ message: 'Active request nahi mili' });
+
+    let ok = false;
+    if (r.assignedProviderType === 'ambulance') {
+      ok = await Ambulance.exists({ _id: r.assignedProviderId, userId: req.user._id });
+    } else {
+      ok = String(r.assignedProviderId) === String(req.user._id);
+    }
+    if (!ok) return res.status(403).json({ message: 'Ye request aapko assign nahi hai' });
+
+    r.status = 'completed';
+    r.completedAt = new Date();
+    await r.save();
+    if (r.assignedProviderType === 'ambulance') {
+      await Ambulance.findByIdAndUpdate(r.assignedProviderId, { isOnDuty: false, currentEmergencyId: null });
+    }
+
+    getIO()?.to(`emergency:${r._id}`).emit('emergency_completed', { requestId: String(r._id) });
+    res.json({ success: true });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
 // ─── GET /api/emergency-sos/:id ─────────────────────────────────────────────
-// Fetch status and full details of emergency request
-router.get('/:id', optionalProtect, async (req, res) => {
+// Doc 03 §8: restrict to owner + assigned provider (no open reads)
+router.get('/:id', protect, async (req, res) => {
   try {
     const request = await EmergencyRequest.findById(req.params.id)
       .populate('userId', 'name phone email avatar')
@@ -216,23 +248,49 @@ router.get('/:id', optionalProtect, async (req, res) => {
       return res.status(404).json({ message: 'Emergency request not found' });
     }
 
-    // Attach responder details if assigned
+    const isOwner = String(request.userId?._id || request.userId) === String(req.user._id);
+    let isProvider = false;
+    if (request.assignedProviderType === 'ambulance') {
+      isProvider = await Ambulance.exists({ _id: request.assignedProviderId, userId: req.user._id });
+    } else if (request.assignedProviderId) {
+      isProvider = String(request.assignedProviderId) === String(req.user._id);
+    }
+    // Notified providers may also sync state during their wave
+    const isNotified = (request.notified || []).some(n => n.userId === String(req.user._id));
+    const isAdmin = ['superadmin', 'hospital_admin'].includes(req.user.role);
+    if (!isOwner && !isProvider && !isNotified && !isAdmin) {
+      return res.status(403).json({ message: 'Not authorized to view this emergency' });
+    }
+
+    // Privacy: hide patient medical details from non-winner notified providers
+    let out = request;
+    if (isNotified && !isOwner && !isProvider && !isAdmin) {
+      const { patientDetails, reporterDetails, ...rest } = request;
+      out = { ...rest, patientDetails: undefined, reporterDetails: undefined };
+    }
+
     let responder = null;
     if (request.status === 'assigned' || request.status === 'en_route') {
       if (request.assignedProviderType === 'ambulance' && request.assignedProviderId) {
         const amb = await Ambulance.findById(request.assignedProviderId)
           .populate('hospitalId', 'name address phone')
-          .populate('currentDriverId', 'name contactNumber')
           .lean();
         if (amb) {
+          let driverName = amb.driverName || 'Ambulance Driver';
+          let driverPhone = amb.driverPhone || amb.currentDriverPhone;
+          if (amb.userId) {
+            const du = await User.findById(amb.userId).select('name phone').lean();
+            if (du?.name) driverName = du.name;
+            if (du?.phone) driverPhone = du.phone;
+          }
           responder = {
             providerType: 'ambulance',
             hospitalName: amb.hospitalId?.name || 'Hospital',
             registrationNumber: amb.registrationNumber,
             ambulanceType: amb.ambulanceType,
             equipmentLevel: amb.equipmentLevel,
-            driverName: amb.currentDriverId?.name || 'Ambulance Driver',
-            driverPhone: amb.currentDriverId?.contactNumber || amb.currentDriverPhone,
+            driverName,
+            driverPhone,
             currentLocation: amb.currentLocation,
           };
         }
@@ -251,14 +309,13 @@ router.get('/:id', optionalProtect, async (req, res) => {
       }
     }
 
-    res.json({ success: true, emergency: { ...request, responder } });
+    res.json({ success: true, emergency: { ...out, responder } });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
 // ─── GET /api/emergency-sos/:id/nearby-hospitals ────────────────────────────
-// Fetch nearby hospitals sorted by distance from the patient's location
 router.get('/:id/nearby-hospitals', protect, async (req, res) => {
   try {
     const request = await EmergencyRequest.findById(req.params.id);
@@ -291,7 +348,6 @@ router.get('/:id/nearby-hospitals', protect, async (req, res) => {
 });
 
 // ─── PUT /api/emergency-sos/:id/select-hospital ─────────────────────────────
-// Responder selects destination hospital
 router.put('/:id/select-hospital', protect, async (req, res) => {
   try {
     const { hospitalId } = req.body;

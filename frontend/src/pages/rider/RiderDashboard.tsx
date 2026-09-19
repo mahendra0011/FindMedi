@@ -30,6 +30,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
+import { EmergencyToggleConfirm } from '@/components/emergency/EmergencyToggleConfirm';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
@@ -60,6 +61,20 @@ export default function RiderDashboard() {
   const [withdrawModalOpen, setWithdrawModalOpen] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [withdrawing, setWithdrawing] = useState(false);
+
+  // Emergency Support toggle (Doc 01 §9.3)
+  const [emergencyConfirm, setEmergencyConfirm] = useState(false);
+  const [emergencyPending, setEmergencyPending] = useState(false);
+  const confirmEmergencyToggle = async () => {
+    setEmergencyConfirm(false);
+    try {
+      const res: any = await api.put('/rider/emergency-toggle', { emergencySupport: emergencyPending });
+      setProfile((prev: any) => ({ ...prev, emergencySupport: res.emergencySupport }));
+      toast.success(emergencyPending ? 'Emergency Support ON' : 'Emergency Support OFF');
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || e.message || 'Toggle failed');
+    }
+  };
 
   // GPS Watch Position Ref
   const watchIdRef = useRef<number | null>(null);
@@ -348,6 +363,22 @@ export default function RiderDashboard() {
           />
         </div>
       </div>
+
+      {/* Emergency Support card (Doc 01 §9.3) */}
+      <div className="rounded-2xl border border-red-500/20 bg-card p-4 flex items-center justify-between gap-4">
+        <div>
+          <p className="font-semibold text-sm">Emergency Support</p>
+          <p className="text-xs text-muted-foreground">Paas ki medical emergency me full-screen alert. Bike ko nahi milta.</p>
+        </div>
+        <Switch
+          checked={Boolean(profile?.emergencySupport)}
+          disabled={vehicle?.type === 'bike' || !isOnline || !isVerified}
+          onCheckedChange={(v) => { setEmergencyPending(v); setEmergencyConfirm(true); }}
+          className="data-[state=checked]:bg-red-600"
+        />
+      </div>
+      <EmergencyToggleConfirm open={emergencyConfirm} turningOn={emergencyPending}
+        onConfirm={confirmEmergencyToggle} onCancel={() => setEmergencyConfirm(false)} />
 
       {/* Verification Notice Banner (if pending) */}
       {!isVerified && (

@@ -71,6 +71,13 @@ const emptyDoctor = () => ({
   appointmentFees: { chat: '', video: '', offline: '', home_visit: '' },
 });
 
+const emptyAmbulance = () => ({
+  registrationNumber: '', vehicleModel: '',
+  ambulanceType: 'BLS',
+  equipmentLevel: '',
+  driverName: '', driverPhone: '', loginEmail: '',
+});
+
 const BASE_STEPS = [
   { num: 1, label: 'Facility Type', icon: Building2 },
   { num: 2, label: 'Admin Account', icon: User },
@@ -157,6 +164,7 @@ export default function JoinPlatform() {
     ambulanceSupport: false,
   });
   const [doctors, setDoctors] = useState([emptyDoctor()]);
+  const [ambulances, setAmbulances] = useState([emptyAmbulance()]);
   
   const [specialist, setSpecialist] = useState({
     pathologistName: '', pathologistQualification: '',
@@ -803,6 +811,9 @@ export default function JoinPlatform() {
         },
         specialist: type === 'diagnostic' ? specialist : undefined,
       };
+      if (type === 'hospital' && facility.ambulanceSupport) {
+        payload.ambulances = ambulances.filter(a => a.registrationNumber?.trim()).map(a => ({ ...a }));
+      }
       if (type === 'hospital' || type === 'clinic') {
         payload.doctors = doctors.filter(d => d.name && d.specialization).map(d => ({
           ...d,
@@ -1613,8 +1624,7 @@ export default function JoinPlatform() {
                         { value: 'auto', label: 'Auto', icon: Navigation, desc: '3-Wheeler', cap: 3 },
                         { value: 'e_rickshaw', label: 'E-Rickshaw', icon: Bike, desc: 'Eco / Battery', cap: 4 },
                         { value: 'car', label: 'Car / Cab', icon: Car, desc: 'Comfort / Patient', cap: 4 },
-                        { value: 'van', label: 'Van / Winger', icon: Truck, desc: 'Family / Large', cap: 7 },
-                        { value: 'ambulance', label: 'Ambulance', icon: Ambulance, desc: 'Emergency / ALS', cap: 2 },
+                        { value: 'van', label: 'Medical Van', icon: Truck, desc: 'Family / Large', cap: 7 },
                       ].map(v => (
                         <button
                           key={v.value}
@@ -1785,59 +1795,8 @@ export default function JoinPlatform() {
                       </label>
                     )}
 
-                    {rider.vehicleType === 'ambulance' && (
-                      <div className="space-y-3">
-                        <div>
-                          <label className="text-sm font-medium text-foreground mb-1 block">Ambulance Classification</label>
-                          <select
-                            value={rider.extraFields.ambulanceType}
-                            onChange={e => updateRiderExtra('ambulanceType', e.target.value)}
-                            className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
-                          >
-                            <option value="Basic">Basic Life Support (BLS)</option>
-                            <option value="ALS">Advanced Life Support (ALS with Defibrillator)</option>
-                            <option value="Patient Transport">Patient Transport / Non-Emergency</option>
-                          </select>
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={rider.extraFields.hasOxygen}
-                              onChange={e => updateRiderExtra('hasOxygen', e.target.checked)}
-                              className="w-4 h-4 rounded border-border accent-primary"
-                            />
-                            <span className="text-sm">Oxygen cylinder equipped?</span>
-                          </label>
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={rider.extraFields.hasStretcher}
-                              onChange={e => updateRiderExtra('hasStretcher', e.target.checked)}
-                              className="w-4 h-4 rounded border-border accent-primary"
-                            />
-                            <span className="text-sm">Foldable stretcher / trolley?</span>
-                          </label>
-                        </div>
-                        <div className="pt-2">
-                          <label className="flex items-center gap-2 cursor-pointer mb-2">
-                            <input
-                              type="checkbox"
-                              checked={rider.extraFields.hospitalAffiliated}
-                              onChange={e => updateRiderExtra('hospitalAffiliated', e.target.checked)}
-                              className="w-4 h-4 rounded border-border accent-primary"
-                            />
-                            <span className="text-sm">Is this ambulance affiliated with a hospital?</span>
-                          </label>
-                          {rider.extraFields.hospitalAffiliated && (
-                            <Input
-                              placeholder="Enter affiliated Hospital name"
-                              value={rider.extraFields.hospitalName}
-                              onChange={e => updateRiderExtra('hospitalName', e.target.value)}
-                            />
-                          )}
-                        </div>
-                      </div>
+                    {rider.vehicleType === 'van' && (
+                      <p className="text-xs text-muted-foreground">Medical Van ke liye stretcher/wheelchair space available rakhein. Ambulance sirf hospital add karta hai.</p>
                     )}
                   </div>
                 </div>
@@ -3177,6 +3136,7 @@ export default function JoinPlatform() {
                         </label>
 
                         {type === 'hospital' && (
+                          <>
                           <label className="flex items-center gap-3 p-3 rounded-xl border border-border/50 bg-background cursor-pointer hover:border-primary/30 hover:bg-muted/20 transition-all">
                             <input type="checkbox" checked={facility.ambulanceSupport}
                               onChange={e => setFacility(p => ({ ...p, ambulanceSupport: e.target.checked }))}
@@ -3189,6 +3149,38 @@ export default function JoinPlatform() {
                               </div>
                             </div>
                           </label>
+                          {facility.ambulanceSupport && (
+                            <div className="space-y-3 rounded-xl border border-border/50 p-3 bg-muted/10">
+                              <p className="text-xs font-semibold">Ambulances (driver login email optional)</p>
+                              {ambulances.map((a, i) => (
+                                <div key={i} className="rounded-lg border border-border/40 p-3 space-y-2 bg-background">
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <Input placeholder="Reg No. *" value={a.registrationNumber} onChange={e => setAmbulances(p => p.map((x, j) => j === i ? { ...x, registrationNumber: e.target.value } : x))} />
+                                    <select value={a.ambulanceType} onChange={e => setAmbulances(p => p.map((x, j) => j === i ? { ...x, ambulanceType: e.target.value } : x))} className="h-10 px-2 rounded-md border border-input bg-background text-sm">
+                                      <option value="BLS">BLS</option><option value="ALS">ALS</option>
+                                      <option value="PATIENT_TRANSPORT">Patient Transport</option><option value="MORTUARY">Mortuary</option>
+                                    </select>
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <Input placeholder="Vehicle model" value={a.vehicleModel} onChange={e => setAmbulances(p => p.map((x, j) => j === i ? { ...x, vehicleModel: e.target.value } : x))} />
+                                    <Input placeholder="Equipment" value={a.equipmentLevel} onChange={e => setAmbulances(p => p.map((x, j) => j === i ? { ...x, equipmentLevel: e.target.value } : x))} />
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <Input placeholder="Driver name" value={a.driverName} onChange={e => setAmbulances(p => p.map((x, j) => j === i ? { ...x, driverName: e.target.value } : x))} />
+                                    <Input placeholder="Driver phone (10 digit)" value={a.driverPhone} onChange={e => setAmbulances(p => p.map((x, j) => j === i ? { ...x, driverPhone: e.target.value } : x))} />
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <Input placeholder="Driver login email" value={a.loginEmail} onChange={e => setAmbulances(p => p.map((x, j) => j === i ? { ...x, loginEmail: e.target.value } : x))} className="flex-1" />
+                                    {ambulances.length > 1 && (
+                                      <Button type="button" variant="ghost" size="sm" onClick={() => setAmbulances(p => p.filter((_, j) => j !== i))}>✕</Button>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                              <Button type="button" variant="outline" size="sm" onClick={() => setAmbulances(p => [...p, emptyAmbulance()])}>+ Add Ambulance</Button>
+                            </div>
+                          )}
+                          </>
                         )}
                       </div>
                     </div>

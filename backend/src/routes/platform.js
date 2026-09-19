@@ -55,13 +55,22 @@ const platformRegisterSchema = z.object({
     appointmentFees: z.any().optional(),
   }).passthrough()).optional(),
   specialist: z.any().optional(),
+  ambulances: z.array(z.object({
+    registrationNumber: z.string().optional(),
+    vehicleModel: z.string().optional(),
+    ambulanceType: z.string().optional(),
+    equipmentLevel: z.string().optional(),
+    driverName: z.string().optional(),
+    driverPhone: z.string().optional(),
+    loginEmail: z.string().optional(),
+  }).passthrough()).optional(),
 });
 
 const router = express.Router();
 
 router.post('/register', validate(platformRegisterSchema), async (req, res) => {
   try {
-    const { type, account, facility, services, doctors, specialist } = req.body;
+    const { type, account, facility, services, doctors, specialist, ambulances } = req.body;
 
     const existingUser = await User.findOne({ email: account.email.toLowerCase() });
     if (existingUser) return res.status(400).json({ message: 'An account with this email already exists' });
@@ -221,6 +230,33 @@ router.post('/register', validate(platformRegisterSchema), async (req, res) => {
     }
 
     const user = await User.findOne({ email: account.email.toLowerCase() });
+
+    // Hospital ambulances at signup (Doc 02 §3.3) — created now, but dispatch
+    // only routes to them once the hospital is approved (status filter).
+    if (type === 'hospital' && ambulances?.length && entity?._id) {
+      const { default: Ambulance } = await import('../models/Ambulance.js');
+      const { createAmbulanceLogin } = await import('../services/ambulanceLoginService.js');
+      for (const a of ambulances) {
+        if (!a.registrationNumber?.trim()) continue;
+        try {
+          const amb = await Ambulance.create({
+            hospitalId: entity._id,
+            registrationNumber: a.registrationNumber.trim().toUpperCase(),
+            vehicleModel: a.vehicleModel || '',
+            ambulanceType: ['BLS', 'ALS', 'PATIENT_TRANSPORT', 'MORTUARY'].includes(a.ambulanceType) ? a.ambulanceType : 'BLS',
+            equipmentLevel: a.equipmentLevel || '',
+            driverName: a.driverName || '',
+            driverPhone: a.driverPhone || '',
+            currentDriverPhone: a.driverPhone || '',
+            loginEmail: (a.loginEmail || '').toLowerCase(),
+            isOnline: false, isOnDuty: false,
+          });
+          if (a.loginEmail?.trim()) {
+            try { await createAmbulanceLogin(amb, { _id: user._id }); } catch {}
+          }
+        } catch {}
+      }
+    }
 
     if (doctors?.length) {
       for (const doc of doctors) {

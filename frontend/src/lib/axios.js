@@ -113,7 +113,7 @@ const refreshSession = async () => {
 const NO_AUTO_REFRESH_PATHS = [
   '/auth/login', '/auth/register', '/auth/google', '/auth/verify-otp',
   '/auth/resend-otp', '/auth/forgot-password', '/auth/reset-password',
-  '/auth/doctor-setup', '/auth/refresh', '/auth/logout',
+  '/auth/doctor-setup', '/auth/ambulance-setup', '/auth/refresh', '/auth/logout',
 ];
 
 const isNoAutoRefresh = (url = '') => NO_AUTO_REFRESH_PATHS.some(p => url.startsWith(p));

@@ -91,6 +91,29 @@ const emergencyRequestSchema = new mongoose.Schema({
     default: null,
   },
 
+  // Wave state (Doc 01 §4): who was notified + who accepted in current window
+  notified: [{
+    providerId: String,
+    providerType: { type: String, enum: ['ambulance', 'rider'] },
+    userId: String,
+    _id: false,
+  }],
+  // Permanent list: is request me ab tak kitne providerId ko alert gaya (cross-wave exclude)
+  everNotified: [{
+    providerId: String,
+    _id: false,
+  }],
+  acceptances: [{
+    providerId: String,
+    providerType: String,
+    userId: String,
+    distanceKm: Number,
+    acceptedAt: { type: Date, default: Date.now },
+    _id: false,
+  }],
+  rejections: [String],
+  windowEndsAt: { type: Date, default: null },
+
   dispatchLog: [
     {
       radiusKm: Number,
