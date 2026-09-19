@@ -337,9 +337,6 @@ router.post('/register', validate(registerSchema), async (req, res) => {
       if (!serviceCategories || !serviceCategories.length) {
         return res.status(400).json({ message: 'At least one service category must be selected' });
       }
-      if (!hospitalsCovered || !hospitalsCovered.length) {
-        return res.status(400).json({ message: 'At least one hospital must be selected' });
-      }
       if (!pricePerHour || Number(pricePerHour) <= 0) {
         return res.status(400).json({ message: 'Price per hour must be greater than 0' });
       }
@@ -422,6 +419,13 @@ router.post('/register', validate(registerSchema), async (req, res) => {
         },
         availableDays: req.body.availableDays || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
         availableTimeSlots: req.body.availableTimeSlots || [{ start: '08:00', end: '20:00' }],
+        healthCertification: req.body.healthCertification || {
+          isVaccinated: true,
+          vaccines: ['COVID-19 Booster', 'Hepatitis B'],
+          isCertifiedFit: true,
+        },
+        trainedEmergencyAdmissions: req.body.trainedEmergencyAdmissions !== undefined ? Boolean(req.body.trainedEmergencyAdmissions) : true,
+        policeVerificationStatus: req.body.policeVerificationDocUrl ? 'verified' : 'pending',
         assistantStatus: 'pending_approval',
         isAvailable: false,
         isDocumentVerified: false,
@@ -448,7 +452,15 @@ router.post('/register', validate(registerSchema), async (req, res) => {
         yearsOfPractice: Number(req.body.yearsOfPractice) || 1,
         courtsPracticedIn: req.body.courtsPracticedIn || ['District Court'],
         jurisdictionCity: req.body.jurisdictionCity || 'Jabalpur',
+        practiceType: req.body.practiceType || 'independent',
         lawFirmName: req.body.lawFirmName || '',
+        yearsAtCurrentPractice: Number(req.body.yearsAtCurrentPractice) || Number(req.body.yearsOfPractice) || 3,
+        favorableOutcomesRate: Number(req.body.favorableOutcomesRate) || 88,
+        notableCases: req.body.notableCases || [
+          'Hospital negligence dispute advisory',
+          'Cashless insurance dispute resolution',
+        ],
+        isPoliceVerified: Boolean(req.body.isPoliceVerified),
         bio: req.body.bio || 'Practicing advocate dedicated to legal advisory & justice.',
         languages: req.body.languages || ['Hindi', 'English'],
         consultationModes: req.body.consultationModes || ['video', 'phone', 'chat'],

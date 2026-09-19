@@ -35,7 +35,6 @@ const assistantBookingSchema = new mongoose.Schema({
   serviceCategories: [
     {
       type: String,
-      enum: ['paperwork', 'medicine', 'reports', 'errand', 'full_attendant', 'elderly_care'],
     },
   ],
   isUrgent: {
@@ -43,6 +42,48 @@ const assistantBookingSchema = new mongoose.Schema({
     default: false,
     index: true,
   },
+  targetAssistantOnly: {
+    type: Boolean,
+    default: false,
+    index: true,
+  },
+  intakeSource: {
+    type: String,
+    enum: ['quick_urgent_card', 'scheduled_profile_form', 'booking_wizard'],
+    default: 'scheduled_profile_form',
+  },
+  broadcastFallbackAt: {
+    type: Date,
+  },
+  urgencyWindow: {
+    type: String,
+    enum: ['asap', 'specific_time'],
+    default: 'asap',
+  },
+  onBehalfOf: {
+    type: String,
+    enum: ['self', 'family', 'other'],
+    default: 'self',
+  },
+  familyMemberId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'FamilyMember',
+    default: null,
+  },
+  otherPatient: {
+    name: { type: String, default: '' },
+    phone: { type: String, default: '' },
+    age: { type: String, default: '' },
+  },
+  taskDescription: {
+    type: String,
+    default: '',
+  },
+  phone: {
+    type: String,
+    default: '',
+  },
+  documents: [{ type: String }],
   scheduledDate: {
     type: Date,
     required: true,

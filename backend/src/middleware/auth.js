@@ -228,3 +228,26 @@ export const canAccessPatient = async (req, res, next) => {
   }
 };
 
+export const optionalProtect = async (req, res, next) => {
+  let token = req.cookies?.token;
+  if (!token) {
+    const auth = req.headers.authorization;
+    if (auth && auth.startsWith('Bearer ')) {
+      token = auth.split(' ')[1];
+    }
+  }
+
+  if (!token) {
+    req.user = null;
+    return next();
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id).select('-password');
+    req.user = user || null;
+  } catch {
+    req.user = null;
+  }
+  next();
+};

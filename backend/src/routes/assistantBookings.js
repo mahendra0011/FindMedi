@@ -3,7 +3,7 @@ import AssistantBooking from '../models/AssistantBooking.js';
 import AssistantProfile from '../models/AssistantProfile.js';
 import User from '../models/User.js';
 import Notification from '../models/Notification.js';
-import { protect } from '../middleware/auth.js';
+import { protect, optionalProtect } from '../middleware/auth.js';
 import {
   validate,
   bookAssistantSchema,
@@ -30,9 +30,18 @@ router.post('/book', protect, validate(bookAssistantSchema), async (req, res) =>
       hospital,
       serviceCategories,
       isUrgent = false,
+      targetAssistantOnly = false,
+      intakeSource = 'scheduled_profile_form',
+      urgencyWindow = 'asap',
+      onBehalfOf = 'self',
+      familyMemberId,
+      otherPatient,
+      taskDescription,
+      phone,
+      documents = [],
       scheduledDate,
       startTime,
-      durationType,
+      durationType = '4hr',
       specialInstructions,
     } = req.body;
 
@@ -71,10 +80,19 @@ router.post('/book', protect, validate(bookAssistantSchema), async (req, res) =>
       hospital,
       serviceCategories,
       isUrgent,
+      targetAssistantOnly: Boolean(targetAssistantOnly),
+      intakeSource,
+      urgencyWindow,
+      onBehalfOf,
+      familyMemberId: familyMemberId || null,
+      otherPatient: otherPatient || {},
+      taskDescription: taskDescription || specialInstructions || '',
+      phone: phone || req.user.phone || '',
+      documents: documents || [],
       scheduledDate: scheduledDate ? new Date(scheduledDate) : new Date(),
       startTime: startTime || 'Now',
       durationType,
-      specialInstructions,
+      specialInstructions: specialInstructions || taskDescription || '',
       cost,
       status: 'requested',
       taskChecklist,
@@ -115,8 +133,12 @@ router.post('/book', protect, validate(bookAssistantSchema), async (req, res) =>
 
 // ─── GET /api/assistant-booking/active ──────────────────────────────────────
 // Get current active or upcoming booking for patient or assistant
-router.get('/active', protect, async (req, res) => {
+router.get('/active', optionalProtect, async (req, res) => {
   try {
+    if (!req.user) {
+      return res.json({ activeBooking: null });
+    }
+
     const isAssistant = req.user.role === 'assistant';
 
     const query = {
@@ -744,6 +766,40 @@ router.get('/:id/receipt', protect, async (req, res) => {
   } catch (err) {
     logger.error(`Assistant receipt generation error: ${err.message}`);
     res.status(500).json({ message: 'Failed to generate PDF receipt', error: err.message });
+  }
+});
+
+// ─── POST /api/assistant-booking/:id/broadcast-fallback ─────────────────────
+// Fallback a targeted urgent request to broadcast to all available assistants at hospital
+router.post('/:id/broadcast-fallback', protect, async (req, res) => {
+  try {
+    const booking = await AssistantBooking.findById(req.params.id);
+    if (!booking) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
+    booking.targetAssistantOnly = false;
+    booking.broadcastFallbackAt = new Date();
+    booking.statusHistory.push({
+      status: 'requested',
+      at: new Date(),
+      note: 'Targeted assistant did not respond in time; converted to broadcast fallback',
+    });
+    await booking.save();
+    await booking.populate('patientId', 'name phone avatar');
+
+    // Broadcast through socket layer
+    broadcastAssistantBooking(booking).catch(err => {
+      logger.warn(`Assistant broadcast fallback warning: ${err.message}`);
+    });
+
+    res.json({
+      success: true,
+      message: 'Request broadcast to other available assistants at the hospital.',
+      booking,
+    });
+  } catch (err) {
+    logger.error(`Broadcast fallback error: ${err.message}`);
+    res.status(500).json({ message: 'Failed to broadcast request', error: err.message });
   }
 });
 

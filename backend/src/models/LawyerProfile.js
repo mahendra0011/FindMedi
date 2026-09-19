@@ -46,6 +46,7 @@ const lawyerProfileSchema = new mongoose.Schema({
   yearsOfPractice: { type: Number, default: 1, min: 0 },
   courtsPracticedIn: [{ type: String }],
   jurisdictionCity: { type: String, default: 'Jabalpur', index: true },
+  operatingCity: { type: String, default: 'Jabalpur', index: true },
   lawFirmName: { type: String, default: '' },
   bio: { type: String, default: '' },
   languages: [{ type: String }],
@@ -88,6 +89,26 @@ const lawyerProfileSchema = new mongoose.Schema({
   },
   totalEarnings: { type: Number, default: 0 },
   walletBalance: { type: Number, default: 0 },
+  casesHandled: { type: Number, default: 25 },
+  favorableOutcomesRate: { type: Number, default: 88, min: 50, max: 100 },
+  notableCases: [{ type: String }],
+  practiceType: { type: String, enum: ['independent', 'firm'], default: 'independent' },
+  yearsAtCurrentPractice: { type: Number, default: 3 },
+  avgResponseMinutes: { type: Number, default: 12 },
+  currentSessionStatus: {
+    type: String,
+    enum: ['available', 'in_session', 'offline'],
+    default: 'available',
+  },
+  faqs: [
+    {
+      question: { type: String, required: true },
+      answer: { type: String, required: true },
+    },
+  ],
+  awards: [{ type: String }],
+  isPoliceVerified: { type: Boolean, default: false },
+  policeVerificationDocUrl: { type: String, default: '' },
   createdAt: { type: Date, default: Date.now },
 });
 

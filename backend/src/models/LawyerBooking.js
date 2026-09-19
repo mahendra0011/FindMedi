@@ -33,17 +33,6 @@ const lawyerBookingSchema = new mongoose.Schema({
   },
   category: {
     type: String,
-    enum: [
-      'medical_negligence',
-      'insurance',
-      'accident_mlc',
-      'consumer_rights',
-      'family_law',
-      'criminal_law',
-      'civil_property',
-      'corporate_contract',
-      'general_consultation',
-    ],
     required: true,
     index: true,
   },
@@ -59,17 +48,17 @@ const lawyerBookingSchema = new mongoose.Schema({
   },
   consultationMode: {
     type: String,
-    enum: ['video', 'phone', 'in_person', 'chat'],
-    default: 'video',
+    enum: ['in_person', 'video', 'phone', 'chat'],
+    default: 'in_person',
   },
   scheduledDate: {
     type: Date,
-    required: true,
+    default: Date.now,
     index: true,
   },
   scheduledTime: {
     type: String,
-    required: true,
+    default: 'Immediate',
   },
   budgetRange: {
     min: { type: Number, default: 0 },
@@ -84,6 +73,54 @@ const lawyerBookingSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
     index: true,
+  },
+  targetLawyerOnly: {
+    type: Boolean,
+    default: false,
+    index: true,
+  },
+  intakeSource: {
+    type: String,
+    enum: ['quick_urgent_card', 'scheduled_profile_form'],
+    default: 'scheduled_profile_form',
+  },
+  broadcastFallbackAt: {
+    type: Date,
+  },
+  location: {
+    address: { type: String, default: '' },
+    lat: { type: Number },
+    lng: { type: Number },
+    landmarkName: { type: String, default: '' },
+    city: { type: String, default: '' },
+  },
+  lawyerCurrentLocation: {
+    lat: { type: Number },
+    lng: { type: Number },
+    updatedAt: { type: Date },
+  },
+  bookingFor: {
+    type: String,
+    enum: ['self', 'family', 'other'],
+    default: 'self',
+  },
+  familyMemberId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'FamilyMember',
+    default: null,
+  },
+  otherPatient: {
+    name: { type: String, default: '' },
+    phone: { type: String, default: '' },
+    age: { type: Number },
+  },
+  phone: {
+    type: String,
+    default: '',
+  },
+  acknowledgeUrgent: {
+    type: Boolean,
+    default: false,
   },
   status: {
     type: String,
@@ -139,8 +176,23 @@ const lawyerBookingSchema = new mongoose.Schema({
   },
 });
 
-// Auto-assign caseThreadId to its own _id if not specified
+const CATEGORY_MAP_TO_SLUG = {
+  'Medical Negligence': 'medical_negligence',
+  'Insurance Disputes': 'insurance',
+  'Accident & MLC': 'accident_mlc',
+  'Consumer Rights': 'consumer_rights',
+  'Family & Personal': 'family_law',
+  'Criminal Law': 'criminal_law',
+  'Civil & Property': 'civil_property',
+  'Corporate & Contract': 'corporate_contract',
+  'General Consultation': 'general_consultation',
+};
+
+// Auto-assign caseThreadId to its own _id if not specified and normalize category
 lawyerBookingSchema.pre('save', function (next) {
+  if (this.category && CATEGORY_MAP_TO_SLUG[this.category]) {
+    this.category = CATEGORY_MAP_TO_SLUG[this.category];
+  }
   if (!this.caseThreadId) {
     this.caseThreadId = this._id;
   }

@@ -23,7 +23,7 @@ import logger from '../config/logger.js';
 const router = express.Router();
 
 // ─── POST /api/lawyer-booking/book ─────────────────────────────────────────
-// Create a new legal consultation booking
+// Create a new legal consultation booking (Paths A, B, and C)
 router.post('/book', protect, validate(bookLawyerSchema), async (req, res) => {
   try {
     const {
@@ -31,7 +31,9 @@ router.post('/book', protect, validate(bookLawyerSchema), async (req, res) => {
       category,
       caseDescription,
       urgency = 'normal',
-      consultationMode = 'video',
+      isUrgent,
+      consultationMode,
+      contactMode,
       scheduledDate,
       scheduledTime,
       budgetRange,
@@ -39,9 +41,20 @@ router.post('/book', protect, validate(bookLawyerSchema), async (req, res) => {
       fee: customFee,
       isFollowUp = false,
       caseThreadId,
+      targetLawyerOnly,
+      intakeSource = 'scheduled_profile_form',
+      bookingFor = 'self',
+      familyMemberId,
+      otherPatient,
+      phone,
+      acknowledgeUrgent = false,
     } = req.body;
 
-    let targetLawyerId = lawyerId || null;
+    const resolvedUrgency = isUrgent || urgency === 'urgent' ? 'urgent' : 'normal';
+    const resolvedMode = contactMode || consultationMode || 'video';
+    const isTargeted = Boolean(targetLawyerOnly || (lawyerId && resolvedUrgency !== 'urgent'));
+
+    let targetLawyerId = isTargeted && lawyerId ? lawyerId : null;
     let fee = customFee || 800;
 
     if (targetLawyerId) {
@@ -60,14 +73,28 @@ router.post('/book', protect, validate(bookLawyerSchema), async (req, res) => {
       caseThreadId: caseThreadId || undefined,
       category,
       caseDescription,
-      urgency,
-      consultationMode,
+      urgency: resolvedUrgency,
+      consultationMode: resolvedMode,
       scheduledDate: scheduledDate ? new Date(scheduledDate) : new Date(),
-      scheduledTime: scheduledTime || '10:00 AM',
+      scheduledTime: scheduledTime || (resolvedUrgency === 'urgent' ? 'Immediate' : '10:00 AM'),
       budgetRange: budgetRange || { min: 0, max: 5000 },
       documents,
       fee,
       isFollowUp: Boolean(isFollowUp),
+      targetLawyerOnly: Boolean(targetLawyerOnly),
+      intakeSource: intakeSource || (resolvedUrgency === 'urgent' ? 'quick_urgent_card' : 'scheduled_profile_form'),
+      bookingFor,
+      familyMemberId: familyMemberId || null,
+      otherPatient: otherPatient || undefined,
+      phone: phone || req.user.phone || '',
+      acknowledgeUrgent: Boolean(acknowledgeUrgent),
+      location: req.body.location ? {
+        address: req.body.location.address || '',
+        lat: req.body.location.lat,
+        lng: req.body.location.lng,
+        landmarkName: req.body.location.landmarkName || '',
+        city: req.body.location.city || '',
+      } : undefined,
       status: 'requested',
       statusHistory: [{ status: 'requested', at: new Date(), note: 'Booking requested by client' }],
     });
@@ -77,12 +104,57 @@ router.post('/book', protect, validate(bookLawyerSchema), async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: 'Consultation request sent successfully',
+      message: resolvedUrgency === 'urgent'
+        ? (targetLawyerOnly ? 'Urgent request sent to advocate' : 'Urgent request broadcasted to available advocates')
+        : 'Consultation request sent successfully',
       booking,
     });
   } catch (err) {
     logger.error(`Error creating lawyer booking: ${err.message}`);
     res.status(500).json({ message: 'Failed to book lawyer' });
+  }
+});
+
+// ─── POST /api/lawyer-booking/:id/broadcast-fallback ───────────────────────
+// Convert targeted urgent request to broadcast after timeout or advocate offline (LC03 §4.3)
+router.post('/:id/broadcast-fallback', protect, async (req, res) => {
+  try {
+    const booking = await LawyerBooking.findById(req.params.id);
+    if (!booking) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
+
+    const isClient = String(booking.userId) === String(req.user._id);
+    if (!isClient && req.user.role !== 'superadmin') {
+      return res.status(403).json({ message: 'Not authorized to convert this booking' });
+    }
+
+    if (['confirmed', 'in_progress', 'completed', 'cancelled_by_user', 'cancelled_by_lawyer'].includes(booking.status)) {
+      return res.status(400).json({ message: `Cannot broadcast a consultation in ${booking.status} status` });
+    }
+
+    booking.targetLawyerOnly = false;
+    booking.lawyerId = null;
+    booking.urgency = 'urgent';
+    booking.broadcastFallbackAt = new Date();
+    booking.statusHistory.push({
+      status: 'requested',
+      at: new Date(),
+      note: 'Converted from targeted request to broadcast to all available advocates in category',
+    });
+    await booking.save();
+
+    await broadcastLawyerBooking(booking, req.user);
+    await notifyBookingUpdate(booking, 'booking_status_update');
+
+    res.json({
+      success: true,
+      message: 'Request broadcasted to all available advocates in your category',
+      booking,
+    });
+  } catch (err) {
+    logger.error(`Error in lawyer broadcast fallback: ${err.message}`);
+    res.status(500).json({ message: 'Failed to broadcast request' });
   }
 });
 

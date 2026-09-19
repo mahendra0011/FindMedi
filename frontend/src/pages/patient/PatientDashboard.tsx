@@ -19,6 +19,7 @@ import {
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
   AlertDialogHeader, AlertDialogTitle
 } from '@/components/ui/alert-dialog';
+import { TodayHealthWidget } from '@/components/patient/TodayHealthWidget';
 
 function getAppointmentModeMeta(appt) {
   if (!appt) return { key: 'hospital', label: 'In Clinic / Hospital', icon: Building2, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20' };
@@ -331,6 +332,9 @@ export default function PatientDashboard() {
           })}
         </div>
       </motion.div>
+
+      {/* ── Today's Health & Care Plan Tasks Widget ── */}
+      <TodayHealthWidget />
 
       {/* ── Telehealth & Communication Suite (Chat, Audio Calls, Video Consult) ── */}
       <motion.div

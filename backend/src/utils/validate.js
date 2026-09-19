@@ -993,14 +993,27 @@ export const searchAssistantSchema = z.object({
 });
 
 export const bookAssistantSchema = z.object({
-  assistantId: z.string().optional(),
+  assistantId: z.string().optional().nullable(),
   hospital: z.string().min(1, 'Hospital name is required'),
   serviceCategories: z
-    .array(z.enum(['paperwork', 'medicine', 'reports', 'errand', 'full_attendant', 'elderly_care']))
+    .array(z.string())
     .min(1, 'At least one service category is required'),
   isUrgent: z.boolean().optional().default(false),
-  scheduledDate: z.string().min(1, 'Date is required'),
-  startTime: z.string().min(1, 'Start time is required'),
+  targetAssistantOnly: z.boolean().optional().default(false),
+  intakeSource: z.enum(['quick_urgent_card', 'scheduled_profile_form', 'booking_wizard']).optional().default('scheduled_profile_form'),
+  urgencyWindow: z.enum(['asap', 'specific_time']).optional().default('asap'),
+  onBehalfOf: z.enum(['self', 'family', 'other']).optional().default('self'),
+  familyMemberId: z.string().optional().nullable(),
+  otherPatient: z.object({
+    name: z.string().optional().default(''),
+    phone: z.string().optional().default(''),
+    age: z.string().optional().default(''),
+  }).optional(),
+  taskDescription: z.string().max(1000).optional().default(''),
+  phone: z.string().optional().default(''),
+  documents: z.array(z.string()).optional().default([]),
+  scheduledDate: z.string().optional(),
+  startTime: z.string().optional(),
   durationType: z.enum(['2hr', '4hr', 'full_day', 'overnight']).default('4hr'),
   specialInstructions: z.string().max(1000).optional().default(''),
 });
@@ -1034,23 +1047,28 @@ export const searchLawyerSchema = z.object({
 });
 
 export const bookLawyerSchema = z.object({
-  lawyerId: z.string().optional(),
-  category: z.enum([
-    'medical_negligence',
-    'insurance',
-    'accident_mlc',
-    'consumer_rights',
-    'family_law',
-    'criminal_law',
-    'civil_property',
-    'corporate_contract',
-    'general_consultation',
-  ]),
+  lawyerId: z.string().optional().nullable(),
+  category: z.string().min(1, 'Category is required'),
   caseDescription: z.string().min(5, 'Brief description of your issue is required'),
-  urgency: z.enum(['normal', 'urgent']).default('normal'),
-  consultationMode: z.enum(['video', 'phone', 'in_person', 'chat']).default('video'),
-  scheduledDate: z.string().min(1, 'Date is required'),
-  scheduledTime: z.string().min(1, 'Time is required'),
+  urgency: z.enum(['normal', 'urgent']).optional().default('normal'),
+  isUrgent: z.boolean().optional(),
+  consultationMode: z.enum(['video', 'phone', 'in_person', 'chat']).optional(),
+  contactMode: z.enum(['video', 'phone', 'in_person', 'chat']).optional(),
+  scheduledDate: z.string().optional(),
+  scheduledTime: z.string().optional(),
+  targetLawyerOnly: z.boolean().optional(),
+  intakeSource: z.enum(['quick_urgent_card', 'scheduled_profile_form']).optional(),
+  bookingFor: z.enum(['self', 'family', 'other']).optional(),
+  familyMemberId: z.string().optional().nullable(),
+  otherPatient: z
+    .object({
+      name: z.string().optional(),
+      phone: z.string().optional(),
+      age: z.union([z.string(), z.number()]).optional(),
+    })
+    .optional(),
+  phone: z.string().optional(),
+  acknowledgeUrgent: z.boolean().optional(),
   budgetRange: z
     .object({
       min: z.number().optional(),
@@ -1061,7 +1079,7 @@ export const bookLawyerSchema = z.object({
   fee: z.number().optional(),
   isFollowUp: z.boolean().optional().default(false),
   caseThreadId: z.string().optional(),
-});
+}).passthrough();
 
 export const proposeTimeSchema = z.object({
   date: z.string().min(1, 'Proposed date is required'),

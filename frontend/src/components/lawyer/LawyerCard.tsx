@@ -6,11 +6,10 @@ import {
   Languages,
   Clock,
   MapPin,
-  Video,
-  Phone,
   UserCheck,
-  MessageSquare,
   Award,
+  TrendingUp,
+  Zap,
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -21,13 +20,6 @@ interface Props {
   onViewDetails: () => void;
   isSelected?: boolean;
 }
-
-const MODE_ICONS: Record<string, any> = {
-  video: Video,
-  phone: Phone,
-  in_person: UserCheck,
-  chat: MessageSquare,
-};
 
 export const LawyerCard: React.FC<Props> = ({
   lawyer,
@@ -84,6 +76,11 @@ export const LawyerCard: React.FC<Props> = ({
                   title="Bar Council Verified Advocate"
                 />
               )}
+              {lawyer.isPoliceVerified && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
+                  <ShieldCheck className="w-3 h-3 text-emerald-600" /> Police Verified
+                </span>
+              )}
             </div>
 
             {/* Bar Council Number & Experience */}
@@ -97,13 +94,31 @@ export const LawyerCard: React.FC<Props> = ({
               </span>
             </div>
 
-            {/* Rating & Reviews */}
-            <div className="flex items-center gap-2 mt-1.5 text-xs text-slate-500">
+            {/* Rating & Reviews & Metrics */}
+            <div className="flex items-center gap-2 mt-1.5 text-xs text-slate-500 flex-wrap">
               <span className="flex items-center text-amber-500 font-bold gap-0.5">
                 <Star className="w-3.5 h-3.5 fill-amber-500" />
                 {avgRating}
               </span>
               <span>({ratingCount} reviews)</span>
+              {lawyer.favorableOutcomesRate && (
+                <>
+                  <span>•</span>
+                  <span className="flex items-center gap-1 text-emerald-600 font-semibold">
+                    <TrendingUp className="w-3 h-3" />
+                    {lawyer.favorableOutcomesRate}% success
+                  </span>
+                </>
+              )}
+              {lawyer.avgResponseMinutes && (
+                <>
+                  <span>•</span>
+                  <span className="flex items-center gap-1 text-amber-600 font-medium">
+                    <Clock className="w-3 h-3" />
+                    ~{lawyer.avgResponseMinutes}m response
+                  </span>
+                </>
+              )}
               {lawyer.jurisdictionCity && (
                 <>
                   <span>•</span>
@@ -166,20 +181,15 @@ export const LawyerCard: React.FC<Props> = ({
       {/* Bottom Footer: Modes, Fees, & Action Buttons */}
       <div className="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800/80">
         <div className="flex items-center justify-between mb-3.5">
-          {/* Modes */}
+          {/* Mode */}
           <div className="flex items-center gap-1.5">
-            {(lawyer.consultationModes || ['video', 'phone']).map((m: string) => {
-              const Icon = MODE_ICONS[m] || Video;
-              return (
-                <div
-                  key={m}
-                  title={`Offers ${m.replace('_', ' ')}`}
-                  className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 text-xs"
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                </div>
-              );
-            })}
+            <div
+              title="In-Person Chamber & Hospital Visit"
+              className="px-2.5 py-1 rounded-lg bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 flex items-center gap-1.5 text-purple-700 dark:text-purple-300 text-xs font-semibold"
+            >
+              <UserCheck className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+              <span>In-Person Visit</span>
+            </div>
           </div>
 
           {/* Fee */}

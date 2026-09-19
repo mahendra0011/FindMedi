@@ -1,68 +1,21 @@
-# Contributing
+Maine poora repo clone karke check kiya — ye project bahut mature hai, bहुत kuch already bana hua hai. Yahan hai jo **already exists** (in short) taaki duplicate na ho: Video Calls, Chat, AI Health Chatbot (Gemini-based symptom→specialty), Blood Bank (hospital-side), Insurance, Mental Health, Physiotherapy, Diet Orders, Family Members, Health Packages, Medical Records/Reports/Prescriptions, Reviews, Favorites, Support Tickets, Notifications, Emergency page, Lab Booking/Orders, Pharmacy Orders+Delivery, Triage, Nursing Charts, IPD/OT — plus jo humne khud add kiya (Vehicle, Assistant, Lawyer).
 
-## Dev setup
+Ab genuinely **naye/missing** advanced features jo patient side me add ho sakte hain:
 
-Requires `node >=20.0.0` (`engines` in root `package.json` and `backend/package.json`).
-CI uses Node 20.x for backend and Node 22.x for frontend (`.github/workflows/ci.yml`).
+## 💊 Medicine & Health Tracking (bilkul missing)
+- **Medicine Reminder & Adherence Tracker** — prescription se auto-linked dosage schedule, push/SMS reminders, missed-dose log, refill alert (Medicine model sirf inventory ke liye hai, patient-side reminder scheduling kahin nahi hai)
+- **Vitals Self-Tracking** — BP/sugar/weight/temp patient khud log kare (abhi vitals sirf hospital IPD/Nursing/Triage side par hai, patient ke apne home-tracking ke liye kuch nahi)
+- **Chronic Disease Care Plan** — diabetes/BP jaise conditions ke liye recurring reminders + trend graphs
 
-```bash
-npm run install:all   # installs backend/ + frontend/ (also runs as `postinstall`)
-npm run dev           # runs backend + frontend together via `concurrently`
-```
+## 🆔 Emergency & Identity
+- **Digital Health ID / QR Emergency Card** — allergies, blood group, emergency contact QR se turant accessible (Emergency page hai but ye ID-card concept missing hai)
+- **One-Tap SOS** — location + emergency contacts ko instant alert (PatientEmergency.tsx dekha, but SOS-broadcast wala feature nahi mila)
 
-Copy env templates (never commit real values):
+## 🎁 Engagement (bilkul missing)
+- **Loyalty/Rewards Points System** — koi bhi loyalty/referral system repo me nahi mila
+- **Referral Program**
+- **Unified Wallet** — sab services (vehicle/assistant/lawyer/pharmacy/lab) ka ek hi wallet
 
-```bash
-cp frontend/.env.example frontend/.env.local
-cp backend/.env.example backend/.env
-```
-
-`frontend/.env.example` sets `NEXT_PUBLIC_API_URL=http://localhost:5001/api`.
-`backend/.env.example` sets `PORT`, `MONGO_URI`, `JWT_SECRET`, plus optional Cloudinary/Brevo/Google keys.
-
-## Per-app commands (exact script names)
-
-Root (`package.json`): `postinstall`, `install:all`, `dev`, `build`, `typecheck`, `seed`, `seed:admin`, `seed:cluster`.
-
-```bash
-npm run build       # `build --prefix frontend`
-npm run typecheck   # `typecheck --prefix frontend`
-npm run seed        # `seed --prefix backend`
-```
-
-Frontend (`frontend/package.json`): `dev`, `build`, `start`, `lint`, `typecheck`, `type-check`, `test`, `test:watch`, `test:coverage`.
-
-```bash
-cd frontend && npm run dev
-cd frontend && npm run lint
-cd frontend && npm run typecheck
-```
-
-Backend (`backend/package.json`): `dev`, `start`, `seed`, `seed:all`, `test`.
-
-```bash
-cd backend && npm run dev     # watch-mode `index.js`
-cd backend && npm start       # `node index.js`
-cd backend && npm run seed    # `node seed-demo.mjs`
-```
-
-`backend/rust-helper/package.json` (native module): `build`, `build:release`, `test`.
-
-## Tests
-
-```bash
-cd frontend && npm test              # `node scripts/run-vitest.js run` (vitest, `vitest.config.ts`)
-cd frontend && npm run test:coverage # `run --coverage`
-cd backend && npm test               # jest, `testMatch: <rootDir>/test/**/*.test.js` (`backend/test/`)
-```
-
-Existing suites: `frontend/src/**/*.test.{ts,tsx}` (e.g. `src/lib/utils.test.ts`), `backend/test/*.test.js`.
-New frontend tests go under `frontend/tests/` skeleton (`unit/`, `integration/`, `e2e/`, each with `.gitkeep`); vitest `include` currently covers `src/**` only, so wire new dirs into `vitest.config.ts` before relying on them in CI.
-
-## Branches / commits
-
-Use short topic branches (`feat/<x>`, `fix/<x>`) and short imperative messages (e.g. `fix: refresh token retry`).
-
-## Secrets
-
-Never commit secrets or `.env` files. `.gitignore` already ignores `.env`, `.env.local`, `*.local`. Commit only `*.example` templates.
+## 🌐 Convenience
+- **Multi-language UI** — koi i18n setup nahi dikha
+- **Home Sample Collection Booking** — LabBooking exists but check karna padega ki home-collection option hai ya nahi (agar nahi to add kar sakte hain)

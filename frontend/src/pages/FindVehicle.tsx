@@ -43,7 +43,8 @@ export default function FindVehicle() {
   // 1. Initial Load: Check for active ride or deep-linked rideId
   useEffect(() => {
     if (!user) {
-      navigate('/login?redirect=/find-vehicle');
+      // Guest visitors can browse freely — skip active ride fetch
+      setFetchingActive(false);
       return;
     }
 
@@ -161,6 +162,12 @@ export default function FindVehicle() {
 
   // Handle Book Now
   const handleBookNow = async () => {
+    if (!user) {
+      toast.error('Please sign in to book a ride');
+      navigate('/login?redirect=/find-vehicle');
+      return;
+    }
+
     if (!pickup || !drop) {
       toast.error('Please specify both pickup and destination locations');
       return;
