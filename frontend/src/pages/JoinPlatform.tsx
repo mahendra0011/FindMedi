@@ -344,7 +344,7 @@ export default function JoinPlatform() {
     lawFirmName: '',
     bio: '',
     languages: ['Hindi', 'English'],
-    consultationModes: ['video', 'phone', 'in_person', 'chat'],
+    consultationModes: ['in_person'],
     consultationFee: 500,
     followUpFee: 500,
     freeFirstConsultation: false,
@@ -2705,31 +2705,20 @@ export default function JoinPlatform() {
                 {stepHeader('Consultation Modes & Professional Fees', 'Set your consultation rates and interaction preferences for clients')}
                 <div className="bg-card rounded-2xl border border-border/50 p-5 space-y-5">
                   <div>
-                    <label className="text-sm font-semibold text-foreground mb-2 block">Consultation Modes Supported <span className="text-red-500">*</span></label>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      {[
-                        { key: 'video', label: 'Video Call', icon: Video, desc: 'Online Face-to-Face' },
-                        { key: 'phone', label: 'Phone Call', icon: Phone, desc: 'Audio Consultation' },
-                        { key: 'in_person', label: 'In-Person', icon: MapPin, desc: 'Chamber / Hospital' },
-                        { key: 'chat', label: 'Chat Advisory', icon: MessageSquare, desc: 'Document & Message' },
-                      ].map(mode => {
-                        const active = lawyer.consultationModes.includes(mode.key);
-                        const Icon = mode.icon;
-                        return (
-                          <div
-                            key={mode.key}
-                            onClick={() => toggleLawyerMode(mode.key)}
-                            className={cn(
-                              'p-3.5 rounded-xl border cursor-pointer select-none transition-all text-center flex flex-col items-center gap-1.5',
-                              active ? 'border-primary bg-primary/10 text-primary shadow-sm' : 'border-border/60 hover:border-border'
-                            )}
-                          >
-                            <Icon className="w-5 h-5" />
-                            <div className="text-xs font-bold">{mode.label}</div>
-                            <div className="text-[10px] text-muted-foreground">{mode.desc}</div>
-                          </div>
-                        );
-                      })}
+                    <label className="text-sm font-semibold text-foreground mb-2 block">Consultation Mode Supported <span className="text-red-500">*</span></label>
+                    <div className="p-4 rounded-xl border border-primary/30 bg-primary/5 flex items-start gap-3.5">
+                      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                        <MapPin className="w-5 h-5" />
+                      </div>
+                      <div className="space-y-1">
+                        <div className="text-sm font-bold text-foreground flex items-center gap-2">
+                          <span>In-Person Chamber & Hospital Visit</span>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 font-semibold border border-emerald-500/20">Active Mode</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          All legal consultations on FindMedi are conducted strictly in-person at hospitals, chamber, or client location for genuine physical legal representation and verification.
+                        </p>
+                      </div>
                     </div>
                   </div>
 
@@ -2898,7 +2887,7 @@ export default function JoinPlatform() {
                         <p><strong>Location:</strong> {lawyer.city} {lawyer.jurisdictionCity ? `(Jurisdiction: ${lawyer.jurisdictionCity})` : ''}</p>
                         <p><strong>Categories:</strong> {lawyer.practiceCategories.join(', ')}</p>
                         <p><strong>Courts:</strong> {lawyer.courtsPracticedIn.join(', ')}</p>
-                        <p><strong>Fees:</strong> ₹{lawyer.consultationFee} ({lawyer.sessionDuration} mins) • Modes: {lawyer.consultationModes.join(', ')}</p>
+                        <p><strong>Fees:</strong> ₹{lawyer.consultationFee} ({lawyer.sessionDuration} mins) • Mode: In-Person Physical Visit</p>
                         <p><strong>Settlement Account:</strong> {lawyer.bankAccountNumber} ({lawyer.bankIfsc})</p>
                       </div>
                     </div>

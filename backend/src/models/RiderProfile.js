@@ -31,6 +31,7 @@ const riderProfileSchema = new mongoose.Schema({
     upiId: { type: String, default: '' },
   },
   operatingArea: { type: String, default: '' },
+  operatingCity: { type: String, default: 'Jabalpur', index: true },
   availableDays: [{ type: String }],
   availableTimeSlot: {
     start: { type: String, default: '08:00' },

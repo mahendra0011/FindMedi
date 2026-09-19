@@ -4,7 +4,7 @@ import RiderProfile from '../models/RiderProfile.js';
 import Vehicle from '../models/Vehicle.js';
 import User from '../models/User.js';
 import Notification from '../models/Notification.js';
-import { protect } from '../middleware/auth.js';
+import { protect, optionalProtect } from '../middleware/auth.js';
 import { validate, estimateRideSchema, bookRideSchema, rateRideSchema } from '../utils/validate.js';
 import {
   getEstimatesForRoute,
@@ -99,8 +99,12 @@ router.post('/book', protect, validate(bookRideSchema), async (req, res) => {
 
 // ─── GET /api/ride/active ───────────────────────────────────────────────────
 // Get active ride for current logged-in user or rider
-router.get('/active', protect, async (req, res) => {
+router.get('/active', optionalProtect, async (req, res) => {
   try {
+    if (!req.user) {
+      return res.json({ ride: null });
+    }
+
     const query = {
       status: { $in: ['searching', 'accepted', 'rider_arriving', 'arrived', 'in_progress'] },
     };

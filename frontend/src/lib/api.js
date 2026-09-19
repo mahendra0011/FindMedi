@@ -632,6 +632,7 @@ export const api = {
   deleteFeaturedListing:    (id)      => request(`/featured-listings/${id}`, { method:'DELETE' }),
 
   getCities:                (p={})    => request('/cities?' + new URLSearchParams(p)),
+  getServiceCities:         (p={})    => request('/service-cities?' + new URLSearchParams(p)),
   createCity:               (body)    => request('/cities', { method:'POST', body: JSON.stringify(body) }),
   updateCity:               (id,b)    => request(`/cities/${id}`, { method:'PUT', body: JSON.stringify(b) }),
   deleteCity:               (id)      => request(`/cities/${id}`, { method:'DELETE' }),
@@ -739,6 +740,7 @@ export const api = {
   },
 
   // ── Hospital Assistant & Attendant Booking ──
+  getAssistants:             (p={})    => request('/assistant?' + new URLSearchParams(p)),
   searchAssistants:          (body)    => request('/assistant/search', { method: 'POST', body: JSON.stringify(body) }),
   getAssistantById:          (id)      => request(`/assistant/${id}`),
   getMyAssistantProfile:     ()        => request('/assistant/profile'),
@@ -749,6 +751,8 @@ export const api = {
 
   // ── Assistant Booking Management ──
   bookAssistant:             (body)    => request('/assistant-booking/book', { method: 'POST', body: JSON.stringify(body) }),
+  createAssistantBooking:    (body)    => request('/assistant-booking/book', { method: 'POST', body: JSON.stringify(body) }),
+  broadcastAssistantFallback:(id)      => request(`/assistant-booking/${id}/broadcast-fallback`, { method: 'POST' }),
   getActiveAssistantBooking: ()        => request('/assistant-booking/active'),
   getMyAssistantBookings:    (p={})    => request('/assistant-booking/my-bookings?' + new URLSearchParams(p)),
   getAssistantBookingHistory:(p={})    => request('/assistant-booking/assistant-history?' + new URLSearchParams(p)),
@@ -797,8 +801,14 @@ export const api = {
   getLawyerEarnings:         ()        => request('/lawyer/earnings'),
   withdrawLawyerDemo:        ()        => request('/lawyer/withdraw-demo', { method: 'POST' }),
 
-  // ── Lawyer Booking & Case Management ──
+  // ── Lawyer Directory & Booking ──
+  getLawyers:                (p={})    => request('/lawyer?' + new URLSearchParams(Object.fromEntries(Object.entries(p).filter(([_, v]) => v !== undefined && v !== null && v !== '')))),
+  getLawyer:                 (id)      => request(`/lawyer/${id}`),
+  getLawyerById:             (id)      => request(`/lawyer/${id}`),
+  createLawyerBooking:       (body)    => request('/lawyer-booking/book', { method: 'POST', body: JSON.stringify(body) }),
   bookLawyer:                (body)    => request('/lawyer-booking/book', { method: 'POST', body: JSON.stringify(body) }),
+  fallbackBroadcastLawyerBooking: (id) => request(`/lawyer-booking/${id}/broadcast-fallback`, { method: 'POST' }),
+  getFamilyMembers:          ()        => request('/patient/family'),
   getActiveLawyerBooking:    ()        => request('/lawyer-booking/active'),
   getMyLawyerBookings:       ()        => request('/lawyer-booking/my-bookings'),
   getMyLawyerCases:          ()        => request('/lawyer-booking/my-cases'),
@@ -841,4 +851,38 @@ export const api = {
   suspendAdminLawyer:        (id)      => request(`/admin/lawyers/${id}/suspend`, { method: 'PUT' }),
   getAdminLawyerBookings:    (p={})    => request('/admin/lawyers/bookings?' + new URLSearchParams(p)),
   getAdminLawyerAnalytics:   ()        => request('/admin/lawyers/analytics'),
+
+  // ── Medicine Reminders & Adherence ──
+  getMedicineReminders:      (p={})    => request('/medicine-reminders' + (Object.keys(p).length ? '?' + new URLSearchParams(p) : '')),
+  getMedicineReminder:       (id)      => request(`/medicine-reminders/${id}`),
+  createMedicineReminder:    (body)    => request('/medicine-reminders', { method: 'POST', body: JSON.stringify(body) }),
+  updateMedicineReminder:    (id, body)=> request(`/medicine-reminders/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  pauseMedicineReminder:     (id)      => request(`/medicine-reminders/${id}/pause`, { method: 'PUT' }),
+  resumeMedicineReminder:    (id)      => request(`/medicine-reminders/${id}/resume`, { method: 'PUT' }),
+  deleteMedicineReminder:    (id)      => request(`/medicine-reminders/${id}`, { method: 'DELETE' }),
+  respondMedicineDose:       (id, body)=> request(`/medicine-reminders/${id}/dose/respond`, { method: 'POST', body: JSON.stringify(body) }),
+  getMedicineAdherence:      (p={})    => request('/medicine-reminders/adherence' + (Object.keys(p).length ? '?' + new URLSearchParams(p) : '')),
+  getAlarmSounds:            ()        => request('/medicine-reminders/alarm-sounds'),
+
+  // ── Vitals Self-Tracking ──
+  getVitals:                 (p={})    => request('/vitals' + (Object.keys(p).length ? '?' + new URLSearchParams(p) : '')),
+  logVital:                  (body)    => request('/vitals', { method: 'POST', body: JSON.stringify(body) }),
+  updateVital:               (id, body)=> request(`/vitals/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  deleteVital:               (id)      => request(`/vitals/${id}`, { method: 'DELETE' }),
+  getVitalsTrends:           (p={})    => request('/vitals/trends' + (Object.keys(p).length ? '?' + new URLSearchParams(p) : '')),
+  getVitalsReferenceRanges:  ()        => request('/vitals/reference-ranges'),
+  getVitalsReminders:        ()        => request('/vitals-reminders/all'),
+  createVitalsReminder:      (body)    => request('/vitals-reminders', { method: 'POST', body: JSON.stringify(body) }),
+  updateVitalsReminder:      (id, body)=> request(`/vitals-reminders/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  deleteVitalsReminder:      (id)      => request(`/vitals-reminders/${id}`, { method: 'DELETE' }),
+
+  // ── Chronic Disease Care Plans ──
+  getCarePlans:              ()        => request('/care-plans'),
+  getCarePlan:               (id)      => request(`/care-plans/${id}`),
+  createCarePlan:            (body)    => request('/care-plans', { method: 'POST', body: JSON.stringify(body) }),
+  updateCarePlan:            (id, body)=> request(`/care-plans/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  updateCarePlanStatus:      (id, st)  => request(`/care-plans/${id}/status`, { method: 'PUT', body: JSON.stringify({ status: st }) }),
+  updateCarePlanConsent:     (id, sh)  => request(`/care-plans/${id}/consent`, { method: 'PUT', body: JSON.stringify({ shareWithDoctor: sh }) }),
+  getCarePlanToday:          (id)      => request(`/care-plans/${id}/today`),
+  getDoctorCarePlans:        ()        => request('/care-plans/doctor-view'),
 };

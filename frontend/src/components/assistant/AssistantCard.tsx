@@ -1,5 +1,5 @@
 import React from 'react';
-import { Star, MapPin, CheckCircle2, ShieldCheck, Languages, Clock, UserCheck } from 'lucide-react';
+import { Star, ShieldCheck, Languages } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 
@@ -58,7 +58,9 @@ export const AssistantCard: React.FC<Props> = ({
                 {user.name || 'Assistant'}
               </h3>
               {assistant.isDocumentVerified && (
-                <ShieldCheck className="w-4 h-4 text-teal-600 dark:text-teal-400" title="Verified Assistant" />
+                <span title="Verified Assistant" className="inline-flex">
+                  <ShieldCheck className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                </span>
               )}
             </div>
 
@@ -89,16 +91,7 @@ export const AssistantCard: React.FC<Props> = ({
           </p>
         )}
 
-        {/* Hospitals Covered */}
-        {assistant.hospitalsCovered && assistant.hospitalsCovered.length > 0 && (
-          <div className="mt-3 flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400">
-            <MapPin className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400 flex-shrink-0" />
-            <span className="truncate font-medium">
-              {assistant.hospitalsCovered.slice(0, 2).join(', ')}
-              {assistant.hospitalsCovered.length > 2 ? ` +${assistant.hospitalsCovered.length - 2} more` : ''}
-            </span>
-          </div>
-        )}
+
 
         {/* Service Categories Tags */}
         {assistant.serviceCategories && assistant.serviceCategories.length > 0 && (

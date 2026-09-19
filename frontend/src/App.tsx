@@ -101,11 +101,13 @@ const RiderDashboard = lazy(() => import('./pages/rider/RiderDashboard'));
 const AdminVehicleRides = lazy(() => import('./pages/admin/AdminVehicleRides'));
 
 const BookAssistant = lazy(() => import('./pages/BookAssistant'));
+const AssistantProfile = lazy(() => import('./pages/AssistantProfile'));
 const PatientAssistants = lazy(() => import('./pages/patient/PatientAssistants'));
 const AssistantDashboard = lazy(() => import('./pages/assistant/AssistantDashboard'));
 const AdminAssistants = lazy(() => import('./pages/admin/AdminAssistants'));
 
 const FindLawyer = lazy(() => import('./pages/FindLawyer'));
+const LawyerProfile = lazy(() => import('./pages/LawyerProfile'));
 const PatientLawyers = lazy(() => import('./pages/patient/PatientLawyers'));
 const LawyerDashboard = lazy(() => import('./pages/lawyer/LawyerDashboard'));
 const AdminLawyers = lazy(() => import('./pages/admin/AdminLawyers'));
@@ -157,6 +159,9 @@ const PatientAddresses = lazy(() => import('./pages/patient/PatientAddresses'));
 const PatientPayment = lazy(() => import('./pages/patient/PatientPayment'));
 const PatientPreferred = lazy(() => import('./pages/patient/PatientPreferred'));
 const PatientProfile = lazy(() => import('./pages/patient/PatientProfile'));
+const PatientMedicineReminders = lazy(() => import('./pages/patient/PatientMedicineReminders'));
+const PatientVitals = lazy(() => import('./pages/patient/PatientVitals'));
+const PatientCarePlan = lazy(() => import('./pages/patient/PatientCarePlan'));
 
 const DoctorDashboard = lazy(() => import('./pages/doctor/DoctorDashboard'));
 const DoctorAppointments = lazy(() => import('./pages/doctor/DoctorAppointments'));
@@ -510,8 +515,11 @@ const App = () => (
                     <Route path="/rides" element={<Navigate to="/patient/rides" replace />} />
                     <Route path="/my-rides" element={<Navigate to="/patient/rides" replace />} />
                     <Route path="/book-assistant" element={<PublicLayout><BookAssistant /></PublicLayout>} />
+                    <Route path="/find-assistant" element={<Navigate to="/book-assistant" replace />} />
                     <Route path="/assistants" element={<Navigate to="/book-assistant" replace />} />
+                    <Route path="/assistants/:id" element={<PublicLayout><AssistantProfile /></PublicLayout>} />
                     <Route path="/find-lawyer" element={<PublicLayout><FindLawyer /></PublicLayout>} />
+                    <Route path="/lawyers/:id" element={<PublicLayout><LawyerProfile /></PublicLayout>} />
                     <Route path="/book-lawyer" element={<Navigate to="/find-lawyer" replace />} />
                     <Route path="/lawyers" element={<Navigate to="/find-lawyer" replace />} />
 
@@ -667,6 +675,9 @@ const App = () => (
                     <Route path="/patient/refunds" element={<RoleRoute allowedRoles={['patient']}><PatientRefunds /></RoleRoute>} />
                     <Route path="/patient/settings" element={<RoleRoute allowedRoles={['patient']}><PatientSettings /></RoleRoute>} />
                     <Route path="/patient/prescriptions" element={<RoleRoute allowedRoles={['patient']}><PatientPrescriptions /></RoleRoute>} />
+                    <Route path="/patient/medicine-reminders" element={<RoleRoute allowedRoles={['patient']}><PatientMedicineReminders /></RoleRoute>} />
+                    <Route path="/patient/vitals" element={<RoleRoute allowedRoles={['patient']}><PatientVitals /></RoleRoute>} />
+                    <Route path="/patient/care-plans" element={<RoleRoute allowedRoles={['patient']}><PatientCarePlan /></RoleRoute>} />
                     <Route path="/patient/medicine-orders" element={<RoleRoute allowedRoles={['patient']}><PatientMedicineOrders /></RoleRoute>} />
                     <Route path="/patient/services" element={<RoleRoute allowedRoles={['patient']}><PatientServices /></RoleRoute>} />
                     <Route path="/patient/bookings" element={<RoleRoute allowedRoles={['patient']}><PatientBookings /></RoleRoute>} />

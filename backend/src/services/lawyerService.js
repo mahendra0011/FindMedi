@@ -53,6 +53,30 @@ export const LEGAL_CATEGORIES_INFO = {
   },
 };
 
+export const CATEGORY_MAP_TO_DISPLAY = {
+  medical_negligence: 'Medical Negligence',
+  insurance: 'Insurance Disputes',
+  accident_mlc: 'Accident & MLC',
+  consumer_rights: 'Consumer Rights',
+  family_law: 'Family & Personal',
+  criminal_law: 'Criminal Law',
+  civil_property: 'Civil & Property',
+  corporate_contract: 'Corporate & Contract',
+  general_consultation: 'General Consultation',
+};
+
+export const CATEGORY_MAP_TO_SLUG = {
+  'Medical Negligence': 'medical_negligence',
+  'Insurance Disputes': 'insurance',
+  'Accident & MLC': 'accident_mlc',
+  'Consumer Rights': 'consumer_rights',
+  'Family & Personal': 'family_law',
+  'Criminal Law': 'criminal_law',
+  'Civil & Property': 'civil_property',
+  'Corporate & Contract': 'corporate_contract',
+  'General Consultation': 'general_consultation',
+};
+
 /**
  * Filter available and active lawyers based on search criteria
  */
@@ -78,7 +102,9 @@ export async function searchMatchingLawyers({
   }
 
   if (category) {
-    query.practiceCategories = category;
+    const slug = CATEGORY_MAP_TO_SLUG[category] || category;
+    const display = CATEGORY_MAP_TO_DISPLAY[category] || category;
+    query.practiceCategories = { $in: [category, slug, display] };
   }
 
   if (mode) {
@@ -156,13 +182,27 @@ export async function broadcastLawyerBooking(booking, user) {
       userId: String(booking.lawyerId),
     }).catch((e) => logger.error(`Notification error: ${e.message}`));
   } else if (booking.urgency === 'urgent') {
-    // Broadcast to all active and available lawyers in this category
-    const matchingProfiles = await LawyerProfile.find({
+    const catSlug = CATEGORY_MAP_TO_SLUG[booking.category] || booking.category;
+    const catDisplay = CATEGORY_MAP_TO_DISPLAY[booking.category] || booking.category;
+    const broadcastQuery = {
       lawyerStatus: 'active',
       isAvailable: true,
       acceptsUrgent: true,
-      practiceCategories: booking.category,
-    }).select('userId');
+      practiceCategories: { $in: [booking.category, catSlug, catDisplay] },
+    };
+
+    if (booking.location?.city && booking.location.city.trim()) {
+      broadcastQuery.$or = [
+        { operatingCity: new RegExp(booking.location.city.trim(), 'i') },
+        { jurisdictionCity: new RegExp(booking.location.city.trim(), 'i') },
+      ];
+    }
+
+    let matchingProfiles = await LawyerProfile.find(broadcastQuery).select('userId');
+    if (matchingProfiles.length === 0 && broadcastQuery.$or) {
+      delete broadcastQuery.$or;
+      matchingProfiles = await LawyerProfile.find(broadcastQuery).select('userId');
+    }
 
     matchingProfiles.forEach(async (p) => {
       if (io) {

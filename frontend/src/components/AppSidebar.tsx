@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, UserRound, Stethoscope, CalendarDays, FileText,
@@ -238,6 +238,10 @@ const navConfig = {
     { icon: Users,           labelKey: 'nav.bookAssistant',         path: '/book-assistant'             },
     { icon: Scale,           labelKey: 'nav.myLawyers',             path: '/patient/lawyers'            },
     { icon: Scale,           labelKey: 'nav.findLawyer',            path: '/find-lawyer'                },
+    // ❤️ My Health (expandable parent section)
+    { icon: Pill,            labelKey: 'nav.medicineReminders',     path: '/patient/medicine-reminders', isHealth: true },
+    { icon: Activity,        labelKey: 'nav.myVitals',              path: '/patient/vitals',             isHealth: true },
+    { icon: Heart,           labelKey: 'nav.carePlans',             path: '/patient/care-plans',         isHealth: true },
     { icon: IndianRupee,     labelKey: 'nav.paymentHistory',        path: '/patient/history'            },
     { icon: MapPinned,       labelKey: 'nav.addresses',             path: '/patient/addresses'          },
     { icon: Bell,            labelKey: 'nav.notifications',         path: '/notifications'              },
@@ -311,6 +315,7 @@ function SidebarContent({ collapsed, onToggleCollapse, onNavClick }: any) {
 
   const navItems = navConfig[user?.role] || navConfig.patient;
   const language = user?.settings?.language || 'en';
+  const [myHealthOpen, setMyHealthOpen] = useState(true);
 
   return (
     <div className={`flex flex-col h-full bg-sidebar text-sidebar-foreground ${collapsed ? 'w-[72px]' : 'w-64'}`}>
@@ -345,7 +350,8 @@ function SidebarContent({ collapsed, onToggleCollapse, onNavClick }: any) {
 
       {/* Navigation */}
       <nav className="sidebar-nav min-h-0 flex-1 py-3 px-2 space-y-0.5 overflow-y-auto overscroll-contain">
-        {navItems.map(({ icon: Icon, labelKey, path }, idx) => {
+        {navItems.map((item: any, idx: number) => {
+          const { icon: Icon, labelKey, path, isHealth } = item;
           const currentFull = location.pathname + (location.search || '');
           let isActive = false;
           if (path.includes('?tab=approve')) {
@@ -362,13 +368,54 @@ function SidebarContent({ collapsed, onToggleCollapse, onNavClick }: any) {
             isActive = location.pathname === path;
           }
           const label = t(labelKey, language);
+
+          const isFirstHealth = isHealth && (idx === 0 || !navItems[idx - 1]?.isHealth);
+
+          if (isHealth && !myHealthOpen && !collapsed && !isActive) {
+            return isFirstHealth ? (
+              <div key="health-header-collapsed" className="pt-2 pb-1">
+                <button
+                  type="button"
+                  onClick={() => setMyHealthOpen(true)}
+                  className="w-full flex items-center justify-between px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all"
+                >
+                  <span className="flex items-center gap-2">
+                    <Heart className="w-3.5 h-3.5 text-rose-500" />
+                    <span>My Health</span>
+                  </span>
+                  <ChevronRight className="w-3.5 h-3.5 transition-transform duration-200" />
+                </button>
+              </div>
+            ) : null;
+          }
+
           return (
-            <Link key={`${path}-${labelKey}-${idx}`} to={path} onClick={onNavClick}
-              title={collapsed ? label : undefined}
-              className={`sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${isActive ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-lg shadow-sidebar-primary/20' : 'text-sidebar-foreground/65 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'} ${collapsed ? 'justify-center' : ''}`}>
-              <Icon className={`w-[18px] h-[18px] flex-shrink-0 ${!isActive ? 'group-hover:scale-110 transition-transform' : ''}`} />
-              {!collapsed && <span className="text-sm font-medium">{label}</span>}
-            </Link>
+            <React.Fragment key={`${path}-${labelKey}-${idx}`}>
+              {isFirstHealth && (
+                <div className="pt-2 pb-1">
+                  <button
+                    type="button"
+                    onClick={() => setMyHealthOpen(!myHealthOpen)}
+                    title={collapsed ? "My Health" : undefined}
+                    className={`w-full flex items-center justify-between px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all ${collapsed ? 'justify-center' : ''}`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <Heart className="w-3.5 h-3.5 text-rose-500" />
+                      {!collapsed && <span>My Health</span>}
+                    </span>
+                    {!collapsed && (
+                      <ChevronRight className={`w-3.5 h-3.5 transition-transform duration-200 ${myHealthOpen ? 'rotate-90' : ''}`} />
+                    )}
+                  </button>
+                </div>
+              )}
+              <Link to={path} onClick={onNavClick}
+                title={collapsed ? label : undefined}
+                className={`sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${isActive ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-lg shadow-sidebar-primary/20' : 'text-sidebar-foreground/65 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'} ${collapsed ? 'justify-center' : ''} ${isHealth && !collapsed ? 'ml-2 pl-3 border-l border-rose-500/30' : ''}`}>
+                <Icon className={`w-[18px] h-[18px] flex-shrink-0 ${!isActive ? 'group-hover:scale-110 transition-transform' : ''}`} />
+                {!collapsed && <span className="text-sm font-medium">{label}</span>}
+              </Link>
+            </React.Fragment>
           );
         })}
       </nav>

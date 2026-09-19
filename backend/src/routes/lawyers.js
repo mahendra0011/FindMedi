@@ -4,10 +4,148 @@ import LawyerBooking from '../models/LawyerBooking.js';
 import User from '../models/User.js';
 import { protect } from '../middleware/auth.js';
 import { validate, searchLawyerSchema, lawyerStatusSchema } from '../utils/validate.js';
-import { searchMatchingLawyers } from '../services/lawyerService.js';
+import {
+  searchMatchingLawyers,
+  CATEGORY_MAP_TO_DISPLAY,
+  CATEGORY_MAP_TO_SLUG,
+} from '../services/lawyerService.js';
 import logger from '../config/logger.js';
 
 const router = express.Router();
+
+function formatLawyerResponse(profile) {
+  const user = profile.userId || {};
+  return {
+    _id: user._id ? String(user._id) : String(profile._id),
+    profileId: String(profile._id),
+    name: user.name || 'Advocate',
+    profilePhoto: user.avatar || '',
+    practiceCategories: (profile.practiceCategories || []).map((c) => CATEGORY_MAP_TO_DISPLAY[c] || c),
+    yearsOfPractice: profile.yearsOfPractice || 1,
+    barCouncilNumber: profile.barCouncilNumber || '',
+    consultationFee: profile.consultationFee || 800,
+    followUpFee: profile.followUpFee || 500,
+    consultationModes: profile.consultationModes || ['video', 'phone', 'chat'],
+    rating: profile.rating?.avg || 5.0,
+    reviewsCount: profile.rating?.count || 0,
+    casesHandled: profile.casesHandled || Math.max(25, (profile.yearsOfPractice || 1) * 20),
+    isAvailable: Boolean(profile.isAvailable),
+    jurisdictionCity: profile.jurisdictionCity || 'Delhi',
+    operatingCity: profile.operatingCity || profile.jurisdictionCity || 'Jabalpur',
+    courtsPracticedIn: profile.courtsPracticedIn || [],
+    languages: profile.languages || ['Hindi', 'English'],
+    bio: profile.bio || '',
+    phone: user.phone || '',
+    email: user.email || '',
+    stateBarCouncil: profile.stateBarCouncil || '',
+    yearOfEnrollment: profile.yearOfEnrollment || '',
+    availableDays: profile.availableDays || [],
+    availableTimeSlots: profile.availableTimeSlots || [],
+    favorableOutcomesRate: profile.favorableOutcomesRate || 88,
+    notableCases: profile.notableCases || [],
+    practiceType: profile.practiceType || 'independent',
+    yearsAtCurrentPractice: profile.yearsAtCurrentPractice || 3,
+    avgResponseMinutes: profile.avgResponseMinutes || 12,
+    currentSessionStatus: profile.currentSessionStatus || (profile.isAvailable ? 'available' : 'offline'),
+    faqs: profile.faqs || [],
+    awards: profile.awards || [],
+    isPoliceVerified: Boolean(profile.isPoliceVerified),
+    lawFirmName: profile.lawFirmName || '',
+  };
+}
+
+// ─── GET /api/lawyers (Public list backing FindLawyer.tsx) ────────────────
+router.get('/', async (req, res) => {
+  try {
+    const {
+      category,
+      city,
+      search,
+      mode,
+      language,
+      minExperience,
+      feeMin,
+      feeMax,
+      minRating,
+      sortBy = 'relevance',
+    } = req.query;
+
+    const query = {
+      lawyerStatus: 'active',
+    };
+
+    if (city && city !== 'All' && city.trim()) {
+      const cityRegex = new RegExp(city.trim(), 'i');
+      query.$or = [{ operatingCity: cityRegex }, { jurisdictionCity: cityRegex }];
+    }
+
+    if (category && category !== 'All') {
+      const slug = CATEGORY_MAP_TO_SLUG[category] || category;
+      const display = CATEGORY_MAP_TO_DISPLAY[category] || category;
+      query.practiceCategories = { $in: [category, slug, display] };
+    }
+
+    if (mode) {
+      query.consultationModes = mode;
+    }
+
+    if (minExperience) {
+      query.yearsOfPractice = { $gte: Number(minExperience) };
+    }
+
+    if (feeMin !== undefined || feeMax !== undefined) {
+      query.consultationFee = {};
+      if (feeMin !== undefined && feeMin !== '') query.consultationFee.$gte = Number(feeMin);
+      if (feeMax !== undefined && feeMax !== '') query.consultationFee.$lte = Number(feeMax);
+    }
+
+    if (minRating) {
+      query['rating.avg'] = { $gte: Number(minRating) };
+    }
+
+    if (language) {
+      query.languages = new RegExp(language, 'i');
+    }
+
+    let profiles = await LawyerProfile.find(query)
+      .populate('userId', 'name email phone avatar address')
+      .lean();
+
+    // In-memory text search on name or bio
+    if (search && search.trim()) {
+      const q = search.trim().toLowerCase();
+      profiles = profiles.filter((p) => {
+        const name = (p.userId?.name || '').toLowerCase();
+        const bio = (p.bio || '').toLowerCase();
+        const city = (p.jurisdictionCity || '').toLowerCase();
+        const cats = (p.practiceCategories || []).join(' ').toLowerCase();
+        return name.includes(q) || bio.includes(q) || city.includes(q) || cats.includes(q);
+      });
+    }
+
+    // Sort
+    if (sortBy === 'rating') {
+      profiles.sort((a, b) => (b.rating?.avg || 0) - (a.rating?.avg || 0));
+    } else if (sortBy === 'experience') {
+      profiles.sort((a, b) => (b.yearsOfPractice || 0) - (a.yearsOfPractice || 0));
+    } else if (sortBy === 'fee' || sortBy === 'fee_low') {
+      profiles.sort((a, b) => (a.consultationFee || 0) - (b.consultationFee || 0));
+    } else if (sortBy === 'fee_high') {
+      profiles.sort((a, b) => (b.consultationFee || 0) - (a.consultationFee || 0));
+    }
+
+    const lawyers = profiles.map(formatLawyerResponse);
+
+    res.json({
+      success: true,
+      total: lawyers.length,
+      lawyers,
+    });
+  } catch (err) {
+    logger.error(`Error listing lawyers: ${err.message}`);
+    res.status(500).json({ message: 'Failed to fetch lawyers' });
+  }
+});
 
 // ─── GET /api/lawyer/profile ──────────────────────────────────────────────
 // Get logged-in lawyer's profile
@@ -235,6 +373,7 @@ router.get('/:id', async (req, res) => {
 
     res.json({
       success: true,
+      lawyer: formatLawyerResponse(profile),
       profile,
       reviews: reviews.map((r) => ({
         stars: r.ratingByUser?.stars,
@@ -243,6 +382,7 @@ router.get('/:id', async (req, res) => {
         clientName: r.userId?.name ? `${r.userId.name.charAt(0)}***` : 'Anonymous Client',
         category: r.category,
         consultationMode: r.consultationMode,
+        isVerifiedBooking: true,
       })),
     });
   } catch (err) {

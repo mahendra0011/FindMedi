@@ -5,7 +5,7 @@ import {
   CalendarDays, Clock, User, CheckCircle, CheckCircle2, AlertCircle, Star, DollarSign,
   Stethoscope, Activity, Users, FlaskConical, RotateCcw,
   MapPin, Globe, Phone, Video, MessageCircle, ChevronRight, Car, Sparkles,
-  Building2, Check, X, CalendarClock
+  Building2, Check, X, CalendarClock, Heart
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -64,6 +64,7 @@ export default function DoctorDashboard() {
   const [bills, setBills] = useState([]);
   const [labReports, setLabReports] = useState([]);
   const [refunds, setRefunds] = useState([]);
+  const [patientCarePlans, setPatientCarePlans] = useState([]);
   const [loading, setLoading] = useState(true);
   const mounted = useRef(true);
 
@@ -76,9 +77,11 @@ export default function DoctorDashboard() {
         api.getBilling(),
         api.getRecords(),
         api.getRefunds(),
+        api.getDoctorCarePlans(),
       ]);
       if (!mounted.current) return;
-      const [a, r, b, records, rf] = results.map(res => res.status === 'fulfilled' ? res.value : []);
+      const [a, r, b, records, rf, cp] = results.map(res => res.status === 'fulfilled' ? res.value : []);
+      if (cp?.carePlans) setPatientCarePlans(cp.carePlans);
       const docName = user?.name?.toLowerCase();
       const appts = a?.data || a || [];
       const myAppointments = appts?.filter(apt => 
@@ -851,6 +854,70 @@ export default function DoctorDashboard() {
           <p className="font-bold text-lg text-primary">{reviews.length}</p>
           <p className="text-xs text-muted-foreground">Reviews</p>
         </div>
+      </div>
+
+      {/* ── My Patients' Chronic Care Plans (Opt-in Doctor Visibility) ── */}
+      <div className="bg-card rounded-2xl border border-teal-500/20 p-6 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+          <div>
+            <h2 className="font-heading text-lg font-semibold text-foreground flex items-center gap-2">
+              <Heart className="w-5 h-5 text-teal-600" /> My Patients' Chronic Care Plans
+            </h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Consented home health records, 30-day medicine adherence scores, and recent home vitals readings.
+            </p>
+          </div>
+          <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-teal-500/10 text-teal-600 w-fit">
+            {patientCarePlans.length} Consented Plans
+          </span>
+        </div>
+
+        {patientCarePlans.length === 0 ? (
+          <div className="text-center py-6 text-muted-foreground text-xs">
+            No consented patient care plans linked at this time. When your patients create a care plan and enable doctor sharing, their home health trends will appear here.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {patientCarePlans.map((plan: any) => (
+              <div key={plan._id} className="rounded-xl border border-border/70 p-4 bg-muted/20 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="font-bold text-sm text-foreground">
+                        {plan.userId?.name || 'Patient'}
+                      </p>
+                      <p className="text-xs text-teal-600 font-semibold mt-0.5">
+                        {plan.planName} ({plan.condition})
+                      </p>
+                    </div>
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                      plan.adherenceScore >= 80 ? 'bg-emerald-500/10 text-emerald-600' : 'bg-amber-500/10 text-amber-600'
+                    }`}>
+                      {plan.adherenceScore}% Adherence
+                    </span>
+                  </div>
+
+                  {/* Latest vitals */}
+                  <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                    {plan.latestVitals?.map((v: any, idx: number) => {
+                      if (!v.reading) return null;
+                      let str = '';
+                      if (v.vitalType === 'bp') str = `BP: ${v.reading.values?.systolic}/${v.reading.values?.diastolic} mmHg`;
+                      else if (v.vitalType === 'blood_sugar') str = `Sugar: ${v.reading.values?.sugarValue} mg/dL (${v.reading.values?.sugarContext || ''})`;
+                      else if (v.vitalType === 'weight') str = `Weight: ${v.reading.values?.weightKg} kg`;
+                      else if (v.vitalType === 'temperature') str = `Temp: ${v.reading.values?.tempValue}°${v.reading.values?.tempUnit || 'F'}`;
+                      return (
+                        <span key={idx} className="rounded-lg bg-card border px-2 py-1 font-medium text-foreground">
+                          {str}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Refund Section */}

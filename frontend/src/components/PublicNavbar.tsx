@@ -150,9 +150,25 @@ export default function PublicNavbar() {
   const { totalItems } = useCart();
   const [selectedCity, setSelectedCity] = useState(() => (localStorage.getItem('findmedi_city') || localStorage.getItem('mediCore_city')) || 'Jabalpur');
 
-  const handleCitySelect = (cityName) => {
+  useEffect(() => {
+    const onCityChange = (e: any) => {
+      const newCity = e.detail || localStorage.getItem('findmedi_city') || localStorage.getItem('mediCore_city');
+      if (newCity && newCity !== selectedCity) {
+        setSelectedCity(newCity);
+      }
+    };
+    window.addEventListener('cityChange', onCityChange);
+    window.addEventListener('storage', onCityChange);
+    return () => {
+      window.removeEventListener('cityChange', onCityChange);
+      window.removeEventListener('storage', onCityChange);
+    };
+  }, [selectedCity]);
+
+  const handleCitySelect = (cityName: string) => {
     setSelectedCity(cityName);
     localStorage.setItem('findmedi_city', cityName);
+    window.dispatchEvent(new CustomEvent('cityChange', { detail: cityName }));
     setCityOpen(false);
   };
 

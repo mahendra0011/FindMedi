@@ -335,6 +335,10 @@ import lawyerRoutes from './routes/lawyers.js';
 import lawyerBookingRoutes from './routes/lawyerBookings.js';
 import adminLawyerRoutes from './routes/adminLawyers.js';
 import demoPaymentRoutes from './routes/demoPayment.js';
+import serviceCityRoutes from './routes/serviceCities.js';
+import medicineReminderRoutes from './routes/medicineReminders.js';
+import vitalsRoutes from './routes/vitals.js';
+import carePlanRoutes from './routes/carePlans.js';
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -409,12 +413,24 @@ app.use('/api/admin/riders', adminRiderRoutes);
 app.use('/api/admin/rides', (req, res, next) => { req.url = '/rides' + (req.url === '/' ? '' : req.url); adminRiderRoutes(req, res, next); });
 app.use('/api/admin/vehicles', (req, res, next) => { req.url = '/vehicles' + (req.url === '/' ? '' : req.url); adminRiderRoutes(req, res, next); });
 app.use('/api/assistant', assistantRoutes);
+app.use('/api/assistants', assistantRoutes);
 app.use('/api/assistant-booking', assistantBookingRoutes);
+app.use('/api/assistant-bookings', assistantBookingRoutes);
 app.use('/api/admin/assistants', adminAssistantRoutes);
 app.use('/api/lawyer', lawyerRoutes);
+app.use('/api/lawyers', lawyerRoutes);
 app.use('/api/lawyer-booking', lawyerBookingRoutes);
+app.use('/api/lawyer-bookings', lawyerBookingRoutes);
 app.use('/api/admin/lawyers', adminLawyerRoutes);
 app.use('/api/payment/demo', demoPaymentRoutes);
+app.use('/api/service-cities', serviceCityRoutes);
+app.use('/api/medicine-reminders', medicineReminderRoutes);
+app.use('/api/vitals', vitalsRoutes);
+app.use('/api/vitals-reminders', (req, res, next) => {
+  req.url = '/reminders' + (req.url === '/' ? '' : req.url);
+  vitalsRoutes(req, res, next);
+});
+app.use('/api/care-plans', carePlanRoutes);
 
 // 2FA routes
 app.use('/api/auth/2fa', twoFactorRoutes);
