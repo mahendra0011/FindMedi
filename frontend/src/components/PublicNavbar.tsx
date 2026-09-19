@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Activity, Menu, X, Moon, Sun, UserRound, MapPin, ChevronDown, ShoppingCart, Lock, Check } from 'lucide-react';
+import { Activity, Menu, X, Moon, Sun, UserRound, MapPin, ChevronDown, ShoppingCart, Lock, Check, Car, Navigation, Power, Users, Scale } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -8,14 +8,45 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
 import { allCities } from '@/data/cities';
+import { api } from '@/lib/api';
 
-const NAV_ITEMS = [
+const DEFAULT_MAIN_NAV = [
   { label: 'Home', path: '/' },
   { label: 'Find Hospital', path: '/hospitals' },
   { label: 'Find Clinic', path: '/clinic-doctors' },
-  { label: 'Find Diagnostic Centers', path: '/diagnostic-centers' },
+  { label: 'Diagnostic Centers', path: '/diagnostic-centers' },
   { label: 'Book Test', path: '/all-tests' },
   { label: 'Buy Medicine', path: '/buy-medicine' },
+];
+
+const ON_DEMAND_SERVICES = [
+  { label: 'Book Vehicles', path: '/find-vehicle', icon: '🚗', desc: 'On-demand transport & ambulance' },
+  { label: 'Book Assistant', path: '/book-assistant', icon: '🧑‍⚕️', desc: 'Hospital attendant & caretaker' },
+  { label: 'Book Lawyer', path: '/find-lawyer', icon: '⚖️', desc: 'In-app legal help & case consultation' },
+];
+
+const RIDER_NAV_ITEMS = [
+  { label: 'Home', path: '/' },
+  { label: '🧭 Rider Dashboard', path: '/rider/dashboard' },
+  { label: '🔔 Requests', path: '/rider/dashboard?tab=requests' },
+  { label: '💰 Earnings', path: '/rider/dashboard?tab=earnings' },
+  { label: '🚗 Active Ride', path: '/rider/dashboard?tab=active' },
+];
+
+const ASSISTANT_NAV_ITEMS = [
+  { label: 'Home', path: '/' },
+  { label: '🧑‍⚕️ Assistant Dashboard', path: '/assistant/dashboard' },
+  { label: '🔔 Requests', path: '/assistant/dashboard?tab=requests' },
+  { label: '⏱️ Active Shift', path: '/assistant/dashboard?tab=active' },
+  { label: '💰 Earnings', path: '/assistant/dashboard?tab=earnings' },
+];
+
+const LAWYER_NAV_ITEMS = [
+  { label: 'Home', path: '/' },
+  { label: '⚖️ Lawyer Dashboard', path: '/lawyer/dashboard' },
+  { label: '🔔 Requests', path: '/lawyer/dashboard?tab=requests' },
+  { label: '⚖️ Active Case', path: '/lawyer/dashboard?tab=active' },
+  { label: '💰 Earnings', path: '/lawyer/dashboard?tab=earnings' },
 ];
 
 export default function PublicNavbar() {
@@ -24,6 +55,90 @@ export default function PublicNavbar() {
   const { user } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [cityOpen, setCityOpen] = useState(false);
+  const [servicesOpen, setServicesOpen] = useState(false);
+  const [isRiderOnline, setIsRiderOnline] = useState(false);
+  const [riderStatusLoading, setRiderStatusLoading] = useState(false);
+  const [isAssistantOnline, setIsAssistantOnline] = useState(false);
+  const [assistantStatusLoading, setAssistantStatusLoading] = useState(false);
+  const [isLawyerOnline, setIsLawyerOnline] = useState(false);
+  const [lawyerStatusLoading, setLawyerStatusLoading] = useState(false);
+
+  const isRider = user?.role === 'rider';
+  const isAssistant = user?.role === 'assistant';
+  const isLawyer = user?.role === 'lawyer';
+
+  useEffect(() => {
+    if (isRider) {
+      api.getRiderProfile()
+        .then((res) => {
+          if (res?.profile?.isOnline !== undefined) {
+            setIsRiderOnline(Boolean(res.profile.isOnline));
+          }
+        })
+        .catch(() => {});
+    }
+    if (isAssistant) {
+      api.getMyAssistantProfile()
+        .then((res) => {
+          if (res?.profile?.isAvailable !== undefined) {
+            setIsAssistantOnline(Boolean(res.profile.isAvailable));
+          }
+        })
+        .catch(() => {});
+    }
+    if (isLawyer) {
+      api.getMyLawyerProfile()
+        .then((res) => {
+          if (res?.profile?.isAvailable !== undefined) {
+            setIsLawyerOnline(Boolean(res.profile.isAvailable));
+          }
+        })
+        .catch(() => {});
+    }
+  }, [isRider, isAssistant, isLawyer]);
+
+  const handleToggleOnline = async () => {
+    if (riderStatusLoading) return;
+    setRiderStatusLoading(true);
+    try {
+      const next = !isRiderOnline;
+      await api.setRiderStatus(next);
+      setIsRiderOnline(next);
+    } catch (err) {
+      console.error('Failed to toggle status:', err);
+    } finally {
+      setRiderStatusLoading(false);
+    }
+  };
+
+  const handleToggleAssistantOnline = async () => {
+    if (assistantStatusLoading) return;
+    setAssistantStatusLoading(true);
+    try {
+      const next = !isAssistantOnline;
+      await api.setAssistantStatus(next);
+      setIsAssistantOnline(next);
+    } catch (err) {
+      console.error('Failed to toggle assistant status:', err);
+    } finally {
+      setAssistantStatusLoading(false);
+    }
+  };
+
+  const handleToggleLawyerOnline = async () => {
+    if (lawyerStatusLoading) return;
+    setLawyerStatusLoading(true);
+    try {
+      const next = !isLawyerOnline;
+      await api.setLawyerStatus(next);
+      setIsLawyerOnline(next);
+    } catch (err) {
+      console.error('Failed to toggle lawyer status:', err);
+    } finally {
+      setLawyerStatusLoading(false);
+    }
+  };
+
 
   const isDarkMode = document.documentElement.classList.contains('dark');
   const toggleDarkMode = () => {
@@ -59,19 +174,80 @@ export default function PublicNavbar() {
           </Link>
 
           <nav className="hidden xl:flex items-center gap-0.5">
-            {NAV_ITEMS.map((item) => (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`px-2 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
-                  isActive(item.path)
-                    ? 'bg-primary/10 text-primary'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                }`}
-              >
-                {item.label}
-              </Link>
-            ))}
+            {isRider || isAssistant || isLawyer ? (
+              (isRider ? RIDER_NAV_ITEMS : isAssistant ? ASSISTANT_NAV_ITEMS : LAWYER_NAV_ITEMS).map((item) => (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={`px-2.5 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+                    isActive(item.path)
+                      ? 'bg-primary/10 text-primary'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              ))
+            ) : (
+              <>
+                {DEFAULT_MAIN_NAV.map((item) => (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={`px-2.5 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+                      isActive(item.path)
+                        ? 'bg-primary/10 text-primary'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+
+                {/* Services Dropdown (User instruction: ak dropdown bana dena nav bar me aayega nhi ye) */}
+                <Popover open={servicesOpen} onOpenChange={setServicesOpen}>
+                  <PopoverTrigger asChild>
+                    <button
+                      type="button"
+                      className={`flex items-center gap-1 px-2.5 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+                        ON_DEMAND_SERVICES.some((s) => location.pathname.startsWith(s.path))
+                          ? 'bg-primary/10 text-primary'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                      }`}
+                    >
+                      <span>Services</span>
+                      <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${servicesOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-72 p-2 rounded-2xl shadow-xl border border-border bg-popover" align="start">
+                    <div className="text-[11px] font-bold text-muted-foreground px-2.5 py-1 uppercase tracking-wider">
+                      Care & Mobility Services
+                    </div>
+                    <div className="space-y-1">
+                      {ON_DEMAND_SERVICES.map((s) => (
+                        <Link
+                          key={s.path}
+                          to={s.path}
+                          onClick={() => setServicesOpen(false)}
+                          className={`flex items-start gap-2.5 p-2 rounded-xl transition-colors ${
+                            location.pathname.startsWith(s.path)
+                              ? 'bg-primary/10 text-primary'
+                              : 'hover:bg-muted text-foreground'
+                          }`}
+                        >
+                          <span className="text-xl leading-none mt-0.5">{s.icon}</span>
+                          <div>
+                            <div className="text-xs font-bold leading-tight">{s.label}</div>
+                            <div className="text-[10px] text-muted-foreground mt-0.5">{s.desc}</div>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </>
+            )}
+
             <Link
               to="/"
               className={`px-2 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
@@ -88,7 +264,7 @@ export default function PublicNavbar() {
         {/* Spacer - pushes everything after to the right */}
         <div className="flex-1" />
 
-        {/* Utility items (cart, dark mode, city, sign in) */}
+        {/* Utility items (online toggle, cart, dark mode, city, sign in) */}
         <div className="flex items-center gap-1.5 sm:gap-2">
           {/* Mobile toggle */}
           <Button
@@ -99,6 +275,54 @@ export default function PublicNavbar() {
           >
             {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </Button>
+
+          {/* Rider Online / Offline Switch */}
+          {isRider && (
+            <Button
+              variant={isRiderOnline ? 'default' : 'outline'}
+              size="sm"
+              onClick={handleToggleOnline}
+              disabled={riderStatusLoading}
+              className={`hidden sm:flex items-center gap-1.5 rounded-full px-3 text-xs font-semibold ${
+                isRiderOnline ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'border-border text-muted-foreground'
+              }`}
+            >
+              <span className={`w-2 h-2 rounded-full ${isRiderOnline ? 'bg-white animate-pulse' : 'bg-muted-foreground'}`} />
+              {isRiderOnline ? 'Online' : 'Offline'}
+            </Button>
+          )}
+
+          {/* Assistant Available / Unavailable Switch */}
+          {isAssistant && (
+            <Button
+              variant={isAssistantOnline ? 'default' : 'outline'}
+              size="sm"
+              onClick={handleToggleAssistantOnline}
+              disabled={assistantStatusLoading}
+              className={`hidden sm:flex items-center gap-1.5 rounded-full px-3 text-xs font-semibold ${
+                isAssistantOnline ? 'bg-teal-600 hover:bg-teal-700 text-white' : 'border-border text-muted-foreground'
+              }`}
+            >
+              <span className={`w-2 h-2 rounded-full ${isAssistantOnline ? 'bg-white animate-pulse' : 'bg-muted-foreground'}`} />
+              {isAssistantOnline ? 'Available' : 'Unavailable'}
+            </Button>
+          )}
+
+          {/* Lawyer Available / Unavailable Switch */}
+          {isLawyer && (
+            <Button
+              variant={isLawyerOnline ? 'default' : 'outline'}
+              size="sm"
+              onClick={handleToggleLawyerOnline}
+              disabled={lawyerStatusLoading}
+              className={`hidden sm:flex items-center gap-1.5 rounded-full px-3 text-xs font-semibold ${
+                isLawyerOnline ? 'bg-indigo-600 hover:bg-indigo-700 text-white' : 'border-border text-muted-foreground'
+              }`}
+            >
+              <span className={`w-2 h-2 rounded-full ${isLawyerOnline ? 'bg-white animate-pulse' : 'bg-muted-foreground'}`} />
+              {isLawyerOnline ? 'Available' : 'Unavailable'}
+            </Button>
+          )}
 
           {/* Cart Icon */}
           <Tooltip>
@@ -176,7 +400,6 @@ export default function PublicNavbar() {
                       </CommandItem>
                     ))}
                   </CommandGroup>
-
                 </CommandList>
               </Command>
             </PopoverContent>
@@ -189,17 +412,40 @@ export default function PublicNavbar() {
             </Button>
           )}
           {user && (
-            <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')} className="hidden sm:flex gap-2 whitespace-nowrap shrink-0">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate(isRider ? '/rider/dashboard' : isAssistant ? '/assistant/dashboard' : isLawyer ? '/lawyer/dashboard' : '/dashboard')}
+              className="hidden sm:flex gap-2 whitespace-nowrap shrink-0"
+            >
               <UserRound className="w-4 h-4" />
-              Dashboard
+              {isRider ? 'Rider Console' : isAssistant ? 'Assistant Console' : isLawyer ? 'Advocate Console' : 'Dashboard'}
             </Button>
           )}
 
-          {/* Book Appointment */}
-          <Button onClick={() => navigate(user ? '/patient/appointments' : '/login')} className="hidden sm:flex gap-2 whitespace-nowrap shrink-0">
-            <UserRound className="w-4 h-4" />
-            Book Appointment
-          </Button>
+          {/* Call to Action */}
+          {isRider ? (
+            <Button onClick={() => navigate('/rider/dashboard')} className="hidden sm:flex gap-2 whitespace-nowrap shrink-0 bg-teal-600 hover:bg-teal-700 text-white">
+              <Car className="w-4 h-4" />
+              Driver Console
+            </Button>
+          ) : isAssistant ? (
+            <Button onClick={() => navigate('/assistant/dashboard')} className="hidden sm:flex gap-2 whitespace-nowrap shrink-0 bg-teal-600 hover:bg-teal-700 text-white">
+              <Users className="w-4 h-4" />
+              Assistant Console
+            </Button>
+          ) : isLawyer ? (
+            <Button onClick={() => navigate('/lawyer/dashboard')} className="hidden sm:flex gap-2 whitespace-nowrap shrink-0 bg-indigo-600 hover:bg-indigo-700 text-white">
+              <Scale className="w-4 h-4" />
+              Advocate Console
+            </Button>
+          ) : (
+            <Button onClick={() => navigate(user ? '/patient/appointments' : '/login')} className="hidden sm:flex gap-2 whitespace-nowrap shrink-0">
+              <UserRound className="w-4 h-4" />
+              Book Appointment
+            </Button>
+          )}
+
         </div>
       </div>
 
@@ -207,20 +453,80 @@ export default function PublicNavbar() {
       {mobileOpen && (
         <div className="xl:hidden border-t border-border/50 bg-background">
           <div className="px-4 py-3 space-y-1">
-            {NAV_ITEMS.map((item) => (
-              <Link
-                key={item.path}
-                to={item.path}
-                onClick={() => setMobileOpen(false)}
-                className={`block px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  isActive(item.path)
-                    ? 'bg-primary/10 text-primary'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                }`}
-              >
-                {item.label}
-              </Link>
-            ))}
+            {isRider || isAssistant || isLawyer ? (
+              (isRider ? RIDER_NAV_ITEMS : isAssistant ? ASSISTANT_NAV_ITEMS : LAWYER_NAV_ITEMS).map((item) => (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  onClick={() => setMobileOpen(false)}
+                  className={`block px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    isActive(item.path)
+                      ? 'bg-primary/10 text-primary'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              ))
+            ) : (
+              <>
+                {DEFAULT_MAIN_NAV.map((item) => (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    onClick={() => setMobileOpen(false)}
+                    className={`block px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      isActive(item.path)
+                        ? 'bg-primary/10 text-primary'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+
+                <div className="pt-2 pb-1 px-3 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                  Services
+                </div>
+                {ON_DEMAND_SERVICES.map((s) => (
+                  <Link
+                    key={s.path}
+                    to={s.path}
+                    onClick={() => setMobileOpen(false)}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                  >
+                    <span>{s.icon}</span>
+                    <span>{s.label}</span>
+                  </Link>
+                ))}
+              </>
+            )}
+
+            {user?.role === 'patient' && (
+              <>
+                <Link
+                  to="/patient/lawyers"
+                  onClick={() => setMobileOpen(false)}
+                  className="block px-3 py-2 rounded-lg text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:bg-muted/50"
+                >
+                  ⚖️ My Lawyer Consultations
+                </Link>
+                <Link
+                  to="/patient/assistants"
+                  onClick={() => setMobileOpen(false)}
+                  className="block px-3 py-2 rounded-lg text-sm font-medium text-teal-600 dark:text-teal-400 hover:bg-muted/50"
+                >
+                  🧑‍⚕️ My Assistant Bookings
+                </Link>
+                <Link
+                  to="/patient/rides"
+                  onClick={() => setMobileOpen(false)}
+                  className="block px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                >
+                  🚗 My Rides
+                </Link>
+              </>
+            )}
             <Link
               to="/"
               onClick={() => setMobileOpen(false)}
@@ -236,13 +542,36 @@ export default function PublicNavbar() {
               </Button>
             )}
             {user && (
-              <Button variant="ghost" size="sm" onClick={() => { navigate('/dashboard'); setMobileOpen(false); }} className="w-full justify-start">
-                Dashboard
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  navigate(isRider ? '/rider/dashboard' : isAssistant ? '/assistant/dashboard' : isLawyer ? '/lawyer/dashboard' : '/dashboard');
+                  setMobileOpen(false);
+                }}
+                className="w-full justify-start"
+              >
+                {isRider ? 'Rider Console' : isAssistant ? 'Assistant Console' : isLawyer ? 'Advocate Console' : 'Dashboard'}
               </Button>
             )}
-            <Button onClick={() => { navigate(user ? '/patient/appointments' : '/login'); setMobileOpen(false); }} className="w-full">
-              Book Appointment
-            </Button>
+            {isRider ? (
+              <Button onClick={() => { handleToggleOnline(); }} className={`w-full ${isRiderOnline ? 'bg-emerald-600' : 'bg-muted'}`}>
+                {isRiderOnline ? 'Currently Online (Go Offline)' : 'Currently Offline (Go Online)'}
+              </Button>
+            ) : isAssistant ? (
+              <Button onClick={() => { handleToggleAssistantOnline(); }} className={`w-full ${isAssistantOnline ? 'bg-teal-600' : 'bg-muted'}`}>
+                {isAssistantOnline ? 'Currently Available (Go Offline)' : 'Currently Offline (Go Available)'}
+              </Button>
+            ) : isLawyer ? (
+              <Button onClick={() => { handleToggleLawyerOnline(); }} className={`w-full ${isLawyerOnline ? 'bg-indigo-600 text-white' : 'bg-muted'}`}>
+                {isLawyerOnline ? 'Currently Available (Go Offline)' : 'Currently Offline (Go Available)'}
+              </Button>
+            ) : (
+              <Button onClick={() => { navigate(user ? '/patient/appointments' : '/login'); setMobileOpen(false); }} className="w-full">
+                Book Appointment
+              </Button>
+            )}
+
           </div>
         </div>
       )}

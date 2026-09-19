@@ -1,0 +1,94 @@
+import mongoose from 'mongoose';
+
+const lawyerProfileSchema = new mongoose.Schema({
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+    unique: true,
+    index: true,
+  },
+  barCouncilNumber: {
+    type: String,
+    required: true,
+    unique: true,
+    uppercase: true,
+    trim: true,
+    index: true,
+  },
+  barCouncilCertUrl: { type: String, default: '' },
+  stateBarCouncil: { type: String, required: true },
+  yearOfEnrollment: { type: Number, required: true },
+  lawDegreeCertUrl: { type: String, default: '' },
+  govtIdType: {
+    type: String,
+    enum: ['Aadhaar', 'PAN', 'Voter ID', 'Passport', 'Other'],
+    default: 'Aadhaar',
+  },
+  govtIdNumber: { type: String, default: '' },
+  govtIdDocUrl: { type: String, default: '' },
+  practiceCategories: [
+    {
+      type: String,
+      enum: [
+        'medical_negligence',
+        'insurance',
+        'accident_mlc',
+        'consumer_rights',
+        'family_law',
+        'criminal_law',
+        'civil_property',
+        'corporate_contract',
+        'general_consultation',
+      ],
+    },
+  ],
+  yearsOfPractice: { type: Number, default: 1, min: 0 },
+  courtsPracticedIn: [{ type: String }],
+  jurisdictionCity: { type: String, default: 'Jabalpur', index: true },
+  lawFirmName: { type: String, default: '' },
+  bio: { type: String, default: '' },
+  languages: [{ type: String }],
+  consultationModes: [
+    {
+      type: String,
+      enum: ['video', 'phone', 'in_person', 'chat'],
+    },
+  ],
+  consultationFee: { type: Number, default: 800, min: 0 },
+  followUpFee: { type: Number, default: 500, min: 0 },
+  freeFirstConsultation: { type: Boolean, default: false },
+  sessionDuration: { type: Number, default: 30, min: 15 },
+  bankDetails: {
+    accountHolder: { type: String, default: '' },
+    accountNumber: { type: String, default: '' },
+    ifsc: { type: String, default: '' },
+    upiId: { type: String, default: '' },
+  },
+  availableDays: [{ type: String }],
+  availableTimeSlots: [
+    {
+      start: { type: String, default: '10:00 AM' },
+      end: { type: String, default: '06:00 PM' },
+    },
+  ],
+  acceptsUrgent: { type: Boolean, default: true, index: true },
+  lawyerStatus: {
+    type: String,
+    enum: ['pending_approval', 'active', 'rejected', 'suspended'],
+    default: 'pending_approval',
+    index: true,
+  },
+  rejectionReason: { type: String, default: '' },
+  isAvailable: { type: Boolean, default: false, index: true },
+  isDocumentVerified: { type: Boolean, default: false },
+  rating: {
+    avg: { type: Number, default: 5.0, min: 1, max: 5 },
+    count: { type: Number, default: 0 },
+  },
+  totalEarnings: { type: Number, default: 0 },
+  walletBalance: { type: Number, default: 0 },
+  createdAt: { type: Date, default: Date.now },
+});
+
+export default mongoose.model('LawyerProfile', lawyerProfileSchema);

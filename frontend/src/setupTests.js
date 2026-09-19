@@ -1,4 +1,4 @@
-import '@testing-library/jest-dom';
+globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 // Standard polyfills/mocks for jsdom environment in tests
 if (typeof window !== 'undefined') {

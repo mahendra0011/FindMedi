@@ -7,7 +7,8 @@ import {
    Plus, X, Users, Star, Award, CalendarDays, BadgeCheck, Loader2,
    Shield, Heart, Eye, EyeOff, Activity, Lock, Globe, Image, UserRound, BarChart3,
    Truck, FileImage, IndianRupee, Wifi, WifiOff, Calendar, MapPinned, AlertCircle,
-   MessageSquare, Video, Ambulance, RotateCcw, Home
+   MessageSquare, Video, Ambulance, RotateCcw, Home, Car, Bike, Navigation,
+   Scale, Briefcase, Gavel
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,6 +18,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { api } from '@/lib/api';
+import { LegalCategorySelector } from '@/components/lawyer/LegalCategorySelector';
 
 const PLATFORM_TYPES = [
   { key: 'hospital', label: 'Hospital', icon: Building2, desc: 'Multi-speciality or nursing home', color: 'from-blue-500/20 to-blue-500/5', textColor: 'text-blue-600', gradient: 'from-blue-600 to-blue-700' },
@@ -24,9 +26,44 @@ const PLATFORM_TYPES = [
   { key: 'diagnostic', label: 'Diagnostic Center', icon: Microscope, desc: 'Pathology & imaging lab', color: 'from-purple-500/20 to-purple-500/5', textColor: 'text-purple-600', gradient: 'from-purple-600 to-purple-700' },
   { key: 'pharmacy', label: 'Pharmacy Store', icon: Pill, desc: 'Medicine & wellness store', color: 'from-rose-500/20 to-rose-500/5', textColor: 'text-rose-600', gradient: 'from-rose-600 to-rose-700' },
   { key: 'delivery', label: 'Delivery Partner', icon: Truck, desc: 'Deliver medicines, earn on your own time', color: 'from-amber-500/20 to-amber-500/5', textColor: 'text-amber-600', gradient: 'from-amber-600 to-amber-700' },
+  { key: 'rider', label: 'Vehicle Driver / Rider', icon: Car, desc: 'Register Bike, Auto, Cab, Van, or Ambulance & accept rides', color: 'from-cyan-500/20 to-teal-500/5', textColor: 'text-teal-600', gradient: 'from-teal-600 to-emerald-700' },
+  { key: 'assistant', label: 'Hospital Assistant / Attendant', icon: Users, desc: 'Personal attendant for paperwork, medicines, reports & solo patient care', color: 'from-teal-500/20 to-cyan-500/5', textColor: 'text-teal-600', gradient: 'from-teal-600 to-cyan-700' },
+  { key: 'lawyer', label: 'Advocate / Lawyer', icon: Scale, desc: 'Medical negligence, insurance disputes, MLC & hospital legal proceedings', color: 'from-indigo-500/20 to-violet-500/5', textColor: 'text-indigo-600', gradient: 'from-indigo-600 to-violet-700' },
 ];
 
 const SPECIALTIES = ['Cardiology','Neurology','Orthopedics','Pediatrics','Dermatology','Oncology','General Medicine','ENT','Psychiatry','Gynecology','Urology','Ophthalmology','Dentistry','Ayurveda','Homeopathy','Physiotherapy'];
+
+const STATE_BAR_COUNCILS = [
+  'Bar Council of Maharashtra & Goa',
+  'Bar Council of Delhi',
+  'Bar Council of Madhya Pradesh',
+  'Bar Council of Uttar Pradesh',
+  'Bar Council of Karnataka',
+  'Bar Council of Tamil Nadu & Puducherry',
+  'Bar Council of West Bengal',
+  'Bar Council of Rajasthan',
+  'Bar Council of Gujarat',
+  'Bar Council of Punjab & Haryana',
+  'Bar Council of Kerala',
+  'Bar Council of Bihar',
+  'Bar Council of Telangana',
+  'Bar Council of Andhra Pradesh',
+  'Other State Bar Council',
+];
+
+const COURTS_OPTIONS = [
+  'Supreme Court of India',
+  'High Court',
+  'District Court',
+  'Sessions Court',
+  'Consumer Forum / NCDRC',
+  'MACT (Accidents Tribunal)',
+  'National Company Law Tribunal (NCLT)',
+  'Labour Court',
+  'Family Court',
+];
+
+const LAWYER_LANGUAGES = ['Hindi', 'English', 'Marathi', 'Bengali', 'Tamil', 'Telugu', 'Gujarati', 'Punjabi', 'Urdu', 'Kannada', 'Malayalam'];
 
 const emptyDoctor = () => ({
   name: '', specialization: '', qualifications: '', experience: '', email: '', phone: '',
@@ -53,6 +90,37 @@ const getSteps = (type) => {
       { num: 6, label: 'Review & Submit', icon: FileText },
     ];
   }
+  if (type === 'rider') {
+    return [
+      { num: 1, label: 'Partner Type', icon: Car },
+      { num: 2, label: 'Personal & KYC', icon: User },
+      { num: 3, label: 'Vehicle Details', icon: Ambulance },
+      { num: 4, label: 'Bank / Payout', icon: IndianRupee },
+      { num: 5, label: 'Availability', icon: Clock },
+      { num: 6, label: 'Review & Submit', icon: FileText },
+    ];
+  }
+  if (type === 'assistant') {
+    return [
+      { num: 1, label: 'Partner Type', icon: Users },
+      { num: 2, label: 'Personal & KYC', icon: User },
+      { num: 3, label: 'Services & Hospitals', icon: Building2 },
+      { num: 4, label: 'Pricing & Bank', icon: IndianRupee },
+      { num: 5, label: 'Availability', icon: Clock },
+      { num: 6, label: 'Review & Submit', icon: FileText },
+    ];
+  }
+  if (type === 'lawyer') {
+    return [
+      { num: 1, label: 'Partner Type', icon: Scale },
+      { num: 2, label: 'Personal & Bar Reg', icon: User },
+      { num: 3, label: 'Practice & Courts', icon: Briefcase },
+      { num: 4, label: 'Fees & Modes', icon: IndianRupee },
+      { num: 5, label: 'Bank & Availability', icon: Clock },
+      { num: 6, label: 'Review & Submit', icon: FileText },
+    ];
+  }
+
   const hasDoctors = type === 'hospital' || type === 'clinic';
    const hasSpecialist = type === 'diagnostic';
    const steps = [...BASE_STEPS];
@@ -171,6 +239,157 @@ export default function JoinPlatform() {
     setLoading(false);
   };
 
+  // Rider (Driver) state
+  const [rider, setRider] = useState({
+    name: '', phone: '', email: '', password: '', dateOfBirth: '', gender: 'Male',
+    address: '', city: '',
+    govtIdType: 'Aadhaar', govtIdNumber: '',
+    drivingLicenseNumber: '', drivingLicenseExpiry: '',
+    vehicleType: 'car', vehicleBrand: '', vehicleModel: '',
+    rcNumber: '', insuranceNumber: '', insuranceExpiry: '',
+    vehicleColor: '', seatingCapacity: 4, fuelType: 'Petrol',
+    extraFields: {
+      hasHelmet: true,
+      hasMeter: true,
+      batteryRangeKm: '',
+      hasAc: true,
+      luggageSpace: true,
+      ambulanceType: 'Basic',
+      hasOxygen: true,
+      hasStretcher: true,
+      hospitalAffiliated: false,
+      hospitalName: '',
+    },
+    bankAccountHolder: '', bankAccountNumber: '', bankIfsc: '', bankUpi: '',
+    operatingArea: '', availableDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+    availableTimeSlot: { start: '08:00', end: '20:00' },
+  });
+  const [riderDocs, setRiderDocs] = useState({
+    govtIdDoc: null, drivingLicenseDoc: null, rcDoc: null, insuranceDoc: null,
+    vehiclePhotoFront: null, vehiclePhotoSide: null,
+  });
+
+  const updateRider = (f) => (e) => setRider(p => ({ ...p, [f]: e.target.value }));
+  const updateRiderExtra = (f, val) => setRider(p => ({ ...p, extraFields: { ...p.extraFields, [f]: val } }));
+  const handleRiderDocChange = (field) => (e) => {
+    const file = e.target.files?.[0];
+    if (file) setRiderDocs(p => ({ ...p, [field]: file }));
+  };
+  const toggleRiderDay = (day) => setRider(p => ({
+    ...p,
+    availableDays: p.availableDays.includes(day)
+      ? p.availableDays.filter(d => d !== day)
+      : [...p.availableDays, day],
+  }));
+
+  // Assistant (Hospital Caretaker) state
+  const [assistant, setAssistant] = useState({
+    name: '', phone: '', email: '', password: '', dateOfBirth: '', gender: 'Male',
+    address: '', city: '',
+    govtIdType: 'Aadhaar', govtIdNumber: '',
+    emergencyContactName: '', emergencyContactPhone: '',
+    experienceYears: 2,
+    experienceTypes: ['Hospital Attendant'],
+    languages: ['Hindi', 'English'],
+    bio: '',
+    serviceCategories: ['paperwork', 'medicine', 'errand'],
+    hospitalsCovered: ['City Hospital'],
+    shiftTypes: ['2hr', '4hr', 'full_day'],
+    pricePerHour: 150,
+    pricePerFullDay: 1000,
+    extraSkills: {
+      mobilityAssistance: true,
+      wheelchairTrained: true,
+      ownVehicle: false,
+      overnightAvailable: false,
+    },
+    bankAccountHolder: '', bankAccountNumber: '', bankIfsc: '', bankUpi: '',
+    availableDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+    availableTimeSlot: { start: '08:00', end: '20:00' },
+  });
+  const [assistantDocs, setAssistantDocs] = useState({
+    govtIdDoc: null,
+    policeVerificationDoc: null,
+  });
+
+  const updateAssistant = (f) => (e) => setAssistant(p => ({ ...p, [f]: e.target.value }));
+  const updateAssistantExtra = (f, val) => setAssistant(p => ({ ...p, extraSkills: { ...p.extraSkills, [f]: val } }));
+  const handleAssistantDocChange = (field) => (e) => {
+    const file = e.target.files?.[0];
+    if (file) setAssistantDocs(p => ({ ...p, [field]: file }));
+  };
+  const toggleAssistantDay = (day) => setAssistant(p => ({
+    ...p,
+    availableDays: p.availableDays.includes(day)
+      ? p.availableDays.filter(d => d !== day)
+      : [...p.availableDays, day],
+  }));
+  const toggleAssistantCategory = (catId) => setAssistant(p => ({
+    ...p,
+    serviceCategories: p.serviceCategories.includes(catId)
+      ? p.serviceCategories.filter(c => c !== catId)
+      : [...p.serviceCategories, catId],
+  }));
+
+  // Lawyer (Advocate) state
+  const [lawyer, setLawyer] = useState({
+    name: '', phone: '', email: '', password: '', dateOfBirth: '', gender: 'Male',
+    address: '', city: '',
+    barCouncilNumber: '', stateBarCouncil: 'Bar Council of Maharashtra & Goa', yearOfEnrollment: 2018,
+    govtIdType: 'Aadhaar', govtIdNumber: '',
+    practiceCategories: ['medical_negligence', 'insurance'],
+    yearsOfPractice: 5,
+    courtsPracticedIn: ['District Court', 'Consumer Forum'],
+    jurisdictionCity: 'Jabalpur',
+    lawFirmName: '',
+    bio: '',
+    languages: ['Hindi', 'English'],
+    consultationModes: ['video', 'phone', 'in_person', 'chat'],
+    consultationFee: 500,
+    followUpFee: 500,
+    freeFirstConsultation: false,
+    sessionDuration: 30,
+    bankAccountHolder: '', bankAccountNumber: '', bankIfsc: '', bankUpi: '',
+    availableDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+    availableTimeSlot: { start: '09:00', end: '19:00' },
+    acceptsUrgent: true,
+  });
+  const [lawyerDocs, setLawyerDocs] = useState({
+    barCouncilCertDoc: null,
+    lawDegreeDoc: null,
+    govtIdDoc: null,
+  });
+
+  const updateLawyer = (f) => (e) => setLawyer(p => ({ ...p, [f]: e.target.value }));
+  const handleLawyerDocChange = (field) => (e) => {
+    const file = e.target.files?.[0];
+    if (file) setLawyerDocs(p => ({ ...p, [field]: file }));
+  };
+  const toggleLawyerCategory = (catId) => setLawyer(p => ({
+    ...p,
+    practiceCategories: p.practiceCategories.includes(catId)
+      ? p.practiceCategories.filter(c => c !== catId)
+      : [...p.practiceCategories, catId],
+  }));
+  const toggleLawyerCourt = (court) => setLawyer(p => ({
+    ...p,
+    courtsPracticedIn: p.courtsPracticedIn.includes(court)
+      ? p.courtsPracticedIn.filter(c => c !== court)
+      : [...p.courtsPracticedIn, court],
+  }));
+  const toggleLawyerMode = (mode) => setLawyer(p => ({
+    ...p,
+    consultationModes: p.consultationModes.includes(mode)
+      ? p.consultationModes.filter(m => m !== mode)
+      : [...p.consultationModes, mode],
+  }));
+  const toggleLawyerDay = (day) => setLawyer(p => ({
+    ...p,
+    availableDays: p.availableDays.includes(day)
+      ? p.availableDays.filter(d => d !== day)
+      : [...p.availableDays, day],
+  }));
+
   const steps = getSteps(type);
   const maxStep = steps.length;
 
@@ -182,6 +401,128 @@ export default function JoinPlatform() {
       if (step === 4) return deliveryDocs.aadharFront && deliveryDocs.photo && delivery.bankAccountNumber && delivery.bankIfsc && delivery.bankAccountHolderName;
       if (step === 5) return true;
       if (step === 6) return agreed;
+      return true;
+    }
+    if (type === 'rider') {
+      if (step === 1) return !!type;
+      if (step === 2) {
+        const age = rider.dateOfBirth ? Math.floor((Date.now() - new Date(rider.dateOfBirth).getTime()) / (365.25 * 24 * 3600 * 1000)) : 0;
+        return (
+          rider.name?.length >= 2 &&
+          rider.email?.includes('@') &&
+          rider.phone?.length >= 10 &&
+          rider.password?.length >= 8 &&
+          rider.password === confirmPassword &&
+          age >= 18 &&
+          rider.govtIdNumber?.trim().length >= 4 &&
+          rider.drivingLicenseNumber?.trim().length >= 5 &&
+          rider.drivingLicenseExpiry &&
+          new Date(rider.drivingLicenseExpiry) > new Date()
+        );
+      }
+      if (step === 3) {
+        return (
+          rider.vehicleType &&
+          rider.vehicleBrand?.trim().length >= 2 &&
+          rider.vehicleModel?.trim().length >= 1 &&
+          rider.rcNumber?.trim().length >= 4 &&
+          rider.insuranceNumber?.trim().length >= 4 &&
+          rider.insuranceExpiry &&
+          new Date(rider.insuranceExpiry) > new Date()
+        );
+      }
+      if (step === 4) {
+        return (
+          rider.bankAccountHolder?.trim().length >= 2 &&
+          rider.bankAccountNumber?.trim().length >= 6 &&
+          rider.bankIfsc?.trim().length >= 4
+        );
+      }
+      if (step === 5) {
+        return rider.operatingArea?.trim().length >= 2 && rider.availableDays.length > 0;
+      }
+      if (step === 6) {
+        return agreed;
+      }
+      return true;
+    }
+    if (type === 'assistant') {
+      if (step === 1) return !!type;
+      if (step === 2) {
+        const age = assistant.dateOfBirth ? Math.floor((Date.now() - new Date(assistant.dateOfBirth).getTime()) / (365.25 * 24 * 3600 * 1000)) : 0;
+        return (
+          assistant.name?.length >= 2 &&
+          assistant.email?.includes('@') &&
+          assistant.phone?.length >= 10 &&
+          assistant.password?.length >= 8 &&
+          assistant.password === confirmPassword &&
+          age >= 18 &&
+          assistant.govtIdNumber?.trim().length >= 4 &&
+          assistant.emergencyContactName?.trim().length >= 2 &&
+          assistant.emergencyContactPhone?.trim().length >= 10
+        );
+      }
+      if (step === 3) {
+        return (
+          assistant.serviceCategories.length > 0 &&
+          assistant.hospitalsCovered.length > 0 &&
+          assistant.bio?.trim().length >= 5
+        );
+      }
+      if (step === 4) {
+        return (
+          Number(assistant.pricePerHour) > 0 &&
+          assistant.bankAccountHolder?.trim().length >= 2 &&
+          assistant.bankAccountNumber?.trim().length >= 6 &&
+          assistant.bankIfsc?.trim().length >= 4
+        );
+      }
+      if (step === 5) {
+        return assistant.availableDays.length > 0;
+      }
+      if (step === 6) {
+        return agreed;
+      }
+      return true;
+    }
+    if (type === 'lawyer') {
+      if (step === 1) return !!type;
+      if (step === 2) {
+        return (
+          lawyer.name?.length >= 2 &&
+          lawyer.email?.includes('@') &&
+          lawyer.phone?.length >= 10 &&
+          lawyer.password?.length >= 8 &&
+          lawyer.password === confirmPassword &&
+          lawyer.barCouncilNumber?.trim().length >= 4 &&
+          lawyer.stateBarCouncil &&
+          lawyer.yearOfEnrollment
+        );
+      }
+      if (step === 3) {
+        return (
+          lawyer.practiceCategories.length > 0 &&
+          lawyer.courtsPracticedIn.length > 0 &&
+          lawyer.bio?.trim().length >= 5
+        );
+      }
+      if (step === 4) {
+        return (
+          lawyer.consultationModes.length > 0 &&
+          Number(lawyer.consultationFee) > 0
+        );
+      }
+      if (step === 5) {
+        return (
+          lawyer.availableDays.length > 0 &&
+          lawyer.bankAccountHolder?.trim().length >= 2 &&
+          lawyer.bankAccountNumber?.trim().length >= 6 &&
+          lawyer.bankIfsc?.trim().length >= 4
+        );
+      }
+      if (step === 6) {
+        return agreed;
+      }
       return true;
     }
     if (step === 1) return !!type;
@@ -229,6 +570,225 @@ export default function JoinPlatform() {
          setSuccess({ type: 'delivery', ...res });
          return;
        }
+       if (type === 'rider') {
+         let govtIdDocUrl = '';
+         let drivingLicenseDocUrl = '';
+         let rcDocUrl = '';
+         let insuranceDocUrl = '';
+         let vehiclePhotoFrontUrl = '';
+         let vehiclePhotoSideUrl = '';
+
+         try {
+           if (riderDocs.govtIdDoc) {
+             const u = await api.uploadPublicDocument(riderDocs.govtIdDoc);
+             govtIdDocUrl = u?.url || u?.path || '';
+           }
+           if (riderDocs.drivingLicenseDoc) {
+             const u = await api.uploadPublicDocument(riderDocs.drivingLicenseDoc);
+             drivingLicenseDocUrl = u?.url || u?.path || '';
+           }
+           if (riderDocs.rcDoc) {
+             const u = await api.uploadPublicDocument(riderDocs.rcDoc);
+             rcDocUrl = u?.url || u?.path || '';
+           }
+           if (riderDocs.insuranceDoc) {
+             const u = await api.uploadPublicDocument(riderDocs.insuranceDoc);
+             insuranceDocUrl = u?.url || u?.path || '';
+           }
+           if (riderDocs.vehiclePhotoFront) {
+             const u = await api.uploadPublicDocument(riderDocs.vehiclePhotoFront);
+             vehiclePhotoFrontUrl = u?.url || u?.path || '';
+           }
+           if (riderDocs.vehiclePhotoSide) {
+             const u = await api.uploadPublicDocument(riderDocs.vehiclePhotoSide);
+             vehiclePhotoSideUrl = u?.url || u?.path || '';
+           }
+         } catch (uploadErr) {
+           console.warn('Document upload fallback:', uploadErr);
+         }
+
+         const payload = {
+           role: 'rider',
+           name: rider.name,
+           phone: rider.phone,
+           email: rider.email,
+           password: rider.password,
+           dateOfBirth: rider.dateOfBirth,
+           gender: rider.gender,
+           address: rider.address,
+           city: rider.city,
+           govtIdType: rider.govtIdType,
+           govtIdNumber: rider.govtIdNumber,
+           govtIdDocUrl,
+           drivingLicenseNumber: rider.drivingLicenseNumber,
+           drivingLicenseDocUrl,
+           drivingLicenseExpiry: rider.drivingLicenseExpiry,
+           vehicleType: rider.vehicleType,
+           vehicleBrand: rider.vehicleBrand,
+           vehicleModel: rider.vehicleModel,
+           rcNumber: rider.rcNumber,
+           rcDocUrl,
+           insuranceNumber: rider.insuranceNumber,
+           insuranceDocUrl,
+           insuranceExpiry: rider.insuranceExpiry,
+           vehicleColor: rider.vehicleColor,
+           vehiclePhotos: [vehiclePhotoFrontUrl, vehiclePhotoSideUrl].filter(Boolean),
+           seatingCapacity: Number(rider.seatingCapacity) || 4,
+           fuelType: rider.fuelType,
+           extraFields: rider.extraFields,
+           bankAccountHolder: rider.bankAccountHolder,
+           bankAccountNumber: rider.bankAccountNumber,
+           bankIfsc: rider.bankIfsc,
+           bankUpi: rider.bankUpi,
+           operatingArea: rider.operatingArea,
+           availableDays: rider.availableDays,
+           availableTimeSlot: rider.availableTimeSlot,
+         };
+
+         const res = await api.register(payload);
+         if (res.requiresVerification) {
+           navigate(`/verify-otp?email=${encodeURIComponent(rider.email)}&role=rider`);
+           return;
+         }
+          setSuccess({ type: 'rider', email: rider.email, name: rider.name });
+          return;
+        }
+
+        if (type === 'assistant') {
+          let govtIdDocUrl = '';
+          let policeVerificationDocUrl = '';
+
+          try {
+            if (assistantDocs.govtIdDoc) {
+              const u = await api.uploadPublicDocument(assistantDocs.govtIdDoc);
+              govtIdDocUrl = u?.url || u?.path || '';
+            }
+            if (assistantDocs.policeVerificationDoc) {
+              const u = await api.uploadPublicDocument(assistantDocs.policeVerificationDoc);
+              policeVerificationDocUrl = u?.url || u?.path || '';
+            }
+          } catch (uploadErr) {
+            console.warn('Assistant document upload fallback:', uploadErr);
+          }
+
+          const payload = {
+            role: 'assistant',
+            name: assistant.name,
+            phone: assistant.phone,
+            email: assistant.email,
+            password: assistant.password,
+            dateOfBirth: assistant.dateOfBirth,
+            gender: assistant.gender,
+            address: assistant.address,
+            city: assistant.city,
+            govtIdType: assistant.govtIdType,
+            govtIdNumber: assistant.govtIdNumber,
+            govtIdDocUrl,
+            policeVerificationDocUrl,
+            emergencyContactName: assistant.emergencyContactName,
+            emergencyContactPhone: assistant.emergencyContactPhone,
+            experienceYears: Number(assistant.experienceYears) || 1,
+            experienceTypes: assistant.experienceTypes,
+            languages: assistant.languages,
+            bio: assistant.bio,
+            serviceCategories: assistant.serviceCategories,
+            hospitalsCovered: assistant.hospitalsCovered,
+            shiftTypes: assistant.shiftTypes,
+            pricePerHour: Number(assistant.pricePerHour) || 150,
+            pricePerFullDay: Number(assistant.pricePerFullDay) || (Number(assistant.pricePerHour || 150) * 8 * 0.85),
+            extraSkills: assistant.extraSkills,
+            bankAccountHolder: assistant.bankAccountHolder,
+            bankAccountNumber: assistant.bankAccountNumber,
+            bankIfsc: assistant.bankIfsc,
+            bankUpi: assistant.bankUpi,
+            availableDays: assistant.availableDays,
+            availableTimeSlots: [{ start: assistant.availableTimeSlot?.start || '08:00', end: assistant.availableTimeSlot?.end || '20:00' }],
+          };
+
+          const res = await api.register(payload);
+          if (res.requiresVerification) {
+            navigate(`/verify-otp?email=${encodeURIComponent(assistant.email)}&role=assistant`);
+            return;
+          }
+          setSuccess({ type: 'assistant', email: assistant.email, name: assistant.name });
+          return;
+        }
+
+        if (type === 'lawyer') {
+          let barCouncilCertUrl = '';
+          let lawDegreeCertUrl = '';
+          let govtIdDocUrl = '';
+
+          try {
+            if (lawyerDocs.barCouncilCertDoc) {
+              const u = await api.uploadPublicDocument(lawyerDocs.barCouncilCertDoc);
+              barCouncilCertUrl = u?.url || u?.path || '';
+            }
+            if (lawyerDocs.lawDegreeDoc) {
+              const u = await api.uploadPublicDocument(lawyerDocs.lawDegreeDoc);
+              lawDegreeCertUrl = u?.url || u?.path || '';
+            }
+            if (lawyerDocs.govtIdDoc) {
+              const u = await api.uploadPublicDocument(lawyerDocs.govtIdDoc);
+              govtIdDocUrl = u?.url || u?.path || '';
+            }
+          } catch (uploadErr) {
+            console.warn('Lawyer document upload fallback:', uploadErr);
+          }
+
+          const payload = {
+            role: 'lawyer',
+            name: lawyer.name,
+            email: lawyer.email,
+            phone: lawyer.phone,
+            password: lawyer.password,
+            dateOfBirth: lawyer.dateOfBirth,
+            gender: lawyer.gender,
+            address: lawyer.address,
+            city: lawyer.city,
+            barCouncilNumber: lawyer.barCouncilNumber.trim(),
+            barCouncilCertUrl,
+            stateBarCouncil: lawyer.stateBarCouncil,
+            yearOfEnrollment: Number(lawyer.yearOfEnrollment) || 2018,
+            lawDegreeCertUrl,
+            govtIdType: lawyer.govtIdType,
+            govtIdNumber: lawyer.govtIdNumber,
+            govtIdDocUrl,
+            practiceCategories: lawyer.practiceCategories,
+            yearsOfPractice: Number(lawyer.yearsOfPractice) || 3,
+            courtsPracticedIn: lawyer.courtsPracticedIn,
+            jurisdictionCity: lawyer.jurisdictionCity || lawyer.city,
+            lawFirmName: lawyer.lawFirmName,
+            bio: lawyer.bio,
+            languages: lawyer.languages,
+            consultationModes: lawyer.consultationModes,
+            consultationFee: Number(lawyer.consultationFee) || 500,
+            followUpFee: Number(lawyer.followUpFee) || 500,
+            freeFirstConsultation: Boolean(lawyer.freeFirstConsultation),
+            sessionDuration: Number(lawyer.sessionDuration) || 30,
+            bankDetails: {
+              accountHolder: lawyer.bankAccountHolder || lawyer.name,
+              accountNumber: lawyer.bankAccountNumber,
+              ifsc: lawyer.bankIfsc,
+              upiId: lawyer.bankUpi,
+            },
+            availableDays: lawyer.availableDays,
+            availableTimeSlots: [{
+              start: lawyer.availableTimeSlot?.start || '09:00',
+              end: lawyer.availableTimeSlot?.end || '19:00',
+            }],
+            acceptsUrgent: lawyer.acceptsUrgent,
+          };
+
+          const res = await api.register(payload);
+          if (res.requiresVerification) {
+            navigate(`/verify-otp?email=${encodeURIComponent(lawyer.email)}&role=lawyer`);
+            return;
+          }
+          setSuccess({ type: 'lawyer', email: lawyer.email, name: lawyer.name });
+          return;
+        }
+
        const payload = {
         type, account,
         facility: {
@@ -259,34 +819,47 @@ export default function JoinPlatform() {
         navigate(`/verify-otp?email=${encodeURIComponent(res.email)}`);
         return;
       }
-      setSuccess(res);
+      setSuccess({ type, ...res });
     } catch (err) {
       setError(err.message || 'Registration failed');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const selectedType = PLATFORM_TYPES.find(p => p.key === type);
 
   if (success) {
     const isDelivery = success?.type === 'delivery';
+    const isRider = success?.type === 'rider';
+    const isLawyer = success?.type === 'lawyer';
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md text-center">
-          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-500 flex items-center justify-center mx-auto mb-6 shadow-lg shadow-emerald-500/20">
+          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center mx-auto mb-6 shadow-lg shadow-indigo-500/20">
             <Check className="w-10 h-10 text-white" />
           </div>
           <h2 className="font-heading text-2xl font-bold text-foreground mb-2">Registration Submitted!</h2>
           <p className="text-muted-foreground mb-6">
             {isDelivery
               ? 'Your delivery partner registration has been received. Our team will review your documents and approve your account shortly.'
+              : isRider
+              ? 'Your vehicle rider application has been submitted! Our admin team will verify your driving license, RC, and vehicle details within 24-48 hours.'
+              : isLawyer
+              ? 'Your advocate registration has been submitted! Our compliance team will verify your Bar Council enrollment and credentials within 24-48 hours before activating your profile.'
               : `Your ${type} registration has been received. Our team will review and approve it shortly. You'll get a notification once approved.`}
           </p>
           <div className="bg-muted/30 rounded-xl p-4 border border-border/40 mb-6 text-left text-sm space-y-2">
-            <div className="flex items-center gap-2"><Mail className="w-4 h-4 text-primary" /><span className="text-muted-foreground">Confirmation sent to <strong>{isDelivery ? (delivery.email || 'your email') : account.email}</strong></span></div>
+            <div className="flex items-center gap-2"><Mail className="w-4 h-4 text-primary" /><span className="text-muted-foreground">Confirmation sent to <strong>{isDelivery ? (delivery.email || 'your email') : isRider ? (rider.email || 'your email') : isLawyer ? (lawyer.email || 'your email') : account.email}</strong></span></div>
             <div className="flex items-center gap-2"><Clock className="w-4 h-4 text-primary" /><span className="text-muted-foreground">Typical approval time: <strong>24-48 hours</strong></span></div>
             {isDelivery && (
               <div className="flex items-center gap-2"><Shield className="w-4 h-4 text-primary" /><span className="text-muted-foreground">Status: <strong>Pending Verification</strong></span></div>
+            )}
+            {isRider && (
+              <div className="flex items-center gap-2"><Shield className="w-4 h-4 text-cyan-600" /><span className="text-muted-foreground">Status: <strong>Pending Document Verification</strong></span></div>
+            )}
+            {isLawyer && (
+              <div className="flex items-center gap-2"><Shield className="w-4 h-4 text-indigo-600" /><span className="text-muted-foreground">Status: <strong>Pending Bar Council Verification</strong></span></div>
             )}
           </div>
           <Button onClick={() => navigate('/login')} className="gap-2 rounded-xl shadow-lg shadow-primary/20">
@@ -875,8 +1448,1487 @@ export default function JoinPlatform() {
              </motion.div>
            )}
 
+            {/* ══════════════════════════════════════════════════════════════════ */}
+            {/* RIDER (DRIVER) STEPS                                              */}
+            {/* ══════════════════════════════════════════════════════════════════ */}
+
+            {/* Rider Step 2: Personal & KYC */}
+            {step === 2 && type === 'rider' && (
+              <motion.div key="r-s2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+                {stepHeader('Personal Details & Legal KYC', 'Provide your personal details and driving license for verification')}
+                <div className="bg-card rounded-2xl border border-border/50 p-5 space-y-4">
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-1.5 block">Full Name <span className="text-red-500">*</span></label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input value={rider.name} onChange={updateRider('name')} placeholder="Full name as on Driving License" className="pl-10" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">Phone Number <span className="text-red-500">*</span></label>
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input type="tel" value={rider.phone} onChange={updateRider('phone')} placeholder="+91 9876543210" className="pl-10" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">Email Address <span className="text-red-500">*</span></label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input type="email" value={rider.email} onChange={updateRider('email')} placeholder="rider@example.com" className="pl-10" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">Password <span className="text-red-500">*</span></label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input type={showPassword ? 'text' : 'password'} value={rider.password} onChange={updateRider('password')} placeholder="Min 8 characters" className="pl-10 pr-10" />
+                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">Confirm Password <span className="text-red-500">*</span></label>
+                      <Input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Re-enter password" />
+                      {confirmPassword && rider.password !== confirmPassword && (
+                        <p className="text-xs text-destructive mt-1">Passwords do not match</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">Date of Birth (18+) <span className="text-red-500">*</span></label>
+                      <Input type="date" value={rider.dateOfBirth} onChange={updateRider('dateOfBirth')} max={new Date().toISOString().split('T')[0]} />
+                      {rider.dateOfBirth && Math.floor((Date.now() - new Date(rider.dateOfBirth).getTime()) / (365.25 * 24 * 3600 * 1000)) < 18 && (
+                        <p className="text-xs text-destructive mt-1">Must be at least 18 years old to drive</p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">Gender <span className="text-red-500">*</span></label>
+                      <select value={rider.gender} onChange={updateRider('gender')} className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm">
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">Residential Address <span className="text-red-500">*</span></label>
+                      <Input value={rider.address} onChange={updateRider('address')} placeholder="Flat / House No., Area" />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">City <span className="text-red-500">*</span></label>
+                      <Input value={rider.city} onChange={updateRider('city')} placeholder="Operating city" />
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-4">
+                    <p className="text-xs font-semibold text-primary uppercase tracking-wider">Government Identity Document</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">ID Type <span className="text-red-500">*</span></label>
+                        <select value={rider.govtIdType} onChange={updateRider('govtIdType')} className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm">
+                          <option value="Aadhaar">Aadhaar Card</option>
+                          <option value="PAN">PAN Card</option>
+                          <option value="Voter ID">Voter ID</option>
+                          <option value="Passport">Passport</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">ID Number <span className="text-red-500">*</span></label>
+                        <Input value={rider.govtIdNumber} onChange={updateRider('govtIdNumber')} placeholder="e.g. 1234 5678 9012" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">Govt ID Document Upload</label>
+                      <label className="flex items-center justify-center px-4 py-3 border-2 border-dashed border-border/60 rounded-xl cursor-pointer hover:border-primary/30 transition-colors">
+                        <input type="file" accept="image/*,.pdf" onChange={handleRiderDocChange('govtIdDoc')} className="hidden" />
+                        <div className="text-center">
+                          <FileImage className="w-5 h-5 mx-auto text-muted-foreground mb-1" />
+                          <span className="text-xs text-muted-foreground">Upload Govt ID (Front / Scan)</span>
+                        </div>
+                      </label>
+                      {riderDocs.govtIdDoc && <p className="text-xs text-success mt-1">✓ {riderDocs.govtIdDoc.name}</p>}
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-4">
+                    <p className="text-xs font-semibold text-primary uppercase tracking-wider">Driving License Details</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">DL Number <span className="text-red-500">*</span></label>
+                        <Input value={rider.drivingLicenseNumber} onChange={updateRider('drivingLicenseNumber')} placeholder="e.g. MP20 20210012345" className="uppercase" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">DL Expiry Date <span className="text-red-500">*</span></label>
+                        <Input type="date" value={rider.drivingLicenseExpiry} onChange={updateRider('drivingLicenseExpiry')} min={new Date().toISOString().split('T')[0]} />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">Driving License Upload</label>
+                      <label className="flex items-center justify-center px-4 py-3 border-2 border-dashed border-border/60 rounded-xl cursor-pointer hover:border-primary/30 transition-colors">
+                        <input type="file" accept="image/*,.pdf" onChange={handleRiderDocChange('drivingLicenseDoc')} className="hidden" />
+                        <div className="text-center">
+                          <FileImage className="w-5 h-5 mx-auto text-muted-foreground mb-1" />
+                          <span className="text-xs text-muted-foreground">Upload Driving License Copy</span>
+                        </div>
+                      </label>
+                      {riderDocs.drivingLicenseDoc && <p className="text-xs text-success mt-1">✓ {riderDocs.drivingLicenseDoc.name}</p>}
+                    </div>
+                  </div>
+                </div>
+
+                {navButtons(false)}
+                <div className="flex justify-end mt-4">
+                  <Button onClick={() => setStep(3)} disabled={!canProceed()} className="gap-2 rounded-xl shadow-lg shadow-primary/20">
+                    Continue to Vehicle Details <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Rider Step 3: Vehicle Details */}
+            {step === 3 && type === 'rider' && (
+              <motion.div key="r-s3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+                {stepHeader('Vehicle Details & Registration', 'Select your vehicle type, enter registration specs, and upload RC')}
+                <div className="bg-card rounded-2xl border border-border/50 p-5 space-y-5">
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-2 block">Select Vehicle Type <span className="text-red-500">*</span></label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {[
+                        { value: 'bike', label: 'Bike', icon: Bike, desc: 'Solo / Quick', cap: 1 },
+                        { value: 'auto', label: 'Auto', icon: Navigation, desc: '3-Wheeler', cap: 3 },
+                        { value: 'e_rickshaw', label: 'E-Rickshaw', icon: Bike, desc: 'Eco / Battery', cap: 4 },
+                        { value: 'car', label: 'Car / Cab', icon: Car, desc: 'Comfort / Patient', cap: 4 },
+                        { value: 'van', label: 'Van / Winger', icon: Truck, desc: 'Family / Large', cap: 7 },
+                        { value: 'ambulance', label: 'Ambulance', icon: Ambulance, desc: 'Emergency / ALS', cap: 2 },
+                      ].map(v => (
+                        <button
+                          key={v.value}
+                          type="button"
+                          onClick={() => {
+                            setRider(p => ({ ...p, vehicleType: v.value, seatingCapacity: v.cap }));
+                          }}
+                          className={cn(
+                            'flex flex-col items-center gap-2 p-3.5 rounded-xl border-2 transition-all text-center group',
+                            rider.vehicleType === v.value
+                              ? 'border-primary bg-primary/10 text-primary shadow-sm'
+                              : 'border-border/60 bg-muted/20 hover:border-primary/30'
+                          )}
+                        >
+                          <v.icon className="w-6 h-6 transition-transform group-hover:scale-110" />
+                          <div>
+                            <p className="text-sm font-semibold">{v.label}</p>
+                            <p className="text-[10px] text-muted-foreground">{v.desc}</p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">Brand <span className="text-red-500">*</span></label>
+                      <Input value={rider.vehicleBrand} onChange={updateRider('vehicleBrand')} placeholder="e.g. Maruti / Bajaj / Force" />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">Model <span className="text-red-500">*</span></label>
+                      <Input value={rider.vehicleModel} onChange={updateRider('vehicleModel')} placeholder="e.g. Swift Dzire / RE Compact / Traveller" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">RC Number (Registration No.) <span className="text-red-500">*</span></label>
+                      <Input value={rider.rcNumber} onChange={updateRider('rcNumber')} placeholder="e.g. MP 20 AB 1234" className="uppercase" />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">RC Document Upload</label>
+                      <label className="flex items-center justify-center px-4 py-2.5 border-2 border-dashed border-border/60 rounded-xl cursor-pointer hover:border-primary/30 transition-colors">
+                        <input type="file" accept="image/*,.pdf" onChange={handleRiderDocChange('rcDoc')} className="hidden" />
+                        <span className="text-xs text-muted-foreground truncate">{riderDocs.rcDoc ? riderDocs.rcDoc.name : 'Upload RC Certificate'}</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">Insurance Policy No. <span className="text-red-500">*</span></label>
+                      <Input value={rider.insuranceNumber} onChange={updateRider('insuranceNumber')} placeholder="Policy number" />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">Insurance Expiry <span className="text-red-500">*</span></label>
+                      <Input type="date" value={rider.insuranceExpiry} onChange={updateRider('insuranceExpiry')} min={new Date().toISOString().split('T')[0]} />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">Insurance Document</label>
+                      <label className="flex items-center justify-center px-4 py-2.5 border-2 border-dashed border-border/60 rounded-xl cursor-pointer hover:border-primary/30 transition-colors">
+                        <input type="file" accept="image/*,.pdf" onChange={handleRiderDocChange('insuranceDoc')} className="hidden" />
+                        <span className="text-xs text-muted-foreground truncate">{riderDocs.insuranceDoc ? riderDocs.insuranceDoc.name : 'Upload Policy'}</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">Vehicle Color</label>
+                      <Input value={rider.vehicleColor} onChange={updateRider('vehicleColor')} placeholder="White / Silver / Yellow" />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">Passenger Capacity</label>
+                      <Input type="number" min={1} max={30} value={rider.seatingCapacity} onChange={updateRider('seatingCapacity')} />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">Fuel Type</label>
+                      <select value={rider.fuelType} onChange={updateRider('fuelType')} className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm">
+                        <option value="Petrol">Petrol</option>
+                        <option value="Diesel">Diesel</option>
+                        <option value="CNG">CNG</option>
+                        <option value="Electric">Electric</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">Vehicle Front Photo</label>
+                      <label className="flex items-center justify-center px-4 py-3 border-2 border-dashed border-border/60 rounded-xl cursor-pointer hover:border-primary/30 transition-colors">
+                        <input type="file" accept="image/*" onChange={handleRiderDocChange('vehiclePhotoFront')} className="hidden" />
+                        <span className="text-xs text-muted-foreground truncate">{riderDocs.vehiclePhotoFront ? riderDocs.vehiclePhotoFront.name : 'Upload Front View'}</span>
+                      </label>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">Side / Plate Photo</label>
+                      <label className="flex items-center justify-center px-4 py-3 border-2 border-dashed border-border/60 rounded-xl cursor-pointer hover:border-primary/30 transition-colors">
+                        <input type="file" accept="image/*" onChange={handleRiderDocChange('vehiclePhotoSide')} className="hidden" />
+                        <span className="text-xs text-muted-foreground truncate">{riderDocs.vehiclePhotoSide ? riderDocs.vehiclePhotoSide.name : 'Upload Side / Plate View'}</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Vehicle-Type-Specific Extra Fields */}
+                  <div className="bg-muted/30 rounded-xl p-4 border border-border/40 space-y-3">
+                    <p className="text-xs font-semibold text-primary uppercase tracking-wider">
+                      {rider.vehicleType.toUpperCase()} Specific Features
+                    </p>
+
+                    {rider.vehicleType === 'bike' && (
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={rider.extraFields.hasHelmet}
+                          onChange={e => updateRiderExtra('hasHelmet', e.target.checked)}
+                          className="w-4 h-4 rounded border-border accent-primary"
+                        />
+                        <span className="text-sm">Extra helmet available for passenger?</span>
+                      </label>
+                    )}
+
+                    {rider.vehicleType === 'auto' && (
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={rider.extraFields.hasMeter}
+                          onChange={e => updateRiderExtra('hasMeter', e.target.checked)}
+                          className="w-4 h-4 rounded border-border accent-primary"
+                        />
+                        <span className="text-sm">Digital fare meter fitted & calibrated?</span>
+                      </label>
+                    )}
+
+                    {rider.vehicleType === 'e_rickshaw' && (
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1 block">Full Battery Range (km)</label>
+                        <Input
+                          type="number"
+                          placeholder="e.g. 80"
+                          value={rider.extraFields.batteryRangeKm}
+                          onChange={e => updateRiderExtra('batteryRangeKm', e.target.value)}
+                        />
+                      </div>
+                    )}
+
+                    {rider.vehicleType === 'car' && (
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={rider.extraFields.hasAc}
+                          onChange={e => updateRiderExtra('hasAc', e.target.checked)}
+                          className="w-4 h-4 rounded border-border accent-primary"
+                        />
+                        <span className="text-sm">Air Conditioning (AC) available & functional?</span>
+                      </label>
+                    )}
+
+                    {rider.vehicleType === 'van' && (
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={rider.extraFields.luggageSpace}
+                          onChange={e => updateRiderExtra('luggageSpace', e.target.checked)}
+                          className="w-4 h-4 rounded border-border accent-primary"
+                        />
+                        <span className="text-sm">Extended cargo / wheelchair luggage space available?</span>
+                      </label>
+                    )}
+
+                    {rider.vehicleType === 'ambulance' && (
+                      <div className="space-y-3">
+                        <div>
+                          <label className="text-sm font-medium text-foreground mb-1 block">Ambulance Classification</label>
+                          <select
+                            value={rider.extraFields.ambulanceType}
+                            onChange={e => updateRiderExtra('ambulanceType', e.target.value)}
+                            className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                          >
+                            <option value="Basic">Basic Life Support (BLS)</option>
+                            <option value="ALS">Advanced Life Support (ALS with Defibrillator)</option>
+                            <option value="Patient Transport">Patient Transport / Non-Emergency</option>
+                          </select>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={rider.extraFields.hasOxygen}
+                              onChange={e => updateRiderExtra('hasOxygen', e.target.checked)}
+                              className="w-4 h-4 rounded border-border accent-primary"
+                            />
+                            <span className="text-sm">Oxygen cylinder equipped?</span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={rider.extraFields.hasStretcher}
+                              onChange={e => updateRiderExtra('hasStretcher', e.target.checked)}
+                              className="w-4 h-4 rounded border-border accent-primary"
+                            />
+                            <span className="text-sm">Foldable stretcher / trolley?</span>
+                          </label>
+                        </div>
+                        <div className="pt-2">
+                          <label className="flex items-center gap-2 cursor-pointer mb-2">
+                            <input
+                              type="checkbox"
+                              checked={rider.extraFields.hospitalAffiliated}
+                              onChange={e => updateRiderExtra('hospitalAffiliated', e.target.checked)}
+                              className="w-4 h-4 rounded border-border accent-primary"
+                            />
+                            <span className="text-sm">Is this ambulance affiliated with a hospital?</span>
+                          </label>
+                          {rider.extraFields.hospitalAffiliated && (
+                            <Input
+                              placeholder="Enter affiliated Hospital name"
+                              value={rider.extraFields.hospitalName}
+                              onChange={e => updateRiderExtra('hospitalName', e.target.value)}
+                            />
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {navButtons()}
+                <div className="flex justify-end mt-4">
+                  <Button onClick={() => setStep(4)} disabled={!canProceed()} className="gap-2 rounded-xl shadow-lg shadow-primary/20">
+                    Continue to Bank Details <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Rider Step 4: Bank Details */}
+            {step === 4 && type === 'rider' && (
+              <motion.div key="r-s4" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+                {stepHeader('Bank Account & Payout Details', 'Where should your trip earnings and demo payouts be credited?')}
+                <div className="bg-card rounded-2xl border border-border/50 p-5 space-y-4">
+                  <div className="bg-primary/5 border border-primary/20 rounded-xl p-3.5 flex items-center gap-3">
+                    <IndianRupee className="w-5 h-5 text-primary shrink-0" />
+                    <p className="text-xs text-muted-foreground">
+                      <strong>Demo Payout Simulation:</strong> Payout requests will credit your demo wallet without real money transfer. Bank information is kept for compliance simulation.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-1.5 block">Account Holder Name <span className="text-red-500">*</span></label>
+                    <Input value={rider.bankAccountHolder || rider.name} onChange={updateRider('bankAccountHolder')} placeholder="Name as per bank passbook" />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">Account Number <span className="text-red-500">*</span></label>
+                      <Input value={rider.bankAccountNumber} onChange={updateRider('bankAccountNumber')} placeholder="Enter bank account number" />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">IFSC Code <span className="text-red-500">*</span></label>
+                      <Input value={rider.bankIfsc} onChange={updateRider('bankIfsc')} placeholder="e.g. SBIN0001234" className="uppercase" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-1.5 block">UPI ID (Optional)</label>
+                    <Input value={rider.bankUpi} onChange={updateRider('bankUpi')} placeholder="e.g. rider@okaxis" />
+                  </div>
+                </div>
+
+                {navButtons()}
+                <div className="flex justify-end mt-4">
+                  <Button onClick={() => setStep(5)} disabled={!canProceed()} className="gap-2 rounded-xl shadow-lg shadow-primary/20">
+                    Continue to Operating Area <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Rider Step 5: Operating Area & Availability */}
+            {step === 5 && type === 'rider' && (
+              <motion.div key="r-s5" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+                {stepHeader('Operating Area & Availability', 'Set your preferred working location and operating schedule')}
+                <div className="bg-card rounded-2xl border border-border/50 p-5 space-y-4">
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-1.5 block">Operating City / Area <span className="text-red-500">*</span></label>
+                    <div className="relative">
+                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input value={rider.operatingArea} onChange={updateRider('operatingArea')} placeholder="e.g. Jabalpur City, Adhartal, Civil Lines" className="pl-10" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-2 block">Available Working Days <span className="text-red-500">*</span></label>
+                    <div className="flex flex-wrap gap-2">
+                      {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => {
+                        const active = rider.availableDays.includes(day);
+                        return (
+                          <button
+                            key={day}
+                            type="button"
+                            onClick={() => toggleRiderDay(day)}
+                            className={cn(
+                              'px-4 py-2 rounded-xl text-xs font-semibold border transition-all',
+                              active
+                                ? 'bg-primary text-primary-foreground border-primary shadow-sm shadow-primary/20'
+                                : 'bg-muted/30 text-muted-foreground border-border/60 hover:border-primary/40'
+                            )}
+                          >
+                            {day}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">Shift Start Time</label>
+                      <Input
+                        type="time"
+                        value={rider.availableTimeSlot.start}
+                        onChange={e => setRider(p => ({ ...p, availableTimeSlot: { ...p.availableTimeSlot, start: e.target.value } }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">Shift End Time</label>
+                      <Input
+                        type="time"
+                        value={rider.availableTimeSlot.end}
+                        onChange={e => setRider(p => ({ ...p, availableTimeSlot: { ...p.availableTimeSlot, end: e.target.value } }))}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {navButtons()}
+                <div className="flex justify-end mt-4">
+                  <Button onClick={() => setStep(6)} disabled={!canProceed()} className="gap-2 rounded-xl shadow-lg shadow-primary/20">
+                    Review Application <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Rider Step 6: Review & Submit */}
+            {step === 6 && type === 'rider' && (
+              <motion.div key="r-s6" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+                {stepHeader('Review & Submit Application', 'Verify your credentials and submit for admin approval')}
+                <div className="space-y-4 mb-6">
+                  <div className="bg-card rounded-2xl border border-border/50 overflow-hidden">
+                    <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-teal-500/10 to-emerald-500/10 border-b border-border/30">
+                      <div className="w-10 h-10 rounded-xl bg-teal-500/20 text-teal-600 flex items-center justify-center font-bold">
+                        <Car className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-foreground">{rider.name || 'Driver Application'}</p>
+                        <p className="text-xs text-muted-foreground capitalize">{rider.vehicleType} • {rider.vehicleBrand} {rider.vehicleModel}</p>
+                      </div>
+                    </div>
+
+                    <div className="p-4 space-y-3 text-sm">
+                      <div>
+                        <p className="text-xs font-semibold text-muted-foreground mb-1.5">Personal & Driving License</p>
+                        <div className="bg-muted/20 rounded-lg p-3 space-y-1 text-xs">
+                          <p><strong>Contact:</strong> {rider.phone} • {rider.email}</p>
+                          <p><strong>Location:</strong> {rider.city} ({rider.address})</p>
+                          <p><strong>Govt ID:</strong> {rider.govtIdType} — {rider.govtIdNumber}</p>
+                          <p><strong>Driving License:</strong> {rider.drivingLicenseNumber} (Expires: {rider.drivingLicenseExpiry})</p>
+                        </div>
+                      </div>
+
+                      <div>
+                        <p className="text-xs font-semibold text-muted-foreground mb-1.5">Vehicle Specs</p>
+                        <div className="bg-muted/20 rounded-lg p-3 space-y-1 text-xs">
+                          <p><strong>RC Number:</strong> {rider.rcNumber}</p>
+                          <p><strong>Insurance:</strong> {rider.insuranceNumber} (Expires: {rider.insuranceExpiry})</p>
+                          <p><strong>Capacity:</strong> {rider.seatingCapacity} Seats • {rider.fuelType}</p>
+                        </div>
+                      </div>
+
+                      <div>
+                        <p className="text-xs font-semibold text-muted-foreground mb-1.5">Bank Payout</p>
+                        <div className="bg-muted/20 rounded-lg p-3 text-xs">
+                          <p><strong>A/c Holder:</strong> {rider.bankAccountHolder || rider.name}</p>
+                          <p><strong>Account:</strong> {rider.bankAccountNumber} • IFSC: {rider.bankIfsc}</p>
+                          {rider.bankUpi && <p><strong>UPI:</strong> {rider.bankUpi}</p>}
+                        </div>
+                      </div>
+
+                      <div>
+                        <p className="text-xs font-semibold text-muted-foreground mb-1.5">Availability</p>
+                        <div className="bg-muted/20 rounded-lg p-3 text-xs">
+                          <p><strong>Operating Area:</strong> {rider.operatingArea || 'City-wide'}</p>
+                          <p><strong>Days:</strong> {rider.availableDays.join(', ')}</p>
+                          <p><strong>Hours:</strong> {rider.availableTimeSlot.start} - {rider.availableTimeSlot.end}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <label className="flex items-start gap-3 p-4 bg-muted/20 rounded-xl border border-border/40 cursor-pointer">
+                    <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} className="mt-0.5 w-4 h-4 rounded border-border accent-primary" />
+                    <div>
+                      <p className="text-sm font-medium text-foreground">I confirm that all uploaded documents are genuine and valid</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        By submitting, you agree to FindMedi's <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link> and driver verification guidelines. An administrator will review your application before you can accept rides.
+                      </p>
+                    </div>
+                  </label>
+                </div>
+
+                {error && <p className="text-sm text-destructive bg-destructive/10 px-3 py-2 rounded-lg mb-4">{error}</p>}
+
+                {navButtons()}
+                <div className="flex justify-end mt-4">
+                  <Button onClick={handleSubmit} disabled={!canProceed() || loading} className="flex-1 sm:flex-none gap-2 rounded-xl shadow-lg shadow-primary/20">
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                    {loading ? 'Submitting Application...' : 'Submit Driver Application'}
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ── Assistant Step 2: Personal & KYC ── */}
+            {step === 2 && type === 'assistant' && (
+              <motion.div key="ast-s2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+                {stepHeader('Personal & Verification Details', 'Enter your personal info, government identity proof, and emergency contact')}
+                <div className="bg-card rounded-2xl border border-border/50 p-5 space-y-5">
+                  <div className="space-y-4">
+                    <p className="text-xs font-semibold text-primary uppercase tracking-wider">Personal Information</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Full Name <span className="text-red-500">*</span></label>
+                        <Input value={assistant.name} onChange={updateAssistant('name')} placeholder="e.g. Sunita Sharma" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Phone Number <span className="text-red-500">*</span></label>
+                        <Input type="tel" value={assistant.phone} onChange={updateAssistant('phone')} placeholder="+91 9876543210" />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Email Address <span className="text-red-500">*</span></label>
+                        <Input type="email" value={assistant.email} onChange={updateAssistant('email')} placeholder="sunita@example.com" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Date of Birth <span className="text-red-500">*</span></label>
+                        <Input type="date" value={assistant.dateOfBirth} onChange={updateAssistant('dateOfBirth')} max={new Date(Date.now() - 18 * 365.25 * 24 * 3600 * 1000).toISOString().split('T')[0]} />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Gender <span className="text-red-500">*</span></label>
+                        <select value={assistant.gender} onChange={updateAssistant('gender')} className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm">
+                          <option value="Male">Male</option>
+                          <option value="Female">Female</option>
+                          <option value="Other">Other</option>
+                        </select>
+                      </div>
+                      <div className="sm:col-span-2">
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Residential Address & City <span className="text-red-500">*</span></label>
+                        <Input value={assistant.address} onChange={updateAssistant('address')} placeholder="Flat/House, Locality, City" />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Password <span className="text-red-500">*</span></label>
+                        <Input type="password" value={assistant.password} onChange={updateAssistant('password')} placeholder="Min 8 characters" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Confirm Password <span className="text-red-500">*</span></label>
+                        <Input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Re-enter password" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-4">
+                    <p className="text-xs font-semibold text-primary uppercase tracking-wider">Government Identity Document</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Govt ID Type <span className="text-red-500">*</span></label>
+                        <select value={assistant.govtIdType} onChange={updateAssistant('govtIdType')} className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm">
+                          <option value="Aadhaar">Aadhaar Card</option>
+                          <option value="PAN">PAN Card</option>
+                          <option value="Voter ID">Voter ID</option>
+                          <option value="Passport">Passport</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Govt ID Number <span className="text-red-500">*</span></label>
+                        <Input value={assistant.govtIdNumber} onChange={updateAssistant('govtIdNumber')} placeholder="e.g. 1234 5678 9012" />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Govt ID Document Upload <span className="text-red-500">*</span></label>
+                        <label className="flex items-center justify-center px-4 py-3 border-2 border-dashed border-border/60 rounded-xl cursor-pointer hover:border-primary/30 transition-colors">
+                          <input type="file" accept="image/*,.pdf" onChange={handleAssistantDocChange('govtIdDoc')} className="hidden" />
+                          <div className="text-center">
+                            <FileImage className="w-5 h-5 mx-auto text-muted-foreground mb-1" />
+                            <span className="text-xs text-muted-foreground">Upload ID Scan / Photo</span>
+                          </div>
+                        </label>
+                        {assistantDocs.govtIdDoc && <p className="text-xs text-success mt-1">✓ {assistantDocs.govtIdDoc.name}</p>}
+                      </div>
+
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Police Verification Certificate (Optional)</label>
+                        <label className="flex items-center justify-center px-4 py-3 border-2 border-dashed border-border/60 rounded-xl cursor-pointer hover:border-primary/30 transition-colors">
+                          <input type="file" accept="image/*,.pdf" onChange={handleAssistantDocChange('policeVerificationDoc')} className="hidden" />
+                          <div className="text-center">
+                            <Shield className="w-5 h-5 mx-auto text-muted-foreground mb-1" />
+                            <span className="text-xs text-muted-foreground">Upload Police Verification (Boosts Trust)</span>
+                          </div>
+                        </label>
+                        {assistantDocs.policeVerificationDoc && <p className="text-xs text-success mt-1">✓ {assistantDocs.policeVerificationDoc.name}</p>}
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-4">
+                    <p className="text-xs font-semibold text-primary uppercase tracking-wider">Emergency Contact</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Emergency Contact Name <span className="text-red-500">*</span></label>
+                        <Input value={assistant.emergencyContactName} onChange={updateAssistant('emergencyContactName')} placeholder="e.g. Ramesh Sharma" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Emergency Contact Phone <span className="text-red-500">*</span></label>
+                        <Input type="tel" value={assistant.emergencyContactPhone} onChange={updateAssistant('emergencyContactPhone')} placeholder="+91 9876543210" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {navButtons(false)}
+                <div className="flex justify-end mt-4">
+                  <Button onClick={() => setStep(3)} disabled={!canProceed()} className="gap-2 rounded-xl shadow-lg shadow-primary/20">
+                    Continue to Services & Experience <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ── Assistant Step 3: Services & Experience ── */}
+            {step === 3 && type === 'assistant' && (
+              <motion.div key="ast-s3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+                {stepHeader('Services Offered & Professional Experience', 'Select your hospital care skills, hospitals covered, and write a bio')}
+                <div className="bg-card rounded-2xl border border-border/50 p-5 space-y-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">Years of Experience <span className="text-red-500">*</span></label>
+                      <Input type="number" min={0} max={50} value={assistant.experienceYears} onChange={updateAssistant('experienceYears')} />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">Languages Spoken (comma separated) <span className="text-red-500">*</span></label>
+                      <Input
+                        value={assistant.languages.join(', ')}
+                        onChange={e => setAssistant(p => ({ ...p, languages: e.target.value.split(',').map(s => s.trim()).filter(Boolean) }))}
+                        placeholder="Hindi, English, Marathi..."
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-1.5 block">Hospitals You Can Cover (comma separated) <span className="text-red-500">*</span></label>
+                    <Input
+                      value={assistant.hospitalsCovered.join(', ')}
+                      onChange={e => setAssistant(p => ({ ...p, hospitalsCovered: e.target.value.split(',').map(s => s.trim()).filter(Boolean) }))}
+                      placeholder="e.g. City Hospital, Apollo Clinic, AIIMS"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Patients visiting these hospitals will see your profile in search results.</p>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-2 block">Service Categories Offered <span className="text-red-500">*</span></label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      {[
+                        { id: 'paperwork', label: 'Paperwork & Admission Help', desc: 'Filling admission/discharge/insurance forms' },
+                        { id: 'medicine', label: 'Medicine Pickup & Delivery', desc: 'Pharmacy collection for patient' },
+                        { id: 'reports', label: 'Report Collection', desc: 'Fetching lab and diagnostic reports' },
+                        { id: 'errand', label: 'Errand & General Needs', desc: 'Food, water, documents, queues' },
+                        { id: 'full_attendant', label: 'Full-Time Attendant', desc: 'Complete end-to-end patient care' },
+                        { id: 'elderly_care', label: 'Elderly / Special Care', desc: 'Extra patience, wheelchair assistance' },
+                      ].map(cat => {
+                        const selected = assistant.serviceCategories.includes(cat.id);
+                        return (
+                          <div
+                            key={cat.id}
+                            onClick={() => toggleAssistantCategory(cat.id)}
+                            className={cn(
+                              'p-3 rounded-xl border cursor-pointer select-none transition-all flex items-start justify-between',
+                              selected ? 'border-primary bg-primary/10 text-primary shadow-sm' : 'border-border/60 hover:border-border'
+                            )}
+                          >
+                            <div>
+                              <div className="text-xs font-bold">{cat.label}</div>
+                              <div className="text-[10px] text-muted-foreground">{cat.desc}</div>
+                            </div>
+                            <input type="checkbox" checked={selected} onChange={() => {}} className="mt-0.5 rounded" />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Category-conditional Skills */}
+                  <div className="bg-muted/30 rounded-xl p-4 border border-border/40 space-y-3">
+                    <p className="text-xs font-semibold text-primary uppercase tracking-wider">Special Skills & Accommodations</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={assistant.extraSkills.mobilityAssistance}
+                          onChange={e => updateAssistantExtra('mobilityAssistance', e.target.checked)}
+                          className="rounded"
+                        />
+                        <span className="text-xs">Trained in mobility & walking assistance</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={assistant.extraSkills.wheelchairTrained}
+                          onChange={e => updateAssistantExtra('wheelchairTrained', e.target.checked)}
+                          className="rounded"
+                        />
+                        <span className="text-xs">Comfortable with wheelchair-bound patients</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={assistant.extraSkills.ownVehicle}
+                          onChange={e => updateAssistantExtra('ownVehicle', e.target.checked)}
+                          className="rounded"
+                        />
+                        <span className="text-xs">Own two-wheeler available for pharmacy runs</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={assistant.extraSkills.overnightAvailable}
+                          onChange={e => updateAssistantExtra('overnightAvailable', e.target.checked)}
+                          className="rounded"
+                        />
+                        <span className="text-xs">Willing to stay overnight if requested</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-1.5 block">Short Bio / About Me <span className="text-red-500">*</span></label>
+                    <Textarea
+                      rows={3}
+                      value={assistant.bio}
+                      onChange={updateAssistant('bio')}
+                      placeholder="Tell patients about your caretaking style, patience, and previous hospital experience..."
+                    />
+                  </div>
+                </div>
+
+                {navButtons()}
+                <div className="flex justify-end mt-4">
+                  <Button onClick={() => setStep(4)} disabled={!canProceed()} className="gap-2 rounded-xl shadow-lg shadow-primary/20">
+                    Continue to Pricing & Bank <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ── Assistant Step 4: Pricing & Bank ── */}
+            {step === 4 && type === 'assistant' && (
+              <motion.div key="ast-s4" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+                {stepHeader('Pricing & Payout Details', 'Set your hourly rates and provide bank/UPI account for demo earnings')}
+                <div className="bg-card rounded-2xl border border-border/50 p-5 space-y-5">
+                  <div className="space-y-4">
+                    <p className="text-xs font-semibold text-primary uppercase tracking-wider">Service Rates (₹)</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Price per Hour (₹) <span className="text-red-500">*</span></label>
+                        <Input type="number" min={50} value={assistant.pricePerHour} onChange={updateAssistant('pricePerHour')} placeholder="150" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Price per Full Day (8 hrs) (₹)</label>
+                        <Input type="number" min={200} value={assistant.pricePerFullDay} onChange={updateAssistant('pricePerFullDay')} placeholder="1000" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-4">
+                    <p className="text-xs font-semibold text-primary uppercase tracking-wider">Bank / Payout Account</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Account Holder Name <span className="text-red-500">*</span></label>
+                        <Input value={assistant.bankAccountHolder} onChange={updateAssistant('bankAccountHolder')} placeholder="Name as per passbook" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Bank Account Number <span className="text-red-500">*</span></label>
+                        <Input value={assistant.bankAccountNumber} onChange={updateAssistant('bankAccountNumber')} placeholder="000000000000" />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">IFSC Code <span className="text-red-500">*</span></label>
+                        <Input value={assistant.bankIfsc} onChange={updateAssistant('bankIfsc')} placeholder="SBIN0001234" className="uppercase" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">UPI ID (Optional)</label>
+                        <Input value={assistant.bankUpi} onChange={updateAssistant('bankUpi')} placeholder="name@upi" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {navButtons()}
+                <div className="flex justify-end mt-4">
+                  <Button onClick={() => setStep(5)} disabled={!canProceed()} className="gap-2 rounded-xl shadow-lg shadow-primary/20">
+                    Continue to Availability <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ── Assistant Step 5: Availability ── */}
+            {step === 5 && type === 'assistant' && (
+              <motion.div key="ast-s5" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+                {stepHeader('Availability & Shift Preferences', 'Configure your weekly working days and daily operational hours')}
+                <div className="bg-card rounded-2xl border border-border/50 p-5 space-y-5">
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-2 block">Available Working Days <span className="text-red-500">*</span></label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
+                        <button
+                          key={day}
+                          type="button"
+                          onClick={() => toggleAssistantDay(day)}
+                          className={cn(
+                            'py-2.5 px-3 rounded-xl border text-xs font-semibold transition-all',
+                            assistant.availableDays.includes(day)
+                              ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                              : 'bg-muted/20 border-border/60 hover:border-primary/40'
+                          )}
+                        >
+                          {day}day
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">Available From Time</label>
+                      <Input
+                        type="time"
+                        value={assistant.availableTimeSlot.start}
+                        onChange={e => setAssistant(p => ({ ...p, availableTimeSlot: { ...p.availableTimeSlot, start: e.target.value } }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">Available Until Time</label>
+                      <Input
+                        type="time"
+                        value={assistant.availableTimeSlot.end}
+                        onChange={e => setAssistant(p => ({ ...p, availableTimeSlot: { ...p.availableTimeSlot, end: e.target.value } }))}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {navButtons()}
+                <div className="flex justify-end mt-4">
+                  <Button onClick={() => setStep(6)} disabled={!canProceed()} className="gap-2 rounded-xl shadow-lg shadow-primary/20">
+                    Review Application <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ── Assistant Step 6: Review & Submit ── */}
+            {step === 6 && type === 'assistant' && (
+              <motion.div key="ast-s6" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+                {stepHeader('Review & Submit Application', 'Verify your assistant credentials and submit for admin verification')}
+                <div className="space-y-4 mb-6">
+                  <div className="bg-card rounded-2xl border border-border/50 overflow-hidden">
+                    <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-teal-500/10 to-cyan-500/10 border-b border-border/30">
+                      <div className="w-10 h-10 rounded-xl bg-teal-500/20 text-teal-600 flex items-center justify-center font-bold">
+                        <Users className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-foreground">{assistant.name || 'Assistant Application'}</p>
+                        <p className="text-xs text-muted-foreground">{assistant.experienceYears} Years Exp • ₹{assistant.pricePerHour}/hr</p>
+                      </div>
+                    </div>
+
+                    <div className="p-4 space-y-3 text-sm">
+                      <div className="bg-muted/20 rounded-lg p-3 space-y-1 text-xs">
+                        <p><strong>Contact:</strong> {assistant.phone} • {assistant.email}</p>
+                        <p><strong>Govt ID:</strong> {assistant.govtIdType} — {assistant.govtIdNumber}</p>
+                        <p><strong>Hospitals:</strong> {assistant.hospitalsCovered.join(', ')}</p>
+                        <p><strong>Services:</strong> {assistant.serviceCategories.join(', ')}</p>
+                        <p><strong>Bank Account:</strong> {assistant.bankAccountNumber} ({assistant.bankIfsc})</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <label className="flex items-start gap-3 p-4 bg-muted/20 rounded-xl border border-border/40 cursor-pointer">
+                    <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} className="mt-0.5 w-4 h-4 rounded border-border accent-primary" />
+                    <div>
+                      <p className="text-sm font-medium text-foreground">I confirm that all information and identity documents provided are genuine</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        I understand that I represent FindMedi professionally while assisting patients. An administrator will verify my application within 24-48 hours before my profile goes active.
+                      </p>
+                    </div>
+                  </label>
+                </div>
+
+                {error && <p className="text-sm text-destructive bg-destructive/10 px-3 py-2 rounded-lg mb-4">{error}</p>}
+
+                {navButtons()}
+                <div className="flex justify-end mt-4">
+                  <Button onClick={handleSubmit} disabled={!canProceed() || loading} className="flex-1 sm:flex-none gap-2 rounded-xl shadow-lg shadow-primary/20">
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                    {loading ? 'Submitting Application...' : 'Submit Assistant Application'}
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ── Lawyer Step 2: Personal & Bar Reg ── */}
+            {step === 2 && type === 'lawyer' && (
+              <motion.div key="law-s2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+                {stepHeader('Personal & Bar Council Credentials', 'Enter your personal info, government identity, and official Bar Council enrollment details')}
+                <div className="bg-card rounded-2xl border border-border/50 p-5 space-y-5">
+                  <div className="space-y-4">
+                    <p className="text-xs font-semibold text-primary uppercase tracking-wider">Personal Information</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Advocate Full Name <span className="text-red-500">*</span></label>
+                        <Input value={lawyer.name} onChange={updateLawyer('name')} placeholder="e.g. Adv. Rajesh Verma" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Phone Number <span className="text-red-500">*</span></label>
+                        <Input type="tel" value={lawyer.phone} onChange={updateLawyer('phone')} placeholder="+91 9876543210" />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Email Address <span className="text-red-500">*</span></label>
+                        <Input type="email" value={lawyer.email} onChange={updateLawyer('email')} placeholder="advocate@example.com" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Date of Birth</label>
+                        <Input type="date" value={lawyer.dateOfBirth} onChange={updateLawyer('dateOfBirth')} />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Gender</label>
+                        <select value={lawyer.gender} onChange={updateLawyer('gender')} className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm">
+                          <option value="Male">Male</option>
+                          <option value="Female">Female</option>
+                          <option value="Other">Other</option>
+                        </select>
+                      </div>
+                      <div className="sm:col-span-2">
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Chamber / Residential Address</label>
+                        <Input value={lawyer.address} onChange={updateLawyer('address')} placeholder="Office / Chamber Address, Street" />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">City <span className="text-red-500">*</span></label>
+                        <Input value={lawyer.city} onChange={updateLawyer('city')} placeholder="e.g. Jabalpur" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Primary Jurisdiction City</label>
+                        <Input value={lawyer.jurisdictionCity} onChange={updateLawyer('jurisdictionCity')} placeholder="City where you primarily represent" />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Password <span className="text-red-500">*</span></label>
+                        <Input type="password" value={lawyer.password} onChange={updateLawyer('password')} placeholder="Min 8 characters" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Confirm Password <span className="text-red-500">*</span></label>
+                        <Input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Re-enter password" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-4">
+                    <p className="text-xs font-semibold text-primary uppercase tracking-wider">Bar Council Official Enrollment</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div className="sm:col-span-1">
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Bar Council Number <span className="text-red-500">*</span></label>
+                        <Input value={lawyer.barCouncilNumber} onChange={updateLawyer('barCouncilNumber')} placeholder="e.g. MAH/1234/2018" className="uppercase font-mono" />
+                        <span className="text-[11px] text-muted-foreground">Format: StateCode/RollNumber/Year</span>
+                      </div>
+                      <div className="sm:col-span-1">
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">State Bar Council <span className="text-red-500">*</span></label>
+                        <select value={lawyer.stateBarCouncil} onChange={updateLawyer('stateBarCouncil')} className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm">
+                          {STATE_BAR_COUNCILS.map(sbc => (
+                            <option key={sbc} value={sbc}>{sbc}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="sm:col-span-1">
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Year of Enrollment <span className="text-red-500">*</span></label>
+                        <Input type="number" min={1960} max={new Date().getFullYear()} value={lawyer.yearOfEnrollment} onChange={updateLawyer('yearOfEnrollment')} />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Government ID Type</label>
+                        <select value={lawyer.govtIdType} onChange={updateLawyer('govtIdType')} className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm">
+                          <option value="Aadhaar">Aadhaar Card</option>
+                          <option value="PAN">PAN Card</option>
+                          <option value="Passport">Passport</option>
+                          <option value="Voter ID">Voter ID</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">ID Number</label>
+                        <Input value={lawyer.govtIdNumber} onChange={updateLawyer('govtIdNumber')} placeholder="ID document number" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-4">
+                    <p className="text-xs font-semibold text-primary uppercase tracking-wider">Verification Documents (PDF or Image)</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div className="border border-dashed border-border rounded-xl p-3 text-center bg-muted/10">
+                        <Scale className="w-5 h-5 mx-auto mb-1 text-primary" />
+                        <span className="text-xs font-medium block">Bar Council Certificate</span>
+                        <input type="file" accept=".pdf,image/*" onChange={handleLawyerDocChange('barCouncilCertDoc')} className="mt-2 text-[11px] w-full" />
+                      </div>
+                      <div className="border border-dashed border-border rounded-xl p-3 text-center bg-muted/10">
+                        <Award className="w-5 h-5 mx-auto mb-1 text-primary" />
+                        <span className="text-xs font-medium block">Law Degree (LL.B / LL.M)</span>
+                        <input type="file" accept=".pdf,image/*" onChange={handleLawyerDocChange('lawDegreeDoc')} className="mt-2 text-[11px] w-full" />
+                      </div>
+                      <div className="border border-dashed border-border rounded-xl p-3 text-center bg-muted/10">
+                        <Shield className="w-5 h-5 mx-auto mb-1 text-primary" />
+                        <span className="text-xs font-medium block">Government ID Proof</span>
+                        <input type="file" accept=".pdf,image/*" onChange={handleLawyerDocChange('govtIdDoc')} className="mt-2 text-[11px] w-full" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {navButtons(false)}
+                <div className="flex justify-end mt-4">
+                  <Button onClick={() => setStep(3)} disabled={!canProceed()} className="gap-2 rounded-xl shadow-lg shadow-primary/20">
+                    Continue to Practice & Courts <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ── Lawyer Step 3: Practice & Courts ── */}
+            {step === 3 && type === 'lawyer' && (
+              <motion.div key="law-s3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+                {stepHeader('Practice Areas & Court Representation', 'Select your legal specializations, courts where you appear, and your practice background')}
+                <div className="bg-card rounded-2xl border border-border/50 p-5 space-y-6">
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-sm font-semibold text-foreground">Practice Areas / Specializations <span className="text-red-500">*</span></label>
+                      <span className="text-xs text-muted-foreground">{lawyer.practiceCategories.length} selected</span>
+                    </div>
+                    <LegalCategorySelector
+                      multiSelect={true}
+                      selectedCategories={lawyer.practiceCategories}
+                      onToggleCategory={toggleLawyerCategory}
+                      selectedCategory=""
+                      onSelectCategory={() => {}}
+                    />
+                  </div>
+
+                  <Separator />
+
+                  <div>
+                    <label className="text-sm font-semibold text-foreground mb-2 block">Courts / Tribunals Practiced In <span className="text-red-500">*</span></label>
+                    <div className="flex flex-wrap gap-2">
+                      {COURTS_OPTIONS.map(court => {
+                        const active = lawyer.courtsPracticedIn.includes(court);
+                        return (
+                          <button
+                            key={court}
+                            type="button"
+                            onClick={() => toggleLawyerCourt(court)}
+                            className={cn(
+                              'text-xs font-medium px-3 py-2 rounded-xl border transition-all flex items-center gap-1.5',
+                              active
+                                ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                                : 'bg-muted/20 border-border/60 text-muted-foreground hover:border-primary/40'
+                            )}
+                          >
+                            {active && <Check className="w-3.5 h-3.5" />}
+                            {court}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">Years of Active Legal Practice <span className="text-red-500">*</span></label>
+                      <Input type="number" min={0} max={60} value={lawyer.yearsOfPractice} onChange={updateLawyer('yearsOfPractice')} />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">Law Firm / Chamber Name (Optional)</label>
+                      <Input value={lawyer.lawFirmName} onChange={updateLawyer('lawFirmName')} placeholder="e.g. Verma & Associates" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-1.5 block">Professional Bio & Legal Experience <span className="text-red-500">*</span></label>
+                    <Textarea
+                      value={lawyer.bio}
+                      onChange={updateLawyer('bio')}
+                      placeholder="Highlight your court litigation background, medical negligence cases handled, consumer forum representations, or legal advisory strengths..."
+                      rows={3}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-2 block">Languages Spoken</label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {LAWYER_LANGUAGES.map(lang => {
+                        const active = lawyer.languages.includes(lang);
+                        return (
+                          <button
+                            key={lang}
+                            type="button"
+                            onClick={() => setLawyer(p => ({
+                              ...p,
+                              languages: active ? p.languages.filter(l => l !== lang) : [...p.languages, lang]
+                            }))}
+                            className={cn(
+                              'text-xs px-2.5 py-1 rounded-lg border transition-all',
+                              active ? 'bg-secondary text-secondary-foreground font-semibold border-border' : 'bg-background text-muted-foreground border-border/60 hover:border-border'
+                            )}
+                          >
+                            {lang}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {navButtons()}
+                <div className="flex justify-end mt-4">
+                  <Button onClick={() => setStep(4)} disabled={!canProceed()} className="gap-2 rounded-xl shadow-lg shadow-primary/20">
+                    Continue to Fees & Modes <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ── Lawyer Step 4: Fees & Modes ── */}
+            {step === 4 && type === 'lawyer' && (
+              <motion.div key="law-s4" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+                {stepHeader('Consultation Modes & Professional Fees', 'Set your consultation rates and interaction preferences for clients')}
+                <div className="bg-card rounded-2xl border border-border/50 p-5 space-y-5">
+                  <div>
+                    <label className="text-sm font-semibold text-foreground mb-2 block">Consultation Modes Supported <span className="text-red-500">*</span></label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {[
+                        { key: 'video', label: 'Video Call', icon: Video, desc: 'Online Face-to-Face' },
+                        { key: 'phone', label: 'Phone Call', icon: Phone, desc: 'Audio Consultation' },
+                        { key: 'in_person', label: 'In-Person', icon: MapPin, desc: 'Chamber / Hospital' },
+                        { key: 'chat', label: 'Chat Advisory', icon: MessageSquare, desc: 'Document & Message' },
+                      ].map(mode => {
+                        const active = lawyer.consultationModes.includes(mode.key);
+                        const Icon = mode.icon;
+                        return (
+                          <div
+                            key={mode.key}
+                            onClick={() => toggleLawyerMode(mode.key)}
+                            className={cn(
+                              'p-3.5 rounded-xl border cursor-pointer select-none transition-all text-center flex flex-col items-center gap-1.5',
+                              active ? 'border-primary bg-primary/10 text-primary shadow-sm' : 'border-border/60 hover:border-border'
+                            )}
+                          >
+                            <Icon className="w-5 h-5" />
+                            <div className="text-xs font-bold">{mode.label}</div>
+                            <div className="text-[10px] text-muted-foreground">{mode.desc}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">First Consultation Fee (₹) <span className="text-red-500">*</span></label>
+                      <Input type="number" min={0} value={lawyer.consultationFee} onChange={updateLawyer('consultationFee')} placeholder="500" />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">Follow-up Fee (₹) <span className="text-red-500">*</span></label>
+                      <Input type="number" min={0} value={lawyer.followUpFee} onChange={updateLawyer('followUpFee')} placeholder="500" />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">Session Duration</label>
+                      <select value={lawyer.sessionDuration} onChange={updateLawyer('sessionDuration')} className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm">
+                        <option value={15}>15 Minutes</option>
+                        <option value={30}>30 Minutes</option>
+                        <option value={45}>45 Minutes</option>
+                        <option value={60}>60 Minutes</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 pt-2">
+                    <label className="flex items-center gap-3 p-3 bg-muted/20 rounded-xl border border-border/40 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={lawyer.freeFirstConsultation}
+                        onChange={e => setLawyer(p => ({ ...p, freeFirstConsultation: e.target.checked }))}
+                        className="w-4 h-4 rounded border-border accent-primary"
+                      />
+                      <div>
+                        <p className="text-xs font-semibold text-foreground">Offer Free First Consultation (15 Mins)</p>
+                        <p className="text-[11px] text-muted-foreground">Helpful for initial case assessment to verify merits for patients</p>
+                      </div>
+                    </label>
+
+                    <label className="flex items-center gap-3 p-3 bg-muted/20 rounded-xl border border-border/40 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={lawyer.acceptsUrgent}
+                        onChange={e => setLawyer(p => ({ ...p, acceptsUrgent: e.target.checked }))}
+                        className="w-4 h-4 rounded border-border accent-primary"
+                      />
+                      <div>
+                        <p className="text-xs font-semibold text-foreground">Accept Urgent / Hospital Emergency Matters</p>
+                        <p className="text-[11px] text-muted-foreground">Fast-track requests for hospital MLC, police FIR defense, or emergency bail</p>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                {navButtons()}
+                <div className="flex justify-end mt-4">
+                  <Button onClick={() => setStep(5)} disabled={!canProceed()} className="gap-2 rounded-xl shadow-lg shadow-primary/20">
+                    Continue to Bank & Availability <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ── Lawyer Step 5: Bank & Availability ── */}
+            {step === 5 && type === 'lawyer' && (
+              <motion.div key="law-s5" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+                {stepHeader('Bank Account & Consultation Availability', 'Configure your weekly availability slots and payout settlement account')}
+                <div className="bg-card rounded-2xl border border-border/50 p-5 space-y-5">
+                  <div>
+                    <label className="text-sm font-semibold text-foreground mb-2 block">Weekly Consultation Days <span className="text-red-500">*</span></label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
+                        <button
+                          key={day}
+                          type="button"
+                          onClick={() => toggleLawyerDay(day)}
+                          className={cn(
+                            'py-2.5 px-3 rounded-xl border text-xs font-semibold transition-all',
+                            lawyer.availableDays.includes(day)
+                              ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                              : 'bg-muted/20 border-border/60 hover:border-primary/40'
+                          )}
+                        >
+                          {day}day
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">Daily Start Time</label>
+                      <Input
+                        type="time"
+                        value={lawyer.availableTimeSlot.start}
+                        onChange={e => setLawyer(p => ({ ...p, availableTimeSlot: { ...p.availableTimeSlot, start: e.target.value } }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">Daily End Time</label>
+                      <Input
+                        type="time"
+                        value={lawyer.availableTimeSlot.end}
+                        onChange={e => setLawyer(p => ({ ...p, availableTimeSlot: { ...p.availableTimeSlot, end: e.target.value } }))}
+                      />
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-4">
+                    <p className="text-xs font-semibold text-primary uppercase tracking-wider">Settlement Bank Account</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Account Holder Name <span className="text-red-500">*</span></label>
+                        <Input value={lawyer.bankAccountHolder} onChange={updateLawyer('bankAccountHolder')} placeholder="Name as in bank account" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Account Number <span className="text-red-500">*</span></label>
+                        <Input value={lawyer.bankAccountNumber} onChange={updateLawyer('bankAccountNumber')} placeholder="Bank account number" />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">IFSC Code <span className="text-red-500">*</span></label>
+                        <Input value={lawyer.bankIfsc} onChange={updateLawyer('bankIfsc')} placeholder="e.g. SBIN0001234" className="uppercase font-mono" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">UPI ID (Optional)</label>
+                        <Input value={lawyer.bankUpi} onChange={updateLawyer('bankUpi')} placeholder="e.g. advocate@upi" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {navButtons()}
+                <div className="flex justify-end mt-4">
+                  <Button onClick={() => setStep(6)} disabled={!canProceed()} className="gap-2 rounded-xl shadow-lg shadow-primary/20">
+                    Review Application <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ── Lawyer Step 6: Review & Submit ── */}
+            {step === 6 && type === 'lawyer' && (
+              <motion.div key="law-s6" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+                {stepHeader('Review & Submit Application', 'Verify your legal credentials and submit for Bar Council & admin verification')}
+                <div className="space-y-4 mb-6">
+                  <div className="bg-card rounded-2xl border border-border/50 overflow-hidden">
+                    <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-indigo-500/10 to-violet-500/10 border-b border-border/30">
+                      <div className="w-10 h-10 rounded-xl bg-indigo-500/20 text-indigo-600 flex items-center justify-center font-bold">
+                        <Scale className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-foreground">{lawyer.name || 'Advocate Application'}</p>
+                        <p className="text-xs text-muted-foreground">{lawyer.barCouncilNumber} • {lawyer.yearsOfPractice} Yrs Practice</p>
+                      </div>
+                    </div>
+
+                    <div className="p-4 space-y-3 text-sm">
+                      <div className="bg-muted/20 rounded-lg p-3 space-y-1.5 text-xs">
+                        <p><strong>Bar Council:</strong> {lawyer.stateBarCouncil} (Enrolled {lawyer.yearOfEnrollment})</p>
+                        <p><strong>Contact:</strong> {lawyer.phone} • {lawyer.email}</p>
+                        <p><strong>Location:</strong> {lawyer.city} {lawyer.jurisdictionCity ? `(Jurisdiction: ${lawyer.jurisdictionCity})` : ''}</p>
+                        <p><strong>Categories:</strong> {lawyer.practiceCategories.join(', ')}</p>
+                        <p><strong>Courts:</strong> {lawyer.courtsPracticedIn.join(', ')}</p>
+                        <p><strong>Fees:</strong> ₹{lawyer.consultationFee} ({lawyer.sessionDuration} mins) • Modes: {lawyer.consultationModes.join(', ')}</p>
+                        <p><strong>Settlement Account:</strong> {lawyer.bankAccountNumber} ({lawyer.bankIfsc})</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <label className="flex items-start gap-3 p-4 bg-muted/20 rounded-xl border border-border/40 cursor-pointer">
+                    <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} className="mt-0.5 w-4 h-4 rounded border-border accent-primary" />
+                    <div>
+                      <p className="text-sm font-medium text-foreground">I declare that I am an enrolled advocate with the State Bar Council</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        I hold a valid certificate of practice under the Advocates Act, 1961. I confirm all details are authentic and agree to FindMedi professional terms. An administrator will verify my Bar Council registration before profile activation.
+                      </p>
+                    </div>
+                  </label>
+                </div>
+
+                {error && <p className="text-sm text-destructive bg-destructive/10 px-3 py-2 rounded-lg mb-4">{error}</p>}
+
+                {navButtons()}
+                <div className="flex justify-end mt-4">
+                  <Button onClick={handleSubmit} disabled={!canProceed() || loading} className="flex-1 sm:flex-none gap-2 rounded-xl shadow-lg shadow-primary/20">
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                    {loading ? 'Submitting Application...' : 'Submit Advocate Application'}
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+
           {/* Step 2: Admin Account */}
-          {step === 2 && (
+          {step === 2 && type !== 'delivery' && type !== 'rider' && type !== 'assistant' && type !== 'lawyer' && (
             <motion.div key="s2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
               {stepHeader('Create Admin Account', 'This will be the admin login for your ' + (selectedType?.label || '') + ' dashboard')}
               <div className="bg-card rounded-2xl border border-border/50 p-5 space-y-4">
@@ -945,8 +2997,8 @@ export default function JoinPlatform() {
             </motion.div>
           )}
 
-          {/* Step 3: Facility Info */}
-          {step === 3 && (
+           {/* Step 3: Facility Info */}
+           {step === 3 && type !== 'delivery' && type !== 'rider' && type !== 'assistant' && type !== 'lawyer' && (
             <motion.div key="s3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
               {stepHeader('Facility Details', 'Tell us about your ' + (selectedType?.label || '') + ' — address, contact, and more')}
               <div className="bg-card rounded-2xl border border-border/50 p-5 space-y-4">
@@ -1460,7 +3512,7 @@ export default function JoinPlatform() {
            )}
 
            {/* Step 5: Review & Submit */}
-           {step === maxStep && (
+           {step === maxStep && type !== 'delivery' && type !== 'rider' && type !== 'assistant' && type !== 'lawyer' && (
             <motion.div key="s5" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
               {stepHeader('Review & Submit', 'Please verify all details before submitting')}
 

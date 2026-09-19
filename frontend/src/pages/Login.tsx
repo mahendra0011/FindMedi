@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Navigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Activity, ArrowRight, Shield, Stethoscope, UserRound, Building2, Hospital, Microscope, Pill, Heart, Eye, EyeOff, Truck } from 'lucide-react';
+import { Activity, ArrowRight, Shield, Stethoscope, UserRound, Building2, Hospital, Microscope, Pill, Heart, Eye, EyeOff, Truck, Car, Users, Scale } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
@@ -16,6 +16,9 @@ const roles = [
   { key: 'lab_owner',     label: 'Diagnostic', desc: 'Lab test mgmt',         icon: Microscope,  color: 'text-emerald-600', bg: 'bg-emerald-500/10' },
   { key: 'pharmacy_owner',label: 'Pharmacy',   desc: 'Medicine store',        icon: Pill,        color: 'text-amber-600',   bg: 'bg-amber-500/10'   },
   { key: 'delivery_boy',  label: 'Delivery',    desc: 'Medicine delivery',      icon: Truck,       color: 'text-blue-600',    bg: 'bg-blue-500/10'    },
+  { key: 'rider',         label: 'Rider',       desc: 'Vehicle & ambulance',    icon: Car,         color: 'text-teal-600',    bg: 'bg-teal-500/10'    },
+  { key: 'assistant',     label: 'Assistant',   desc: 'Patient care & help',    icon: Users,       color: 'text-cyan-600',    bg: 'bg-cyan-500/10'    },
+  { key: 'lawyer',        label: 'Lawyer',      desc: 'Legal consultation',     icon: Scale,       color: 'text-indigo-600',  bg: 'bg-indigo-500/10'  },
   { key: 'patient',    label: 'Patient',    desc: 'Appointments & records', icon: UserRound,   color: 'text-success',     bg: 'bg-success/10'     },
 ];
 
@@ -227,7 +230,7 @@ export default function Login() {
 
           <div className="mt-4 p-3 bg-muted/50 rounded-xl border border-border/50">
             <p className="text-xs font-medium text-muted-foreground mb-2">Quick Demo Login:</p>
-            <div className="grid grid-cols-4 gap-1.5">
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5">
               {[
                 { key:'superadmin', label:'SuperAdmin',    desc:'Manage full platform',   icon: Shield,      color:'text-purple-600',  bg:'bg-purple-500/10',  email:'mahendrapra0077@gmail.com', pass:'admin@123' },
                 { key:'hospital_admin',      label:'Hospital Admin',desc:'Manage hospital',   icon: Shield,      color:'text-primary',     bg:'bg-primary/10',     email:'admin@findmedi.com',        pass:'password' },
@@ -236,6 +239,9 @@ export default function Login() {
                 { key:'lab_owner',  label:'Diagnostic',    desc:'Lab test mgmt',           icon: Microscope,  color:'text-emerald-600', bg:'bg-emerald-500/10', email:'diagnostic@findmedi.com',   pass:'password' },
                 { key:'pharmacy_owner', label:'Pharmacy',  desc:'Medicine store',          icon: Pill,        color:'text-amber-600',   bg:'bg-amber-500/10',   email:'pharmacy@findmedi.com',     pass:'password' },
                 { key:'delivery_boy',  label:'Delivery',    desc:'Medicine delivery',      icon: Truck,       color:'text-blue-600',    bg:'bg-blue-500/10',    email:'delivery@findmedi.com',     pass:'password' },
+                { key:'rider',         label:'Rider',       desc:'Vehicle & ambulance',    icon: Car,         color:'text-teal-600',    bg:'bg-teal-500/10',    email:'rider@findmedi.com',        pass:'password' },
+                { key:'assistant',     label:'Assistant',   desc:'Patient care & help',    icon: Users,       color:'text-cyan-600',    bg:'bg-cyan-500/10',    email:'assistant@findmedi.com',    pass:'password' },
+                { key:'lawyer',        label:'Lawyer',      desc:'Legal consultation',     icon: Scale,       color:'text-indigo-600',  bg:'bg-indigo-500/10',  email:'lawyer@findmedi.com',       pass:'password' },
                 { key:'patient',    label:'Patient',       desc:'Appointments & records', icon: UserRound,   color:'text-success',     bg:'bg-success/10',     email:'patient@findmedi.com',      pass:'password' },
               ].map(({ key, label, desc, icon: Icon, color, bg, email, pass }) => (
                 <button key={key} type="button" onClick={() => { setRole(key); setEmail(email); setPassword(pass); setError(''); }}

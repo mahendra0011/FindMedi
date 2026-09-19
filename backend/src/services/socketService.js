@@ -17,8 +17,185 @@ import PharmacyDelivery from '../models/PharmacyDelivery.js';
 import Doctor from '../models/Doctor.js';
 import Patient from '../models/Patient.js';
 import User from '../models/User.js';
+import RiderProfile from '../models/RiderProfile.js';
+import RideTracking from '../models/RideTracking.js';
+import AssistantProfile from '../models/AssistantProfile.js';
+import LawyerProfile from '../models/LawyerProfile.js';
 
 let io = null;
+
+export function getIO() {
+  return io;
+}
+
+function attachRideSocketHandlers(socket, namespace) {
+  socket.on('join_ride_room', ({ rideId }) => {
+    if (rideId) socket.join(`ride:${rideId}`);
+  });
+  socket.on('leave_ride_room', ({ rideId }) => {
+    if (rideId) socket.leave(`ride:${rideId}`);
+  });
+  socket.on('rider_location_update', async ({ rideId, lat, lng, riderId }) => {
+    try {
+      const id = riderId || socket.userId;
+      if (id) {
+        await RiderProfile.findOneAndUpdate(
+          { userId: id },
+          {
+            isOnline: true,
+            'currentLocation.lat': lat,
+            'currentLocation.lng': lng,
+            'currentLocation.coordinates': [lng, lat],
+            'currentLocation.updatedAt': new Date(),
+          }
+        ).catch(() => {});
+      }
+      if (rideId) {
+        await RideTracking.create({ rideId, riderId: id, lat, lng }).catch(() => {});
+        namespace.to(`ride:${rideId}`).emit('ride_location_update', { rideId, lat, lng, timestamp: Date.now() });
+        if (io && namespace !== io) {
+          io.to(`ride:${rideId}`).emit('ride_location_update', { rideId, lat, lng, timestamp: Date.now() });
+        }
+      }
+    } catch (err) {
+      logger.error(`rider_location_update error: ${err.message}`);
+    }
+  });
+  socket.on('rider_go_online', async ({ riderId, lat, lng }) => {
+    try {
+      const id = riderId || socket.userId;
+      if (id) {
+        const update = { isOnline: true };
+        if (lat != null && lng != null) {
+          update['currentLocation.lat'] = lat;
+          update['currentLocation.lng'] = lng;
+          update['currentLocation.coordinates'] = [lng, lat];
+          update['currentLocation.updatedAt'] = new Date();
+        }
+        await RiderProfile.findOneAndUpdate({ userId: id }, update);
+      }
+    } catch (err) {
+      logger.error(`rider_go_online error: ${err.message}`);
+    }
+  });
+  socket.on('rider_go_offline', async ({ riderId }) => {
+    try {
+      const id = riderId || socket.userId;
+      if (id) {
+        await RiderProfile.findOneAndUpdate({ userId: id }, { isOnline: false });
+      }
+    } catch (err) {
+      logger.error(`rider_go_offline error: ${err.message}`);
+    }
+  });
+}
+
+function attachAssistantSocketHandlers(socket, namespace) {
+  socket.on('join_booking_room', ({ bookingId }) => {
+    if (bookingId) socket.join(`assistant-booking:${bookingId}`);
+  });
+  socket.on('leave_booking_room', ({ bookingId }) => {
+    if (bookingId) socket.leave(`assistant-booking:${bookingId}`);
+  });
+  socket.on('assistant_go_available', async ({ assistantId }) => {
+    try {
+      const id = assistantId || socket.userId;
+      if (id) {
+        await AssistantProfile.findOneAndUpdate(
+          { userId: id, assistantStatus: 'active' },
+          { isAvailable: true }
+        );
+      }
+    } catch (err) {
+      logger.error(`assistant_go_available error: ${err.message}`);
+    }
+  });
+  socket.on('assistant_go_unavailable', async ({ assistantId }) => {
+    try {
+      const id = assistantId || socket.userId;
+      if (id) {
+        await AssistantProfile.findOneAndUpdate(
+          { userId: id },
+          { isAvailable: false }
+        );
+      }
+    } catch (err) {
+      logger.error(`assistant_go_unavailable error: ${err.message}`);
+    }
+  });
+  socket.on('send_chat_message', ({ bookingId, senderId, senderName, text }) => {
+    if (!bookingId || !text) return;
+    const msg = {
+      bookingId,
+      senderId: senderId || socket.userId,
+      senderName: senderName || 'User',
+      text,
+      at: new Date().toISOString(),
+    };
+    namespace.to(`assistant-booking:${bookingId}`).emit('chat_message', msg);
+    if (io && namespace !== io) {
+      io.to(`assistant-booking:${bookingId}`).emit('chat_message', msg);
+    }
+  });
+}
+
+function attachLawyerSocketHandlers(socket, namespace) {
+  socket.on('join_booking_room', ({ bookingId }) => {
+    if (bookingId) socket.join(`lawyer-booking:${bookingId}`);
+  });
+  socket.on('leave_booking_room', ({ bookingId }) => {
+    if (bookingId) socket.leave(`lawyer-booking:${bookingId}`);
+  });
+  socket.on('lawyer_go_available', async ({ lawyerId }) => {
+    try {
+      const id = lawyerId || socket.userId;
+      if (id) {
+        await LawyerProfile.findOneAndUpdate(
+          { userId: id, lawyerStatus: 'active' },
+          { isAvailable: true }
+        );
+      }
+    } catch (err) {
+      logger.error(`lawyer_go_available error: ${err.message}`);
+    }
+  });
+  socket.on('lawyer_go_unavailable', async ({ lawyerId }) => {
+    try {
+      const id = lawyerId || socket.userId;
+      if (id) {
+        await LawyerProfile.findOneAndUpdate(
+          { userId: id },
+          { isAvailable: false }
+        );
+      }
+    } catch (err) {
+      logger.error(`lawyer_go_unavailable error: ${err.message}`);
+    }
+  });
+  socket.on('case_note_updated', ({ bookingId, note }) => {
+    if (!bookingId) return;
+    const payload = { bookingId, note, at: new Date().toISOString() };
+    namespace.to(`lawyer-booking:${bookingId}`).emit('case_note_update', payload);
+    if (io && namespace !== io) {
+      io.to(`lawyer-booking:${bookingId}`).emit('case_note_update', payload);
+    }
+  });
+  socket.on('send_chat_message', ({ bookingId, senderId, senderName, text }) => {
+    if (!bookingId || !text) return;
+    const msg = {
+      bookingId,
+      senderId: senderId || socket.userId,
+      senderName: senderName || 'User',
+      text,
+      at: new Date().toISOString(),
+    };
+    namespace.to(`lawyer-booking:${bookingId}`).emit('chat_message', msg);
+    if (io && namespace !== io) {
+      io.to(`lawyer-booking:${bookingId}`).emit('chat_message', msg);
+    }
+  });
+}
+
 
 const getAllowedSocketOrigins = () => {
   const envOrigins = [
@@ -130,6 +307,15 @@ export async function initSocket(server) {
     socket.on('deliveryboy:online', async ({ deliveryPartnerId, online }) => {
       await DeliveryPartner.findByIdAndUpdate(deliveryPartnerId, { isOnline: online, isAvailable: online });
     });
+
+    // ─── Vehicle & Ride Events (Doc 05 §4) ───────────────────────────
+    attachRideSocketHandlers(socket, io);
+
+    // ─── Hospital Assistant Events (Doc 05 §4) ────────────────────────
+    attachAssistantSocketHandlers(socket, io);
+
+    // ─── Lawyer & Legal Events (Doc 05 §4) ─────────────────────────────
+    attachLawyerSocketHandlers(socket, io);
 
     // Chat Events
     socket.on('chat:join', (conversationId) => {
@@ -250,16 +436,25 @@ export async function initSocket(server) {
     });
   });
 
+  const rideNsp = io.of('/ride');
+  rideNsp.on('connection', (socket) => {
+    attachRideSocketHandlers(socket, rideNsp);
+  });
+
+  const assistantNsp = io.of('/assistant');
+  assistantNsp.on('connection', (socket) => {
+    attachAssistantSocketHandlers(socket, assistantNsp);
+  });
+
+  const lawyerNsp = io.of('/lawyer');
+  lawyerNsp.on('connection', (socket) => {
+    attachLawyerSocketHandlers(socket, lawyerNsp);
+  });
+
   logger.info('Socket.IO ready');
   return io;
 }
 
-export function getIO() {
-  if (!io) {
-    throw new Error('Socket.IO not initialized. Call initSocket first.');
-  }
-  return io;
-}
 
 export function notifyUser(userId, notification) {
   if (io) {

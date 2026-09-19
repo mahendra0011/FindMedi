@@ -52,6 +52,43 @@ export function joinRoom(event, room) {
   return () => s.off('connect', doJoin);
 }
 
+export function joinRideRoom(rideId) {
+  const s = getSocket();
+  if (!rideId) return () => {};
+  const doJoin = () => s.emit('join_ride_room', { rideId });
+  s.on('connect', doJoin);
+  if (s.connected) doJoin();
+  return () => {
+    s.emit('leave_ride_room', { rideId });
+    s.off('connect', doJoin);
+  };
+}
+
+export function joinAssistantBookingRoom(bookingId) {
+  const s = getSocket();
+  if (!bookingId) return () => {};
+  const doJoin = () => s.emit('join_booking_room', { bookingId });
+  s.on('connect', doJoin);
+  if (s.connected) doJoin();
+  return () => {
+    s.emit('leave_booking_room', { bookingId });
+    s.off('connect', doJoin);
+  };
+}
+
+export function joinLawyerBookingRoom(bookingId) {
+  const s = getSocket();
+  if (!bookingId) return () => {};
+  const doJoin = () => s.emit('join_booking_room', { bookingId });
+  s.on('connect', doJoin);
+  if (s.connected) doJoin();
+  return () => {
+    s.emit('leave_booking_room', { bookingId });
+    s.off('connect', doJoin);
+  };
+}
+
+
 export function disconnectSocket() {
   if (socket) {
     socket.disconnect();

@@ -156,5 +156,47 @@
     "status": "active",
     "approvalStatus": "not_required",
     "avatar": ""
+  },
+  {
+    "_id": "rider-user",
+    "name": "Vikram Singh (Rider)",
+    "email": "rider@findmedi.com",
+    "password": "password",
+    "role": "rider",
+    "phone": "9876543220",
+    "address": "Civil Lines, Jabalpur, MP",
+    "gender": "Male",
+    "isVerified": true,
+    "status": "active",
+    "approvalStatus": "approved",
+    "avatar": ""
+  },
+  {
+    "_id": "assistant-user",
+    "name": "Sunita Sharma (Care Assistant)",
+    "email": "assistant@findmedi.com",
+    "password": "password",
+    "role": "assistant",
+    "phone": "9876543221",
+    "address": "Wright Town, Jabalpur, MP",
+    "gender": "Female",
+    "isVerified": true,
+    "status": "active",
+    "approvalStatus": "approved",
+    "avatar": ""
+  },
+  {
+    "_id": "lawyer-user",
+    "name": "Adv. Rajesh Verma (Legal Counsel)",
+    "email": "lawyer@findmedi.com",
+    "password": "password",
+    "role": "lawyer",
+    "phone": "9876543222",
+    "address": "High Court Complex, Jabalpur, MP",
+    "gender": "Male",
+    "isVerified": true,
+    "status": "active",
+    "approvalStatus": "approved",
+    "avatar": ""
   }
 ]

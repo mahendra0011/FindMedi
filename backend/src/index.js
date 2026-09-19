@@ -325,6 +325,16 @@ import driveRoutes from './routes/drive.js';
 import analyticsRoutes from './routes/analytics.js';
 import chatRoutes from './routes/chat.js';
 import callRoutes from './routes/calls.js';
+import rideRoutes from './routes/rides.js';
+import riderRoutes from './routes/riders.js';
+import adminRiderRoutes from './routes/adminRiders.js';
+import assistantRoutes from './routes/assistants.js';
+import assistantBookingRoutes from './routes/assistantBookings.js';
+import adminAssistantRoutes from './routes/adminAssistants.js';
+import lawyerRoutes from './routes/lawyers.js';
+import lawyerBookingRoutes from './routes/lawyerBookings.js';
+import adminLawyerRoutes from './routes/adminLawyers.js';
+import demoPaymentRoutes from './routes/demoPayment.js';
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -392,6 +402,19 @@ app.use('/api/ai-chat', aiChatRoutes);
 app.use('/api/drive', driveRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/calls', callRoutes);
+app.use('/api/ride', rideRoutes);
+app.use('/api/vehicle', rideRoutes);
+app.use('/api/rider', riderRoutes);
+app.use('/api/admin/riders', adminRiderRoutes);
+app.use('/api/admin/rides', (req, res, next) => { req.url = '/rides' + (req.url === '/' ? '' : req.url); adminRiderRoutes(req, res, next); });
+app.use('/api/admin/vehicles', (req, res, next) => { req.url = '/vehicles' + (req.url === '/' ? '' : req.url); adminRiderRoutes(req, res, next); });
+app.use('/api/assistant', assistantRoutes);
+app.use('/api/assistant-booking', assistantBookingRoutes);
+app.use('/api/admin/assistants', adminAssistantRoutes);
+app.use('/api/lawyer', lawyerRoutes);
+app.use('/api/lawyer-booking', lawyerBookingRoutes);
+app.use('/api/admin/lawyers', adminLawyerRoutes);
+app.use('/api/payment/demo', demoPaymentRoutes);
 
 // 2FA routes
 app.use('/api/auth/2fa', twoFactorRoutes);
@@ -475,8 +498,11 @@ if (process.env.NODE_ENV !== 'test') {
       await Doctor.syncIndexes();
       await Patient.syncIndexes();
       logger.info('✅ Database indexes synced');
+
+      const { ensureDemoUsers } = await import('./services/demoSeedService.js');
+      await ensureDemoUsers();
     } catch (e) {
-      logger.error('⚠️ Failed to sync indexes: ' + e.message);
+      logger.error('⚠️ Failed to sync indexes or seed demo users: ' + e.message);
     }
   });
 
