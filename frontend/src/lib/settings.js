@@ -37,7 +37,9 @@ export function applyUserSettings(settings = {}) {
 
   const next = mergeSettings(readStoredSettings(), settings);
   const root = document.documentElement;
-  const prefersDark = typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const prefersDark = typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+    ? window.matchMedia('(prefers-color-scheme: dark)').matches
+    : false;
 
   root.classList.toggle('dark', next.theme === 'dark' || (next.theme === 'system' && prefersDark));
   root.dataset.theme = next.theme;
@@ -110,7 +112,15 @@ const en = {
   'nav.upcomingAppointments': 'Upcoming Appointments',
   'nav.appointmentHistory': 'Appointment History',
   'nav.todayAppointments': 'Today Appointments',
+  'nav.approveOfflineAppointments': 'Approve Offline Appointments',
+  'nav.approvedOfflineAppointments': 'Approved Offline Appointments',
+  'nav.offlineAppointmentHistory': 'Offline Appointment History',
   'nav.onlineAppointments': 'Online Appointments',
+  'nav.approveOnlineAppointments': 'Approve Online Appointments',
+  'nav.approvedOnlineAppointments': 'Approved Online Appointments',
+  'nav.upcomingOnlineAppointments': 'Upcoming Online Appointments',
+  'nav.todayOnlineAppointments': 'Today Online Appointments',
+  'nav.onlineAppointmentHistory': 'Online Appointment History',
   'nav.inPersonAppointments': 'Home Visits',
   'nav.inClinicAppointments': 'In Clinic',
   'nav.inHospitalAppointments': 'In Hospital',
@@ -194,7 +204,6 @@ const en = {
   'nav.deliveryPartners': 'Delivery Partners',
   'nav.saLegal': 'Legal & Compliance',
   'nav.saIntegrations': 'Integrations',
-  'nav.platformSettings': 'Platform Settings',
   'common.logout': 'Logout',
   'common.saving': 'Saving...',
   'common.updating': 'Updating...',
@@ -374,7 +383,15 @@ const hi = {
   'nav.upcomingAppointments': 'आगामी अपॉइंटमेंट्स',
   'nav.appointmentHistory': 'अपॉइंटमेंट इतिहास',
   'nav.todayAppointments': 'आज की अपॉइंटमेंट्स',
-  'nav.onlineAppointments': 'ऑनलाइन अपॉइंटमेंट्स',
+  'nav.approveOfflineAppointments': 'ऑफलाइन अपॉइंटमेंट्स स्वीकृत करें',
+  'nav.approvedOfflineAppointments': 'स्वीकृत ऑफलाइन अपॉइंटमेंट्स',
+  'nav.offlineAppointmentHistory': 'ऑफलाइन अपॉइंटमेंट इतिहास',
+  'nav.onlineAppointments': 'ऑनलाइन अपॉइंटमेंट्स स्वीकृत करें',
+  'nav.approveOnlineAppointments': 'ऑनलाइन अपॉइंटमेंट्स स्वीकृत करें',
+  'nav.approvedOnlineAppointments': 'स्वीकृत ऑनलाइन अपॉइंटमेंट्स',
+  'nav.upcomingOnlineAppointments': 'आगामी ऑनलाइन अपॉइंटमेंट्स',
+  'nav.todayOnlineAppointments': 'आज के ऑनलाइन अपॉइंटमेंट्स',
+  'nav.onlineAppointmentHistory': 'ऑनलाइन अपॉइंटमेंट इतिहास',
   'nav.inPersonAppointments': 'होम विजिट्स',
   'nav.inClinicAppointments': 'क्लिनिक में',
   'nav.inHospitalAppointments': 'अस्पताल में',
@@ -568,7 +585,15 @@ const mr = {
   'nav.upcomingAppointments': 'आगामी अपॉइंटमेंट',
   'nav.appointmentHistory': 'अपॉइंटमेंट इतिहास',
   'nav.todayAppointments': 'आजची अपॉइंटमेंट',
-  'nav.onlineAppointments': 'ऑनलाइन अपॉइंटमेंट',
+  'nav.approveOfflineAppointments': 'ऑफलाइन अपॉइंटमेंट स्वीकारा',
+  'nav.approvedOfflineAppointments': 'स्वीकृत ऑफलाइन अपॉइंटमेंट',
+  'nav.offlineAppointmentHistory': 'ऑफलाइन अपॉइंटमेंट इतिहास',
+  'nav.onlineAppointments': 'ऑनलाइन अपॉइंटमेंट स्वीकारा',
+  'nav.approveOnlineAppointments': 'ऑनलाइन अपॉइंटमेंट स्वीकारा',
+  'nav.approvedOnlineAppointments': 'स्वीकृत ऑनलाइन अपॉइंटमेंट',
+  'nav.upcomingOnlineAppointments': 'आगामी ऑनलाइन अपॉइंटमेंट्स',
+  'nav.todayOnlineAppointments': 'आजच्या ऑनलाइन अपॉइंटमेंट्स',
+  'nav.onlineAppointmentHistory': 'ऑनलाइन अपॉइंटमेंट इतिहास',
   'nav.inPersonAppointments': 'होम व्हिजिट',
   'nav.inClinicAppointments': 'क्लिनिकमध्ये',
   'nav.inHospitalAppointments': 'रुग्णालयात',

@@ -1,12 +1,14 @@
 import { useState, useMemo } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import {
   CalendarDays, ChevronLeft, ChevronRight, Clock, CheckCircle,
   User, History, TrendingUp,
   XCircle, AlertTriangle, FileText, Info, Phone, Mail, MapPin, Droplet,
-  Video, MessageSquare,
+  Video, MessageSquare, Building2, Globe,
 } from 'lucide-react';
 import { getISTDateString, formatDisplayDate } from '@/lib/dateUtils';
 import { resolveFileUrl, isValidFileUrl } from '@/lib/api';
+import { isHomeVisitAppointment, isOfflineClinicAppointment } from '@/lib/appointmentModes';
 import {
   parseTime, subSlotFor, getHourSlots, getSubSlotsForHour, hourBoxFor,
 } from '@/lib/timeSlots';
@@ -20,11 +22,39 @@ import { toast } from 'sonner';
  * status overview + recent (right). Cards use the SAME CompletedCard design with
  * only Confirm/Reject actions; rejected appointments show the rejection reason.
  */
-export default function ApproveAppointmentSection({ appointments, onConfirm, onReject }) {
+export default function ApproveAppointmentSection({ appointments, allAppointments = [], onConfirm, onReject }) {
+  const location = useLocation();
+  const isClinic = location.pathname.startsWith('/clinic');
   const [calDate, setCalDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(getISTDateString());
 
   const today = getISTDateString();
+
+  const offlinePendingCount = useMemo(() => {
+    return appointments.filter(a => (a.status || '').toLowerCase() === 'pending').length;
+  }, [appointments]);
+
+  const onlinePendingCount = useMemo(() => {
+    const list = allAppointments.length > 0 ? allAppointments : appointments;
+    return list.filter(a => {
+      const s = (a.status || '').toLowerCase();
+      if (s !== 'pending') return false;
+      const m = (a.appointmentMode || '').toLowerCase();
+      const t = (a.type || '').toLowerCase();
+      return m === 'voice' || m === 'audio' || m === 'video' || m === 'chat' ||
+             t.includes('voice') || t.includes('audio') || t.includes('video') || t.includes('chat') || t.includes('online');
+    }).length;
+  }, [allAppointments, appointments]);
+
+  const clinicPendingCount = useMemo(() => {
+    return appointments.filter(a => (a.status || '').toLowerCase() === 'pending' && isOfflineClinicAppointment(a)).length;
+  }, [appointments]);
+
+  const homePendingCount = useMemo(() => {
+    return appointments.filter(a => (a.status || '').toLowerCase() === 'pending' && isHomeVisitAppointment(a)).length;
+  }, [appointments]);
+
+  const [modeFilter, setModeFilter] = useState('all'); // 'all' | 'clinic' | 'home'
 
   // Shared reject modal target (used by cards AND recent requests)
   const [rejectTarget, setRejectTarget] = useState(null);
@@ -40,9 +70,12 @@ export default function ApproveAppointmentSection({ appointments, onConfirm, onR
     () => appointments.filter(a => {
       if (a.date !== selectedDate) return false;
       const s = (a.status || '').toLowerCase();
-      return s === 'pending' || s === 'cancelled';
+      if (s !== 'pending' && s !== 'cancelled') return false;
+      if (modeFilter === 'clinic') return isOfflineClinicAppointment(a);
+      if (modeFilter === 'home') return isHomeVisitAppointment(a);
+      return true;
     }),
-    [appointments, selectedDate]
+    [appointments, selectedDate, modeFilter]
   );
 
   // Most recent requests first (by slot time, fallback to createdAt)
@@ -104,7 +137,8 @@ export default function ApproveAppointmentSection({ appointments, onConfirm, onR
   }, [appointments]);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:flex-1 md:min-h-0 md:grid-rows-1">
+    <div className="space-y-4 flex flex-col md:flex-1 md:min-h-0">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:flex-1 md:min-h-0 md:grid-rows-1">
       {/* ════════════ LEFT: Calendar (fixed) + Patient list (fills) ════════════ */}
       <div className="space-y-4 flex flex-col md:min-h-0">
         <div className="bg-card rounded-[24px] border border-border/60 p-5 shadow-sm shrink-0">
@@ -237,15 +271,63 @@ export default function ApproveAppointmentSection({ appointments, onConfirm, onR
 
       {/* ════════════ MIDDLE: Date header + time filter + cards (internal scroll) ════════════ */}
       <div className="space-y-4 flex flex-col md:min-h-0">
-        {/* Date header */}
-        <div className="flex items-center justify-between shrink-0">
-          <h4 className="font-heading text-base font-semibold text-foreground flex items-center gap-2">
-            <CalendarDays className="w-4 h-4 text-primary" />
-            {formatDisplayDate(selectedDate) || selectedDate}
-          </h4>
-          <span className="text-xs text-muted-foreground">
-            {slotAppointments.length} request{slotAppointments.length !== 1 ? 's' : ''}
-          </span>
+        {/* Date header + Mode Filter Pills */}
+        <div className="flex flex-wrap items-center justify-between gap-2 shrink-0">
+          <div className="flex items-center gap-2">
+            <h4 className="font-heading text-base font-semibold text-foreground flex items-center gap-2">
+              <CalendarDays className="w-4 h-4 text-primary" />
+              {formatDisplayDate(selectedDate) || selectedDate}
+            </h4>
+            <span className="text-xs text-muted-foreground">
+              ({slotAppointments.length})
+            </span>
+          </div>
+
+          {/* Quick Sub-Filter: All Offline / In-Clinic / Home Visit */}
+          <div className="flex items-center bg-muted/60 p-0.5 rounded-xl border border-border/50 text-[11px] font-semibold gap-0.5">
+            <button
+              onClick={() => setModeFilter('all')}
+              className={`px-2.5 py-1 rounded-lg transition-all ${
+                modeFilter === 'all'
+                  ? 'bg-card text-foreground shadow-sm font-bold'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              All Requests
+            </button>
+            <button
+              onClick={() => setModeFilter('clinic')}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all ${
+                modeFilter === 'clinic'
+                  ? 'bg-card text-primary shadow-sm font-bold'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Building2 className="w-3 h-3" />
+              In-Clinic
+              {clinicPendingCount > 0 && (
+                <span className="ml-1 px-1 py-0.2 rounded-full text-[9px] font-bold bg-primary/15 text-primary">
+                  {clinicPendingCount}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => setModeFilter('home')}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all ${
+                modeFilter === 'home'
+                  ? 'bg-card text-violet-600 shadow-sm font-bold'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <MapPin className="w-3 h-3 text-violet-500" />
+              Home Visit
+              {homePendingCount > 0 && (
+                <span className="ml-1 px-1 py-0.2 rounded-full text-[9px] font-bold bg-violet-500/15 text-violet-600">
+                  {homePendingCount}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Request cards */}
@@ -378,6 +460,7 @@ export default function ApproveAppointmentSection({ appointments, onConfirm, onR
             )}
           </div>
         </div>
+      </div>
       </div>
 
       {/* ── Shared Reject reason modal (mandatory) ── */}
@@ -535,7 +618,7 @@ function ApproveCard({ apt, subSlotFor, onViewFile, onConfirm, onRejectClick }) 
       {/* Personal details grid */}
       <div className="grid grid-cols-2 gap-2 text-sm mb-4">
         {patient?.dateOfBirth && (
-          <Detail icon={User} label="Age" value={`${Math.floor((new Date() - new Date(patient.dateOfBirth)) / 31557600000)} yrs`} />
+          <Detail icon={User} label="Age" value={`${Math.floor((new Date().getTime() - new Date(patient.dateOfBirth).getTime()) / 31557600000)} yrs`} />
         )}
         {patient?.phone && (
           <Detail icon={Phone} label="Phone" value={patient.phone} />

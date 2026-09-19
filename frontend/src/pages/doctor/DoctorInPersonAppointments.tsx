@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import {
   MapPin, Navigation, Clock, User, Phone, MessageCircle,
   FileText, CheckCircle2, AlertCircle, RefreshCw, Calendar,
-  Search, ExternalLink, Stethoscope, Pill, Check,
+  Search, ExternalLink, Stethoscope, Pill, Check, X,
   Car
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -19,27 +19,10 @@ import { useAudioCall } from '@/context/AudioCallContext';
 import { api } from '@/lib/api';
 import { getISTDateString } from '@/lib/dateUtils';
 import { useAppointmentRealtime } from '@/lib/useAppointmentRealtime';
+import { isHomeVisitAppointment } from '@/lib/appointmentModes';
 import {
   Map, MapMarker, MarkerContent, MapRoute, MapControls
 } from '@/components/ui/map';
-
-// Helper to test if an appointment is Home Visit (offline/home_visit)
-function isInPersonAppointment(appt) {
-  const mode = (appt.appointmentMode || '').toLowerCase();
-  const type = (appt.type || '').toLowerCase();
-  const intakeMode = (appt.preConsultationDetails?.appointmentMode || appt.preConsultationDetails?.mode || '').toLowerCase();
-
-  // If explicitly offline, in_person, or home_visit
-  if (mode === 'offline' || mode === 'in_person' || mode === 'in-person' || mode === 'home_visit' || mode === 'home' || intakeMode === 'in_person' || intakeMode === 'offline' || intakeMode === 'home_visit' || intakeMode === 'home') {
-    return true;
-  }
-
-  // Not online (not chat, video, voice, audio)
-  const isOnline = mode === 'chat' || mode === 'video' || mode === 'voice' || mode === 'audio' ||
-    type.includes('chat') || type.includes('video') || type.includes('voice') || type.includes('audio');
-
-  return !isOnline;
-}
 
 // Calculate straight-line approximate distance in km (Haversine formula)
 function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
@@ -112,21 +95,14 @@ export default function DoctorInPersonAppointments() {
       const raw = data?.appointments || data?.data || data || [];
 
       // STRICT FILTER:
-      // 1. Must be a HOME VISIT appointment
-      // 2. Must be APPROVED (never pending! Must have been accepted in Approve Appointments)
-      const approvedInPerson = raw.filter((a) => {
-        const isInPerson = isInPersonAppointment(a);
-        const status = (a.status || '').toLowerCase();
-        // Accepted / Approved statuses
-        const isApproved = status === 'confirmed' || status === 'in queue' || status === 'serving' || status === 'completed';
-        return isInPerson && isApproved;
-      });
+      // Must be a HOME VISIT appointment (chat/video/audio are in Online, offline clinic in In-Clinic)
+      const homeVisits = raw.filter(isHomeVisitAppointment);
 
-      setAppointments(approvedInPerson);
+      setAppointments(homeVisits);
 
       // Auto-select first active appointment if none selected
-      if (approvedInPerson.length > 0 && !selectedApptId) {
-        const firstActive = approvedInPerson.find(a => (a.status || '').toLowerCase() !== 'completed') || approvedInPerson[0];
+      if (homeVisits.length > 0 && !selectedApptId) {
+        const firstActive = homeVisits.find(a => (a.status || '').toLowerCase() !== 'completed') || homeVisits[0];
         setSelectedApptId(firstActive._id);
       }
     } catch (err) {
@@ -142,19 +118,32 @@ export default function DoctorInPersonAppointments() {
     loadAppointments();
   }, [loadAppointments]);
 
-  // Real-time updates when an appointment is confirmed in Approve Appointments
+  // Real-time updates when an appointment is confirmed/updated
   useAppointmentRealtime(loadAppointments);
 
   const today = getISTDateString();
+
+  const handleStatus = async (id, status, extra = {}) => {
+    try {
+      await api.updateAppointment(id, { status, ...extra });
+      toast.success(`Home visit request ${status === 'Confirmed' ? 'accepted' : 'updated'}`);
+      loadAppointments(true);
+    } catch (e) {
+      console.error(e);
+      toast.error('Failed to update home visit');
+    }
+  };
 
   // Tab filtering
   const filteredAppointments = useMemo(() => {
     let list = appointments;
 
-    if (activeTab === 'today') {
-      list = list.filter((a) => a.date === today && (a.status || '').toLowerCase() !== 'completed');
+    if (activeTab === 'pending') {
+      list = list.filter((a) => (a.status || '').toLowerCase() === 'pending');
+    } else if (activeTab === 'today') {
+      list = list.filter((a) => a.date === today && (a.status || '').toLowerCase() !== 'completed' && (a.status || '').toLowerCase() !== 'pending');
     } else if (activeTab === 'upcoming') {
-      list = list.filter((a) => a.date > today && (a.status || '').toLowerCase() !== 'completed');
+      list = list.filter((a) => a.date > today && (a.status || '').toLowerCase() !== 'completed' && (a.status || '').toLowerCase() !== 'pending');
     } else if (activeTab === 'completed') {
       list = list.filter((a) => (a.status || '').toLowerCase() === 'completed');
     }
@@ -231,7 +220,8 @@ export default function DoctorInPersonAppointments() {
 
   // Status counts
   const stats = useMemo(() => {
-    const todayApproved = appointments.filter(a => a.date === today);
+    const pending = appointments.filter(a => (a.status || '').toLowerCase() === 'pending');
+    const todayApproved = appointments.filter(a => a.date === today && (a.status || '').toLowerCase() !== 'pending');
     const onTheWay = todayApproved.filter(a => {
       const s = (a.patientLocation?.transitStatus || '').toLowerCase();
       return s === 'on_the_way' || s === 'pending_departure';
@@ -244,6 +234,7 @@ export default function DoctorInPersonAppointments() {
     const completed = appointments.filter(a => (a.status || '').toLowerCase() === 'completed');
 
     return {
+      pendingCount: pending.length,
       todayCount: todayApproved.length,
       onTheWayCount: onTheWay.length,
       arrivedCount: arrived.length,
@@ -330,29 +321,56 @@ export default function DoctorInPersonAppointments() {
           </Button>
 
           <Button
-            variant="outline"
+            variant={activeTab === 'pending' ? 'default' : 'outline'}
             size="sm"
-            onClick={() => navigate(user?.role === 'clinic_doctor' ? '/clinic/appointments/approve' : '/doctor/appointments/approve')}
-            className="rounded-xl h-10 gap-1.5 text-xs text-primary border-primary/20 hover:bg-primary/5"
+            onClick={() => setActiveTab('pending')}
+            className={`rounded-xl h-10 gap-1.5 text-xs ${
+              stats.pendingCount > 0
+                ? 'bg-amber-500 hover:bg-amber-600 text-white border-none shadow-sm'
+                : 'text-muted-foreground border-border/60 hover:bg-muted/60'
+            }`}
           >
-            <FileText className="w-3.5 h-3.5" />
-            Approval Queue
+            <Clock className="w-3.5 h-3.5" />
+            Pending Requests {stats.pendingCount > 0 && `(${stats.pendingCount})`}
           </Button>
         </div>
       </div>
 
       {/* ── STATS COUNTER BAR ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-        <div className="p-4 rounded-2xl bg-card border border-border/60 shadow-sm">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3.5">
+        <div
+          onClick={() => setActiveTab('pending')}
+          className={`p-3.5 rounded-2xl border cursor-pointer transition-all ${
+            activeTab === 'pending'
+              ? 'bg-amber-500/10 border-amber-500/40 ring-1 ring-amber-500/30'
+              : 'bg-card border-border/60 shadow-sm hover:border-amber-500/30'
+          }`}
+        >
+          <div className="flex items-center justify-between text-muted-foreground mb-1">
+            <span className="text-xs font-medium">Pending Requests</span>
+            <Clock className="w-4 h-4 text-amber-500" />
+          </div>
+          <p className="text-2xl font-bold font-heading text-amber-600 dark:text-amber-400">{stats.pendingCount}</p>
+          <span className="text-[11px] text-muted-foreground">Needs approval</span>
+        </div>
+
+        <div
+          onClick={() => setActiveTab('today')}
+          className={`p-3.5 rounded-2xl border cursor-pointer transition-all ${
+            activeTab === 'today'
+              ? 'bg-primary/10 border-primary/40 ring-1 ring-primary/30'
+              : 'bg-card border-border/60 shadow-sm hover:border-primary/30'
+          }`}
+        >
           <div className="flex items-center justify-between text-muted-foreground mb-1">
             <span className="text-xs font-medium">Approved Today</span>
             <Calendar className="w-4 h-4 text-primary" />
           </div>
           <p className="text-2xl font-bold font-heading text-foreground">{stats.todayCount}</p>
-          <span className="text-[11px] text-muted-foreground">Home visits scheduled</span>
+          <span className="text-[11px] text-muted-foreground">Scheduled today</span>
         </div>
 
-        <div className="p-4 rounded-2xl bg-card border border-border/60 shadow-sm">
+        <div className="p-3.5 rounded-2xl bg-card border border-border/60 shadow-sm">
           <div className="flex items-center justify-between text-muted-foreground mb-1">
             <span className="text-xs font-medium">On the Way</span>
             <Car className="w-4 h-4 text-amber-500" />
@@ -361,22 +379,29 @@ export default function DoctorInPersonAppointments() {
           <span className="text-[11px] text-muted-foreground">Traveling to clinic</span>
         </div>
 
-        <div className="p-4 rounded-2xl bg-card border border-border/60 shadow-sm">
+        <div className="p-3.5 rounded-2xl bg-card border border-border/60 shadow-sm">
           <div className="flex items-center justify-between text-muted-foreground mb-1">
-            <span className="text-xs font-medium">Arrived / In Queue</span>
+            <span className="text-xs font-medium">Arrived / Queue</span>
             <CheckCircle2 className="w-4 h-4 text-emerald-500" />
           </div>
           <p className="text-2xl font-bold font-heading text-emerald-600 dark:text-emerald-400">{stats.arrivedCount}</p>
           <span className="text-[11px] text-muted-foreground">In waiting area</span>
         </div>
 
-        <div className="p-4 rounded-2xl bg-card border border-border/60 shadow-sm">
+        <div
+          onClick={() => setActiveTab('completed')}
+          className={`p-3.5 rounded-2xl border cursor-pointer transition-all ${
+            activeTab === 'completed'
+              ? 'bg-blue-500/10 border-blue-500/40 ring-1 ring-blue-500/30'
+              : 'bg-card border-border/60 shadow-sm hover:border-blue-500/30'
+          }`}
+        >
           <div className="flex items-center justify-between text-muted-foreground mb-1">
             <span className="text-xs font-medium">Completed</span>
             <Stethoscope className="w-4 h-4 text-blue-500" />
           </div>
           <p className="text-2xl font-bold font-heading text-blue-600 dark:text-blue-400">{stats.completedCount}</p>
-          <span className="text-[11px] text-muted-foreground">Consultations done</span>
+          <span className="text-[11px] text-muted-foreground">Visits finished</span>
         </div>
       </div>
 
@@ -389,6 +414,9 @@ export default function DoctorInPersonAppointments() {
             <div className="flex items-center justify-between gap-2 border-b border-border/50 pb-3">
               <div className="flex items-center gap-1.5 overflow-x-auto">
                 {[
+                  ...(stats.pendingCount > 0
+                    ? [{ key: 'pending', label: `Requests (${stats.pendingCount})` }]
+                    : [{ key: 'pending', label: 'Requests' }]),
                   { key: 'today', label: 'Today' },
                   { key: 'upcoming', label: 'Upcoming' },
                   { key: 'completed', label: 'Completed' },
@@ -397,7 +425,7 @@ export default function DoctorInPersonAppointments() {
                   <button
                     key={tab.key}
                     onClick={() => setActiveTab(tab.key)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
                       activeTab === tab.key
                         ? 'bg-primary text-primary-foreground shadow-sm'
                         : 'text-muted-foreground hover:bg-muted/60'
@@ -434,9 +462,13 @@ export default function DoctorInPersonAppointments() {
             ) : filteredAppointments.length === 0 ? (
               <div className="p-8 text-center rounded-2xl border border-dashed border-border/70 bg-card/40 space-y-2">
                 <MapPin className="w-8 h-8 mx-auto text-muted-foreground/40" />
-                <p className="text-sm font-semibold text-foreground">No home visits found</p>
+                <p className="text-sm font-semibold text-foreground">
+                  {activeTab === 'pending' ? 'No pending home visit requests' : 'No home visits found'}
+                </p>
                 <p className="text-xs text-muted-foreground max-w-xs mx-auto">
-                  Patients who selected Home Visit mode in the intake form appear here once their requests are approved in the Approval Queue.
+                  {activeTab === 'pending'
+                    ? 'New patient home visit requests awaiting your approval will appear here.'
+                    : 'Patients who booked home visit appointments will appear here.'}
                 </p>
               </div>
             ) : (
@@ -472,14 +504,22 @@ export default function DoctorInPersonAppointments() {
                       <Badge
                         variant="outline"
                         className={`text-[10px] uppercase font-semibold px-2 py-0.5 ${
-                          status === 'completed'
+                          status === 'pending'
+                            ? 'bg-amber-500/10 text-amber-600 border-amber-500/30'
+                            : status === 'completed'
                             ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30'
                             : isArrived
                             ? 'bg-blue-500/10 text-blue-600 border-blue-500/30'
-                            : 'bg-amber-500/10 text-amber-600 border-amber-500/30'
+                            : 'bg-indigo-500/10 text-indigo-600 border-indigo-500/30'
                         }`}
                       >
-                        {status === 'completed' ? 'Completed' : isArrived ? 'Arrived / In Queue' : 'On The Way'}
+                        {status === 'pending'
+                          ? 'Pending Approval'
+                          : status === 'completed'
+                          ? 'Completed'
+                          : isArrived
+                          ? 'Arrived / In Queue'
+                          : 'On The Way'}
                       </Badge>
                     </div>
 
@@ -521,7 +561,7 @@ export default function DoctorInPersonAppointments() {
                     )}
 
                     {/* Footer Actions Row */}
-                    <div className="mt-3 pt-2.5 border-t border-border/40 flex items-center justify-between gap-2">
+                    <div className="mt-3 pt-2.5 border-t border-border/40 flex items-center justify-between gap-2 flex-wrap">
                       <div className="flex items-center gap-1">
                         {/* Audio Call */}
                         <Button
@@ -552,8 +592,32 @@ export default function DoctorInPersonAppointments() {
                         </Button>
                       </div>
 
-                      {/* Arrival / Check-in */}
-                      {status !== 'completed' && (
+                      {/* Pending: Accept / Reject Buttons */}
+                      {status === 'pending' ? (
+                        <div className="flex items-center gap-1.5">
+                          <Button
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleStatus(appt._id, 'Confirmed');
+                            }}
+                            className="h-7 px-2.5 text-xs gap-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-sm"
+                          >
+                            <CheckCircle2 className="w-3 h-3" /> Accept
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleStatus(appt._id, 'Cancelled');
+                            }}
+                            className="h-7 px-2 text-xs gap-1 rounded-lg text-destructive border-destructive/30 hover:bg-destructive/10"
+                          >
+                            <X className="w-3 h-3" /> Reject
+                          </Button>
+                        </div>
+                      ) : status !== 'completed' && (
                         <div>
                           {!isArrived ? (
                             <Button

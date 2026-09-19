@@ -61,6 +61,8 @@ export default function ChatDashboard() {
   const [uploading, setUploading] = useState(false);
   const [pendingAttachments, setPendingAttachments] = useState([]);
   const fileInputRef = useRef(null);
+  const [highlightId, setHighlightId] = useState<any>(null);
+  const [recordingVoice, setRecordingVoice] = useState(false);
 
   // ── Realtime indicators ──
   const [typingUsers, setTypingUsers] = useState({});
@@ -674,7 +676,9 @@ export default function ChatDashboard() {
     try {
       const stored = JSON.parse((localStorage.getItem('findmedi_settings') || localStorage.getItem('medicore_settings')) || '{}');
       localStorage.setItem('findmedi_settings', JSON.stringify({ ...stored, theme: next }));
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const prefersDark = typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+        ? window.matchMedia('(prefers-color-scheme: dark)').matches
+        : false;
       document.documentElement.classList.toggle('dark', next === 'dark' || (next === 'system' && prefersDark));
     } catch { /* ignore */ }
   }, []);
@@ -1211,6 +1215,16 @@ export default function ChatDashboard() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function DateSeparator({ label }: any) {
+  return (
+    <div className="flex items-center justify-center my-3">
+      <span className="px-3 py-1 rounded-full text-[11px] font-medium bg-muted/80 text-muted-foreground border border-border/50 shadow-xs">
+        {label}
+      </span>
     </div>
   );
 }

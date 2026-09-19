@@ -152,7 +152,9 @@ export function playConnectSound() {
       osc.start(t);
       osc.stop(t + 0.25);
     });
-  } catch (e) {}
+  } catch {
+    /* ignore audio play error */
+  }
 }
 
 /**
@@ -182,7 +184,9 @@ export function playEndSound() {
       osc.start(t);
       osc.stop(t + 0.2);
     });
-  } catch (e) {}
+  } catch {
+    /* ignore audio play error */
+  }
 }
 
 /**
@@ -213,7 +217,9 @@ export function playBusySound() {
       osc.start(t);
       osc.stop(t + 0.25);
     }
-  } catch (e) {}
+  } catch {
+    /* ignore audio play error */
+  }
 }
 
 /**
@@ -223,7 +229,9 @@ export function triggerVibration() {
   if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
     try {
       navigator.vibrate([200, 100, 200, 100, 400]);
-    } catch (e) {}
+    } catch {
+      /* ignore vibration error */
+    }
   }
 }
 
@@ -231,6 +239,8 @@ export function stopVibration() {
   if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
     try {
       navigator.vibrate(0);
-    } catch (e) {}
+    } catch {
+      /* ignore vibration error */
+    }
   }
 }

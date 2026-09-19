@@ -70,7 +70,7 @@ const osmRasterStyle: maplibregl.StyleSpecification = {
   layers: [{ id: 'osm-raster-layer', type: 'raster', source: 'osm-raster' }],
 } as const;
 
-const MAPTILER_KEY = process.env.NEXT_PUBLIC_MAPTILER_API_KEY;
+const MAPTILER_KEY = (import.meta as any)?.env?.VITE_MAPTILER_API_KEY || (typeof process !== 'undefined' && process?.env ? process.env.NEXT_PUBLIC_MAPTILER_API_KEY : undefined);
 const maptilerBasicStyle = MAPTILER_KEY
   ? {
       light: `https://api.maptiler.com/maps/streets-v2/style.json?key=${MAPTILER_KEY}`,

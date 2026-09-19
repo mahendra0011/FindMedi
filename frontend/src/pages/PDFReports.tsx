@@ -28,8 +28,10 @@ export default function PDFReports() {
 
   const [labReport, setLabReport] = useState({
     patientName: '', patientAge: '', patientGender: '', patientPhone: '', patientEmail: '',
-    doctorName: '', testName: '', sampleType: '',
+    doctorName: '', doctorSpecialization: '', reportId: '', testDate: '', reportDate: '',
+    testName: '', sampleType: '',
     results: [{ testParameter: '', value: '', unit: '', referenceRange: '', flag: 'Normal' }],
+    tests: [{ name: '', result: '', unit: '', referenceRange: '' }],
     notes: '', impression: ''
   });
 
@@ -49,7 +51,7 @@ export default function PDFReports() {
     }));
   };
 
-  const updateDischargeMed = (index, field, value) => {
+  const updateDischargeMed = (index: number, field: string, value: string) => {
     setDischarge(prev => {
       const next = [...prev.medications];
       next[index] = { ...next[index], [field]: value };
@@ -57,11 +59,12 @@ export default function PDFReports() {
     });
   };
 
-  const handleMedicationChange = (index, field, value) => {
+  const updateMedication = (index: number, field: string, value: string) => {
     const next = [...prescription.medications];
-    next[index][field] = value;
+    next[index] = { ...next[index], [field]: value };
     setPrescription({ ...prescription, medications: next });
   };
+  const handleMedicationChange = updateMedication;
 
   const addMedication = () => {
     setPrescription({
@@ -70,7 +73,7 @@ export default function PDFReports() {
     });
   };
 
-  const removeMedication = (index) => {
+  const removeMedication = (index: number) => {
     if (prescription.medications.length <= 1) return;
     setPrescription({
       ...prescription,
@@ -78,9 +81,32 @@ export default function PDFReports() {
     });
   };
 
-  const handleLabResultChange = (index, field, value) => {
+  const updateTest = (index: number, field: string, value: string) => {
+    setLabReport(prev => {
+      const next = [...(prev.tests || [])];
+      next[index] = { ...next[index], [field]: value };
+      return { ...prev, tests: next };
+    });
+  };
+
+  const addTest = () => {
+    setLabReport(prev => ({
+      ...prev,
+      tests: [...(prev.tests || []), { name: '', result: '', unit: '', referenceRange: '' }]
+    }));
+  };
+
+  const removeTest = (index: number) => {
+    if ((labReport.tests || []).length <= 1) return;
+    setLabReport(prev => ({
+      ...prev,
+      tests: (prev.tests || []).filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleLabResultChange = (index: number, field: string, value: string) => {
     const next = [...labReport.results];
-    next[index][field] = value;
+    next[index] = { ...next[index], [field]: value };
     setLabReport({ ...labReport, results: next });
   };
 
@@ -91,7 +117,7 @@ export default function PDFReports() {
     });
   };
 
-  const removeLabResult = (index) => {
+  const removeLabResult = (index: number) => {
     if (labReport.results.length <= 1) return;
     setLabReport({
       ...labReport,
@@ -120,6 +146,16 @@ export default function PDFReports() {
       };
     }
     if (type === 'lab') {
+      const formattedResults = labReport.tests?.length
+        ? labReport.tests.map(t => ({
+            testParameter: t.name,
+            value: t.result,
+            unit: t.unit,
+            referenceRange: t.referenceRange,
+            flag: 'Normal'
+          }))
+        : labReport.results;
+
       return {
         patient: {
           name: labReport.patientName,
@@ -129,9 +165,14 @@ export default function PDFReports() {
           email: labReport.patientEmail
         },
         doctorName: labReport.doctorName || user?.name,
+        doctorSpecialization: labReport.doctorSpecialization,
+        reportId: labReport.reportId,
+        testDate: labReport.testDate,
+        reportDate: labReport.reportDate,
         testName: labReport.testName,
         sampleType: labReport.sampleType,
-        results: labReport.results,
+        results: formattedResults,
+        tests: labReport.tests,
         notes: labReport.notes,
         impression: labReport.impression
       };
