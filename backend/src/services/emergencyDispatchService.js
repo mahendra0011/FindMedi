@@ -481,13 +481,15 @@ export async function startEmergencyDispatch(requestId) {
       if (!current || current.status !== 'searching') return;
       emitSearchUpdate(io, requestId, 'vehicle', radiusKm);
       const found = await findEligibleEmergencyVehicles(lng, lat, radiusKm, current.everNotified || []);
-      const cands = found.map(veh => ({
-        providerId: String(veh.user?._id),
-        providerType: 'rider',
-        userId: String(veh.user?._id),
-        distanceKm: veh.distanceKm,
-        raw: buildRiderAlert(current, veh),
-      }));
+      const cands = found
+        .filter(veh => veh.user?._id)
+        .map(veh => ({
+          providerId: String(veh.user?._id),
+          providerType: 'rider',
+          userId: String(veh.user?._id),
+          distanceKm: veh.distanceKm,
+          raw: buildRiderAlert(current, veh),
+        }));
       if (!cands.length) continue;
       const { done } = await runWave({
         requestId, phase: 'vehicle', radiusKm, candidates: cands,

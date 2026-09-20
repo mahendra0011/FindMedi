@@ -14,7 +14,7 @@ import RiderProfile from '../models/RiderProfile.js';
 import {
   startManualModeSearch,
   bookChosenProvider,
-  startAutoBookSearch,
+  startAutoEscalateLoop,
   startAutoFindLoop,
 } from '../services/sosVehicleService.js';
 import SOSVehicleSettings from '../models/SOSVehicleSettings.js';
@@ -114,7 +114,7 @@ router.post('/start', protect, async (req, res) => {
     } else if (requestMode === 'auto_select_vehicle' && autoFindEnabled) {
       startAutoFindLoop(requestId, radiusSteps, maxRetries, pauseMs).catch((e) => logger.error(`autofind fail: ${e.message}`));
     } else if (requestMode === 'auto_select_ambulance' || autoBookEnabled) {
-      startAutoBookSearch(requestId, request.startingRadiusKm).catch((e) => logger.error(`autobook fail: ${e.message}`));
+      startAutoEscalateLoop(requestId, radiusSteps, request.startingRadiusKm).catch((e) => logger.error(`autobook fail: ${e.message}`));
     } else if (requestMode === 'manual_select') {
       startManualModeSearch(requestId, request.startingRadiusKm).catch((e) => logger.error(`manual search fail: ${e.message}`));
     } else {
