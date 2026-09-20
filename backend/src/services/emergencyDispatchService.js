@@ -54,9 +54,15 @@ const freshnessCutoff = () => new Date(Date.now() - LOC_MAX_AGE_MS);
 export async function findEligibleAmbulances(pickupLng, pickupLat, radiusKm = 10, excludeIds = []) {
   try {
     if (mongoose.connection.readyState !== 1) return [];
+    if (!Number.isFinite(Number(pickupLng)) || !Number.isFinite(Number(pickupLat))) {
+      logger.error(`findEligibleAmbulances: invalid coordinates lng=${pickupLng} lat=${pickupLat}`);
+      return [];
+    }
     const radiusMeters = radiusKm * 1000;
 
-    const ex = excludeIds.map(id => new mongoose.Types.ObjectId(id));
+    const ex = excludeIds
+      .filter(id => id && mongoose.Types.ObjectId.isValid(id))
+      .map(id => new mongoose.Types.ObjectId(id));
     const ambulances = await Ambulance.aggregate([
       {
         $geoNear: {
@@ -113,6 +119,10 @@ export async function findEligibleAmbulances(pickupLng, pickupLat, radiusKm = 10
 export async function findEligibleEmergencyVehicles(pickupLng, pickupLat, radiusKm = 10, excludeIds = []) {
   try {
     if (mongoose.connection.readyState !== 1) return [];
+    if (!Number.isFinite(Number(pickupLng)) || !Number.isFinite(Number(pickupLat))) {
+      logger.error(`findEligibleEmergencyVehicles: invalid coordinates lng=${pickupLng} lat=${pickupLat}`);
+      return [];
+    }
     const radiusMeters = radiusKm * 1000;
 
     const matchingVehicles = await Vehicle.find({
@@ -123,20 +133,22 @@ export async function findEligibleEmergencyVehicles(pickupLng, pickupLat, radius
     if (vehicleIds.length === 0) return [];
 
     // Exclude users already notified (everNotified) + riders on active ride + riders already assigned to another SOS
-    const excludeUserIds = new Set(excludeIds.map(id => String(id)));
+    const excludeUserIds = new Set(excludeIds.filter(Boolean).map(id => String(id)));
 
     // Active ride statuses
     const ACTIVE_RIDE_STATUSES = ['accepted', 'rider_arriving', 'arrived', 'in_progress'];
     const busyOnRide = await RideBooking.distinct('riderId', { status: { $in: ACTIVE_RIDE_STATUSES } });
-    busyOnRide.forEach(id => excludeUserIds.add(id));
+    busyOnRide.filter(Boolean).forEach(id => excludeUserIds.add(String(id)));
 
     const busyOnSOS = await EmergencyRequest.distinct('assignedProviderId', {
       assignedProviderType: 'rider',
       status: { $in: ['assigned', 'en_route'] },
     });
-    busyOnSOS.forEach(id => excludeUserIds.add(id));
+    busyOnSOS.filter(Boolean).forEach(id => excludeUserIds.add(String(id)));
 
-    const skipUsers = [...excludeUserIds].map(id => new mongoose.Types.ObjectId(id));
+    const skipUsers = [...excludeUserIds]
+      .filter(id => mongoose.Types.ObjectId.isValid(id))
+      .map(id => new mongoose.Types.ObjectId(id));
 
     const riders = await RiderProfile.aggregate([
       {
