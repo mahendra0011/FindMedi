@@ -17,6 +17,7 @@ const emergencyRequestSchema = new mongoose.Schema({
   patientDetails: {
     name: { type: String, default: '' },
     age: { type: Number, default: null },
+    gender: { type: String, enum: ['male', 'female', 'other', ''], default: '' },
     bloodGroup: { type: String, default: '' },
     knownAllergies: { type: String, default: '' },
     knownConditions: { type: String, default: '' },
@@ -46,6 +47,7 @@ const emergencyRequestSchema = new mongoose.Schema({
       required: true,
     },
     address: { type: String, default: '' },
+    accuracy: { type: Number, default: null }, // meters, from navigator.geolocation
   },
 
   status: {

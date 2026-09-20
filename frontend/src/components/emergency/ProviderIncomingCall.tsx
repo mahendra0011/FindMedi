@@ -24,6 +24,7 @@ interface IncomingEmergencyData {
   location?: {
     address?: string;
     coordinates?: [number, number];
+    accuracy?: number;
   };
   distanceKm?: number;
   windowSeconds?: number;
@@ -268,6 +269,11 @@ export default function ProviderIncomingCall({
               <p className="text-slate-400 mt-1 truncate">
                 {data.location?.address || 'Reported emergency location (GPS coordinates)'}
               </p>
+              {data.location?.accuracy && data.location.accuracy > 50 && (
+                <p className="text-[10px] text-amber-400">
+                  ⚠️ Location accuracy: ±{Math.round(data.location.accuracy)}m — may not be exact
+                </p>
+              )}
             </div>
           </div>
 
@@ -286,33 +292,28 @@ export default function ProviderIncomingCall({
               <div>
                 <span className="text-slate-500">Name: </span>
                 <span className="font-semibold text-white">
-                  {data.patient?.name || 'Anonymous Patient'}
+                  {data.patient?.name || (data.isSelf ? 'Not available' : 'Unknown')}
                 </span>
               </div>
-              {data.patient?.age && (
-                <div>
-                  <span className="text-slate-500">Age: </span>
-                  <span className="font-semibold text-white">
-                    {data.patient.age} yrs {data.patient?.gender ? `(${data.patient.gender})` : ''}
-                  </span>
-                </div>
-              )}
-              {data.patient?.bloodGroup && (
-                <div>
-                  <span className="text-slate-500">Blood Group: </span>
-                  <span className="font-bold text-red-400">
-                    {data.patient.bloodGroup}
-                  </span>
-                </div>
-              )}
-              {data.patient?.phone && (
-                <div>
-                  <span className="text-slate-500">Contact: </span>
-                  <span className="font-semibold text-white">
-                    {data.patient.phone}
-                  </span>
-                </div>
-              )}
+              <div>
+                <span className="text-slate-500">Age: </span>
+                <span className="font-semibold text-white">
+                  {data.patient?.age ? `${data.patient.age} yrs` : 'Unknown'}
+                  {data.patient?.gender ? ` (${data.patient.gender})` : ''}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-500">Blood Group: </span>
+                <span className="font-bold text-red-400">
+                  {data.patient?.bloodGroup || 'Not provided'}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-500">Contact: </span>
+                <span className="font-semibold text-white">
+                  {data.patient?.phone || 'Not provided'}
+                </span>
+              </div>
             </div>
 
             {data.patient?.knownConditions && (

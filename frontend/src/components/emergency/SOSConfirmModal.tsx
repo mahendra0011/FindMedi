@@ -31,7 +31,7 @@ export default function SOSConfirmModal({
   const [step, setStep] = useState<'confirm_start' | 'details'>('confirm_start');
   const [reporterMode, setReporterMode] = useState<'self' | 'other'>('self');
   const [category, setCategory] = useState<string>('');
-  const [currentCoords, setCurrentCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [currentCoords, setCurrentCoords] = useState<{ lat: number; lng: number; accuracy?: number } | null>(null);
   const [address, setAddress] = useState<string>('Detecting your GPS location...');
   const [locating, setLocating] = useState<boolean>(true);
   const [loadingSubmit, setLoadingSubmit] = useState<boolean>(false);
@@ -39,6 +39,7 @@ export default function SOSConfirmModal({
   const [otherFormData, setOtherFormData] = useState({
     victimName: '',
     victimAge: '',
+    victimGender: '',
     victimCondition: '',
     shareOwnDetails: false,
   });
@@ -56,7 +57,8 @@ export default function SOSConfirmModal({
         (pos) => {
           const lat = pos.coords.latitude;
           const lng = pos.coords.longitude;
-          setCurrentCoords({ lat, lng });
+          const accuracy = pos.coords.accuracy;
+          setCurrentCoords({ lat, lng, accuracy });
           setAddress(`GPS: ${lat.toFixed(4)}, ${lng.toFixed(4)} (Current Location)`);
           setLocating(false);
         },
@@ -89,6 +91,7 @@ export default function SOSConfirmModal({
         category,
         lat: currentCoords.lat,
         lng: currentCoords.lng,
+        accuracy: currentCoords.accuracy,
         address,
       };
 
@@ -96,6 +99,7 @@ export default function SOSConfirmModal({
         payload.patientDetails = {
           name: currentUser?.name || '',
           phone: currentUser?.phone || '',
+          gender: (currentUser?.gender || '').toLowerCase(),
           bloodGroup: currentUser?.bloodGroup || currentUser?.medicalProfile?.bloodGroup || '',
           knownAllergies: currentUser?.medicalProfile?.allergies || '',
           knownConditions: currentUser?.medicalProfile?.conditions || '',
@@ -104,6 +108,7 @@ export default function SOSConfirmModal({
         payload.patientDetails = {
           name: otherFormData.victimName,
           age: otherFormData.victimAge ? Number(otherFormData.victimAge) : null,
+          gender: otherFormData.victimGender || '',
           knownConditions: otherFormData.victimCondition,
         };
         payload.reporterOwnDetailsShared = otherFormData.shareOwnDetails;
