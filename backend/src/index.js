@@ -344,6 +344,7 @@ import emergencySOSRoutes from './routes/emergencySOS.js';
 import ambulanceDriverRoutes from './routes/ambulanceDriver.js';
 import loyaltyRoutes from './routes/loyalty.js';
 import referralRoutes from './routes/referral.js';
+import adminSosSettingsRoutes from './routes/adminSosSettings.js';
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -372,6 +373,8 @@ app.use('/api/insurance', insuranceRoutes);
 app.use('/api/diet', dietRoutes);
 app.use('/api/health-id', healthIdRoutes);
 app.use('/api/referral', referralRoutes);
+app.use('/api/loyalty', loyaltyRoutes);
+app.use('/api/admin', adminSosSettingsRoutes);
 app.use('/api/ot', otRoutes);
 app.use('/api/bloodbank', bloodbankRoutes);
 app.use('/api/physio', physioRoutes);

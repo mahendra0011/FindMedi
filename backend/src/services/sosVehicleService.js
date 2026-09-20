@@ -1,225 +1,202 @@
-import mongoose from 'mongoose';
 import EmergencyRequest from '../models/EmergencyRequest.js';
-import { findEligibleAmbulances, findEligibleEmergencyVehicles } from './emergencyDispatchService.js';
+import {
+  findEligibleAmbulances,
+  findEligibleEmergencyVehicles,
+  finalizeWave,
+} from './emergencyDispatchService.js';
 import { getIO } from './socketService.js';
-import { calculateDistanceKm } from './rideService.js';
+import logger from '../config/logger.js';
+import SOSVehicleSettings from '../models/SOSVehicleSettings.js';
 
-/**
- * Start manual mode search:
- - One wave at the given radius, 30s window
- - Return accepted candidates (no auto-book)
- */
-export async function startManualModeSearch(requestId, radiusKm) {
-  const request = await EmergencyRequest.findById(requestId);
-  if (!request || request.status !== 'searching') return { error: 'Request not searching' };
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-  // Build candidates from selected vehicle types + ambulance if applicable
-  const io = getIO();
-
-  // Run one wave with current notified/everNotified state
-  const { done } = await runWaveManual({
-    requestId, phase: request.currentSearchPhase, radiusKm: radiusKm,
-    emitAlert: (c) => sendAlert(io, requestId, c),
-  });
-
-  // Return accepted candidates for patient to choose from
-  const r = await EmergencyRequest.findById(requestId).select('notified acceptances everNotified');
-  const accepted = (r.acceptances || [])
-    .filter(a => new Date(a.acceptedAt) <= new Date(request.windowEndsAt || 0))
-    .sort((a, b) => a.distanceKm - b.distanceKm);
-
-  return { accepted, done };
+async function getSettings() {
+  try {
+    const s = await SOSVehicleSettings.findOne().lean();
+    if (s) return s;
+  } catch {}
+  return { radiusSteps: [5, 10, 15, 20], windowSeconds: 30, maxRetriesPerRadius: 3, retryPauseSeconds: 3 };
 }
 
-/**
- * Book the provider chosen by patient (manual select mode)
- */
-export async function bookChosenProvider(requestId, providerId) {
-  const request = await EmergencyRequest.findById(requestId);
-  if (!request || request.status !== 'searching') return { error: 'Request not searching' };
-
-  // Update with patient's explicit choice (not nearest-wins)
-  const updated = await EmergencyRequest.findOneAndUpdate(
-    { _id: requestId, status: 'searching' },
-    {
-      status: 'assigned',
-      assignedProviderId: providerId,
-      assignedProviderType: request.requestMode === 'manual_select' ? 'rider' : 'ambulance',
-      assignedAt: new Date(),
-      // Set vehicle type if rider
-      ...(request.requestMode === 'manual_select' && { assignedVehicleType: request.selectedVehicleTypes?.[0] }),
-    },
-    { new: true }
-  );
-
-  if (!updated) return { error: 'Could not book - already assigned' };
-
-  // Emit assignment events
-  const io = getIO();
-  const payload = {
+function buildAlert(request, item, kind) {
+  const base = {
     requestId: String(request._id),
-    providerType: updated.assignedProviderType,
+    category: request.category,
+    isSelf: request.reporterMode === 'self',
+    patient: request.patientDetails,
+    reporter: request.reporterOwnDetailsShared ? request.reporterDetails : null,
+    location: request.location,
+    distanceKm: item.distanceKm,
+    windowSeconds: 30,
+    providerType: kind,
   };
-
-  if (io) {
-    // Emit to patient
-    io.to(`user:${updated.assignedProviderId || request.userId}`).emit('emergency_assigned_to_you', payload);
-    // Emit to emergency room
-    io.to(`emergency:${request._id}`).emit('emergency_assigned', payload);
+  if (kind === 'ambulance') {
+    return { ...base, ambulanceId: String(item._id), hospitalName: item.hospital?.name || 'Hospital Ambulance' };
   }
-
-  return { success: true, request: updated };
+  return { ...base, providerId: String(item.user?._id || item.userId), vehicleType: item.vehicle?.type || 'Vehicle' };
 }
 
-/**
- * Start auto-book search (Mode 2 or 3)
- - One wave, 30s window, nearest-acceptor auto-assigns
- */
-export async function startAutoBookSearch(requestId, radiusKm) {
-  const request = await EmergencyRequest.findById(requestId);
-  if (!request || request.status !== 'searching') return { error: 'Request not searching' };
-
-  const io = getIO();
-
-  // Run wave - this will auto-assign the nearest acceptor via existing finalizeWave logic
-  const { done } = await runWaveManual({
-    requestId, phase: request.currentSearchPhase, radiusKm: radiusKm,
-    emitAlert: (c) => sendAlert(io, requestId, c),
-  });
-
-  // If assigned, fetch the updated request and return
-  if (done) {
-    const updatedRequest = await EmergencyRequest.findById(requestId).populate('assignedProviderId');
-    return { success: true, assigned: true, request: updatedRequest };
-  }
-
-  return { success: false, assigned: false };
+function sendAlert(io, requestId, c) {
+  if (!io) return;
+  const payload = c.raw;
+  io.to(`user:${c.userId}`).emit('incoming_emergency', payload);
+  if (c.providerType === 'ambulance') io.to(`ambulance:${c.providerId}`).emit('incoming_emergency', payload);
+  else { try { io.of('/ride').to(`rider:${c.userId}`).emit('incoming_emergency', payload); } catch {} }
 }
 
-/**
- * Auto-find loop: retry per radius, maxRetriesPerRadius times each
- - Pure auto mode, no patient interaction needed
- */
-export async function startAutoFindLoop(requestId, radiusSteps, maxRetriesPerRadius = 3, retryPauseMs = 3000) {
-  const request = await EmergencyRequest.findById(requestId);
-  if (!request || request.status !== 'searching') return { error: 'Request not searching' };
+async function buildCandidates(request, radiusKm) {
+  const [lng, lat] = request.location.coordinates;
+  const ever = (request.everNotified || []).map((e) => (typeof e === 'string' ? e : e.providerId));
+  const types = request.selectedVehicleTypes || [];
+  const wantAmb = types.includes('ambulance') || request.requestMode === 'auto_select_ambulance';
+  const wantVeh = types.some((t) => ['auto', 'e_rickshaw', 'car', 'van'].includes(t)) || request.requestMode === 'auto_select_vehicle';
+  const out = [];
 
-  let currentRadiusIndex = 0;
-
-  async function tryRadius(radiusIdx) {
-    if (radiusIdx >= radiusSteps.length) {
-      // All radii exhausted
-      await finishNoResponders(requestId);
-      return;
-    }
-
-    const radiusKm = radiusSteps[radiusIdx];
-
-    for (let attempt = 1; attempt <= maxRetriesPerRadius; attempt++) {
-      // Check if request still searching
-      const currentReq = await EmergencyRequest.findById(requestId);
-      if (!currentReq || currentReq.status !== 'searching') return;
-
-      // Run one wave at this radius
-      const io = getIO();
-      const { done } = await runWaveManual({
-        requestId, phase: currentReq.currentSearchPhase, radiusKm: radiusKm,
-        emitAlert: (c) => sendAlert(io, requestId, c),
-      });
-
-      if (done) {
-        // Someone accepted - auto-assign nearest
-        const finalReq = await EmergencyRequest.findById(requestId).populate('assignedProviderId');
-        return { success: true, assigned: true, request: finalReq };
-      }
-
-      // Wait before next attempt (except last)
-      if (attempt < maxRetriesPerRadius) {
-        await new Promise(r => setTimeout(r, retryPauseMs));
-      }
-    }
-
-    // This radius exhausted, try next
-    currentRadiusIndex = radiusIdx + 1;
-    await new Promise(r => setTimeout(r, retryPauseMs * 2));
-    await tryRadius(currentRadiusIndex);
+  if (wantAmb) {
+    const found = await findEligibleAmbulances(lng, lat, radiusKm, ever);
+    found.filter((a) => a.userId).forEach((a) =>
+      out.push({ providerId: String(a._id), providerType: 'ambulance', userId: String(a.userId), distanceKm: a.distanceKm, raw: buildAlert(request, a, 'ambulance') })
+    );
   }
-
-  await tryRadius(0);
-}
-
-/**
- * Finish with no responders found
- */
-async function finishNoResponders(requestId) {
-  const request = await EmergencyRequest.findById(requestId);
-  if (!request || request.status === 'no_responders_found') return;
-
-  request.status = 'no_responders_found';
-  request.completedAt = new Date();
-  await request.save();
-
-  const io = getIO();
-  if (io) {
-    io.to(`emergency:${request._id}`).emit('emergency_no_responders_found', {
-      requestId: String(request._id),
-      message: 'No emergency responders could be dispatched in your area right now. Please call emergency services directly (108 / 112).',
+  if (wantVeh) {
+    const found = await findEligibleEmergencyVehicles(lng, lat, radiusKm, ever);
+    const allowed = new Set(types.filter((t) => t !== 'ambulance'));
+    found.forEach((v) => {
+      const vt = v.vehicle?.type;
+      if (request.requestMode === 'manual_select' && allowed.size && !allowed.has(vt)) return;
+      const uid = String(v.user?._id || v.userId);
+      if (!uid || uid === 'undefined') return;
+      out.push({ providerId: uid, providerType: 'rider', userId: uid, distanceKm: v.distanceKm, raw: buildAlert(request, v, 'rider') });
     });
   }
+  return out;
 }
 
-/**
- * Helper: runWave manual - one wave, no auto-book (patient chooses)
- */
-async function runWaveManual({ requestId, phase, radiusKm, emitAlert }) {
-  const request = await EmergencyRequest.findById(requestId);
-  if (!request || request.status !== 'searching') return { done: true };
-
-  // Reset wave state for this manual search
+async function openWave(requestId, radiusKm, candidates, attemptNumber = 1) {
+  const settings = await getSettings();
+  const windowMs = (settings.windowSeconds || 30) * 1000;
+  const req = await EmergencyRequest.findById(requestId).select('currentSearchPhase');
+  const phase = req?.currentSearchPhase || 'vehicle';
   await EmergencyRequest.findByIdAndUpdate(requestId, {
     $set: {
-      currentSearchPhase: phase,
       currentSearchRadiusKm: radiusKm,
-      notified: [],
+      notified: candidates.map((c) => ({ providerId: c.providerId, providerType: c.providerType, userId: c.userId })),
       acceptances: [],
       rejections: [],
-      windowEndsAt: new Date(Date.now() + 30 * 1000),
+      windowEndsAt: new Date(Date.now() + windowMs),
     },
-    $push: { dispatchLog: { radiusKm, phase, attemptNumber: 1, outcome: 'escalated' } },
+    $addToSet: { everNotified: { $each: candidates.map((c) => ({ providerId: c.providerId })) } },
+    $push: { dispatchLog: { radiusKm, phase, attemptNumber, candidateCount: candidates.length, outcome: 'escalated' } },
   });
-
-  // Emit searching update
   const io = getIO();
   if (io) {
     io.to(`emergency:${requestId}`).emit('emergency_searching_update', {
-      requestId: String(requestId),
-      phase,
-      radiusKm,
-      statusText: `Searching for nearest responders within ${radiusKm} km…`,
+      requestId: String(requestId), phase, radiusKm, attemptNumber,
+      statusText: `${radiusKm} km me dhoondh rahe hain…`,
     });
   }
-
-  // Collect candidates based on phase and vehicle types
-  let found;
-  if (phase === 'ambulance') {
-    found = await findEligibleAmbulances(/* pickup coords would come from request.location */);
-    // For now, we need to get coords from request
-  } else {
-    found = await findEligibleEmergencyVehicles(/* similar */);
-  }
-
-  // Since we need location from request, let's simplify:
-  // The actual implementation would extract lng/lat from request.location.coordinates
-  // and pass to the findEligible functions. For this service, we'll return a skeleton.
-
-  return { done: true };
+  candidates.forEach((c) => sendAlert(io, requestId, c));
+  return { windowMs, phase };
 }
 
-/**
- * Send alert to providers
- */
-function sendAlert(io, requestId, candidate) {
-  if (!io) return;
-  // Implementation depends on provider type
-  // This is a skeleton - actual emit logic from emergencyDispatchService.js would be reused
+async function waitWindow(requestId, windowMs) {
+  const deadline = Date.now() + windowMs;
+  while (Date.now() < deadline) {
+    await sleep(1000);
+    const r = await EmergencyRequest.findById(requestId).select('status notified acceptances rejections');
+    if (!r || r.status !== 'searching') return { stopped: true };
+    if (r.notified?.length && r.acceptances.length + r.rejections.length >= r.notified.length) break;
+  }
+  return { stopped: false };
+}
+
+export async function startManualModeSearch(requestId, radiusKm) {
+  const request = await EmergencyRequest.findById(requestId);
+  if (!request || request.status !== 'searching') return { error: 'Request not searching' };
+  const cands = await buildCandidates(request, radiusKm);
+  if (!cands.length) {
+    await EmergencyRequest.findByIdAndUpdate(requestId, {
+      $set: { currentSearchRadiusKm: radiusKm },
+      $push: { dispatchLog: { radiusKm, phase: request.currentSearchPhase, attemptNumber: 1, candidateCount: 0, outcome: 'no_acceptance' } },
+    });
+    return { accepted: [], done: false };
+  }
+  const { windowMs } = await openWave(requestId, radiusKm, cands, 1);
+  await waitWindow(requestId, windowMs);
+  const r = await EmergencyRequest.findById(requestId).select('acceptances windowEndsAt status');
+  if (!r || r.status !== 'searching') return { accepted: [], done: true };
+  const accepted = [...(r.acceptances || [])].sort((a, b) => a.distanceKm - b.distanceKm);
+  return { accepted, done: false };
+}
+
+export async function bookChosenProvider(requestId, providerId) {
+  const request = await EmergencyRequest.findById(requestId);
+  if (!request || request.status !== 'searching') return { error: 'Request not searching' };
+  const acc = (request.acceptances || []).find((a) => String(a.providerId) === String(providerId));
+  const providerType = acc?.providerType || (request.requestMode === 'auto_select_ambulance' ? 'ambulance' : 'rider');
+  const update = { status: 'assigned', assignedProviderId: providerId, assignedProviderType: providerType, assignedAt: new Date() };
+  const updated = await EmergencyRequest.findOneAndUpdate({ _id: requestId, status: 'searching' }, update, { new: true });
+  if (!updated) return { error: 'Could not book - already assigned' };
+  const io = getIO();
+  if (io) {
+    io.to(`emergency:${requestId}`).emit('emergency_assigned', { requestId: String(requestId), providerType, manualChoice: true });
+    if (acc?.userId) io.to(`user:${acc.userId}`).emit('emergency_assigned_to_you', { requestId: String(requestId), providerType });
+  }
+  return { success: true, request: updated };
+}
+
+export async function startAutoBookSearch(requestId, radiusKm) {
+  const request = await EmergencyRequest.findById(requestId);
+  if (!request || request.status !== 'searching') return { error: 'Request not searching' };
+  const cands = await buildCandidates(request, radiusKm);
+  if (!cands.length) return { success: false, assigned: false };
+  const { windowMs } = await openWave(requestId, radiusKm, cands, 1);
+  await waitWindow(requestId, windowMs);
+  const out = await finalizeWave(requestId);
+  if (out.done) {
+    const updatedRequest = await EmergencyRequest.findById(requestId);
+    return { success: true, assigned: true, request: updatedRequest };
+  }
+  return { success: false, assigned: false };
+}
+
+export async function startAutoFindLoop(requestId, radiusSteps, maxRetriesPerRadius = 3, retryPauseMs = 3000) {
+  const steps = Array.isArray(radiusSteps) && radiusSteps.length ? radiusSteps : [5, 10, 15, 20];
+  for (const radiusKm of steps) {
+    for (let attempt = 1; attempt <= maxRetriesPerRadius; attempt++) {
+      const cur = await EmergencyRequest.findById(requestId).select('status location selectedVehicleTypes requestMode everNotified currentSearchPhase');
+      if (!cur || cur.status !== 'searching') return { stopped: true };
+      const cands = await buildCandidates(cur, radiusKm);
+      if (!cands.length) {
+        await EmergencyRequest.findByIdAndUpdate(requestId, {
+          $set: { currentSearchRadiusKm: radiusKm },
+          $push: { dispatchLog: { radiusKm, phase: cur.currentSearchPhase, attemptNumber: attempt, candidateCount: 0, outcome: 'no_acceptance' } },
+        });
+        const io = getIO();
+        if (io) io.to(`emergency:${requestId}`).emit('emergency_searching_update', { requestId: String(requestId), phase: cur.currentSearchPhase, radiusKm, attemptNumber: attempt, maxRetries: maxRetriesPerRadius, statusText: `${radiusKm} km me attempt ${attempt}…` });
+        if (attempt < maxRetriesPerRadius) await sleep(retryPauseMs);
+        continue;
+      }
+      const { windowMs } = await openWave(requestId, radiusKm, cands, attempt);
+      const io = getIO();
+      if (io) io.to(`emergency:${requestId}`).emit('emergency_searching_update', { requestId: String(requestId), phase: cur.currentSearchPhase, radiusKm, attemptNumber: attempt, maxRetries: maxRetriesPerRadius, statusText: `${radiusKm} km me attempt ${attempt}…` });
+      await waitWindow(requestId, windowMs);
+      const out = await finalizeWave(requestId);
+      if (out.done) {
+        const updatedRequest = await EmergencyRequest.findById(requestId);
+        return { success: true, assigned: true, request: updatedRequest };
+      }
+      if (attempt < maxRetriesPerRadius) await sleep(retryPauseMs);
+    }
+    await sleep(retryPauseMs);
+  }
+  const cur = await EmergencyRequest.findById(requestId);
+  if (cur && cur.status === 'searching') {
+    cur.status = 'no_responders_found';
+    await cur.save();
+    const io = getIO();
+    if (io) io.to(`emergency:${requestId}`).emit('emergency_no_responders_found', { requestId: String(requestId), message: 'No emergency responders could be dispatched in your area right now. Please call emergency services directly (108 / 112).' });
+    logger.warn(`Auto-find ${requestId}: no responders found.`);
+  }
+  return { success: false, assigned: false };
 }

@@ -9,7 +9,15 @@ interface SOSSearchingScreenProps {
   onCancel: () => void;
   requestDetails?: any;
   noResponders?: boolean;
+  attemptNumber?: number;
+  maxRetries?: number;
+  autoFind?: boolean;
+  windowActive?: boolean;
+  onSearchAgain?: () => void;
+  onSearchWider?: (km: number) => void;
 }
+
+const NEXT_RADIUS = (r: number) => (r < 5 ? 5 : r < 10 ? 10 : r < 15 ? 15 : 20);
 
 export default function SOSSearchingScreen({
   radiusKm,
@@ -17,6 +25,12 @@ export default function SOSSearchingScreen({
   onCancel,
   requestDetails,
   noResponders,
+  attemptNumber,
+  maxRetries,
+  autoFind,
+  windowActive,
+  onSearchAgain,
+  onSearchWider,
 }: SOSSearchingScreenProps) {
   if (noResponders) {
     return (
@@ -84,9 +98,25 @@ export default function SOSSearchingScreen({
 
           <div className="flex items-center justify-center gap-2 mt-2 text-xs font-semibold text-red-400">
             <span className="inline-block w-2 h-2 rounded-full bg-red-500 animate-ping" />
-            <span>Search Radius: {radiusKm || 5} km</span>
+            <span>{radiusKm || 5} km me dhoondh rahe hain…</span>
           </div>
+          {autoFind && attemptNumber ? (
+            <div className="mt-2 inline-flex px-3 py-1 rounded-full bg-slate-800 border border-slate-600 text-[11px] font-bold text-slate-200">
+              Attempt {attemptNumber}{maxRetries ? ` of ${maxRetries}` : ''} — {radiusKm}km
+            </div>
+          ) : null}
         </div>
+
+        {windowActive === false && onSearchAgain && (
+          <div className="flex gap-2 justify-center">
+            <Button type="button" variant="outline" onClick={onSearchAgain} className="rounded-xl text-xs">🔁 Search Again</Button>
+            {onSearchWider && (
+              <Button type="button" onClick={() => onSearchWider(NEXT_RADIUS(radiusKm || 5))} className="rounded-xl text-xs bg-red-600 hover:bg-red-700 text-white font-bold">
+                📡 Search in {NEXT_RADIUS(radiusKm || 5)}km
+              </Button>
+            )}
+          </div>
+        )}
 
         <p className="text-[11px] text-slate-400">
           In case of extreme immediate danger, please dial <a href="tel:108" className="underline font-bold">108</a> (Ambulance) or <a href="tel:112" className="underline font-bold">112</a> (National Emergency).

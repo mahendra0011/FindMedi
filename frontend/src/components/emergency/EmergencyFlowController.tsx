@@ -10,6 +10,11 @@ import SOSSearchingScreen from './SOSSearchingScreen';
 import SOSAssignedScreen from './SOSAssignedScreen';
 import ProviderIncomingCall from './ProviderIncomingCall';
 import ProviderHospitalSelect from './ProviderHospitalSelect';
+import SOSModeSelect, { type SOSMode } from './SOSModeSelect';
+import SOSVehicleTypeSelect from './SOSVehicleTypeSelect';
+import SOSRadiusOptions from './SOSRadiusOptions';
+import SOSAcceptedList from './SOSAcceptedList';
+import { sosVehicleState } from '@/lib/emergencyState';
 
 export default function EmergencyFlowController() {
   const { user } = useAuth();
@@ -21,6 +26,17 @@ export default function EmergencyFlowController() {
   const [searchPhase, setSearchPhase] = useState<'ambulance' | 'vehicle'>('ambulance');
   const [searchRadius, setSearchRadius] = useState<number>(5);
   const [assignedData, setAssignedData] = useState<any>(null);
+  const [flowStep, setFlowStep] = useState<'idle' | 'mode_select' | 'vehicle_type_select' | 'radius_options'>('idle');
+  const [sosMode, setSosMode] = useState<SOSMode>('auto_select_ambulance');
+  const [vehicleTypes, setVehicleTypes] = useState<string[]>(['ambulance']);
+  const [autoBook, setAutoBook] = useState(false);
+  const [autoFind, setAutoFind] = useState(false);
+  const [startRadius, setStartRadius] = useState(5);
+  const [startingSearch, setStartingSearch] = useState(false);
+  const [acceptedList, setAcceptedList] = useState<any[]>([]);
+  const [bookingProvider, setBookingProvider] = useState(false);
+  const [attemptNumber, setAttemptNumber] = useState<number | undefined>(undefined);
+  const [pendingPayload, setPendingPayload] = useState<any>(null);
 
   const [incomingEmergency, setIncomingEmergency] = useState<any>(null);
   const [pendingAccept, setPendingAccept] = useState<{ requestId: string; endsAt: number } | null>(null);
@@ -73,6 +89,7 @@ export default function EmergencyFlowController() {
       if (matches(data)) {
         if (data.phase) setSearchPhase(data.phase);
         if (data.radiusKm) setSearchRadius(data.radiusKm);
+        if (data.attemptNumber) setAttemptNumber(data.attemptNumber);
       }
     };
 
@@ -178,22 +195,116 @@ export default function EmergencyFlowController() {
   }, [activeRequest?._id, syncRequestState]);
 
   const handleSubmitSOS = async (payload: any) => {
+    // Hold-to-confirm done → now choose mode (spec §0). Keep payload, open mode select.
+    setPendingPayload(payload);
+    setConfirmModalOpen(false);
+    setSosMode('auto_select_ambulance');
+    setVehicleTypes(['ambulance']);
+    setAutoBook(true);
+    setAutoFind(false);
+    setStartRadius(5);
+    setFlowStep('mode_select');
+  };
+
+  const startSearchWithMode = async () => {
+    if (!pendingPayload) return;
+    if (sosMode === 'manual_select' && vehicleTypes.length === 0) {
+      toast.error('Kam se kam ek vehicle type chuno');
+      return;
+    }
+    setStartingSearch(true);
     try {
-      const res = await api.post('/emergency-sos', payload);
-      const created = res.emergency;
-      if (created) {
-        setActiveRequest(created);
-        setConfirmModalOpen(false);
+      sosVehicleState.current = {
+        requestMode: sosMode,
+        selectedVehicleTypes: sosMode === 'manual_select' ? vehicleTypes : sosMode === 'auto_select_ambulance' ? ['ambulance'] : ['auto', 'e_rickshaw', 'car', 'van', 'ambulance'],
+        autoBookEnabled: sosMode === 'auto_select_ambulance' ? true : autoBook,
+        autoFindEnabled: autoFind,
+        startingRadiusKm: startRadius,
+      };
+      const res: any = await api.post('/emergency-sos/start', {
+        ...pendingPayload,
+        requestMode: sosMode,
+        selectedVehicleTypes: sosVehicleState.current.selectedVehicleTypes,
+        autoBookEnabled: sosVehicleState.current.autoBookEnabled,
+        autoFindEnabled: autoFind,
+        startingRadiusKm: startRadius,
+      });
+      const requestId = res.requestId;
+      if (requestId) {
+        setActiveRequest({ _id: requestId, id: requestId, ...pendingPayload, requestMode: sosMode });
+        setFlowStep('idle');
         setSearching(true);
         setNoResponders(false);
         setAssignedData(null);
-        setSearchPhase('ambulance');
-        setSearchRadius(5);
-        toast.success('Emergency SOS triggered! Broadcasting to nearest hospital ambulances.');
+        setAcceptedList([]);
+        setAttemptNumber(undefined);
+        setSearchPhase(sosMode === 'auto_select_ambulance' ? 'ambulance' : 'vehicle');
+        setSearchRadius(startRadius);
+        toast.success('Emergency SOS triggered! Searching nearby responders.');
+        // Manual modes: poll accepted-candidates after window (~32s)
+        if (sosMode === 'manual_select' || (sosMode === 'auto_select_vehicle' && !autoBook && !autoFind)) {
+          setTimeout(async () => {
+            try {
+              const list: any = await api.get(`/emergency-sos/${requestId}/accepted-candidates`);
+              if (list?.accepted?.length) {
+                setAcceptedList(list.accepted);
+                setSearching(false);
+              }
+            } catch {}
+          }, 32000);
+        }
       }
     } catch (err: any) {
       toast.error(err.response?.data?.message || err.message || 'Failed to trigger Emergency SOS.');
-      throw err;
+    } finally {
+      setStartingSearch(false);
+    }
+  };
+
+  const handleSearchAgain = async () => {
+    if (!activeRequest?._id) return;
+    try {
+      const res: any = await api.post(`/emergency-sos/${activeRequest._id}/search-again`, {});
+      if (res?.accepted?.length) {
+        setAcceptedList(res.accepted);
+        setSearching(false);
+      } else {
+        setSearching(true);
+        toast.info('Search Again — same radius me dobara dhoondh rahe hain…');
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Search failed');
+    }
+  };
+
+  const handleSearchWider = async (km: number) => {
+    if (!activeRequest?._id) return;
+    try {
+      setSearchRadius(km);
+      const res: any = await api.post(`/emergency-sos/${activeRequest._id}/search-radius/${km}`, {});
+      if (res?.accepted?.length) {
+        setAcceptedList(res.accepted);
+        setSearching(false);
+      } else {
+        setSearching(true);
+        toast.info(`Search in ${km}km…`);
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Search failed');
+    }
+  };
+
+  const handleBookChosen = async (providerId: string) => {
+    if (!activeRequest?._id) return;
+    setBookingProvider(true);
+    try {
+      await api.post(`/emergency-sos/${activeRequest._id}/book/${providerId}`, {});
+      setAcceptedList([]);
+      toast.success('Booked! Responder aa raha hai.');
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Booking failed — race ho gayi, dobara try karein.');
+    } finally {
+      setBookingProvider(false);
     }
   };
 
@@ -267,12 +378,64 @@ export default function EmergencyFlowController() {
         currentUser={user}
       />
 
+      {flowStep === 'mode_select' && (
+        <SOSModeSelect
+          selected={sosMode}
+          onSelect={(m) => {
+            setSosMode(m);
+            if (m === 'auto_select_ambulance') { setVehicleTypes(['ambulance']); setAutoBook(true); }
+            if (m === 'manual_select' && vehicleTypes.length === 0) setVehicleTypes(['auto']);
+          }}
+          onContinue={() => setFlowStep(sosMode === 'manual_select' ? 'vehicle_type_select' : 'radius_options')}
+        />
+      )}
+
+      {flowStep === 'vehicle_type_select' && (
+        <SOSVehicleTypeSelect
+          selected={vehicleTypes}
+          onToggle={(id) => setVehicleTypes((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]))}
+          onContinue={() => setFlowStep('radius_options')}
+          onBack={() => setFlowStep('mode_select')}
+        />
+      )}
+
+      {flowStep === 'radius_options' && (
+        <SOSRadiusOptions
+          mode={sosMode}
+          radiusKm={startRadius}
+          onRadius={setStartRadius}
+          autoBook={sosMode === 'auto_select_ambulance' ? true : autoBook}
+          onAutoBook={setAutoBook}
+          autoFind={autoFind}
+          onAutoFind={setAutoFind}
+          onStart={startSearchWithMode}
+          onBack={() => setFlowStep(sosMode === 'manual_select' ? 'vehicle_type_select' : 'mode_select')}
+          starting={startingSearch}
+        />
+      )}
+
       {searching && (
         <SOSSearchingScreen
           radiusKm={searchRadius}
           phase={searchPhase}
           onCancel={handleCancelSOS}
           requestDetails={activeRequest}
+          attemptNumber={attemptNumber}
+          autoFind={autoFind}
+          windowActive
+          onSearchAgain={handleSearchAgain}
+          onSearchWider={handleSearchWider}
+        />
+      )}
+
+      {!!acceptedList.length && (
+        <SOSAcceptedList
+          candidates={acceptedList}
+          onBook={handleBookChosen}
+          onSearchAgain={handleSearchAgain}
+          onSearchWider={handleSearchWider}
+          currentRadius={searchRadius}
+          booking={bookingProvider}
         />
       )}
 
