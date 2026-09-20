@@ -26,6 +26,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useAuth } from '@/context/AuthContext';
 import DashboardLayout from './components/DashboardLayout';
 import PublicLayout from './components/PublicLayout';
+import HealthIdView from './pages/public/HealthIdView';
 import AppMotion from './components/AppMotion';
 import { LenisScroll } from './components/LenisScroll';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -527,9 +528,12 @@ const App = () => (
                     <Route path="/assistants" element={<Navigate to="/book-assistant" replace />} />
                     <Route path="/assistants/:id" element={<PublicLayout><AssistantProfile /></PublicLayout>} />
                     <Route path="/find-lawyer" element={<PublicLayout><FindLawyer /></PublicLayout>} />
-                    <Route path="/lawyers/:id" element={<PublicLayout><LawyerProfile /></PublicLayout>} />
+<Route path="/lawyers/:id" element={<PublicLayout><LawyerProfile /></PublicLayout>} />
                     <Route path="/book-lawyer" element={<Navigate to="/find-lawyer" replace />} />
                     <Route path="/lawyers" element={<Navigate to="/find-lawyer" replace />} />
+
+                    {/* Health ID - public QR scan (no login required) */}
+                    <Route path="/health-id/:token" element={<PublicLayout><HealthIdView /></PublicLayout>} />
 
                     {/* Public aliases & legacy redirects */}
                     <Route path="/register-hospital" element={<Navigate to="/join-platform" replace />} />

@@ -26,6 +26,13 @@ const userSchema = new mongoose.Schema({
     notes: { type: String },
   }],
 
+  // Chronic conditions for Health ID
+  knownConditions: [{
+    condition: { type: String, required: true },   // e.g. "Diabetes Type 2"
+    since: { type: String, default: '' },
+    notes: { type: String, default: '' },
+  }],
+
   specialization: { type: String, default: '' }, // for doctors
   experience: { type: String, default: '' },
   qualification: { type: String, default: '' },
@@ -109,10 +116,34 @@ const userSchema = new mongoose.Schema({
       endTime: '',
     }),
   },
-  emergencyContact: {
+emergencyContact: {
     name: { type: String, default: '' },
     phone: { type: String, default: '' },
   },
+
+  referral: {
+    code: { type: String, unique: true, sparse: true, index: true },
+    referredBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    referredByCode: { type: String, default: '' },
+  },
+
+  loyalty: {
+    pointsBalance: { type: Number, default: 0 },
+    lifetimePoints: { type: Number, default: 0 },
+    tier: { type: String, enum: ['Bronze', 'Silver', 'Gold', 'Platinum'], default: 'Bronze' },
+  },
+
+  healthIdCard: {
+    isEnabled: { type: Boolean, default: true },
+    qrToken: { type: String, unique: true, sparse: true, index: true },
+    lastRotatedAt: { type: Date },
+    shareLevel: {
+      type: String,
+      enum: ['full', 'minimal'],
+      default: 'full',
+    },
+  },
+
   createdAt: { type: Date, default: Date.now, index: true },
 });
 

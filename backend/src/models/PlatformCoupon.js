@@ -10,7 +10,7 @@ const platformCouponSchema = new mongoose.Schema({
   usageLimit: { type: Number, default: 0 },
   usedCount: { type: Number, default: 0 },
   perUserLimit: { type: Number, default: 1 },
-  applicableServices: [{ type: String, enum: ['consultation', 'lab', 'pharmacy', 'all'] }],
+  applicableServices: [{ type: String, enum: ['consultation', 'lab', 'pharmacy', 'delivery', 'all'] }],
   validFrom: { type: Date, required: true },
   validUntil: { type: Date, required: true },
   isActive: { type: Boolean, default: true },
