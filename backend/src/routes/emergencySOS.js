@@ -118,7 +118,9 @@ router.post('/start', protect, async (req, res) => {
     } else if (requestMode === 'manual_select') {
       startManualModeSearch(requestId, request.startingRadiusKm).catch((e) => logger.error(`manual search fail: ${e.message}`));
     } else {
-      startEmergencyDispatch(requestId).catch((e) => logger.error(`dispatch fail: ${e.message}`));
+      // auto_select_vehicle + autoBook OFF + autoFind OFF → patient khud choose karega;
+      // legacy auto-assign dispatch kabhi nahi (mode violation hota)
+      startManualModeSearch(requestId, request.startingRadiusKm).catch((e) => logger.error(`manual search fail: ${e.message}`));
     }
 
     res.status(201).json({ requestId, requestMode: request.requestMode, status: request.status, mode: requestMode, startingRadiusKm: request.startingRadiusKm });

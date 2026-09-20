@@ -3,7 +3,9 @@ import {
   findEligibleAmbulances,
   findEligibleEmergencyVehicles,
   finalizeWave,
+  buildResponderPayload,
 } from './emergencyDispatchService.js';
+import Ambulance from '../models/Ambulance.js';
 import { getIO } from './socketService.js';
 import Notification from '../models/Notification.js';
 import logger from '../config/logger.js';
@@ -133,14 +135,34 @@ export async function bookChosenProvider(requestId, providerId) {
   const request = await EmergencyRequest.findById(requestId);
   if (!request || request.status !== 'searching') return { error: 'Request not searching' };
   const acc = (request.acceptances || []).find((a) => String(a.providerId) === String(providerId));
-  const providerType = acc?.providerType || (request.requestMode === 'auto_select_ambulance' ? 'ambulance' : 'rider');
+  if (!acc) return { error: 'Provider ne accept nahi kiya' };
+  const providerType = acc.providerType;
   const update = { status: 'assigned', assignedProviderId: providerId, assignedProviderType: providerType, assignedAt: new Date() };
+  if (providerType === 'ambulance') {
+    const amb = await Ambulance.findById(providerId).select('hospitalId').lean();
+    if (amb?.hospitalId) update.assignedHospitalId = amb.hospitalId;
+  }
   const updated = await EmergencyRequest.findOneAndUpdate({ _id: requestId, status: 'searching' }, update, { new: true });
   if (!updated) return { error: 'Could not book - already assigned' };
+  if (providerType === 'ambulance') {
+    await Ambulance.findByIdAndUpdate(providerId, { isOnDuty: true, currentEmergencyId: request._id }).catch(() => {});
+  }
+  const payload = await buildResponderPayload({ providerId, providerType, userId: acc.userId, distanceKm: acc.distanceKm }).catch(() => ({ providerType }));
+  const losers = (request.acceptances || []).filter((a) => String(a.providerId) !== String(providerId));
   const io = getIO();
   if (io) {
-    io.to(`emergency:${requestId}`).emit('emergency_assigned', { requestId: String(requestId), providerType, manualChoice: true });
-    if (acc?.userId) io.to(`user:${acc.userId}`).emit('emergency_assigned_to_you', { requestId: String(requestId), providerType });
+    io.to(`emergency:${requestId}`).emit('emergency_assigned', { requestId: String(requestId), ...payload, manualChoice: true });
+    io.to(`user:${acc.userId}`).emit('emergency_assigned_to_you', { requestId: String(requestId), ...payload });
+    if (providerType === 'ambulance') {
+      io.to(`ambulance:${providerId}`).emit('emergency_assigned_to_you', { requestId: String(requestId), ...payload });
+    }
+    losers.forEach((l) => io.to(`user:${l.userId}`).emit('emergency_lost', {
+      requestId: String(requestId),
+      message: 'Ye emergency patient ne kisi aur responder ko book kar diya.',
+    }));
+    (request.notified || [])
+      .filter((n) => n.userId !== acc.userId)
+      .forEach((n) => io.to(`user:${n.userId}`).emit('emergency_closed', { requestId: String(requestId) }));
   }
   try {
     if (acc?.userId) {

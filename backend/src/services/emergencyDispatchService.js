@@ -335,7 +335,7 @@ async function getProviderLocation(providerId, providerType) {
   return { lng: coords[0], lat: coords[1] };
 }
 
-async function buildResponderPayload(winner) {
+export async function buildResponderPayload(winner) {
   if (winner.providerType === 'ambulance') {
     const ambulance = await Ambulance.findById(winner.providerId).populate('hospitalId');
     const hospitalName = ambulance?.hospitalId?.name || 'Hospital';
@@ -587,6 +587,7 @@ export async function selectDestinationHospital(requestId, hospitalId) {
 
 /**
  * Doc 01 §7 — server restart recovery (single instance)
+ * Mode-aware resume: har request wahi loop se resume hoti hai jo /start ne chuna tha.
  */
 export async function recoverStuckRequests() {
   try {
@@ -594,8 +595,29 @@ export async function recoverStuckRequests() {
       { status: 'searching', createdAt: { $lt: new Date(Date.now() - 5 * 60 * 1000) } },
       { status: 'no_responders_found' }
     );
-    const live = await EmergencyRequest.find({ status: 'searching' }).select('_id');
-    live.forEach(r => startEmergencyDispatch(r._id).catch(() => {}));
+    const live = await EmergencyRequest.find({ status: 'searching' })
+      .select('_id requestMode autoBookEnabled autoFindEnabled startingRadiusKm currentSearchRadiusKm');
+    // Dynamic import (static cycle avoid: sosVehicleService humse import karta hai)
+    const sos = await import('./sosVehicleService.js').catch(() => null);
+    const settings = await EmergencyRequest.db.collection('sosvehiclesettings').findOne({}).catch(() => null);
+    const radiusSteps = settings?.radiusSteps?.length ? settings.radiusSteps : [5, 10, 15, 20];
+    live.forEach(r => {
+      const id = String(r._id);
+      try {
+        if (!sos) return startEmergencyDispatch(id).catch(() => {});
+        if (r.autoFindEnabled) {
+          const maxRetries = settings?.maxRetriesPerRadius ?? 3;
+          const pauseMs = (settings?.retryPauseSeconds ?? 3) * 1000;
+          sos.startAutoFindLoop(id, radiusSteps, maxRetries, pauseMs).catch(() => {});
+        } else if (r.requestMode === 'auto_select_ambulance' || r.autoBookEnabled) {
+          sos.startAutoEscalateLoop(id, radiusSteps, r.startingRadiusKm || 5).catch(() => {});
+        } else if (r.requestMode === 'manual_select') {
+          sos.startManualModeSearch(id, r.currentSearchRadiusKm || r.startingRadiusKm || 5).catch(() => {});
+        } else {
+          startEmergencyDispatch(id).catch(() => {});
+        }
+      } catch {}
+    });
     if (live.length) logger.info(`recoverStuckRequests: resumed ${live.length} searching requests`);
   } catch (err) {
     logger.error(`recoverStuckRequests error: ${err.message}`);

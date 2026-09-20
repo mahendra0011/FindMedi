@@ -49,10 +49,13 @@ export default function ProviderIncomingCall({
   onTimeout,
 }: ProviderIncomingCallProps) {
   const totalSeconds = data.windowSeconds || 30;
+  const endsAtRef = useRef(Date.now() + totalSeconds * 1000);
   const [timeLeft, setTimeLeft] = useState(totalSeconds);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const beepIntervalRef = useRef<any>(null);
+  const cbRef = useRef({ onReject, onTimeout });
+  cbRef.current = { onReject, onTimeout };
 
   // Play audio beeps + vibration
   useEffect(() => {
@@ -106,25 +109,24 @@ export default function ProviderIncomingCall({
     };
   }, []);
 
-  // 30s Countdown timer
+  // Countdown timer — stable interval, end-time based (no reset on re-render).
+  // Accept ke baad auto-reject kabhi nahi: overlay server events se band hota hai.
   useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          if (onTimeout) {
-            onTimeout(data.requestId);
-          } else {
-            onReject(data.requestId);
-          }
-          return 0;
+    const id = setInterval(() => {
+      const left = Math.max(0, Math.ceil((endsAtRef.current - Date.now()) / 1000));
+      setTimeLeft(left);
+      if (left === 0) {
+        clearInterval(id);
+        if (!acceptedWaiting) {
+          const cb = cbRef.current;
+          if (cb.onTimeout) cb.onTimeout(data.requestId);
+          else cb.onReject(data.requestId);
         }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [data.requestId, onReject, onTimeout]);
+      }
+    }, 250);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.requestId, acceptedWaiting]);
 
   const handleAcceptClick = async () => {
     if (isSubmitting) return;
@@ -363,7 +365,7 @@ export default function ProviderIncomingCall({
           type="button"
           disabled={isSubmitting}
           onClick={handleAcceptClick}
-          className="flex-2 h-14 rounded-2xl bg-gradient-to-r from-emerald-600 to-green-500 hover:from-emerald-500 hover:to-green-400 text-white font-black text-base flex items-center justify-center gap-2 shadow-xl shadow-emerald-950/60 transition-all transform active:scale-95"
+          className="flex-[1.5] h-14 rounded-2xl bg-gradient-to-r from-emerald-600 to-green-500 hover:from-emerald-500 hover:to-green-400 text-white font-black text-base flex items-center justify-center gap-2 shadow-xl shadow-emerald-950/60 transition-all transform active:scale-95"
         >
           {isSubmitting ? (
             <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />

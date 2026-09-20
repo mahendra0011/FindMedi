@@ -32,6 +32,7 @@ export default function SOSConfirmModal({
   const [reporterMode, setReporterMode] = useState<'self' | 'other'>('self');
   const [category, setCategory] = useState<string>('');
   const [currentCoords, setCurrentCoords] = useState<{ lat: number; lng: number; accuracy?: number } | null>(null);
+  const [gpsFailed, setGpsFailed] = useState(false);
   const [address, setAddress] = useState<string>('Detecting your GPS location...');
   const [locating, setLocating] = useState<boolean>(true);
   const [loadingSubmit, setLoadingSubmit] = useState<boolean>(false);
@@ -52,6 +53,7 @@ export default function SOSConfirmModal({
     }
 
     setLocating(true);
+    setGpsFailed(false);
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
@@ -64,16 +66,19 @@ export default function SOSConfirmModal({
         },
         (err) => {
           console.warn('GPS error:', err);
-          // Default Jabalpur center fallback
-          setCurrentCoords({ lat: 23.1815, lng: 79.9864 });
-          setAddress('Jabalpur City Center (Fallback Location)');
+          // No fake fallback — bina real location ke SOS create nahi hoga (Rule 1)
+          setCurrentCoords(null);
+          setAddress('');
+          setGpsFailed(true);
           setLocating(false);
+          toast.error('GPS location nahi mili. Permission on karke Retry dabao.');
         },
         { enableHighAccuracy: true, timeout: 8000 }
       );
     } else {
-      setCurrentCoords({ lat: 23.1815, lng: 79.9864 });
-      setAddress('Jabalpur City Center');
+      setCurrentCoords(null);
+      setAddress('');
+      setGpsFailed(true);
       setLocating(false);
     }
   }, [open]);
@@ -168,10 +173,37 @@ export default function SOSConfirmModal({
               </div>
 
               {/* GPS Live Pill */}
-              <div className="flex items-center justify-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-full w-fit mx-auto font-medium">
-                <Navigation className={`w-3.5 h-3.5 ${locating ? 'animate-spin' : ''}`} />
-                <span className="truncate max-w-[260px]">{address}</span>
-              </div>
+              {!gpsFailed ? (
+                <div className="flex items-center justify-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-full w-fit mx-auto font-medium">
+                  <Navigation className={`w-3.5 h-3.5 ${locating ? 'animate-spin' : ''}`} />
+                  <span className="truncate max-w-[260px]">{address}</span>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-xs text-red-500 font-bold">GPS location nahi mili — bina location ke SOS nahi jayega.</p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setGpsFailed(false);
+                      setLocating(true);
+                      navigator.geolocation?.getCurrentPosition(
+                        (pos) => {
+                          setCurrentCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy });
+                          setAddress(`GPS: ${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)} (Current Location)`);
+                          setLocating(false);
+                        },
+                        () => { setLocating(false); setGpsFailed(true); toast.error('GPS abhi bhi nahi mila.'); },
+                        { enableHighAccuracy: true, timeout: 8000 }
+                      );
+                    }}
+                    className="rounded-xl text-xs"
+                  >
+                    📍 Retry GPS
+                  </Button>
+                </div>
+              )}
 
               <div className="pt-3 space-y-2">
                 <HoldToConfirmButton
