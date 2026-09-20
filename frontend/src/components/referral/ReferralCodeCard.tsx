@@ -6,11 +6,12 @@ import { toast } from 'sonner';
 
 export default function ReferralCodeCard({ code }: { code: string }) {
   const share = async () => {
-    const text = `FindMedi join karo! Mera referral code: ${code}`;
+    const signupLink = `${window.location.origin}/#/signup?ref=${code}`;
+    const text = `FindMedi join karo aur special reward pao! Mera referral code: ${code}\n\nYahan se signup karo: ${signupLink}`;
     try {
       const nav: any = navigator;
       if (nav.share) {
-        await nav.share({ title: 'Refer & Earn', text });
+        await nav.share({ title: 'Refer & Earn', text, url: signupLink });
         return;
       }
       await navigator.clipboard?.writeText(text);

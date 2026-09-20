@@ -215,6 +215,12 @@ export default function RiderDashboard() {
           const { latitude: lat, longitude: lng } = pos.coords;
           // Push to REST endpoint (keeps RiderProfile.currentLocation.updatedAt fresh)
           api.put('/rider/location', { lat, lng }).catch(() => {});
+          // Also reflect immediately in local state so the idle location card
+          // (and freshness timer) updates in real time, not just on next profile refetch
+          setProfile((prev: any) => ({
+            ...prev,
+            currentLocation: { lat, lng, coordinates: [lng, lat], updatedAt: new Date().toISOString() },
+          }));
         },
         (err) => console.warn('Idle GPS heartbeat error:', err),
         { enableHighAccuracy: false, maximumAge: 30000, timeout: 15000 } // lower accuracy is fine for idle heartbeat, saves battery
@@ -654,15 +660,40 @@ export default function RiderDashboard() {
       {/* TAB CONTENT: 3. ACTIVE RIDE */}
       {activeTab === 'active' && (
         <div className="space-y-4">
-          {!activeRide ? (
-            <div className="rounded-2xl border border-border/80 bg-card p-12 text-center space-y-3">
-              <Navigation className="w-10 h-10 text-muted-foreground mx-auto" />
-              <p className="font-semibold text-sm text-foreground">No active ride right now</p>
-              <p className="text-xs text-muted-foreground">
-                Accepted rides will appear here with live route navigation and passenger details.
-              </p>
-            </div>
-          ) : (
+            {!activeRide ? (
+              <div className="rounded-2xl border border-border/80 bg-card p-12 text-center space-y-3">
+                <Navigation className="w-10 h-10 text-muted-foreground mx-auto" />
+                <p className="font-semibold text-sm text-foreground">No active ride right now</p>
+                <p className="text-xs text-muted-foreground">
+                  Accepted rides will appear here with live route navigation and passenger details.
+                </p>
+
+                {/* Location status indicator — shows even when idle, so the rider knows
+                    whether their GPS is being tracked for emergency/ride matching */}
+                <div className="mt-4 inline-flex items-center gap-2 rounded-xl border border-border/60 bg-muted/30 px-4 py-2 text-xs">
+                  {profile?.currentLocation?.coordinates?.length ? (
+                    <>
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      <span className="text-foreground font-medium">
+                        Location active: {profile.currentLocation.lat?.toFixed(4)}, {profile.currentLocation.lng?.toFixed(4)}
+                      </span>
+                      {profile.currentLocation.updatedAt && (
+                        <span className="text-muted-foreground">
+                          (updated {Math.max(0, Math.round((Date.now() - new Date(profile.currentLocation.updatedAt).getTime()) / 1000))}s ago)
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <span className="w-2 h-2 rounded-full bg-red-500" />
+                      <span className="text-red-600 font-medium">
+                        Location not available — enable GPS to receive ride/emergency requests
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
+            ) : (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
               {/* Trip Controls Panel */}
               <div className="lg:col-span-5 rounded-2xl border border-border/80 bg-card p-5 shadow-sm space-y-4">

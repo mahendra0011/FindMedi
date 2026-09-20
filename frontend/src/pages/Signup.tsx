@@ -24,6 +24,7 @@ export default function Signup() {
   const [phone, setPhone] = useState('');
   const [gender, setGender] = useState('Male');
   const [dateOfBirth, setDateOfBirth] = useState('');
+  const [referralCode, setReferralCode] = useState('');
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -63,6 +64,15 @@ export default function Signup() {
       if (data.email) setEmail(data.email);
       if (data.avatar) setGoogleAvatar(data.avatar);
       if (data.role) setRole(data.role);
+    }
+
+    // Referral code auto-detect (?ref=CODE) — HashRouter puts query in location.hash
+    const hash = window.location.hash || '';
+    const qIndex = hash.indexOf('?');
+    const qs = qIndex >= 0 ? hash.slice(qIndex + 1) : window.location.search.slice(1);
+    const refFromUrl = new URLSearchParams(qs).get('ref') || new URLSearchParams(qs).get('referralCode');
+    if (refFromUrl) {
+      setReferralCode(refFromUrl.toUpperCase());
     }
   }, [location.state]);
 
@@ -208,6 +218,7 @@ export default function Signup() {
           phone,
           gender,
           dateOfBirth,
+          referralCode: referralCode || undefined,
         });
 
         const params = new URLSearchParams({ email, role: 'patient' });
@@ -480,6 +491,16 @@ export default function Signup() {
                 </div>
               </>
             )}
+
+            <div>
+              <label className="text-xs font-semibold text-foreground mb-1 block">Have a referral code? (Optional)</label>
+              <Input
+                placeholder="e.g. AB12CD"
+                value={referralCode}
+                onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                className="h-10 uppercase"
+              />
+            </div>
 
             {/* Terms of Service */}
             <label className="flex items-start gap-2.5 p-2.5 bg-muted/30 rounded-xl border border-border/40 cursor-pointer">

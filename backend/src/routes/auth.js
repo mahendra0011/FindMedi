@@ -45,6 +45,7 @@ import { auditLog } from '../middleware/audit.js';
 import logger from '../config/logger.js';
 import { notifyUsers } from '../services/socketService.js';
 import { validateFileContent } from '../middleware/upload.js';
+import { referralService } from '../services/referralService.js';
 
 const router = express.Router();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -322,11 +323,6 @@ router.post('/register', validate(registerSchema), async (req, res) => {
     const normalizedRole = ['hospital_admin', 'doctor', 'patient', 'technician', 'rider', 'assistant', 'lawyer'].includes(role) ? role : 'patient';
     const lowerEmail = email.toLowerCase();
 
-    // Apply referral code if provided
-    if (referralCode) {
-      await referralService.applyReferralCode(req.user?.id || req.body.userId, referralCode);
-    }
-
     if (normalizedRole === 'doctor' && (!specialization || !licenseNumber || !(qualification || qualifications))) {
       return res.status(400).json({ message: 'Specialization, qualification and license number are required for doctor registration' });
     }
@@ -413,6 +409,16 @@ router.post('/register', validate(registerSchema), async (req, res) => {
       status: 'active',
       approvalStatus: ['doctor', 'technician', 'rider', 'assistant', 'lawyer'].includes(normalizedRole) ? 'pending' : 'not_required',
     });
+
+    // Apply referral code AFTER user exists, with the real new _id
+    if (referralCode) {
+      try {
+        await referralService.applyReferralCode(user._id, referralCode);
+      } catch (refErr) {
+        logger.warn(`applyReferralCode failed for new user ${user._id}: ${refErr.message}`);
+        // don't fail signup just because referral code was invalid
+      }
+    }
 
     if (normalizedRole === 'assistant') {
       await AssistantProfile.create({
