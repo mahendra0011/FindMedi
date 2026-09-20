@@ -153,7 +153,7 @@ const emergencyRequestSchema = new mongoose.Schema({
       attemptNumber: { type: Number, default: 1 }, // 1, 2, 3... auto-find mode ke liye
       candidateCount: Number,
       acceptedProviderIds: [String],
-      outcome: { type: String, enum: ['assigned', 'no_response', 'escalated', 'booked'] },
+      outcome: { type: String, enum: ['assigned', 'no_response', 'no_acceptance', 'escalated', 'booked'] },
       timestamp: { type: Date, default: Date.now },
     },
   ],

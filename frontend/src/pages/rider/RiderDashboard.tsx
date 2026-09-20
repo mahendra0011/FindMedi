@@ -31,6 +31,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { EmergencyToggleConfirm } from '@/components/emergency/EmergencyToggleConfirm';
+import ProviderIncomingCall from '@/components/emergency/ProviderIncomingCall';
+import { emergencyOverlayActive } from '@/lib/emergencyState';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
@@ -53,6 +55,9 @@ export default function RiderDashboard() {
   const [earnings, setEarnings] = useState<any>(null);
   const [activeRide, setActiveRide] = useState<any>(null);
   const [incomingRequests, setIncomingRequests] = useState<any[]>([]);
+  // Emergency ambulance ride requests ko full-screen call ki tarah dikhao
+  const emergencyRideCall = incomingRequests.find((r) => r.isEmergency) || null;
+  emergencyOverlayActive.current = !!emergencyRideCall;
   const [historyRides, setHistoryRides] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [togglingOnline, setTogglingOnline] = useState<boolean>(false);
@@ -115,12 +120,10 @@ export default function RiderDashboard() {
         if (prev.some((r) => r.rideId === payload.rideId)) return prev;
         return [...prev, { ...payload, countdown: 20 }];
       });
-      toast.info(
-        payload.isEmergency
-          ? '🚨 URGENT: Incoming Emergency Ambulance Request!'
-          : '🔔 New Ride Request Received!',
-        { duration: 6000 }
-      );
+      // Emergency = full-screen call screen (neeche render hota hai), toast/notification nahi
+      if (!payload.isEmergency) {
+        toast.info('🔔 New Ride Request Received!', { duration: 6000 });
+      }
     };
 
     const handleRideTaken = ({ rideId }: { rideId: string }) => {
@@ -1073,6 +1076,26 @@ export default function RiderDashboard() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* FULL-SCREEN emergency call (notification-type card nahi) */}
+      {emergencyRideCall && (
+        <ProviderIncomingCall
+          key={emergencyRideCall.rideId}
+          data={{
+            requestId: emergencyRideCall.rideId,
+            category: 'other',
+            isSelf: false,
+            patient: {},
+            location: { address: emergencyRideCall.pickup?.address },
+            distanceKm: emergencyRideCall.riderDistanceKm ?? emergencyRideCall.distanceKm,
+            windowSeconds: emergencyRideCall.countdown || 20,
+            providerType: 'rider',
+          }}
+          onAccept={(id) => handleAcceptRide(id)}
+          onReject={(id) => handleDeclineRide(id)}
+          onTimeout={(id) => handleDeclineRide(id)}
+        />
+      )}
     </div>
   );
 }

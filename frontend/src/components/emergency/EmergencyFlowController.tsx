@@ -15,6 +15,7 @@ import SOSVehicleTypeSelect from './SOSVehicleTypeSelect';
 import SOSRadiusOptions from './SOSRadiusOptions';
 import SOSAcceptedList from './SOSAcceptedList';
 import { sosVehicleState } from '@/lib/emergencyState';
+import { installEmergencyAudioUnlock } from '@/utils/emergencyRing';
 
 export default function EmergencyFlowController() {
   const { user } = useAuth();
@@ -37,6 +38,7 @@ export default function EmergencyFlowController() {
   const [bookingProvider, setBookingProvider] = useState(false);
   const [attemptNumber, setAttemptNumber] = useState<number | undefined>(undefined);
   const [pendingPayload, setPendingPayload] = useState<any>(null);
+  const [windowOpen, setWindowOpen] = useState(true); // false = 30s window band, user ke paas next-step buttons
 
   const [incomingEmergency, setIncomingEmergency] = useState<any>(null);
   const [pendingAccept, setPendingAccept] = useState<{ requestId: string; endsAt: number } | null>(null);
@@ -48,6 +50,9 @@ export default function EmergencyFlowController() {
   incomingRef.current = incomingEmergency;
 
   emergencyOverlayActive.current = !!incomingEmergency;
+
+  // Pehle user tap par audio unlock — taaki ring bajne me browser autoplay block na kare
+  useEffect(() => installEmergencyAudioUnlock(), []);
 
   // Sync state after room join (missed-event protection, Doc 03 §6)
   const syncRequestState = useCallback(async (requestId: string) => {
@@ -70,6 +75,7 @@ export default function EmergencyFlowController() {
   }, []);
 
   useEffect(() => {
+    if (!user?.id) return; // login ke baad hi listeners lagao
     const socket = getSocket();
     if (!socket) return;
 
@@ -134,6 +140,17 @@ export default function EmergencyFlowController() {
       }
     };
 
+    // Server ne 30s window band ki: accepted list ya "koi accept nahi" (Search Again / wider)
+    const onWindowClosed = (data: any) => {
+      if (!matches(data)) return;
+      setWindowOpen(false);
+      if (data.radiusKm) setSearchRadius(data.radiusKm);
+      if (data.accepted?.length) {
+        setAcceptedList(data.accepted);
+        setSearching(false);
+      }
+    };
+
     const onEmergencyCancelled = (data: any) => {
       if (matches(data)) {
         setSearching(false);
@@ -172,6 +189,7 @@ export default function EmergencyFlowController() {
     socket.on('emergency_closed', onClosed);
     socket.on('emergency_expired_no_response', onExpiredNoResponse);
     socket.on('emergency_no_responders_found', onNoResponders);
+    socket.on('emergency_window_closed', onWindowClosed);
     socket.on('emergency_cancelled', onEmergencyCancelled);
     socket.on('emergency_completed', onCompleted);
     socket.on('emergency_hospital_selected', onHospitalSelected);
@@ -185,11 +203,12 @@ export default function EmergencyFlowController() {
       socket.off('emergency_closed', onClosed);
       socket.off('emergency_expired_no_response', onExpiredNoResponse);
       socket.off('emergency_no_responders_found', onNoResponders);
+      socket.off('emergency_window_closed', onWindowClosed);
       socket.off('emergency_cancelled', onEmergencyCancelled);
       socket.off('emergency_completed', onCompleted);
       socket.off('emergency_hospital_selected', onHospitalSelected);
     };
-  }, []);
+  }, [user?.id]);
 
   // Join room immediately when activeRequest set + one GET sync (Doc 01 §12 race fix)
   useEffect(() => {
@@ -246,6 +265,7 @@ export default function EmergencyFlowController() {
         setNoResponders(false);
         setAssignedData(null);
         setAcceptedList([]);
+        setWindowOpen(true);
         setAttemptNumber(undefined);
         setSearchPhase(sosMode === 'auto_select_ambulance' ? 'ambulance' : 'vehicle');
         setSearchRadius(startRadius);
@@ -273,14 +293,12 @@ export default function EmergencyFlowController() {
   const handleSearchAgain = async () => {
     if (!activeRequest?._id) return;
     try {
-      const res: any = await api.post(`/emergency-sos/${activeRequest._id}/search-again`, {});
-      if (res?.accepted?.length) {
-        setAcceptedList(res.accepted);
-        setSearching(false);
-      } else {
-        setSearching(true);
-        toast.info('Search Again — same radius me dobara dhoondh rahe hain…');
-      }
+      // Server fire-and-forget hai; result 'emergency_window_closed' socket event se aata hai
+      await api.post(`/emergency-sos/${activeRequest._id}/search-again`, {});
+      setAcceptedList([]);
+      setWindowOpen(true);
+      setSearching(true);
+      toast.info('Search Again — same radius me dobara dhoondh rahe hain…');
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Search failed');
     }
@@ -290,14 +308,11 @@ export default function EmergencyFlowController() {
     if (!activeRequest?._id) return;
     try {
       setSearchRadius(km);
-      const res: any = await api.post(`/emergency-sos/${activeRequest._id}/search-radius/${km}`, {});
-      if (res?.accepted?.length) {
-        setAcceptedList(res.accepted);
-        setSearching(false);
-      } else {
-        setSearching(true);
-        toast.info(`Search in ${km}km…`);
-      }
+      await api.post(`/emergency-sos/${activeRequest._id}/search-radius/${km}`, {});
+      setAcceptedList([]);
+      setWindowOpen(true);
+      setSearching(true);
+      toast.info(`Search in ${km}km…`);
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Search failed');
     }
@@ -436,7 +451,7 @@ export default function EmergencyFlowController() {
           requestDetails={activeRequest}
           attemptNumber={attemptNumber}
           autoFind={autoFind}
-          windowActive
+          windowActive={windowOpen}
           onSearchAgain={handleSearchAgain}
           onSearchWider={handleSearchWider}
         />

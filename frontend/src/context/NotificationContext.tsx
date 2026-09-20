@@ -30,6 +30,7 @@ export function NotificationProvider({ children }) {
     }
 
     const socket = getSocket();
+    if (!socket.connected) socket.connect(); // logout ke baad disconnect hua tha
     // Shared socket — room join har (re)connect par dobara hota hai
     const cleanupJoin = joinRoom('join', user.id);
 
