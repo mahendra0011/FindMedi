@@ -212,14 +212,14 @@ export default function RiderDashboard() {
     if (navigator.geolocation) {
       idleWatchId = navigator.geolocation.watchPosition(
         (pos) => {
-          const { latitude: lat, longitude: lng } = pos.coords;
+          const { latitude: lat, longitude: lng, accuracy } = pos.coords;
           // Push to REST endpoint (keeps RiderProfile.currentLocation.updatedAt fresh)
-          api.put('/rider/location', { lat, lng }).catch(() => {});
+          api.put('/rider/location', { lat, lng, accuracy }).catch(() => {});
           // Also reflect immediately in local state so the idle location card
           // (and freshness timer) updates in real time, not just on next profile refetch
           setProfile((prev: any) => ({
             ...prev,
-            currentLocation: { lat, lng, coordinates: [lng, lat], updatedAt: new Date().toISOString() },
+            currentLocation: { lat, lng, accuracy, coordinates: [lng, lat], updatedAt: new Date().toISOString() },
           }));
         },
         (err) => console.warn('Idle GPS heartbeat error:', err),
@@ -250,6 +250,7 @@ export default function RiderDashboard() {
             riderId: user?._id,
             lat: pos.coords.latitude,
             lng: pos.coords.longitude,
+            accuracy: pos.coords.accuracy,
           });
         });
       } else {

@@ -15,7 +15,7 @@ export function useAmbulanceGps(active: boolean) {
         const now = Date.now();
         if (now - last.current < 5000) return;
         last.current = now;
-        api.put('/ambulance/me/location', { lat: pos.coords.latitude, lng: pos.coords.longitude }).catch(() => {});
+        api.put('/ambulance/me/location', { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy }).catch(() => {});
       },
       (err) => console.warn('[GPS]', err.message),
       { enableHighAccuracy: true, maximumAge: 3000, timeout: 15000 },

@@ -117,15 +117,17 @@ router.put('/status', protect, validate(riderStatusSchema), async (req, res) => 
 // Update current location
 router.put('/location', protect, validate(riderLocationSchema), async (req, res) => {
   try {
-    const { lat, lng } = req.body;
+    const { lat, lng, accuracy } = req.body;
+    const locUpdate = {
+      'currentLocation.lat': lat,
+      'currentLocation.lng': lng,
+      'currentLocation.coordinates': [lng, lat],
+      'currentLocation.updatedAt': new Date(),
+    };
+    if (accuracy != null) locUpdate['currentLocation.accuracy'] = Number(accuracy);
     await RiderProfile.findOneAndUpdate(
       { userId: req.user._id },
-      {
-        'currentLocation.lat': lat,
-        'currentLocation.lng': lng,
-        'currentLocation.coordinates': [lng, lat],
-        'currentLocation.updatedAt': new Date(),
-      }
+      locUpdate
     );
 
     res.json({ success: true, lat, lng });

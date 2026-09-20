@@ -980,6 +980,7 @@ export const riderStatusSchema = z.object({
 export const riderLocationSchema = z.object({
   lat: z.number(),
   lng: z.number(),
+  accuracy: z.number().optional(),
 });
 
 // ─── Assistant Booking Schemas ──────────────────────────────────────────────

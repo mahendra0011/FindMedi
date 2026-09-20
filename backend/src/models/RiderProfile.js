@@ -58,6 +58,7 @@ const riderProfileSchema = new mongoose.Schema({
     },
     lat: { type: Number, default: 23.1815 },
     lng: { type: Number, default: 79.9864 },
+    accuracy: { type: Number, default: null },
     updatedAt: { type: Date, default: Date.now },
   },
   rating: {

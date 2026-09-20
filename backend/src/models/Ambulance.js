@@ -53,6 +53,7 @@ const ambulanceSchema = new mongoose.Schema({
       type: [Number], // [longitude, latitude] — undefined until first GPS ping (never default Jabalpur)
       default: undefined,
     },
+    accuracy: { type: Number, default: null },
     updatedAt: { type: Date, default: null },
   },
 

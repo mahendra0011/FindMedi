@@ -66,7 +66,7 @@ export default function AmbulanceDashboard() {
         const pos = await new Promise<GeolocationPosition>((res, rej) =>
           navigator.geolocation.getCurrentPosition(res, rej, { enableHighAccuracy: true, timeout: 15000 }));
         const res: any = await api.put('/ambulance/me/online', {
-          online: true, lat: pos.coords.latitude, lng: pos.coords.longitude,
+          online: true, lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy,
         });
         setAmb((p: any) => ({ ...p, isOnline: res.isOnline }));
         setGpsOk('Good, abhi update hua');
