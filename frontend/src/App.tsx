@@ -169,6 +169,7 @@ const PatientVitals = lazy(() => import('./pages/patient/PatientVitals'));
 const PatientCarePlan = lazy(() => import('./pages/patient/PatientCarePlan'));
 const PatientRewards = lazy(() => import('./pages/patient/PatientRewards'));
 const PatientReferral = lazy(() => import('./pages/patient/PatientReferral'));
+const PatientHealthId = lazy(() => import('./pages/patient/PatientHealthId'));
 const SALoyaltyRewards = lazy(() => import('./pages/superadmin/LoyaltyRewards'));
 const SAReferralSettings = lazy(() => import('./pages/superadmin/ReferralSettings'));
 
@@ -703,6 +704,7 @@ const App = () => (
                     <Route path="/patient/emergency" element={<RoleRoute allowedRoles={['patient']}><PatientEmergency /></RoleRoute>} />
                     <Route path="/patient/rewards" element={<RoleRoute allowedRoles={['patient']}><PatientRewards /></RoleRoute>} />
                     <Route path="/patient/referral" element={<RoleRoute allowedRoles={['patient']}><PatientReferral /></RoleRoute>} />
+                    <Route path="/patient/health-id" element={<RoleRoute allowedRoles={['patient']}><PatientHealthId /></RoleRoute>} />
                     <Route path="/patient/support" element={<RoleRoute allowedRoles={['patient']}><PatientSupport /></RoleRoute>} />
                     <Route path="/patient/favorites" element={<RoleRoute allowedRoles={['patient']}><PatientFavorites /></RoleRoute>} />
                     <Route path="/patient/addresses" element={<RoleRoute allowedRoles={['patient']}><PatientAddresses /></RoleRoute>} />

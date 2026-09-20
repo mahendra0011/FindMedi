@@ -394,11 +394,7 @@ export default function Login() {
                 </button>
               ))}
             </div>
-            <div className="mt-2.5 pt-2 border-t border-border/40 text-[9.5px] text-muted-foreground/80 space-y-0.5">
-              <p>⚡ <strong>5 Demo Riders:</strong> rider@findmedi.com to rider5@findmedi.com (pwd: password)</p>
-              <p>🤝 <strong>5 Demo Assistants:</strong> assistant@findmedi.com to assistant5@findmedi.com (pwd: password)</p>
-              <p>⚖️ <strong>5 Demo Lawyers:</strong> lawyer@findmedi.com to lawyer5@findmedi.com (pwd: password)</p>
-            </div>
+
           </div>
         </motion.div>
       </div>

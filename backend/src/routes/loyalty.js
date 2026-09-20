@@ -5,6 +5,7 @@ import { loyaltyService } from '../services/loyaltyService.js';
 import LoyaltyLedger from '../models/LoyaltyLedger.js';
 import RewardRedemption from '../models/RewardRedemption.js';
 import RewardCatalogItem from '../models/RewardCatalogItem.js';
+import LoyaltyEarnRule from '../models/LoyaltyEarnRule.js';
 import User from '../models/User.js';
 import logger from '../config/logger.js';
 
@@ -164,6 +165,80 @@ router.post('/admin/adjust/:userId', protect, async (req, res) => {
     res.json({ success: true, newBalance: user.loyalty.pointsBalance });
   } catch (err) {
     logger.error(`Admin adjust points error: ${err.message}`);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// ─── Admin: Get all reward catalog items (active + inactive) ───
+router.get('/admin/reward-catalog', protect, async (req, res) => {
+  try {
+    if (req.user.role !== 'superadmin') {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    const items = await RewardCatalogItem.find().sort({ pointsRequired: 1 }).lean();
+    res.json(items);
+  } catch (err) {
+    logger.error(`Get reward catalog error: ${err.message}`);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// ─── Admin: Create a new reward catalog item ───
+router.post('/admin/reward-catalog', protect, async (req, res) => {
+  try {
+    if (req.user.role !== 'superadmin') {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    const {
+      title, description, category, pointsRequired,
+      rewardType, rewardValue, applicableService,
+      maxCapAmount, validityDays, stockLimit,
+    } = req.body;
+
+    if (!title || !category || !pointsRequired || !rewardType) {
+      return res.status(400).json({ message: 'title, category, pointsRequired, rewardType required hain' });
+    }
+
+    const item = await RewardCatalogItem.create({
+      title, description, category, pointsRequired,
+      rewardType, rewardValue, applicableService,
+      maxCapAmount, validityDays, stockLimit,
+      isActive: true,
+    });
+    res.status(201).json(item);
+  } catch (err) {
+    logger.error(`Create reward catalog item error: ${err.message}`);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// ─── Admin: Update a reward catalog item ───
+router.put('/admin/reward-catalog/:id', protect, async (req, res) => {
+  try {
+    if (req.user.role !== 'superadmin') {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    const item = await RewardCatalogItem.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!item) return res.status(404).json({ message: 'Reward item nahi mila' });
+    res.json(item);
+  } catch (err) {
+    logger.error(`Update reward catalog item error: ${err.message}`);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// ─── Admin: Delete (soft — deactivate) a reward catalog item ───
+router.delete('/admin/reward-catalog/:id', protect, async (req, res) => {
+  try {
+    if (req.user.role !== 'superadmin') {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    // Soft delete — existing redemptions ki history tootegi nahi
+    const item = await RewardCatalogItem.findByIdAndUpdate(req.params.id, { isActive: false }, { new: true });
+    if (!item) return res.status(404).json({ message: 'Reward item nahi mila' });
+    res.json({ success: true, item });
+  } catch (err) {
+    logger.error(`Delete reward catalog item error: ${err.message}`);
     res.status(500).json({ message: err.message });
   }
 });
