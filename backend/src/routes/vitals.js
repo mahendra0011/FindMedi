@@ -151,7 +151,12 @@ router.get('/trends', protect, async (req, res) => {
           max = Math.max(...vals);
         }
       } else if (vitalType === 'temperature') {
-        const vals = readings.map(r => r.values.tempValue).filter(v => v != null);
+        // Sab °F me badlo — °C aur °F mix ho to avg galat aata tha
+        const vals = readings
+          .filter(r => r.values.tempValue != null)
+          .map(r => r.values.tempUnit === 'C'
+            ? +((r.values.tempValue * 9) / 5 + 32).toFixed(1)
+            : r.values.tempValue);
         if (vals.length > 0) {
           avg = +(vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1);
           min = Math.min(...vals);
@@ -218,9 +223,18 @@ router.post('/', protect, async (req, res) => {
       return res.status(400).json({ message: 'Vital type and values are required' });
     }
 
+    // Frontend carePlanId bhejta hi nahi tha — active care plan khud dhundho
+    let resolvedPlanId = carePlanId || null;
+    if (!resolvedPlanId) {
+      const autoPlan = await ChronicCarePlan.findOne({
+        userId: req.user._id, status: 'active', 'vitalsTracked.vitalType': vitalType,
+      }).sort({ updatedAt: -1 }).select('_id');
+      if (autoPlan) resolvedPlanId = autoPlan._id;
+    }
+
     let personalizedTarget = null;
-    if (carePlanId) {
-      const plan = await ChronicCarePlan.findById(carePlanId);
+    if (resolvedPlanId) {
+      const plan = await ChronicCarePlan.findOne({ _id: resolvedPlanId, userId: req.user._id });
       if (plan && plan.vitalsTracked) {
         const matched = plan.vitalsTracked.find(v => v.vitalType === vitalType);
         if (matched && matched.personalizedTarget) {
@@ -237,7 +251,8 @@ router.post('/', protect, async (req, res) => {
     const log = new VitalsLog({
       userId: req.user._id,
       patientId: req.user.patientId || null,
-      carePlanId: carePlanId || null,
+      carePlanId: resolvedPlanId,
+      vitalType,
       vitalType,
       values,
       note: (note || '').trim(),
@@ -251,7 +266,7 @@ router.post('/', protect, async (req, res) => {
     // If out of range, create an informational in-app notification
     if (flag === 'high' || flag === 'low' || flag === 'fever') {
       await Notification.create({
-        user_id: req.user._id,
+        userId: String(req.user._id),
         type: 'reminder',
         title: `⚠️ Vitals Warning: ${vitalType.toUpperCase()} is ${flag}`,
         message: `Your reading recorded at ${recordDate.toLocaleTimeString()} was outside normal reference ranges (${flag}).`,

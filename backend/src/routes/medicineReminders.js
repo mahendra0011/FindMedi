@@ -67,7 +67,9 @@ router.get('/adherence', protect, async (req, res) => {
       matchQuery.reminderId = req.query.reminderId;
     }
 
-    const logs = await MedicineDoseLog.find(matchQuery).sort({ scheduledAt: 1 }).lean();
+    const allLogs = await MedicineDoseLog.find(matchQuery).sort({ scheduledAt: 1 }).lean();
+    // Sirf responded logs gino — unanswered snooze "taken" gin jata tha, score jhootha banta tha
+    const logs = allLogs.filter(l => l.respondedAt);
 
     let totalScheduled = logs.length;
     let takenCount = 0;
@@ -114,7 +116,7 @@ router.get('/adherence', protect, async (req, res) => {
 
     const adherenceScore = totalScheduled > 0
       ? Math.round((takenCount / totalScheduled) * 100)
-      : 100;
+      : null;
 
     return res.json({
       days,
@@ -461,11 +463,11 @@ router.post('/:id/dose/respond', protect, async (req, res) => {
     // In-app notification creation
     if (status === 'missed') {
       await Notification.create({
-        user_id: req.user._id,
+        userId: String(req.user._id),
         type: 'reminder',
         title: `💊 Missed Dose: ${reminder.medicineName}`,
-        message: `You missed your scheduled dose of ${reminder.medicineName} (${reminder.dosage}) at ${reminder.times.join(', ')}.`,
-      });
+        message: `You missed your scheduled dose of ${reminder.medicineName} (${reminder.dosage}).`,
+      }).catch(e => logger.warn('Missed-dose notification failed: ' + e.message));
 
       // Check if threshold for doctor notification is crossed
       if (reminder.notifyDoctorOnMissThreshold && reminder.carePlanId) {

@@ -891,9 +891,11 @@ export default function DoctorDashboard() {
                       </p>
                     </div>
                     <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                      plan.adherenceScore >= 80 ? 'bg-emerald-500/10 text-emerald-600' : 'bg-amber-500/10 text-amber-600'
+                      plan.adherenceScore == null
+                        ? 'bg-muted text-muted-foreground'
+                        : plan.adherenceScore >= 80 ? 'bg-emerald-500/10 text-emerald-600' : 'bg-amber-500/10 text-amber-600'
                     }`}>
-                      {plan.adherenceScore}% Adherence
+                      {plan.adherenceScore == null ? 'No dose data' : `${plan.adherenceScore}% Adherence`}
                     </span>
                   </div>
 

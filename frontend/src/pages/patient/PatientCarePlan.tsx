@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Heart,
@@ -63,6 +63,9 @@ export default function PatientCarePlan() {
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  const selectedPlanRef = useRef<any>(null);
+  selectedPlanRef.current = selectedPlan;
+
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
@@ -75,7 +78,7 @@ export default function PatientCarePlan() {
       if (plansRes.status === 'fulfilled') {
         const plans = plansRes.value.carePlans || [];
         setCarePlans(plans);
-        if (plans.length > 0 && !selectedPlan) {
+        if (plans.length > 0 && !selectedPlanRef.current) {
           loadPlanDetails(plans[0]._id);
         }
       }
@@ -92,16 +95,22 @@ export default function PatientCarePlan() {
     } finally {
       setLoading(false);
     }
-  }, [selectedPlan]);
+  }, []);
 
   const loadPlanDetails = async (id: string) => {
     try {
-      const [detailRes, todayRes] = await Promise.all([
+      const [detailRes, todayRes] = await Promise.allSettled([
         api.getCarePlan(id),
         api.getCarePlanToday(id),
       ]);
-      setSelectedPlan(detailRes.carePlan);
-      setTodayChecklist(todayRes);
+      if (detailRes.status === 'fulfilled') {
+        setSelectedPlan(detailRes.value.carePlan);
+      } else {
+        toast.error('Care plan details load nahi ho payi');
+      }
+      if (todayRes.status === 'fulfilled') {
+        setTodayChecklist(todayRes.value);
+      }
     } catch (err) {
       console.error(err);
     }
@@ -523,9 +532,13 @@ export default function PatientCarePlan() {
                       Next Follow-up Appointment
                     </h4>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      {todayChecklist?.followUp?.daysUntilFollowUp != null
-                        ? `Due in approximately ${todayChecklist.followUp.daysUntilFollowUp} days`
-                        : 'Routine 30-day chronic checkup'}
+                      {(() => {
+                        const d = todayChecklist?.followUp?.daysUntilFollowUp;
+                        if (d == null) return 'Routine 30-day chronic checkup';
+                        if (d < 0) return `Overdue by ${Math.abs(d)} days`;
+                        if (d === 0) return 'Due today';
+                        return `Due in approximately ${d} days`;
+                      })()}
                     </p>
                   </div>
                   <Button

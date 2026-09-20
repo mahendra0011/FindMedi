@@ -32,6 +32,7 @@ import { LenisScroll } from './components/LenisScroll';
 import ErrorBoundary from './components/ErrorBoundary';
 import { useProactiveTokenRefresh } from '@/lib/useProactiveTokenRefresh';
 import EmergencyFlowController from '@/components/emergency/EmergencyFlowController';
+import ReminderAlarmHost from '@/components/patient/ReminderAlarmHost';
 
 // Keep layouts that are always needed
 const Home = lazy(() => import('./pages/Home'));
@@ -489,6 +490,7 @@ const App = () => (
             <Sonner />
             <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <EmergencyFlowController />
+            <ReminderAlarmHost />
             <LenisScroll>
               <AppMotion>
                 <Suspense fallback={loadingFallback}>

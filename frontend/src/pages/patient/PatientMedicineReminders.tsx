@@ -94,6 +94,7 @@ export default function PatientMedicineReminders() {
       toast.error('Failed to load medicine reminders');
     } finally {
       setLoading(false);
+      window.dispatchEvent(new Event('reminders:changed'));
     }
   }, []);
 
@@ -356,16 +357,18 @@ export default function PatientMedicineReminders() {
           </div>
           <div className="my-4 flex items-baseline gap-3">
             <span className="text-4xl sm:text-5xl font-extrabold text-foreground">
-              {adherenceData?.adherenceScore ?? 100}%
+              {adherenceData?.adherenceScore ?? '—'}{adherenceData?.adherenceScore != null ? '%' : ''}
             </span>
             <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
-              (adherenceData?.adherenceScore ?? 100) >= 85
+              adherenceData?.adherenceScore == null
+                ? 'bg-muted text-muted-foreground'
+                : adherenceData.adherenceScore >= 85
                 ? 'bg-emerald-500/10 text-emerald-600'
-                : (adherenceData?.adherenceScore ?? 100) >= 70
+                : adherenceData.adherenceScore >= 70
                 ? 'bg-amber-500/10 text-amber-600'
                 : 'bg-red-500/10 text-red-600'
             }`}>
-              {(adherenceData?.adherenceScore ?? 100) >= 85 ? 'Excellent' : 'Needs Attention'}
+              {adherenceData?.adherenceScore == null ? 'No data yet' : adherenceData.adherenceScore >= 85 ? 'Excellent' : 'Needs Attention'}
             </span>
           </div>
           <div className="grid grid-cols-3 gap-2 border-t pt-3 text-xs text-muted-foreground">
@@ -431,7 +434,7 @@ export default function PatientMedicineReminders() {
           </div>
 
           <div className="flex items-center justify-between text-xs text-muted-foreground pt-3 border-t mt-2">
-            <span>Server reconciliation detects missed doses automatically</span>
+            <span>Alarms ring while the app is open in your browser</span>
             <span className="font-medium text-primary">Reliable alarms active</span>
           </div>
         </div>

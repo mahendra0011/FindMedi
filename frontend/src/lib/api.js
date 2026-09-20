@@ -863,6 +863,7 @@ export const api = {
   respondMedicineDose:       (id, body)=> request(`/medicine-reminders/${id}/dose/respond`, { method: 'POST', body: JSON.stringify(body) }),
   getMedicineAdherence:      (p={})    => request('/medicine-reminders/adherence' + (Object.keys(p).length ? '?' + new URLSearchParams(p) : '')),
   getAlarmSounds:            ()        => request('/medicine-reminders/alarm-sounds'),
+  getPrescriptions:          (p={})    => request('/pharmacy/prescriptions' + (Object.keys(p).length ? '?' + new URLSearchParams(p) : '')),
 
   // ── Vitals Self-Tracking ──
   getVitals:                 (p={})    => request('/vitals' + (Object.keys(p).length ? '?' + new URLSearchParams(p) : '')),
