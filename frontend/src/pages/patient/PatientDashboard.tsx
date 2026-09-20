@@ -5,7 +5,7 @@ import {
   CalendarDays, Calendar, User, FileText, TestTube, Bell, AlertTriangle, ClipboardList,
   Pill, ShoppingCart, Upload, Search, Zap, Heart, ArrowRight, Clock, Star,
   IndianRupee, Activity, MapPinned, HelpCircle, Phone, MessageCircle, ChevronRight,
-  X, Download, Users, Ambulance, Stethoscope, Syringe, CreditCard, Bookmark,
+  X, Download, Users, Stethoscope, Syringe, CreditCard, Bookmark,
   Smartphone, Landmark, Wallet, RotateCcw, Sparkles, CheckCircle2, TrendingUp,
   ExternalLink, RefreshCw, ChevronLeft, Video, MapPin, Car, Building2, CalendarClock
 } from 'lucide-react';
@@ -105,7 +105,6 @@ const quickActions = [
   { label: 'Book Lab Test', icon: Syringe, link: '/patient/services', desc: 'Home collection' },
   { label: 'Buy Medicine', icon: Pill, link: '/pharmacy', desc: 'Doorstep delivery' },
   { label: 'Upload Report', icon: Upload, link: '/upload', desc: 'Store securely' },
-  { label: 'Emergency', icon: Ambulance, link: '/patient/emergency', desc: 'Get help now' },
   { label: 'Saved Doctors', icon: Heart, link: '/patient/favorites', desc: 'Quick access' },
 ];
 
