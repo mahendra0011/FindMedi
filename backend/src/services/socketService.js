@@ -61,7 +61,7 @@ function attachRideSocketHandlers(socket, namespace) {
       logger.error(`rider_location_update error: ${err.message}`);
     }
   });
-  socket.on('rider_go_online', async ({ riderId, lat, lng }) => {
+  socket.on('rider_go_online', async ({ riderId, lat, lng, accuracy }) => {
     try {
       const id = riderId || socket.userId;
       if (id) {
@@ -71,6 +71,7 @@ function attachRideSocketHandlers(socket, namespace) {
           update['currentLocation.lng'] = lng;
           update['currentLocation.coordinates'] = [lng, lat];
           update['currentLocation.updatedAt'] = new Date();
+          if (accuracy != null) update['currentLocation.accuracy'] = Number(accuracy);
         }
         await RiderProfile.findOneAndUpdate({ userId: id }, update);
       }

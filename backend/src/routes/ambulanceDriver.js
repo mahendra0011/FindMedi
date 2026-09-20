@@ -20,14 +20,14 @@ router.use(async (req, res, next) => {
 // GET /api/ambulance/me
 router.get('/me', (req, res) => res.json({ success: true, ambulance: req.ambulance }));
 
-// PUT /api/ambulance/me/online { online, lat, lng }
+// PUT /api/ambulance/me/online { online, lat, lng, accuracy }
 router.put('/me/online', async (req, res) => {
-  const { online, lat, lng } = req.body;
+  const { online, lat, lng, accuracy } = req.body;
   const amb = req.ambulance;
   if (online) {
     if (lat == null || lng == null) return res.status(400).json({ message: 'GPS location chahiye' });
     if (amb.hospitalId?.status !== 'approved') return res.status(403).json({ message: 'Hospital approved nahi hai' });
-    amb.currentLocation = { type: 'Point', coordinates: [Number(lng), Number(lat)], updatedAt: new Date() };
+    amb.currentLocation = { type: 'Point', coordinates: [Number(lng), Number(lat)], accuracy: accuracy != null ? Number(accuracy) : null, updatedAt: new Date() };
     amb.lastPingAt = new Date();
   } else if (amb.isOnDuty) {
     return res.status(409).json({ message: 'Active job ke dauran offline nahi ho sakte' });
@@ -38,15 +38,17 @@ router.put('/me/online', async (req, res) => {
   res.json({ success: true, isOnline: amb.isOnline });
 });
 
-// PUT /api/ambulance/me/location { lat, lng } (every 5-10s)
+// PUT /api/ambulance/me/location { lat, lng, accuracy } (every 5-10s)
 router.put('/me/location', async (req, res) => {
-  const { lat, lng } = req.body;
+  const { lat, lng, accuracy } = req.body;
   if (typeof lat !== 'number' || typeof lng !== 'number') return res.status(400).json({ message: 'lat/lng number chahiye' });
-  await Ambulance.updateOne({ _id: req.ambulance._id }, {
+  const locUpdate = {
     'currentLocation.coordinates': [lng, lat],
     'currentLocation.updatedAt': new Date(),
     lastPingAt: new Date(),
-  });
+  };
+  if (accuracy != null) locUpdate['currentLocation.accuracy'] = Number(accuracy);
+  await Ambulance.updateOne({ _id: req.ambulance._id }, locUpdate);
   if (req.ambulance.currentEmergencyId || req.ambulance.isOnDuty) {
     const job = await EmergencyRequest.findOne({
       assignedProviderId: req.ambulance._id, status: { $in: ['assigned', 'en_route'] },
