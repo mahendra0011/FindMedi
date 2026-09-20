@@ -1,9 +1,11 @@
 import express from 'express';
 import { z } from 'zod';
+import { randomBytes } from 'crypto';
 import FamilyMember from '../models/FamilyMember.js';
 import PatientAddress from '../models/PatientAddress.js';
 import SavedFavorite from '../models/SavedFavorite.js';
 import PreferredPharmacy from '../models/PreferredPharmacy.js';
+import User from '../models/User.js';
 import { protect } from '../middleware/auth.js';
 import { validate } from '../utils/validate.js';
 
@@ -191,6 +193,48 @@ router.delete('/preferred-pharmacies/:id', protect, async (req, res) => {
       { $inc: { priority: -1 } }
     );
     res.json({ message: 'Removed' });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// ─── Patient profile (healthIdCard ke saath) ───
+router.get('/me', protect, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select('name email healthIdCard').lean();
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.json({ user });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// ─── Health ID: generate / rotate QR token ───
+router.post('/health-id/generate', protect, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (user.healthIdCard?.qrToken && req.body.regenerate) {
+      user.healthIdCard.qrToken = undefined;
+      user.healthIdCard.lastRotatedAt = new Date();
+      await user.save();
+    }
+    if (!user.healthIdCard?.qrToken) {
+      user.healthIdCard = user.healthIdCard || {};
+      user.healthIdCard.qrToken = randomBytes(16).toString('base64url');
+      await user.save();
+    }
+    res.json({ qrToken: user.healthIdCard.qrToken });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// ─── Health ID: update settings ───
+router.put('/health-id/settings', protect, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    const { isEnabled, shareLevel } = req.body;
+    user.healthIdCard = user.healthIdCard || {};
+    if (isEnabled !== undefined) user.healthIdCard.isEnabled = isEnabled;
+    if (shareLevel) user.healthIdCard.shareLevel = shareLevel;
+    await user.save();
+    res.json({ user: { healthIdCard: user.healthIdCard } });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
