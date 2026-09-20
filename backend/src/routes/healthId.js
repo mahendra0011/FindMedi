@@ -79,7 +79,7 @@ router.get('/:qrToken', async (req, res) => {
     const response = {
       name: user.name,
       age: user.dateOfBirth
-        ? Math.floor((Date.now() - user.dateOfBirth) / 31557600000 / 365.25)
+        ? Math.floor((Date.now() - user.dateOfBirth) / 31557600000)
         : null,
       gender: user.gender,
       bloodGroup: user.bloodGroup,

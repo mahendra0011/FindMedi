@@ -308,7 +308,10 @@ const navConfig = {
   ],
   ambulance: [
     { icon: LayoutDashboard, labelKey: 'nav.dashboard', path: '/ambulance/dashboard' },
+    { icon: MapPin,          labelKey: 'nav.activeJob', path: '/ambulance/dashboard?tab=active' },
     { icon: History, labelKey: 'nav.jobHistory', path: '/ambulance/jobs' },
+    { icon: Truck,           labelKey: 'nav.vehicleDetails', path: '/ambulance/dashboard?tab=vehicle' },
+    { icon: Bell,            labelKey: 'nav.notifications', path: '/notifications' },
     { icon: User, labelKey: 'nav.profileSettings', path: '/settings' },
   ],
 };

@@ -67,4 +67,61 @@ router.get('/me/active-job', async (req, res) => {
   res.json({ success: true, job });
 });
 
+// GET /api/ambulance/me/stats — today's jobs, total completed, avg response
+router.get('/me/stats', async (req, res) => {
+  try {
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+    const [todayCount, monthCount, totalCompleted, avgAgg] = await Promise.all([
+      EmergencyRequest.countDocuments({ assignedProviderId: req.ambulance._id, createdAt: { $gte: startOfDay } }),
+      EmergencyRequest.countDocuments({ assignedProviderId: req.ambulance._id, createdAt: { $gte: startOfMonth } }),
+      EmergencyRequest.countDocuments({ assignedProviderId: req.ambulance._id, status: 'completed' }),
+      EmergencyRequest.aggregate([
+        { $match: { assignedProviderId: req.ambulance._id, status: 'completed', assignedAt: { $exists: true } } },
+        { $project: { responseMin: { $divide: [{ $subtract: ['$assignedAt', '$createdAt'] }, 60000] } } },
+        { $group: { _id: null, avg: { $avg: '$responseMin' } } },
+      ]),
+    ]);
+    res.json({
+      success: true,
+      todayCount,
+      monthCount,
+      totalCompleted,
+      avgResponseMin: avgAgg[0] ? Math.round(avgAgg[0].avg) : 0,
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// GET /api/ambulance/me/recent-jobs — last 5 assigned jobs
+router.get('/me/recent-jobs', async (req, res) => {
+  try {
+    const jobs = await EmergencyRequest.find({ assignedProviderId: req.ambulance._id })
+      .sort({ createdAt: -1 }).limit(5).lean();
+    res.json({ success: true, jobs });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// GET /api/ambulance/me/jobs — paginated job history
+router.get('/me/jobs', async (req, res) => {
+  try {
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 20));
+    const [jobs, total] = await Promise.all([
+      EmergencyRequest.find({ assignedProviderId: req.ambulance._id })
+        .sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
+      EmergencyRequest.countDocuments({ assignedProviderId: req.ambulance._id }),
+    ]);
+    res.json({ success: true, jobs, total, page });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 export default router;
