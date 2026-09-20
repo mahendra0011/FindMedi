@@ -3,6 +3,7 @@ import EmergencyRequest from '../models/EmergencyRequest.js';
 import Ambulance from '../models/Ambulance.js';
 import Hospital from '../models/Hospital.js';
 import RiderProfile from '../models/RiderProfile.js';
+import RideBooking from '../models/RideBooking.js';
 import Vehicle from '../models/Vehicle.js';
 import User from '../models/User.js';
 import { getIO } from './socketService.js';
@@ -282,7 +283,17 @@ export async function runWave({ requestId, phase, radiusKm, candidates, emitAler
     if (r.notified?.length && (r.acceptances.length + r.rejections.length) >= r.notified.length) break;
   }
 
-  return finalizeWave(requestId);
+  const result = await finalizeWave(requestId);
+  if (!result.done) {
+    // Nobody accepted — tell this wave's providers their window expired
+    const io = getIO();
+    if (io) {
+      candidates.forEach((c) => {
+        io.to(`user:${c.userId}`).emit('emergency_expired_no_response', { requestId: String(requestId) });
+      });
+    }
+  }
+  return result;
 }
 
 /**

@@ -119,6 +119,13 @@ export default function EmergencyFlowController() {
       setIncomingEmergency(null);
     };
 
+    const onExpiredNoResponse = (data: any) => {
+      if (incomingRef.current?.requestId === data.requestId) {
+        setPendingAccept(null);
+        setIncomingEmergency(null);
+      }
+    };
+
     const onNoResponders = (data: any) => {
       if (matches(data)) {
         setSearching(false);
@@ -163,6 +170,7 @@ export default function EmergencyFlowController() {
     socket.on('emergency_assigned_to_you', onAssignedToYou);
     socket.on('emergency_lost', onLost);
     socket.on('emergency_closed', onClosed);
+    socket.on('emergency_expired_no_response', onExpiredNoResponse);
     socket.on('emergency_no_responders_found', onNoResponders);
     socket.on('emergency_cancelled', onEmergencyCancelled);
     socket.on('emergency_completed', onCompleted);
@@ -175,6 +183,7 @@ export default function EmergencyFlowController() {
       socket.off('emergency_assigned_to_you', onAssignedToYou);
       socket.off('emergency_lost', onLost);
       socket.off('emergency_closed', onClosed);
+      socket.off('emergency_expired_no_response', onExpiredNoResponse);
       socket.off('emergency_no_responders_found', onNoResponders);
       socket.off('emergency_cancelled', onEmergencyCancelled);
       socket.off('emergency_completed', onCompleted);

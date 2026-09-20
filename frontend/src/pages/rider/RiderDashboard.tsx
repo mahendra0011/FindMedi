@@ -203,6 +203,29 @@ export default function RiderDashboard() {
     };
   }, [activeRide?.status]);
 
+  // RiderDashboard.tsx — new effect, runs whenever rider is online (regardless of active ride)
+  useEffect(() => {
+    if (!profile?.isOnline) return;
+
+    let idleWatchId: number | null = null;
+
+    if (navigator.geolocation) {
+      idleWatchId = navigator.geolocation.watchPosition(
+        (pos) => {
+          const { latitude: lat, longitude: lng } = pos.coords;
+          // Push to REST endpoint (keeps RiderProfile.currentLocation.updatedAt fresh)
+          api.put('/rider/location', { lat, lng }).catch(() => {});
+        },
+        (err) => console.warn('Idle GPS heartbeat error:', err),
+        { enableHighAccuracy: false, maximumAge: 30000, timeout: 15000 } // lower accuracy is fine for idle heartbeat, saves battery
+      );
+    }
+
+    return () => {
+      if (idleWatchId != null) navigator.geolocation.clearWatch(idleWatchId);
+    };
+  }, [profile?.isOnline]);
+
   // Online / Offline Toggle
   const handleToggleOnline = async (checked: boolean) => {
     if (profile?.riderStatus !== 'active') {
