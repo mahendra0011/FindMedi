@@ -46,9 +46,10 @@ function sendAlert(io, requestId, c) {
   if (c.providerType === 'ambulance') io.to(`ambulance:${c.providerId}`).emit('incoming_emergency', payload);
 }
 
-async function buildCandidates(request, radiusKm) {
+async function buildCandidates(request, radiusKm, { fresh = false } = {}) {
   const [lng, lat] = request.location.coordinates;
-  const ever = (request.everNotified || []).map((e) => (typeof e === 'string' ? e : e.providerId));
+  // fresh=true (Search Again): pehle alert gaye providers ko dobara alert bhejna allowed hai
+  const ever = fresh ? [] : (request.everNotified || []).map((e) => (typeof e === 'string' ? e : e.providerId));
   const types = request.selectedVehicleTypes || [];
   const wantAmb = types.includes('ambulance') || request.requestMode === 'auto_select_ambulance';
   const wantVeh = types.some((t) => ['auto', 'e_rickshaw', 'car', 'van'].includes(t)) || request.requestMode === 'auto_select_vehicle';
@@ -107,27 +108,56 @@ async function waitWindow(requestId, windowMs) {
     await sleep(1000);
     const r = await EmergencyRequest.findById(requestId).select('status notified acceptances rejections');
     if (!r || r.status !== 'searching') return { stopped: true };
-    if (r.notified?.length && r.acceptances.length + r.rejections.length >= r.notified.length) break;
+    // Sab ne reject kar diya to hi jaldi band karo; accept ho to poori window wait (closest wins)
+    if (r.notified?.length && r.rejections.length >= r.notified.length) break;
   }
   return { stopped: false };
 }
 
-export async function startManualModeSearch(requestId, radiusKm) {
+/**
+ * Window band hone par patient ko (aur bina-accept wale providers ko) batao.
+ * Accepted providers overlay me "waiting" rehte hain jab tak patient book / cancel na kare.
+ */
+async function announceWindowClosed(requestId, radiusKm) {
+  const r = await EmergencyRequest.findById(requestId).select('status notified acceptances');
+  if (!r || r.status !== 'searching') return { accepted: [], stopped: true };
+  const accepted = [...(r.acceptances || [])].sort((a, b) => a.distanceKm - b.distanceKm);
+  const io = getIO();
+  if (io) {
+    io.to(`emergency:${requestId}`).emit('emergency_window_closed', {
+      requestId: String(requestId),
+      radiusKm,
+      accepted: accepted.map((a) => ({ providerId: a.providerId, providerType: a.providerType, userId: a.userId, distanceKm: a.distanceKm })),
+    });
+    const acceptedUsers = new Set(accepted.map((a) => String(a.userId)));
+    (r.notified || [])
+      .filter((n) => !acceptedUsers.has(String(n.userId)))
+      .forEach((n) => io.to(`user:${n.userId}`).emit('emergency_expired_no_response', { requestId: String(requestId) }));
+  }
+  return { accepted, stopped: false };
+}
+
+export async function startManualModeSearch(requestId, radiusKm, opts = {}) {
   const request = await EmergencyRequest.findById(requestId);
   if (!request || request.status !== 'searching') return { error: 'Request not searching' };
-  const cands = await buildCandidates(request, radiusKm);
+
+  // Pichli wave ke providers (accepted waiting wale bhi) ke overlay band karo
+  const io0 = getIO();
+  (request.notified || []).forEach((n) => io0?.to(`user:${n.userId}`).emit('emergency_closed', { requestId: String(requestId) }));
+
+  const cands = await buildCandidates(request, radiusKm, { fresh: !!opts.fresh });
   if (!cands.length) {
     await EmergencyRequest.findByIdAndUpdate(requestId, {
-      $set: { currentSearchRadiusKm: radiusKm },
+      $set: { currentSearchRadiusKm: radiusKm, notified: [], acceptances: [], rejections: [] },
       $push: { dispatchLog: { radiusKm, phase: request.currentSearchPhase, attemptNumber: 1, candidateCount: 0, outcome: 'no_acceptance' } },
     });
+    await announceWindowClosed(requestId, radiusKm); // 0 candidates ho tab bhi patient ko result do
     return { accepted: [], done: false };
   }
   const { windowMs } = await openWave(requestId, radiusKm, cands, 1);
   await waitWindow(requestId, windowMs);
-  const r = await EmergencyRequest.findById(requestId).select('acceptances windowEndsAt status');
-  if (!r || r.status !== 'searching') return { accepted: [], done: true };
-  const accepted = [...(r.acceptances || [])].sort((a, b) => a.distanceKm - b.distanceKm);
+  const { accepted, stopped } = await announceWindowClosed(requestId, radiusKm);
+  if (stopped) return { accepted: [], done: true };
   return { accepted, done: false };
 }
 
@@ -224,8 +254,7 @@ export async function startAutoFindLoop(requestId, radiusSteps, maxRetriesPerRad
   }
   const cur = await EmergencyRequest.findById(requestId);
   if (cur && cur.status === 'searching') {
-    cur.status = 'no_responders_found';
-    await cur.save();
+    await EmergencyRequest.updateOne({ _id: requestId, status: 'searching' }, { $set: { status: 'no_responders_found' } });
     const io = getIO();
     if (io) io.to(`emergency:${requestId}`).emit('emergency_no_responders_found', { requestId: String(requestId), message: 'No emergency responders could be dispatched in your area right now. Please call emergency services directly (108 / 112).' });
     logger.warn(`Auto-find ${requestId}: no responders found.`);
@@ -252,8 +281,7 @@ export async function startAutoEscalateLoop(requestId, radiusSteps, startingRadi
   }
   const cur = await EmergencyRequest.findById(requestId);
   if (cur && cur.status === 'searching') {
-    cur.status = 'no_responders_found';
-    await cur.save();
+    await EmergencyRequest.updateOne({ _id: requestId, status: 'searching' }, { $set: { status: 'no_responders_found' } });
     const io = getIO();
     if (io) io.to(`emergency:${requestId}`).emit('emergency_no_responders_found', { requestId: String(requestId), message: 'No emergency responders could be dispatched in your area right now. Please call emergency services directly (108 / 112).' });
     logger.warn(`Auto-escalate ${requestId}: no responders found.`);

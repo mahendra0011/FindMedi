@@ -90,8 +90,7 @@ export function joinLawyerBookingRoom(bookingId) {
 
 
 export function disconnectSocket() {
-  if (socket) {
-    socket.disconnect();
-    socket = null;
-  }
+  // Instance ko null mat karo: EmergencyFlowController jaise components ke listeners
+  // isi object par lage hote hain. Naya object banega to purane listeners dead ho jate hain.
+  if (socket) socket.disconnect();
 }

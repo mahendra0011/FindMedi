@@ -279,7 +279,7 @@ export async function runWave({ requestId, phase, radiusKm, candidates, emitAler
       rejections: [],
       windowEndsAt: new Date(Date.now() + WINDOW_MS),
     },
-    $addToSet: { everNotified: { $each: candidates.map(c => c.providerId) } },
+    $addToSet: { everNotified: { $each: candidates.map(c => ({ providerId: c.providerId })) } },
     $push: { dispatchLog: { radiusKm, phase, candidateCount: candidates.length, outcome: 'escalated' } },
   });
 
@@ -290,7 +290,7 @@ export async function runWave({ requestId, phase, radiusKm, candidates, emitAler
     await sleep(1000);
     const r = await EmergencyRequest.findById(requestId).select('status notified acceptances rejections everNotified');
     if (!r || r.status !== 'searching') return { done: true };
-    if (r.notified?.length && (r.acceptances.length + r.rejections.length) >= r.notified.length) break;
+    if (r.notified?.length && r.rejections.length >= r.notified.length) break;
   }
 
   const result = await finalizeWave(requestId);

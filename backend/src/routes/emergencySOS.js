@@ -4,7 +4,6 @@ import Hospital from '../models/Hospital.js';
 import Ambulance from '../models/Ambulance.js';
 import { protect } from '../middleware/auth.js';
 import {
-  startEmergencyDispatch,
   handleProviderAccept,
   selectDestinationHospital,
   findEligibleAmbulances,
@@ -49,7 +48,7 @@ router.post('/', protect, async (req, res) => {
       currentSearchPhase: 'ambulance',
     });
     // background dispatch, don't block response
-    startEmergencyDispatch(doc._id).catch((e) => logger.error(`dispatch fail ${doc._id}: ${e.message}`));
+    startAutoEscalateLoop(String(doc._id), [5, 10, 15, 20], 5).catch((e) => logger.error(`legacy create dispatch fail ${doc._id}: ${e.message}`));
     res.status(201).json({ emergency: { _id: doc._id, id: doc._id, status: doc.status, requestMode: doc.requestMode } });
   } catch (err) {
     logger.error(`SOS create error: ${err.message}`);
@@ -148,9 +147,10 @@ router.post('/:id/search-again', protect, async (req, res) => {
     const cur = await EmergencyRequest.findById(req.params.id).select('currentSearchRadiusKm status');
     if (!cur) return res.status(404).json({ message: 'Request not found' });
     if (cur.status !== 'searching') return res.status(400).json({ message: 'Request not searching' });
-    const result = await startManualModeSearch(req.params.id, cur.currentSearchRadiusKm || 5);
-    if (result.error) return res.status(400).json({ message: result.error });
-    res.json({ accepted: result.accepted || [], done: result.done });
+    // Fire-and-forget: 30s HTTP block nahi. Result 'emergency_window_closed' socket event se aata hai.
+    startManualModeSearch(req.params.id, cur.currentSearchRadiusKm || 5, { fresh: true })
+      .catch((e) => logger.error(`search-again fail: ${e.message}`));
+    res.json({ started: true, radiusKm: cur.currentSearchRadiusKm || 5 });
   } catch (err) {
     logger.error(`SOS search-again error: ${err.message}`);
     res.status(500).json({ message: err.message });
@@ -162,9 +162,11 @@ router.post('/:id/search-radius/:km', protect, async (req, res) => {
   try {
     const km = parseInt(req.params.km, 10);
     if (!km || km < 1 || km > 50) return res.status(400).json({ message: 'Invalid radius' });
-    const result = await startManualModeSearch(req.params.id, km);
-    if (result.error) return res.status(400).json({ message: result.error });
-    res.json({ accepted: result.accepted || [], done: result.done });
+    const cur = await EmergencyRequest.findById(req.params.id).select('status');
+    if (!cur) return res.status(404).json({ message: 'Request not found' });
+    if (cur.status !== 'searching') return res.status(400).json({ message: 'Request not searching' });
+    startManualModeSearch(req.params.id, km).catch((e) => logger.error(`search-radius fail: ${e.message}`));
+    res.json({ started: true, radiusKm: km });
   } catch (err) {
     logger.error(`SOS search-radius error: ${err.message}`);
     res.status(500).json({ message: err.message });
