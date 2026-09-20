@@ -150,8 +150,9 @@ export default function AIChatAssistant() {
       setChatSessions(newSessions);
       localStorage.setItem('findmedi_ai_history', JSON.stringify(newSessions));
 
-    } catch {
-      setMessages((prev) => [...prev, { role: 'assistant', content: 'Oops, something went wrong on my end! Could you please try again?' }]);
+    } catch (err: any) {
+      const serverReply = err?.response?.data?.reply;
+      setMessages((prev) => [...prev, { role: 'assistant', content: serverReply || 'Oops, something went wrong on my end! Could you please try again?' }]);
     }
     setLoading(false);
   };
