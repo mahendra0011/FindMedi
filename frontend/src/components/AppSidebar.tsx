@@ -248,7 +248,6 @@ const navConfig = {
     { icon: IndianRupee,     labelKey: 'nav.paymentHistory',        path: '/patient/history'            },
     { icon: MapPinned,       labelKey: 'nav.addresses',             path: '/patient/addresses'          },
     { icon: Bell,            labelKey: 'nav.notifications',         path: '/notifications'              },
-    { icon: Ambulance,       labelKey: 'nav.emergency',             path: '/patient/emergency'          },
     { icon: Star,            labelKey: 'nav.rewards',               path: '/patient/rewards'            },
     { icon: Users,           labelKey: 'nav.referEarn',             path: '/patient/referral'           },
     { icon: QrCode,          labelKey: 'nav.healthId',              path: '/patient/health-id'          },
