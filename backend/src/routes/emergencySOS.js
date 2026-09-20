@@ -23,8 +23,11 @@ const router = express.Router();
 // ─── POST /api/emergency-sos — legacy create (auto tiered dispatch) ───
 router.post('/', protect, async (req, res) => {
   try {
-    const { reporterMode = 'self', patientDetails = {}, reporterOwnDetailsShared, reporterDetails, category = '', lat, lng, address = '' } = req.body;
+    const { reporterMode = 'self', patientDetails = {}, reporterOwnDetailsShared, reporterDetails, category = '', lat, lng, accuracy, address = '' } = req.body;
     if (lat === undefined || lng === undefined) return res.status(400).json({ message: 'lat/lng required' });
+    if (reporterMode === 'self' && !patientDetails.gender && req.user.gender) {
+      patientDetails.gender = String(req.user.gender).toLowerCase();
+    }
     const doc = await EmergencyRequest.create({
       userId: req.user._id || req.user.id,
       reporterMode,
@@ -32,7 +35,7 @@ router.post('/', protect, async (req, res) => {
       reporterOwnDetailsShared: !!reporterOwnDetailsShared,
       reporterDetails: reporterDetails || {},
       category,
-      location: { type: 'Point', coordinates: [Number(lng), Number(lat)], address },
+      location: { type: 'Point', coordinates: [Number(lng), Number(lat)], address, accuracy: accuracy != null ? Number(accuracy) : null },
       status: 'searching',
       requestMode: 'auto_select_ambulance',
       selectedVehicleTypes: ['ambulance'],
@@ -65,11 +68,14 @@ router.post('/start', protect, async (req, res) => {
       reporterOwnDetailsShared,
       reporterDetails,
       category = '',
-      lat, lng, address = '',
+      lat, lng, accuracy, address = '',
     } = req.body;
     if (lat === undefined || lng === undefined) return res.status(400).json({ message: 'lat/lng required' });
     if (requestMode === 'manual_select' && (!selectedVehicleTypes || !selectedVehicleTypes.length)) {
       return res.status(400).json({ message: 'Kam se kam ek vehicle type chuno' });
+    }
+    if (reporterMode === 'self' && !patientDetails.gender && req.user.gender) {
+      patientDetails.gender = String(req.user.gender).toLowerCase();
     }
     const request = await EmergencyRequest.create({
       userId: req.user._id || req.user.id,
@@ -78,7 +84,7 @@ router.post('/start', protect, async (req, res) => {
       reporterOwnDetailsShared: !!reporterOwnDetailsShared,
       reporterDetails: reporterDetails || {},
       category,
-      location: { type: 'Point', coordinates: [Number(lng), Number(lat)], address },
+      location: { type: 'Point', coordinates: [Number(lng), Number(lat)], address, accuracy: accuracy != null ? Number(accuracy) : null },
       status: 'searching',
       requestMode,
       selectedVehicleTypes: requestMode === 'manual_select' ? selectedVehicleTypes : requestMode === 'auto_select_ambulance' ? ['ambulance'] : ['auto', 'e_rickshaw', 'car', 'van', 'ambulance'],

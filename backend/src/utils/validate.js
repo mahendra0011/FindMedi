@@ -1111,6 +1111,7 @@ export const emergencySOSSchema = z.object({
     .object({
       name: z.string().max(100).optional().default(''),
       age: z.union([z.number(), z.string().transform(v => (v ? Number(v) : null))]).optional().nullable(),
+      gender: z.enum(['male', 'female', 'other', '']).optional(),
       bloodGroup: z.string().max(10).optional().default(''),
       knownAllergies: z.string().max(500).optional().default(''),
       knownConditions: z.string().max(500).optional().default(''),
@@ -1130,6 +1131,7 @@ export const emergencySOSSchema = z.object({
     .default(''),
   lat: z.number().optional(),
   lng: z.number().optional(),
+  accuracy: z.number().optional(),
   address: z.string().optional().default(''),
   location: z
     .object({

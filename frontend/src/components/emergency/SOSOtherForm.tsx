@@ -8,6 +8,7 @@ interface SOSOtherFormProps {
   formData: {
     victimName: string;
     victimAge: string;
+    victimGender: string;
     victimCondition: string;
     shareOwnDetails: boolean;
   };
@@ -49,6 +50,22 @@ export default function SOSOtherForm({ formData, onChange, currentUser }: SOSOth
             onChange={(e) => onChange('victimAge', e.target.value)}
             className="h-9 text-xs rounded-xl"
           />
+        </div>
+
+        <div>
+          <label className="text-[11px] font-semibold text-foreground mb-1 block">
+            Gender (Optional)
+          </label>
+          <select
+            value={formData.victimGender || ''}
+            onChange={(e) => onChange('victimGender', e.target.value)}
+            className="h-9 text-xs rounded-xl border border-input bg-background w-full px-2"
+          >
+            <option value="">Not specified</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+            <option value="other">Other</option>
+          </select>
         </div>
       </div>
 
