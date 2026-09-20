@@ -7,7 +7,10 @@ import {
   startEmergencyDispatch,
   handleProviderAccept,
   selectDestinationHospital,
+  findEligibleAmbulances,
+  findEligibleEmergencyVehicles,
 } from '../services/emergencyDispatchService.js';
+import RiderProfile from '../models/RiderProfile.js';
 import {
   startManualModeSearch,
   bookChosenProvider,
@@ -77,6 +80,9 @@ router.post('/start', protect, async (req, res) => {
     if (reporterMode === 'self' && !patientDetails.gender && req.user.gender) {
       patientDetails.gender = String(req.user.gender).toLowerCase();
     }
+    let vehicleSettings = null;
+    try { vehicleSettings = await SOSVehicleSettings.findOne().lean(); } catch {}
+    const includeAmbInAuto = requestMode === 'auto_select_vehicle' && !!vehicleSettings?.includeAmbulanceInAutoVehicleMode;
     const request = await EmergencyRequest.create({
       userId: req.user._id || req.user.id,
       reporterMode,
@@ -87,7 +93,7 @@ router.post('/start', protect, async (req, res) => {
       location: { type: 'Point', coordinates: [Number(lng), Number(lat)], address, accuracy: accuracy != null ? Number(accuracy) : null },
       status: 'searching',
       requestMode,
-      selectedVehicleTypes: requestMode === 'manual_select' ? selectedVehicleTypes : requestMode === 'auto_select_ambulance' ? ['ambulance'] : ['auto', 'e_rickshaw', 'car', 'van', 'ambulance'],
+      selectedVehicleTypes: requestMode === 'manual_select' ? selectedVehicleTypes : requestMode === 'auto_select_ambulance' ? ['ambulance'] : (includeAmbInAuto ? ['auto', 'e_rickshaw', 'car', 'van', 'ambulance'] : ['auto', 'e_rickshaw', 'car', 'van']),
       autoBookEnabled: requestMode === 'auto_select_ambulance' ? true : !!autoBookEnabled,
       autoFindEnabled: !!autoFindEnabled,
       startingRadiusKm: Number(startingRadiusKm) || 5,
@@ -384,6 +390,66 @@ router.put('/:id/progress', protect, async (req, res) => {
     res.json({ success: true, progressStage: request.progressStage });
   } catch (err) {
     logger.error(`SOS progress error: ${err.message}`);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// ─── GET /api/emergency-sos/debug/eligible-providers (admin diagnostic) ───
+router.get('/debug/eligible-providers', protect, async (req, res) => {
+  try {
+    if (!['superadmin', 'hospital_admin'].includes(req.user.role)) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    const { lat, lng, radiusKm = 10 } = req.query;
+    if (!lat || !lng) return res.status(400).json({ message: 'lat/lng required' });
+
+    const [ambulances, vehicles] = await Promise.all([
+      findEligibleAmbulances(Number(lng), Number(lat), Number(radiusKm), []),
+      findEligibleEmergencyVehicles(Number(lng), Number(lat), Number(radiusKm), []),
+    ]);
+    const [totalRiders, onlineRiders, esRiders] = await Promise.all([
+      RiderProfile.countDocuments({}),
+      RiderProfile.countDocuments({ isOnline: true }),
+      RiderProfile.countDocuments({ isOnline: true, emergencySupport: true }),
+    ]);
+    const [totalAmb, onlineAmb, esAmb] = await Promise.all([
+      Ambulance.countDocuments({}),
+      Ambulance.countDocuments({ isOnline: true }),
+      Ambulance.countDocuments({ isOnline: true, emergencySupport: true }),
+    ]);
+
+    res.json({
+      eligibleNow: { ambulances: ambulances.length, vehicles: vehicles.length },
+      funnelRiders: { total: totalRiders, online: onlineRiders, onlineAndEmergencySupport: esRiders },
+      funnelAmbulances: { total: totalAmb, online: onlineAmb, onlineAndEmergencySupport: esAmb },
+    });
+  } catch (err) {
+    logger.error(`SOS eligible-providers error: ${err.message}`);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// ─── GET /api/emergency-sos/:id/diagnostics (owner/admin snapshot) ───
+router.get('/:id/diagnostics', protect, async (req, res) => {
+  try {
+    const r = await EmergencyRequest.findById(req.params.id).lean();
+    if (!r) return res.status(404).json({ message: 'Not found' });
+    if (String(r.userId) !== String(req.user._id || req.user.id) && !['superadmin', 'hospital_admin'].includes(req.user.role)) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    res.json({
+      status: r.status,
+      requestMode: r.requestMode,
+      selectedVehicleTypes: r.selectedVehicleTypes,
+      currentSearchRadiusKm: r.currentSearchRadiusKm,
+      currentSearchPhase: r.currentSearchPhase,
+      dispatchLog: r.dispatchLog || [],
+      notifiedCount: (r.notified || []).length,
+      acceptancesCount: (r.acceptances || []).length,
+      windowEndsAt: r.windowEndsAt,
+    });
+  } catch (err) {
+    logger.error(`SOS diagnostics error: ${err.message}`);
     res.status(500).json({ message: err.message });
   }
 });

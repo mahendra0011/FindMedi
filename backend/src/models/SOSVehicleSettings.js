@@ -5,6 +5,7 @@ const sosVehicleSettingsSchema = new mongoose.Schema({
   windowSeconds: { type: Number, default: 30 },
   maxRetriesPerRadius: { type: Number, default: 3 },
   retryPauseSeconds: { type: Number, default: 3 },
+  includeAmbulanceInAutoVehicleMode: { type: Boolean, default: false },
 }, { timestamps: true });
 
 export default mongoose.model('SOSVehicleSettings', sosVehicleSettingsSchema);

@@ -42,7 +42,6 @@ function sendAlert(io, requestId, c) {
   const payload = c.raw;
   io.to(`user:${c.userId}`).emit('incoming_emergency', payload);
   if (c.providerType === 'ambulance') io.to(`ambulance:${c.providerId}`).emit('incoming_emergency', payload);
-  else { try { io.of('/ride').to(`rider:${c.userId}`).emit('incoming_emergency', payload); } catch {} }
 }
 
 async function buildCandidates(request, radiusKm) {

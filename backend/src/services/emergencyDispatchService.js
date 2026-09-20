@@ -246,8 +246,6 @@ function sendAlert(io, requestId, candidate) {
   io.to(`user:${candidate.userId}`).emit('incoming_emergency', payload);
   if (candidate.providerType === 'ambulance') {
     io.to(`ambulance:${candidate.providerId}`).emit('incoming_emergency', payload);
-  } else {
-    io.of('/ride').to(`rider:${candidate.userId}`).emit('incoming_emergency', payload);
   }
 }
 

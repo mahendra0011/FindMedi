@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Siren, ShieldAlert, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { api } from '@/lib/api';
 
 interface SOSSearchingScreenProps {
   radiusKm: number;
@@ -32,6 +33,17 @@ export default function SOSSearchingScreen({
   onSearchAgain,
   onSearchWider,
 }: SOSSearchingScreenProps) {
+  const requestId = requestDetails?._id || requestDetails?.id;
+  const [diagnostics, setDiagnostics] = useState<any>(null);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV || !requestId || noResponders) return;
+    const interval = setInterval(() => {
+      api.get(`/emergency-sos/${requestId}/diagnostics`).then(setDiagnostics).catch(() => {});
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [requestId, noResponders]);
+
   if (noResponders) {
     return (
       <div className="fixed inset-0 z-[9999] bg-slate-950/95 backdrop-blur-xl flex flex-col items-center justify-center p-6 text-white select-none">
@@ -116,6 +128,15 @@ export default function SOSSearchingScreen({
               </Button>
             )}
           </div>
+        )}
+
+        {import.meta.env.DEV && (
+          <details className="mt-2 text-left text-xs text-muted-foreground max-w-md mx-auto">
+            <summary className="cursor-pointer text-center">Debug Info</summary>
+            <pre className="mt-2 bg-muted rounded-lg p-2 overflow-auto max-h-40 text-[10px] font-mono">
+              {JSON.stringify(diagnostics, null, 2) || 'waiting for first poll…'}
+            </pre>
+          </details>
         )}
 
         <p className="text-[11px] text-slate-400">
