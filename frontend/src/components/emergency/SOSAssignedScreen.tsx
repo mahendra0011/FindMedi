@@ -1,17 +1,41 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { CheckCircle2, Phone, Navigation, ShieldCheck, Hospital, Car } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { getSocket } from '@/lib/socket';
+import { toast } from 'sonner';
 
 interface SOSAssignedScreenProps {
   emergency: any;
   onDismiss?: () => void;
 }
 
+const STAGE_LABELS = ['Assigned', 'Pickup', 'Hospital', 'Done'];
+const STAGE_TO_STEP: Record<string, number> = { assigned: 0, reached_pickup: 1, heading_to_hospital: 2, reached_hospital: 3, completed: 3 };
+const STAGE_MSG: Record<string, string> = {
+  reached_pickup: 'Ambulance pickup pe pahunch gayi 🚑',
+  heading_to_hospital: 'Ambulance hospital ki taraf nikal padi 🏥',
+  reached_hospital: 'Ambulance hospital pahunch gayi ✅',
+};
+
 export default function SOSAssignedScreen({ emergency, onDismiss }: SOSAssignedScreenProps) {
   const responder = emergency?.responder || {};
   const isAmbulance = responder.providerType === 'ambulance';
+  const requestId = responder.requestId || emergency?.requestId;
+  const [progressStep, setProgressStep] = useState(0);
+
+  useEffect(() => {
+    const s = getSocket();
+    if (!s || !requestId) return;
+    const onProgress = (data: any) => {
+      if (String(data.requestId) !== String(requestId)) return;
+      setProgressStep(STAGE_TO_STEP[data.stage] ?? 0);
+      if (STAGE_MSG[data.stage]) toast.info(STAGE_MSG[data.stage]);
+    };
+    s.on('emergency_progress', onProgress);
+    return () => { s.off('emergency_progress', onProgress); };
+  }, [requestId]);
 
   return (
     <div className="fixed inset-0 z-[9999] bg-slate-950/95 backdrop-blur-xl flex flex-col items-center justify-center p-4 text-white select-none animate-in zoom-in-95 duration-300">
@@ -91,6 +115,20 @@ export default function SOSAssignedScreen({ emergency, onDismiss }: SOSAssignedS
                 <Phone className="w-3.5 h-3.5" /> Call Driver
               </a>
             )}
+          </div>
+        </div>
+
+        {/* Live progress stepper */}
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-3 space-y-2">
+          <div className="flex justify-between text-[10px] font-bold text-slate-400">
+            {STAGE_LABELS.map((s, i) => (
+              <span key={s} className={progressStep >= i ? 'text-emerald-400' : ''}>{s}</span>
+            ))}
+          </div>
+          <div className="flex items-center gap-1">
+            {STAGE_LABELS.map((s, i) => (
+              <motion.div key={s} layout className={`h-1.5 flex-1 rounded-full ${progressStep >= i ? 'bg-emerald-500' : 'bg-white/10'}`} />
+            ))}
           </div>
         </div>
 

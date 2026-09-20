@@ -658,6 +658,7 @@ export async function ensureDemoUsers() {
         emergencySupport: true,
         emergency24x7: true,
         ambulanceService: true,
+        location: { type: 'Point', coordinates: [79.9864, 23.1815] },
       });
       await demoHospital.save();
       logger.info('Created demo hospital: Demo City Hospital');
@@ -678,6 +679,17 @@ export async function ensureDemoUsers() {
       });
       await ambulanceUser.save();
       logger.info('Created demo ambulance user: ambulance@findmedi.com');
+    } else {
+      // Pehle kabhi is email pe invite gaya ho to random password set hoga —
+      // demo login guarantee ke liye reset karo (dev seed only)
+      ambulanceUser.password = 'password';
+      ambulanceUser.role = 'ambulance';
+      ambulanceUser.isVerified = true;
+      ambulanceUser.status = 'active';
+      ambulanceUser.approvalStatus = 'approved';
+      if (!ambulanceUser.hospitalId) ambulanceUser.hospitalId = demoHospital._id;
+      await ambulanceUser.save();
+      logger.info('Reset demo ambulance user password: ambulance@findmedi.com');
     }
 
     const demoAmb = await Ambulance.findOne({ registrationNumber: 'MP20AB1234' });

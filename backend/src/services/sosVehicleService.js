@@ -5,6 +5,7 @@ import {
   finalizeWave,
 } from './emergencyDispatchService.js';
 import { getIO } from './socketService.js';
+import Notification from '../models/Notification.js';
 import logger from '../config/logger.js';
 import SOSVehicleSettings from '../models/SOSVehicleSettings.js';
 
@@ -142,6 +143,16 @@ export async function bookChosenProvider(requestId, providerId) {
     io.to(`emergency:${requestId}`).emit('emergency_assigned', { requestId: String(requestId), providerType, manualChoice: true });
     if (acc?.userId) io.to(`user:${acc.userId}`).emit('emergency_assigned_to_you', { requestId: String(requestId), providerType });
   }
+  try {
+    if (acc?.userId) {
+      await Notification.create({
+        title: 'Emergency Assigned',
+        message: `Patient ne aapko book kiya — ${request.category || 'General'}`,
+        type: 'system',
+        userId: String(acc.userId),
+      });
+    }
+  } catch {}
   return { success: true, request: updated };
 }
 

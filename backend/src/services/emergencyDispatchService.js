@@ -6,6 +6,7 @@ import RiderProfile from '../models/RiderProfile.js';
 import Vehicle from '../models/Vehicle.js';
 import User from '../models/User.js';
 import { getIO } from './socketService.js';
+import Notification from '../models/Notification.js';
 import { calculateDistanceKm, estimateETA } from './rideService.js';
 export { calculateDistanceKm, estimateETA };
 import logger from '../config/logger.js';
@@ -404,6 +405,15 @@ export async function assignWinner(request, winner, losers = []) {
       .filter(n => n.userId !== winner.userId)
       .forEach(n => io.to(`user:${n.userId}`).emit('emergency_closed', { requestId: String(request._id) }));
   }
+  // Best-effort notification for winner's bell (never break dispatch)
+  try {
+    await Notification.create({
+      title: 'Emergency Assigned',
+      message: `Naya emergency job assign hua — ${request.category || 'General'}`,
+      type: 'system',
+      userId: String(winner.userId),
+    });
+  } catch {}
   return true;
 }
 

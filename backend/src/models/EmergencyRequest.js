@@ -131,6 +131,18 @@ const emergencyRequestSchema = new mongoose.Schema({
   rejections: [String],
   windowEndsAt: { type: Date, default: null },
 
+  // Driver-side granular progress (dashboard stepper ↔ patient tracking sync)
+  progressStage: {
+    type: String,
+    enum: ['assigned', 'reached_pickup', 'heading_to_hospital', 'reached_hospital', 'completed'],
+    default: 'assigned',
+  },
+  progressLog: [{
+    stage: String,
+    at: { type: Date, default: Date.now },
+    _id: false,
+  }],
+
   // Detailed dispatch history (radius, attempts, outcomes)
   dispatchLog: [
     {

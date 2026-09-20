@@ -266,6 +266,20 @@ router.put('/:id/complete', protect, async (req, res) => {
     }
     const io = getIO();
     if (io) io.to(`emergency:${r._id}`).emit('emergency_completed', { requestId: String(r._id) });
+    try {
+      const noteUserId = r.assignedProviderType === 'ambulance'
+        ? (await Ambulance.findById(r.assignedProviderId).select('userId').lean())?.userId
+        : r.assignedProviderId;
+      if (noteUserId) {
+        const Notification = (await import('../models/Notification.js')).default;
+        await Notification.create({
+          title: 'Job Completed',
+          message: `Job complete ho gaya — ${r.patientDetails?.name || 'Patient'}`,
+          type: 'system',
+          userId: String(noteUserId),
+        });
+      }
+    } catch {}
     res.json({ success: true });
   } catch (err) {
     logger.error(`SOS complete error: ${err.message}`);
@@ -297,6 +311,63 @@ router.put('/:id/select-hospital', protect, async (req, res) => {
     res.json({ success: true, hospital: out.hospital });
   } catch (err) {
     logger.error(`SOS select-hospital error: ${err.message}`);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// ─── PUT /api/emergency-sos/:id/progress — provider updates job stage ───
+router.put('/:id/progress', protect, async (req, res) => {
+  try {
+    const { stage } = req.body;
+    const valid = ['reached_pickup', 'heading_to_hospital', 'reached_hospital'];
+    if (!valid.includes(stage)) return res.status(400).json({ message: 'Invalid stage' });
+
+    const request = await EmergencyRequest.findById(req.params.id);
+    if (!request) return res.status(404).json({ message: 'Request not found' });
+    if (!['assigned', 'en_route'].includes(request.status)) {
+      return res.status(400).json({ message: 'Job is not active' });
+    }
+
+    // Ownership: rider → assignedProviderId is userId; ambulance → check Ambulance.userId
+    let allowed = false;
+    if (request.assignedProviderType === 'ambulance') {
+      const amb = await Ambulance.findById(request.assignedProviderId).select('userId').lean();
+      allowed = !!amb && String(amb.userId) === String(req.user._id || req.user.id);
+    } else {
+      allowed = String(request.assignedProviderId) === String(req.user._id || req.user.id);
+    }
+    if (!allowed) return res.status(403).json({ message: 'Access denied' });
+
+    request.progressStage = stage;
+    request.progressLog.push({ stage, at: new Date() });
+    if (stage === 'heading_to_hospital') request.status = 'en_route';
+    await request.save();
+
+    const io = getIO();
+    if (io) {
+      io.to(`emergency:${request._id}`).emit('emergency_progress', {
+        requestId: String(request._id),
+        stage,
+        at: new Date(),
+      });
+    }
+    try {
+      const noteUserId = request.assignedProviderType === 'ambulance'
+        ? (await Ambulance.findById(request.assignedProviderId).select('userId').lean())?.userId
+        : request.assignedProviderId;
+      if (noteUserId) {
+        const Notification = (await import('../models/Notification.js')).default;
+        await Notification.create({
+          title: 'Job Progress Updated',
+          message: `Stage: ${stage.replace(/_/g, ' ')}`,
+          type: 'system',
+          userId: String(noteUserId),
+        });
+      }
+    } catch {}
+    res.json({ success: true, progressStage: request.progressStage });
+  } catch (err) {
+    logger.error(`SOS progress error: ${err.message}`);
     res.status(500).json({ message: err.message });
   }
 });
