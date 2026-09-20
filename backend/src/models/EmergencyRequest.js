@@ -62,6 +62,23 @@ const emergencyRequestSchema = new mongoose.Schema({
     index: true,
   },
 
+  requestMode: {
+    type: String,
+    enum: ['manual_select', 'auto_select_vehicle', 'auto_select_ambulance'],
+    default: 'manual_select',
+  },
+
+  selectedVehicleTypes: [{
+    type: String,
+    enum: ['auto', 'e_rickshaw', 'car', 'van', 'ambulance'],
+  }],
+
+  autoBookEnabled: { type: Boolean, default: false },
+
+  autoFindEnabled: { type: Boolean, default: false },
+
+  startingRadiusKm: { type: Number, default: 5 },
+
   currentSearchRadiusKm: { type: Number, default: 5 },
   currentSearchPhase: {
     type: String,
@@ -114,14 +131,16 @@ const emergencyRequestSchema = new mongoose.Schema({
   rejections: [String],
   windowEndsAt: { type: Date, default: null },
 
+  // Detailed dispatch history (radius, attempts, outcomes)
   dispatchLog: [
     {
       radiusKm: Number,
       phase: { type: String, enum: ['ambulance', 'vehicle'] },
+      attemptNumber: { type: Number, default: 1 }, // 1, 2, 3... auto-find mode ke liye
       candidateCount: Number,
       acceptedProviderIds: [String],
-      outcome: { type: String, enum: ['assigned', 'no_response', 'escalated'] },
-      at: { type: Date, default: Date.now },
+      outcome: { type: String, enum: ['assigned', 'no_response', 'escalated', 'booked'] },
+      timestamp: { type: Date, default: Date.now },
     },
   ],
 

@@ -316,10 +316,16 @@ router.post('/register', validate(registerSchema), async (req, res) => {
       qualifications = '',
       licenseNumber = '',
       consultationFee = 0,
+      referralCode,  // NEW: optional referral code from existing user
     } = req.body;
 
     const normalizedRole = ['hospital_admin', 'doctor', 'patient', 'technician', 'rider', 'assistant', 'lawyer'].includes(role) ? role : 'patient';
     const lowerEmail = email.toLowerCase();
+
+    // Apply referral code if provided
+    if (referralCode) {
+      await referralService.applyReferralCode(req.user?.id || req.body.userId, referralCode);
+    }
 
     if (normalizedRole === 'doctor' && (!specialization || !licenseNumber || !(qualification || qualifications))) {
       return res.status(400).json({ message: 'Specialization, qualification and license number are required for doctor registration' });

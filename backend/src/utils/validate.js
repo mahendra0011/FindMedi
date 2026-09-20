@@ -43,6 +43,9 @@ export const registerSchema = z.object({
   licenseNumber: z.string().optional().default(''),
   consultationFee: z.union([z.string(), z.number()]).optional().default(0),
 
+  // Referral program (optional, for existing users to refer new signups)
+  referralCode: z.string().optional(),
+
   // Rider-specific legal fields (Doc 02)
   govtIdType: z.enum(['Aadhaar', 'PAN', 'Voter ID', 'Passport']).optional(),
   govtIdNumber: z.string().optional(),

@@ -339,8 +339,11 @@ import serviceCityRoutes from './routes/serviceCities.js';
 import medicineReminderRoutes from './routes/medicineReminders.js';
 import vitalsRoutes from './routes/vitals.js';
 import carePlanRoutes from './routes/carePlans.js';
+import healthIdRoutes from './routes/healthId.js';
 import emergencySOSRoutes from './routes/emergencySOS.js';
 import ambulanceDriverRoutes from './routes/ambulanceDriver.js';
+import loyaltyRoutes from './routes/loyalty.js';
+import referralRoutes from './routes/referral.js';
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -367,6 +370,8 @@ app.use('/api/triage', triageRoutes);
 app.use('/api/radiology', radiologyRoutes);
 app.use('/api/insurance', insuranceRoutes);
 app.use('/api/diet', dietRoutes);
+app.use('/api/health-id', healthIdRoutes);
+app.use('/api/referral', referralRoutes);
 app.use('/api/ot', otRoutes);
 app.use('/api/bloodbank', bloodbankRoutes);
 app.use('/api/physio', physioRoutes);
