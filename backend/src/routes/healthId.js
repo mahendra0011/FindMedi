@@ -1,6 +1,7 @@
 import express from 'express';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
+import { randomBytes } from 'crypto';
 import { generateOTP } from '../utils/otp.js';
 import User from '../models/User.js';
 import { protect } from '../middleware/auth.js';
@@ -31,7 +32,7 @@ router.post('/generate', protect, async (req, res) => {
     // Generate new token if not exists
     if (!user.healthIdCard.qrToken) {
       // Generate a random 16-byte base64url token (22 chars approx, URL-safe)
-      const token = require('crypto').randomBytes(16).toString('base64url');
+      const token = randomBytes(16).toString('base64url');
       user.healthIdCard.qrToken = token;
       await user.save();
     }

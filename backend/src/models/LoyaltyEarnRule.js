@@ -23,7 +23,6 @@ const loyaltyEarnRuleSchema = new mongoose.Schema({
   },
 }, { timestamps: true });
 
-loyaltyEarnRuleSchema.index({ action: 1 });
 loyaltyEarnRuleSchema.index({ isActive: 1 });
 
 export default mongoose.model('LoyaltyEarnRule', loyaltyEarnRuleSchema);
