@@ -210,3 +210,31 @@ export async function startAutoFindLoop(requestId, radiusSteps, maxRetriesPerRad
   }
   return { success: false, assigned: false };
 }
+
+/**
+ * Auto-escalate loop (single wave per radius, no retries).
+ * Used by auto-book modes WITHOUT auto-find: startingRadius se shuru karke
+ * har radius pe ek wave, assign hote hi stop, warna next radius. Sab khatam
+ * ho to no_responders_found — request kabhi orphan 'searching' me nahi atki.
+ */
+export async function startAutoEscalateLoop(requestId, radiusSteps, startingRadiusKm = 5) {
+  const steps = (Array.isArray(radiusSteps) && radiusSteps.length ? radiusSteps : [5, 10, 15, 20])
+    .filter((r) => Number(r) >= Number(startingRadiusKm || 0));
+  const list = steps.length ? steps : [Number(startingRadiusKm) || 5];
+  for (const radiusKm of list) {
+    const cur = await EmergencyRequest.findById(requestId).select('status');
+    if (!cur || cur.status !== 'searching') return { stopped: true };
+    const res = await startAutoBookSearch(requestId, radiusKm);
+    if (res.error) return res;
+    if (res.assigned) return res;
+  }
+  const cur = await EmergencyRequest.findById(requestId);
+  if (cur && cur.status === 'searching') {
+    cur.status = 'no_responders_found';
+    await cur.save();
+    const io = getIO();
+    if (io) io.to(`emergency:${requestId}`).emit('emergency_no_responders_found', { requestId: String(requestId), message: 'No emergency responders could be dispatched in your area right now. Please call emergency services directly (108 / 112).' });
+    logger.warn(`Auto-escalate ${requestId}: no responders found.`);
+  }
+  return { success: false, assigned: false };
+}
