@@ -9,14 +9,27 @@ import logger from '../config/logger.js';
 
 const router = express.Router();
 
-// ─── Patient: Get my referral code ───
+// ─── Patient: Get my referral code (generates on first access) ───
 router.get('/my-code', protect, async (req, res) => {
   try {
+    const code = await referralService.generateReferralCode(req.user._id);
     const user = await User.findById(req.user._id).select('referral');
-    if (!user) return res.status(404).json({ message: 'User not found' });
-    res.json({ code: user.referral.code, referral: user.referral });
+    res.json({ code, referral: user.referral });
   } catch (err) {
     logger.error(`Get referral code error: ${err.message}`);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// ─── Patient: Get MY OWN referral history ───
+router.get('/my-history', protect, async (req, res) => {
+  try {
+    const referrals = await Referral.find({ referrerId: req.user._id })
+      .populate('refereeId', 'name email')
+      .sort({ createdAt: -1 });
+    res.json(referrals);
+  } catch (err) {
+    logger.error(`Get my referral history error: ${err.message}`);
     res.status(500).json({ message: err.message });
   }
 });

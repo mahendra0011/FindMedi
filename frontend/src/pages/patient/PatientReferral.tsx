@@ -17,7 +17,7 @@ export default function PatientReferral() {
         setCode(c?.code || c?.referral?.code || '');
         const s: any = await api.get('/referral/stats').catch(() => ({}));
         setStats(s || {});
-        const h: any = await api.get('/referral/admin/all').catch(() => []);
+        const h: any = await api.get('/referral/my-history').catch(() => []);
         setHistory(Array.isArray(h) ? h : []);
       } catch (e: any) {
         toast.error(e.response?.data?.message || 'Referral load failed');

@@ -376,7 +376,7 @@ export default function EmergencyFlowController() {
 
   return (
     <>
-      {!searching && !assignedData && (
+      {user && !searching && !assignedData && (
         <SOSButton onClick={() => setConfirmModalOpen(true)} />
       )}
 

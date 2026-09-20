@@ -328,6 +328,18 @@ export default function Login() {
             </Button>
           </form>
 
+          {(() => {
+            const hash = typeof window !== 'undefined' ? window.location.hash || '' : '';
+            const qIndex = hash.indexOf('?');
+            const qs = qIndex >= 0 ? hash.slice(qIndex + 1) : '';
+            const ref = new URLSearchParams(qs).get('ref');
+            return ref ? (
+              <p className="text-xs text-center text-muted-foreground mt-3">
+                Naya account? <Link to={`/signup?ref=${ref}`} className="text-primary underline">Signup karo</Link> apna referral bonus paane ke liye.
+              </p>
+            ) : null;
+          })()}
+
           <p className="text-sm text-muted-foreground text-center mt-5">
             Don&apos;t have an account?{' '}
             <Link to="/signup" className="text-primary font-medium hover:underline">
