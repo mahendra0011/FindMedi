@@ -1,7 +1,7 @@
 import express from 'express';
 import { z } from 'zod';
 import { protect } from '../middleware/auth.js';
-import loyaltyService from '../services/loyaltyService.js';
+import { loyaltyService } from '../services/loyaltyService.js';
 import LoyaltyLedger from '../models/LoyaltyLedger.js';
 import RewardRedemption from '../models/RewardRedemption.js';
 import RewardCatalogItem from '../models/RewardCatalogItem.js';

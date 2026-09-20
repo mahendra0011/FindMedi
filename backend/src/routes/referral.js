@@ -1,7 +1,7 @@
 import express from 'express';
 import { z } from 'zod';
 import { protect } from '../middleware/auth.js';
-import referralService from '../services/referralService.js';
+import { referralService } from '../services/referralService.js';
 import Referral from '../models/Referral.js';
 import ReferralSettings from '../models/ReferralSettings.js';
 import User from '../models/User.js';
