@@ -317,8 +317,10 @@ export default function EmergencyFlowController() {
     }
   };
 
+  const cancellingRef = useRef(false);
   const handleCancelSOS = async () => {
-    if (!activeRequest?._id) return;
+    if (!activeRequest?._id || cancellingRef.current) return;
+    cancellingRef.current = true;
     try {
       await api.post(`/emergency-sos/${activeRequest._id}/cancel`, {
         reason: 'User cancelled emergency request',
@@ -326,9 +328,12 @@ export default function EmergencyFlowController() {
       setSearching(false);
       setActiveRequest(null);
       setNoResponders(false);
+      setAcceptedList([]);
       toast.info('Emergency request cancelled.');
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Failed to cancel emergency.');
+    } finally {
+      cancellingRef.current = false;
     }
   };
 
