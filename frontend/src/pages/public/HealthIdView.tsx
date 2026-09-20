@@ -62,7 +62,7 @@ export default function HealthIdView() {
             <CardBody className="p-5">
               <div className="text-center mb-4">
                 <QrCode
-                  value={process.env.FRONTEND_URL || 'http://localhost:3000'}/health-id/{token}
+                  value={`${typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'}/health-id/${token}`}
                   size={180}
                   bgColor="white"
                   fgColor="black"

@@ -130,7 +130,7 @@ export default function PatientHealthId() {
               {qrToken && (
                 <QrCode
                   ref={qrRef}
-                  value={process.env.FRONTEND_URL || 'http://localhost:3000'}/health-id/{qrToken}
+                  value={`${typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'}/health-id/${qrToken}`}
                   size={200}
                   bgColor="white"
                   fgColor="black"

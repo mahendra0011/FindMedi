@@ -167,6 +167,10 @@ const PatientProfile = lazy(() => import('./pages/patient/PatientProfile'));
 const PatientMedicineReminders = lazy(() => import('./pages/patient/PatientMedicineReminders'));
 const PatientVitals = lazy(() => import('./pages/patient/PatientVitals'));
 const PatientCarePlan = lazy(() => import('./pages/patient/PatientCarePlan'));
+const PatientRewards = lazy(() => import('./pages/patient/PatientRewards'));
+const PatientReferral = lazy(() => import('./pages/patient/PatientReferral'));
+const SALoyaltyRewards = lazy(() => import('./pages/superadmin/LoyaltyRewards'));
+const SAReferralSettings = lazy(() => import('./pages/superadmin/ReferralSettings'));
 
 const DoctorDashboard = lazy(() => import('./pages/doctor/DoctorDashboard'));
 const DoctorAppointments = lazy(() => import('./pages/doctor/DoctorAppointments'));
@@ -616,6 +620,8 @@ const App = () => (
                     <Route path="/superadmin/settings" element={<RoleRoute allowedRoles={['superadmin']}><SASystemSettings /></RoleRoute>} />
                     <Route path="/superadmin/team" element={<RoleRoute allowedRoles={['superadmin']}><SASuperAdminTeam /></RoleRoute>} />
                     <Route path="/superadmin/promotions" element={<RoleRoute allowedRoles={['superadmin']}><SAPromotions /></RoleRoute>} />
+                    <Route path="/superadmin/loyalty" element={<RoleRoute allowedRoles={['superadmin']}><SALoyaltyRewards /></RoleRoute>} />
+                    <Route path="/superadmin/referrals" element={<RoleRoute allowedRoles={['superadmin']}><SAReferralSettings /></RoleRoute>} />
                     <Route path="/superadmin/export" element={<RoleRoute allowedRoles={['superadmin']}><SADataExport /></RoleRoute>} />
                     <Route path="/superadmin/cities" element={<RoleRoute allowedRoles={['superadmin']}><SACities /></RoleRoute>} />
                     <Route path="/superadmin/legal" element={<RoleRoute allowedRoles={['superadmin']}><SALegal /></RoleRoute>} />
@@ -695,6 +701,8 @@ const App = () => (
                     <Route path="/patient/services" element={<RoleRoute allowedRoles={['patient']}><PatientServices /></RoleRoute>} />
                     <Route path="/patient/bookings" element={<RoleRoute allowedRoles={['patient']}><PatientBookings /></RoleRoute>} />
                     <Route path="/patient/emergency" element={<RoleRoute allowedRoles={['patient']}><PatientEmergency /></RoleRoute>} />
+                    <Route path="/patient/rewards" element={<RoleRoute allowedRoles={['patient']}><PatientRewards /></RoleRoute>} />
+                    <Route path="/patient/referral" element={<RoleRoute allowedRoles={['patient']}><PatientReferral /></RoleRoute>} />
                     <Route path="/patient/support" element={<RoleRoute allowedRoles={['patient']}><PatientSupport /></RoleRoute>} />
                     <Route path="/patient/favorites" element={<RoleRoute allowedRoles={['patient']}><PatientFavorites /></RoleRoute>} />
                     <Route path="/patient/addresses" element={<RoleRoute allowedRoles={['patient']}><PatientAddresses /></RoleRoute>} />
