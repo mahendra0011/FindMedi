@@ -43,7 +43,6 @@ const referralSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 referralSchema.index({ referrerId: 1, status: 1 });
-referralSchema.index({ refereeId: 1 });
 referralSchema.index({ status: 1 });
 
 export default mongoose.model('Referral', referralSchema);

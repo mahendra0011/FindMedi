@@ -40,7 +40,6 @@ const rewardRedemptionSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 rewardRedemptionSchema.index({ userId: 1, status: 1 });
-rewardRedemptionSchema.index({ code: 1 });
 rewardRedemptionSchema.index({ expiresAt: 1 });
 
 export default mongoose.model('RewardRedemption', rewardRedemptionSchema);

@@ -4,6 +4,8 @@ import AssistantProfile from '../models/AssistantProfile.js';
 import LawyerProfile from '../models/LawyerProfile.js';
 import Vehicle from '../models/Vehicle.js';
 import ServiceCity from '../models/ServiceCity.js';
+import Hospital from '../models/Hospital.js';
+import Ambulance from '../models/Ambulance.js';
 import logger from '../config/logger.js';
 
 export async function ensureDemoUsers() {
@@ -637,7 +639,70 @@ export async function ensureDemoUsers() {
         await p.save();
       }
     }
-    logger.info('Demo seed finished: 5 Riders, 5 Assistants, 5 Lawyers, and ServiceCities active.');
+    // ─── 4. Demo Ambulance Driver (hospital-owned ambulance + login) ─────────
+    // Hospital admin ManageAmbulancesPage se driver ko invite karta hai;
+    // yahan demo ke liye pehle se active driver seed kar rahe hain.
+    let demoHospital = await Hospital.findOne({ slug: 'demo-city-hospital-jabalpur' });
+    if (!demoHospital) {
+      demoHospital = new Hospital({
+        name: 'Demo City Hospital',
+        slug: 'demo-city-hospital-jabalpur',
+        email: 'demo-hospital@findmedi.com',
+        phone: '9876543200',
+        address: 'Civil Lines, Jabalpur, MP',
+        city: 'Jabalpur',
+        state: 'Madhya Pradesh',
+        pincode: '482001',
+        licenseNumber: 'DEMO-HOSP-001',
+        status: 'approved',
+        emergencySupport: true,
+        emergency24x7: true,
+        ambulanceService: true,
+      });
+      await demoHospital.save();
+      logger.info('Created demo hospital: Demo City Hospital');
+    }
+
+    let ambulanceUser = await User.findOne({ email: 'ambulance@findmedi.com' });
+    if (!ambulanceUser) {
+      ambulanceUser = new User({
+        name: 'Ramesh Driver',
+        email: 'ambulance@findmedi.com',
+        password: 'password',
+        role: 'ambulance',
+        phone: '9876543299',
+        hospitalId: demoHospital._id,
+        isVerified: true,
+        status: 'active',
+        approvalStatus: 'approved',
+      });
+      await ambulanceUser.save();
+      logger.info('Created demo ambulance user: ambulance@findmedi.com');
+    }
+
+    const demoAmb = await Ambulance.findOne({ registrationNumber: 'MP20AB1234' });
+    if (!demoAmb) {
+      await Ambulance.create({
+        hospitalId: demoHospital._id,
+        registrationNumber: 'MP20AB1234',
+        vehicleModel: 'Force Traveller',
+        ambulanceType: 'BLS',
+        equipmentLevel: 'Oxygen, Stretcher',
+        userId: ambulanceUser._id,
+        driverName: 'Ramesh Driver',
+        driverPhone: '9876543299',
+        loginEmail: 'ambulance@findmedi.com',
+        loginStatus: 'active',
+        emergencySupport: true,
+      });
+      logger.info('Created demo ambulance: MP20AB1234');
+    } else if (!demoAmb.userId) {
+      demoAmb.userId = ambulanceUser._id;
+      demoAmb.loginStatus = 'active';
+      await demoAmb.save();
+    }
+
+    logger.info('Demo seed finished: 5 Riders, 5 Assistants, 5 Lawyers, 1 Ambulance Driver, and ServiceCities active.');
   } catch (err) {
     logger.warn('Error verifying demo accounts: ' + err.message);
   }

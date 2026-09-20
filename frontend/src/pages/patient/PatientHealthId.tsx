@@ -1,257 +1,156 @@
 import React, { useEffect, useState } from 'react';
-import { Container } from 'react-bootstrap';
-import { Card, CardBody } from '@/components/ui/card';
+import { QRCodeSVG } from 'qrcode.react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
-import { selectCurrentUser } from '@/store/selectors';
-import { updateUser } from '@/store/slices/userSlice';
-import { EmergencyToggleConfirm } from '@/components/emergency/EmergencyToggleConfirm';
+import { Switch } from '@/components/ui/switch';
+import { useAuth } from '@/context/AuthContext';
+import { api } from '@/lib/api';
 import { toast } from 'sonner';
-import { QrCode } from 'qrcode.react';
-import { useRef } from 'react';
 
 export default function PatientHealthId() {
-  const { action } = useParams<{ action: 'view' | 'edit' } >('action') || { action: 'view' };
-  const navigate = useNavigate();
-  const dispatch = useDispatch();
-  const user = useDispatch(selectCurrentUser);
-  const [amb, setAmb] = useState<any>(null);
+  const { user } = useAuth();
   const [qrToken, setQrToken] = useState<string>('');
   const [isEnabled, setIsEnabled] = useState(true);
   const [shareLevel, setShareLevel] = useState<'full' | 'minimal'>('full');
-  const [generating, setGenerating] = useState(false);
-  const [confirmOpen, setConfirmOpen] = useState<{ open: boolean; value: boolean }>({ open: false, value: false });
-  const qrRef = useRef<HTMLDivElement>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    // Load user data and health ID card
-    const load = async () => {
+    (async () => {
       try {
-        const me: any = await api.get('/ambulance/me');
-        setAmb(me.ambulance);
-        const u: any = await api.get('/patient/me');
-        // Health ID card data from user model
-        if (u.user?.healthIdCard) {
-          setIsEnabled(u.user.healthIdCard.isEnabled);
-          setShareLevel(u.user.healthIdCard.shareLevel || 'full');
-          if (u.user.healthIdCard.qrToken) setQrToken(u.user.healthIdCard.qrToken);
+        const me: any = await api.get('/auth/me').catch(() => null);
+        const card = me?.user?.healthIdCard || me?.healthIdCard;
+        if (card) {
+          setIsEnabled(card.isEnabled ?? true);
+          setShareLevel(card.shareLevel || 'full');
+          if (card.qrToken) setQrToken(card.qrToken);
+        }
+        if (!card?.qrToken) {
+          const res: any = await api.post('/health-id/generate', {}).catch(() => null);
+          if (res?.qrToken) setQrToken(res.qrToken);
         }
       } catch (e: any) {
         toast.error(e.response?.data?.message || 'Load failed');
+      } finally {
+        setLoading(false);
       }
-    };
-    load();
+    })();
   }, []);
 
-  const handleEnableToggle = async (online: boolean) => {
-    setConfirmOpen({ open: false, value: online });
+  const saveSettings = async (enabled: boolean, level: string) => {
+    setSaving(true);
     try {
-      if (online) {
-        // Simple enable - no GPS needed for Health ID
-        const res: any = await api.put('/patient/health-id/settings', {
-          isEnabled: true,
-          shareLevel: shareLevel,
-        });
-        setIsEnabled(res.user?.healthIdCard?.isEnabled ?? true);
-        setShareLevel(res.user?.healthIdCard?.shareLevel ?? shareLevel);
-        toast.success('Health ID enabled - QR card now active');
-      } else {
-        const res: any = await api.put('/patient/health-id/settings', {
-          isEnabled: false,
-        });
-        setIsEnabled(res.user?.healthIdCard?.isEnabled ?? false);
-        toast.info('Health ID disabled - QR card not visible');
-      }
+      await api.put('/health-id/settings', { isEnabled: enabled, shareLevel: level });
+      setIsEnabled(enabled);
+      toast.success(enabled ? 'Health ID enabled - QR card ab active hai' : 'Health ID disabled');
     } catch (e: any) {
-      toast.error(e.response?.data?.message || 'Failed');
-      setConfirmOpen({ open: true, value: !online });
+      toast.error(e.response?.data?.message || 'Save failed');
+    } finally {
+      setSaving(false);
     }
   };
 
   const handleRegenerate = async () => {
-    setConfirmOpen({ open: true, value: true });
-    // Store in state to confirm after dialog
-    const conf = window.confirm('Old QR kaam nahi karega. Purana token invalidate ho jayega. Continue karna hai?');
-    if (!conf) {
-      setConfirmOpen({ open: false, value: true });
-      return;
-    }
+    if (!window.confirm('Old QR kaam nahi karega. Purana token invalidate ho jayega. Continue?')) return;
     try {
-      const res: any = await api.post('/patient/health-id/generate', { regenerate: true });
-      setQrToken(res.qrToken || '');
-      toast.success('QR regenerated - old QR ab valid nahi rahega');
+      const res: any = await api.post('/health-id/generate', { regenerate: true });
+      if (res?.qrToken) {
+        setQrToken(res.qrToken);
+        toast.success('QR regenerated - old QR ab valid nahi rahega');
+      }
     } catch (e: any) {
       toast.error(e.response?.data?.message || 'Regenerate failed');
     }
-    setConfirmOpen({ open: false, value: false });
   };
 
-  const handleShareLevelChange = (e: any) => {
-    setShareLevel(e.target.value as 'full' | 'minimal');
-  };
+  if (loading) return <div className="p-8 text-center text-sm text-muted-foreground">Loading…</div>;
 
-  if (!user || !user.healthIdCard) {
-    return (
-      <Container className="p-8 text-center">
-        <h3>Health ID</h3>
-        <p className="text-muted-foreground">Health ID setup karna shuru karein.</p>
-        <Button onClick={() => navigate('/patient/profile')}>Profile edit karein</Button>
-      </Container>
-    );
-  }
-
-  // Generate initial QR if not exists
-  useEffect(() => {
-    if (!qrToken) {
-      ;(async () => {
-        try {
-          const res: any = await api.post('/patient/health-id/generate');
-          setQrToken(res.qrToken || '');
-        } catch {}
-      })();
-    }
-  }, [qrToken]);
+  const qrUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/health-id/${qrToken}`;
 
   return (
-    <Container className="py-6">
-      {/* Header */}
-      <div className="text-center mb-6">
-        <h2 className="h3 mb-2">Mera Health ID</h2>
-        <p className="text-muted-foreground small">Emergency mein kaam aayega — QR scan karke critical info dekhiye.</p>
+    <div className="max-w-2xl mx-auto p-4 space-y-4 pb-16">
+      <div className="text-center">
+        <h2 className="text-xl font-black">Mera Health ID</h2>
+        <p className="text-muted-foreground text-sm">Emergency mein kaam aayega — QR scan karke critical info dekhiye. {user?.name ? `(${user.name})` : ''}</p>
       </div>
 
-      {/* QR Card section */}
-      <Card className="mb-4 shadow-sm">
-        <CardBody className="p-4">
-          <div className="text-center">
-            {/* QR Code */}
-            <div className="d-inline-block mb-3">
-              {qrToken && (
-                <QrCode
-                  ref={qrRef}
-                  value={`${typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'}/health-id/${qrToken}`}
-                  size={200}
-                  bgColor="white"
-                  fgColor="black"
-                />
-              )}
+      <Card>
+        <CardContent className="p-5 text-center space-y-3">
+          {qrToken ? (
+            <div className="inline-block rounded-2xl border p-3 bg-white">
+              <QRCodeSVG value={qrUrl} size={200} bgColor="#ffffff" fgColor="#000000" />
             </div>
-
+          ) : (
+            <p className="text-sm text-muted-foreground">QR generate ho raha hai…</p>
+          )}
+          <div>
             <Button
               variant="outline"
               size="sm"
+              className="rounded-xl"
               onClick={() => {
-                const range = document.createRange();
-                if (qrRef.current) {
-                  range.selectNodeContents(qrRef.current);
-                  const selection = window.getSelection();
-                  selection?.removeAllRanges();
-                  selection?.addRange(range);
-                  document.execCommand('copy');
-                  toast.success('QR token copied');
-                }
+                try {
+                  navigator.clipboard?.writeText(qrUrl);
+                  toast.success('QR link copied');
+                } catch {}
               }}
             >
-              Copy token
+              Copy QR link
             </Button>
-
-            <small className="text-muted-foreground d-block mt-2">
-              QR ko koi bhi scan kare — login zaroori nahi.
-            </small>
-
-            {/* Status badges */}
-            <div className="mt-3 pt-3 border-t">
-              <span className={`rounded px-2 py-1 text-xs font-medium ${isEnabled ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>
-                {isEnabled ? 'Active' : 'Disabled'}
-              </span>
-              <span className="ml-2 rounded px-2 py-1 text-xs font-medium ${shareLevel === 'full' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'}">
-                {shareLevel === 'full' ? 'Full' : 'Minimal'}
-              </span>
-            </div>
           </div>
-        </CardBody>
+          <p className="text-xs text-muted-foreground">QR ko koi bhi scan kare — login zaroori nahi.</p>
+          <div className="flex gap-2 justify-center pt-1">
+            <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${isEnabled ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>
+              {isEnabled ? 'Active' : 'Disabled'}
+            </span>
+            <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${shareLevel === 'full' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'}`}>
+              {shareLevel === 'full' ? 'Full' : 'Minimal'}
+            </span>
+          </div>
+        </CardContent>
       </Card>
 
-      {/* Patient info & controls */}
       <Card>
-        <CardBody>
-          {/* Share Level selector */}
-          <div className="mb-3">
-            <label className="form-label small text-muted-foreground">Share Level</label>
-            <div className="form-check form-check-inline">
-              <input
-                className="form-check-input"
-                type="radio"
-                name="shareLevel"
-                checked={shareLevel === 'full'}
-                onChange={handleShareLevelChange}
-                value="full"
-              />
-              <label className="form-check-label">Full — allergies + conditions + contact</label>
-            </div>
-            <div className="form-check form-check-inline">
-              <input
-                className="form-check-input"
-                type="radio"
-                name="shareLevel"
-                checked={shareLevel === 'minimal'}
-                onChange={handleShareLevelChange}
-                value="minimal"
-              />
-              <label className="form-check-label">Minimal — sirf blood group + contact</label>
+        <CardContent className="p-4 space-y-3">
+          <div>
+            <p className="text-xs font-bold text-muted-foreground mb-2">Share Level</p>
+            <div className="flex gap-2">
+              <Button size="sm" variant={shareLevel === 'full' ? 'default' : 'outline'} className="rounded-xl flex-1" onClick={() => { setShareLevel('full'); saveSettings(isEnabled, 'full'); }}>
+                Full — allergies + conditions + contact
+              </Button>
+              <Button size="sm" variant={shareLevel === 'minimal' ? 'default' : 'outline'} className="rounded-xl flex-1" onClick={() => { setShareLevel('minimal'); saveSettings(isEnabled, 'minimal'); }}>
+                Minimal — blood group + contact
+              </Button>
             </div>
           </div>
-
-          {/* Enable/Disable toggle */}
-          <EmergencyToggleConfirm
-            open={confirmOpen.open}
-            turningOn={confirmOpen.value}
-            onConfirm={() => handleEnableToggle(confirmOpen.value)}
-            onCancel={() => setConfirmOpen({ open: false, value: false })}
-          >
-            <div className="d-flex align-items-center justify-content-between small text-muted-foreground">
-              <span>{isEnabled ? 'Health ID deactivate karein' : 'Health ID enable karein'}</span>
-              <i className="bi bi-info-circle cursor-help" title="Confirm before changing"></i>
-            </div>
-          </EmergencyToggleConfirm>
-
-          {/* Regenerate QR */}
-          <Button
-            variant="outline"
-            size="sm"
-            className="mt-2 w-100"
-            onClick={handleRegenerate}
-            disabled={generating}
-          >
-            {generating ? 'Generating…' : 'Regenerate QR Code'}
+          <div className="flex items-center justify-between rounded-2xl border p-3">
+            <p className="text-sm font-semibold">{isEnabled ? 'Health ID deactivate karein' : 'Health ID enable karein'}</p>
+            <Switch
+              checked={isEnabled}
+              disabled={saving}
+              onCheckedChange={(v) => {
+                if (!v && !window.confirm('Health ID disable ho jayega, QR kaam nahi karega. Continue?')) return;
+                saveSettings(v, shareLevel);
+              }}
+            />
+          </div>
+          <Button variant="outline" size="sm" className="w-full rounded-xl" onClick={handleRegenerate}>
+            Regenerate QR Code
           </Button>
-
-          {generating && <small className="text-muted-foreground small d-block mt-1">Processing…</small>}
-        </CardBody>
+        </CardContent>
       </Card>
 
-      {/* Quick scan info */}
-      <Card className="mt-4">
-        <CardBody className="small text-muted-foreground">
-          <h5 className="h6 mb-3">Kaise use karein:</h5>
-          <ol className="list-decimal list-inside mb-0">
-            <li>
-              Emergency mein koi bhi (doctor, ambulance, bystander) apne phone se
-              Health ID QR code scan karein.
-            </li>
-            <li>
-              QR scan hone par patient ki critical info dikhegi — koi login/password nahi.
-            </li>
-            <li>
-              Agar card disabled hai to 'Card not found or disabled' message aayega.
-            </li>
-            <li>
-              Agar QR kho jaye to 'Regenerate QR' se naya token generate karein.
-            </li>
+      <Card>
+        <CardContent className="p-4 text-sm text-muted-foreground space-y-1">
+          <p className="font-bold text-foreground">Kaise use karein:</p>
+          <ol className="list-decimal pl-4 space-y-1 text-xs">
+            <li>Emergency mein koi bhi (doctor, ambulance, bystander) apne phone se QR scan karein.</li>
+            <li>QR scan hone par patient ki critical info dikhegi — koi login/password nahi.</li>
+            <li>Agar card disabled hai to 'Card not found or disabled' message aayega.</li>
+            <li>Agar QR kho jaye to 'Regenerate QR' se naya token generate karein.</li>
           </ol>
-        </CardBody>
+        </CardContent>
       </Card>
-    </Container>
+    </div>
   );
 }
