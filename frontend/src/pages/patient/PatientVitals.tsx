@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   HeartPulse,
@@ -147,6 +148,14 @@ export default function PatientVitals() {
     setShowLogModal(true);
   };
 
+  // Alarm se "Log" dabane par deep link (?log=bp) seedha form kholta hai
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    const t = searchParams.get('log');
+    if (t) { openLogModal(t as any); setSearchParams({}, { replace: true }); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const openEditModal = (log: any) => {
     setEditingLog(log);
     setFormVitalType(log.vitalType);
@@ -169,7 +178,6 @@ export default function PatientVitals() {
 
   const handleSaveVital = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitting(true);
 
     const values: any = {};
     if (formVitalType === 'bp') {
@@ -189,6 +197,7 @@ export default function PatientVitals() {
       values.tempUnit = tempUnit;
     }
 
+    setSubmitting(true);
     try {
       if (editingLog) {
         await api.updateVital(editingLog._id, {
@@ -297,7 +306,9 @@ export default function PatientVitals() {
     } else {
       return {
         date: dateStr,
-        temp: r.values.tempValue,
+        temp: r.values.tempUnit === 'C'
+          ? Math.round(((r.values.tempValue * 9) / 5 + 32) * 10) / 10
+          : r.values.tempValue,
       };
     }
   });

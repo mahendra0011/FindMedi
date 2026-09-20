@@ -11,6 +11,23 @@ import logger from '../config/logger.js';
 
 const router = express.Router();
 
+// ─── Permission helpers: kaun plan dekh sakta hai ───
+async function resolveDoctorId(user) {
+  if (user.role !== 'doctor' && user.role !== 'clinic_doctor') return null;
+  const doc = await Doctor.findOne({
+    $or: [{ user_id: user._id.toString() }, { email: user.email }],
+  }).select('_id');
+  return doc?._id || null;
+}
+
+async function canViewPlan(plan, user) {
+  if (String(plan.userId?._id || plan.userId) === String(user._id)) return true;
+  if (user.role === 'superadmin') return true;
+  if (!plan.shareWithDoctor || !plan.linkedDoctorId) return false;
+  const docId = await resolveDoctorId(user);
+  return !!docId && String(docId) === String(plan.linkedDoctorId?._id || plan.linkedDoctorId);
+}
+
 // ── GET /api/care-plans/doctor-view ──────────────────────────────────────────
 // Doctor views consented care plans for their patients
 router.get('/doctor-view', protect, async (req, res) => {
@@ -51,15 +68,15 @@ router.get('/doctor-view', protect, async (req, res) => {
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-        // Calculate adherence
-        const logs = await MedicineDoseLog.find({
+        // Calculate adherence — sirf responded logs
+        const logs = (await MedicineDoseLog.find({
           carePlanId: plan._id,
           scheduledAt: { $gte: thirtyDaysAgo },
-        }).lean();
+        }).lean()).filter(l => l.respondedAt);
 
         const totalDoses = logs.length;
         const takenDoses = logs.filter(l => l.status === 'taken' || l.status === 'snoozed_then_taken').length;
-        const adherenceScore = totalDoses > 0 ? Math.round((takenDoses / totalDoses) * 100) : 100;
+        const adherenceScore = totalDoses > 0 ? Math.round((takenDoses / totalDoses) * 100) : null;
 
         // Fetch latest vitals for tracked types
         const trackedTypes = (plan.vitalsTracked || []).map(v => v.vitalType);
@@ -151,17 +168,17 @@ router.post('/', protect, async (req, res) => {
 
     await carePlan.save();
 
-    // Link any specified medicine reminders to this care plan
+    // Link any specified medicine reminders — sirf apni (target user ki)
     if (medicineReminderIds && medicineReminderIds.length > 0) {
       await MedicineReminder.updateMany(
-        { _id: { $in: medicineReminderIds } },
+        { _id: { $in: medicineReminderIds }, userId: targetUserId },
         { $set: { carePlanId: carePlan._id } }
       );
     }
 
     if (isDoctor && targetUserId.toString() !== req.user._id.toString()) {
       await Notification.create({
-        user_id: targetUserId,
+        userId: String(targetUserId),
         type: 'reminder',
         title: `❤️ New Care Plan from Dr. ${req.user.name}`,
         message: `Your doctor has initiated "${planName}". Open your Care Plans tab to review and activate it.`,
@@ -190,10 +207,8 @@ router.get('/:id/today', protect, async (req, res) => {
       return res.status(404).json({ message: 'Care plan not found' });
     }
 
-    // Permission check
-    const isOwner = plan.userId.toString() === req.user._id.toString();
-    const isLinkedDoc = plan.shareWithDoctor && plan.linkedDoctorId?.toString() === req.doctor?._id?.toString();
-    if (!isOwner && !isLinkedDoc && req.user.role !== 'admin') {
+    // Permission check — owner, superadmin, ya consented linked doctor
+    if (!(await canViewPlan(plan, req.user))) {
       return res.status(403).json({ message: 'Not authorized to view this care plan' });
     }
 
@@ -288,24 +303,22 @@ router.get('/:id', protect, async (req, res) => {
       return res.status(404).json({ message: 'Care plan not found' });
     }
 
-    const isOwner = plan.userId.toString() === req.user._id.toString();
-    const isDoc = plan.shareWithDoctor && (req.user.role === 'doctor' || req.user.role === 'clinic_doctor');
-    if (!isOwner && !isDoc && req.user.role !== 'admin') {
+    if (!(await canViewPlan(plan, req.user))) {
       return res.status(403).json({ message: 'Not authorized to view this care plan' });
     }
 
-    // Fetch 30-day adherence and logs
+    // Fetch 30-day adherence and logs — sirf responded logs
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    const doseLogs = await MedicineDoseLog.find({
+    const doseLogs = (await MedicineDoseLog.find({
       carePlanId: plan._id,
       scheduledAt: { $gte: thirtyDaysAgo },
-    }).lean();
+    }).lean()).filter(l => l.respondedAt);
 
     const totalScheduled = doseLogs.length;
     const takenDoses = doseLogs.filter(l => l.status === 'taken' || l.status === 'snoozed_then_taken').length;
-    const adherenceScore = totalScheduled > 0 ? Math.round((takenDoses / totalScheduled) * 100) : 100;
+    const adherenceScore = totalScheduled > 0 ? Math.round((takenDoses / totalScheduled) * 100) : null;
 
     // Fetch recent vitals readings
     const vitalsLogs = await VitalsLog.find({
@@ -334,6 +347,8 @@ router.get('/:id', protect, async (req, res) => {
     let correlationInsight = null;
     if (missedDoseSpikes > 0) {
       correlationInsight = `Observed out-of-range readings on ${missedDoseSpikes} day(s) that coincided with missed medicine doses. Keeping adherence above 90% typically stabilizes readings.`;
+    } else if (adherenceScore === null) {
+      correlationInsight = `Abhi koi dose record nahi hua hai. Reminders set karein taaki adherence track ho sake.`;
     } else if (adherenceScore >= 90) {
       correlationInsight = `Great consistency! Your 30-day adherence is ${adherenceScore}%, and readings show strong alignment with your targets.`;
     } else {
@@ -396,10 +411,10 @@ router.put('/:id', protect, async (req, res) => {
 
     await plan.save();
 
-    // Sync medicine reminders carePlanId
+    // Sync medicine reminders carePlanId — sirf plan owner ki reminders
     if (medicineReminderIds && medicineReminderIds.length > 0) {
       await MedicineReminder.updateMany(
-        { _id: { $in: medicineReminderIds } },
+        { _id: { $in: medicineReminderIds }, userId: plan.userId },
         { $set: { carePlanId: plan._id } }
       );
     }
