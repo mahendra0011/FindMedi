@@ -5,7 +5,6 @@ import User from '../models/User.js';
 import Referral from '../models/Referral.js';
 import RewardCatalogItem from '../models/RewardCatalogItem.js';
 import RewardRedemption from '../models/RewardRedemption.js';
-import { generateUniqueCode } from '../utils/idGenerator.js';
 
 export const loyaltyService = {
   /**
