@@ -240,10 +240,20 @@ router.post('/:id/reject', protect, async (req, res) => {
 
 router.post('/:id/cancel', protect, async (req, res) => {
   try {
-    const r = await EmergencyRequest.findById(req.params.id);
+    const r = await EmergencyRequest.findById(req.params.id).select('userId status notified assignedProviderType assignedProviderId');
     if (!r) return res.status(404).json({ message: 'Request not found' });
-    r.status = 'cancelled_by_user';
-    await r.save();
+    const isOwner = String(r.userId) === String(req.user._id || req.user.id);
+    if (!isOwner && req.user.role !== 'superadmin') {
+      return res.status(403).json({ message: 'Sirf request karne wala cancel kar sakta hai' });
+    }
+    if (!['searching', 'assigned', 'en_route'].includes(r.status)) {
+      return res.json({ success: true, already: r.status });
+    }
+    // updateOne (save nahi) — purane docs pe full-validation 500 se bachne ke liye
+    await EmergencyRequest.updateOne(
+      { _id: r._id },
+      { $set: { status: 'cancelled_by_user', cancelledAt: new Date(), updatedAt: new Date() } }
+    );
     const io = getIO();
     if (io) {
       io.to(`emergency:${r._id}`).emit('emergency_cancelled', { requestId: String(r._id) });
