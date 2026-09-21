@@ -816,6 +816,9 @@ const UserDashboard = () => {
       <main className="pt-2">
         <section className="dashboard-motion py-6 md:py-10 bg-gradient-to-br from-primary/8 via-background via-secondary/8 to-accent/5">
           <div className="dashboard-shell max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+
+              <TabsContent value="home" className="dashboard-tab-motion space-y-6">
             <GlowPanel className="dashboard-panel p-6">
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
                 <div>
@@ -858,10 +861,6 @@ const UserDashboard = () => {
               <Metric title="Unread messages" value={data.stats.unreadMessages} icon={MessageCircle} />
               <Metric title="Daily tip" value={data.stats.dailyTip} icon={Sparkles} compact />
             </div>
-
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-
-              <TabsContent value="home" className="dashboard-tab-motion space-y-6">
                 <div className="dashboard-stagger grid lg:grid-cols-3 gap-6">
                   <Card className="dashboard-card-motion glass-card bg-gradient-to-br from-primary/10 via-primary/5 to-secondary/10 border-primary/20 overflow-hidden relative">
                     <div className="absolute top-0 right-0 w-40 h-40 bg-primary/5 rounded-full blur-3xl -mr-12 -mt-12 pointer-events-none" />

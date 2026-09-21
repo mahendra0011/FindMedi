@@ -32,6 +32,7 @@ const psychiatrists = [
     gender: 'male',
     areas_of_expertise: ['Depression', 'Mood Disorders', 'Dysthymia'],
     profile_photo: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=400&h=400&fit=crop&crop=face&auto=format',
+    supportPlanPrices: { oneTime: 1800, shortTerm: 5000, mediumTerm: 9000, longTerm: 16000 },
   },
   {
     name: 'Dr. Ananya Sharma',
@@ -51,6 +52,7 @@ const psychiatrists = [
     gender: 'female',
     areas_of_expertise: ['Anxiety Disorders', 'Panic Attacks', 'Phobia'],
     profile_photo: 'https://images.unsplash.com/photo-1594824476967-48c8b964273f?w=400&h=400&fit=crop&crop=face&auto=format',
+    supportPlanPrices: { oneTime: 1500, shortTerm: 4500, mediumTerm: 8500, longTerm: 14000 },
   },
   {
     name: 'Dr. Vikram Rao',
@@ -70,6 +72,7 @@ const psychiatrists = [
     gender: 'male',
     areas_of_expertise: ['Bipolar Disorder', 'Schizophrenia', 'Psychosis'],
     profile_photo: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&h=400&fit=crop&crop=faces&auto=format',
+    supportPlanPrices: { oneTime: 2000, shortTerm: 6000, mediumTerm: 11000, longTerm: 18000 },
   },
   {
     name: 'Dr. Kavya Menon',
@@ -89,6 +92,7 @@ const psychiatrists = [
     gender: 'female',
     areas_of_expertise: ['Sleep Disorders', 'Insomnia', 'Addiction', 'De-addiction'],
     profile_photo: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=400&fit=crop&crop=face&auto=format',
+    supportPlanPrices: { oneTime: 1600, shortTerm: 4800, mediumTerm: 8800, longTerm: 14500 },
   },
   {
     name: 'Dr. Aditya Patel',
@@ -108,6 +112,7 @@ const psychiatrists = [
     gender: 'male',
     areas_of_expertise: ['Child & Adolescent', 'ADHD', 'Autism', 'OCD'],
     profile_photo: 'https://images.unsplash.com/photo-1537368910025-700350fe46c7?w=400&h=400&fit=crop&crop=faces&auto=format',
+    supportPlanPrices: { oneTime: 1400, shortTerm: 4200, mediumTerm: 8000, longTerm: 13000 },
   },
 ];
 

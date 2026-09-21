@@ -320,7 +320,7 @@ router.post('/register', validate(registerSchema), async (req, res) => {
       referralCode,  // NEW: optional referral code from existing user
     } = req.body;
 
-    const normalizedRole = ['hospital_admin', 'doctor', 'patient', 'technician', 'rider', 'assistant', 'lawyer'].includes(role) ? role : 'patient';
+    const normalizedRole = ['hospital_admin', 'doctor', 'clinic_doctor', 'patient', 'lab_owner', 'lab_receptionist', 'lab_technician', 'pathologist', 'pharmacy_owner', 'pharmacist', 'nurse', 'radiologist', 'dietitian', 'physiotherapist', 'counselor', 'counsellor', 'psychiatrist', 'technician', 'rider', 'assistant', 'lawyer', 'ambulance', 'delivery_boy', 'superadmin'].includes(role) ? role : 'patient';
     const lowerEmail = email.toLowerCase();
 
     if (normalizedRole === 'doctor' && (!specialization || !licenseNumber || !(qualification || qualifications))) {
