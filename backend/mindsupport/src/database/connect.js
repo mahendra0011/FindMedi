@@ -16,6 +16,11 @@ mongoose.connection.on("connected", () => {
 });
 
 export function isDatabaseReady() {
+  // Phase 3 (merge): when mounted inside the main FindMedi server, the main
+  // server owns the mongoose connection, so honour its readyState too.
+  try {
+    if (mongoose.connection.readyState === 1) return true;
+  } catch { /* ignore */ }
   return dbReady;
 }
 

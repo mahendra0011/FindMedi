@@ -1,5 +1,9 @@
 import { BREVO_API_KEY, BREVO_SENDER_EMAIL, BREVO_SENDER_NAME } from "../config/env.js";
 
+// Phase 10 (merge): shared credentials. In the merged server, backend/.env
+// provides BREVO_API_KEY / BREVO_SENDER_EMAIL (same names as the main app),
+// so both stacks send via one Brevo account.
+
 /**
  * Send a transactional email via Brevo (Sendinblue) API.
  * @param {Object} options
