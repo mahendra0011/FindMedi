@@ -17,6 +17,8 @@ import {
   Users,
   Scale,
   Ambulance,
+  Brain,
+  BrainCircuit,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -62,6 +64,8 @@ const roles: RoleItem[] = [
   { key: 'ambulance', label: 'Ambulance Driver', desc: 'Emergency ambulance', icon: Ambulance, color: 'text-red-600', bg: 'bg-red-500/10' },
   { key: 'assistant', label: 'Assistant', desc: 'Patient care & help', icon: Users, color: 'text-cyan-600', bg: 'bg-cyan-500/10' },
   { key: 'lawyer', label: 'Lawyer', desc: 'Legal consultation', icon: Scale, color: 'text-indigo-600', bg: 'bg-indigo-500/10' },
+  { key: 'counsellor', label: 'Counsellor', desc: 'Therapy & counselling', icon: Brain, color: 'text-teal-600', bg: 'bg-teal-500/10' },
+  { key: 'psychiatrist', label: 'Psychiatrist', desc: 'Diagnosis & medication', icon: BrainCircuit, color: 'text-cyan-600', bg: 'bg-cyan-500/10' },
   { key: 'patient', label: 'Patient', desc: 'Appointments & records', icon: UserRound, color: 'text-success', bg: 'bg-success/10' },
 ];
 
@@ -77,6 +81,8 @@ const demoAccounts: DemoAccountItem[] = [
   { key: 'ambulance', label: 'Ambulance Driver', desc: 'Emergency ambulance', icon: Ambulance, color: 'text-red-600', bg: 'bg-red-500/10', email: 'ambulance@findmedi.com', pass: 'password' },
   { key: 'assistant', label: 'Assistant', desc: 'Patient care & help', icon: Users, color: 'text-cyan-600', bg: 'bg-cyan-500/10', email: 'assistant@findmedi.com', pass: 'password' },
   { key: 'lawyer', label: 'Lawyer', desc: 'Legal consultation', icon: Scale, color: 'text-indigo-600', bg: 'bg-indigo-500/10', email: 'lawyer@findmedi.com', pass: 'password' },
+  { key: 'counsellor', label: 'Counsellor', desc: 'Therapy & counselling', icon: Brain, color: 'text-teal-600', bg: 'bg-teal-500/10', email: 'counsellor@findmedi.com', pass: 'password' },
+  { key: 'psychiatrist', label: 'Psychiatrist', desc: 'Diagnosis & medication', icon: BrainCircuit, color: 'text-cyan-600', bg: 'bg-cyan-500/10', email: 'psychiatrist@findmedi.com', pass: 'password' },
   { key: 'patient', label: 'Patient', desc: 'Appointments & records', icon: UserRound, color: 'text-success', bg: 'bg-success/10', email: 'patient@findmedi.com', pass: 'password' },
 ];
 
