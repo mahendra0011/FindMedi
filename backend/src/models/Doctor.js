@@ -72,6 +72,12 @@ const doctorSchema = new mongoose.Schema({
     offline: { type: Number, default: 500 },
     home_visit: { type: Number, default: 800 },
   },
+  supportPlanPrices: {
+    oneTime: { type: Number, default: 0 },
+    shortTerm: { type: Number, default: 0 },
+    mediumTerm: { type: Number, default: 0 },
+    longTerm: { type: Number, default: 0 },
+  },
   chat_fee: { type: Number, default: 300 },
   video_fee: { type: Number, default: 500 },
   audio_fee: { type: Number, default: 400 },

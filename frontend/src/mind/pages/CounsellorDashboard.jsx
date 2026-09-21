@@ -603,6 +603,21 @@ const load = useCallback(async () => {
       <main className="pt-2">
         <section className="dashboard-motion bg-gradient-to-br from-primary/8 via-background via-secondary/8 to-accent/5 py-6 md:py-10">
           <div className="dashboard-shell mx-auto max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
+            <Tabs defaultValue="overview" className="space-y-5">
+              <TabsList className="dashboard-panel flex h-auto flex-wrap justify-start gap-2 bg-muted/60 p-2">
+                <TabsTrigger value="overview">Overview</TabsTrigger>
+                <TabsTrigger value="schedule">Schedule</TabsTrigger>
+                <TabsTrigger value="sessions">Sessions</TabsTrigger>
+                <TabsTrigger value="patients">Patients</TabsTrigger>
+                <TabsTrigger value="notes">Notes</TabsTrigger>
+                <TabsTrigger value="earnings">Earnings</TabsTrigger>
+                <TabsTrigger value="history">History</TabsTrigger>
+                <TabsTrigger value="reviews">Reviews</TabsTrigger>
+                <TabsTrigger value="resources">Resources</TabsTrigger>
+                <TabsTrigger value="settings">Settings</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="overview" className="dashboard-tab-motion space-y-6">
             <GlowPanel className="dashboard-panel overflow-hidden p-0">
               <div className="grid gap-6 p-5 md:p-6 lg:grid-cols-[1.25fr_0.75fr]">
                 <div className="flex gap-4">
@@ -661,22 +676,6 @@ const load = useCallback(async () => {
               <Metric title="Pending requests" value={data.stats.pendingRequests} icon={ClipboardList} tone="text-amber-500" />
               <Metric title="Average rating" value={reviewScore} icon={Star} tone="text-amber-500" />
             </div>
-
-            <Tabs defaultValue="overview" className="space-y-5">
-              <TabsList className="dashboard-panel flex h-auto flex-wrap justify-start gap-2 bg-muted/60 p-2">
-                <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="schedule">Schedule</TabsTrigger>
-                <TabsTrigger value="sessions">Sessions</TabsTrigger>
-                <TabsTrigger value="patients">Patients</TabsTrigger>
-                <TabsTrigger value="notes">Notes</TabsTrigger>
-                <TabsTrigger value="earnings">Earnings</TabsTrigger>
-                <TabsTrigger value="history">History</TabsTrigger>
-                <TabsTrigger value="reviews">Reviews</TabsTrigger>
-                <TabsTrigger value="resources">Resources</TabsTrigger>
-                <TabsTrigger value="settings">Settings</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="overview" className="dashboard-tab-motion space-y-6">
                 <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
                   <Card className="glass-card">
                     <CardHeader>

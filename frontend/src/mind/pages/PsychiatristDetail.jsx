@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Star, MapPin, CalendarDays, IndianRupee, Award, Users, Phone, Mail, Building2, Languages, GraduationCap, BrainCircuit, BadgeCheck, Heart, Video, MessageCircle, Home, Share2, Pill, Quote, FlaskConical, HeartPulse, Car, Accessibility, Wind, Image, ChevronRight, ChevronDown, ChevronUp, FileText, Briefcase, Shield, Trophy, Store, CircleDot, CheckCircle, Plus, Minus, Ambulance, Zap, Sparkles, DoorOpen, Clock, Bookmark, BookMarked, ArrowRight, Stethoscope } from 'lucide-react';
+import { ArrowLeft, Star, MapPin, CalendarDays, IndianRupee, Award, Users, Phone, Mail, Building2, Languages, GraduationCap, BrainCircuit, BadgeCheck, Heart, Video, MessageCircle, Home, Share2, Pill, Quote, FlaskConical, HeartPulse, Car, Accessibility, Wind, Image, ChevronRight, ChevronDown, ChevronUp, FileText, Briefcase, Shield, Trophy, Store, CircleDot, Check, CheckCircle, Plus, Minus, Ambulance, Zap, Sparkles, DoorOpen, Clock, Bookmark, BookMarked, ArrowRight, Stethoscope } from 'lucide-react';
 import { Button } from '@/mind/components/ui/button';
 import { Textarea } from '@/mind/components/ui/textarea';
 import { Badge } from '@/mind/components/ui/badge';
@@ -21,6 +21,13 @@ const MODE_META = [
   { id: 'chat', label: 'Chat Consultation', icon: MessageCircle },
   { id: 'offline', label: 'In-Person Visit', icon: MapPin },
   { id: 'home_visit', label: 'Home Visit', icon: Home },
+];
+
+const PSYCH_PLANS = [
+  { id: 'oneTime', name: 'One-Time Consultation', summary: 'Single session for immediate assessment', duration: 'Single session', cadence: 'One-time', bestFor: ['Immediate assessment', 'Second opinion'], priceKey: 'oneTime' },
+  { id: 'shortTerm', name: 'Short-Term Care', summary: 'Stabilisation, medication review & follow-ups', duration: '4-6 sessions', cadence: 'Weekly', bestFor: ['Anxiety', 'Depression'], priceKey: 'shortTerm' },
+  { id: 'mediumTerm', name: 'Medium-Term Care', summary: 'Therapy + medication for sustained recovery', duration: '8-12 sessions', cadence: 'Weekly / Bi-weekly', bestFor: ['Mood disorders', 'Sleep issues'], priceKey: 'mediumTerm' },
+  { id: 'longTerm', name: 'Long-Term Care', summary: 'Ongoing management & relapse prevention', duration: '6+ months', cadence: 'Bi-weekly / Monthly', bestFor: ['Bipolar', 'Schizophrenia'], priceKey: 'longTerm' },
 ];
 
 const DAY_ORDER = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
@@ -100,6 +107,7 @@ export default function PsychiatristDetail() {
   const [expandedFaq, setExpandedFaq] = useState(null);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
+  const [selectedPlanId, setSelectedPlanId] = useState('oneTime');
 
   useEffect(() => {
     const load = async () => {
@@ -568,15 +576,33 @@ export default function PsychiatristDetail() {
                       ))}
                     </div>
                     {doctor.supportPlanPrices && Object.values(doctor.supportPlanPrices).some(v => Number(v) > 0) && (
-                      <div className="mt-5">
-                        <p className="text-sm font-semibold text-foreground mb-3">Support Packages</p>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                          {Object.entries(doctor.supportPlanPrices).filter(([, v]) => Number(v) > 0).map(([k, v]) => (
-                            <div key={k} className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-center">
-                              <p className="text-xs font-medium capitalize">{k.replace(/([A-Z])/g, ' $1').trim()}</p>
-                              <p className="font-bold text-primary">₹{v}</p>
-                            </div>
-                          ))}
+                      <div className="mt-6">
+                        <h3 className="font-semibold text-foreground mb-1">Support Packages</h3>
+                        <p className="text-sm text-muted-foreground mb-4">Choose one plan for your journey. You can upgrade later.</p>
+                        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                          {PSYCH_PLANS.map(plan => {
+                            const price = Number(doctor.supportPlanPrices?.[plan.priceKey] || 0);
+                            if (!price) return null;
+                            const isSelected = selectedPlanId === plan.id;
+                            return (
+                              <button key={plan.id} onClick={() => setSelectedPlanId(plan.id)} className={`relative text-left p-5 rounded-xl border transition-all duration-300 hover:-translate-y-0.5 text-left ${isSelected ? "bg-gradient-to-br from-primary/10 to-primary/5 border-primary/30 shadow-lg shadow-primary/10" : "bg-muted/50 border-border/70 hover:border-primary/30 hover:bg-muted/60"}`}>
+                                {isSelected && (
+                                  <span className="absolute top-3 right-3 flex h-5 w-5 items-center justify-center rounded-full bg-primary">
+                                    <Check className="h-3 w-3 text-white" />
+                                  </span>
+                                )}
+                                <h4 className="font-bold text-base mb-1 pr-6">{plan.name}</h4>
+                                <p className="text-xs text-muted-foreground mb-3">{plan.summary}</p>
+                                <p className="text-2xl font-bold mb-2">₹{price}<span className="text-xs font-normal text-muted-foreground ml-1">once</span></p>
+                                <p className="text-xs text-muted-foreground">{plan.duration} • {plan.cadence}</p>
+                                <div className="flex flex-wrap gap-1.5 mt-3">
+                                  {plan.bestFor.slice(0, 2).map(item => (
+                                    <span key={item} className="px-2 py-0.5 bg-primary/10 text-primary rounded text-[10px]">{item}</span>
+                                  ))}
+                                </div>
+                              </button>
+                            );
+                          })}
                         </div>
                       </div>
                     )}
@@ -1091,11 +1117,30 @@ export default function PsychiatristDetail() {
                   </button>
                 </div>
 
-                {/* Fee Display */}
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-muted/30 border border-border/60 mb-2">
-                  <span className="text-xs text-muted-foreground">Consultation Fee</span>
-                  <span className="font-bold text-base text-foreground">₹{doctor.consultation_fees || doctor.fees || 0}</span>
-                </div>
+                {/* Selected Package Summary */}
+                {(() => {
+                  const plan = PSYCH_PLANS.find(p => p.id === selectedPlanId) || PSYCH_PLANS[0];
+                  const price = Number(doctor.supportPlanPrices?.[plan.priceKey] || doctor.consultation_fees || 0);
+                  return (
+                    <>
+                      <div className="mb-3">
+                        <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Selected Plan</p>
+                        <h3 className="text-base font-bold">{plan.name}</h3>
+                        <p className="text-xs text-muted-foreground">{plan.summary}</p>
+                      </div>
+                      <div className="bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 rounded-xl p-3 mb-3">
+                        <p className="text-xs text-muted-foreground uppercase tracking-wider">Package Total</p>
+                        <p className="text-2xl font-bold mt-1">₹{price}<span className="text-xs font-normal text-muted-foreground ml-1">once</span></p>
+                        <p className="text-xs text-muted-foreground mt-1">{plan.duration} • {plan.cadence}</p>
+                      </div>
+                      <div className="space-y-2 text-xs mb-3">
+                        <div className="flex justify-between py-1.5 border-b border-border/50"><span className="text-muted-foreground">Duration</span><span className="font-medium">{plan.duration}</span></div>
+                        <div className="flex justify-between py-1.5 border-b border-border/50"><span className="text-muted-foreground">Cadence</span><span className="font-medium">{plan.cadence}</span></div>
+                        <div className="flex justify-between py-1.5"><span className="text-muted-foreground">Response</span><span className="font-medium text-emerald-600">{doctor.responseTime || "Within 24 hours"}</span></div>
+                      </div>
+                    </>
+                  );
+                })()}
 
                 {/* Walk-in Accepted */}
                 {doctor.walk_in_accepted !== undefined && (
@@ -1119,7 +1164,7 @@ export default function PsychiatristDetail() {
                 )}
 
                 <Button className="w-full rounded-xl h-11 font-semibold shadow-lg shadow-primary/25 mb-3 gap-2" onClick={() => setShowBooking(true)}>
-                  <CalendarDays className="w-4 h-4" /> Book Appointment
+                  <CalendarDays className="w-4 h-4" /> Book {PSYCH_PLANS.find(p => p.id === selectedPlanId)?.name || "Appointment"}
                 </Button>
 
                 {/* Call Clinic / Hospital Reception */}

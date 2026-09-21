@@ -386,6 +386,22 @@ const sendAnnouncement = async () => {
       <main className="pt-2">
         <section className="dashboard-motion py-6 md:py-10 bg-gradient-to-br from-primary/8 via-background via-secondary/8 to-accent/5">
           <div className="dashboard-shell max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+<Tabs defaultValue="overview">
+              <TabsList className="dashboard-panel flex h-auto flex-wrap justify-start gap-2 bg-muted/60 p-2">
+                <TabsTrigger value="overview">Overview</TabsTrigger>
+                <TabsTrigger value="users">Users</TabsTrigger>
+                <TabsTrigger value="applications">Applications</TabsTrigger>
+                <TabsTrigger value="counsellors">Counsellors</TabsTrigger>
+                <TabsTrigger value="reports">Reports</TabsTrigger>
+                <TabsTrigger value="revenue">Revenue</TabsTrigger>
+                <TabsTrigger value="refunds">Refunds</TabsTrigger>
+                <TabsTrigger value="exports">Reports & Export</TabsTrigger>
+                <TabsTrigger value="analytics">Analytics</TabsTrigger>
+                <TabsTrigger value="emergency">Emergency</TabsTrigger>
+                <TabsTrigger value="security">Security</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="overview" className="dashboard-tab-motion space-y-6">
             <GlowPanel className="dashboard-panel p-6">
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                 <div>
@@ -418,23 +434,6 @@ const sendAnnouncement = async () => {
               <Metric title="Applications" value={data.stats.pendingApplications || 0} icon={FileText} />
               <Metric title="Review queue" value={data.stats.reviewModeration || 0} icon={Star} />
             </div>
-
-<Tabs defaultValue="overview">
-              <TabsList className="dashboard-panel flex h-auto flex-wrap justify-start gap-2 bg-muted/60 p-2">
-                <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="users">Users</TabsTrigger>
-                <TabsTrigger value="applications">Applications</TabsTrigger>
-                <TabsTrigger value="counsellors">Counsellors</TabsTrigger>
-                <TabsTrigger value="reports">Reports</TabsTrigger>
-                <TabsTrigger value="revenue">Revenue</TabsTrigger>
-                <TabsTrigger value="refunds">Refunds</TabsTrigger>
-                <TabsTrigger value="exports">Reports & Export</TabsTrigger>
-                <TabsTrigger value="analytics">Analytics</TabsTrigger>
-                <TabsTrigger value="emergency">Emergency</TabsTrigger>
-                <TabsTrigger value="security">Security</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="overview" className="dashboard-tab-motion space-y-6">
                 {/* Overview Hero Stats */}
                 <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-4">
                   <div className="relative overflow-hidden rounded-2xl border border-blue-500/20 bg-gradient-to-br from-blue-500/10 via-blue-500/5 to-background p-5 group hover:shadow-lg hover:shadow-blue-500/5 transition-all duration-300">

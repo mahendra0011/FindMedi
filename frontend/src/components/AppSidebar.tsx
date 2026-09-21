@@ -236,11 +236,9 @@ const navConfig = {
     { icon: Bookmark,        labelKey: 'nav.favorites',              path: '/patient/favorites'          },
     { icon: History,         labelKey: 'nav.bookingHistory',        path: '/patient/booking-history'    },
     { icon: Ambulance,       labelKey: 'nav.myRides',               path: '/patient/rides'              },
-    { icon: Car,             labelKey: 'nav.findVehicle',           path: '/find-vehicle'               },
     { icon: UserCheck,       labelKey: 'nav.myAssistants',          path: '/patient/assistants'         },
     { icon: Users,           labelKey: 'nav.bookAssistant',         path: '/book-assistant'             },
     { icon: Scale,           labelKey: 'nav.myLawyers',             path: '/patient/lawyers'            },
-    { icon: Scale,           labelKey: 'nav.findLawyer',            path: '/find-lawyer'                },
     // ❤️ My Health (expandable parent section)
     { icon: Pill,            labelKey: 'nav.medicineReminders',     path: '/patient/medicine-reminders', isHealth: true },
     { icon: Activity,        labelKey: 'nav.myVitals',              path: '/patient/vitals',             isHealth: true },
