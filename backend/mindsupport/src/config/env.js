@@ -1,9 +1,16 @@
 import dns from "node:dns";
 
-dns.setServers(["8.8.8.8", "1.1.1.1"]);
+// Phase 2 (merge): when mounted inside the main FindMedi server, the bridge sets
+// MIND_DNS_OVERRIDE=0 so we don't clobber the main server's DNS configuration.
+if (process.env.MIND_DNS_OVERRIDE !== "0") {
+  dns.setServers(["8.8.8.8", "1.1.1.1"]);
+}
 
 export const PORT = Number(process.env.MIND_PORT || 8089);
-export const MONGODB_URI = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/mindsupport";
+// Phase 2 (merge): MIND_MONGODB_URI wins when set; otherwise fall back to the
+// main server's MONGO_URI (single-DB merge) and finally the legacy standalone default.
+export const MONGODB_URI =
+  process.env.MIND_MONGODB_URI || process.env.MONGODB_URI || process.env.MONGO_URI || "mongodb://127.0.0.1:27017/mindsupport";
 function databaseFromMongoUri(uri) {
   try {
     const parsed = new URL(uri);

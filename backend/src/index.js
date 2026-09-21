@@ -345,6 +345,7 @@ import ambulanceDriverRoutes from './routes/ambulanceDriver.js';
 import loyaltyRoutes from './routes/loyalty.js';
 import referralRoutes from './routes/referral.js';
 import adminSosSettingsRoutes from './routes/adminSosSettings.js';
+import mindsupportRoutes, { attachMindRealtime } from './routes/mindsupport.js';
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -379,6 +380,9 @@ app.use('/api/ot', otRoutes);
 app.use('/api/bloodbank', bloodbankRoutes);
 app.use('/api/physio', physioRoutes);
 app.use('/api/mentalhealth', mentalhealthRoutes);
+// Phase 5 (merge): MindSupport counselling platform, namespaced to avoid
+// collisions with main /api/* routes. Hospital /api/mentalhealth/* untouched.
+app.use('/api/mindsupport', mindsupportRoutes);
 app.use('/api/staff', staffRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/housekeeping', housekeepingRoutes);
@@ -493,7 +497,10 @@ logger.info('   URI: ' + redactMongoUri(MONGO_URI));
 
 if (process.env.NODE_ENV !== 'test') {
   const server = http.createServer(app);
-  initSocket(server).catch((err) => logger.error(`Socket.IO init failed: ${err.message}`));
+  initSocket(server).then((mainIo) => {
+    // Phase 6 (merge): MindSupport realtime rooms on the shared server.
+    try { attachMindRealtime(mainIo); } catch (err) { logger.error(`MindSupport realtime attach failed: ${err.message}`); }
+  }).catch((err) => logger.error(`Socket.IO init failed: ${err.message}`));
   mongoose.connect(MONGO_URI, mongooseOptions)
     .then(async () => {
       logger.info('✅ MongoDB connected successfully');

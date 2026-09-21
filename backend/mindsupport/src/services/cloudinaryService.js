@@ -1,6 +1,11 @@
 import { v2 as cloudinary } from "cloudinary";
 import { CLOUDINARY_URL, CLOUDINARY_FOLDER } from "../config/env.js";
 
+// Phase 10 (merge): shared credentials. In the merged server, backend/.env
+// provides CLOUDINARY_URL (same variable name as the main
+// src/services/cloudinaryService.js), so both stacks use one Cloudinary
+// account. Only the folder differs ("mindsupport/..." vs main folders).
+
 // Configure from URL
 const cloudinaryMatches = CLOUDINARY_URL ? CLOUDINARY_URL.match(/cloudinary:\/\/(\d+):([^@]+)@(.+)/) : null;
 if (cloudinaryMatches) {

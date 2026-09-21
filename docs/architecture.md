@@ -60,6 +60,21 @@ frontend/src/
 - Routes are registered in [App.tsx](file:///d:/projects/Findmedi/frontend/src/App.tsx) using `react-router-dom`.
 - Every page is asynchronously imported via `React.lazy(() => import('./pages/...'))` and wrapped in `<Suspense>`, ensuring optimal initial bundle load time.
 - Access control is governed by `<ProtectedRoute>` which validates user authentication, verification status, and role-based onboarding approvals.
+- **MindSupport UI** lives in `frontend/src/mind/` (pages, store, contexts) and is routed under `/mind/*` via `MindProviders` shell. Its API client (`src/mind/lib/api.js`) targets the merged backend: `/api/*` paths are rewritten to `/api/mindsupport/*`, carrying the FindMedi Bearer token + CSRF header. Legacy standalone mode (`VITE_API_BASE_URL=http://localhost:8089`) disables the rewrite.
+
+---
+
+## 8. MindSupport Merge (single server, single DB)
+
+Full plan: [backend/merge.md](file:///d:/projects/Findmedi/backend/merge.md). Summary:
+
+- MindSupport Express app (`backend/mindsupport/src/app.js`) is mounted **in-process** at `/api/mindsupport/*` via `backend/src/routes/mindsupport.js` (lazy import after `dotenv`, `/api` prefix rewrite). `GET /api/mindsupport/health` reports merge status.
+- **Models**: all 23 MindSupport models renamed to `Mind*` with `mind_*` collections (same mongoose connection, same MongoDB) — avoids `OverwriteModelError` with main `User`/`Appointment`/`Notification`/`Payment`/`Prescription`/`Review`.
+- **Auth**: MindSupport guards accept the FindMedi JWT (cookie `token` / Bearer) and map roles (`patient→user`, `doctor→counsellor`, `superadmin→admin`); token-less requests keep legacy open pass-through.
+- **Realtime**: `attachMindRealtime(mainIo)` joins `user:<id>` / `role:<role>` rooms on the shared Socket.IO server.
+- **Preserved**: hospital `/api/mentalhealth/*` referrals flow is untouched (regression-tested).
+- **Env**: `MIND_MONGODB_URI` override, default = main `MONGO_URI` (single DB `findmedi`). Cloudinary/Brevo credentials are shared by variable name.
+- **Scripts**: default `npm run dev` = one backend (:5001) + frontend; `dev:legacy` / `dev:mind` keep the old standalone :8089 flow.
 
 ---
 

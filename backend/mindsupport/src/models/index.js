@@ -121,7 +121,7 @@ applyJsonTransform(userSchema);
 
 const otpVerificationSchema = new mongoose.Schema(
   {
-    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    user: { type: mongoose.Schema.Types.ObjectId, ref: "MindUser", required: true },
     channel: { type: String, enum: ["email", "phone"], default: "email" },
     destination: { type: String, required: true },
     codeHash: { type: String, required: true },
@@ -144,7 +144,7 @@ const resourceSchema = new mongoose.Schema(
     description: { type: String, default: "" },
     durationMin: { type: Number, default: 5 },
     tags: [{ type: String }],
-    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "MindUser" },
   },
   { timestamps: true }
 );
@@ -152,9 +152,9 @@ applyJsonTransform(resourceSchema);
 
 const appointmentSchema = new mongoose.Schema(
   {
-    student: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    student: { type: mongoose.Schema.Types.ObjectId, ref: "MindUser", required: true },
     studentEmail: { type: String, required: true, lowercase: true, trim: true },
-    counsellor: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    counsellor: { type: mongoose.Schema.Types.ObjectId, ref: "MindUser", required: true },
     counsellorName: { type: String, required: true },
     date: { type: String, required: true },
     time: { type: String, required: true },
@@ -174,7 +174,7 @@ const appointmentSchema = new mongoose.Schema(
     supportPlanCadence: { type: String, default: "" },
     supportPlanBestFor: [{ type: String }],
     supportPlanPrice: { type: Number, default: 0 },
-    packageId: { type: mongoose.Schema.Types.ObjectId, ref: "UserPackage" },
+    packageId: { type: mongoose.Schema.Types.ObjectId, ref: "MindUserPackage" },
     notes: { type: String, default: "" },
     isAnonymous: { type: Boolean, default: false },
     anonymousAlias: { type: String, default: "Anonymous user" },
@@ -189,9 +189,9 @@ appointmentSchema.index({ counsellor: 1, date: 1 });
 
 const reviewSchema = new mongoose.Schema(
   {
-    appointment: { type: mongoose.Schema.Types.ObjectId, ref: "Appointment" },
-    student: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    counsellor: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    appointment: { type: mongoose.Schema.Types.ObjectId, ref: "MindAppointment" },
+    student: { type: mongoose.Schema.Types.ObjectId, ref: "MindUser", required: true },
+    counsellor: { type: mongoose.Schema.Types.ObjectId, ref: "MindUser", required: true },
     professionalism: { type: Number, min: 1, max: 5, required: true },
     helpfulness: { type: Number, min: 1, max: 5, required: true },
     communication: { type: Number, min: 1, max: 5, required: true },
@@ -208,7 +208,7 @@ applyJsonTransform(reviewSchema);
 
 const journalSchema = new mongoose.Schema(
   {
-    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    user: { type: mongoose.Schema.Types.ObjectId, ref: "MindUser", required: true },
     title: { type: String, default: "Private journal entry" },
     content: { type: String, required: true },
     mood: { type: String, default: "" },
@@ -223,27 +223,27 @@ applyJsonTransform(journalSchema);
 
 const messageSchema = new mongoose.Schema(
   {
-    from: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    to: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    appointment: { type: mongoose.Schema.Types.ObjectId, ref: "Appointment" },
+    from: { type: mongoose.Schema.Types.ObjectId, ref: "MindUser", required: true },
+    to: { type: mongoose.Schema.Types.ObjectId, ref: "MindUser", required: true },
+    appointment: { type: mongoose.Schema.Types.ObjectId, ref: "MindAppointment" },
     subject: { type: String, default: "Message" },
     text: { type: String, default: "" },
-    replyTo: { type: mongoose.Schema.Types.ObjectId, ref: "Message" },
+    replyTo: { type: mongoose.Schema.Types.ObjectId, ref: "MindMessage" },
     fileName: { type: String, default: "" },
     fileUrl: { type: String, default: "" },
     fileType: { type: String, default: "" },
     task: { type: String, default: "" },
     reactions: [
       {
-        user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        user: { type: mongoose.Schema.Types.ObjectId, ref: "MindUser" },
         emoji: { type: String, default: "" },
         createdAt: { type: Date, default: Date.now },
       },
     ],
-    readBy: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    readBy: [{ type: mongoose.Schema.Types.ObjectId, ref: "MindUser" }],
     editedAt: Date,
     deletedAt: Date,
-    deletedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    deletedBy: { type: mongoose.Schema.Types.ObjectId, ref: "MindUser" },
   },
   { timestamps: true }
 );
@@ -252,8 +252,8 @@ messageSchema.index({ from: 1, to: 1, deletedAt: 1 });
 
 const paymentSchema = new mongoose.Schema(
   {
-    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    appointment: { type: mongoose.Schema.Types.ObjectId, ref: "Appointment" },
+    user: { type: mongoose.Schema.Types.ObjectId, ref: "MindUser", required: true },
+    appointment: { type: mongoose.Schema.Types.ObjectId, ref: "MindAppointment" },
     invoiceNumber: { type: String, required: true, unique: true },
     amount: { type: Number, required: true },
     currency: { type: String, default: "INR" },
@@ -272,13 +272,13 @@ applyJsonTransform(paymentSchema);
 
 const notificationSchema = new mongoose.Schema(
   {
-    user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    user: { type: mongoose.Schema.Types.ObjectId, ref: "MindUser" },
     audienceRole: { type: String, enum: ["", "user", "counsellor", "admin", "all"], default: "" },
     type: { type: String, default: "system" },
     title: { type: String, required: true },
     message: { type: String, required: true },
     read: { type: Boolean, default: false },
-    readBy: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    readBy: [{ type: mongoose.Schema.Types.ObjectId, ref: "MindUser" }],
     metadata: { type: Map, of: String, default: {} },
     readAt: Date,
   },
@@ -307,7 +307,7 @@ peerPostSchema.index({ category: 1, created_at: -1 });
 
 const peerCommentSchema = new mongoose.Schema(
   {
-    post_id: { type: mongoose.Schema.Types.ObjectId, ref: "PeerPost", required: true },
+    post_id: { type: mongoose.Schema.Types.ObjectId, ref: "MindPeerPost", required: true },
     author_uid: String,
     alias: String,
     content: { type: String, required: true },
@@ -321,8 +321,8 @@ applyJsonTransform(peerCommentSchema);
 
 const peerReportSchema = new mongoose.Schema(
   {
-    post_id: { type: mongoose.Schema.Types.ObjectId, ref: "PeerPost" },
-    comment_id: { type: mongoose.Schema.Types.ObjectId, ref: "PeerComment" },
+    post_id: { type: mongoose.Schema.Types.ObjectId, ref: "MindPeerPost" },
+    comment_id: { type: mongoose.Schema.Types.ObjectId, ref: "MindPeerComment" },
     reporter_uid: String,
     reason: String,
     status: { type: String, enum: ["open", "reviewing", "closed"], default: "open" },
@@ -333,7 +333,7 @@ applyJsonTransform(peerReportSchema);
 
 const moodEntrySchema = new mongoose.Schema(
   {
-    user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    user: { type: mongoose.Schema.Types.ObjectId, ref: "MindUser" },
     userKey: String,
     mood: { type: Number, min: 1, max: 5, required: true },
     note: { type: String, default: "" },
@@ -345,7 +345,7 @@ applyJsonTransform(moodEntrySchema);
 
 const assessmentSchema = new mongoose.Schema(
   {
-    user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    user: { type: mongoose.Schema.Types.ObjectId, ref: "MindUser" },
     userKey: String,
     type: { type: String, enum: ["phq9", "gad7"], default: "phq9" },
     responses: { type: Map, of: Number, default: {} },
@@ -359,7 +359,7 @@ applyJsonTransform(assessmentSchema);
 
 const counsellorApplicationSchema = new mongoose.Schema(
   {
-    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    user: { type: mongoose.Schema.Types.ObjectId, ref: "MindUser", required: true },
     status: { type: String, enum: ["pending", "reviewing", "approved", "rejected"], default: "pending" },
     requestedType: { type: String, enum: ["professional", "mentor"], default: "mentor" },
     fullName: { type: String, required: true, trim: true },
@@ -388,28 +388,35 @@ const counsellorApplicationSchema = new mongoose.Schema(
     referenceContact: { type: String, default: "" },
     verificationNotes: { type: String, default: "" },
     adminNotes: { type: String, default: "" },
-    reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: "MindUser" },
     reviewedAt: Date,
   },
   { timestamps: true }
 );
 applyJsonTransform(counsellorApplicationSchema);
 
-const User = mongoose.model("User", userSchema);
-const OtpVerification = mongoose.model("OtpVerification", otpVerificationSchema);
-const Resource = mongoose.model("Resource", resourceSchema);
-const Appointment = mongoose.model("Appointment", appointmentSchema);
-const Review = mongoose.model("Review", reviewSchema);
-const Journal = mongoose.model("Journal", journalSchema);
-const Message = mongoose.model("Message", messageSchema);
-const Payment = mongoose.model("Payment", paymentSchema);
-const Notification = mongoose.model("Notification", notificationSchema);
-const PeerPost = mongoose.model("PeerPost", peerPostSchema);
-const PeerComment = mongoose.model("PeerComment", peerCommentSchema);
-const PeerReport = mongoose.model("PeerReport", peerReportSchema);
-const MoodEntry = mongoose.model("MoodEntry", moodEntrySchema);
-const Assessment = mongoose.model("Assessment", assessmentSchema);
-const CounsellorApplication = mongoose.model("CounsellorApplication", counsellorApplicationSchema);
+// ─── Phase 3 (merge) ─────────────────────────────────────────────────────────
+// These models are mounted INSIDE the main FindMedi server (same process, same
+// mongoose connection, same MongoDB). The main app already registers
+// User/Appointment/Notification/Payment/Prescription/Review with different
+// schemas, so every MindSupport model uses a `Mind*` name + `mind_*`
+// collection. Exported variable names are unchanged, so routes/services need
+// no changes.
+const User = mongoose.model("MindUser", userSchema, "mind_users");
+const OtpVerification = mongoose.model("MindOtpVerification", otpVerificationSchema, "mind_otp_verifications");
+const Resource = mongoose.model("MindResource", resourceSchema, "mind_resources");
+const Appointment = mongoose.model("MindAppointment", appointmentSchema, "mind_appointments");
+const Review = mongoose.model("MindReview", reviewSchema, "mind_reviews");
+const Journal = mongoose.model("MindJournal", journalSchema, "mind_journals");
+const Message = mongoose.model("MindMessage", messageSchema, "mind_messages");
+const Payment = mongoose.model("MindPayment", paymentSchema, "mind_payments");
+const Notification = mongoose.model("MindNotification", notificationSchema, "mind_notifications");
+const PeerPost = mongoose.model("MindPeerPost", peerPostSchema, "mind_peer_posts");
+const PeerComment = mongoose.model("MindPeerComment", peerCommentSchema, "mind_peer_comments");
+const PeerReport = mongoose.model("MindPeerReport", peerReportSchema, "mind_peer_reports");
+const MoodEntry = mongoose.model("MindMoodEntry", moodEntrySchema, "mind_mood_entries");
+const Assessment = mongoose.model("MindAssessment", assessmentSchema, "mind_assessments");
+const CounsellorApplication = mongoose.model("MindCounsellorApplication", counsellorApplicationSchema, "mind_counsellor_applications");
 
 const supportPackageSchema = new mongoose.Schema(
   {
@@ -429,12 +436,12 @@ const supportPackageSchema = new mongoose.Schema(
 );
 applyJsonTransform(supportPackageSchema);
 
-const SupportPackage = mongoose.model("SupportPackage", supportPackageSchema);
+const SupportPackage = mongoose.model("MindSupportPackage", supportPackageSchema, "mind_support_packages");
 
 const userPackageSchema = new mongoose.Schema(
   {
-    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    counsellor: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    user: { type: mongoose.Schema.Types.ObjectId, ref: "MindUser", required: true },
+    counsellor: { type: mongoose.Schema.Types.ObjectId, ref: "MindUser", required: true },
     planId: { type: String, required: true },
     planName: { type: String, required: true },
     sessionsTotal: { type: Number, required: true },
@@ -442,7 +449,7 @@ const userPackageSchema = new mongoose.Schema(
     minCadenceDays: { type: Number, default: 0 },
     expiryDate: { type: Date, required: true },
     status: { type: String, enum: ["active", "completed", "expired", "cancelled"], default: "active" },
-    payment: { type: mongoose.Schema.Types.ObjectId, ref: "Payment" },
+    payment: { type: mongoose.Schema.Types.ObjectId, ref: "MindPayment" },
     price: { type: Number, default: 0 },
     mode: { type: String, default: "google-meet" },
     modeOptions: [{ type: String }],
@@ -455,12 +462,12 @@ const userPackageSchema = new mongoose.Schema(
 );
 applyJsonTransform(userPackageSchema);
 
-const UserPackage = mongoose.model("UserPackage", userPackageSchema);
+const UserPackage = mongoose.model("MindUserPackage", userPackageSchema, "mind_user_packages");
 
 const intakeFormSchema = new mongoose.Schema({
-  user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-  counsellor: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-  packageId: { type: mongoose.Schema.Types.ObjectId, ref: "UserPackage" },
+  user: { type: mongoose.Schema.Types.ObjectId, ref: "MindUser", required: true },
+  counsellor: { type: mongoose.Schema.Types.ObjectId, ref: "MindUser", required: true },
+  packageId: { type: mongoose.Schema.Types.ObjectId, ref: "MindUserPackage" },
   fullName: { type: String, required: true },
   age: { type: Number },
   gender: { type: String, default: "" },
@@ -476,10 +483,10 @@ const intakeFormSchema = new mongoose.Schema({
   submittedAt: { type: Date },
 }, { timestamps: true });
 applyJsonTransform(intakeFormSchema);
-const IntakeForm = mongoose.model("IntakeForm", intakeFormSchema);
+const IntakeForm = mongoose.model("MindIntakeForm", intakeFormSchema, "mind_intake_forms");
 
 const consentFormSchema = new mongoose.Schema({
-  user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  user: { type: mongoose.Schema.Types.ObjectId, ref: "MindUser", required: true },
   dataPrivacyAccepted: { type: Boolean, default: false },
   termsAccepted: { type: Boolean, default: false },
   confidentialityAccepted: { type: Boolean, default: false },
@@ -487,10 +494,10 @@ const consentFormSchema = new mongoose.Schema({
   acceptedAt: { type: Date },
 }, { timestamps: true });
 applyJsonTransform(consentFormSchema);
-const ConsentForm = mongoose.model("ConsentForm", consentFormSchema);
+const ConsentForm = mongoose.model("MindConsentForm", consentFormSchema, "mind_consent_forms");
 
 const wellnessGoalSchema = new mongoose.Schema({
-  user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  user: { type: mongoose.Schema.Types.ObjectId, ref: "MindUser", required: true },
   title: { type: String, required: true, trim: true },
   description: { type: String, default: "" },
   category: { type: String, enum: ["mood", "assessment", "journal", "session", "custom"], default: "custom" },
@@ -502,12 +509,12 @@ const wellnessGoalSchema = new mongoose.Schema({
   dueDate: Date,
 }, { timestamps: true });
 applyJsonTransform(wellnessGoalSchema);
-const WellnessGoal = mongoose.model("WellnessGoal", wellnessGoalSchema);
+const WellnessGoal = mongoose.model("MindWellnessGoal", wellnessGoalSchema, "mind_wellness_goals");
 
 const prescriptionSchema = new mongoose.Schema({
-  user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-  counsellor: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-  appointment: { type: mongoose.Schema.Types.ObjectId, ref: "Appointment" },
+  user: { type: mongoose.Schema.Types.ObjectId, ref: "MindUser", required: true },
+  counsellor: { type: mongoose.Schema.Types.ObjectId, ref: "MindUser", required: true },
+  appointment: { type: mongoose.Schema.Types.ObjectId, ref: "MindAppointment" },
   clinicName: { type: String, default: "" },
   diagnosis: { type: String, default: "" },
   notes: { type: String, default: "" },
@@ -521,12 +528,12 @@ const prescriptionSchema = new mongoose.Schema({
   }],
 }, { timestamps: true });
 applyJsonTransform(prescriptionSchema);
-const Prescription = mongoose.model("Prescription", prescriptionSchema);
+const Prescription = mongoose.model("MindPrescription", prescriptionSchema, "mind_prescriptions");
 
 const assignmentSchema = new mongoose.Schema({
-  user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-  counsellor: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-  appointment: { type: mongoose.Schema.Types.ObjectId, ref: "Appointment" },
+  user: { type: mongoose.Schema.Types.ObjectId, ref: "MindUser", required: true },
+  counsellor: { type: mongoose.Schema.Types.ObjectId, ref: "MindUser", required: true },
+  appointment: { type: mongoose.Schema.Types.ObjectId, ref: "MindAppointment" },
   title: { type: String, required: true, trim: true },
   description: { type: String, default: "" },
   category: { type: String, enum: ["exercise", "journal", "reading", "practice", "other"], default: "other" },
@@ -535,20 +542,20 @@ const assignmentSchema = new mongoose.Schema({
   completedAt: Date,
 }, { timestamps: true });
 applyJsonTransform(assignmentSchema);
-const Assignment = mongoose.model("Assignment", assignmentSchema);
+const Assignment = mongoose.model("MindAssignment", assignmentSchema, "mind_assignments");
 
 const counsellorReportSchema = new mongoose.Schema({
-  reporter: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-  counsellor: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  reporter: { type: mongoose.Schema.Types.ObjectId, ref: "MindUser", required: true },
+  counsellor: { type: mongoose.Schema.Types.ObjectId, ref: "MindUser", required: true },
   reason: { type: String, required: true },
   details: { type: String, default: "" },
   status: { type: String, enum: ["pending", "reviewed", "dismissed", "action_taken"], default: "pending" },
   adminNotes: { type: String, default: "" },
-  reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+  reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: "MindUser" },
   reviewedAt: { type: Date },
 }, { timestamps: true });
 applyJsonTransform(counsellorReportSchema);
-const CounsellorReport = mongoose.model("CounsellorReport", counsellorReportSchema);
+const CounsellorReport = mongoose.model("MindCounsellorReport", counsellorReportSchema, "mind_counsellor_reports");
 
 export {
   Appointment,

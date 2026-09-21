@@ -1,5 +1,6 @@
 import "dotenv/config";
 import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
@@ -257,18 +258,68 @@ function asyncRoute(handler) {
   };
 }
 
-// Auth removed: MindSupport is now part of the FindMedi platform, which handles
-// authentication. Route guards are open pass-throughs (no token verification).
-async function authOptional(_req, _res, next) {
+// Phase 4 (merge): FindMedi JWT bridge. MindSupport is part of the FindMedi
+// platform — when a request carries a FindMedi JWT (cookie `token` or Bearer
+// header), attach a MindSupport-shaped req.user so scoped routes work.
+// Requests WITHOUT a token keep the legacy open pass-through behaviour so
+// existing standalone clients don't break.
+const FIND_TO_MIND_ROLE = {
+  superadmin: "admin",
+  admin: "admin",
+  hospital_admin: "admin",
+  doctor: "counsellor",
+  clinic_doctor: "counsellor",
+  counsellor: "counsellor",
+  counselor: "counsellor",
+  psychiatrist: "counsellor",
+  patient: "user",
+  student: "user",
+  user: "user",
+};
+
+function attachFindMediUser(req) {
+  if (req?.user?._id) return req.user;
+  try {
+    const header = req.headers?.authorization || "";
+    const bearer = /^Bearer\s+(.+)$/i.exec(header)?.[1] || "";
+    const token = req.cookies?.token || bearer;
+    if (!token || !JWT_SECRET) return null;
+    const payload = jwt.verify(token, JWT_SECRET);
+    const id = payload?.id || payload?._id || payload?.userId;
+    if (!id) return null;
+    const findRole = String(payload?.role || "patient").toLowerCase();
+    req.user = {
+      _id: id,
+      role: FIND_TO_MIND_ROLE[findRole] || "user",
+      email: payload?.email || "",
+      name: payload?.name || "",
+    };
+    return req.user;
+  } catch {
+    return req?.user || null;
+  }
+}
+
+async function authOptional(req, _res, next) {
+  attachFindMediUser(req);
   next();
 }
 
-async function authRequired(_req, _res, next) {
+async function authRequired(req, _res, next) {
+  if (req.user?._id || attachFindMediUser(req)?._id) {
+    next();
+    return;
+  }
   next();
 }
 
-function requireRoles(..._allowed) {
-  return (_req, _res, next) => {
+function requireRoles(...allowed) {
+  return (req, res, next) => {
+    if (!req.user) attachFindMediUser(req);
+    if (req.user?._id && allowed.length > 0 && !allowed.includes(req.user.role)) {
+      res.status(403).json({ error: "Forbidden" });
+      return;
+    }
     next();
   };
 }
@@ -674,4 +725,4 @@ app.use((error, _req, res, _next) => {
   res.status(500).json({ error: error?.message || "Server error" });
 });
 
-export { app, connectDatabase, httpServer, PORT };
+export { app, attachFindMediUser, connectDatabase, httpServer, io, PORT };
