@@ -8,8 +8,11 @@
   "scripts": {
     "dev": "node --watch-path=./.env --watch-path=./src/index.js --watch-path=./src/routes --watch-path=./src/middleware --watch-path=./src/models --watch-path=./src/services --watch-path=./src/utils --watch-path=./src/config src/index.js",
     "start": "node src/index.js",
+    "dev:mind": "node --watch-path=./mindsupport/src mindsupport/server.js",
+    "start:mind": "node mindsupport/server.js",
     "seed": "node seed-demo.mjs",
     "seed:all": "node seed-demo.mjs",
+    "seed:psychiatrists": "node seed-psychiatrists.mjs",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --forceExit"
   },
   "dependencies": {
@@ -23,6 +26,7 @@
     "express": "^4.21.2",
     "express-mongo-sanitize": "^2.2.0",
     "express-rate-limit": "^8.5.2",
+    "express-validator": "^7.3.2",
     "google-auth-library": "^10.9.0",
     "helmet": "^8.2.0",
     "json2csv": "^6.0.0-alpha.2",

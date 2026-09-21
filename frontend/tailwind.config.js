@@ -29,6 +29,7 @@ export default {
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
+          glow: "hsl(var(--primary-glow))",
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
@@ -45,6 +46,18 @@ export default {
         accent: {
           DEFAULT: "hsl(var(--accent))",
           foreground: "hsl(var(--accent-foreground))",
+          cyan: "hsl(var(--cyan-glow))",
+        },
+        purple: {
+          accent: "hsl(var(--purple-accent))",
+        },
+        glass: {
+          DEFAULT: "hsl(var(--glass))",
+          border: "hsl(var(--glass-border))",
+        },
+        emergency: {
+          DEFAULT: "hsl(var(--emergency))",
+          foreground: "hsl(var(--emergency-foreground))",
         },
         popover: {
           DEFAULT: "hsl(var(--popover))",
@@ -82,6 +95,18 @@ export default {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      backgroundImage: {
+        'gradient-primary': 'var(--gradient-primary)',
+        'gradient-secondary': 'var(--gradient-secondary)',
+        'gradient-glass': 'var(--gradient-glass)',
+        'gradient-hero': 'var(--gradient-hero)',
+      },
+      boxShadow: {
+        'glass': 'var(--shadow-glass)',
+        'glow': 'var(--shadow-glow)',
+        'purple-glow': 'var(--shadow-purple-glow)',
+        'cyan-glow': 'var(--shadow-cyan-glow)',
+      },
       keyframes: {
         "accordion-down": {
           from: { height: "0" },
@@ -95,11 +120,16 @@ export default {
           "0%": { opacity: "0", transform: "translateY(10px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
         },
+        "pulse-slow": {
+          "0%, 100%": { opacity: "0.4" },
+          "50%": { opacity: "0.8" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "fade-in": "fade-in 0.4s ease-out",
+        "pulse-slow": "pulse-slow 6s ease-in-out infinite",
       },
     },
   },

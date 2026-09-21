@@ -7,8 +7,8 @@ import {
    Plus, X, Users, Star, Award, CalendarDays, BadgeCheck, Loader2,
    Shield, Heart, Eye, EyeOff, Activity, Lock, Globe, Image, UserRound, BarChart3,
    Truck, FileImage, IndianRupee, Wifi, WifiOff, Calendar, MapPinned, AlertCircle,
-   MessageSquare, Video, Ambulance, RotateCcw, Home, Car, Bike, Navigation,
-   Scale, Briefcase, Gavel
+    MessageSquare, Video, Ambulance, RotateCcw, Home, Car, Bike, Navigation,
+    Scale, Briefcase, Gavel, Brain, HeartHandshake, GraduationCap, BrainCircuit
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,6 +29,8 @@ const PLATFORM_TYPES = [
   { key: 'rider', label: 'Vehicle Driver / Rider', icon: Car, desc: 'Register Bike, Auto, Cab, Van, or Ambulance & accept rides', color: 'from-cyan-500/20 to-teal-500/5', textColor: 'text-teal-600', gradient: 'from-teal-600 to-emerald-700' },
   { key: 'assistant', label: 'Hospital Assistant / Attendant', icon: Users, desc: 'Personal attendant for paperwork, medicines, reports & solo patient care', color: 'from-teal-500/20 to-cyan-500/5', textColor: 'text-teal-600', gradient: 'from-teal-600 to-cyan-700' },
   { key: 'lawyer', label: 'Advocate / Lawyer', icon: Scale, desc: 'Medical negligence, insurance disputes, MLC & hospital legal proceedings', color: 'from-indigo-500/20 to-violet-500/5', textColor: 'text-indigo-600', gradient: 'from-indigo-600 to-violet-700' },
+  { key: 'counsellor', label: 'Counsellor / Therapist', icon: Brain, desc: 'Mental health counselling — anxiety, stress, sleep, relationships & wellbeing', color: 'from-teal-500/20 to-emerald-500/5', textColor: 'text-teal-600', gradient: 'from-teal-600 to-emerald-700' },
+  { key: 'psychiatrist', label: 'Psychiatrist (MD)', icon: BrainCircuit, desc: 'Medical doctor — diagnosis, medication & therapy for mental health conditions', color: 'from-cyan-500/20 to-sky-500/5', textColor: 'text-cyan-600', gradient: 'from-cyan-600 to-sky-700' },
 ];
 
 const SPECIALTIES = ['Cardiology','Neurology','Orthopedics','Pediatrics','Dermatology','Oncology','General Medicine','ENT','Psychiatry','Gynecology','Urology','Ophthalmology','Dentistry','Ayurveda','Homeopathy','Physiotherapy'];
@@ -64,6 +66,23 @@ const COURTS_OPTIONS = [
 ];
 
 const LAWYER_LANGUAGES = ['Hindi', 'English', 'Marathi', 'Bengali', 'Tamil', 'Telugu', 'Gujarati', 'Punjabi', 'Urdu', 'Kannada', 'Malayalam'];
+
+const COUNSELLOR_TYPES = [
+  { id: 'professional', label: 'Professional Counsellor', desc: 'Licensed psychologist / therapist with degree & clinical training', icon: GraduationCap },
+  { id: 'mentor', label: 'Peer Mentor', desc: 'Lived-experience guide for motivation, habits & emotional support', icon: HeartHandshake },
+];
+
+const COUNSELLOR_CONCERNS = ['Anxiety', 'Stress', 'Student Pressure', 'Exam pressure', 'Loneliness', 'Mild depression', 'Relationship issues', 'Emotional healing', 'Trauma', 'Sleep', 'Burnout', 'Career Stress', 'Addiction Recovery', 'Meditation', 'Self Confidence', 'Motivation'];
+
+const COUNSELLOR_MODES = [
+  { id: 'google-meet', label: 'Google Meet (Video)', desc: 'HD video sessions from anywhere' },
+  { id: 'voice-call', label: 'Voice Call', desc: 'Audio-only, low bandwidth friendly' },
+  { id: 'in-person', label: 'In-Person (Clinic)', desc: 'Meet at your clinic chamber' },
+];
+
+const COUNSELLOR_LANGUAGES = ['Hindi', 'English', 'Marathi', 'Bengali', 'Tamil', 'Telugu', 'Gujarati', 'Punjabi', 'Urdu', 'Kannada', 'Malayalam'];
+
+const COUNSELLOR_RESPONSE_TIMES = ['Within 2 hours', 'Within 6 hours', 'Within 24 hours', 'Within 48 hours'];
 
 const emptyDoctor = () => ({
   name: '', specialization: '', qualifications: '', experience: '', email: '', phone: '',
@@ -124,6 +143,26 @@ const getSteps = (type) => {
       { num: 3, label: 'Practice & Courts', icon: Briefcase },
       { num: 4, label: 'Fees & Modes', icon: IndianRupee },
       { num: 5, label: 'Bank & Availability', icon: Clock },
+      { num: 6, label: 'Review & Submit', icon: FileText },
+    ];
+  }
+  if (type === 'counsellor') {
+    return [
+      { num: 1, label: 'Partner Type', icon: Brain },
+      { num: 2, label: 'Personal & Credentials', icon: User },
+      { num: 3, label: 'Specialization & Practice', icon: HeartHandshake },
+      { num: 4, label: 'Sessions & Pricing', icon: IndianRupee },
+      { num: 5, label: 'Clinic, Bank & Availability', icon: Clock },
+      { num: 6, label: 'Review & Submit', icon: FileText },
+    ];
+  }
+  if (type === 'psychiatrist') {
+    return [
+      { num: 1, label: 'Partner Type', icon: BrainCircuit },
+      { num: 2, label: 'Personal & Medical Reg', icon: User },
+      { num: 3, label: 'Specialization & Practice', icon: HeartHandshake },
+      { num: 4, label: 'Sessions & Pricing', icon: IndianRupee },
+      { num: 5, label: 'Clinic, Bank & Availability', icon: Clock },
       { num: 6, label: 'Review & Submit', icon: FileText },
     ];
   }
@@ -398,6 +437,116 @@ export default function JoinPlatform() {
       : [...p.availableDays, day],
   }));
 
+  // Counsellor / Therapist (MindSupport) state
+  const [counsellor, setCounsellor] = useState({
+    name: '', phone: '', email: '', password: '', dateOfBirth: '', gender: 'Male',
+    address: '', city: '',
+    counsellorType: 'professional',
+    licenseNumber: '', education: '', specialization: '',
+    govtIdType: 'Aadhaar', govtIdNumber: '',
+    categories: ['Anxiety', 'Stress'],
+    yearsOfPractice: 5,
+    bio: '',
+    languages: ['Hindi', 'English'],
+    approach: '',
+    consultationModes: ['google-meet', 'voice-call'],
+    sessionPricing: 800,
+    supportPlanPrices: { oneTime: 800, shortTerm: 2500, mediumTerm: 5000, longTerm: 9000 },
+    responseTime: 'Within 24 hours',
+    clinicName: '', clinicAddress: '',
+    linkedin: '', emergencyTraining: '', referenceContact: '',
+    bankAccountHolder: '', bankAccountNumber: '', bankIfsc: '', bankUpi: '',
+    availableDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+    availableTimeSlot: { start: '10:00', end: '20:00' },
+  });
+  const [counsellorDocs, setCounsellorDocs] = useState({
+    degreeDoc: null,
+    govtIdDoc: null,
+    certificateDoc: null,
+  });
+
+  const updateCounsellor = (f) => (e) => setCounsellor(p => ({ ...p, [f]: e.target.value }));
+  const updateCounsellorPlanPrice = (plan) => (e) => setCounsellor(p => ({
+    ...p, supportPlanPrices: { ...p.supportPlanPrices, [plan]: e.target.value },
+  }));
+  const handleCounsellorDocChange = (field) => (e) => {
+    const file = e.target.files?.[0];
+    if (file) setCounsellorDocs(p => ({ ...p, [field]: file }));
+  };
+  const toggleCounsellorCategory = (cat) => setCounsellor(p => ({
+    ...p,
+    categories: p.categories.includes(cat)
+      ? p.categories.filter(c => c !== cat)
+      : [...p.categories, cat],
+  }));
+  const toggleCounsellorMode = (mode) => setCounsellor(p => ({
+    ...p,
+    consultationModes: p.consultationModes.includes(mode)
+      ? p.consultationModes.filter(m => m !== mode)
+      : [...p.consultationModes, mode],
+  }));
+  const toggleCounsellorDay = (day) => setCounsellor(p => ({
+    ...p,
+    availableDays: p.availableDays.includes(day)
+      ? p.availableDays.filter(d => d !== day)
+      : [...p.availableDays, day],
+  }));
+
+  // Psychiatrist (MD doctor — separate role for now, merges with clinic doctor later) state
+  const [psychiatrist, setPsychiatrist] = useState({
+    name: '', phone: '', email: '', password: '', dateOfBirth: '', gender: 'Male',
+    address: '', city: '',
+    licenseNumber: '', education: 'MBBS, MD Psychiatry', specialization: 'Psychiatry',
+    govtIdType: 'Aadhaar', govtIdNumber: '',
+    categories: ['Mild depression', 'Anxiety', 'Sleep'],
+    yearsOfPractice: 6,
+    bio: '',
+    languages: ['Hindi', 'English'],
+    approach: '',
+    canPrescribe: true,
+    consultationModes: ['google-meet', 'voice-call', 'in-person'],
+    sessionPricing: 1200,
+    supportPlanPrices: { oneTime: 1200, shortTerm: 4000, mediumTerm: 8000, longTerm: 15000 },
+    responseTime: 'Within 24 hours',
+    clinicName: '', clinicAddress: '', hospitalAffiliation: '',
+    linkedin: '', emergencyTraining: '', referenceContact: '',
+    bankAccountHolder: '', bankAccountNumber: '', bankIfsc: '', bankUpi: '',
+    availableDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+    availableTimeSlot: { start: '10:00', end: '20:00' },
+  });
+  const [psychiatristDocs, setPsychiatristDocs] = useState({
+    degreeDoc: null,
+    govtIdDoc: null,
+    certificateDoc: null,
+  });
+
+  const updatePsychiatrist = (f) => (e) => setPsychiatrist(p => ({ ...p, [f]: e.target.value }));
+  const updatePsychiatristPlanPrice = (plan) => (e) => setPsychiatrist(p => ({
+    ...p, supportPlanPrices: { ...p.supportPlanPrices, [plan]: e.target.value },
+  }));
+  const handlePsychiatristDocChange = (field) => (e) => {
+    const file = e.target.files?.[0];
+    if (file) setPsychiatristDocs(p => ({ ...p, [field]: file }));
+  };
+  const togglePsychiatristCategory = (cat) => setPsychiatrist(p => ({
+    ...p,
+    categories: p.categories.includes(cat)
+      ? p.categories.filter(c => c !== cat)
+      : [...p.categories, cat],
+  }));
+  const togglePsychiatristMode = (mode) => setPsychiatrist(p => ({
+    ...p,
+    consultationModes: p.consultationModes.includes(mode)
+      ? p.consultationModes.filter(m => m !== mode)
+      : [...p.consultationModes, mode],
+  }));
+  const togglePsychiatristDay = (day) => setPsychiatrist(p => ({
+    ...p,
+    availableDays: p.availableDays.includes(day)
+      ? p.availableDays.filter(d => d !== day)
+      : [...p.availableDays, day],
+  }));
+
   const steps = getSteps(type);
   const maxStep = steps.length;
 
@@ -526,6 +675,91 @@ export default function JoinPlatform() {
           lawyer.bankAccountHolder?.trim().length >= 2 &&
           lawyer.bankAccountNumber?.trim().length >= 6 &&
           lawyer.bankIfsc?.trim().length >= 4
+        );
+      }
+      if (step === 6) {
+        return agreed;
+      }
+      return true;
+    }
+    if (type === 'counsellor') {
+      if (step === 1) return !!type;
+      if (step === 2) {
+        const age = counsellor.dateOfBirth ? Math.floor((Date.now() - new Date(counsellor.dateOfBirth).getTime()) / (365.25 * 24 * 3600 * 1000)) : 0;
+        return (
+          counsellor.name?.length >= 2 &&
+          counsellor.email?.includes('@') &&
+          counsellor.phone?.length >= 10 &&
+          counsellor.password?.length >= 8 &&
+          counsellor.password === confirmPassword &&
+          age >= 18 &&
+          counsellor.counsellorType &&
+          counsellor.education?.trim().length >= 2 &&
+          counsellor.govtIdNumber?.trim().length >= 4 &&
+          (counsellor.counsellorType !== 'professional' || counsellor.licenseNumber?.trim().length >= 3)
+        );
+      }
+      if (step === 3) {
+        return (
+          counsellor.specialization?.trim().length >= 3 &&
+          counsellor.categories.length > 0 &&
+          counsellor.bio?.trim().length >= 5
+        );
+      }
+      if (step === 4) {
+        return (
+          counsellor.consultationModes.length > 0 &&
+          Number(counsellor.sessionPricing) > 0
+        );
+      }
+      if (step === 5) {
+        return (
+          counsellor.availableDays.length > 0 &&
+          counsellor.bankAccountHolder?.trim().length >= 2 &&
+          counsellor.bankAccountNumber?.trim().length >= 6 &&
+          counsellor.bankIfsc?.trim().length >= 4
+        );
+      }
+      if (step === 6) {
+        return agreed;
+      }
+      return true;
+    }
+    if (type === 'psychiatrist') {
+      if (step === 1) return !!type;
+      if (step === 2) {
+        const age = psychiatrist.dateOfBirth ? Math.floor((Date.now() - new Date(psychiatrist.dateOfBirth).getTime()) / (365.25 * 24 * 3600 * 1000)) : 0;
+        return (
+          psychiatrist.name?.length >= 2 &&
+          psychiatrist.email?.includes('@') &&
+          psychiatrist.phone?.length >= 10 &&
+          psychiatrist.password?.length >= 8 &&
+          psychiatrist.password === confirmPassword &&
+          age >= 18 &&
+          psychiatrist.licenseNumber?.trim().length >= 3 &&
+          psychiatrist.education?.trim().length >= 2 &&
+          psychiatrist.govtIdNumber?.trim().length >= 4
+        );
+      }
+      if (step === 3) {
+        return (
+          psychiatrist.specialization?.trim().length >= 3 &&
+          psychiatrist.categories.length > 0 &&
+          psychiatrist.bio?.trim().length >= 5
+        );
+      }
+      if (step === 4) {
+        return (
+          psychiatrist.consultationModes.length > 0 &&
+          Number(psychiatrist.sessionPricing) > 0
+        );
+      }
+      if (step === 5) {
+        return (
+          psychiatrist.availableDays.length > 0 &&
+          psychiatrist.bankAccountHolder?.trim().length >= 2 &&
+          psychiatrist.bankAccountNumber?.trim().length >= 6 &&
+          psychiatrist.bankIfsc?.trim().length >= 4
         );
       }
       if (step === 6) {
@@ -797,6 +1031,173 @@ export default function JoinPlatform() {
           return;
         }
 
+        if (type === 'counsellor') {
+          let degreeDocUrl = '';
+          let govtIdDocUrl = '';
+          let certificateDocUrl = '';
+
+          try {
+            if (counsellorDocs.degreeDoc) {
+              const u = await api.uploadPublicDocument(counsellorDocs.degreeDoc);
+              degreeDocUrl = u?.url || u?.path || '';
+            }
+            if (counsellorDocs.govtIdDoc) {
+              const u = await api.uploadPublicDocument(counsellorDocs.govtIdDoc);
+              govtIdDocUrl = u?.url || u?.path || '';
+            }
+            if (counsellorDocs.certificateDoc) {
+              const u = await api.uploadPublicDocument(counsellorDocs.certificateDoc);
+              certificateDocUrl = u?.url || u?.path || '';
+            }
+          } catch (uploadErr) {
+            console.warn('Counsellor document upload fallback:', uploadErr);
+          }
+
+          // NOTE: FindMedi backend role enum uses 'counselor'. The backend
+          // /register role allow-list + CounsellorProfile model come next (guided step).
+          const payload = {
+            role: 'counselor',
+            name: counsellor.name,
+            email: counsellor.email,
+            phone: counsellor.phone,
+            password: counsellor.password,
+            dateOfBirth: counsellor.dateOfBirth,
+            gender: counsellor.gender,
+            address: counsellor.address,
+            city: counsellor.city,
+            counsellorType: counsellor.counsellorType,
+            licenseNumber: counsellor.licenseNumber.trim(),
+            education: counsellor.education,
+            specialization: counsellor.specialization,
+            govtIdType: counsellor.govtIdType,
+            govtIdNumber: counsellor.govtIdNumber,
+            govtIdDocUrl,
+            degreeDocUrl,
+            certificateDocUrl,
+            categories: counsellor.categories,
+            yearsOfPractice: Number(counsellor.yearsOfPractice) || 0,
+            experience: `${Number(counsellor.yearsOfPractice) || 0} years`,
+            bio: counsellor.bio,
+            languages: counsellor.languages,
+            approach: counsellor.approach,
+            consultationModes: counsellor.consultationModes,
+            sessionPricing: Number(counsellor.sessionPricing) || 0,
+            supportPlanPrices: {
+              oneTime: Number(counsellor.supportPlanPrices.oneTime) || 0,
+              shortTerm: Number(counsellor.supportPlanPrices.shortTerm) || 0,
+              mediumTerm: Number(counsellor.supportPlanPrices.mediumTerm) || 0,
+              longTerm: Number(counsellor.supportPlanPrices.longTerm) || 0,
+            },
+            responseTime: counsellor.responseTime,
+            clinicName: counsellor.clinicName,
+            clinicAddress: counsellor.clinicAddress,
+            linkedin: counsellor.linkedin,
+            emergencyTraining: counsellor.emergencyTraining,
+            referenceContact: counsellor.referenceContact,
+            bankAccountHolder: counsellor.bankAccountHolder,
+            bankAccountNumber: counsellor.bankAccountNumber,
+            bankIfsc: counsellor.bankIfsc,
+            bankUpi: counsellor.bankUpi,
+            availableDays: counsellor.availableDays,
+            availableTimeSlots: [{
+              start: counsellor.availableTimeSlot?.start || '10:00',
+              end: counsellor.availableTimeSlot?.end || '20:00',
+            }],
+          };
+
+          const res = await api.register(payload);
+          if (res.requiresVerification) {
+            navigate(`/verify-otp?email=${encodeURIComponent(counsellor.email)}&role=counselor`);
+            return;
+          }
+          setSuccess({ type: 'counsellor', email: counsellor.email, name: counsellor.name });
+          return;
+        }
+
+        if (type === 'psychiatrist') {
+          let degreeDocUrl = '';
+          let govtIdDocUrl = '';
+          let certificateDocUrl = '';
+
+          try {
+            if (psychiatristDocs.degreeDoc) {
+              const u = await api.uploadPublicDocument(psychiatristDocs.degreeDoc);
+              degreeDocUrl = u?.url || u?.path || '';
+            }
+            if (psychiatristDocs.govtIdDoc) {
+              const u = await api.uploadPublicDocument(psychiatristDocs.govtIdDoc);
+              govtIdDocUrl = u?.url || u?.path || '';
+            }
+            if (psychiatristDocs.certificateDoc) {
+              const u = await api.uploadPublicDocument(psychiatristDocs.certificateDoc);
+              certificateDocUrl = u?.url || u?.path || '';
+            }
+          } catch (uploadErr) {
+            console.warn('Psychiatrist document upload fallback:', uploadErr);
+          }
+
+          // NOTE: separate 'psychiatrist' role for now (merges with clinic doctor later).
+          // Backend /register role allow-list + profile model come next (guided step).
+          const payload = {
+            role: 'psychiatrist',
+            name: psychiatrist.name,
+            email: psychiatrist.email,
+            phone: psychiatrist.phone,
+            password: psychiatrist.password,
+            dateOfBirth: psychiatrist.dateOfBirth,
+            gender: psychiatrist.gender,
+            address: psychiatrist.address,
+            city: psychiatrist.city,
+            licenseNumber: psychiatrist.licenseNumber.trim(),
+            education: psychiatrist.education,
+            specialization: psychiatrist.specialization,
+            govtIdType: psychiatrist.govtIdType,
+            govtIdNumber: psychiatrist.govtIdNumber,
+            govtIdDocUrl,
+            degreeDocUrl,
+            certificateDocUrl,
+            categories: psychiatrist.categories,
+            yearsOfPractice: Number(psychiatrist.yearsOfPractice) || 0,
+            experience: `${Number(psychiatrist.yearsOfPractice) || 0} years`,
+            bio: psychiatrist.bio,
+            languages: psychiatrist.languages,
+            approach: psychiatrist.approach,
+            canPrescribe: Boolean(psychiatrist.canPrescribe),
+            consultationModes: psychiatrist.consultationModes,
+            sessionPricing: Number(psychiatrist.sessionPricing) || 0,
+            supportPlanPrices: {
+              oneTime: Number(psychiatrist.supportPlanPrices.oneTime) || 0,
+              shortTerm: Number(psychiatrist.supportPlanPrices.shortTerm) || 0,
+              mediumTerm: Number(psychiatrist.supportPlanPrices.mediumTerm) || 0,
+              longTerm: Number(psychiatrist.supportPlanPrices.longTerm) || 0,
+            },
+            responseTime: psychiatrist.responseTime,
+            clinicName: psychiatrist.clinicName,
+            clinicAddress: psychiatrist.clinicAddress,
+            hospitalAffiliation: psychiatrist.hospitalAffiliation,
+            linkedin: psychiatrist.linkedin,
+            emergencyTraining: psychiatrist.emergencyTraining,
+            referenceContact: psychiatrist.referenceContact,
+            bankAccountHolder: psychiatrist.bankAccountHolder,
+            bankAccountNumber: psychiatrist.bankAccountNumber,
+            bankIfsc: psychiatrist.bankIfsc,
+            bankUpi: psychiatrist.bankUpi,
+            availableDays: psychiatrist.availableDays,
+            availableTimeSlots: [{
+              start: psychiatrist.availableTimeSlot?.start || '10:00',
+              end: psychiatrist.availableTimeSlot?.end || '20:00',
+            }],
+          };
+
+          const res = await api.register(payload);
+          if (res.requiresVerification) {
+            navigate(`/verify-otp?email=${encodeURIComponent(psychiatrist.email)}&role=psychiatrist`);
+            return;
+          }
+          setSuccess({ type: 'psychiatrist', email: psychiatrist.email, name: psychiatrist.name });
+          return;
+        }
+
        const payload = {
         type, account,
         facility: {
@@ -844,6 +1245,8 @@ export default function JoinPlatform() {
     const isDelivery = success?.type === 'delivery';
     const isRider = success?.type === 'rider';
     const isLawyer = success?.type === 'lawyer';
+    const isCounsellor = success?.type === 'counsellor';
+    const isPsychiatrist = success?.type === 'psychiatrist';
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md text-center">
@@ -856,12 +1259,16 @@ export default function JoinPlatform() {
               ? 'Your delivery partner registration has been received. Our team will review your documents and approve your account shortly.'
               : isRider
               ? 'Your vehicle rider application has been submitted! Our admin team will verify your driving license, RC, and vehicle details within 24-48 hours.'
+              : isCounsellor
+              ? 'Your counsellor application has been submitted! Our clinical team will verify your credentials, education, and certificates within 24-48 hours before activating your profile.'
+              : isPsychiatrist
+              ? 'Your psychiatrist application has been submitted! Our medical board will verify your MCI/NMC registration, medical degrees, and credentials within 24-48 hours before activating your profile.'
               : isLawyer
               ? 'Your advocate registration has been submitted! Our compliance team will verify your Bar Council enrollment and credentials within 24-48 hours before activating your profile.'
               : `Your ${type} registration has been received. Our team will review and approve it shortly. You'll get a notification once approved.`}
           </p>
           <div className="bg-muted/30 rounded-xl p-4 border border-border/40 mb-6 text-left text-sm space-y-2">
-            <div className="flex items-center gap-2"><Mail className="w-4 h-4 text-primary" /><span className="text-muted-foreground">Confirmation sent to <strong>{isDelivery ? (delivery.email || 'your email') : isRider ? (rider.email || 'your email') : isLawyer ? (lawyer.email || 'your email') : account.email}</strong></span></div>
+            <div className="flex items-center gap-2"><Mail className="w-4 h-4 text-primary" /><span className="text-muted-foreground">Confirmation sent to <strong>{isDelivery ? (delivery.email || 'your email') : isRider ? (rider.email || 'your email') : isLawyer ? (lawyer.email || 'your email') : isCounsellor ? (counsellor.email || 'your email') : isPsychiatrist ? (psychiatrist.email || 'your email') : account.email}</strong></span></div>
             <div className="flex items-center gap-2"><Clock className="w-4 h-4 text-primary" /><span className="text-muted-foreground">Typical approval time: <strong>24-48 hours</strong></span></div>
             {isDelivery && (
               <div className="flex items-center gap-2"><Shield className="w-4 h-4 text-primary" /><span className="text-muted-foreground">Status: <strong>Pending Verification</strong></span></div>
@@ -871,6 +1278,12 @@ export default function JoinPlatform() {
             )}
             {isLawyer && (
               <div className="flex items-center gap-2"><Shield className="w-4 h-4 text-indigo-600" /><span className="text-muted-foreground">Status: <strong>Pending Bar Council Verification</strong></span></div>
+            )}
+            {isCounsellor && (
+              <div className="flex items-center gap-2"><Shield className="w-4 h-4 text-teal-600" /><span className="text-muted-foreground">Status: <strong>Pending Credential Verification</strong></span></div>
+            )}
+            {isPsychiatrist && (
+              <div className="flex items-center gap-2"><Shield className="w-4 h-4 text-cyan-600" /><span className="text-muted-foreground">Status: <strong>Pending Medical Board Verification</strong></span></div>
             )}
           </div>
           <Button onClick={() => navigate('/login')} className="gap-2 rounded-xl shadow-lg shadow-primary/20">
@@ -2875,8 +3288,1006 @@ export default function JoinPlatform() {
               </motion.div>
             )}
 
+            {/* ── Counsellor Step 2: Personal & Credentials ── */}
+            {step === 2 && type === 'counsellor' && (
+              <motion.div key="coun-s2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+                {stepHeader('Personal & Professional Credentials', 'Enter your personal info, counsellor identity, and verification documents')}
+                <div className="bg-card rounded-2xl border border-border/50 p-5 space-y-5">
+                  <div className="space-y-4">
+                    <p className="text-xs font-semibold text-primary uppercase tracking-wider">Personal Information</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Full Name <span className="text-red-500">*</span></label>
+                        <Input value={counsellor.name} onChange={updateCounsellor('name')} placeholder="e.g. Dr. Aisha Mehra" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Phone Number <span className="text-red-500">*</span></label>
+                        <Input type="tel" value={counsellor.phone} onChange={updateCounsellor('phone')} placeholder="+91 9876543210" />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Email Address <span className="text-red-500">*</span></label>
+                        <Input type="email" value={counsellor.email} onChange={updateCounsellor('email')} placeholder="counsellor@example.com" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Date of Birth <span className="text-red-500">*</span></label>
+                        <Input type="date" value={counsellor.dateOfBirth} onChange={updateCounsellor('dateOfBirth')} max={new Date().toISOString().split('T')[0]} />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Gender</label>
+                        <select value={counsellor.gender} onChange={updateCounsellor('gender')} className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm">
+                          <option value="Male">Male</option>
+                          <option value="Female">Female</option>
+                          <option value="Other">Other</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">City <span className="text-red-500">*</span></label>
+                        <Input value={counsellor.city} onChange={updateCounsellor('city')} placeholder="e.g. Mumbai" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Residential Address</label>
+                        <Input value={counsellor.address} onChange={updateCounsellor('address')} placeholder="Street, Area" />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Password <span className="text-red-500">*</span></label>
+                        <Input type="password" value={counsellor.password} onChange={updateCounsellor('password')} placeholder="Min 8 characters" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Confirm Password <span className="text-red-500">*</span></label>
+                        <Input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Re-enter password" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-4">
+                    <p className="text-xs font-semibold text-primary uppercase tracking-wider">Counsellor Identity</p>
+                    <div>
+                      <label className="text-sm font-semibold text-foreground mb-2 block">I am joining as <span className="text-red-500">*</span></label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {COUNSELLOR_TYPES.map(t => {
+                          const active = counsellor.counsellorType === t.id;
+                          const TIcon = t.icon;
+                          return (
+                            <button
+                              key={t.id}
+                              type="button"
+                              onClick={() => setCounsellor(p => ({ ...p, counsellorType: t.id }))}
+                              className={cn(
+                                'text-left p-4 rounded-xl border-2 transition-all',
+                                active ? 'border-primary bg-primary/5 shadow-sm' : 'border-border/60 hover:border-primary/40'
+                              )}
+                            >
+                              <div className="flex items-center gap-2 mb-1">
+                                <TIcon className={cn('w-5 h-5', active ? 'text-primary' : 'text-muted-foreground')} />
+                                <span className="text-sm font-bold text-foreground">{t.label}</span>
+                                {active && <Check className="w-4 h-4 ml-auto text-primary" />}
+                              </div>
+                              <p className="text-xs text-muted-foreground">{t.desc}</p>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">
+                          License / Registration Number {counsellor.counsellorType === 'professional' && <span className="text-red-500">*</span>}
+                        </label>
+                        <Input value={counsellor.licenseNumber} onChange={updateCounsellor('licenseNumber')} placeholder="e.g. RCI/A12345" className="uppercase font-mono" />
+                        <span className="text-[11px] text-muted-foreground">RCI / state council / certification ID (professionals)</span>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Highest Education <span className="text-red-500">*</span></label>
+                        <Input value={counsellor.education} onChange={updateCounsellor('education')} placeholder="e.g. M.A. Clinical Psychology" />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Government ID Type</label>
+                        <select value={counsellor.govtIdType} onChange={updateCounsellor('govtIdType')} className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm">
+                          <option value="Aadhaar">Aadhaar Card</option>
+                          <option value="PAN">PAN Card</option>
+                          <option value="Passport">Passport</option>
+                          <option value="Voter ID">Voter ID</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">ID Number <span className="text-red-500">*</span></label>
+                        <Input value={counsellor.govtIdNumber} onChange={updateCounsellor('govtIdNumber')} placeholder="ID document number" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-4">
+                    <p className="text-xs font-semibold text-primary uppercase tracking-wider">Verification Documents (PDF or Image)</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div className="border border-dashed border-border rounded-xl p-3 text-center bg-muted/10">
+                        <GraduationCap className="w-5 h-5 mx-auto mb-1 text-primary" />
+                        <span className="text-xs font-medium block">Degree (Psychology / Counselling)</span>
+                        <input type="file" accept=".pdf,image/*" onChange={handleCounsellorDocChange('degreeDoc')} className="mt-2 text-[11px] w-full" />
+                      </div>
+                      <div className="border border-dashed border-border rounded-xl p-3 text-center bg-muted/10">
+                        <Award className="w-5 h-5 mx-auto mb-1 text-primary" />
+                        <span className="text-xs font-medium block">Training / Experience Certificates</span>
+                        <input type="file" accept=".pdf,image/*" onChange={handleCounsellorDocChange('certificateDoc')} className="mt-2 text-[11px] w-full" />
+                      </div>
+                      <div className="border border-dashed border-border rounded-xl p-3 text-center bg-muted/10">
+                        <Shield className="w-5 h-5 mx-auto mb-1 text-primary" />
+                        <span className="text-xs font-medium block">Government ID Proof</span>
+                        <input type="file" accept=".pdf,image/*" onChange={handleCounsellorDocChange('govtIdDoc')} className="mt-2 text-[11px] w-full" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {navButtons(false)}
+                <div className="flex justify-end mt-4">
+                  <Button onClick={() => setStep(3)} disabled={!canProceed()} className="gap-2 rounded-xl shadow-lg shadow-primary/20">
+                    Continue to Specialization <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ── Counsellor Step 3: Specialization & Practice ── */}
+            {step === 3 && type === 'counsellor' && (
+              <motion.div key="coun-s3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+                {stepHeader('Specialization & Practice Profile', 'Tell clients what you help with, your experience, and your therapeutic style')}
+                <div className="bg-card rounded-2xl border border-border/50 p-5 space-y-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">Specialization Headline <span className="text-red-500">*</span></label>
+                      <Input value={counsellor.specialization} onChange={updateCounsellor('specialization')} placeholder="e.g. Anxiety and Stress Management" />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">Years of Practice <span className="text-red-500">*</span></label>
+                      <Input type="number" min={0} max={60} value={counsellor.yearsOfPractice} onChange={updateCounsellor('yearsOfPractice')} />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-sm font-semibold text-foreground">Concerns You Support <span className="text-red-500">*</span></label>
+                      <span className="text-xs text-muted-foreground">{counsellor.categories.length} selected</span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {COUNSELLOR_CONCERNS.map(concern => {
+                        const active = counsellor.categories.includes(concern);
+                        return (
+                          <button
+                            key={concern}
+                            type="button"
+                            onClick={() => toggleCounsellorCategory(concern)}
+                            className={cn(
+                              'text-xs font-medium px-3 py-2 rounded-xl border transition-all flex items-center gap-1.5',
+                              active
+                                ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                                : 'bg-muted/20 border-border/60 text-muted-foreground hover:border-primary/40'
+                            )}
+                          >
+                            {active && <Check className="w-3.5 h-3.5" />}
+                            {concern}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-1.5 block">Professional Bio <span className="text-red-500">*</span></label>
+                    <Textarea
+                      value={counsellor.bio}
+                      onChange={updateCounsellor('bio')}
+                      placeholder="Who you help, your therapeutic style, session approach, and what clients can expect..."
+                      rows={3}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-1.5 block">Therapeutic Approach (Optional)</label>
+                    <Textarea
+                      value={counsellor.approach}
+                      onChange={updateCounsellor('approach')}
+                      placeholder="e.g. CBT-based, mindfulness-grounded, trauma-informed care..."
+                      rows={2}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-2 block">Languages Spoken</label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {COUNSELLOR_LANGUAGES.map(lang => {
+                        const active = counsellor.languages.includes(lang);
+                        return (
+                          <button
+                            key={lang}
+                            type="button"
+                            onClick={() => setCounsellor(p => ({
+                              ...p,
+                              languages: active ? p.languages.filter(l => l !== lang) : [...p.languages, lang]
+                            }))}
+                            className={cn(
+                              'text-xs px-2.5 py-1 rounded-lg border transition-all',
+                              active ? 'bg-secondary text-secondary-foreground font-semibold border-border' : 'bg-background text-muted-foreground border-border/60 hover:border-border'
+                            )}
+                          >
+                            {lang}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {navButtons()}
+                <div className="flex justify-end mt-4">
+                  <Button onClick={() => setStep(4)} disabled={!canProceed()} className="gap-2 rounded-xl shadow-lg shadow-primary/20">
+                    Continue to Sessions & Pricing <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ── Counsellor Step 4: Sessions & Pricing ── */}
+            {step === 4 && type === 'counsellor' && (
+              <motion.div key="coun-s4" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+                {stepHeader('Session Modes & Support Pricing', 'Choose how you meet clients and set your session and support-plan rates')}
+                <div className="bg-card rounded-2xl border border-border/50 p-5 space-y-5">
+                  <div>
+                    <label className="text-sm font-semibold text-foreground mb-2 block">Session Modes Offered <span className="text-red-500">*</span></label>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {COUNSELLOR_MODES.map(m => {
+                        const active = counsellor.consultationModes.includes(m.id);
+                        return (
+                          <button
+                            key={m.id}
+                            type="button"
+                            onClick={() => toggleCounsellorMode(m.id)}
+                            className={cn(
+                              'text-left p-4 rounded-xl border-2 transition-all',
+                              active ? 'border-primary bg-primary/5 shadow-sm' : 'border-border/60 hover:border-primary/40'
+                            )}
+                          >
+                            <div className="flex items-center gap-2 mb-1">
+                              {m.id === 'google-meet' ? <Video className={cn('w-5 h-5', active ? 'text-primary' : 'text-muted-foreground')} />
+                                : m.id === 'voice-call' ? <Phone className={cn('w-5 h-5', active ? 'text-primary' : 'text-muted-foreground')} />
+                                : <MapPin className={cn('w-5 h-5', active ? 'text-primary' : 'text-muted-foreground')} />}
+                              <span className="text-sm font-bold text-foreground">{m.label}</span>
+                              {active && <Check className="w-4 h-4 ml-auto text-primary" />}
+                            </div>
+                            <p className="text-xs text-muted-foreground">{m.desc}</p>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">Per-Session Price (₹) <span className="text-red-500">*</span></label>
+                      <Input type="number" min={0} value={counsellor.sessionPricing} onChange={updateCounsellor('sessionPricing')} placeholder="800" />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">Typical Response Time</label>
+                      <select value={counsellor.responseTime} onChange={updateCounsellor('responseTime')} className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm">
+                        {COUNSELLOR_RESPONSE_TIMES.map(r => (
+                          <option key={r} value={r}>{r}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-semibold text-foreground mb-2 block">Support Plan Prices (₹)</label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {[
+                        { key: 'oneTime', label: 'One-Time' },
+                        { key: 'shortTerm', label: 'Short-Term' },
+                        { key: 'mediumTerm', label: 'Medium-Term' },
+                        { key: 'longTerm', label: 'Long-Term' },
+                      ].map(plan => (
+                        <div key={plan.key}>
+                          <label className="text-xs font-medium text-muted-foreground mb-1 block">{plan.label}</label>
+                          <Input type="number" min={0} value={counsellor.supportPlanPrices[plan.key]} onChange={updateCounsellorPlanPrice(plan.key)} placeholder="0" />
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-2">Clients pick one support plan when booking — keep 0 for plans you don&apos;t offer.</p>
+                  </div>
+                </div>
+
+                {navButtons()}
+                <div className="flex justify-end mt-4">
+                  <Button onClick={() => setStep(5)} disabled={!canProceed()} className="gap-2 rounded-xl shadow-lg shadow-primary/20">
+                    Continue to Clinic & Availability <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ── Counsellor Step 5: Clinic, Bank & Availability ── */}
+            {step === 5 && type === 'counsellor' && (
+              <motion.div key="coun-s5" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+                {stepHeader('Clinic, Payout & Weekly Availability', 'Add your in-person clinic, settlement bank account, and session schedule')}
+                <div className="bg-card rounded-2xl border border-border/50 p-5 space-y-5">
+                  <div className="space-y-4">
+                    <p className="text-xs font-semibold text-primary uppercase tracking-wider">In-Person Clinic (for clinic sessions)</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Clinic / Chamber Name</label>
+                        <Input value={counsellor.clinicName} onChange={updateCounsellor('clinicName')} placeholder="e.g. MindCare Clinic" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Clinic Address</label>
+                        <Input value={counsellor.clinicAddress} onChange={updateCounsellor('clinicAddress')} placeholder="Clinic address for in-person visits" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div>
+                    <label className="text-sm font-semibold text-foreground mb-2 block">Weekly Session Days <span className="text-red-500">*</span></label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
+                        <button
+                          key={day}
+                          type="button"
+                          onClick={() => toggleCounsellorDay(day)}
+                          className={cn(
+                            'py-2.5 px-3 rounded-xl border text-xs font-semibold transition-all',
+                            counsellor.availableDays.includes(day)
+                              ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                              : 'bg-muted/20 border-border/60 hover:border-primary/40'
+                          )}
+                        >
+                          {day}day
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">Daily Start Time</label>
+                      <Input
+                        type="time"
+                        value={counsellor.availableTimeSlot.start}
+                        onChange={e => setCounsellor(p => ({ ...p, availableTimeSlot: { ...p.availableTimeSlot, start: e.target.value } }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">Daily End Time</label>
+                      <Input
+                        type="time"
+                        value={counsellor.availableTimeSlot.end}
+                        onChange={e => setCounsellor(p => ({ ...p, availableTimeSlot: { ...p.availableTimeSlot, end: e.target.value } }))}
+                      />
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-4">
+                    <p className="text-xs font-semibold text-primary uppercase tracking-wider">Settlement Bank Account</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Account Holder Name <span className="text-red-500">*</span></label>
+                        <Input value={counsellor.bankAccountHolder} onChange={updateCounsellor('bankAccountHolder')} placeholder="Name as in bank account" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Account Number <span className="text-red-500">*</span></label>
+                        <Input value={counsellor.bankAccountNumber} onChange={updateCounsellor('bankAccountNumber')} placeholder="Bank account number" />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">IFSC Code <span className="text-red-500">*</span></label>
+                        <Input value={counsellor.bankIfsc} onChange={updateCounsellor('bankIfsc')} placeholder="e.g. SBIN0001234" className="uppercase font-mono" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">UPI ID (Optional)</label>
+                        <Input value={counsellor.bankUpi} onChange={updateCounsellor('bankUpi')} placeholder="e.g. counsellor@upi" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">LinkedIn Profile (Optional)</label>
+                      <Input value={counsellor.linkedin} onChange={updateCounsellor('linkedin')} placeholder="https://linkedin.com/in/..." />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">Reference Contact (Optional)</label>
+                      <Input value={counsellor.referenceContact} onChange={updateCounsellor('referenceContact')} placeholder="Supervisor / senior reference" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-1.5 block">Crisis / Emergency Training (Optional)</label>
+                    <Input value={counsellor.emergencyTraining} onChange={updateCounsellor('emergencyTraining')} placeholder="e.g. Suicide first-aid certified" />
+                  </div>
+                </div>
+
+                {navButtons()}
+                <div className="flex justify-end mt-4">
+                  <Button onClick={() => setStep(6)} disabled={!canProceed()} className="gap-2 rounded-xl shadow-lg shadow-primary/20">
+                    Review Application <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ── Counsellor Step 6: Review & Submit ── */}
+            {step === 6 && type === 'counsellor' && (
+              <motion.div key="coun-s6" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+                {stepHeader('Review & Submit Application', 'Verify your counselling credentials and submit for clinical verification')}
+                <div className="space-y-4 mb-6">
+                  <div className="bg-card rounded-2xl border border-border/50 overflow-hidden">
+                    <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-teal-500/10 to-emerald-500/10 border-b border-border/30">
+                      <div className="w-10 h-10 rounded-xl bg-teal-500/20 text-teal-600 flex items-center justify-center font-bold">
+                        <Brain className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-foreground">{counsellor.name || 'Counsellor Application'}</p>
+                        <p className="text-xs text-muted-foreground">{counsellor.specialization} • {counsellor.yearsOfPractice} Yrs Practice</p>
+                      </div>
+                    </div>
+
+                    <div className="p-4 space-y-3 text-sm">
+                      <div className="bg-muted/20 rounded-lg p-3 space-y-1.5 text-xs">
+                        <p><strong>Type:</strong> {counsellor.counsellorType === 'professional' ? 'Professional Counsellor' : 'Peer Mentor'} • <strong>Education:</strong> {counsellor.education}</p>
+                        <p><strong>License:</strong> {counsellor.licenseNumber || '—'}</p>
+                        <p><strong>Contact:</strong> {counsellor.phone} • {counsellor.email}</p>
+                        <p><strong>Location:</strong> {counsellor.city}{counsellor.clinicName ? ` • Clinic: ${counsellor.clinicName}` : ''}</p>
+                        <p><strong>Supports:</strong> {counsellor.categories.join(', ')}</p>
+                        <p><strong>Languages:</strong> {counsellor.languages.join(', ')}</p>
+                        <p><strong>Modes:</strong> {counsellor.consultationModes.join(', ')}</p>
+                        <p><strong>Session Fee:</strong> ₹{counsellor.sessionPricing} • <strong>Plans:</strong> ₹{counsellor.supportPlanPrices.oneTime}/{counsellor.supportPlanPrices.shortTerm}/{counsellor.supportPlanPrices.mediumTerm}/{counsellor.supportPlanPrices.longTerm}</p>
+                        <p><strong>Days:</strong> {counsellor.availableDays.join(', ')} ({counsellor.availableTimeSlot.start}–{counsellor.availableTimeSlot.end})</p>
+                        <p><strong>Settlement Account:</strong> {counsellor.bankAccountNumber} ({counsellor.bankIfsc})</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <label className="flex items-start gap-3 p-4 bg-muted/20 rounded-xl border border-border/40 cursor-pointer">
+                    <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} className="mt-0.5 w-4 h-4 rounded border-border accent-primary" />
+                    <div>
+                      <p className="text-sm font-medium text-foreground">I declare that my credentials and experience are authentic</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        I confirm my education, license, and training details are genuine and agree to FindMedi professional terms. The clinical team will verify my credentials before profile activation.
+                      </p>
+                    </div>
+                  </label>
+                </div>
+
+                {error && <p className="text-sm text-destructive bg-destructive/10 px-3 py-2 rounded-lg mb-4">{error}</p>}
+
+                {navButtons()}
+                <div className="flex justify-end mt-4">
+                  <Button onClick={handleSubmit} disabled={!canProceed() || loading} className="flex-1 sm:flex-none gap-2 rounded-xl shadow-lg shadow-primary/20">
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                    {loading ? 'Submitting Application...' : 'Submit Counsellor Application'}
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ── Psychiatrist Step 2: Personal & Medical Reg ── */}
+            {step === 2 && type === 'psychiatrist' && (
+              <motion.div key="psy-s2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+                {stepHeader('Personal & Medical Registration', 'Enter your personal info, MCI/NMC registration, and verification documents')}
+                <div className="bg-card rounded-2xl border border-border/50 p-5 space-y-5">
+                  <div className="space-y-4">
+                    <p className="text-xs font-semibold text-primary uppercase tracking-wider">Personal Information</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Full Name <span className="text-red-500">*</span></label>
+                        <Input value={psychiatrist.name} onChange={updatePsychiatrist('name')} placeholder="e.g. Dr. Neha Iyer" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Phone Number <span className="text-red-500">*</span></label>
+                        <Input type="tel" value={psychiatrist.phone} onChange={updatePsychiatrist('phone')} placeholder="+91 9876543210" />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Email Address <span className="text-red-500">*</span></label>
+                        <Input type="email" value={psychiatrist.email} onChange={updatePsychiatrist('email')} placeholder="doctor@example.com" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Date of Birth <span className="text-red-500">*</span></label>
+                        <Input type="date" value={psychiatrist.dateOfBirth} onChange={updatePsychiatrist('dateOfBirth')} max={new Date().toISOString().split('T')[0]} />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Gender</label>
+                        <select value={psychiatrist.gender} onChange={updatePsychiatrist('gender')} className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm">
+                          <option value="Male">Male</option>
+                          <option value="Female">Female</option>
+                          <option value="Other">Other</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">City <span className="text-red-500">*</span></label>
+                        <Input value={psychiatrist.city} onChange={updatePsychiatrist('city')} placeholder="e.g. Chennai" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Residential Address</label>
+                        <Input value={psychiatrist.address} onChange={updatePsychiatrist('address')} placeholder="Street, Area" />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Password <span className="text-red-500">*</span></label>
+                        <Input type="password" value={psychiatrist.password} onChange={updatePsychiatrist('password')} placeholder="Min 8 characters" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Confirm Password <span className="text-red-500">*</span></label>
+                        <Input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Re-enter password" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-4">
+                    <p className="text-xs font-semibold text-primary uppercase tracking-wider">Medical Registration (MCI / NMC)</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">MCI / NMC Registration Number <span className="text-red-500">*</span></label>
+                        <Input value={psychiatrist.licenseNumber} onChange={updatePsychiatrist('licenseNumber')} placeholder="e.g. TNMC 123456" className="uppercase font-mono" />
+                        <span className="text-[11px] text-muted-foreground">State medical council registration ID</span>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Medical Education <span className="text-red-500">*</span></label>
+                        <Input value={psychiatrist.education} onChange={updatePsychiatrist('education')} placeholder="e.g. MBBS, MD Psychiatry" />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Government ID Type</label>
+                        <select value={psychiatrist.govtIdType} onChange={updatePsychiatrist('govtIdType')} className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm">
+                          <option value="Aadhaar">Aadhaar Card</option>
+                          <option value="PAN">PAN Card</option>
+                          <option value="Passport">Passport</option>
+                          <option value="Voter ID">Voter ID</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">ID Number <span className="text-red-500">*</span></label>
+                        <Input value={psychiatrist.govtIdNumber} onChange={updatePsychiatrist('govtIdNumber')} placeholder="ID document number" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-4">
+                    <p className="text-xs font-semibold text-primary uppercase tracking-wider">Verification Documents (PDF or Image)</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div className="border border-dashed border-border rounded-xl p-3 text-center bg-muted/10">
+                        <GraduationCap className="w-5 h-5 mx-auto mb-1 text-primary" />
+                        <span className="text-xs font-medium block">Medical Degree (MBBS / MD)</span>
+                        <input type="file" accept=".pdf,image/*" onChange={handlePsychiatristDocChange('degreeDoc')} className="mt-2 text-[11px] w-full" />
+                      </div>
+                      <div className="border border-dashed border-border rounded-xl p-3 text-center bg-muted/10">
+                        <Award className="w-5 h-5 mx-auto mb-1 text-primary" />
+                        <span className="text-xs font-medium block">MCI / NMC Certificate</span>
+                        <input type="file" accept=".pdf,image/*" onChange={handlePsychiatristDocChange('certificateDoc')} className="mt-2 text-[11px] w-full" />
+                      </div>
+                      <div className="border border-dashed border-border rounded-xl p-3 text-center bg-muted/10">
+                        <Shield className="w-5 h-5 mx-auto mb-1 text-primary" />
+                        <span className="text-xs font-medium block">Government ID Proof</span>
+                        <input type="file" accept=".pdf,image/*" onChange={handlePsychiatristDocChange('govtIdDoc')} className="mt-2 text-[11px] w-full" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {navButtons(false)}
+                <div className="flex justify-end mt-4">
+                  <Button onClick={() => setStep(3)} disabled={!canProceed()} className="gap-2 rounded-xl shadow-lg shadow-primary/20">
+                    Continue to Specialization <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ── Psychiatrist Step 3: Specialization & Practice ── */}
+            {step === 3 && type === 'psychiatrist' && (
+              <motion.div key="psy-s3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+                {stepHeader('Specialization & Clinical Practice', 'Tell patients what you treat, your experience, and your treatment style')}
+                <div className="bg-card rounded-2xl border border-border/50 p-5 space-y-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">Specialization Headline <span className="text-red-500">*</span></label>
+                      <Input value={psychiatrist.specialization} onChange={updatePsychiatrist('specialization')} placeholder="e.g. Depression and Mood Disorders" />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">Years of Clinical Practice <span className="text-red-500">*</span></label>
+                      <Input type="number" min={0} max={60} value={psychiatrist.yearsOfPractice} onChange={updatePsychiatrist('yearsOfPractice')} />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-sm font-semibold text-foreground">Conditions You Treat <span className="text-red-500">*</span></label>
+                      <span className="text-xs text-muted-foreground">{psychiatrist.categories.length} selected</span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {COUNSELLOR_CONCERNS.map(concern => {
+                        const active = psychiatrist.categories.includes(concern);
+                        return (
+                          <button
+                            key={concern}
+                            type="button"
+                            onClick={() => togglePsychiatristCategory(concern)}
+                            className={cn(
+                              'text-xs font-medium px-3 py-2 rounded-xl border transition-all flex items-center gap-1.5',
+                              active
+                                ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                                : 'bg-muted/20 border-border/60 text-muted-foreground hover:border-primary/40'
+                            )}
+                          >
+                            {active && <Check className="w-3.5 h-3.5" />}
+                            {concern}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-1.5 block">Professional Bio <span className="text-red-500">*</span></label>
+                    <Textarea
+                      value={psychiatrist.bio}
+                      onChange={updatePsychiatrist('bio')}
+                      placeholder="Your clinical background, treatment philosophy, diagnosis + medication + therapy approach..."
+                      rows={3}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-1.5 block">Treatment Approach (Optional)</label>
+                    <Textarea
+                      value={psychiatrist.approach}
+                      onChange={updatePsychiatrist('approach')}
+                      placeholder="e.g. Pharmacotherapy combined with supportive psychotherapy..."
+                      rows={2}
+                    />
+                  </div>
+
+                  <label className="flex items-center gap-3 p-3 bg-muted/20 rounded-xl border border-border/40 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={psychiatrist.canPrescribe}
+                      onChange={e => setPsychiatrist(p => ({ ...p, canPrescribe: e.target.checked }))}
+                      className="w-4 h-4 rounded border-border accent-primary"
+                    />
+                    <div>
+                      <p className="text-xs font-semibold text-foreground">I am authorized to prescribe psychiatric medication</p>
+                      <p className="text-[11px] text-muted-foreground">Only check this if your MCI/NMC registration permits prescription</p>
+                    </div>
+                  </label>
+
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-2 block">Languages Spoken</label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {COUNSELLOR_LANGUAGES.map(lang => {
+                        const active = psychiatrist.languages.includes(lang);
+                        return (
+                          <button
+                            key={lang}
+                            type="button"
+                            onClick={() => setPsychiatrist(p => ({
+                              ...p,
+                              languages: active ? p.languages.filter(l => l !== lang) : [...p.languages, lang]
+                            }))}
+                            className={cn(
+                              'text-xs px-2.5 py-1 rounded-lg border transition-all',
+                              active ? 'bg-secondary text-secondary-foreground font-semibold border-border' : 'bg-background text-muted-foreground border-border/60 hover:border-border'
+                            )}
+                          >
+                            {lang}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {navButtons()}
+                <div className="flex justify-end mt-4">
+                  <Button onClick={() => setStep(4)} disabled={!canProceed()} className="gap-2 rounded-xl shadow-lg shadow-primary/20">
+                    Continue to Sessions & Pricing <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ── Psychiatrist Step 4: Sessions & Pricing ── */}
+            {step === 4 && type === 'psychiatrist' && (
+              <motion.div key="psy-s4" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+                {stepHeader('Consultation Modes & Professional Fees', 'Choose how you meet patients and set your consultation and plan rates')}
+                <div className="bg-card rounded-2xl border border-border/50 p-5 space-y-5">
+                  <div>
+                    <label className="text-sm font-semibold text-foreground mb-2 block">Consultation Modes Offered <span className="text-red-500">*</span></label>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {COUNSELLOR_MODES.map(m => {
+                        const active = psychiatrist.consultationModes.includes(m.id);
+                        return (
+                          <button
+                            key={m.id}
+                            type="button"
+                            onClick={() => togglePsychiatristMode(m.id)}
+                            className={cn(
+                              'text-left p-4 rounded-xl border-2 transition-all',
+                              active ? 'border-primary bg-primary/5 shadow-sm' : 'border-border/60 hover:border-primary/40'
+                            )}
+                          >
+                            <div className="flex items-center gap-2 mb-1">
+                              {m.id === 'google-meet' ? <Video className={cn('w-5 h-5', active ? 'text-primary' : 'text-muted-foreground')} />
+                                : m.id === 'voice-call' ? <Phone className={cn('w-5 h-5', active ? 'text-primary' : 'text-muted-foreground')} />
+                                : <MapPin className={cn('w-5 h-5', active ? 'text-primary' : 'text-muted-foreground')} />}
+                              <span className="text-sm font-bold text-foreground">{m.label}</span>
+                              {active && <Check className="w-4 h-4 ml-auto text-primary" />}
+                            </div>
+                            <p className="text-xs text-muted-foreground">{m.desc}</p>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">Per-Consultation Fee (₹) <span className="text-red-500">*</span></label>
+                      <Input type="number" min={0} value={psychiatrist.sessionPricing} onChange={updatePsychiatrist('sessionPricing')} placeholder="1200" />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">Typical Response Time</label>
+                      <select value={psychiatrist.responseTime} onChange={updatePsychiatrist('responseTime')} className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm">
+                        {COUNSELLOR_RESPONSE_TIMES.map(r => (
+                          <option key={r} value={r}>{r}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-semibold text-foreground mb-2 block">Treatment Plan Prices (₹)</label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {[
+                        { key: 'oneTime', label: 'One-Time' },
+                        { key: 'shortTerm', label: 'Short-Term' },
+                        { key: 'mediumTerm', label: 'Medium-Term' },
+                        { key: 'longTerm', label: 'Long-Term' },
+                      ].map(plan => (
+                        <div key={plan.key}>
+                          <label className="text-xs font-medium text-muted-foreground mb-1 block">{plan.label}</label>
+                          <Input type="number" min={0} value={psychiatrist.supportPlanPrices[plan.key]} onChange={updatePsychiatristPlanPrice(plan.key)} placeholder="0" />
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-2">Patients pick one treatment plan when booking — keep 0 for plans you don&apos;t offer.</p>
+                  </div>
+                </div>
+
+                {navButtons()}
+                <div className="flex justify-end mt-4">
+                  <Button onClick={() => setStep(5)} disabled={!canProceed()} className="gap-2 rounded-xl shadow-lg shadow-primary/20">
+                    Continue to Clinic & Availability <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ── Psychiatrist Step 5: Clinic, Bank & Availability ── */}
+            {step === 5 && type === 'psychiatrist' && (
+              <motion.div key="psy-s5" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+                {stepHeader('Clinic, Payout & Weekly Availability', 'Add your clinic / hospital, settlement bank account, and OPD schedule')}
+                <div className="bg-card rounded-2xl border border-border/50 p-5 space-y-5">
+                  <div className="space-y-4">
+                    <p className="text-xs font-semibold text-primary uppercase tracking-wider">Clinic & Hospital (for in-person visits)</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Clinic / Chamber Name</label>
+                        <Input value={psychiatrist.clinicName} onChange={updatePsychiatrist('clinicName')} placeholder="e.g. MindCare Clinic" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Hospital Affiliation (Optional)</label>
+                        <Input value={psychiatrist.hospitalAffiliation} onChange={updatePsychiatrist('hospitalAffiliation')} placeholder="e.g. City Hospital, Dept. of Psychiatry" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">Clinic Address</label>
+                      <Input value={psychiatrist.clinicAddress} onChange={updatePsychiatrist('clinicAddress')} placeholder="Clinic address for in-person visits" />
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div>
+                    <label className="text-sm font-semibold text-foreground mb-2 block">Weekly OPD Days <span className="text-red-500">*</span></label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
+                        <button
+                          key={day}
+                          type="button"
+                          onClick={() => togglePsychiatristDay(day)}
+                          className={cn(
+                            'py-2.5 px-3 rounded-xl border text-xs font-semibold transition-all',
+                            psychiatrist.availableDays.includes(day)
+                              ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                              : 'bg-muted/20 border-border/60 hover:border-primary/40'
+                          )}
+                        >
+                          {day}day
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">Daily Start Time</label>
+                      <Input
+                        type="time"
+                        value={psychiatrist.availableTimeSlot.start}
+                        onChange={e => setPsychiatrist(p => ({ ...p, availableTimeSlot: { ...p.availableTimeSlot, start: e.target.value } }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">Daily End Time</label>
+                      <Input
+                        type="time"
+                        value={psychiatrist.availableTimeSlot.end}
+                        onChange={e => setPsychiatrist(p => ({ ...p, availableTimeSlot: { ...p.availableTimeSlot, end: e.target.value } }))}
+                      />
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-4">
+                    <p className="text-xs font-semibold text-primary uppercase tracking-wider">Settlement Bank Account</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Account Holder Name <span className="text-red-500">*</span></label>
+                        <Input value={psychiatrist.bankAccountHolder} onChange={updatePsychiatrist('bankAccountHolder')} placeholder="Name as in bank account" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Account Number <span className="text-red-500">*</span></label>
+                        <Input value={psychiatrist.bankAccountNumber} onChange={updatePsychiatrist('bankAccountNumber')} placeholder="Bank account number" />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">IFSC Code <span className="text-red-500">*</span></label>
+                        <Input value={psychiatrist.bankIfsc} onChange={updatePsychiatrist('bankIfsc')} placeholder="e.g. SBIN0001234" className="uppercase font-mono" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">UPI ID (Optional)</label>
+                        <Input value={psychiatrist.bankUpi} onChange={updatePsychiatrist('bankUpi')} placeholder="e.g. doctor@upi" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">LinkedIn Profile (Optional)</label>
+                      <Input value={psychiatrist.linkedin} onChange={updatePsychiatrist('linkedin')} placeholder="https://linkedin.com/in/..." />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">Reference Contact (Optional)</label>
+                      <Input value={psychiatrist.referenceContact} onChange={updatePsychiatrist('referenceContact')} placeholder="Senior / HOD reference" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-1.5 block">Emergency Psychiatry Training (Optional)</label>
+                    <Input value={psychiatrist.emergencyTraining} onChange={updatePsychiatrist('emergencyTraining')} placeholder="e.g. Suicide first-aid certified" />
+                  </div>
+                </div>
+
+                {navButtons()}
+                <div className="flex justify-end mt-4">
+                  <Button onClick={() => setStep(6)} disabled={!canProceed()} className="gap-2 rounded-xl shadow-lg shadow-primary/20">
+                    Review Application <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ── Psychiatrist Step 6: Review & Submit ── */}
+            {step === 6 && type === 'psychiatrist' && (
+              <motion.div key="psy-s6" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+                {stepHeader('Review & Submit Application', 'Verify your medical credentials and submit for medical board verification')}
+                <div className="space-y-4 mb-6">
+                  <div className="bg-card rounded-2xl border border-border/50 overflow-hidden">
+                    <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-cyan-500/10 to-sky-500/10 border-b border-border/30">
+                      <div className="w-10 h-10 rounded-xl bg-cyan-500/20 text-cyan-600 flex items-center justify-center font-bold">
+                        <BrainCircuit className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-foreground">{psychiatrist.name || 'Psychiatrist Application'}</p>
+                        <p className="text-xs text-muted-foreground">{psychiatrist.specialization} • {psychiatrist.yearsOfPractice} Yrs Practice</p>
+                      </div>
+                    </div>
+
+                    <div className="p-4 space-y-3 text-sm">
+                      <div className="bg-muted/20 rounded-lg p-3 space-y-1.5 text-xs">
+                        <p><strong>MCI/NMC:</strong> {psychiatrist.licenseNumber} • <strong>Education:</strong> {psychiatrist.education}</p>
+                        <p><strong>Contact:</strong> {psychiatrist.phone} • {psychiatrist.email}</p>
+                        <p><strong>Location:</strong> {psychiatrist.city}{psychiatrist.clinicName ? ` • Clinic: ${psychiatrist.clinicName}` : ''}{psychiatrist.hospitalAffiliation ? ` • ${psychiatrist.hospitalAffiliation}` : ''}</p>
+                        <p><strong>Treats:</strong> {psychiatrist.categories.join(', ')}</p>
+                        <p><strong>Languages:</strong> {psychiatrist.languages.join(', ')}</p>
+                        <p><strong>Modes:</strong> {psychiatrist.consultationModes.join(', ')}{psychiatrist.canPrescribe ? ' • Prescribes medication' : ''}</p>
+                        <p><strong>Fee:</strong> ₹{psychiatrist.sessionPricing} • <strong>Plans:</strong> ₹{psychiatrist.supportPlanPrices.oneTime}/{psychiatrist.supportPlanPrices.shortTerm}/{psychiatrist.supportPlanPrices.mediumTerm}/{psychiatrist.supportPlanPrices.longTerm}</p>
+                        <p><strong>Days:</strong> {psychiatrist.availableDays.join(', ')} ({psychiatrist.availableTimeSlot.start}–{psychiatrist.availableTimeSlot.end})</p>
+                        <p><strong>Settlement Account:</strong> {psychiatrist.bankAccountNumber} ({psychiatrist.bankIfsc})</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <label className="flex items-start gap-3 p-4 bg-muted/20 rounded-xl border border-border/40 cursor-pointer">
+                    <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} className="mt-0.5 w-4 h-4 rounded border-border accent-primary" />
+                    <div>
+                      <p className="text-sm font-medium text-foreground">I declare that my medical registration and degrees are authentic</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        I confirm my MCI/NMC registration, MBBS/MD degrees, and prescription authority are genuine and agree to FindMedi professional terms. The medical board will verify my credentials before profile activation.
+                      </p>
+                    </div>
+                  </label>
+                </div>
+
+                {error && <p className="text-sm text-destructive bg-destructive/10 px-3 py-2 rounded-lg mb-4">{error}</p>}
+
+                {navButtons()}
+                <div className="flex justify-end mt-4">
+                  <Button onClick={handleSubmit} disabled={!canProceed() || loading} className="flex-1 sm:flex-none gap-2 rounded-xl shadow-lg shadow-primary/20">
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                    {loading ? 'Submitting Application...' : 'Submit Psychiatrist Application'}
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+
           {/* Step 2: Admin Account */}
-          {step === 2 && type !== 'delivery' && type !== 'rider' && type !== 'assistant' && type !== 'lawyer' && (
+          {step === 2 && type !== 'delivery' && type !== 'rider' && type !== 'assistant' && type !== 'lawyer' && type !== 'counsellor' && type !== 'psychiatrist' && (
             <motion.div key="s2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
               {stepHeader('Create Admin Account', 'This will be the admin login for your ' + (selectedType?.label || '') + ' dashboard')}
               <div className="bg-card rounded-2xl border border-border/50 p-5 space-y-4">
@@ -2946,7 +4357,7 @@ export default function JoinPlatform() {
           )}
 
            {/* Step 3: Facility Info */}
-           {step === 3 && type !== 'delivery' && type !== 'rider' && type !== 'assistant' && type !== 'lawyer' && (
+           {step === 3 && type !== 'delivery' && type !== 'rider' && type !== 'assistant' && type !== 'lawyer' && type !== 'counsellor' && type !== 'psychiatrist' && (
             <motion.div key="s3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
               {stepHeader('Facility Details', 'Tell us about your ' + (selectedType?.label || '') + ' — address, contact, and more')}
               <div className="bg-card rounded-2xl border border-border/50 p-5 space-y-4">
@@ -3493,7 +4904,7 @@ export default function JoinPlatform() {
            )}
 
            {/* Step 5: Review & Submit */}
-           {step === maxStep && type !== 'delivery' && type !== 'rider' && type !== 'assistant' && type !== 'lawyer' && (
+           {step === maxStep && type !== 'delivery' && type !== 'rider' && type !== 'assistant' && type !== 'lawyer' && type !== 'counsellor' && type !== 'psychiatrist' && (
             <motion.div key="s5" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
               {stepHeader('Review & Submit', 'Please verify all details before submitting')}
 

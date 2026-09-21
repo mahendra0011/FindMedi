@@ -273,6 +273,28 @@ const LabSampleCollection = lazy(() => import('./pages/labcenter/LabSampleCollec
 const LabStaff = lazy(() => import('./pages/labcenter/LabStaff'));
 const LabTestCatalog = lazy(() => import('./pages/labcenter/LabTestCatalog'));
 
+// ── MindSupport (merged) — separate /mind/* routes ──
+// FindMedi user dashboard (/dashboard, /patient/*) and MindSupport user
+// dashboard (/mind/user) stay separate on purpose (merge later).
+const MindShell = lazy(() => import('./mind/MindProviders'));
+const MindIndex = lazy(() => import('./mind/pages/Index'));
+const MindAbout = lazy(() => import('./mind/pages/About'));
+const MindCounselling = lazy(() => import('./mind/pages/Counselling'));
+const MindPsychiatrists = lazy(() => import('./mind/pages/Psychiatrists'));
+const MindPsychiatristDetail = lazy(() => import('./mind/pages/PsychiatristDetail'));
+const MindSessionSchedule = lazy(() => import('./mind/pages/SessionSchedule'));
+const MindResourceHub = lazy(() => import('./mind/pages/ResourceHub'));
+const MindPeerSupport = lazy(() => import('./mind/pages/PeerSupport'));
+const MindAdminDashboard = lazy(() => import('./mind/pages/AdminDashboard'));
+const MindWellness = lazy(() => import('./mind/pages/MyWellness'));
+const MindPrivacy = lazy(() => import('./mind/pages/PrivacyPolicy'));
+const MindIntakeForm = lazy(() => import('./mind/pages/IntakeFormPage'));
+const MindDashboard = lazy(() => import('./mind/pages/Dashboard'));
+const MindUserDashboard = lazy(() => import('./mind/pages/UserDashboard'));
+const MindCounsellorDashboard = lazy(() => import('./mind/pages/CounsellorDashboard'));
+const MindPsychiatristDashboard = lazy(() => import('./mind/pages/PsychiatristDashboard'));
+const MindDashboardLayout = lazy(() => import('./mind/components/MindDashboardLayout'));
+
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1, staleTime: 30_000 } } });
 
 const loadingFallback = (
@@ -455,6 +477,17 @@ function RoleDashboard() {
   return <PatientDashboard />;
 }
 
+function MindDashboardShell() {
+  return (
+    <Suspense fallback={loadingFallback}>
+      {/* MindDashboardLayout is lazy; outer Suspense already covers it but explicit is safe */}
+      <MindDashboardLayout>
+        <Outlet />
+      </MindDashboardLayout>
+    </Suspense>
+  );
+}
+
 // Wrapper that uses Redux for auth instead of context
 function ReduxAuthProvider({ children }: { children?: React.ReactNode }) {
   return (
@@ -558,6 +591,31 @@ const App = () => (
                     <Route path="/hospital-doctors" element={<PublicLayout><HospitalDoctors /></PublicLayout>} />
                     <Route path="/doctors/:id" element={<PublicLayout><HospitalDoctor /></PublicLayout>} />
                     <Route path="/telemedicine" element={<PublicLayout><DoctorConsultation /></PublicLayout>} />
+
+                    {/* ── MindSupport (merged) — /mind/* ── */}
+                    <Route element={<MindShell />}>
+                      <Route path="/mind" element={<MindIndex />} />
+                      <Route path="/mind/about" element={<MindAbout />} />
+                      <Route path="/mind/book" element={<MindCounselling />} />
+                      <Route path="/mind/counselling" element={<MindCounselling />} />
+                      <Route path="/mind/psychiatrists" element={<MindPsychiatrists />} />
+                      <Route path="/mind/psychiatrists/:id" element={<MindPsychiatristDetail />} />
+                      <Route path="/mind/counselling/:counsellorId" element={<MindCounselling />} />
+                      <Route path="/mind/session-schedule" element={<MindSessionSchedule />} />
+                      <Route path="/mind/resources" element={<MindResourceHub />} />
+                      <Route path="/mind/peer" element={<MindPeerSupport />} />
+                      <Route path="/mind/wellness" element={<MindWellness />} />
+                      <Route path="/mind/legal" element={<MindPrivacy />} />
+                      <Route path="/mind/intake/:packageId" element={<MindIntakeForm />} />
+                      {/* Mind dashboards with FindMedi-like sidebar */}
+                      <Route element={<MindDashboardShell />}>
+                        <Route path="/mind/dashboard" element={<MindDashboard />} />
+                        <Route path="/mind/user" element={<MindUserDashboard />} />
+                        <Route path="/mind/counsellor" element={<MindCounsellorDashboard />} />
+                        <Route path="/mind/psychiatrist" element={<MindPsychiatristDashboard />} />
+                        <Route path="/mind/admin" element={<MindAdminDashboard />} />
+                      </Route>
+                    </Route>
 
                   {/* Pharmacy Business routes */}
                   <Route path="/pharmacy-business" element={<PharmacyBusinessLayout />}>
