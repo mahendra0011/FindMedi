@@ -72,7 +72,7 @@ app.get(
   requireRoles("user"),
   asyncRoute(async (req, res) => {
     const [appointments, moods, latestAssessment, resources, counsellors, journals, messages, payments, notifications, packages] = await Promise.all([
-      Appointment.find({ student: req.user._id }).sort({ date: 1, time: 1 }).populate("counsellor", "name email specialization clinicName clinicAddress city"),
+      Appointment.find({ student: req.user._id }).sort({ date: 1, time: 1 }).populate("counsellor", "name email phone specialization clinicName clinicAddress clinicMapLink city"),
       MoodEntry.find({ user: req.user._id }).sort({ date: -1 }).limit(14),
       Assessment.findOne({ user: req.user._id }).sort({ createdAt: -1 }),
       Resource.find().sort({ createdAt: -1 }).limit(6),
@@ -255,6 +255,49 @@ app.get(
         { label: "Track today's mood", href: "/wellness" },
       ],
     });
+  })
+);
+
+app.put(
+  "/api/users/me",
+  asyncRoute(authRequired),
+  body("username").optional().trim(),
+  body("phone").optional().trim(),
+  validate,
+  asyncRoute(async (req, res) => {
+    const user = req.user;
+    if (!user) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    const body = req.body || {};
+    if (typeof body.username === "string" && body.username.trim()) {
+      const uname = body.username.trim().toLowerCase();
+      const exists = await User.findOne({ username: uname, _id: { $ne: user._id } });
+      if (exists) {
+        res.status(409).json({ error: "Username already taken" });
+        return;
+      }
+      user.username = uname;
+    }
+    for (const key of ["phone", "emergencyContactName", "emergencyContactPhone", "emergencyContactRelation", "specialization", "location", "clinicName", "clinicAddress", "city", "education", "responseTime", "bio", "profilePhotoUrl", "meetLink", "linkedin"]) {
+      if (typeof body[key] === "string") user[key] = body[key].trim();
+    }
+    if (typeof body.sessionPricing === "number" || (typeof body.sessionPricing === "string" && body.sessionPricing !== "")) {
+      user.sessionPricing = Number(body.sessionPricing) || user.sessionPricing;
+    }
+    if (body.supportPlanPrices && typeof body.supportPlanPrices === "object") {
+      user.supportPlanPrices = { ...(user.supportPlanPrices?.toObject?.() || user.supportPlanPrices || {}), ...body.supportPlanPrices };
+      user.hasCustomSupportPlanPrices = true;
+    }
+    if (body.privacySettings && typeof body.privacySettings === "object") {
+      user.privacySettings = { ...(user.privacySettings?.toObject?.() || user.privacySettings || {}), ...body.privacySettings };
+    }
+    if (body.notificationSettings && typeof body.notificationSettings === "object") {
+      user.notificationSettings = { ...(user.notificationSettings?.toObject?.() || user.notificationSettings || {}), ...body.notificationSettings };
+    }
+    await user.save();
+    res.json({ user: publicUser(user) });
   })
 );
 

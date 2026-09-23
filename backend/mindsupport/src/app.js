@@ -328,12 +328,13 @@ function normalizeAppointment(appointment, viewer) {
   const raw = appointment.toObject ? appointment.toObject({ virtuals: true }) : appointment;
   const student = raw.student && typeof raw.student === "object" ? raw.student : null;
   const counsellor = raw.counsellor && typeof raw.counsellor === "object" ? raw.counsellor : null;
-  const hideStudent = raw.isAnonymous && viewer?.role === "counsellor";
+  const isProviderViewer = viewer?.role === "counsellor" || viewer?.role === "psychiatrist";
+  const hideStudent = raw.isAnonymous && isProviderViewer;
   let notes = raw.notes || "";
-  if (raw.notesEncrypted && viewer?.role === "counsellor") {
+  if (raw.notesEncrypted && isProviderViewer) {
     notes = decryptText(raw.notes) || notes;
   }
-  if (raw.notesEncrypted && viewer?.role !== "counsellor") {
+  if (raw.notesEncrypted && !isProviderViewer) {
     notes = raw.notes ? "[encrypted]" : "";
   }
   return {
@@ -342,8 +343,15 @@ function normalizeAppointment(appointment, viewer) {
     studentId: student?.email || raw.studentEmail || String(raw.student || ""),
     studentEmail: hideStudent ? "Hidden by anonymous mode" : raw.studentEmail || student?.email || "",
     studentName: hideStudent ? raw.anonymousAlias || "Anonymous user" : student?.name || "",
+    studentPhone: student?.phone || "",
     counsellorId: counsellor?._id ? String(counsellor._id) : String(raw.counsellor || ""),
     counsellorName: raw.counsellorName || counsellor?.name || "",
+    counsellorPhone: counsellor?.phone || "",
+    counsellorEmail: counsellor?.email || "",
+    clinicName: counsellor?.clinicName || "",
+    clinicAddress: counsellor?.clinicAddress || "",
+    clinicMapLink: counsellor?.clinicMapLink || "",
+    city: counsellor?.city || "",
     date: raw.date,
     time: raw.time,
     mode: raw.mode,
@@ -547,8 +555,9 @@ async function canMessageUser(sender, recipient) {
   if (!sender || !recipient) return false;
   if (sender.role === "admin") return true;
   if (recipient.role === "admin") return true;
+  const isProvider = (r) => r === "counsellor" || r === "psychiatrist";
   if (sender.role === "user") {
-    if (recipient.role !== "counsellor" || !approvedCounsellorStatuses.includes(recipient.status)) return false;
+    if (!isProvider(recipient.role) || !approvedCounsellorStatuses.includes(recipient.status)) return false;
     const appointment = await Appointment.exists({
       student: sender._id,
       counsellor: recipient._id,
@@ -556,7 +565,7 @@ async function canMessageUser(sender, recipient) {
     });
     return Boolean(appointment);
   }
-  if (sender.role === "counsellor") {
+  if (isProvider(sender.role)) {
     if (recipient.role !== "user") return false;
     const appointment = await Appointment.exists({
       counsellor: sender._id,
@@ -611,7 +620,7 @@ async function hasAppointmentConflict(counsellorId, date, time, excludeId) {
 
 function canAccessAppointment(user, appt) {
   if (user.role === "admin") return true;
-  if (user.role === "counsellor" && String(appt.counsellor) === String(user._id)) return true;
+  if ((user.role === "counsellor" || user.role === "psychiatrist") && String(appt.counsellor) === String(user._id)) return true;
   if (user.role === "user" && String(appt.student) === String(user._id)) return true;
   return false;
 }

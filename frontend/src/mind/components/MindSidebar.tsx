@@ -28,8 +28,19 @@ const dashboardNav = [
 
 const providerTabs = [
   { icon: ClipboardList, label: 'Sessions', tab: 'sessions' },
+  { icon: Package, label: 'Packages', tab: 'packages' },
   { icon: Users, label: 'Patients', tab: 'patients' },
   { icon: FileText, label: 'Notes', tab: 'notes' },
+  { icon: BookOpen, label: 'Resources', tab: 'resources' },
+  { icon: Settings, label: 'Settings', tab: 'settings' },
+];
+
+const psychiatristTabs = [
+  { icon: ClipboardList, label: 'Sessions', tab: 'sessions' },
+  { icon: Package, label: 'Packages', tab: 'packages' },
+  { icon: Users, label: 'Patients', tab: 'patients' },
+  { icon: FileText, label: 'Notes', tab: 'notes' },
+  { icon: Pill, label: 'Prescriptions', tab: 'prescriptions' },
   { icon: BookOpen, label: 'Resources', tab: 'resources' },
   { icon: Settings, label: 'Settings', tab: 'settings' },
 ];
@@ -196,7 +207,7 @@ function SidebarContent({ collapsed, onToggleCollapse, onNavClick }: any) {
           <div>
             {!collapsed && <p className="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-sidebar-foreground/40">Menu</p>}
             <div className="space-y-0.5">
-              {providerTabs.map(item => {
+              {(isPsychDash ? psychiatristTabs : providerTabs).map(item => {
                 const Icon = item.icon;
                 const _ptab = new URLSearchParams(location.search).get('tab');
                 const active = _ptab === item.tab || (!_ptab && item.tab === 'sessions');

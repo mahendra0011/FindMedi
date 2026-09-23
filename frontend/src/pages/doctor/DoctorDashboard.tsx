@@ -82,17 +82,20 @@ export default function DoctorDashboard() {
       if (!mounted.current) return;
       const [a, r, b, records, rf, cp] = results.map(res => res.status === 'fulfilled' ? res.value : []);
       if (cp?.carePlans) setPatientCarePlans(cp.carePlans);
-      const docName = user?.name?.toLowerCase();
+      const docName = String(user?.name || "").toLowerCase().replace(/^dr\.?\s+/i, "");
+      const docId = String(user?._id || user?.id || "");
       const appts = a?.data || a || [];
-      const myAppointments = appts?.filter(apt => 
-        apt.doctor?.toLowerCase() === docName
+      const myAppointments = appts?.filter(apt =>
+        String(apt.doctor || apt.doctorName || "").toLowerCase().replace(/^dr\.?\s+/i, "").includes(docName) ||
+        (docId && String(apt.doctorId || apt.doctor_id || "") === docId)
       ) || [];
       setAppointments(myAppointments);
-      setReviews(r?.filter(rv => rv.doctorName === user?.name) || []);
-      
+      setReviews(r?.filter(rv => rv.doctorName === user?.name || (docId && String(rv.doctorId || "") === docId)) || []);
+
       const billsArray = b?.data || b?.bills || b || [];
-      const myBills = billsArray?.filter(bill => 
-        bill.doctor?.toLowerCase() === docName
+      const myBills = billsArray?.filter(bill =>
+        String(bill.doctor || bill.doctorName || "").toLowerCase().replace(/^dr\.?\s+/i, "").includes(docName) ||
+        (docId && String(bill.doctorId || "") === docId)
       ) || [];
       setBills(myBills);
 
@@ -104,9 +107,9 @@ export default function DoctorDashboard() {
       setLabReports(myLabReports);
 
       const refundArray = rf?.payments || rf?.data || rf || [];
-      const myRefunds = refundArray.filter(rf =>
-        rf.doctor?.toLowerCase() === docName ||
-        rf.patient?.toLowerCase().includes(docName)
+      const myRefunds = refundArray.filter(item =>
+        String(item.doctor || item.doctorName || "").toLowerCase().replace(/^dr\.?\s+/i, "").includes(docName) ||
+        (docId && String(item.doctorId || "") === docId)
       ) || [];
       setRefunds(myRefunds);
 

@@ -139,7 +139,7 @@ const [refunds, setRefunds] = useState([]);
       if (!mounted.current) return;
       const [a, tx, r, lb] = results.map(res => res.status === 'fulfilled' ? res.value : []);
       const appts = a?.data || a || [];
-      const myAppts = appts?.filter(apt => apt.doctor?.toLowerCase().includes(user?.name?.toLowerCase())) || [];
+      const myAppts = appts?.filter(apt => String(apt.doctor || apt.doctorName || "").toLowerCase().includes(String(user?.name || "").toLowerCase())) || [];
       setAppointments(myAppts);
       const txList = tx?.data || tx?.payments || tx || [];
       setBills(txList.filter(t => t.status === 'completed' || t.status === 'pending').map(txToEarningsBill));

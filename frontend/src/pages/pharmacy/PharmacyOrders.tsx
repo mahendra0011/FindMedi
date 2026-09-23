@@ -32,6 +32,15 @@ export default function PharmacyOrders() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
         <h1 className="font-heading text-xl font-bold text-foreground">Orders</h1>
         <div className="flex items-center gap-3 w-full sm:w-auto">
+          <Button variant="outline" size="sm" onClick={() => {
+            const rows = [["OrderID", "Customer", "Items", "Total", "Status"], ...orders.map(o => [o.orderId || o._id, o.patientName || o.customer || "", o.items?.length || o.totalItems || "", o.total || o.amount || 0, o.status || ""])];
+            const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+            const blob = new Blob([csv], { type: "text/csv" });
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = "pharmacy-orders.csv";
+            a.click();
+          }}>Export CSV</Button>
           <select value={status} onChange={e => setStatus(e.target.value)} className="h-10 rounded-lg border border-border bg-background text-sm px-3">
             <option value="All">All Status</option>
             <option value="Pending">Pending</option>

@@ -1509,9 +1509,16 @@ export default function LawyerDashboard() {
         {/* ── 8. REVIEWS & RATINGS TAB ───────────────────────────── */}
         {activeTab === 'reviews' && (
           <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-            <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
-              Client Feedback & Testimonials
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                Client Feedback & Testimonials
+              </h3>
+              {history.filter((h) => h.ratingByUser?.stars).length > 0 && (
+                <span className="text-xs font-bold text-amber-600">
+                  ★ {(history.filter((h) => h.ratingByUser?.stars).reduce((s, h) => s + (h.ratingByUser.stars || 0), 0) / history.filter((h) => h.ratingByUser?.stars).length).toFixed(1)} avg · {history.filter((h) => h.ratingByUser?.stars).length} reviews
+                </span>
+              )}
+            </div>
 
             {history.filter((h) => h.ratingByUser?.stars).length === 0 ? (
               <div className="py-12 text-center text-xs text-slate-500">

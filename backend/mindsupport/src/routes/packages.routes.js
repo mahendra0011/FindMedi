@@ -179,7 +179,8 @@ export function registerPackageRoutes(app, context) {
     "/api/packages/my",
     asyncRoute(authRequired),
     asyncRoute(async (req, res) => {
-      const filter = req.user.role === "counsellor"
+      const isProvider = ["counsellor", "psychiatrist"].includes(req.user.role);
+      const filter = isProvider
         ? { counsellor: req.user._id }
         : { user: req.user._id };
       const packages = await UserPackage.find(filter)
@@ -220,7 +221,8 @@ export function registerPackageRoutes(app, context) {
       if (req.user.role === "user" && String(pkg.user?._id || pkg.user) !== String(req.user._id)) {
         res.status(403).json({ error: "Forbidden" }); return;
       }
-      if (req.user.role === "counsellor" && String(pkg.counsellor?._id || pkg.counsellor) !== String(req.user._id)) {
+      const isProvider = ["counsellor", "psychiatrist"].includes(req.user.role);
+      if (isProvider && String(pkg.counsellor?._id || pkg.counsellor) !== String(req.user._id)) {
         res.status(403).json({ error: "Forbidden" }); return;
       }
       res.json(normalizeUserPackage(pkg));
@@ -239,7 +241,8 @@ export function registerPackageRoutes(app, context) {
       if (req.user.role === "user" && String(pkg.user?._id || pkg.user) !== String(req.user._id)) {
         res.status(403).json({ error: "Forbidden" }); return;
       }
-      if (req.user.role === "counsellor" && String(pkg.counsellor?._id || pkg.counsellor) !== String(req.user._id)) {
+      const isProvider = ["counsellor", "psychiatrist"].includes(req.user.role);
+      if (isProvider && String(pkg.counsellor?._id || pkg.counsellor) !== String(req.user._id)) {
         res.status(403).json({ error: "Forbidden" }); return;
       }
       pkg.status = status;

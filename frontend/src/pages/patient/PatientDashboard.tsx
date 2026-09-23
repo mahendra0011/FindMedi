@@ -298,6 +298,9 @@ export default function PatientDashboard() {
             <p className="text-white/80 mt-1">Here's your health snapshot for today</p>
           </div>
           <div className="flex items-center gap-3">
+            <Button onClick={() => navigate('/find-vehicle?emergency=true')} className="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs h-10 px-4 rounded-xl shadow-lg">
+              🚨 SOS Ambulance
+            </Button>
             <div className="hidden sm:block bg-white/15 backdrop-blur-sm rounded-xl px-4 py-2.5 text-sm">
               <p className="text-white/70 text-xs">{new Date().toLocaleDateString('en-IN', { weekday: 'long' })}</p>
               <p className="font-semibold">{new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>

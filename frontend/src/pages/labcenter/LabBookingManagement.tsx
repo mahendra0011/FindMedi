@@ -26,7 +26,8 @@ export default function LabBookingManagement() {
   }, []);
 
   const filtered = bookings.filter(b => {
-    const ms = !search || b.patient.toLowerCase().includes(search.toLowerCase());
+    const pname = String(b.patient || b.patientName || b.name || "").toLowerCase();
+    const ms = !search || pname.includes(search.toLowerCase());
     const mf = filter === 'All' || b.status === filter;
     return ms && mf;
   });
@@ -86,7 +87,7 @@ export default function LabBookingManagement() {
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center"><User className="w-6 h-6 text-primary" /></div>
                       <div>
-                        <h3 className="font-heading font-semibold text-foreground">{b.patient}</h3>
+                        <h3 className="font-heading font-semibold text-foreground">{b.patient || b.patientName || "Patient"}</h3>
                         <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
                           <span className="flex items-center gap-1"><CalendarDays className="w-3.5 h-3.5" />{b.date}</span>
                           <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{b.time}</span>

@@ -295,7 +295,7 @@ app.post(
   body("counsellorId").notEmpty().withMessage("Counsellor is required"),
   body("date").matches(/^\d{4}-\d{2}-\d{2}$/).withMessage("Valid date required (YYYY-MM-DD)"),
   body("time").notEmpty().withMessage("Time is required"),
-  body("mode").isIn(["google-meet", "in-person", "voice-call"]).withMessage("Valid mode required"),
+  body("mode").isIn(["google-meet", "in-person", "voice-call", "video-chat", "chat-only", "online"]).withMessage("Valid mode required"),
   body("concern").optional().trim().escape(),
   validate,
   asyncRoute(authRequired),
@@ -327,14 +327,17 @@ app.post(
       res.status(409).json({ error: "This counsellor marked that date unavailable" });
       return;
     }
-    const existingBooking = await Appointment.findOne({
-      student: student._id,
-      counsellor: counsellor._id,
-      status: { $in: activeStatuses },
-    });
-    if (existingBooking) {
-      res.status(409).json({ error: "You already have an active booking with this counsellor. Use Session Schedule to manage it." });
-      return;
+    // For non-package bookings, enforce single active booking. Package bookings allow multiple sessions as cadence handles timing.
+    if (!req.body?.packageId) {
+      const existingBooking = await Appointment.findOne({
+        student: student._id,
+        counsellor: counsellor._id,
+        status: { $in: activeStatuses },
+      });
+      if (existingBooking) {
+        res.status(409).json({ error: "You already have an active booking with this counsellor. Use Session Schedule to manage it." });
+        return;
+      }
     }
     if (await hasAppointmentConflict(counsellor._id, date, time)) {
       res.status(409).json({ error: "This counsellor already has a session at that time" });
@@ -501,7 +504,7 @@ app.put(
   "/api/appointments/:id",
   body("date").optional().matches(/^\d{4}-\d{2}-\d{2}$/).withMessage("Valid date required (YYYY-MM-DD)"),
   body("time").optional().notEmpty().withMessage("Time cannot be empty"),
-  body("mode").optional().isIn(["google-meet", "in-person", "voice-call"]).withMessage("Valid mode required"),
+  body("mode").optional().isIn(["google-meet", "in-person", "voice-call", "video-chat", "chat-only", "online"]).withMessage("Valid mode required"),
   body("concern").optional().trim().escape(),
   body("notes").optional().trim().escape(),
   validate,
@@ -565,6 +568,11 @@ app.put(
       res.status(409).json({ error: "This counsellor already has a session at that time" });
       return;
     }
+    if ("notes" in payload && payload.notes) {
+      const { encrypted, encryptedFlag } = encryptText(payload.notes);
+      appointment.notes = encrypted;
+      appointment.notesEncrypted = encryptedFlag;
+    }
     await appointment.save();
     if (appointment.packageId) {
       const userPackage = await UserPackage.findById(appointment.packageId);
@@ -589,11 +597,6 @@ app.put(
         }
         await userPackage.save();
       }
-    }
-    if ("notes" in payload && payload.notes) {
-      const { encrypted, encryptedFlag } = encryptText(payload.notes);
-      appointment.notes = encrypted;
-      appointment.notesEncrypted = encryptedFlag;
     }
     const populated = await appointment.populate("student counsellor");
     await createNotification({

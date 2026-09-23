@@ -53,7 +53,8 @@ export default function PatientReviews() {
     try {
       const r = await api.getReviews();
       const reviewsList = r?.reviews || r?.data || r || [];
-      setReviews(Array.isArray(reviewsList) ? reviewsList.filter(rv => rv.patientName === user?.name) : []);
+      const uid = String(user?.id || user?._id || "");
+      setReviews(Array.isArray(reviewsList) ? reviewsList.filter(rv => rv.patientName === user?.name || (uid && String(rv.patientId || rv.patient_id || "") === uid)) : []);
     } catch (e) { console.error(e); }
     setLoading(false);
   };

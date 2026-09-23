@@ -333,8 +333,10 @@ export default function PatientPrescriptions() {
                 </div>
               </div>
 
-              {/* Close */}
-              <Button variant="outline" className="w-full rounded-xl" onClick={() => setSelectedRx(null)}>Close</Button>
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1 rounded-xl" onClick={() => window.print()}>🖨️ Print</Button>
+                <Button variant="outline" className="flex-1 rounded-xl" onClick={() => setSelectedRx(null)}>Close</Button>
+              </div>
             </div>
           </motion.div>
         </div>

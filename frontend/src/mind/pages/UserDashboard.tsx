@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
 import {
   Activity,
   Archive,
@@ -104,6 +105,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { api } from "@/mind/lib/api";
 import { getRealtimeSocket } from "@/mind/lib/socket";
 import { sanitizeInput } from "@/mind/lib/sanitize";
+import SecureChatPanel from "@/mind/components/SecureChatPanel";
 
 const themeOptions = [
   { id: "default", name: "Midnight Calm", color: "bg-indigo-500" },
@@ -496,8 +498,17 @@ const UserDashboard = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
-  const user = null;
+  const { user } = useAuth();
   const [data, setData] = useState(emptyData);
+
+
+  const [activeChatPeer, setActiveChatPeer] = useState<string | null>(null);
+  const [activeChatPeerName, setActiveChatPeerName] = useState<string>("");
+
+  const handleChat = (peerId: string, peerName = "") => {
+    setActiveChatPeer(String(peerId));
+    if (peerName) setActiveChatPeerName(peerName);
+  };
   const [loading, setLoading] = useState(true);
   const [theme, setTheme] = useState(localStorage.getItem("mindsupport_theme") || "default");
   const [journalText, setJournalText] = useState("");
@@ -601,15 +612,6 @@ const UserDashboard = () => {
   useEffect(() => {
     api.get("/api/consent/status").then(({ data }) => setConsentAccepted(data.accepted)).catch(() => {});
   }, []);
-
-  useEffect(() => {
-    if (!user) return;
-    let active = true;
-    api.get("/api/assignments/my")
-      .then(({ data }) => { if (active) setAssignments(data || []); })
-      .catch(() => { if (active) setAssignments([]); });
-    return () => { active = false; };
-  }, [user]);
 
   useEffect(() => {
     if (data.packages?.length > 0) {
@@ -758,6 +760,7 @@ const UserDashboard = () => {
         },
         notificationSettings: {
           session: notificationPrefs.session,
+          mood: notificationPrefs.mood,
           messages: notificationPrefs.messages,
           payments: notificationPrefs.payments,
           platform: true,
@@ -855,11 +858,28 @@ const UserDashboard = () => {
             )}
 
             <div className="dashboard-stagger grid md:grid-cols-2 xl:grid-cols-5 gap-4">
-              <Metric title="Upcoming sessions" value={data.stats.upcomingSessions} icon={CalendarDays} />
+              <button type="button" onClick={() => data.stats.unreadMessages > 0 && setActiveTab("sessions")} className="text-left">
+                <Metric title="Upcoming sessions" value={data.stats.upcomingSessions} icon={CalendarDays} />
+              </button>
               <Metric title="Mood score" value={`${data.stats.moodScore}/5`} icon={Smile} />
               <Metric title="Wellness streak" value={`${data.stats.wellnessStreak} days`} icon={HeartPulse} />
-              <Metric title="Unread messages" value={data.stats.unreadMessages} icon={MessageCircle} />
+              <button type="button" onClick={() => setActiveTab("sessions")} className="text-left w-full">
+                <Metric title="Unread messages" value={data.stats.unreadMessages} icon={MessageCircle} />
+              </button>
               <Metric title="Daily tip" value={data.stats.dailyTip} icon={Sparkles} compact />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" variant="outline" className="gap-1" onClick={() => setActiveTab("sessions")}>
+                <CalendarDays className="h-4 w-4" /> View Sessions
+              </Button>
+              <Button size="sm" variant="outline" className="gap-1 border-rose-500/30 text-rose-500 hover:bg-rose-500/10" onClick={triggerSOS}>
+                <Siren className="h-4 w-4" /> SOS — Emergency Support
+              </Button>
+              {activeChatPeer && (
+                <Button size="sm" variant="outline" className="gap-1" onClick={() => setActiveTab("sessions")}>
+                  <MessageCircle className="h-4 w-4" /> Open Chat
+                </Button>
+              )}
             </div>
                 <div className="dashboard-stagger grid lg:grid-cols-3 gap-6">
                   <Card className="dashboard-card-motion glass-card bg-gradient-to-br from-primary/10 via-primary/5 to-secondary/10 border-primary/20 overflow-hidden relative">
@@ -1060,15 +1080,31 @@ const UserDashboard = () => {
                               </div>
                               <div className="flex flex-wrap gap-2 sm:shrink-0">
                                 <Badge variant="secondary" className="capitalize">{appointment.status}</Badge>
-                                {appointment.meetingLink && (
+                                {appointment.mode === "chat-only" ? (
+                                  <Button size="sm" variant="outline" className="gap-1.5 border-violet-500/25" onClick={() => { handleChat(appointment.counsellorId, appointment.counsellorName); setActiveTab("sessions"); }}>
+                                    <MessageCircle className="h-3.5 w-3.5" /> Chat
+                                  </Button>
+                                ) : appointment.mode === "voice-call" ? (
+                                  (appointment.counsellorPhone || appointment.counsellor?.phone) ? (
+                                    <Button size="sm" variant="outline" className="gap-1.5 border-emerald-500/25" onClick={() => window.open(`tel:${appointment.counsellorPhone || appointment.counsellor?.phone}`, "_self")}>
+                                      <Phone className="h-3.5 w-3.5" /> Call
+                                    </Button>
+                                  ) : (
+                                    <Badge variant="outline" className="text-[10px] border-emerald-500/30 text-emerald-500">Voice — counsellor will call</Badge>
+                                  )
+                                ) : appointment.mode === "in-person" ? (
+                                  <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-500">In-person{appointment.clinicName || appointment.counsellor?.clinicName ? ` — ${appointment.clinicName || appointment.counsellor?.clinicName}` : ""}</Badge>
+                                ) : appointment.meetingLink ? (
                                   <Button asChild size="sm" variant="outline" className="gap-1.5 border-primary/25 hover:bg-primary/10">
                                     <a href={appointment.meetingLink} target="_blank" rel="noreferrer">
                                       <Video className="h-3.5 w-3.5" />
                                       Join
                                     </a>
                                   </Button>
+                                ) : (
+                                  <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-500">Meet link pending</Badge>
                                 )}
-                                <Button size="sm" variant="outline" className="gap-1" onClick={() => navigate("/mind/counselling")}>
+                                <Button size="sm" variant="outline" className="gap-1" onClick={() => navigate(`/mind/session-schedule?counsellorId=${appointment.counsellorId}&packageId=${appointment.packageId || ""}&plan=${appointment.supportPlanId || "short-term"}`)}>
                                   Reschedule
                                 </Button>
                               </div>
@@ -1651,7 +1687,7 @@ const UserDashboard = () => {
                       </div>
                     ) : (
                       filteredAppointments.filter(a => !["cancelled", "completed", "declined", "no-show"].includes(a.status)).map((appointment) => {
-                        const modeIcons = { "online": Video, "google-meet": Video, "voice-call": Phone, "in-person": MapPin };
+                        const modeIcons: any = { "online": Video, "google-meet": Video, "voice-call": Phone, "in-person": MapPin, "video-chat": Video, "chat-only": MessageCircle };
                         const ModeIcon = modeIcons[appointment.mode] || Video;
                         return (
                           <div key={appointment.id} className="rounded-xl border border-glass-border/40 bg-background/60 p-4 hover:bg-background/80 hover:border-primary/20 transition-all duration-200">
@@ -1686,13 +1722,57 @@ const UserDashboard = () => {
                                 )}
                               </div>
                               <div className="flex flex-wrap gap-2 shrink-0">
-                                {appointment.meetingLink && (
+                                {appointment.mode === "chat-only" ? (
+                                  <Button size="sm" className="gap-1.5 bg-violet-600 hover:bg-violet-700" onClick={() => handleChat(appointment.counsellorId, appointment.counsellorName)}>
+                                    <MessageCircle className="h-3.5 w-3.5" /> Chat
+                                  </Button>
+                                ) : appointment.mode === "voice-call" ? (
+                                  (appointment.counsellorPhone || appointment.counsellor?.phone) ? (
+                                    <Button size="sm" className="gap-1.5 bg-emerald-600 hover:bg-emerald-700" onClick={() => window.open(`tel:${appointment.counsellorPhone || appointment.counsellor?.phone}`, "_self")}>
+                                      <Phone className="h-3.5 w-3.5" /> Call {appointment.counsellorPhone || appointment.counsellor?.phone}
+                                    </Button>
+                                  ) : (
+                                    <Badge variant="outline" className="text-xs h-8 px-3 grid place-items-center border-emerald-500/30 text-emerald-500">Voice session — counsellor will call you</Badge>
+                                  )
+                                ) : appointment.mode === "in-person" ? (
+                                  (appointment.clinicAddress || appointment.counsellor?.clinicAddress) ? (
+                                    <Button size="sm" variant="outline" className="gap-1" onClick={() => window.open(`https://maps.google.com/?q=${encodeURIComponent(appointment.clinicAddress || appointment.counsellor?.clinicAddress || "")}`, "_blank")}>
+                                      <MapPin className="h-3.5 w-3.5" /> Directions
+                                    </Button>
+                                  ) : (
+                                    <Badge variant="outline" className="text-xs h-8 px-3 grid place-items-center border-amber-500/30 text-amber-500">In-person{appointment.clinicName || appointment.counsellor?.clinicName ? ` — ${appointment.clinicName || appointment.counsellor?.clinicName}` : " — venue shared soon"}</Badge>
+                                  )
+                                ) : appointment.meetingLink ? (
                                   <Button asChild size="sm" className="gap-1.5 bg-gradient-to-r from-primary to-secondary shadow-lg shadow-primary/20">
                                     <a href={appointment.meetingLink} target="_blank" rel="noreferrer"><Video className="h-3.5 w-3.5" /> Join</a>
                                   </Button>
+                                ) : (
+                                  <Badge variant="outline" className="text-xs h-7 px-3 grid place-items-center border-amber-500/30 text-amber-500">Meet link pending</Badge>
                                 )}
                                 <Button size="sm" variant="outline" className="gap-1 border-primary/25" onClick={() => navigate(`/mind/session-schedule?counsellorId=${appointment.counsellorId}&packageId=${appointment.packageId || ""}&plan=${appointment.supportPlanId || "short-term"}`)}>
                                   <CalendarDays className="h-3.5 w-3.5" /> Reschedule
+                                </Button>
+                                {(appointment.mode === "video-chat" || appointment.mode === "google-meet") && (
+                                  <Button size="sm" variant="outline" className="gap-1" onClick={() => handleChat(appointment.counsellorId, appointment.counsellorName)}>
+                                    <MessageCircle className="h-3.5 w-3.5" /> Chat
+                                  </Button>
+                                )}
+                                {appointment.mode === "chat-only" && (
+                                  <Button size="sm" variant="outline" className="gap-1" onClick={() => handleChat(appointment.counsellorId, appointment.counsellorName)}>
+                                    <MessageCircle className="h-3.5 w-3.5" /> Open Chat
+                                  </Button>
+                                )}
+                                <Button size="sm" variant="outline" className="gap-1 border-rose-500/25 text-rose-500 hover:bg-rose-500/10" onClick={async () => {
+                                  if (!window.confirm("Cancel this session?")) return;
+                                  try {
+                                    await api.put(`/api/appointments/${appointment.id}`, { status: "cancelled" });
+                                    toast({ title: "Session cancelled" });
+                                    loadDashboard();
+                                  } catch (e) {
+                                    toast({ variant: "destructive", title: "Cancel failed", description: e?.response?.data?.error || e?.message || "" });
+                                  }
+                                }}>
+                                  Cancel
                                 </Button>
                               </div>
                             </div>
@@ -1702,6 +1782,12 @@ const UserDashboard = () => {
                     )}
                   </CardContent>
                 </Card>
+
+                {activeChatPeer && (
+                  <div className="mt-6">
+                    <SecureChatPanel peerId={activeChatPeer} peerName={activeChatPeerName} onClose={() => setActiveChatPeer(null)} />
+                  </div>
+                )}
 
               </TabsContent>
 
@@ -1848,7 +1934,7 @@ const UserDashboard = () => {
                         </div>
                       ) : (
                         filteredHistory.map((appointment) => {
-                          const modeIcons = { "online": Video, "google-meet": Video, "voice-call": Phone, "in-person": MapPin };
+                          const modeIcons: any = { "online": Video, "google-meet": Video, "video-chat": Video, "chat-only": MessageCircle, "voice-call": Phone, "in-person": MapPin };
                           const ModeIcon = modeIcons[appointment.mode] || Video;
                           const statusConfig = {
                             completed: { icon: CheckCircle2, color: "emerald", gradient: "from-emerald-500/20 to-emerald-500/5 border-emerald-500/25", badge: "bg-emerald-500/15 text-emerald-600 border-emerald-500/20" },
@@ -1878,6 +1964,29 @@ const UserDashboard = () => {
                                     <span>{appointment.date} at {appointment.time}</span>
                                     <span className="text-foreground/30">&middot;</span>
                                     <span className="capitalize">{appointment.mode === "google-meet" ? "Online" : appointment.mode}</span>
+                                  </div>
+                                  <div className="mt-2 flex flex-wrap gap-1.5">
+                                    {appointment.meetingLink && (
+                                      <a href={appointment.meetingLink} target="_blank" rel="noreferrer" className="text-[11px] px-2 py-1 rounded-lg bg-primary/10 text-primary hover:bg-primary/20">Join recording/link</a>
+                                    )}
+                                    <button type="button" onClick={() => handleChat(appointment.counsellorId, appointment.counsellorName)} className="text-[11px] px-2 py-1 rounded-lg bg-violet-500/10 text-violet-400 hover:bg-violet-500/20">Chat</button>
+                                    <button type="button" onClick={() => navigate(`/mind/counselling/${appointment.counsellorId}`)} className="text-[11px] px-2 py-1 rounded-lg bg-foreground/5 text-foreground/60 hover:bg-foreground/10">Rebook</button>
+                                    {appointment.status === "completed" && !appointment.reviewSubmitted && (
+                                      <button type="button" onClick={async () => {
+                                        const r = window.prompt("Rate this session 1-5", "5");
+                                        const rating = Math.max(1, Math.min(5, Number(r) || 5));
+                                        try {
+                                          await api.post("/api/reviews", { appointmentId: appointment.id, professionalism: rating, helpfulness: rating, communication: rating });
+                                          toast({ title: "Review submitted" });
+                                          loadDashboard();
+                                        } catch (e) {
+                                          toast({ variant: "destructive", title: "Review failed", description: e?.response?.data?.error || e?.message || "" });
+                                        }
+                                      }} className="text-[11px] px-2 py-1 rounded-lg bg-amber-500/10 text-amber-500 hover:bg-amber-500/20">★ Review</button>
+                                    )}
+                                    {appointment.reviewSubmitted && (
+                                      <span className="text-[11px] px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-500">Reviewed ✓</span>
+                                    )}
                                   </div>
                                 </div>
                               </div>
@@ -2082,6 +2191,19 @@ const UserDashboard = () => {
                                     <span className="truncate">{entry.gratitude}</span>
                                   </div>
                                 )}
+                                <div className="mt-2 flex gap-1.5">
+                                  <button type="button" onClick={async () => {
+                                    try {
+                                      await api.patch(`/api/journals/${entry.id}`, { sharedWithCounsellor: !entry.shared });
+                                      toast({ title: entry.shared ? "Made private" : "Shared with counsellor" });
+                                      loadDashboard();
+                                    } catch (e) {
+                                      toast({ variant: "destructive", title: "Update failed", description: e?.message || "" });
+                                    }
+                                  }} className="text-[11px] px-2 py-1 rounded-lg bg-foreground/5 text-foreground/60 hover:bg-foreground/10">
+                                    {entry.shared ? "Make private" : "Share"}
+                                  </button>
+                                </div>
                                 <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
                               </div>
                             );
