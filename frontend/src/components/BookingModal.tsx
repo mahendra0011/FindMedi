@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { BadgeCheck, CalendarDays, CheckCircle, CheckCircle2, ChevronRight, CreditCard, Landmark, Smartphone, Wallet, ArrowLeft, Users, FileDown, Clock, User, UserPlus, Heart, Phone, MessageSquare, Video, MapPin, Home } from 'lucide-react';
+import { BadgeCheck, CalendarDays, CheckCircle, CheckCircle2, ChevronRight, CreditCard, Landmark, Smartphone, Wallet, ArrowLeft, Users, FileDown, Clock, User, UserPlus, Heart, Phone, MessageSquare, Video, MapPin, Home, Info, Package as PackageIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -40,6 +40,9 @@ export default function BookingModal({
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [bookingDetails, setBookingDetails] = useState(null);
   const [appointmentMode, setAppointmentMode] = useState('offline');
+  // Mind package selection (counsellor/psychiatrist booking me alag section)
+  const [selectedPackageId, setSelectedPackageId] = useState('single');
+  const [packageInfoId, setPackageInfoId] = useState(null);
   const [intakeFormData, setIntakeFormData] = useState({
     chiefComplaint: '', chiefComplaintOther: '', symptomsDuration: '',
     pastMedicalHistory: { hasHistory: null, details: '' },
@@ -77,7 +80,11 @@ export default function BookingModal({
       setBookingNotes('');
       setPaymentMethod('card');
       setBookingDetails(null);
-      setAppointmentMode('offline');
+      // Mind providers (offline mode nahi dete) ke liye pehla available mode default
+      {
+        const modes = doc?.appointmentModes;
+        setAppointmentMode(modes && modes.length > 0 && !modes.includes('offline') ? modes[0] : 'offline');
+      }
       setIntakeFormData({
         chiefComplaint: '', chiefComplaintOther: '', symptomsDuration: '',
         pastMedicalHistory: { hasHistory: null, details: '' },
@@ -89,6 +96,8 @@ export default function BookingModal({
       });
       setBookingFor('self');
       setSelectedFamilyMember(null);
+      setSelectedPackageId('single');
+      setPackageInfoId(null);
       setOtherPatient({ name: '', gender: 'Male', phone: '', age: '', bloodGroup: '' });
 
       // Fetch family members
@@ -134,6 +143,63 @@ export default function BookingModal({
     return Number(fees.offline || doc.offline_fee || doc.consultation_fees || doc.fees || 0);
   };
   const currentFee = getModeBasedFee(appointmentMode, currentDoc);
+
+  // ---- Mind packages (counsellor/psychiatrist ke supportPlanPrices se) ----
+  // Sirf packages dikhte hain + har package par (i) button se complete details.
+  const PLAN_META = {
+    shortTerm: { name: 'Short-Term Pack', sessions: 4, validity: '30 days', desc: '4 sessions — stress, anxiety, exam pressure ke liye.' },
+    mediumTerm: { name: 'Medium-Term Pack', sessions: 8, validity: '60 days', desc: '8 sessions — recovery aur personal growth ke liye.' },
+    longTerm: { name: 'Long-Term Pack', sessions: 12, validity: '90 days', desc: '12 sessions — lambi therapy aur steady progress ke liye.' },
+  };
+  const providerPlans = useMemo(() => {
+    const doc = currentDoc;
+    if (!doc) return [];
+    const spp = doc.supportPlanPrices || {};
+    const plans = [];
+    // Custom packages (counsellor ke apne) sabse pehle
+    const customs = Array.isArray(doc.customPackages) ? doc.customPackages.filter(c => c && c.isActive !== false) : [];
+    for (const c of customs) {
+      const price = Number(c.price ?? c.bookingPrice ?? c.perSessionPrice ?? 0);
+      if (!price || price <= 0) continue;
+      plans.push({
+        id: `custom:${c._id || c.id || c.name}`,
+        name: c.name || 'Custom Pack',
+        sessions: Number(c.sessions ?? c.sessionsTotal ?? 1) || 1,
+        validity: c.validity || c.duration || 'As agreed',
+        price,
+        desc: c.description || c.summary || '',
+        modes: c.modes || doc.appointmentModes || [],
+        raw: c,
+      });
+    }
+    for (const key of Object.keys(PLAN_META)) {
+      const price = Number(spp[key] ?? 0);
+      if (!price || price <= 0) continue;
+      plans.push({ id: key, price, modes: doc.appointmentModes || [], ...PLAN_META[key] });
+    }
+    // Fallback: counsellor/psychiatrist Doctor doc me supportPlanPrices nahi bhi ho tab bhi packages dikhao
+    if (plans.length === 0 && doc) {
+      const spec = String(doc.specialization || '').toLowerCase();
+      const isMindProvider = spec.includes('counsell') || spec.includes('psychiatr') || spec.includes('psycholog');
+      if (isMindProvider) {
+        const base = Number(doc.consultation_fees || doc.fees || 800) || 800;
+        const fallback = {
+          shortTerm: Math.round(base * 4 * 0.85),
+          mediumTerm: Math.round(base * 8 * 0.75),
+          longTerm: Math.round(base * 12 * 0.70),
+        };
+        for (const key of Object.keys(PLAN_META)) {
+          plans.push({ id: key, price: fallback[key], modes: doc.appointmentModes || [], ...PLAN_META[key] });
+        }
+      }
+    }
+    return plans;
+  }, [currentDoc]);
+  const hasPackages = providerPlans.length > 0;
+  const selectedPackage = selectedPackageId === 'single' ? null : (providerPlans.find(p => p.id === selectedPackageId) || null);
+  // Mind providers (package wale): price kabhi mode se nahi badalta — sirf single/package price.
+  const singleFee = Number(currentDoc?.consultation_fees || currentDoc?.fees || currentFee || 0);
+  const effectiveFee = hasPackages ? (selectedPackage ? selectedPackage.price : singleFee) : currentFee;
 
   const isHospital = useMemo(() => {
     if (facility?.type === 'hospital') return true;
@@ -234,14 +300,14 @@ export default function BookingModal({
       return;
     }
 
-    // consultation_fees must be a valid positive number
-    if (!currentFee || currentFee <= 0) {
+    // consultation/package price must be a valid positive number
+    if (!effectiveFee || effectiveFee <= 0) {
       toast.error('Doctor consultation fee is not set. Please contact support.');
       return;
     }
-    setBookingDetails({ doctor: currentDoc.name, specialization: currentDoc.specialization, date: bookingDate, time: bookingTime, fees: currentFee, mode: appointmentMode });
+    setBookingDetails({ doctor: currentDoc.name, specialization: currentDoc.specialization, date: bookingDate, time: bookingTime, fees: effectiveFee, mode: appointmentMode, packageId: selectedPackage?.id || '', packageName: selectedPackage?.name || '' });
     
-    setBookingStep(1); // Go to "Who is this for?" step
+    setBookingStep(hasPackages ? 6 : 1); // Mind providers → naya package step, warna "Who is this for?"
   };
 
   const handlePayment = async () => {
@@ -272,7 +338,7 @@ export default function BookingModal({
         }
       } catch (_) { /* proceed even if check fails — server will catch duplicates */ }
 
-      const fees = currentFee;
+      const fees = effectiveFee;
       if (!fees || fees <= 0) {
         throw new Error('Doctor consultation fee is not set. Please contact support.');
       }
@@ -304,13 +370,18 @@ export default function BookingModal({
           familyMemberName: bookingFor === 'family' ? selectedFamilyMember?.name : undefined,
           otherPatientDetails: bookingFor === 'other' ? otherPatient : undefined,
           preConsultationDetails: intakeFormData,
+          packageId: selectedPackage?.id || '',
+          packageName: selectedPackage?.name || '',
+          packageSessions: selectedPackage?.sessions || 0,
         },
         amount: fees,
         method: paymentMethod,
-        description: `Consultation with ${currentDoc.name}`,
+        description: selectedPackage ? `${selectedPackage.name} with ${currentDoc.name}` : `Consultation with ${currentDoc.name}`,
         provider: facility?.name || currentDoc.name,
         lineItems: [{
-          name: `${
+          name: selectedPackage
+            ? `${selectedPackage.name} (${selectedPackage.sessions} session${selectedPackage.sessions > 1 ? 's' : ''})`
+            : `${
             appointmentMode === 'chat'
               ? 'Chat'
               : appointmentMode === 'video'
@@ -489,6 +560,7 @@ export default function BookingModal({
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[580px] md:max-w-[620px] max-h-[90vh] overflow-y-auto w-[calc(100%-2rem)] sm:w-full rounded-2xl">
         {bookingStep === -1 && (
@@ -552,7 +624,7 @@ export default function BookingModal({
                 Quick booking for {facility?.name || 'Clinic'} - {currentDoc?.name}
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-3 py-2">
+            <div className="flex flex-col gap-3 py-2">
               <div className="flex items-center gap-2.5">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shrink-0">
                   <span className="text-primary-foreground font-bold text-xs">{currentDoc?.name?.split(' ')?.map(n=>n?.[0])?.join('')?.slice(0,2) || 'DR'}</span>
@@ -572,8 +644,8 @@ export default function BookingModal({
                 </div>
               </div>
               {/* Appointment Mode Selector */}
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-foreground">Mode of Appointment</label>
+              <div className={`space-y-2 ${hasPackages ? 'order-5 hidden' : 'order-1'}`}>
+                <label className="text-xs font-semibold text-foreground">{hasPackages ? 'Modes Provided' : 'Mode of Appointment'}</label>
                 <div className={`grid gap-2 ${availableModes.length === 1 ? 'grid-cols-1' : availableModes.length === 2 ? 'grid-cols-2' : availableModes.length === 3 ? 'grid-cols-3' : availableModes.length === 4 ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2 sm:grid-cols-5'}`}>
                   {[
                     { key: 'offline', label: offlineLabel, desc: offlineDesc, Icon: MapPin, color: 'text-violet-600', activeBg: 'border-violet-500 bg-violet-50 dark:bg-violet-500/10' },
@@ -596,19 +668,68 @@ export default function BookingModal({
                         )}
                         <Icon className={`w-4 h-4 ${active ? color : 'text-muted-foreground'}`} />
                         <p className={`text-[11px] font-semibold leading-none ${active ? color : 'text-foreground'}`}>{label}</p>
-                        <p className={`text-[10px] font-bold ${active ? 'text-foreground' : 'text-muted-foreground'}`}>
-                          {fee > 0 ? `₹${fee}` : 'Free'}
-                        </p>
+                        {hasPackages ? (
+                          <p className={`text-[10px] ${active ? 'text-foreground' : 'text-muted-foreground'}`}>{desc}</p>
+                        ) : (
+                          <p className={`text-[10px] font-bold ${active ? 'text-foreground' : 'text-muted-foreground'}`}>
+                            {fee > 0 ? `�,1${fee}` : 'Free'}
+                          </p>
+                        )}
                       </button>
                     );
                   })}
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
+              {/* Package selection — sirf counsellor/psychiatrist (jinke packages hain) */}
+              {hasPackages && (
+                <div className="space-y-2 rounded-xl border border-primary/20 bg-primary/[0.03] p-3 order-4 hidden">
+                  <div className="flex items-center gap-1.5">
+                    <PackageIcon className="w-3.5 h-3.5 text-primary" />
+                    <label className="text-xs font-semibold text-foreground">Select Package <span className="font-normal text-muted-foreground">(optional)</span></label>
+                  </div>
+                  <div className="space-y-1.5">
+                    <button key="single" type="button" onClick={() => setSelectedPackageId('single')}
+                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl border-2 text-left transition-all ${selectedPackageId === 'single' ? 'border-primary bg-primary/5 shadow-sm' : 'border-border/60 bg-card hover:border-primary/30'}`}>
+                      <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${selectedPackageId === 'single' ? 'border-primary' : 'border-muted-foreground/40'}`}>
+                        {selectedPackageId === 'single' && <span className="w-2 h-2 rounded-full bg-primary" />}
+                      </span>
+                      <span className="flex-1 min-w-0">
+                        <span className="block text-xs font-semibold text-foreground">Single Session</span>
+                        <span className="block text-[10px] text-muted-foreground">Sirf ye wali appointment</span>
+                      </span>
+                      <span className="text-xs font-bold text-primary shrink-0">₹{hasPackages ? (singleFee || 0) : (currentFee || 0)}</span>
+                    </button>
+                    {providerPlans.map((p) => {
+                      const active = selectedPackageId === p.id;
+                      const perSession = p.sessions > 0 ? Math.round(p.price / p.sessions) : p.price;
+                      return (
+                        <div key={p.id} className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl border-2 text-left transition-all ${active ? 'border-primary bg-primary/5 shadow-sm' : 'border-border/60 bg-card hover:border-primary/30'}`}>
+                          <button type="button" onClick={() => setSelectedPackageId(active ? 'single' : p.id)} className="flex items-center gap-2 flex-1 min-w-0 text-left">
+                            <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${active ? 'border-primary' : 'border-muted-foreground/40'}`}>
+                              {active && <span className="w-2 h-2 rounded-full bg-primary" />}
+                            </span>
+                            <span className="flex-1 min-w-0">
+                              <span className="block text-xs font-semibold text-foreground truncate">{p.name}</span>
+                              <span className="block text-[10px] text-muted-foreground">{p.sessions} session{p.sessions > 1 ? 's' : ''} • {p.validity} • ~₹{perSession}/session</span>
+                            </span>
+                            <span className="text-xs font-bold text-primary shrink-0">₹{p.price}</span>
+                          </button>
+                          <button type="button" aria-label={`${p.name} details`} title="Package details"
+                            onClick={() => setPackageInfoId(p.id)}
+                            className="w-6 h-6 rounded-full border border-border bg-background flex items-center justify-center shrink-0 hover:border-primary hover:text-primary text-muted-foreground transition-colors">
+                            <Info className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              <div className={`grid grid-cols-2 gap-2 ${hasPackages ? 'order-6 hidden' : 'order-2'}`}>
                 <div className="p-2 rounded-xl bg-primary/5 border border-primary/10 text-center">
-                  <p className="text-[11px] text-muted-foreground mb-0.5">Consultation Fee</p>
-                  <p className="font-bold text-sm text-primary">₹{currentFee || 0}</p>
+                  <p className="text-[11px] text-muted-foreground mb-0.5">{selectedPackage ? 'Package Price' : 'Consultation Fee'}</p>
+                  <p className="font-bold text-sm text-primary">�,1{effectiveFee || 0}</p>
                 </div>
                 <div className="p-2 rounded-xl bg-emerald-50 border border-emerald-200 dark:bg-emerald-500/10 text-center">
                   <p className="text-[11px] text-muted-foreground mb-0.5">Avg Treatment Time</p>
@@ -617,7 +738,7 @@ export default function BookingModal({
                   </p>
                 </div>
               </div>
-              <div className="space-y-1.5">
+              <div className={`space-y-1.5 ${hasPackages ? 'order-1' : 'order-3'}`}>
                 <label className="text-xs font-medium text-foreground">Select Date</label>
                 <Input type="date" className="w-full" value={bookingDate} onChange={e => setBookingDate(e.target.value)} min={getISTDateString()} max={maxBookableDate || undefined} />
                 {maxBookableDate && bookingWindow && (
@@ -626,7 +747,7 @@ export default function BookingModal({
                   </p>
                 )}
               </div>
-              <div className="space-y-1.5">
+              <div className={`space-y-1.5 ${hasPackages ? 'order-2' : 'order-4'}`}>
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-medium text-foreground">Select Time Slot</label>
                   <span className="inline-flex items-center gap-1 text-[10px] font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-md">
@@ -713,7 +834,7 @@ export default function BookingModal({
                   </div>
                 )}
               </div>
-              <div className="space-y-1.5">
+              <div className={`space-y-1.5 ${hasPackages ? 'order-3' : 'order-5'}`}>
                 <label className="text-xs font-medium text-foreground">Notes (optional)</label>
                 <textarea value={bookingNotes} onChange={e => setBookingNotes(e.target.value)} placeholder="Any specific concerns…" className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm resize-none" rows={2} />
               </div>
@@ -726,11 +847,118 @@ export default function BookingModal({
           </>
         )}
 
-        {bookingStep === 1 && (
+        {bookingStep === 6 && currentDoc && (
           <>
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Button variant="ghost" size="icon" className="w-7 h-7 -ml-1" onClick={() => setBookingStep(0)}>
+                  <ArrowLeft className="w-4 h-4" />
+                </Button>
+                Choose Package & Mode
+              </DialogTitle>
+              <DialogDescription>
+                Package select karo (optional) aur session ka mode chuno — {currentDoc?.name}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 py-2">
+              <div className="space-y-2 rounded-xl border border-primary/20 bg-primary/[0.03] p-3">
+                <div className="flex items-center gap-1.5">
+                  <PackageIcon className="w-3.5 h-3.5 text-primary" />
+                  <label className="text-xs font-semibold text-foreground">Select Package <span className="font-normal text-muted-foreground">(optional)</span></label>
+                </div>
+                <div className="space-y-1.5">
+                  <button key="single" type="button" onClick={() => setSelectedPackageId('single')}
+                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl border-2 text-left transition-all ${selectedPackageId === 'single' ? 'border-primary bg-primary/5 shadow-sm' : 'border-border/60 bg-card hover:border-primary/30'}`}>
+                    <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${selectedPackageId === 'single' ? 'border-primary' : 'border-muted-foreground/40'}`}>
+                      {selectedPackageId === 'single' && <span className="w-2 h-2 rounded-full bg-primary" />}
+                    </span>
+                    <span className="flex-1 min-w-0">
+                      <span className="block text-xs font-semibold text-foreground">Single Session</span>
+                      <span className="block text-[10px] text-muted-foreground">Sirf ye wali appointment</span>
+                    </span>
+                    <span className="text-xs font-bold text-primary shrink-0">₹{singleFee || 0}</span>
+                  </button>
+                  {providerPlans.map((p) => {
+                    const active = selectedPackageId === p.id;
+                    const perSession = p.sessions > 0 ? Math.round(p.price / p.sessions) : p.price;
+                    return (
+                      <div key={p.id} className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl border-2 text-left transition-all ${active ? 'border-primary bg-primary/5 shadow-sm' : 'border-border/60 bg-card hover:border-primary/30'}`}>
+                        <button type="button" onClick={() => setSelectedPackageId(active ? 'single' : p.id)} className="flex items-center gap-2 flex-1 min-w-0 text-left">
+                          <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${active ? 'border-primary' : 'border-muted-foreground/40'}`}>
+                            {active && <span className="w-2 h-2 rounded-full bg-primary" />}
+                          </span>
+                          <span className="flex-1 min-w-0">
+                            <span className="block text-xs font-semibold text-foreground truncate">{p.name}</span>
+                            <span className="block text-[10px] text-muted-foreground">{p.sessions} session{p.sessions > 1 ? 's' : ''} • {p.validity} • ~₹{perSession}/session</span>
+                          </span>
+                          <span className="text-xs font-bold text-primary shrink-0">₹{p.price}</span>
+                        </button>
+                        <button type="button" aria-label={`${p.name} details`} title="Package details"
+                          onClick={() => setPackageInfoId(p.id)}
+                          className="w-6 h-6 rounded-full border border-border bg-background flex items-center justify-center shrink-0 hover:border-primary hover:text-primary text-muted-foreground transition-colors">
+                          <Info className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-foreground">Modes Provided</label>
+                <div className={`grid gap-2 ${availableModes.length === 1 ? 'grid-cols-1' : availableModes.length === 2 ? 'grid-cols-2' : availableModes.length === 3 ? 'grid-cols-3' : availableModes.length === 4 ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2 sm:grid-cols-5'}`}>
+                  {[
+                    { key: 'offline', label: offlineLabel, desc: offlineDesc, Icon: MapPin, color: 'text-violet-600', activeBg: 'border-violet-500 bg-violet-50 dark:bg-violet-500/10' },
+                    { key: 'home_visit', label: 'Home Visit', desc: 'At Home', Icon: Home, color: 'text-amber-600', activeBg: 'border-amber-500 bg-amber-50 dark:bg-amber-500/10' },
+                    { key: 'video', label: 'Video Call', desc: 'Live Video', Icon: Video, color: 'text-emerald-600', activeBg: 'border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10' },
+                    { key: 'audio', label: 'Audio Call', desc: 'Voice Call', Icon: Phone, color: 'text-teal-600', activeBg: 'border-teal-500 bg-teal-50 dark:bg-teal-500/10' },
+                    { key: 'chat', label: 'Chat', desc: 'Text', Icon: MessageSquare, color: 'text-blue-600', activeBg: 'border-blue-500 bg-blue-50 dark:bg-blue-500/10' },
+                  ].filter(m => availableModes.includes(m.key) || (m.key === 'home_visit' && availableModes.includes('home')) || (m.key === 'audio' && (availableModes.includes('audio') || availableModes.includes('call') || availableModes.includes('voice') || availableModes.includes('video')))).map(({ key, label, desc, Icon, color, activeBg }) => {
+                    const active = appointmentMode === key || (key === 'home_visit' && appointmentMode === 'home') || (key === 'audio' && (appointmentMode === 'voice' || appointmentMode === 'call'));
+                    return (
+                      <button key={key} type="button" onClick={() => setAppointmentMode(key)}
+                        className={`relative flex flex-col items-center gap-1.5 py-3 px-2.5 rounded-xl border-2 text-center transition-all ${
+                          active ? activeBg + ' shadow-sm' : 'border-border/60 bg-card hover:border-primary/30'
+                        }`}>
+                        {active && (
+                          <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-primary flex items-center justify-center">
+                            <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                          </div>
+                        )}
+                        <Icon className={`w-4 h-4 ${active ? color : 'text-muted-foreground'}`} />
+                        <p className={`text-[11px] font-semibold leading-none ${active ? color : 'text-foreground'}`}>{label}</p>
+                        <p className={`text-[10px] ${active ? 'text-foreground' : 'text-muted-foreground'}`}>{desc}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="p-2 rounded-xl bg-primary/5 border border-primary/10 text-center">
+                  <p className="text-[11px] text-muted-foreground mb-0.5">{selectedPackage ? 'Package Price' : 'Consultation Fee'}</p>
+                  <p className="font-bold text-sm text-primary">₹{effectiveFee || 0}</p>
+                </div>
+                <div className="p-2 rounded-xl bg-emerald-50 border border-emerald-200 dark:bg-emerald-500/10 text-center">
+                  <p className="text-[11px] text-muted-foreground mb-0.5">Avg Treatment Time</p>
+                  <p className="font-semibold text-xs text-emerald-600">
+                    {currentDoc?.slotDuration || 15} mins
+                  </p>
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" size="sm" onClick={() => setBookingStep(0)}>Back</Button>
+              <Button size="sm" onClick={() => setBookingStep(1)}>
+                Next: Who is this for? <ChevronRight className="w-3.5 h-3.5 ml-1" />
+              </Button>
+            </DialogFooter>
+          </>
+        )}
+
+        {bookingStep === 1 && (
+          <>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Button variant="ghost" size="icon" className="w-7 h-7 -ml-1" onClick={() => setBookingStep(hasPackages ? 6 : 0)}>
                   <ArrowLeft className="w-4 h-4" />
                 </Button>
                 Who is this appointment for?
@@ -848,8 +1076,9 @@ export default function BookingModal({
                 )}
               </div>
             </div>
+            {/* Package/Mode/Fee ab alag step 6 me (family step se hataya) */}
             <DialogFooter>
-              <Button variant="outline" size="sm" onClick={() => setBookingStep(0)}>Back</Button>
+              <Button variant="outline" size="sm" onClick={() => setBookingStep(hasPackages ? 6 : 0)}>Back</Button>
               <Button size="sm" onClick={() => {
                 if (bookingFor === 'family' && !selectedFamilyMember) {
                   toast.error('Please select a family member');
@@ -1050,5 +1279,63 @@ export default function BookingModal({
         )}
       </DialogContent>
     </Dialog>
+    {/* Package complete details (i) dialog */}
+    <Dialog open={!!packageInfoId} onOpenChange={(o) => { if (!o) setPackageInfoId(null); }}>
+      <DialogContent className="sm:max-w-[420px] rounded-2xl">
+        {(() => {
+          const p = providerPlans.find(x => x.id === packageInfoId);
+          if (!p) return null;
+          const perSession = p.sessions > 0 ? Math.round(p.price / p.sessions) : p.price;
+          const singleFee = currentFee || 0;
+          const fullSingle = singleFee > 0 ? singleFee * p.sessions : 0;
+          const savings = fullSingle > p.price ? fullSingle - p.price : 0;
+          return (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <PackageIcon className="w-4 h-4 text-primary" />
+                  {p.name}
+                </DialogTitle>
+                <DialogDescription>Package ki complete details</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-2 py-2 text-sm">
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-primary/5 border border-primary/10">
+                  <span className="text-muted-foreground">Package price</span>
+                  <span className="font-bold text-primary">₹{p.price}</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="p-2.5 rounded-xl bg-muted/50 border border-border/60">
+                    <p className="text-[11px] text-muted-foreground">Sessions</p>
+                    <p className="font-bold">{p.sessions}</p>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-muted/50 border border-border/60">
+                    <p className="text-[11px] text-muted-foreground">Validity</p>
+                    <p className="font-bold">{p.validity}</p>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-muted/50 border border-border/60">
+                    <p className="text-[11px] text-muted-foreground">Per session</p>
+                    <p className="font-bold">~₹{perSession}</p>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-muted/50 border border-border/60">
+                    <p className="text-[11px] text-muted-foreground">You save</p>
+                    <p className="font-bold text-emerald-600">{savings > 0 ? `₹${savings}` : '—'}</p>
+                  </div>
+                </div>
+                {p.desc ? <p className="text-xs text-muted-foreground leading-relaxed">{p.desc}</p> : null}
+                {p.modes && p.modes.length > 0 && (
+                  <p className="text-xs text-muted-foreground">Modes: <span className="font-medium text-foreground">{p.modes.join(', ')}</span></p>
+                )}
+                <p className="text-xs text-muted-foreground">Provider: <span className="font-medium text-foreground">{currentDoc?.name}</span></p>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" size="sm" onClick={() => setPackageInfoId(null)}>Close</Button>
+                <Button size="sm" onClick={() => { setSelectedPackageId(p.id); setPackageInfoId(null); }}>Select this package</Button>
+              </DialogFooter>
+            </>
+          );
+        })()}
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }

@@ -31,6 +31,10 @@ const appointmentSchema = new mongoose.Schema({
   },
   notes: { type: String, default: '' },
   symptoms: { type: String, default: '' },
+  // Mind package booking (counsellor/psychiatrist BookingModal se)
+  packageId: { type: String, default: '' },
+  packageName: { type: String, default: '' },
+  packageSessions: { type: Number, default: 0 },
   preConsultationDetails: {
     chiefComplaint: { type: String, default: '' },
     chiefComplaintOther: { type: String, default: '' },

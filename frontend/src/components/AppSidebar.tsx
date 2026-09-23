@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, UserRound, Stethoscope, CalendarDays, FileText,
   CreditCard, Percent, Settings, ChevronLeft, ChevronRight, Activity, LogOut,
-  Home, Search, Star, Users, BarChart3, Bell, Building2, Clock, Calendar, CalendarClock, DollarSign, FileUp, Download, TestTube, AlertTriangle, Menu, X, Bed, Pill, FlaskConical, Hospital, Heart, Brain, Syringe, ClipboardList, ShieldCheck, Baby, Ambulance, IndianRupee, History, Flag, ShoppingCart, Megaphone, Settings2, Truck, Microscope, HelpCircle, MapPinned, User, Bookmark, Upload, TrendingUp, FileCheck, Tags,   Headset, Shield, Tag, MapPin, Globe, Package, RotateCcw, Bot, Video, MessageCircle, Phone, CheckCircle2, Car, UserCheck, Scale, Briefcase, QrCode
+  Home, Search, Star, Users, BarChart3, Bell, Building2, Clock, Calendar, CalendarClock, DollarSign, FileUp, Download, TestTube, AlertTriangle, Menu, X, Bed, Pill, FlaskConical, Hospital,   Heart, Brain, Syringe, ClipboardList, ShieldCheck, Baby, Ambulance, IndianRupee, History, Flag, ShoppingCart, Megaphone, Settings2, Truck, Microscope, HelpCircle, MapPinned, User, Bookmark, Upload, TrendingUp, FileCheck, Tags,   Headset, Shield, Tag, MapPin, Globe, Package, RotateCcw, Bot, Video, MessageCircle, Phone, CheckCircle2, Car, UserCheck, Scale, Briefcase, QrCode, BookOpen, NotebookPen
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { t } from '@/lib/settings';
@@ -173,6 +173,74 @@ const navConfig = {
     { icon: Settings,        labelKey: 'nav.settings',          path: '/settings'             },
     { icon: History,         labelKey: 'nav.auditLogs',         path: '/audit-logs'           },
   ],
+  // Counsellor: FindMedi dashboard + Mindsupport tabs merged (single sidebar).
+  // Offline/in-person, tests/lab, prescriptions nahi — counsellor prescribe nahi karta, sirf assignments deta hai.
+  counsellor: [
+    { icon: LayoutDashboard, labelKey: 'nav.findmediDashboard', path: '/dashboard'            },
+    { icon: Brain,           labelKey: 'nav.mindDashboard',     path: '/mind/counsellor'      },
+    { icon: ClipboardList,   labelKey: 'nav.mindSessions',      path: '/mind/counsellor?tab=sessions' },
+    { icon: Users,           labelKey: 'nav.mindPatients',      path: '/mind/counsellor?tab=patients' },
+    { icon: NotebookPen,     labelKey: 'nav.mindNotes',         path: '/mind/counsellor?tab=notes' },
+    { icon: BookOpen,        labelKey: 'nav.mindResources',     path: '/mind/counsellor?tab=resources' },
+    { icon: Settings,        labelKey: 'nav.mindSettings',      path: '/mind/counsellor?tab=settings' },
+    { icon: Bot,             labelKey: 'nav.chatWithAI',       path: '/ai-chat'              },
+    { icon: Video,           labelKey: 'nav.videoCalls',        path: '/counsellor/video-calls'   },
+    { icon: Phone,           labelKey: 'nav.calls',             path: '/counsellor/calls'         },
+    { icon: MessageCircle,   labelKey: 'nav.messages',          path: '/counsellor/chat'          },
+    { icon: Globe,           labelKey: 'nav.approveOnlineAppointments', path: '/counsellor/online-appointments?tab=approve' },
+    { icon: Video,           labelKey: 'nav.approvedOnlineAppointments', path: '/counsellor/online-appointments?tab=approved' },
+    { icon: CalendarDays,    labelKey: 'nav.onlineAppointmentHistory', path: '/counsellor/online-appointments?tab=history' },
+    { icon: Calendar,        labelKey: 'nav.mySchedule',        path: '/counsellor/schedule'      },
+    { icon: CalendarClock,   labelKey: 'nav.leaveRequests',     path: '/counsellor/leave-requests'},
+    { icon: UserRound,       labelKey: 'nav.myPatients',        path: '/counsellor/patients'      },
+    { icon: FileText,        labelKey: 'nav.consultations',     path: '/counsellor/consultations' },
+    { icon: Download,        labelKey: 'nav.reports',           path: '/reports'              },
+    { icon: DollarSign,      labelKey: 'nav.myEarnings',        path: '/counsellor/earnings'      },
+    { icon: FileCheck,       labelKey: 'nav.verifyTransaction', path: '/verify-transaction'   },
+    { icon: Star,            labelKey: 'nav.myReviews',         path: '/counsellor/reviews'       },
+    { icon: AlertTriangle,   labelKey: 'nav.emergency',         path: '/counsellor/emergency'     },
+    { icon: Bell,            labelKey: 'nav.notifications',     path: '/notifications'        },
+    { icon: UserRound,       labelKey: 'nav.myProfile',         path: '/counsellor/profile'       },
+    { icon: History,         labelKey: 'nav.auditLogs',         path: '/audit-logs'           },
+    { icon: LogOut,          labelKey: 'common.logout',         path: '/logout'               },
+  ],
+  // Psychiatrist: FindMedi dashboard + Mindsupport tabs merged (single sidebar, full sections).
+  psychiatrist: [
+    { icon: LayoutDashboard, labelKey: 'nav.findmediDashboard', path: '/dashboard'            },
+    { icon: Brain,           labelKey: 'nav.mindDashboard',     path: '/mind/psychiatrist'    },
+    { icon: ClipboardList,   labelKey: 'nav.mindSessions',      path: '/mind/psychiatrist?tab=sessions' },
+    { icon: Users,           labelKey: 'nav.mindPatients',      path: '/mind/psychiatrist?tab=patients' },
+    { icon: NotebookPen,     labelKey: 'nav.mindNotes',         path: '/mind/psychiatrist?tab=notes' },
+    { icon: BookOpen,        labelKey: 'nav.mindResources',     path: '/mind/psychiatrist?tab=resources' },
+    { icon: Settings,        labelKey: 'nav.mindSettings',      path: '/mind/psychiatrist?tab=settings' },
+    { icon: Bot,             labelKey: 'nav.chatWithAI',       path: '/ai-chat'              },
+    { icon: MapPin,          labelKey: 'nav.inPersonAppointments', path: '/psychiatrist/home-visit' },
+    { icon: Video,           labelKey: 'nav.videoCalls',        path: '/psychiatrist/video-calls'   },
+    { icon: Phone,           labelKey: 'nav.calls',             path: '/psychiatrist/calls'         },
+    { icon: MessageCircle,   labelKey: 'nav.messages',          path: '/psychiatrist/chat'          },
+    { icon: Clock,           labelKey: 'nav.approveOfflineAppointments', path: '/psychiatrist/appointments/approve' },
+    { icon: CheckCircle2,    labelKey: 'nav.approvedOfflineAppointments', path: '/psychiatrist/appointments' },
+    { icon: History,         labelKey: 'nav.offlineAppointmentHistory', path: '/psychiatrist/appointments/history' },
+    { icon: Globe,           labelKey: 'nav.approveOnlineAppointments', path: '/psychiatrist/online-appointments?tab=approve' },
+    { icon: Video,           labelKey: 'nav.approvedOnlineAppointments', path: '/psychiatrist/online-appointments?tab=approved' },
+    { icon: CalendarDays,    labelKey: 'nav.onlineAppointmentHistory', path: '/psychiatrist/online-appointments?tab=history' },
+    { icon: Calendar,        labelKey: 'nav.mySchedule',        path: '/psychiatrist/schedule'      },
+    { icon: CalendarClock,   labelKey: 'nav.leaveRequests',     path: '/psychiatrist/leave-requests'},
+    { icon: UserRound,       labelKey: 'nav.myPatients',        path: '/psychiatrist/patients'      },
+    { icon: FileText,        labelKey: 'nav.consultations',     path: '/psychiatrist/consultations' },
+    { icon: Pill,            labelKey: 'nav.prescriptions',     path: '/psychiatrist/prescriptions' },
+    { icon: FlaskConical,    labelKey: 'nav.testResults',       path: '/psychiatrist/test-results'  },
+    { icon: TestTube,        labelKey: 'nav.lab',               path: '/lab'                  },
+    { icon: Download,        labelKey: 'nav.reports',           path: '/reports'              },
+    { icon: DollarSign,      labelKey: 'nav.myEarnings',        path: '/psychiatrist/earnings'      },
+    { icon: FileCheck,       labelKey: 'nav.verifyTransaction', path: '/verify-transaction'   },
+    { icon: Star,            labelKey: 'nav.myReviews',         path: '/psychiatrist/reviews'       },
+    { icon: AlertTriangle,   labelKey: 'nav.emergency',         path: '/psychiatrist/emergency'     },
+    { icon: Bell,            labelKey: 'nav.notifications',     path: '/notifications'        },
+    { icon: UserRound,       labelKey: 'nav.myProfile',         path: '/psychiatrist/profile'       },
+    { icon: History,         labelKey: 'nav.auditLogs',         path: '/audit-logs'           },
+    { icon: LogOut,          labelKey: 'common.logout',         path: '/logout'               },
+  ],
   lab_owner: [
     { icon: LayoutDashboard, labelKey: 'nav.dashboard',        path: '/lab-business/dashboard' },
     { icon: Bot,             labelKey: 'nav.chatWithAI',       path: '/ai-chat'              },
@@ -243,6 +311,14 @@ const navConfig = {
     { icon: Pill,            labelKey: 'nav.medicineReminders',     path: '/patient/medicine-reminders', isHealth: true },
     { icon: Activity,        labelKey: 'nav.myVitals',              path: '/patient/vitals',             isHealth: true },
     { icon: Heart,           labelKey: 'nav.carePlans',             path: '/patient/care-plans',         isHealth: true },
+    // 🧠 Mindsupport (expandable parent section, same pattern)
+    { icon: Home,            labelKey: 'nav.home',                  path: '/mind/user?tab=home', isMind: true },
+    { icon: Activity,        labelKey: 'nav.muWellness',            path: '/mind/user?tab=wellness', isMind: true },
+    { icon: Package,         labelKey: 'nav.myPackages',            path: '/mind/user?tab=packages', isMind: true },
+    { icon: ClipboardList,   labelKey: 'nav.muSessions',            path: '/mind/user?tab=sessions', isMind: true },
+    { icon: FileText,        labelKey: 'nav.muAssignments',         path: '/mind/user?tab=assignments', isMind: true },
+    { icon: NotebookPen,     labelKey: 'nav.muJournal',             path: '/mind/user?tab=journal', isMind: true },
+    { icon: Settings,        labelKey: 'nav.mindSettings',          path: '/mind/user?tab=settings', isMind: true },
     { icon: IndianRupee,     labelKey: 'nav.paymentHistory',        path: '/patient/history'            },
     { icon: MapPinned,       labelKey: 'nav.addresses',             path: '/patient/addresses'          },
     { icon: Bell,            labelKey: 'nav.notifications',         path: '/notifications'              },
@@ -313,7 +389,7 @@ const navConfig = {
   ],
 };
 
-const roleBadgeColor = { hospital_admin: 'bg-primary/20 text-primary', doctor: 'bg-info/20 text-info', patient: 'bg-success/20 text-success', clinic_doctor: 'bg-warning/20 text-warning', lab_owner: 'bg-purple-500/20 text-purple-600', pharmacy_owner: 'bg-rose-500/20 text-rose-600', delivery_boy: 'bg-blue-500/20 text-blue-600', rider: 'bg-teal-500/20 text-teal-600', assistant: 'bg-emerald-500/20 text-emerald-600', lawyer: 'bg-indigo-500/20 text-indigo-600', ambulance: 'bg-red-500/20 text-red-600' };
+const roleBadgeColor = { hospital_admin: 'bg-primary/20 text-primary', doctor: 'bg-info/20 text-info', patient: 'bg-success/20 text-success', clinic_doctor: 'bg-warning/20 text-warning', lab_owner: 'bg-purple-500/20 text-purple-600', pharmacy_owner: 'bg-rose-500/20 text-rose-600', delivery_boy: 'bg-blue-500/20 text-blue-600', rider: 'bg-teal-500/20 text-teal-600', assistant: 'bg-emerald-500/20 text-emerald-600', lawyer: 'bg-indigo-500/20 text-indigo-600', ambulance: 'bg-red-500/20 text-red-600', counsellor: 'bg-violet-500/20 text-violet-600', psychiatrist: 'bg-fuchsia-500/20 text-fuchsia-600' };
 
 
 function SidebarContent({ collapsed, onToggleCollapse, onNavClick }: any) {
@@ -327,6 +403,7 @@ function SidebarContent({ collapsed, onToggleCollapse, onNavClick }: any) {
   const navItems = navConfig[user?.role] || navConfig.patient;
   const language = user?.settings?.language || 'en';
   const [myHealthOpen, setMyHealthOpen] = useState(true);
+  const [mindOpen, setMindOpen] = useState(true);
 
   return (
     <div className={`flex flex-col h-full bg-sidebar text-sidebar-foreground ${collapsed ? 'w-[72px]' : 'w-64'}`}>
@@ -362,10 +439,12 @@ function SidebarContent({ collapsed, onToggleCollapse, onNavClick }: any) {
       {/* Navigation */}
       <nav className="sidebar-nav min-h-0 flex-1 py-3 px-2 space-y-0.5 overflow-y-auto overscroll-contain">
         {navItems.map((item: any, idx: number) => {
-          const { icon: Icon, labelKey, path, isHealth } = item;
+          const { icon: Icon, labelKey, path, isHealth, isMind } = item;
           const currentFull = location.pathname + (location.search || '');
           let isActive = false;
-          if (path.includes('?tab=approve')) {
+          if (path.startsWith('/mind/user?tab=')) {
+            isActive = currentFull === path;
+          } else if (path.includes('?tab=approve')) {
             isActive = location.pathname.includes('/online-appointments') && (location.search === '?tab=approve' || location.search === '?tab=pending' || !location.search);
           } else if (path.includes('?tab=approved')) {
             isActive = location.pathname.includes('/online-appointments') && (location.search === '?tab=approved' || location.search === '?tab=today' || location.search === '?tab=upcoming');
@@ -375,12 +454,15 @@ function SidebarContent({ collapsed, onToggleCollapse, onNavClick }: any) {
             isActive = (location.pathname === path || location.pathname === `${path}/upcoming` || location.pathname === `${path}/approved`) && !location.search;
           } else if (path.includes('?')) {
             isActive = currentFull === path;
+          } else if (path === '/mind/counsellor' || path === '/mind/psychiatrist') {
+            isActive = location.pathname === path && !location.search;
           } else {
             isActive = location.pathname === path;
           }
           const label = t(labelKey, language);
 
           const isFirstHealth = isHealth && (idx === 0 || !navItems[idx - 1]?.isHealth);
+          const isFirstMind = isMind && (idx === 0 || !navItems[idx - 1]?.isMind);
 
           if (isHealth && !myHealthOpen && !collapsed && !isActive) {
             return isFirstHealth ? (
@@ -400,8 +482,44 @@ function SidebarContent({ collapsed, onToggleCollapse, onNavClick }: any) {
             ) : null;
           }
 
+          if (isMind && !mindOpen && !collapsed && !isActive) {
+            return isFirstMind ? (
+              <div key="mind-header-collapsed" className="pt-2 pb-1">
+                <button
+                  type="button"
+                  onClick={() => setMindOpen(true)}
+                  className="w-full flex items-center justify-between px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-violet-500 hover:bg-violet-500/10 rounded-xl transition-all"
+                >
+                  <span className="flex items-center gap-2">
+                    <Brain className="w-3.5 h-3.5 text-violet-500" />
+                    <span>Mindsupport</span>
+                  </span>
+                  <ChevronRight className="w-3.5 h-3.5 transition-transform duration-200" />
+                </button>
+              </div>
+            ) : null;
+          }
+
           return (
             <React.Fragment key={`${path}-${labelKey}-${idx}`}>
+              {isFirstMind && (
+                <div className="pt-2 pb-1">
+                  <button
+                    type="button"
+                    onClick={() => setMindOpen(!mindOpen)}
+                    title={collapsed ? "Mindsupport" : undefined}
+                    className={`w-full flex items-center justify-between px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-violet-500 hover:bg-violet-500/10 rounded-xl transition-all ${collapsed ? 'justify-center' : ''}`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <Brain className="w-3.5 h-3.5 text-violet-500" />
+                      {!collapsed && <span>Mindsupport</span>}
+                    </span>
+                    {!collapsed && (
+                      <ChevronRight className={`w-3.5 h-3.5 transition-transform duration-200 ${mindOpen ? 'rotate-90' : ''}`} />
+                    )}
+                  </button>
+                </div>
+              )}
               {isFirstHealth && (
                 <div className="pt-2 pb-1">
                   <button
@@ -420,12 +538,21 @@ function SidebarContent({ collapsed, onToggleCollapse, onNavClick }: any) {
                   </button>
                 </div>
               )}
-              <Link to={path} onClick={onNavClick}
-                title={collapsed ? label : undefined}
-                className={`sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${isActive ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-lg shadow-sidebar-primary/20' : 'text-sidebar-foreground/65 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'} ${collapsed ? 'justify-center' : ''} ${isHealth && !collapsed ? 'ml-2 pl-3 border-l border-rose-500/30' : ''}`}>
-                <Icon className={`w-[18px] h-[18px] flex-shrink-0 ${!isActive ? 'group-hover:scale-110 transition-transform' : ''}`} />
-                {!collapsed && <span className="text-sm font-medium">{label}</span>}
-              </Link>
+              {labelKey === 'common.logout' ? (
+                <button onClick={() => { handleLogout(); onNavClick?.(); }}
+                  title={collapsed ? label : undefined}
+                  className={`sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group text-sidebar-foreground/65 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground w-full text-left ${collapsed ? 'justify-center' : ''}`}>
+                  <Icon className="w-[18px] h-[18px] flex-shrink-0 group-hover:scale-110 transition-transform" />
+                  {!collapsed && <span className="text-sm font-medium">{label}</span>}
+                </button>
+              ) : (
+                <Link to={path} onClick={onNavClick}
+                  title={collapsed ? label : undefined}
+                  className={`sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${isActive ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-lg shadow-sidebar-primary/20' : 'text-sidebar-foreground/65 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'} ${collapsed ? 'justify-center' : ''} ${isHealth && !collapsed ? 'ml-2 pl-3 border-l border-rose-500/30' : ''} ${isMind && !collapsed ? 'ml-2 pl-3 border-l border-violet-500/30' : ''}`}>
+                  <Icon className={`w-[18px] h-[18px] flex-shrink-0 ${!isActive ? 'group-hover:scale-110 transition-transform' : ''}`} />
+                  {!collapsed && <span className="text-sm font-medium">{label}</span>}
+                </Link>
+              )}
             </React.Fragment>
           );
         })}

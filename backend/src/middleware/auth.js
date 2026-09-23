@@ -27,7 +27,9 @@ export const protect = async (req, res, next) => {
   let doctor = null;
   try {
     user = await User.findById(decoded.id).select('-password');
-    if (user?.role === 'doctor' || user?.role === 'clinic_doctor') {
+    // Counsellor/psychiatrist ko bhi doctor-jaisa Doctor-profile link (appointments,
+    // /me/*, ownership checks sab doctorProfileId se chalte hain).
+    if (user?.role === 'doctor' || user?.role === 'clinic_doctor' || user?.role === 'counsellor' || user?.role === 'psychiatrist') {
       doctor = await Doctor.findOne({
         $or: [
           { user_id: user._id.toString() },
@@ -57,7 +59,7 @@ export const protect = async (req, res, next) => {
     });
   }
 
-  if (user.role === 'doctor' || user.role === 'clinic_doctor') {
+  if (user.role === 'doctor' || user.role === 'clinic_doctor' || user.role === 'counsellor' || user.role === 'psychiatrist') {
     if (user.approvalStatus === 'rejected') {
       return res.status(403).json({
         message: 'Your doctor account was not approved. Contact administrator.',
@@ -82,7 +84,7 @@ export const protect = async (req, res, next) => {
     hospitalId: user.hospitalId || null,
     facilityId: user.facilityId || null,
     facilityType: user.facilityType || '',
-    doctorProfileId: (user.role === 'doctor' || user.role === 'clinic_doctor') ? (doctor?._id || null) : null,
+    doctorProfileId: (user.role === 'doctor' || user.role === 'clinic_doctor' || user.role === 'counsellor' || user.role === 'psychiatrist') ? (doctor?._id || null) : null,
   };
   req.authUser = user;
   next();

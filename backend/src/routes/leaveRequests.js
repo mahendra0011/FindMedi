@@ -18,7 +18,7 @@ router.get('/', protect, async (req, res) => {
   try {
     const filter = {};
     let balance = null;
-    if (req.user.role === 'doctor') {
+    if (req.user.role === 'doctor' || req.user.role === 'counsellor' || req.user.role === 'psychiatrist') {
       const doctor = await Doctor.findOne({ email: req.user.email });
       if (doctor) {
         filter.doctorId = doctor._id;

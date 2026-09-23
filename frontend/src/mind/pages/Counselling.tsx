@@ -14,6 +14,8 @@ import { api } from "@/mind/lib/api";
 import { cn } from "@/lib/utils";
 import { fetchCounsellors, selectCounsellors, selectCounsellorsStatus } from "@/mind/store/counsellorsSlice";
 import { purchasePackage } from "@/mind/store/packagesSlice";
+import BookingModal from "@/components/BookingModal";
+import { api as mainApi } from "@/lib/api";
 import { useAppDispatch, useAppSelector } from "@/mind/store/hooks";
 import {
   AlertTriangle,
@@ -158,6 +160,46 @@ const Counselling = () => {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showAllConcerns, setShowAllConcerns] = useState(false);
   const [feeRange, setFeeRange] = useState([0, 5000]);
+  // Doctor-jaisa Book Appointment (BookingModal) — counsellor ke liye
+  const [showBooking, setShowBooking] = useState(false);
+  const [selectedDoctor, setSelectedDoctor] = useState(null);
+  const [resolvingDoctor, setResolvingDoctor] = useState(false);
+
+  // Counsellor ka Doctor doc nikalo (booking/slots/payment sab Doctor model se chalta hai).
+  // Seed (seed-mind-providers.mjs) same email se Doctor doc banata hai.
+  const handleBookAppointment = async (counsellor) => {
+    if (!counsellor || resolvingDoctor) return;
+    setResolvingDoctor(true);
+    try {
+      let doc = null;
+      if (counsellor.email) {
+        try {
+          const res = await mainApi.getDoctors({ search: counsellor.email, limit: 5 });
+          const list = res?.data || res?.items || res || [];
+          doc = (Array.isArray(list) ? list : []).find((d) =>
+            (d.email || "").toLowerCase() === String(counsellor.email).toLowerCase()
+          ) || null;
+        } catch { doc = null; }
+      }
+      if (!doc) {
+        // Fallback: counsellor object ko doctor-shape me map karo (BookingModal defensive hai)
+        doc = {
+          _id: counsellor.doctorId || counsellor.id,
+          name: counsellor.name,
+          specialization: "Counselling",
+          consultation_fees: Number(counsellor.sessionPricing) || lowestPrice(counsellor) || 800,
+          languages: counsellor.languages || ["English"],
+          location: counsellor.city || counsellor.location || "Online",
+          available: counsellor.bookingEnabled !== false,
+          appointmentModes: ["video", "audio", "chat"],
+        };
+      }
+      setSelectedDoctor(doc);
+      setShowBooking(true);
+    } finally {
+      setResolvingDoctor(false);
+    }
+  };
 
   const concernToPlan = useMemo(() => ({
     "Immediate support": "one-time", "One-off guidance": "one-time", "Quick check-in": "one-time",
@@ -660,19 +702,20 @@ const Counselling = () => {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredCounsellors.map((c, i) => (
-                  <CounsellorCard key={c.id} counsellor={c} booking={activeBookings.get(c.id)} index={i} onView={() => navigate(`/mind/counselling/${c.id}`)} />
+                  <CounsellorCard key={c.id} counsellor={c} booking={activeBookings.get(c.id)} index={i} onView={() => navigate(`/mind/counselling/${c.id}`)} onBook={() => handleBookAppointment(c)} bookingBusy={resolvingDoctor} />
                 ))}
               </div>
             )}
           </div>
         </section>
       </main>
+      <BookingModal open={showBooking} onOpenChange={setShowBooking} doctor={selectedDoctor} facility={selectedDoctor?.facilityId} />
       <Footer />
     </div>
   );
 };
 
-function CounsellorCard({ counsellor, booking, onView, index = 0 }) {
+function CounsellorCard({ counsellor, booking, onView, onBook, bookingBusy, index = 0 }) {
   const accepting = counsellor.bookingEnabled !== false;
   const languages = counsellor.languages?.length ? counsellor.languages : ["English"];
   const onlineModes = (counsellor.consultationModes?.length ? counsellor.consultationModes.filter(m => m !== "in-person") : []);
@@ -800,10 +843,15 @@ function CounsellorCard({ counsellor, booking, onView, index = 0 }) {
           </span>
         </div>
 
-        <Button className="w-full gap-1.5 rounded-xl h-10 shadow-lg shadow-primary/20 group/btn">
-          View Profile
-          <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover/btn:translate-x-0.5" />
-        </Button>
+        <div className="grid grid-cols-2 gap-2">
+          <Button className="w-full gap-1.5 rounded-xl h-10 shadow-lg shadow-primary/20 group/btn" disabled={!accepting || bookingBusy} onClick={(e) => { e.stopPropagation(); onBook && onBook(); }}>
+            <CalendarDays className="w-4 h-4" /> {accepting ? "Book Appointment" : "Unavailable"}
+          </Button>
+          <Button variant="outline" className="w-full gap-1.5 rounded-xl h-10 group/btn" onClick={onView}>
+            View Profile
+            <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover/btn:translate-x-0.5" />
+          </Button>
+        </div>
       </div>
     </motion.div>
   );

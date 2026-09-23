@@ -7,6 +7,12 @@ import { Toaster as Sonner } from '@/components/ui/sonner';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { store } from '@/store';
+import { store as mindStore } from './mind/store';
+import { ThemeProvider as MindThemeProvider } from './mind/contexts/ThemeContext';
+import { LanguageProvider as MindLanguageProvider } from './mind/contexts/LanguageContext';
+import { TooltipProvider as MindTooltipProvider } from './mind/components/ui/tooltip';
+import { Toaster as MindToaster } from './mind/components/ui/toaster';
+import { Toaster as MindSonner } from './mind/components/ui/sonner';
 import { initializeAuth } from '@/store/slices/authSlice';
 import { applyUserSettings, readStoredSettings } from '@/lib/settings';
 import { loadUserSettings } from '@/store/slices/settingsSlice';
@@ -408,6 +414,14 @@ function RoleRoute({ children, allowedRoles }: { children: React.ReactNode; allo
   return <>{children}</>;
 }
 
+// Mind user pages (/mind/user, /mind/wellness) — sirf client (patient) ya guest ke liye.
+// Counsellor/psychiatrist/doctor/staff roles inhe khol hi nahi sakte.
+function MindUserOnlyRoute({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+  if (user && user.role !== 'patient') return <Navigate to="/dashboard" replace />;
+  return <>{children}</>;
+}
+
 function getDefaultDashboardPath(user) {
   const value = user?.settings?.defaultDashboard || 'overview';
   if (value === 'overview') return '';
@@ -466,6 +480,9 @@ function RoleDashboard() {
   if (user?.role === 'superadmin') return <Navigate to="/superadmin/overview" replace />;
   if (user?.role === 'doctor') return <DoctorDashboard />;
   if (user?.role === 'clinic_doctor') return <ClinicDashboard />;
+  // Psychiatrist doctor hai → FindMedi DoctorDashboard; counsellor ka bhi provider dashboard
+  if (user?.role === 'psychiatrist') return <DoctorDashboard />;
+  if (user?.role === 'counsellor') return <DoctorDashboard />;
   if (user?.role === 'hospital_admin') return <Dashboard />;
   if (user?.role === 'delivery_boy') return <DeliveryDashboard />;
   if (user?.role === 'rider') return <Navigate to="/rider/dashboard" replace />;
@@ -485,6 +502,27 @@ function MindDashboardShell() {
         <Outlet />
       </MindDashboardLayout>
     </Suspense>
+  );
+}
+
+// Mind pages moved into FindMedi DashboardShell keep exact MindProviders
+// parity (store + theme + language + tooltips + toasters) — only the
+// sidebar layout changed, nothing else.
+function MindStore({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="theme-findmedi">
+      <Provider store={mindStore}>
+        <MindThemeProvider>
+          <MindLanguageProvider>
+            <MindTooltipProvider>
+              <MindToaster />
+              <MindSonner />
+              {children}
+            </MindTooltipProvider>
+          </MindLanguageProvider>
+        </MindThemeProvider>
+      </Provider>
+    </div>
   );
 }
 
@@ -604,15 +642,12 @@ const App = () => (
                       <Route path="/mind/session-schedule" element={<MindSessionSchedule />} />
                       <Route path="/mind/resources" element={<MindResourceHub />} />
                       <Route path="/mind/peer" element={<MindPeerSupport />} />
-                      <Route path="/mind/wellness" element={<MindWellness />} />
+                      <Route path="/mind/wellness" element={<MindUserOnlyRoute><MindWellness /></MindUserOnlyRoute>} />
                       <Route path="/mind/legal" element={<MindPrivacy />} />
                       <Route path="/mind/intake/:packageId" element={<MindIntakeForm />} />
                       {/* Mind dashboards with FindMedi-like sidebar */}
                       <Route element={<MindDashboardShell />}>
                         <Route path="/mind/dashboard" element={<MindDashboard />} />
-                        <Route path="/mind/user" element={<MindUserDashboard />} />
-                        <Route path="/mind/counsellor" element={<MindCounsellorDashboard />} />
-                        <Route path="/mind/psychiatrist" element={<MindPsychiatristDashboard />} />
                         <Route path="/mind/admin" element={<MindAdminDashboard />} />
                       </Route>
                     </Route>
@@ -655,6 +690,11 @@ const App = () => (
                   {/* Authenticated dashboard shell */}
                   <Route element={<DashboardShell />}>
                     <Route path="/dashboard" element={<RoleDashboard />} />
+                    {/* Mind user dashboard merged into FindMedi shell (single dashboard) */}
+                    <Route path="/mind/user" element={<MindUserOnlyRoute><MindStore><MindUserDashboard /></MindStore></MindUserOnlyRoute>} />
+                    {/* Mind provider dashboards merged into FindMedi shell (single sidebar) */}
+                    <Route path="/mind/counsellor" element={<MindStore><MindCounsellorDashboard /></MindStore>} />
+                    <Route path="/mind/psychiatrist" element={<MindStore><MindPsychiatristDashboard /></MindStore>} />
                     <Route path="/ai-chat" element={<AIChatPage />} />
                     <Route path="/notifications" element={<Notifications />} />
                     <Route path="/settings" element={<Settings />} />
@@ -807,6 +847,51 @@ const App = () => (
                     <Route path="/doctor/prescriptions" element={<RoleRoute allowedRoles={['doctor']}><DoctorPrescriptions /></RoleRoute>} />
                     <Route path="/doctor/leave-requests" element={<RoleRoute allowedRoles={['doctor']}><DoctorLeaveRequests /></RoleRoute>} />
                     <Route path="/doctor/profile" element={<RoleRoute allowedRoles={['doctor']}><DoctorProfile /></RoleRoute>} />
+
+                    {/* Counsellor routes — sirf online + counsellor-related (offline/tests/prescriptions nahi) */}
+                    <Route path="/counsellor/online-appointments" element={<RoleRoute allowedRoles={['counsellor']}><DoctorOnlineAppointments /></RoleRoute>} />
+                    <Route path="/counsellor/chat" element={<RoleRoute allowedRoles={['counsellor']}><ChatPage /></RoleRoute>} />
+                    <Route path="/counsellor/calls" element={<RoleRoute allowedRoles={['counsellor']}><DoctorCalls /></RoleRoute>} />
+                    <Route path="/counsellor/call/:appointmentId" element={<RoleRoute allowedRoles={['counsellor']}><DoctorCallRoom /></RoleRoute>} />
+                    <Route path="/counsellor/call-room/:appointmentId" element={<RoleRoute allowedRoles={['counsellor']}><DoctorCallRoom /></RoleRoute>} />
+                    <Route path="/counsellor/video-calls" element={<RoleRoute allowedRoles={['counsellor']}><DoctorVideoCalls /></RoleRoute>} />
+                    <Route path="/counsellor/video-call/:appointmentId" element={<RoleRoute allowedRoles={['counsellor']}><DoctorVideoCallRoom /></RoleRoute>} />
+                    <Route path="/counsellor/video-call-room/:appointmentId" element={<RoleRoute allowedRoles={['counsellor']}><DoctorVideoCallRoom /></RoleRoute>} />
+                    <Route path="/counsellor/patients" element={<RoleRoute allowedRoles={['counsellor']}><DoctorPatients /></RoleRoute>} />
+                    <Route path="/counsellor/consultations" element={<RoleRoute allowedRoles={['counsellor']}><DoctorConsultations /></RoleRoute>} />
+                    <Route path="/counsellor/reviews" element={<RoleRoute allowedRoles={['counsellor']}><DoctorReviews /></RoleRoute>} />
+                    <Route path="/counsellor/earnings" element={<RoleRoute allowedRoles={['counsellor']}><DoctorEarnings /></RoleRoute>} />
+                    <Route path="/counsellor/schedule" element={<RoleRoute allowedRoles={['counsellor']}><DoctorScheduleEdit /></RoleRoute>} />
+                    <Route path="/counsellor/emergency" element={<RoleRoute allowedRoles={['counsellor']}><DoctorEmergency /></RoleRoute>} />
+                    <Route path="/counsellor/leave-requests" element={<RoleRoute allowedRoles={['counsellor']}><DoctorLeaveRequests /></RoleRoute>} />
+                    <Route path="/counsellor/profile" element={<RoleRoute allowedRoles={['counsellor']}><DoctorProfile /></RoleRoute>} />
+
+                    {/* Psychiatrist routes — doctor wale sections reuse */}
+                    <Route path="/psychiatrist/appointments/approve" element={<RoleRoute allowedRoles={['psychiatrist']}><DoctorAppointments /></RoleRoute>} />
+                    <Route path="/psychiatrist/appointments/upcoming" element={<RoleRoute allowedRoles={['psychiatrist']}><DoctorAppointments /></RoleRoute>} />
+                    <Route path="/psychiatrist/appointments/history" element={<RoleRoute allowedRoles={['psychiatrist']}><DoctorAppointments /></RoleRoute>} />
+                    <Route path="/psychiatrist/appointments/approved" element={<RoleRoute allowedRoles={['psychiatrist']}><DoctorAppointments /></RoleRoute>} />
+                    <Route path="/psychiatrist/appointments" element={<RoleRoute allowedRoles={['psychiatrist']}><DoctorAppointments /></RoleRoute>} />
+                    <Route path="/psychiatrist/online-appointments" element={<RoleRoute allowedRoles={['psychiatrist']}><DoctorOnlineAppointments /></RoleRoute>} />
+                    <Route path="/psychiatrist/home-visit" element={<RoleRoute allowedRoles={['psychiatrist']}><DoctorInPersonAppointments /></RoleRoute>} />
+                    <Route path="/psychiatrist/in-person" element={<RoleRoute allowedRoles={['psychiatrist']}><DoctorInPersonAppointments /></RoleRoute>} />
+                    <Route path="/psychiatrist/chat" element={<RoleRoute allowedRoles={['psychiatrist']}><ChatPage /></RoleRoute>} />
+                    <Route path="/psychiatrist/calls" element={<RoleRoute allowedRoles={['psychiatrist']}><DoctorCalls /></RoleRoute>} />
+                    <Route path="/psychiatrist/call/:appointmentId" element={<RoleRoute allowedRoles={['psychiatrist']}><DoctorCallRoom /></RoleRoute>} />
+                    <Route path="/psychiatrist/call-room/:appointmentId" element={<RoleRoute allowedRoles={['psychiatrist']}><DoctorCallRoom /></RoleRoute>} />
+                    <Route path="/psychiatrist/video-calls" element={<RoleRoute allowedRoles={['psychiatrist']}><DoctorVideoCalls /></RoleRoute>} />
+                    <Route path="/psychiatrist/video-call/:appointmentId" element={<RoleRoute allowedRoles={['psychiatrist']}><DoctorVideoCallRoom /></RoleRoute>} />
+                    <Route path="/psychiatrist/video-call-room/:appointmentId" element={<RoleRoute allowedRoles={['psychiatrist']}><DoctorVideoCallRoom /></RoleRoute>} />
+                    <Route path="/psychiatrist/patients" element={<RoleRoute allowedRoles={['psychiatrist']}><DoctorPatients /></RoleRoute>} />
+                    <Route path="/psychiatrist/consultations" element={<RoleRoute allowedRoles={['psychiatrist']}><DoctorConsultations /></RoleRoute>} />
+                    <Route path="/psychiatrist/reviews" element={<RoleRoute allowedRoles={['psychiatrist']}><DoctorReviews /></RoleRoute>} />
+                    <Route path="/psychiatrist/earnings" element={<RoleRoute allowedRoles={['psychiatrist']}><DoctorEarnings /></RoleRoute>} />
+                    <Route path="/psychiatrist/schedule" element={<RoleRoute allowedRoles={['psychiatrist']}><DoctorScheduleEdit /></RoleRoute>} />
+                    <Route path="/psychiatrist/test-results" element={<RoleRoute allowedRoles={['psychiatrist']}><DoctorTestResults /></RoleRoute>} />
+                    <Route path="/psychiatrist/emergency" element={<RoleRoute allowedRoles={['psychiatrist']}><DoctorEmergency /></RoleRoute>} />
+                    <Route path="/psychiatrist/prescriptions" element={<RoleRoute allowedRoles={['psychiatrist']}><DoctorPrescriptions /></RoleRoute>} />
+                    <Route path="/psychiatrist/leave-requests" element={<RoleRoute allowedRoles={['psychiatrist']}><DoctorLeaveRequests /></RoleRoute>} />
+                    <Route path="/psychiatrist/profile" element={<RoleRoute allowedRoles={['psychiatrist']}><DoctorProfile /></RoleRoute>} />
 
                     {/* Clinic Doctor routes */}
                     <Route path="/clinic/dashboard" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicDashboard /></RoleRoute>} />

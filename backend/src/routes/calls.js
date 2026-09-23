@@ -173,7 +173,7 @@ router.get('/contacts', protect, async (req, res) => {
     const userId = req.user._id;
     const userRole = req.user.role;
 
-    if (userRole === 'doctor' || userRole === 'clinic_doctor') {
+    if (userRole === 'doctor' || userRole === 'clinic_doctor' || userRole === 'counsellor' || userRole === 'psychiatrist') {
       // Find doctor record
       const doctor = await Doctor.findOne({ user_id: userId }).lean();
       let patientIds = new Set();
