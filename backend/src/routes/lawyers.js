@@ -310,14 +310,33 @@ router.post('/withdraw-demo', protect, async (req, res) => {
       return res.status(400).json({ message: 'No withdrawable balance available' });
     }
 
-    profile.walletBalance = 0;
+    // Amount optional hai — na bhejne par pura balance withdraw hota hai (backwards compatible)
+    const requested =
+      req.body?.amount !== undefined && req.body?.amount !== null && req.body?.amount !== ''
+        ? Number(req.body.amount)
+        : balance;
+
+    if (!Number.isFinite(requested) || requested <= 0) {
+      return res.status(400).json({ message: 'Enter a valid withdrawal amount' });
+    }
+    if (requested > balance) {
+      return res.status(400).json({
+        message: `Insufficient balance. Available: Rs. ${balance.toLocaleString('en-IN')}`,
+      });
+    }
+
+    profile.walletBalance = balance - requested;
     await profile.save();
+
+    const reference = `DEMO-WDR-${Date.now().toString().slice(-6)}`;
 
     res.json({
       success: true,
-      message: `Demo withdrawal of Rs. ${balance.toLocaleString('en-IN')} requested to bank account ending in ${(profile.bankDetails?.accountNumber || 'XXXX').slice(-4)}`,
-      withdrawnAmount: balance,
-      newBalance: 0,
+      message: `Demo withdrawal of Rs. ${requested.toLocaleString('en-IN')} requested to bank account ending in ${(profile.bankDetails?.accountNumber || 'XXXX').slice(-4)}`,
+      withdrawnAmount: requested,
+      newBalance: profile.walletBalance,
+      reference,
+      transactionRef: reference,
     });
   } catch (err) {
     logger.error(`Error processing lawyer demo payout: ${err.message}`);

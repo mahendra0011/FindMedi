@@ -340,6 +340,15 @@ export default function LawyerUrgentIntakeModal({
     acknowledgeUrgent &&
     (bookingFor !== 'other' || Boolean(otherPatient.name.trim()));
 
+  // Dynamic hint — which fields still block the request (button stays clickable,
+  // handleSubmit() shows the exact toast for the first missing field)
+  const missingFields: string[] = [];
+  if (address.trim().length < 5) missingFields.push('pickup location / hospital');
+  if (caseDescription.trim().length < 10) missingFields.push('issue description (min 10 chars)');
+  if (phone.trim().length < 6) missingFields.push('contact phone number');
+  if (!acknowledgeUrgent) missingFields.push('acknowledgment checkbox');
+  if (bookingFor === 'other' && !otherPatient.name.trim()) missingFields.push("patient's name");
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-xl max-h-[92vh] overflow-y-auto p-0 rounded-2xl sm:rounded-3xl border-border bg-card shadow-2xl">
@@ -362,14 +371,16 @@ export default function LawyerUrgentIntakeModal({
 
         {/* Form Body */}
         <div className="p-5 sm:p-6 space-y-5">
-          {/* Lawyer Offline Alert */}
+          {/* Lawyer Offline Alert — request is still queued & delivered */}
           {isTargeted && lawyer.isAvailable === false && (
-            <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs flex items-start gap-2.5">
-              <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+            <div className="p-3.5 rounded-xl bg-slate-100 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-xs flex items-start gap-2.5">
+              <AlertCircle className="w-4 h-4 text-slate-500 dark:text-slate-400 shrink-0 mt-0.5" />
               <div className="space-y-1">
-                <p className="font-semibold">Adv. {targetLawyerName} is currently marked offline.</p>
+                <p className="font-semibold">Adv. {targetLawyerName} is currently offline / in court.</p>
                 <p className="text-[11px] opacity-90">
-                  You can still send the request, or use "Need Urgent Help" banner to broadcast to other lawyers online in this city.
+                  Aap phir bhi request bhej sakte hain — booking turant create hogi aur advocate ke legal console
+                  par queue ho jayegi with an instant notification. Aap chahein to "Need Urgent Help" banner se
+                  isi city ke doosre online advocates ko bhi broadcast kar sakte hain.
                 </p>
               </div>
             </div>
@@ -386,7 +397,7 @@ export default function LawyerUrgentIntakeModal({
           )}
 
           {/* 1. 📍 Location Field (Required, Front-and-Center) */}
-          <div className="space-y-2 p-4 rounded-2xl bg-muted/40 border border-primary/20">
+          <div className="space-y-2 p-4 rounded-2xl bg-muted/40 border border-slate-900/20 dark:border-white/20">
             <div className="flex items-center justify-between">
               <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
                 <MapPin className="w-4 h-4 text-red-600" />
@@ -407,7 +418,7 @@ export default function LawyerUrgentIntakeModal({
                 }}
                 className={`flex items-center justify-center gap-1.5 p-2 rounded-xl border text-xs font-medium transition-all ${
                   locationMode === 'auto'
-                    ? 'border-primary bg-primary/10 text-primary font-bold shadow-sm'
+                    ? 'border-slate-900 bg-slate-900/10 text-slate-900 dark:bg-white/10 dark:text-slate-100 font-bold shadow-sm'
                     : 'border-border bg-background text-muted-foreground hover:bg-muted/60'
                 }`}
               >
@@ -420,7 +431,7 @@ export default function LawyerUrgentIntakeModal({
                 onClick={() => setLocationMode('manual')}
                 className={`flex items-center justify-center gap-1.5 p-2 rounded-xl border text-xs font-medium transition-all ${
                   locationMode === 'manual'
-                    ? 'border-primary bg-primary/10 text-primary font-bold shadow-sm'
+                    ? 'border-slate-900 bg-slate-900/10 text-slate-900 dark:bg-white/10 dark:text-slate-100 font-bold shadow-sm'
                     : 'border-border bg-background text-muted-foreground hover:bg-muted/60'
                 }`}
               >
@@ -440,7 +451,7 @@ export default function LawyerUrgentIntakeModal({
                 />
                 {detectingLocation && (
                   <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                    <Loader2 className="w-4 h-4 text-primary animate-spin" />
+                    <Loader2 className="w-4 h-4 text-slate-900 dark:text-slate-100 animate-spin" />
                   </div>
                 )}
               </div>
@@ -458,7 +469,7 @@ export default function LawyerUrgentIntakeModal({
           {/* 2. Booking For */}
           <div className="space-y-2">
             <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
-              <User className="w-3.5 h-3.5 text-primary" /> Booking For:
+              <User className="w-3.5 h-3.5 text-slate-900 dark:text-slate-100" /> Booking For:
             </label>
             <div className="grid grid-cols-3 gap-2">
               {[
@@ -475,7 +486,7 @@ export default function LawyerUrgentIntakeModal({
                   }}
                   className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl border text-xs font-medium transition-all ${
                     bookingFor === opt.id
-                      ? 'border-primary bg-primary/10 text-primary font-bold shadow-sm'
+                      ? 'border-slate-900 bg-slate-900/10 text-slate-900 dark:bg-white/10 dark:text-slate-100 font-bold shadow-sm'
                       : 'border-border/60 bg-muted/30 text-muted-foreground hover:bg-muted/60'
                   }`}
                 >
@@ -549,7 +560,7 @@ export default function LawyerUrgentIntakeModal({
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-foreground flex items-center justify-between">
               <span className="flex items-center gap-1.5">
-                <Scale className="w-3.5 h-3.5 text-primary" /> Legal Category *
+                <Scale className="w-3.5 h-3.5 text-slate-900 dark:text-slate-100" /> Legal Category *
               </span>
               {isTargeted && (
                 <span className="text-[10px] text-muted-foreground font-normal">
@@ -560,7 +571,7 @@ export default function LawyerUrgentIntakeModal({
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="w-full h-10 px-3 rounded-xl border border-border bg-background text-xs font-medium focus:ring-2 focus:ring-primary/20"
+              className="w-full h-10 px-3 rounded-xl border border-border bg-background text-xs font-medium focus:ring-2 focus:ring-slate-900/20"
             >
               {selectableCategories.map((cat: string) => (
                 <option key={cat} value={cat}>
@@ -586,7 +597,7 @@ export default function LawyerUrgentIntakeModal({
               placeholder="e.g. Hospital is refusing to release discharge papers without extra disputed payment, need urgent advocate representation..."
               value={caseDescription}
               onChange={(e) => setCaseDescription(e.target.value)}
-              className="text-xs rounded-xl resize-none focus:ring-2 focus:ring-primary/20"
+              className="text-xs rounded-xl resize-none focus:ring-2 focus:ring-slate-900/20"
             />
           </div>
 
@@ -613,7 +624,7 @@ export default function LawyerUrgentIntakeModal({
           {/* 6. Phone Number */}
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
-              <Phone className="w-3.5 h-3.5 text-primary" /> Your Phone Number *
+              <Phone className="w-3.5 h-3.5 text-slate-900 dark:text-slate-100" /> Your Phone Number *
             </label>
             <Input
               type="tel"
@@ -628,7 +639,7 @@ export default function LawyerUrgentIntakeModal({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                <FileText className="w-3.5 h-3.5 text-primary" /> Attach Documents (Optional)
+                <FileText className="w-3.5 h-3.5 text-slate-900 dark:text-slate-100" /> Attach Documents (Optional)
               </label>
               <span className="text-[10px] text-muted-foreground">Max 25MB each</span>
             </div>
@@ -666,14 +677,14 @@ export default function LawyerUrgentIntakeModal({
                 return (
                   <span
                     key={idx}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs bg-primary/10 text-primary border border-primary/20"
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs bg-slate-900/10 text-slate-900 dark:bg-white/10 dark:text-slate-100 border border-slate-900/20 dark:border-white/20"
                   >
                     <FileText className="w-3 h-3" />
                     <span className="max-w-[120px] truncate">{name}</span>
                     <button
                       type="button"
                       onClick={() => removeDoc(idx)}
-                      className="text-primary/70 hover:text-primary ml-1"
+                      className="text-slate-900 dark:text-slate-100/70 hover:text-slate-900 dark:hover:text-white ml-1"
                     >
                       <X className="w-3 h-3" />
                     </button>
@@ -718,33 +729,45 @@ export default function LawyerUrgentIntakeModal({
         </div>
 
         {/* Footer Actions */}
-        <DialogFooter className="p-5 sm:p-6 bg-muted/20 border-t border-border/40 flex sm:flex-row gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={submitting}
-            className="rounded-xl h-10 text-xs flex-1"
-          >
-            Cancel
-          </Button>
+        <DialogFooter className="p-5 sm:p-6 bg-muted/20 border-t border-border/40 flex sm:flex-col gap-2">
+          {!isFormValid && (
+            <p className="text-[11px] text-amber-600 dark:text-amber-400 leading-snug order-2 sm:order-1">
+              ⚠ Fill: <span className="font-semibold">{missingFields.join(', ')}</span> — click the button anyway
+              and we&apos;ll show exactly what&apos;s pending.
+            </p>
+          )}
+          <div className="flex gap-2 order-1 sm:order-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={submitting}
+              className="rounded-xl h-10 text-xs flex-1"
+            >
+              Cancel
+            </Button>
 
-          <Button
-            type="button"
-            onClick={handleSubmit}
-            disabled={!isFormValid || submitting}
-            className="rounded-xl h-10 text-xs flex-1 bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-500/20 font-bold gap-1.5"
-          >
-            {submitting ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" /> Sending Urgent Request...
-              </>
-            ) : (
-              <>
+            <Button
+              type="button"
+              onClick={handleSubmit}
+              disabled={submitting}
+              className={`rounded-xl h-10 text-xs flex-1 shadow-lg font-bold gap-1.5 ${
+                isFormValid
+                  ? 'bg-red-600 hover:bg-red-700 text-white shadow-red-500/20'
+                  : 'bg-red-600/70 hover:bg-red-600 text-white shadow-red-500/10'
+              }`}
+            >
+              {submitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" /> Sending Urgent Request...
+                </>
+              ) : (
+                <>
                 <Gavel className="w-4 h-4" /> Send Urgent Request
               </>
             )}
           </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

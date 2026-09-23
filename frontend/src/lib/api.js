@@ -754,6 +754,7 @@ export const api = {
   createAssistantBooking:    (body)    => request('/assistant-booking/book', { method: 'POST', body: JSON.stringify(body) }),
   broadcastAssistantFallback:(id)      => request(`/assistant-booking/${id}/broadcast-fallback`, { method: 'POST' }),
   getActiveAssistantBooking: ()        => request('/assistant-booking/active'),
+  getAssistantPendingRequests:()       => request('/assistant-booking/pending-requests'),
   getMyAssistantBookings:    (p={})    => request('/assistant-booking/my-bookings?' + new URLSearchParams(p)),
   getAssistantBookingHistory:(p={})    => request('/assistant-booking/assistant-history?' + new URLSearchParams(p)),
   getAssistantBooking:       (id)      => request(`/assistant-booking/${id}`),
@@ -799,7 +800,7 @@ export const api = {
   updateLawyerProfile:       (body)    => request('/lawyer/profile', { method: 'PUT', body: JSON.stringify(body) }),
   setLawyerStatus:           (isAvailable) => request('/lawyer/status', { method: 'PUT', body: JSON.stringify({ isAvailable }) }),
   getLawyerEarnings:         ()        => request('/lawyer/earnings'),
-  withdrawLawyerDemo:        ()        => request('/lawyer/withdraw-demo', { method: 'POST' }),
+  withdrawLawyerDemo:        (amount)  => request('/lawyer/withdraw-demo', { method: 'POST', body: JSON.stringify({ amount }) }),
 
   // ── Lawyer Directory & Booking ──
   getLawyers:                (p={})    => request('/lawyer?' + new URLSearchParams(Object.fromEntries(Object.entries(p).filter(([_, v]) => v !== undefined && v !== null && v !== '')))),
@@ -814,6 +815,7 @@ export const api = {
   getMyLawyerCases:          ()        => request('/lawyer-booking/my-cases'),
   closeLawyerCase:           (threadId)=> request(`/lawyer-booking/case/${threadId}/close`, { method: 'PUT' }),
   getLawyerBookingHistory:   ()        => request('/lawyer-booking/lawyer-history'),
+  getLawyerPendingRequests:  ()        => request('/lawyer-booking/lawyer-requests'),
   getLawyerBooking:          (id)      => request(`/lawyer-booking/${id}`),
   acceptLawyerBooking:       (id)      => request(`/lawyer-booking/${id}/accept`, { method: 'POST' }),
   proposeLawyerTime:         (id, body)=> request(`/lawyer-booking/${id}/propose-time`, { method: 'POST', body: JSON.stringify(body) }),

@@ -246,16 +246,16 @@ function seedResourceThumbnail(resource) {
 }
 
 const counsellorPhotos = {
-  "Dr. Aisha Mehra": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=400&fit=crop&crop=face&auto=format",
+  "Aisha Mehra": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=400&fit=crop&crop=face&auto=format",
   "Rahul Verma": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&h=400&fit=crop&crop=face&auto=format",
-  "Dr. Neha Iyer": "https://images.unsplash.com/photo-1594824476967-48c8b964273f?w=400&h=400&fit=crop&crop=face&auto=format",
+  "Neha Iyer": "https://images.unsplash.com/photo-1594824476967-48c8b964273f?w=400&h=400&fit=crop&crop=face&auto=format",
   "Kabir Khan": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face&auto=format",
-  "Dr. Priya Nair": "https://images.unsplash.com/photo-1587614382344-4ecb093b79b2?w=400&h=400&fit=crop&crop=face&auto=format",
+  "Priya Nair": "https://images.unsplash.com/photo-1587614382344-4ecb093b79b2?w=400&h=400&fit=crop&crop=face&auto=format",
 };
 
 const seededCounsellors = [
   {
-    name: "Dr. Aisha Mehra",
+    name: "Aisha Mehra",
     email: "aisha.mehra@mindsupport.seed",
     specialization: "Anxiety and Stress Management",
     bio: "Licensed psychologist helping students manage anxiety, panic, exam stress, and emotional overwhelm with practical coping plans.",
@@ -297,7 +297,7 @@ const seededCounsellors = [
     linkedin: "https://www.linkedin.com/in/rahul-verma",
   },
   {
-    name: "Dr. Neha Iyer",
+    name: "Neha Iyer",
     email: "neha.iyer@mindsupport.seed",
     specialization: "Depression and Mood Support",
     bio: "Professional counsellor supporting low mood, loneliness, grief, emotional numbness, and therapy progress tracking.",
@@ -339,7 +339,7 @@ const seededCounsellors = [
     linkedin: "https://www.linkedin.com/in/kabir-khan",
   },
   {
-    name: "Dr. Priya Nair",
+    name: "Priya Nair",
     email: "priya.nair@mindsupport.seed",
     specialization: "Trauma Support and Grounding",
     bio: "Trauma-informed therapist helping clients with grounding, safety planning, triggers, PTSD symptoms, and emotional regulation.",
@@ -1045,7 +1045,7 @@ async function seedPlatformActivity(seedUsers, seedCounsellors, adminResult) {
       user: ananya._id,
       type: "session",
       title: "Upcoming Google Meet session",
-      message: "Your session with Dr. Aisha Mehra starts tomorrow at 3:00 PM.",
+      message: "Your session with Aisha Mehra starts tomorrow at 3:00 PM.",
       metadata: { seedBatch: SEED_BATCH },
     },
     {

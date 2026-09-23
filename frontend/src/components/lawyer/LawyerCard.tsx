@@ -38,8 +38,8 @@ export const LawyerCard: React.FC<Props> = ({
     <div
       className={`relative p-5 rounded-3xl border transition-all duration-200 bg-white dark:bg-slate-900 flex flex-col justify-between ${
         isSelected
-          ? 'border-indigo-600 ring-2 ring-indigo-500/20 shadow-xl bg-indigo-50/20 dark:bg-indigo-950/10'
-          : 'border-slate-200 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-700 shadow-sm hover:shadow-md'
+          ? 'border-slate-900 dark:border-white ring-2 ring-slate-900/20 shadow-xl bg-slate-100/60 dark:bg-white/5'
+          : 'border-slate-200 dark:border-slate-800 hover:border-slate-900 dark:hover:border-slate-500 shadow-sm hover:shadow-md'
       }`}
     >
       <div>
@@ -53,7 +53,7 @@ export const LawyerCard: React.FC<Props> = ({
                 className="w-16 h-16 rounded-2xl object-cover border border-slate-200 dark:border-slate-700 shadow-sm"
               />
             ) : (
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-700 to-violet-600 flex items-center justify-center text-white font-black text-xl shadow-sm">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-black to-slate-800 flex items-center justify-center text-white font-black text-xl shadow-sm">
                 {(user.name || 'Advocate').charAt(0).toUpperCase()}
               </div>
             )}
@@ -72,7 +72,7 @@ export const LawyerCard: React.FC<Props> = ({
               </h3>
               {lawyer.isDocumentVerified && (
                 <ShieldCheck
-                  className="w-4 h-4 text-indigo-600 dark:text-indigo-400"
+                  className="w-4 h-4 text-slate-900 dark:text-slate-100"
                   title="Bar Council Verified Advocate"
                 />
               )}
@@ -85,7 +85,7 @@ export const LawyerCard: React.FC<Props> = ({
 
             {/* Bar Council Number & Experience */}
             <div className="flex items-center gap-2 mt-1 text-xs text-slate-600 dark:text-slate-400 flex-wrap">
-              <span className="font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 rounded-md text-[11px]">
+              <span className="font-semibold text-slate-900 dark:text-slate-100 bg-slate-100 dark:bg-white/10 px-2 py-0.5 rounded-md text-[11px]">
                 🎓 Bar Reg: {lawyer.barCouncilNumber || 'Enrolled'}
               </span>
               <span>•</span>
@@ -162,7 +162,7 @@ export const LawyerCard: React.FC<Props> = ({
         {/* Courts Practiced In */}
         {lawyer.courtsPracticedIn && lawyer.courtsPracticedIn.length > 0 && (
           <div className="mt-2 text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5 truncate">
-            <Award className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+            <Award className="w-3.5 h-3.5 text-slate-700 dark:text-slate-300 shrink-0" />
             <span className="truncate">
               Courts: {lawyer.courtsPracticedIn.join(', ')}
             </span>
@@ -185,9 +185,9 @@ export const LawyerCard: React.FC<Props> = ({
           <div className="flex items-center gap-1.5">
             <div
               title="In-Person Chamber & Hospital Visit"
-              className="px-2.5 py-1 rounded-lg bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 flex items-center gap-1.5 text-purple-700 dark:text-purple-300 text-xs font-semibold"
+              className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-white/10 border border-slate-200 dark:border-slate-700 flex items-center gap-1.5 text-slate-900 dark:text-slate-200 text-xs font-semibold"
             >
-              <UserCheck className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+              <UserCheck className="w-3.5 h-3.5 text-slate-800 dark:text-slate-200" />
               <span>In-Person Visit</span>
             </div>
           </div>
@@ -209,7 +209,7 @@ export const LawyerCard: React.FC<Props> = ({
             variant="outline"
             size="sm"
             onClick={onViewDetails}
-            className="rounded-xl text-xs font-semibold"
+            className="rounded-xl text-xs font-semibold border-slate-200 dark:border-slate-700 hover:border-slate-900 hover:text-slate-900 dark:hover:border-slate-400 dark:hover:text-slate-100"
           >
             View Profile
           </Button>
@@ -217,11 +217,25 @@ export const LawyerCard: React.FC<Props> = ({
             type="button"
             size="sm"
             onClick={onSelect}
-            className="rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm"
+            title={
+              isAvailable
+                ? 'Advocate is online — book a consultation now'
+                : 'Advocate is offline — your request will still be sent and queued on their console'
+            }
+            className={`rounded-xl text-xs font-bold text-white shadow-sm border-0 ${
+              isAvailable
+                ? 'bg-gradient-to-r from-slate-900 to-slate-700 hover:from-black hover:to-slate-800'
+                : 'bg-gradient-to-r from-zinc-700 to-zinc-500 hover:from-zinc-800 hover:to-zinc-600'
+            }`}
           >
-            Book Consult
+            {isAvailable ? 'Book Consult' : 'Send Request'}
           </Button>
         </div>
+        {!isAvailable && (
+          <p className="mt-2 text-[10px] leading-snug text-center text-slate-500 dark:text-slate-400">
+            Offline right now — request will be queued &amp; the advocate is notified instantly
+          </p>
+        )}
       </div>
     </div>
   );

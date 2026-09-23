@@ -229,8 +229,8 @@ export const BookingStatusPanel: React.FC<Props> = ({
 
       {/* ── 2. RESCHEDULE PROPOSED ──────────────────────────────── */}
       {status === 'reschedule_proposed' && (
-        <div className="p-6 rounded-3xl bg-indigo-50/70 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-800 text-center animate-in fade-in">
-          <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-indigo-600">
+        <div className="p-6 rounded-3xl bg-slate-100/70 dark:bg-white/10 border border-slate-200 dark:border-slate-700 text-center animate-in fade-in">
+          <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-slate-200 dark:bg-white/10 flex items-center justify-center text-slate-900 dark:text-slate-100">
             <Calendar className="w-7 h-7" />
           </div>
           <h3 className="text-lg font-black text-slate-900 dark:text-slate-100">
@@ -247,7 +247,7 @@ export const BookingStatusPanel: React.FC<Props> = ({
           <div className="mt-4 flex items-center justify-center gap-3">
             <Button
               size="sm"
-              className="bg-indigo-600 text-white rounded-xl text-xs"
+              className="bg-slate-900 text-white rounded-xl text-xs"
               onClick={async () => {
                 try {
                   await api.rescheduleLawyerBooking(
@@ -276,10 +276,10 @@ export const BookingStatusPanel: React.FC<Props> = ({
 
       {/* ── 3. CONFIRMED STATE ──────────────────────────────────── */}
       {status === 'confirmed' && (
-        <div className="p-6 rounded-3xl bg-indigo-50/60 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-800 shadow-sm space-y-4 animate-in fade-in">
+        <div className="p-6 rounded-3xl bg-slate-100/60 dark:bg-white/10 border border-slate-200 dark:border-slate-700 shadow-sm space-y-4 animate-in fade-in">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-md">
+              <div className="w-12 h-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-md">
                 <CheckCircle2 className="w-6 h-6" />
               </div>
               <div>
@@ -293,7 +293,7 @@ export const BookingStatusPanel: React.FC<Props> = ({
                 </h3>
                 <div className="text-xs text-slate-500 flex items-center gap-2 mt-0.5">
                   <span className="flex items-center gap-1 font-medium text-slate-700 dark:text-slate-300">
-                    <ModeIcon className="w-3.5 h-3.5 text-indigo-600" />
+                    <ModeIcon className="w-3.5 h-3.5 text-slate-900 dark:text-slate-100" />
                     {booking.consultationMode?.replace('_', ' ')}
                   </span>
                   <span>•</span>
@@ -316,7 +316,7 @@ export const BookingStatusPanel: React.FC<Props> = ({
                 onClick={() => setShowChat(!showChat)}
                 className="gap-1.5 rounded-xl text-xs font-semibold"
               >
-                <MessageSquare className="w-4 h-4 text-indigo-600" />
+                <MessageSquare className="w-4 h-4 text-slate-900 dark:text-slate-100" />
                 {showChat ? 'Hide Chat' : 'Open Chat'}
               </Button>
 
@@ -326,7 +326,7 @@ export const BookingStatusPanel: React.FC<Props> = ({
                   size="sm"
                   disabled={actionLoading}
                   onClick={handleStartConsultation}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs gap-1.5 shadow-sm"
+                  className="bg-slate-900 hover:bg-black text-white font-bold rounded-xl text-xs gap-1.5 shadow-sm"
                 >
                   <Scale className="w-4 h-4" />
                   Start Consultation
@@ -343,7 +343,7 @@ export const BookingStatusPanel: React.FC<Props> = ({
                 <span className="text-slate-500 font-medium">Direct Phone Contact:</span>
                 <a
                   href={`tel:${otherUser.phone}`}
-                  className="font-bold text-indigo-600 hover:underline flex items-center gap-1"
+                  className="font-bold text-slate-900 dark:text-slate-100 hover:underline flex items-center gap-1"
                 >
                   <Phone className="w-3.5 h-3.5" />
                   {otherUser.phone}
@@ -380,7 +380,7 @@ export const BookingStatusPanel: React.FC<Props> = ({
 
       {/* ── 4. IN PROGRESS STATE ────────────────────────────────── */}
       {status === 'in_progress' && (
-        <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border-2 border-indigo-500/50 shadow-xl space-y-5 animate-in fade-in">
+        <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border-2 border-slate-900/30 dark:border-white/30 shadow-xl space-y-5 animate-in fade-in">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-md animate-pulse">
@@ -409,7 +409,7 @@ export const BookingStatusPanel: React.FC<Props> = ({
                 onClick={() => setShowChat(!showChat)}
                 className="gap-1.5 rounded-xl text-xs font-semibold"
               >
-                <MessageSquare className="w-4 h-4 text-indigo-600" />
+                <MessageSquare className="w-4 h-4 text-slate-900 dark:text-slate-100" />
                 {showChat ? 'Hide Chat' : 'In-App Chat'}
               </Button>
 
@@ -486,7 +486,7 @@ export const BookingStatusPanel: React.FC<Props> = ({
                 onClick={handleDownloadReceipt}
                 className="gap-1.5 rounded-xl text-xs font-semibold"
               >
-                <Download className="w-4 h-4 text-indigo-600" />
+                <Download className="w-4 h-4 text-slate-900 dark:text-slate-100" />
                 Download Receipt
               </Button>
 
@@ -495,7 +495,7 @@ export const BookingStatusPanel: React.FC<Props> = ({
                   type="button"
                   size="sm"
                   onClick={() => onBookFollowUp(booking.caseThreadId || booking._id)}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs gap-1.5 shadow-sm"
+                  className="bg-slate-900 hover:bg-black text-white font-bold rounded-xl text-xs gap-1.5 shadow-sm"
                 >
                   <RotateCcw className="w-4 h-4" />
                   Book Follow-Up
@@ -536,7 +536,7 @@ export const BookingStatusPanel: React.FC<Props> = ({
 
           {/* Rating Prompt (Client side, if paid and not rated) */}
           {!isLawyer && isPaid && !hasRated && (
-            <div className="p-4 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800 flex items-center justify-between">
+            <div className="p-4 rounded-2xl bg-slate-100/70 dark:bg-white/10 border border-slate-200 dark:border-slate-700 flex items-center justify-between">
               <div>
                 <div className="text-xs font-bold text-slate-900 dark:text-slate-100">
                   Rate Adv. {otherUser?.name || 'Advocate'}
@@ -549,7 +549,7 @@ export const BookingStatusPanel: React.FC<Props> = ({
                 type="button"
                 size="sm"
                 onClick={() => setShowRateModal(true)}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs rounded-xl font-bold gap-1"
+                className="bg-slate-900 hover:bg-black text-white text-xs rounded-xl font-bold gap-1"
               >
                 <Star className="w-3.5 h-3.5 fill-white" />
                 Rate Consultation
@@ -578,7 +578,7 @@ export const BookingStatusPanel: React.FC<Props> = ({
               type="button"
               size="sm"
               onClick={onNewBooking}
-              className="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl"
+              className="mt-4 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-xl"
             >
               Find Another Lawyer
             </Button>
@@ -603,7 +603,7 @@ export const BookingStatusPanel: React.FC<Props> = ({
                 value={finalSummary}
                 onChange={(e) => setFinalSummary(e.target.value)}
                 placeholder="E.g., Advised filing complaint under Consumer Protection Act before District Commission. Gather treatment bills & discharge summary. Follow-up consultation recommended in 2 weeks..."
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:text-slate-100"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-900 dark:focus:border-white dark:text-slate-100"
                 required
               />
 
@@ -666,7 +666,7 @@ export const BookingStatusPanel: React.FC<Props> = ({
                   onClick={() => setPayMethod('demo_wallet')}
                   className={`p-3 rounded-xl border text-xs font-bold transition-all ${
                     payMethod === 'demo_wallet'
-                      ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300'
+                      ? 'border-slate-900 dark:border-white bg-slate-100 dark:bg-white/10 text-slate-900 dark:text-slate-200'
                       : 'border-slate-200 dark:border-slate-800 text-slate-600'
                   }`}
                 >
@@ -677,7 +677,7 @@ export const BookingStatusPanel: React.FC<Props> = ({
                   onClick={() => setPayMethod('cash')}
                   className={`p-3 rounded-xl border text-xs font-bold transition-all ${
                     payMethod === 'cash'
-                      ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300'
+                      ? 'border-slate-900 dark:border-white bg-slate-100 dark:bg-white/10 text-slate-900 dark:text-slate-200'
                       : 'border-slate-200 dark:border-slate-800 text-slate-600'
                   }`}
                 >
@@ -701,7 +701,7 @@ export const BookingStatusPanel: React.FC<Props> = ({
                 size="sm"
                 disabled={paying}
                 onClick={handleProcessDemoPay}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl"
+                className="bg-slate-900 hover:bg-black text-white font-bold text-xs rounded-xl"
               >
                 {paying ? 'Processing...' : 'Confirm Demo Pay'}
               </Button>
@@ -743,7 +743,7 @@ export const BookingStatusPanel: React.FC<Props> = ({
                 value={ratingComment}
                 onChange={(e) => setRatingComment(e.target.value)}
                 placeholder="Share your experience with Adv. guidance, clarity, and professionalism..."
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:text-slate-100"
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-900 dark:focus:border-white dark:text-slate-100"
               />
 
               <div className="flex justify-end gap-2">
@@ -760,7 +760,7 @@ export const BookingStatusPanel: React.FC<Props> = ({
                   type="submit"
                   size="sm"
                   disabled={ratingSubmitting}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl"
+                  className="bg-slate-900 hover:bg-black text-white font-bold text-xs rounded-xl"
                 >
                   {ratingSubmitting ? 'Submitting...' : 'Submit Rating'}
                 </Button>

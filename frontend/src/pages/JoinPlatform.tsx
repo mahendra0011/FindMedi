@@ -2561,13 +2561,13 @@ export default function JoinPlatform() {
                   </div>
 
                   <div>
-                    <label className="text-sm font-medium text-foreground mb-1.5 block">Hospitals You Can Cover (comma separated) <span className="text-red-500">*</span></label>
+                    <label className="text-sm font-medium text-foreground mb-1.5 block">Service Areas / Cities You Cover (comma separated) <span className="text-red-500">*</span></label>
                     <Input
                       value={assistant.hospitalsCovered.join(', ')}
                       onChange={e => setAssistant(p => ({ ...p, hospitalsCovered: e.target.value.split(',').map(s => s.trim()).filter(Boolean) }))}
-                      placeholder="e.g. City Hospital, Apollo Clinic, AIIMS"
+                      placeholder="e.g. Jabalpur, Delhi NCR, Bhopal"
                     />
-                    <p className="text-xs text-muted-foreground mt-1">Patients visiting these hospitals will see your profile in search results.</p>
+                    <p className="text-xs text-muted-foreground mt-1">You can serve at any hospital or clinic within these cities. Patients will be matched based on your service areas.</p>
                   </div>
 
                   <div>

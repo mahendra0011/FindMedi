@@ -28,7 +28,7 @@ export const LEGAL_CATEGORIES: LegalCategory[] = [
     name: 'Medical Negligence',
     icon: Scale,
     desc: 'Hospital negligence, surgical faults, incorrect medication & malpractice claims',
-    color: 'from-blue-500 to-indigo-600',
+    color: 'from-slate-800 to-slate-700',
   },
   {
     id: 'insurance',
@@ -60,7 +60,7 @@ export const LEGAL_CATEGORIES: LegalCategory[] = [
     name: 'Family & Personal Matters',
     icon: HeartHandshake,
     desc: 'Legal guardianship, patient consent authorization & family inheritance rights',
-    color: 'from-purple-500 to-pink-600',
+    color: 'from-slate-700 to-pink-600',
   },
   {
     id: 'criminal_law',
@@ -84,7 +84,7 @@ export const LEGAL_CATEGORIES: LegalCategory[] = [
     name: 'Corporate & Contracts',
     icon: Briefcase,
     desc: 'Hospital vendor agreements, healthcare enterprise contracts & regulatory compliance',
-    color: 'from-indigo-600 to-sky-700',
+    color: 'from-slate-900 to-slate-700',
   },
   {
     id: 'general_consultation',
@@ -92,7 +92,7 @@ export const LEGAL_CATEGORIES: LegalCategory[] = [
     name: 'General Legal Advice',
     icon: HelpCircle,
     desc: 'First legal opinion, document vetting & comprehensive legal advisory',
-    color: 'from-violet-600 to-indigo-700',
+    color: 'from-slate-800 to-slate-900',
   },
 ];
 
@@ -132,8 +132,8 @@ export const LegalCategorySelector: React.FC<Props> = ({
             }}
             className={`group relative text-left p-4 rounded-2xl border transition-all duration-200 flex flex-col justify-between ${
               isSelected
-                ? 'border-indigo-600 dark:border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/30 ring-2 ring-indigo-500/20 shadow-md'
-                : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/90 hover:border-indigo-300 dark:hover:border-indigo-800 hover:shadow-sm'
+                ? 'border-slate-900 dark:border-white bg-slate-100/50 dark:bg-white/10 ring-2 ring-slate-900/20 shadow-md'
+                : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/90 hover:border-slate-900 dark:hover:border-slate-500 hover:shadow-sm'
             }`}
           >
             <div>
@@ -144,13 +144,13 @@ export const LegalCategorySelector: React.FC<Props> = ({
                   <Icon className="w-5 h-5" />
                 </div>
                 {isSelected && (
-                  <div className="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-sm">
+                  <div className="w-6 h-6 rounded-full bg-slate-900 text-white flex items-center justify-center shadow-sm">
                     <CheckCircle2 className="w-4 h-4" />
                   </div>
                 )}
               </div>
 
-              <h4 className="font-bold text-sm text-slate-900 dark:text-slate-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+              <h4 className="font-bold text-sm text-slate-900 dark:text-slate-100 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
                 {cat.name}
               </h4>
               <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">

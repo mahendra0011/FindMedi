@@ -94,10 +94,10 @@ export default function LawyerCard({ lawyer, index = 0 }: LawyerCardProps) {
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: index * 0.05, duration: 0.35, ease: 'easeOut' }}
-        className="group relative bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden hover:shadow-xl hover:shadow-indigo-500/10 hover:border-indigo-300 dark:hover:border-indigo-700 transition-all duration-300 flex flex-col h-full"
+        className="group relative bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden hover:shadow-xl hover:shadow-slate-900/10 hover:border-slate-900 dark:hover:border-slate-500 transition-all duration-300 flex flex-col h-full"
       >
         {/* ── Top accent line ── */}
-        <div className="h-1 w-full bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-500 rounded-t-2xl" />
+        <div className="h-1 w-full bg-gradient-to-r from-black via-slate-800 to-slate-600 rounded-t-2xl" />
 
         {/* ── Header: avatar + name + status ── */}
         <div className="px-5 pt-5 pb-3 flex items-start gap-4">
@@ -107,7 +107,7 @@ export default function LawyerCard({ lawyer, index = 0 }: LawyerCardProps) {
               {profilePhoto ? (
                 <img src={profilePhoto} alt={name} className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-indigo-500 to-violet-600">
+                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-800 to-slate-700">
                   <span className="text-xl font-bold text-white">{initials}</span>
                 </div>
               )}
@@ -124,13 +124,13 @@ export default function LawyerCard({ lawyer, index = 0 }: LawyerCardProps) {
               <h3 className="font-bold text-base text-slate-900 dark:text-slate-100 leading-tight truncate">
                 Adv. {name}
               </h3>
-              <BadgeCheck className="w-4 h-4 text-indigo-600 shrink-0" title="Bar Council Verified" />
+              <BadgeCheck className="w-4 h-4 text-slate-900 dark:text-slate-100 shrink-0" title="Bar Council Verified" />
               {isPoliceVerified && (
                 <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" title="Police Verified" />
               )}
             </div>
 
-            <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 truncate mt-0.5">
+            <p className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate mt-0.5">
               {practiceCategories[0] || 'Legal Advocate'}
               {practiceCategories.length > 1 ? ` +${practiceCategories.length - 1}` : ''}
             </p>
@@ -195,7 +195,7 @@ export default function LawyerCard({ lawyer, index = 0 }: LawyerCardProps) {
           <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px]">
             {languages?.length > 0 && (
               <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400">
-                <Languages className="w-3 h-3 text-indigo-400" />
+                <Languages className="w-3 h-3 text-slate-500 dark:text-slate-400" />
                 <span>{languages.join(', ')}</span>
               </div>
             )}
@@ -207,7 +207,7 @@ export default function LawyerCard({ lawyer, index = 0 }: LawyerCardProps) {
             )}
             {barCouncilNumber && (
               <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400">
-                <GraduationCap className="w-3 h-3 text-indigo-400" />
+                <GraduationCap className="w-3 h-3 text-slate-500 dark:text-slate-400" />
                 <span className="truncate">Bar: {barCouncilNumber}</span>
               </div>
             )}
@@ -219,7 +219,7 @@ export default function LawyerCard({ lawyer, index = 0 }: LawyerCardProps) {
               {practiceCategories.slice(0, 3).map((c: string, i: number) => (
                 <span
                   key={i}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-slate-100 dark:bg-white/10 text-slate-900 dark:text-slate-200 border border-slate-200 dark:border-slate-700"
                 >
                   <Gavel className="w-2.5 h-2.5" />
                   {c}
@@ -246,7 +246,7 @@ export default function LawyerCard({ lawyer, index = 0 }: LawyerCardProps) {
               </div>
             )}
             {notableCases.length > 0 && (
-              <div className="inline-flex items-center gap-1 text-[10px] font-semibold text-violet-700 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20 px-2 py-0.5 rounded-lg border border-violet-100 dark:border-violet-800">
+              <div className="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-900 dark:text-slate-100 bg-slate-100 dark:bg-slate-800/60 px-2 py-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
                 <Zap className="w-3 h-3" />
                 {notableCases.length} Notable
               </div>
@@ -258,7 +258,7 @@ export default function LawyerCard({ lawyer, index = 0 }: LawyerCardProps) {
             <Button
               variant="outline"
               size="sm"
-              className="flex-1 gap-1.5 rounded-xl text-[11px] h-9 border-slate-200 dark:border-slate-700 hover:border-indigo-300 hover:text-indigo-600"
+              className="flex-1 gap-1.5 rounded-xl text-[11px] h-9 border-slate-200 dark:border-slate-700 hover:border-slate-900 hover:text-slate-900 dark:hover:border-slate-400 dark:hover:text-slate-100"
               onClick={() => navigate(profilePath)}
             >
               <User className="w-3.5 h-3.5" />
@@ -266,14 +266,30 @@ export default function LawyerCard({ lawyer, index = 0 }: LawyerCardProps) {
             </Button>
             <Button
               size="sm"
-              className="flex-1 gap-1.5 rounded-xl text-[11px] h-9 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white shadow-md shadow-indigo-500/25 border-0"
+              className={cn(
+                'flex-1 gap-1.5 rounded-xl text-[11px] h-9 border-0 text-white shadow-md',
+                isAvailable
+                  ? 'bg-gradient-to-r from-slate-900 to-slate-700 hover:from-black hover:to-slate-800 shadow-slate-900/25'
+                  : 'bg-gradient-to-r from-zinc-700 to-zinc-500 hover:from-zinc-800 hover:to-zinc-600 shadow-zinc-700/20'
+              )}
               onClick={() => setShowUrgentIntake(true)}
-              disabled={!isAvailable}
+              title={
+                isAvailable
+                  ? 'Advocate is online — dispatch an urgent request now'
+                  : 'Advocate is offline right now — your request will still be sent and queued on their console'
+              }
             >
               <Gavel className="w-3.5 h-3.5" />
-              Book Urgent
+              {isAvailable ? 'Book Urgent' : 'Send Request'}
             </Button>
           </div>
+
+          {/* Offline note — booking is still allowed, request gets queued */}
+          {!isAvailable && (
+            <p className="text-[10px] leading-snug text-center text-slate-500 dark:text-slate-400 pt-1">
+              Offline right now — request will be queued &amp; the advocate is notified instantly
+            </p>
+          )}
         </div>
       </motion.div>
 

@@ -108,6 +108,31 @@ export default function PsychiatristDetail() {
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
   const [selectedPlanId, setSelectedPlanId] = useState('oneTime');
+  const [selectedMode, setSelectedMode] = useState('video');
+  const [showIntakeDetails, setShowIntakeDetails] = useState(false);
+
+  // Fallback multiplier for consultation modes if explicit fee isn't set
+  const MODE_RATIOS = {
+    video: 1,
+    audio: 0.8,
+    chat: 0.6,
+    offline: 1,
+    home_visit: 1.2,
+  };
+
+  const getAdjustedPlanPrice = (plan) => {
+    if (!doctor) return 0;
+    const basePrice = Number(doctor.supportPlanPrices?.[plan.priceKey] || 0);
+    if (!basePrice) return 0;
+    const fees = doctor.appointmentFees || {};
+    const videoFee = Number(fees.video || doctor.consultation_fees || doctor.fees || 0);
+    const currModeFee = Number(fees[selectedMode] ?? 0);
+    if (currModeFee && videoFee) {
+      return Math.round(basePrice * (currModeFee / videoFee));
+    }
+    const ratio = MODE_RATIOS[selectedMode] ?? 1;
+    return Math.round(basePrice * ratio);
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -563,26 +588,59 @@ export default function PsychiatristDetail() {
                       <span className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
                         <Video className="w-4 h-4 text-primary" />
                       </span>
-                      Consultation Options
+                      Consultation Options & Modes
                     </h2>
-                    <p className="text-sm text-muted-foreground mb-5">Diagnosis, medication & therapy sessions</p>
+                    <p className="text-sm text-muted-foreground mb-4">Select a consultation mode to see matching package pricing & details.</p>
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-                      {MODE_META.map(m => (
-                        <div key={m.id} className="rounded-xl border border-border/60 bg-muted/40 p-4 text-center">
-                          <m.icon className="w-6 h-6 mx-auto mb-2 text-primary" />
-                          <p className="text-xs font-semibold">{m.label}</p>
-                          <p className="text-sm font-bold text-primary mt-1">₹{modeFee(doctor, m.id)}</p>
-                        </div>
-                      ))}
+                      {MODE_META.map(m => {
+                        const isModeActive = selectedMode === m.id;
+                        const fee = modeFee(doctor, m.id);
+                        return (
+                          <button
+                            key={m.id}
+                            type="button"
+                            onClick={() => setSelectedMode(m.id)}
+                            className={cn(
+                              "relative rounded-xl border p-4 text-center transition-all duration-200 cursor-pointer text-left hover:-translate-y-0.5",
+                              isModeActive
+                                ? "border-primary bg-primary/10 shadow-md ring-2 ring-primary/30"
+                                : "border-border/60 bg-muted/40 hover:border-primary/40 hover:bg-muted/70"
+                            )}
+                          >
+                            {isModeActive && (
+                              <span className="absolute top-2 right-2 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px]">
+                                <Check className="h-2.5 w-2.5" />
+                              </span>
+                            )}
+                            <m.icon className={cn("w-6 h-6 mx-auto mb-2", isModeActive ? "text-primary" : "text-muted-foreground")} />
+                            <p className={cn("text-xs font-semibold", isModeActive ? "text-primary" : "text-foreground")}>{m.label}</p>
+                            <p className="text-sm font-bold text-primary mt-1">₹{fee}</p>
+                            <span className="text-[10px] text-muted-foreground mt-0.5 block capitalize">
+                              {m.id === 'video' ? '100% standard' : m.id === 'audio' ? '20% off' : m.id === 'chat' ? '40% off' : 'Clinic visit'}
+                            </span>
+                          </button>
+                        );
+                      })}
                     </div>
+
                     {doctor.supportPlanPrices && Object.values(doctor.supportPlanPrices).some(v => Number(v) > 0) && (
-                      <div className="mt-6">
-                        <h3 className="font-semibold text-foreground mb-1">Support Packages</h3>
-                        <p className="text-sm text-muted-foreground mb-4">Choose one plan for your journey. You can upgrade later.</p>
+                      <div className="mt-8">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+                          <div>
+                            <h3 className="font-semibold text-foreground text-base flex items-center gap-2">
+                              <span>Support Packages</span>
+                              <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20 capitalize font-medium">
+                                Mode: {MODE_META.find(m => m.id === selectedMode)?.label || selectedMode}
+                              </Badge>
+                            </h3>
+                            <p className="text-xs text-muted-foreground mt-0.5">Package rates auto-adjust for {MODE_META.find(m => m.id === selectedMode)?.label || selectedMode}.</p>
+                          </div>
+                        </div>
                         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
                           {PSYCH_PLANS.map(plan => {
-                            const price = Number(doctor.supportPlanPrices?.[plan.priceKey] || 0);
-                            if (!price) return null;
+                            const originalPrice = Number(doctor.supportPlanPrices?.[plan.priceKey] || 0);
+                            if (!originalPrice) return null;
+                            const adjustedPrice = getAdjustedPlanPrice(plan);
                             const isSelected = selectedPlanId === plan.id;
                             return (
                               <button key={plan.id} onClick={() => setSelectedPlanId(plan.id)} className={`relative text-left p-5 rounded-xl border transition-all duration-300 hover:-translate-y-0.5 text-left ${isSelected ? "bg-gradient-to-br from-primary/10 to-primary/5 border-primary/30 shadow-lg shadow-primary/10" : "bg-muted/50 border-border/70 hover:border-primary/30 hover:bg-muted/60"}`}>
@@ -593,7 +651,13 @@ export default function PsychiatristDetail() {
                                 )}
                                 <h4 className="font-bold text-base mb-1 pr-6">{plan.name}</h4>
                                 <p className="text-xs text-muted-foreground mb-3">{plan.summary}</p>
-                                <p className="text-2xl font-bold mb-2">₹{price}<span className="text-xs font-normal text-muted-foreground ml-1">once</span></p>
+                                <div className="mb-2">
+                                  <span className="text-2xl font-bold">₹{adjustedPrice}</span>
+                                  {adjustedPrice !== originalPrice && (
+                                    <span className="text-xs text-muted-foreground line-through ml-2">₹{originalPrice}</span>
+                                  )}
+                                  <span className="text-xs font-normal text-muted-foreground ml-1">total</span>
+                                </div>
                                 <p className="text-xs text-muted-foreground">{plan.duration} • {plan.cadence}</p>
                                 <div className="flex flex-wrap gap-1.5 mt-3">
                                   {plan.bestFor.slice(0, 2).map(item => (
@@ -605,6 +669,78 @@ export default function PsychiatristDetail() {
                           })}
                         </div>
                       </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              {/* ═══ INTAKE FORM & PREPARATION DETAILS ═══ */}
+              <motion.div variants={fadeUp}>
+                <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden">
+                  <CardContent className="p-6 sm:p-8">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <span className="w-8 h-8 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-600">
+                          <FileText className="w-4 h-4" />
+                        </span>
+                        <div>
+                          <h2 className="font-heading text-lg font-bold text-foreground">Intake Assessment & Pre-Consultation Details</h2>
+                          <p className="text-xs text-muted-foreground">What you will be asked during booking to prepare for Dr. {doctor.name.replace(/^Dr\.?\s+/i, '')}</p>
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowIntakeDetails(prev => !prev)}
+                        className="text-xs gap-1 text-primary"
+                      >
+                        {showIntakeDetails ? 'Hide details' : 'View requirements'}
+                        {showIntakeDetails ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                      </Button>
+                    </div>
+
+                    <div className="mt-4 grid sm:grid-cols-3 gap-3">
+                      <div className="p-3.5 rounded-xl border border-border/60 bg-muted/30">
+                        <p className="text-xs font-semibold text-foreground flex items-center gap-1.5 mb-1">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                          Chief Concern & Symptoms
+                        </p>
+                        <p className="text-[11px] text-muted-foreground leading-relaxed">
+                          Primary reason for visit (Anxiety, Depression, Sleep issues, Mood swings) and how long symptoms have persisted.
+                        </p>
+                      </div>
+                      <div className="p-3.5 rounded-xl border border-border/60 bg-muted/30">
+                        <p className="text-xs font-semibold text-foreground flex items-center gap-1.5 mb-1">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                          Medical & Treatment History
+                        </p>
+                        <p className="text-[11px] text-muted-foreground leading-relaxed">
+                          Past diagnoses, current prescriptions, previous therapy, or hospital admissions.
+                        </p>
+                      </div>
+                      <div className="p-3.5 rounded-xl border border-border/60 bg-muted/30">
+                        <p className="text-xs font-semibold text-foreground flex items-center gap-1.5 mb-1">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                          Documents & Reports
+                        </p>
+                        <p className="text-[11px] text-muted-foreground leading-relaxed">
+                          Optionally upload past doctor prescriptions, blood tests, or psych evaluation reports directly in the booking step.
+                        </p>
+                      </div>
+                    </div>
+
+                    {showIntakeDetails && (
+                      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mt-4 pt-4 border-t border-border/60 space-y-3">
+                        <div className="p-4 rounded-xl bg-purple-500/5 border border-purple-500/20 text-xs space-y-2">
+                          <p className="font-semibold text-purple-700 dark:text-purple-300">Intake Form Process:</p>
+                          <ol className="list-decimal pl-4 space-y-1.5 text-muted-foreground">
+                            <li><strong className="text-foreground">Step 1:</strong> Select your preferred consultation mode and schedule slot.</li>
+                            <li><strong className="text-foreground">Step 2:</strong> Choose patient profile (Myself or Family Member).</li>
+                            <li><strong className="text-foreground">Step 3:</strong> Fill in the intake assessment form (Chief symptoms, duration, prior medication, allergies).</li>
+                            <li><strong className="text-foreground">Step 4:</strong> Review package total (calculated for your chosen mode) and confirm securely.</li>
+                          </ol>
+                        </div>
+                      </motion.div>
                     )}
                   </CardContent>
                 </Card>
@@ -1120,20 +1256,31 @@ export default function PsychiatristDetail() {
                 {/* Selected Package Summary */}
                 {(() => {
                   const plan = PSYCH_PLANS.find(p => p.id === selectedPlanId) || PSYCH_PLANS[0];
-                  const price = Number(doctor.supportPlanPrices?.[plan.priceKey] || doctor.consultation_fees || 0);
+                  const hasPlanPrice = Boolean(doctor.supportPlanPrices?.[plan.priceKey]);
+                  const price = hasPlanPrice ? getAdjustedPlanPrice(plan) : modeFee(doctor, selectedMode);
+                  const modeObj = MODE_META.find(m => m.id === selectedMode);
                   return (
                     <>
                       <div className="mb-3">
-                        <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Selected Plan</p>
+                        <div className="flex items-center justify-between gap-1 mb-1">
+                          <p className="text-xs uppercase tracking-wider text-muted-foreground">Selected Plan</p>
+                          <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20 capitalize font-medium">
+                            {modeObj?.label || selectedMode}
+                          </Badge>
+                        </div>
                         <h3 className="text-base font-bold">{plan.name}</h3>
                         <p className="text-xs text-muted-foreground">{plan.summary}</p>
                       </div>
                       <div className="bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 rounded-xl p-3 mb-3">
-                        <p className="text-xs text-muted-foreground uppercase tracking-wider">Package Total</p>
-                        <p className="text-2xl font-bold mt-1">₹{price}<span className="text-xs font-normal text-muted-foreground ml-1">once</span></p>
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs text-muted-foreground uppercase tracking-wider">Total Fee ({modeObj?.label?.split(' ')[0] || 'Session'})</p>
+                          <span className="text-[10px] text-primary font-medium bg-primary/10 px-1.5 py-0.5 rounded">Mode-adjusted</span>
+                        </div>
+                        <p className="text-2xl font-bold mt-1">₹{price}<span className="text-xs font-normal text-muted-foreground ml-1">total</span></p>
                         <p className="text-xs text-muted-foreground mt-1">{plan.duration} • {plan.cadence}</p>
                       </div>
                       <div className="space-y-2 text-xs mb-3">
+                        <div className="flex justify-between py-1.5 border-b border-border/50"><span className="text-muted-foreground">Mode</span><span className="font-semibold text-primary">{modeObj?.label || selectedMode}</span></div>
                         <div className="flex justify-between py-1.5 border-b border-border/50"><span className="text-muted-foreground">Duration</span><span className="font-medium">{plan.duration}</span></div>
                         <div className="flex justify-between py-1.5 border-b border-border/50"><span className="text-muted-foreground">Cadence</span><span className="font-medium">{plan.cadence}</span></div>
                         <div className="flex justify-between py-1.5"><span className="text-muted-foreground">Response</span><span className="font-medium text-emerald-600">{doctor.responseTime || "Within 24 hours"}</span></div>

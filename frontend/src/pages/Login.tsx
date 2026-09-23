@@ -43,6 +43,8 @@ interface RoleItem {
 
 interface DemoAccountItem {
   key: string;
+  category: 'core' | 'counsellor' | 'psychiatrist' | 'assistant' | 'lawyer' | 'rider';
+  name: string;
   label: string;
   desc: string;
   icon: any;
@@ -70,26 +72,63 @@ const roles: RoleItem[] = [
 ];
 
 const demoAccounts: DemoAccountItem[] = [
-  { key: 'superadmin', label: 'SuperAdmin', desc: 'Manage full platform', icon: Shield, color: 'text-purple-600', bg: 'bg-purple-500/10', email: 'mahendrapra0077@gmail.com', pass: 'admin@123' },
-  { key: 'hospital_admin', label: 'Hospital Admin', desc: 'Manage hospital', icon: Shield, color: 'text-primary', bg: 'bg-primary/10', email: 'admin@findmedi.com', pass: 'password' },
-  { key: 'doctor', label: 'Hosp Doctor', desc: 'Patient & schedule', icon: Stethoscope, color: 'text-info', bg: 'bg-info/10', email: 'sarah.smith@findmedi.com', pass: 'password' },
-  { key: 'clinic_doctor', label: 'Clinic', desc: 'Clinic management', icon: Heart, color: 'text-rose-600', bg: 'bg-rose-500/10', email: 'clinic@findmedi.com', pass: 'password' },
-  { key: 'lab_owner', label: 'Diagnostic', desc: 'Lab test mgmt', icon: Microscope, color: 'text-emerald-600', bg: 'bg-emerald-500/10', email: 'diagnostic@findmedi.com', pass: 'password' },
-  { key: 'pharmacy_owner', label: 'Pharmacy', desc: 'Medicine store', icon: Pill, color: 'text-amber-600', bg: 'bg-amber-500/10', email: 'pharmacy@findmedi.com', pass: 'password' },
-  { key: 'delivery_boy', label: 'Delivery', desc: 'Medicine delivery', icon: Truck, color: 'text-blue-600', bg: 'bg-blue-500/10', email: 'delivery@findmedi.com', pass: 'password' },
-  { key: 'rider', label: 'Rider', desc: 'Vehicle rides', icon: Car, color: 'text-teal-600', bg: 'bg-teal-500/10', email: 'rider@findmedi.com', pass: 'password' },
-  { key: 'ambulance', label: 'Ambulance Driver', desc: 'Emergency ambulance', icon: Ambulance, color: 'text-red-600', bg: 'bg-red-500/10', email: 'ambulance@findmedi.com', pass: 'password' },
-  { key: 'assistant', label: 'Assistant', desc: 'Patient care & help', icon: Users, color: 'text-cyan-600', bg: 'bg-cyan-500/10', email: 'assistant@findmedi.com', pass: 'password' },
-  { key: 'lawyer', label: 'Lawyer', desc: 'Legal consultation', icon: Scale, color: 'text-indigo-600', bg: 'bg-indigo-500/10', email: 'lawyer@findmedi.com', pass: 'password' },
-  { key: 'counsellor', label: 'Counsellor', desc: 'Therapy & counselling', icon: Brain, color: 'text-teal-600', bg: 'bg-teal-500/10', email: 'counsellor@findmedi.com', pass: 'password' },
-  { key: 'psychiatrist', label: 'Psychiatrist', desc: 'Diagnosis & medication', icon: BrainCircuit, color: 'text-cyan-600', bg: 'bg-cyan-500/10', email: 'psychiatrist@findmedi.com', pass: 'password' },
-  { key: 'patient', label: 'Patient', desc: 'Appointments & records', icon: UserRound, color: 'text-success', bg: 'bg-success/10', email: 'patient@findmedi.com', pass: 'password' },
+  // Core System Roles (Exact 14 Accounts requested)
+  { key: 'superadmin', category: 'core', name: 'Super Admin', label: 'SuperAdmin', desc: 'Manage full platform', icon: Shield, color: 'text-purple-600', bg: 'bg-purple-500/10', email: 'mahendrapra0077@gmail.com', pass: 'admin@123' },
+  { key: 'hospital_admin', category: 'core', name: 'Hospital Admin', label: 'Hospital Admin', desc: 'Manage hospital', icon: Shield, color: 'text-primary', bg: 'bg-primary/10', email: 'admin@findmedi.com', pass: 'password' },
+  { key: 'doctor', category: 'core', name: 'Dr. Sarah Smith', label: 'Hosp Doctor', desc: 'Patient & schedule', icon: Stethoscope, color: 'text-info', bg: 'bg-info/10', email: 'sarah.smith@findmedi.com', pass: 'password' },
+  { key: 'clinic_doctor', category: 'core', name: 'Dr. Rajesh Clinic', label: 'Clinic', desc: 'Clinic management', icon: Heart, color: 'text-rose-600', bg: 'bg-rose-500/10', email: 'clinic@findmedi.com', pass: 'password' },
+  { key: 'lab_owner', category: 'core', name: 'Metro Diagnostic', label: 'Diagnostic', desc: 'Lab test mgmt', icon: Microscope, color: 'text-emerald-600', bg: 'bg-emerald-500/10', email: 'diagnostic@findmedi.com', pass: 'password' },
+  { key: 'pharmacy_owner', category: 'core', name: 'MediCare Pharmacy', label: 'Pharmacy', desc: 'Medicine store', icon: Pill, color: 'text-amber-600', bg: 'bg-amber-500/10', email: 'pharmacy@findmedi.com', pass: 'password' },
+  { key: 'delivery_boy', category: 'core', name: 'Rahul Delivery', label: 'Delivery', desc: 'Medicine delivery', icon: Truck, color: 'text-blue-600', bg: 'bg-blue-500/10', email: 'delivery@findmedi.com', pass: 'password' },
+  { key: 'rider', category: 'core', name: 'Vikram Singh', label: 'Rider', desc: 'Vehicle rides', icon: Car, color: 'text-teal-600', bg: 'bg-teal-500/10', email: 'rider@findmedi.com', pass: 'password' },
+  { key: 'ambulance', category: 'core', name: 'Ramesh Driver', label: 'Ambulance Driver', desc: 'Emergency ambulance', icon: Ambulance, color: 'text-red-600', bg: 'bg-red-500/10', email: 'ambulance@findmedi.com', pass: 'password' },
+  { key: 'assistant', category: 'core', name: 'Sunita Sharma', label: 'Assistant', desc: 'Patient care & help', icon: Users, color: 'text-cyan-600', bg: 'bg-cyan-500/10', email: 'assistant@findmedi.com', pass: 'password' },
+  { key: 'lawyer', category: 'core', name: 'Adv. Rajesh Verma', label: 'Lawyer', desc: 'Legal consultation', icon: Scale, color: 'text-indigo-600', bg: 'bg-indigo-500/10', email: 'lawyer@findmedi.com', pass: 'password' },
+  { key: 'counsellor', category: 'core', name: 'Ananya Verma', label: 'Counsellor', desc: 'Therapy & counselling', icon: Brain, color: 'text-teal-600', bg: 'bg-teal-500/10', email: 'counsellor@findmedi.com', pass: 'password' },
+  { key: 'psychiatrist', category: 'core', name: 'Dr. Rohan Deshmukh', label: 'Psychiatrist', desc: 'Diagnosis & medication', icon: BrainCircuit, color: 'text-cyan-600', bg: 'bg-cyan-500/10', email: 'psychiatrist@findmedi.com', pass: 'password' },
+  { key: 'patient', category: 'core', name: 'Patient Test', label: 'Patient', desc: 'Appointments & records', icon: UserRound, color: 'text-success', bg: 'bg-success/10', email: 'patient@findmedi.com', pass: 'password' },
+
+  // Counsellors (MindSupport - Therapists & Psychologists, NO "Dr." prefix)
+  { key: 'counsellor', category: 'counsellor', name: 'Aisha Mehra', label: 'Aisha Mehra', desc: 'Anxiety & Stress (PhD)', icon: Brain, color: 'text-teal-600', bg: 'bg-teal-500/10', email: 'aisha.mehra@mindsupport.seed', pass: 'password' },
+  { key: 'counsellor', category: 'counsellor', name: 'Neha Iyer', label: 'Neha Iyer', desc: 'Depression & Mood (M.Phil)', icon: Brain, color: 'text-teal-600', bg: 'bg-teal-500/10', email: 'neha.iyer@mindsupport.seed', pass: 'password' },
+  { key: 'counsellor', category: 'counsellor', name: 'Priya Nair', label: 'Priya Nair', desc: 'Trauma & PTSD (PsyD)', icon: Brain, color: 'text-teal-600', bg: 'bg-teal-500/10', email: 'priya.nair@mindsupport.seed', pass: 'password' },
+  { key: 'counsellor', category: 'counsellor', name: 'Rahul Verma', label: 'Rahul Verma', desc: 'Career & Confidence', icon: Brain, color: 'text-teal-600', bg: 'bg-teal-500/10', email: 'rahul.verma@mindsupport.seed', pass: 'password' },
+  { key: 'counsellor', category: 'counsellor', name: 'Ananya Verma', label: 'Ananya Verma', desc: 'Stress & Student Burnout', icon: Brain, color: 'text-teal-600', bg: 'bg-teal-500/10', email: 'counsellor@findmedi.com', pass: 'password' },
+
+  // Psychiatrists (Medical Doctors MBBS, MD Psychiatry — Diagnosis & Medication)
+  { key: 'psychiatrist', category: 'psychiatrist', name: 'Dr. Rohan Deshmukh', label: 'Dr. Rohan Deshmukh', desc: 'Depression & Meds (MD)', icon: BrainCircuit, color: 'text-cyan-600', bg: 'bg-cyan-500/10', email: 'psychiatrist@findmedi.com', pass: 'password' },
+  { key: 'psychiatrist', category: 'psychiatrist', name: 'Dr. Ananya Sharma', label: 'Dr. Ananya Sharma', desc: 'Bipolar & Psychotherapy', icon: BrainCircuit, color: 'text-cyan-600', bg: 'bg-cyan-500/10', email: 'psychiatrist2@findmedi.com', pass: 'password' },
+  { key: 'psychiatrist', category: 'psychiatrist', name: 'Dr. Vikram Rao', label: 'Dr. Vikram Rao', desc: 'Adult ADHD & Panic', icon: BrainCircuit, color: 'text-cyan-600', bg: 'bg-cyan-500/10', email: 'psychiatrist3@findmedi.com', pass: 'password' },
+  { key: 'psychiatrist', category: 'psychiatrist', name: 'Dr. Kavya Menon', label: 'Dr. Kavya Menon', desc: 'Sleep & De-addiction', icon: BrainCircuit, color: 'text-cyan-600', bg: 'bg-cyan-500/10', email: 'psychiatrist4@findmedi.com', pass: 'password' },
+  { key: 'psychiatrist', category: 'psychiatrist', name: 'Dr. Aditya Patel', label: 'Dr. Aditya Patel', desc: 'Child & Adolescent', icon: BrainCircuit, color: 'text-cyan-600', bg: 'bg-cyan-500/10', email: 'psychiatrist5@findmedi.com', pass: 'password' },
+
+  // Hospital Assistants (Patient Care & Hospital Attendants)
+  { key: 'assistant', category: 'assistant', name: 'Sunita Sharma', label: 'Sunita Sharma', desc: 'Patient Care & Wheelchair', icon: Users, color: 'text-cyan-600', bg: 'bg-cyan-500/10', email: 'assistant@findmedi.com', pass: 'password' },
+  { key: 'assistant', category: 'assistant', name: 'Manoj Chouhan', label: 'Manoj Chouhan', desc: 'ICU Step-Down & Elderly', icon: Users, color: 'text-cyan-600', bg: 'bg-cyan-500/10', email: 'assistant2@findmedi.com', pass: 'password' },
+  { key: 'assistant', category: 'assistant', name: 'Pooja Tiwari', label: 'Pooja Tiwari', desc: 'Billing & Cashless TPA', icon: Users, color: 'text-cyan-600', bg: 'bg-cyan-500/10', email: 'assistant3@findmedi.com', pass: 'password' },
+  { key: 'assistant', category: 'assistant', name: 'Neha Kulkarni', label: 'Neha Kulkarni', desc: 'Overnight Hospital Stay', icon: Users, color: 'text-cyan-600', bg: 'bg-cyan-500/10', email: 'assistant4@findmedi.com', pass: 'password' },
+  { key: 'assistant', category: 'assistant', name: 'Rajesh Yadav', label: 'Rajesh Yadav', desc: 'Post-Surgery Mobility', icon: Users, color: 'text-cyan-600', bg: 'bg-cyan-500/10', email: 'assistant5@findmedi.com', pass: 'password' },
+
+  // Medico-Legal Lawyers
+  { key: 'lawyer', category: 'lawyer', name: 'Adv. Rajesh Verma', label: 'Adv. Rajesh Verma', desc: 'Medical Negligence & MLC', icon: Scale, color: 'text-indigo-600', bg: 'bg-indigo-500/10', email: 'lawyer@findmedi.com', pass: 'password' },
+  { key: 'lawyer', category: 'lawyer', name: 'Adv. Priya Malhotra', label: 'Adv. Priya Malhotra', desc: 'Insurance Dispute Claim', icon: Scale, color: 'text-indigo-600', bg: 'bg-indigo-500/10', email: 'priya.malhotra@findmedi.com', pass: 'password' },
+  { key: 'lawyer', category: 'lawyer', name: 'Adv. Rohan Deshmukh', label: 'Adv. Rohan Deshmukh', desc: 'Accident MLC Documentation', icon: Scale, color: 'text-indigo-600', bg: 'bg-indigo-500/10', email: 'rohan.deshmukh@findmedi.com', pass: 'password' },
+  { key: 'lawyer', category: 'lawyer', name: 'Adv. Ananya Roy', label: 'Adv. Ananya Roy', desc: 'Family & Patient Rights', icon: Scale, color: 'text-indigo-600', bg: 'bg-indigo-500/10', email: 'ananya.roy@findmedi.com', pass: 'password' },
+  { key: 'lawyer', category: 'lawyer', name: 'Adv. Vikramaditya Rao', label: 'Adv. Vikramaditya', desc: 'Hospital Arbitration', icon: Scale, color: 'text-indigo-600', bg: 'bg-indigo-500/10', email: 'lawyer5@findmedi.com', pass: 'password' },
+
+  // Emergency & Hospital Riders
+  { key: 'rider', category: 'rider', name: 'Vikram Singh', label: 'Vikram Singh', desc: 'Bike Rider (Jabalpur)', icon: Car, color: 'text-teal-600', bg: 'bg-teal-500/10', email: 'rider@findmedi.com', pass: 'password' },
+  { key: 'rider', category: 'rider', name: 'Amit Patel', label: 'Amit Patel', desc: 'Auto Rickshaw (City)', icon: Car, color: 'text-teal-600', bg: 'bg-teal-500/10', email: 'rider2@findmedi.com', pass: 'password' },
+  { key: 'rider', category: 'rider', name: 'Ravi Kumar', label: 'Ravi Kumar', desc: 'Car / Ertiga 6-Seater', icon: Car, color: 'text-teal-600', bg: 'bg-teal-500/10', email: 'rider3@findmedi.com', pass: 'password' },
+  { key: 'rider', category: 'rider', name: 'Sanjay Verma', label: 'Sanjay Verma', desc: 'Ambulance Force Traveller', icon: Ambulance, color: 'text-red-600', bg: 'bg-red-500/10', email: 'rider4@findmedi.com', pass: 'password' },
+  { key: 'rider', category: 'rider', name: 'Deepak Sharma', label: 'Deepak Sharma', desc: 'Swift Car (Highway)', icon: Car, color: 'text-teal-600', bg: 'bg-teal-500/10', email: 'rider5@findmedi.com', pass: 'password' },
 ];
 
 export default function Login() {
   const navigate = useNavigate();
   const { user, login, completeGoogleLogin } = useAuth();
   const [role, setRole] = useState('hospital_admin');
+  const [demoCategory, setDemoCategory] = useState<'all' | 'counsellor' | 'psychiatrist' | 'assistant' | 'lawyer' | 'rider'>('all');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -104,6 +143,10 @@ export default function Login() {
     setEmail('');
     setPassword('');
     setError('');
+    // Auto sync demo category if matches
+    if (['counsellor', 'psychiatrist', 'assistant', 'lawyer', 'rider'].includes(r)) {
+      setDemoCategory(r as any);
+    }
   };
 
   const handleGoogleCredential = async (idToken: any, accessToken: any = null) => {
@@ -390,29 +433,73 @@ export default function Login() {
           </Button>
 
           <div className="mt-4 p-3 bg-muted/50 rounded-xl border border-border/50">
-            <p className="text-xs font-medium text-muted-foreground mb-2">Quick Demo Login:</p>
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5">
-              {demoAccounts.map(({ key, label, desc, icon: Icon, color, bg, email: demoEmail, pass }) => (
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-semibold text-foreground">⚡ Quick Demo Login:</p>
+              <span className="text-[10px] text-muted-foreground font-mono">Password: password</span>
+            </div>
+
+            {/* Category Pills */}
+            <div className="flex gap-1 overflow-x-auto pb-1 mb-2.5 scrollbar-none">
+              {[
+                { id: 'all', label: 'All' },
+                { id: 'counsellor', label: '🧠 Counsellors (5)' },
+                { id: 'psychiatrist', label: '🩺 Psychiatrists (5)' },
+                { id: 'assistant', label: '🧑‍⚕️ Assistants (5)' },
+                { id: 'lawyer', label: '⚖️ Lawyers (5)' },
+                { id: 'rider', label: '🚗 Riders (5)' },
+              ].map((tab) => (
                 <button
-                  key={key}
+                  key={tab.id}
                   type="button"
-                  onClick={() => {
-                    setRole(key);
-                    setEmail(demoEmail);
-                    setPassword(pass);
-                    setError('');
-                  }}
-                  className="p-1.5 rounded-lg border text-center transition-all border-border hover:border-primary/30 hover:bg-muted/50"
+                  onClick={() => setDemoCategory(tab.id as any)}
+                  className={`text-[10px] px-2 py-0.5 rounded-full font-medium whitespace-nowrap transition-colors ${
+                    demoCategory === tab.id
+                      ? 'bg-primary text-primary-foreground shadow-xs'
+                      : 'bg-background/80 text-muted-foreground hover:bg-background border border-border/60'
+                  }`}
                 >
-                  <div className={`w-5 h-5 rounded-md ${bg} flex items-center justify-center mx-auto mb-0.5`}>
-                    <Icon className={`w-2.5 h-2.5 ${color}`} />
-                  </div>
-                  <p className="text-[10px] font-semibold leading-tight text-foreground">{label}</p>
-                  <p className="text-[7px] text-muted-foreground leading-tight">{desc}</p>
+                  {tab.label}
                 </button>
               ))}
             </div>
 
+            {/* Grid of Accounts */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 max-h-72 overflow-y-auto pr-1">
+              {demoAccounts
+                .filter((acc) => demoCategory === 'all' ? acc.category === 'core' : acc.category === demoCategory)
+                .map(({ key, label, desc, icon: Icon, color, bg, email: demoEmail, pass }) => (
+                  <button
+                    key={`${key}-${demoEmail}`}
+                    type="button"
+                    onClick={() => {
+                      setRole(key);
+                      setEmail(demoEmail);
+                      setPassword(pass);
+                      setError('');
+                    }}
+                    className={`p-2 rounded-lg border text-left transition-all cursor-pointer ${
+                      email === demoEmail
+                        ? 'border-primary bg-primary/10 shadow-xs ring-1 ring-primary/30'
+                        : 'border-border/80 bg-background/80 hover:border-primary/40 hover:bg-background'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className={`w-6 h-6 rounded-md ${bg} flex items-center justify-center shrink-0`}>
+                        <Icon className={`w-3.5 h-3.5 ${color}`} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[11px] font-semibold leading-tight text-foreground truncate">{label}</p>
+                        <p className="text-[8.5px] text-muted-foreground leading-tight truncate mt-0.5">{desc}</p>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+            </div>
+            {demoCategory === 'all' && (
+              <p className="text-[8.5px] text-center text-muted-foreground mt-2 border-t border-border/40 pt-1.5">
+                Tip: Click <b>🧠 Counsellors</b>, <b>🩺 Psychiatrists</b>, <b>🧑‍⚕️ Assistants</b>, <b>⚖️ Lawyers</b> or <b>🚗 Riders</b> tabs above to see all 5 test accounts each.
+              </p>
+            )}
           </div>
         </motion.div>
       </div>

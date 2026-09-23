@@ -131,6 +131,39 @@ router.post('/book', protect, validate(bookAssistantSchema), async (req, res) =>
   }
 });
 
+// ─── GET /api/assistant-booking/pending-requests ───────────────────────────
+// Get pending requests targeted to this assistant OR broadcast matching their hospitals
+router.get('/pending-requests', protect, async (req, res) => {
+  try {
+    const profile = await AssistantProfile.findOne({ userId: req.user._id });
+    const hospitals = profile?.hospitalsCovered || [];
+
+    const query = {
+      status: 'requested',
+      $or: [
+        { assistantId: req.user._id },
+        {
+          assistantId: null,
+          $or: [
+            { hospital: { $in: hospitals } },
+            { targetAssistantOnly: false },
+          ],
+        },
+      ],
+    };
+
+    const requests = await AssistantBooking.find(query)
+      .populate('patientId', 'name phone email avatar')
+      .sort({ isUrgent: -1, createdAt: -1 })
+      .lean();
+
+    res.json({ requests: requests || [] });
+  } catch (err) {
+    logger.error(`Get pending assistant requests error: ${err.message}`);
+    res.status(500).json({ message: 'Failed to fetch pending requests', error: err.message });
+  }
+});
+
 // ─── GET /api/assistant-booking/active ──────────────────────────────────────
 // Get current active or upcoming booking for patient or assistant
 router.get('/active', optionalProtect, async (req, res) => {

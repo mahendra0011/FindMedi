@@ -75,7 +75,7 @@ export const LawyerChatPanel: React.FC<Props> = ({
       {/* Chat Header */}
       <div className="px-4 py-3 bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">
+          <div className="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-xs shadow-sm">
             {targetUser?.name ? targetUser.name.charAt(0).toUpperCase() : <Scale className="w-4 h-4" />}
           </div>
           <div>
@@ -102,7 +102,7 @@ export const LawyerChatPanel: React.FC<Props> = ({
       <div className="flex-1 p-4 overflow-y-auto space-y-2.5 text-xs">
         {messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-slate-400 text-center">
-            <MessageSquare className="w-8 h-8 mb-2 opacity-30 text-indigo-600" />
+            <MessageSquare className="w-8 h-8 mb-2 opacity-30 text-slate-900 dark:text-slate-100" />
             <p>Direct chat window open.</p>
             <p className="text-[10px] mt-0.5">Send a message to start conversation.</p>
           </div>
@@ -117,7 +117,7 @@ export const LawyerChatPanel: React.FC<Props> = ({
                 <div
                   className={`max-w-[80%] rounded-2xl px-3 py-2 text-xs shadow-sm leading-relaxed ${
                     isMe
-                      ? 'bg-indigo-600 text-white rounded-br-none'
+                      ? 'bg-slate-900 text-white rounded-br-none'
                       : 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-bl-none'
                   }`}
                 >
@@ -152,7 +152,7 @@ export const LawyerChatPanel: React.FC<Props> = ({
           type="submit"
           disabled={!input.trim()}
           size="sm"
-          className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl h-9 px-3 shrink-0"
+          className="bg-slate-900 hover:bg-black text-white rounded-xl h-9 px-3 shrink-0"
         >
           <Send className="w-3.5 h-3.5" />
         </Button>

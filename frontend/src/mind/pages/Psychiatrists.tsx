@@ -112,12 +112,31 @@ export default function Psychiatrists() {
   const [qualificationFilter, setQualificationFilter] = useState([]);
   const [languageFilter, setLanguageFilter] = useState([]);
 
+  const [selectedCity, setSelectedCity] = useState(() => (localStorage.getItem('findmedi_city') || localStorage.getItem('mediCore_city')) || '');
+
+  // Synchronize with global city selection (from Navbar or other pages)
+  useEffect(() => {
+    const onCityChange = (e: any) => {
+      const newCity = e.detail || localStorage.getItem('findmedi_city') || localStorage.getItem('mediCore_city');
+      if (newCity && newCity !== selectedCity) {
+        setSelectedCity(newCity);
+      }
+    };
+    window.addEventListener('cityChange', onCityChange);
+    window.addEventListener('storage', onCityChange);
+    return () => {
+      window.removeEventListener('cityChange', onCityChange);
+      window.removeEventListener('storage', onCityChange);
+    };
+  }, [selectedCity]);
+
   const loadDoctors = async () => {
     setLoading(true);
     setLoadError('');
     try {
-      const params = {};
+      const params: any = {};
       if (search) params.search = search;
+      if (selectedCity && selectedCity !== 'All') params.city = selectedCity;
       const data = await api.getDoctors(params).catch(() => { throw new Error('Failed to load psychiatrists'); });
       const docList = Array.isArray(data) ? data : (data?.doctors || data?.data || []);
       setAllDoctors((Array.isArray(docList) ? docList : []).filter(isPsychiatrist));
@@ -126,10 +145,21 @@ export default function Psychiatrists() {
   };
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { loadDoctors(); }, [search]);
+  useEffect(() => { loadDoctors(); }, [search, selectedCity]);
 
   useEffect(() => {
     let filtered = Array.isArray(allDoctors) ? [...allDoctors] : [];
+
+    // Filter by global navbar city
+    if (selectedCity && selectedCity !== 'All') {
+      const cq = selectedCity.toLowerCase().trim();
+      filtered = filtered.filter(d => {
+        const addr = getClinicAddress(d).toLowerCase();
+        const hospCity = (d.hospitalId?.city || '').toLowerCase();
+        const facCity = (d.facilityId?.city || '').toLowerCase();
+        return addr.includes(cq) || hospCity.includes(cq) || facCity.includes(cq);
+      });
+    }
 
     if (catFilter !== 'All') filtered = filtered.filter(d => matchesCategory(d, catFilter));
     if (clinicFilter) filtered = filtered.filter(d => getClinicName(d) === clinicFilter);
@@ -182,10 +212,16 @@ export default function Psychiatrists() {
     <div className="min-h-screen bg-background">
       <NavigationBar />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-24">
-        {/* Header */}
         <div className="mb-8">
           <h1 className="font-heading text-3xl font-bold text-foreground">Find a Psychiatrist</h1>
-          <p className="text-muted-foreground mt-1">Search psychiatrists by name, condition, or clinic — medical doctors for diagnosis & medication</p>
+          <p className="text-muted-foreground mt-1">
+            Search psychiatrists by name, condition, or clinic — medical doctors for diagnosis & medication
+            {selectedCity && selectedCity !== 'All' && (
+              <span className="ml-2 inline-flex items-center gap-1 font-semibold text-primary">
+                <MapPin className="w-3.5 h-3.5 inline" /> in {selectedCity}
+              </span>
+            )}
+          </p>
         </div>
 
         {/* Search */}
@@ -254,17 +290,7 @@ export default function Psychiatrists() {
               ))}
             </select>
 
-            <select value={locationFilter} onChange={e => setLocationFilter(e.target.value)}
-              className="h-9 px-3 rounded-xl border border-border bg-background text-sm">
-              <option value="">All Locations</option>
-              {[...new Set(allDoctors.map(d => {
-                const addr = getClinicAddress(d);
-                const parts = addr.split(',').map(p => p.trim()).filter(Boolean);
-                return parts[parts.length - 1] || parts[0] || '';
-              }).filter(Boolean))].map(n => (
-                <option key={n} value={n}>{n}</option>
-              ))}
-            </select>
+
 
             <select value={availabilityFilter} onChange={e => setAvailabilityFilter(e.target.value)}
               className="h-9 px-3 rounded-xl border border-border bg-background text-sm">

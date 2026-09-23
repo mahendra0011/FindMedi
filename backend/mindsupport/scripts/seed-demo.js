@@ -13,11 +13,11 @@ const DEMO_USER_PASSWORD = "User@123";
 const DEMO_USER_NAME = "Demo User";
 
 const DEMO_COUNSELLORS = [
-  { email: "aisha.mehra@mindsupport.seed", password: "Counsellor@123", name: "Dr. Aisha Mehra" },
+  { email: "aisha.mehra@mindsupport.seed", password: "Counsellor@123", name: "Aisha Mehra" },
   { email: "rahul.verma@mindsupport.seed", password: "Counsellor@123", name: "Rahul Verma" },
-  { email: "neha.iyer@mindsupport.seed", password: "Counsellor@123", name: "Dr. Neha Iyer" },
-  { email: "priya.nair@mindsupport.seed", password: "Counsellor@123", name: "Dr. Priya Nair" },
-  { email: "arjun.sen@mindsupport.seed", password: "Counsellor@123", name: "Dr. Arjun Sen" },
+  { email: "neha.iyer@mindsupport.seed", password: "Counsellor@123", name: "Neha Iyer" },
+  { email: "priya.nair@mindsupport.seed", password: "Counsellor@123", name: "Priya Nair" },
+  { email: "arjun.sen@mindsupport.seed", password: "Counsellor@123", name: "Arjun Sen" },
   { email: "meera.shah@mindsupport.seed", password: "Counsellor@123", name: "Meera Shah" },
 ];
 

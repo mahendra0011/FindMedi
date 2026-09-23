@@ -8,7 +8,10 @@
   "scripts": {
     "postinstall": "npm run install:all",
     "install:all": "npm install --prefix backend && npm install --prefix frontend",
+    "free-ports": "node scripts/free-ports.mjs",
+    "predev": "node scripts/free-ports.mjs",
     "dev": "npx concurrently \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
+    "predev:findmedi": "node scripts/free-ports.mjs",
     "dev:findmedi": "npx concurrently \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
     "dev:legacy": "npx concurrently \"npm run dev --prefix backend\" \"npm run dev:mind --prefix backend\" \"npm run dev --prefix frontend\"",
     "dev:mind": "npm run dev:mind --prefix backend",
