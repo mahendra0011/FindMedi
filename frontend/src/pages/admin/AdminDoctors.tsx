@@ -67,7 +67,17 @@ export default function AdminDoctors() {
           <h1 className="font-heading text-2xl font-bold text-foreground">Manage Doctors</h1>
           <p className="text-muted-foreground">Add, edit, or remove doctors from the system</p>
         </div>
-        <Button className="gap-2 w-full sm:w-auto" onClick={() => { resetForm(); setShowForm(true); }}><Plus className="w-4 h-4" /> Add Doctor</Button>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <Button variant="outline" className="gap-2" onClick={() => {
+            const rows = [["Name", "Specialization", "Phone", "Email", "Experience"], ...doctors.map((d) => [d.name, d.specialization, d.phone, d.email, d.experience])];
+            const csv = rows.map((r) => r.map((c) => `"${String(c || "").replace(/"/g, '""')}"`).join(",")).join("\n");
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+            a.download = "doctors.csv";
+            a.click();
+          }}>Export CSV</Button>
+          <Button className="gap-2 flex-1 sm:flex-none" onClick={() => { resetForm(); setShowForm(true); }}><Plus className="w-4 h-4" /> Add Doctor</Button>
+        </div>
       </div>
 
       {/* Search */}

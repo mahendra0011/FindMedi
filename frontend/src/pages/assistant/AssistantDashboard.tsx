@@ -2600,6 +2600,21 @@ export default function AssistantDashboard() {
               If a patient faces medical collapse, cardiac arrest, or security issues inside the hospital, alert campus emergency staff immediately:
             </p>
 
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  await api.createEmergency({ type: "assistant-sos", severity: "high", message: "Assistant raised SOS from dashboard" });
+                  alert("Platform SOS raised — emergency team notified.");
+                } catch (e) {
+                  alert(e.message || "Failed to raise SOS");
+                }
+              }}
+              className="w-full p-3 rounded-2xl bg-rose-600 text-white font-bold text-xs hover:bg-rose-700 transition-colors"
+            >
+              🚨 Raise Platform SOS (notify emergency team)
+            </button>
+
             <div className="space-y-2.5 text-xs">
               <a
                 href="tel:108"

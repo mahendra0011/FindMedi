@@ -71,7 +71,7 @@ export function registerCounsellorRoutes(app, context) {
 app.get(
   "/api/counsellor/dashboard",
   asyncRoute(authRequired),
-  requireRoles("counsellor"),
+  requireRoles("counsellor", "psychiatrist"),
   asyncRoute(async (req, res) => {
     const [appointments, approvedReviews, messages, notifications, allPackages] = await Promise.all([
       Appointment.find({ counsellor: req.user._id }).sort({ date: 1, time: 1 }).populate("student", "name email phone"),
@@ -82,7 +82,7 @@ app.get(
         .populate("from to appointment")
         .populate({ path: "replyTo", populate: { path: "from", select: "name username" } }),
       Notification.find({ $or: [{ user: req.user._id }, { audienceRole: { $in: ["counsellor", "all"] } }] }).sort({ createdAt: -1 }).limit(8),
-      UserPackage.find({ counsellor: req.user._id }).sort({ createdAt: -1 }),
+      UserPackage.find({ counsellor: req.user._id }).sort({ createdAt: -1 }).populate("user", "name email phone"),
     ]);
     const today = todayYMD();
     const studentIds = new Set(appointments.map((a) => String(a.student?._id || a.student)).filter(Boolean));
@@ -221,11 +221,58 @@ app.get(
     const completedAppointmentIds = appointments
       .filter((a) => a.status === "completed")
       .map((a) => a._id);
-    const payments = completedAppointmentIds.length
-      ? await Payment.find({ appointment: { $in: completedAppointmentIds } })
+    const packageIds = allPackages.map((p) => p._id);
+    const paymentFilters = [];
+    if (completedAppointmentIds.length) paymentFilters.push({ appointment: { $in: completedAppointmentIds } });
+    if (packageIds.length) paymentFilters.push({ packageId: { $in: packageIds } });
+
+    const payments = paymentFilters.length
+      ? await Payment.find({ $or: paymentFilters })
           .populate("user", "name email avatar")
           .sort({ createdAt: -1 })
       : [];
+
+    const packageRevenueThisMonth = allPackages.reduce((sum, pkg) => {
+      const created = new Date(pkg.createdAt);
+      const now = new Date();
+      if (created.getFullYear() === now.getFullYear() && created.getMonth() === now.getMonth() && pkg.status !== "cancelled") {
+        return sum + (Number(pkg.price) || 0);
+      }
+      return sum;
+    }, 0);
+
+    const oneTimeRevenueThisMonth = payments
+      .filter((p) => {
+        const d = new Date(p.paidAt || p.createdAt);
+        const now = new Date();
+        const isCurrentMonth = d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+        const isSessionPayment = p.kind === "session" || (p.plan && !String(p.plan).toLowerCase().includes("package"));
+        return isCurrentMonth && isSessionPayment && p.status === "paid";
+      })
+      .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+
+    const nowTime = Date.now();
+    const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+    const activePackagesList = allPackages.filter((p) => p.status === "active");
+    const expiringSoonPackagesList = activePackagesList.filter((p) => {
+      if (!p.expiryDate) return false;
+      const diff = new Date(p.expiryDate).getTime() - nowTime;
+      return diff > 0 && diff <= sevenDaysMs;
+    });
+    const sessionsRemainingTotal = activePackagesList.reduce(
+      (sum, p) => sum + Math.max(0, (p.sessionsTotal || 0) - (p.sessionsUsed || 0)),
+      0
+    );
+
+    const packageSummary = {
+      activeCount: activePackagesList.length,
+      expiringSoonCount: expiringSoonPackagesList.length,
+      sessionsRemainingTotal,
+      packageRevenueThisMonth,
+      oneTimeRevenueThisMonth,
+      totalRevenueThisMonth: packageRevenueThisMonth + oneTimeRevenueThisMonth,
+      totalPackagesCount: allPackages.length,
+    };
     const transactions = payments.map((p) => ({
       id: String(p._id),
       invoiceNumber: p.invoiceNumber,
@@ -288,6 +335,27 @@ app.get(
       },
       appointments: await normalizeAppointmentsWithReviewStatus(appointments, req.user),
       patients,
+      allPackages: allPackages.map((pkg) => ({
+        id: String(pkg._id),
+        userId: String(pkg.user?._id || pkg.user),
+        userName: pkg.user?.name || "Patient",
+        userEmail: pkg.user?.email || "",
+        userPhone: pkg.user?.phone || "",
+        planId: pkg.planId,
+        planName: pkg.planName,
+        sessionsTotal: pkg.sessionsTotal,
+        sessionsUsed: pkg.sessionsUsed,
+        sessionsRemaining: Math.max(0, pkg.sessionsTotal - pkg.sessionsUsed),
+        status: pkg.status,
+        expiryDate: pkg.expiryDate,
+        price: pkg.price,
+        mode: pkg.mode,
+        minCadenceDays: pkg.minCadenceDays || 0,
+        lastSessionDate: pkg.lastSessionDate,
+        createdAt: pkg.createdAt,
+        progress: pkg.sessionsTotal > 0 ? Math.round((pkg.sessionsUsed / pkg.sessionsTotal) * 100) : 0,
+      })),
+      packageSummary,
       progress: [
         { label: "Mood improvement", value: avgMood },
         { label: "Anxiety reduction", value: avgGad7 },
@@ -324,7 +392,7 @@ app.get(
 app.put(
   "/api/counsellor/availability",
   asyncRoute(authRequired),
-  requireRoles("counsellor"),
+  requireRoles("counsellor", "psychiatrist"),
   body("meetLink").optional().trim(),
   validate,
   asyncRoute(async (req, res) => {
@@ -359,7 +427,7 @@ app.put(
 app.put(
   "/api/counsellor/packages",
   asyncRoute(authRequired),
-  requireRoles("counsellor"),
+  requireRoles("counsellor", "psychiatrist"),
   body("packages").isArray({ min: 1 }).withMessage("Packages must be a non-empty array"),
   validate,
   asyncRoute(async (req, res) => {
@@ -385,7 +453,7 @@ app.put(
 app.post(
   "/api/meet/create",
   asyncRoute(authRequired),
-  requireRoles("counsellor", "admin"),
+  requireRoles("counsellor", "psychiatrist", "admin"),
   body("appointmentId").notEmpty().withMessage("Appointment ID is required"),
   validate,
   asyncRoute(async (req, res) => {

@@ -67,6 +67,14 @@ export function registerCommunicationRoutes(app, context) {
 
 const maxAttachmentDataUrlLength = 7500000;
 
+function emitRealtime(io, room, event, payload) {
+  try { io?.to(room)?.emit(event, payload); } catch { /* ignore */ }
+  try {
+    const mainIo = global.__mainIo;
+    if (mainIo && mainIo !== io) mainIo.to(room).emit(event, payload);
+  } catch { /* ignore */ }
+}
+
 function normalizeMessageAttachment(body = {}) {
   const rawUrl = String(body.fileUrl || "").trim();
   const rawName = String(body.fileName || "").trim().slice(0, 120);
@@ -232,8 +240,8 @@ app.post(
       readBy: [req.user._id],
     });
     const populatedMessage = await message.populate("from to appointment replyTo");
-    io.to(`user:${recipient._id}`).emit("message:new", normalizeMessage(populatedMessage, recipient));
-    io.to(`user:${req.user._id}`).emit("message:new", normalizeMessage(populatedMessage, req.user));
+    emitRealtime(io, `user:${recipient._id}`, "message:new", normalizeMessage(populatedMessage, recipient));
+    emitRealtime(io, `user:${req.user._id}`, "message:new", normalizeMessage(populatedMessage, req.user));
     await createNotification({
       user: recipient._id,
       type: "message",
@@ -285,8 +293,8 @@ app.patch(
     const fromId = String(message.from);
     const toId = String(message.to);
     const populated = await message.populate("from to appointment replyTo");
-    io.to(`user:${toId}`).emit("message:new", normalizeMessage(populated, { _id: toId }));
-    io.to(`user:${fromId}`).emit("message:new", normalizeMessage(populated, req.user));
+    emitRealtime(io, `user:${toId}`, "message:new", normalizeMessage(populated, { _id: toId }));
+    emitRealtime(io, `user:${fromId}`, "message:new", normalizeMessage(populated, req.user));
     res.json(normalizeMessage(populated, req.user));
   })
 );
@@ -306,8 +314,8 @@ app.delete(
     const fromId = String(message.from);
     const toId = String(message.to);
     const deletedPayload = { id: String(message._id), deleted: true };
-    io.to(`user:${toId}`).emit("message:new", deletedPayload);
-    io.to(`user:${fromId}`).emit("message:new", deletedPayload);
+    emitRealtime(io, `user:${toId}`, "message:new", deletedPayload);
+    emitRealtime(io, `user:${fromId}`, "message:new", deletedPayload);
     res.json({ success: true, deletedMessageId: String(message._id) });
   })
 );
@@ -340,8 +348,8 @@ app.post(
     const fromId = String(message.from);
     const toId = String(message.to);
     const populated = await message.populate("from to appointment replyTo");
-    io.to(`user:${toId}`).emit("message:new", normalizeMessage(populated, { _id: toId }));
-    io.to(`user:${fromId}`).emit("message:new", normalizeMessage(populated, { _id: fromId }));
+    emitRealtime(io, `user:${toId}`, "message:new", normalizeMessage(populated, { _id: toId }));
+    emitRealtime(io, `user:${fromId}`, "message:new", normalizeMessage(populated, { _id: fromId }));
     if (addedReaction && fromId !== String(req.user._id)) {
       await createNotification({
         user: fromId,

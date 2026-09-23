@@ -69,8 +69,9 @@ export default function Dashboard() {
   });
   const todayAppts = appointmentsList.filter(a => {
     const s = (a.status || '').toLowerCase();
+    if (['cancelled', 'completed'].includes(s)) return false;
     const d = a.date || a.bookingDate || '';
-    return d.startsWith(todayStr) || (s !== 'cancelled' && s !== 'completed');
+    return !d || d.startsWith(todayStr);
   });
   const completedAppts = appointmentsList.filter(a => (a.status || '').toLowerCase() === 'completed');
 

@@ -996,14 +996,31 @@ export default function RiderDashboard() {
                   </h3>
                   <p className="text-xs text-muted-foreground mt-0.5">Last rides completed by you</p>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => navigate('/rider/dashboard?tab=history')}
-                  className="rounded-xl text-xs h-8"
-                >
-                  View All History
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const rows = [["Booking", "From", "To", "Fare", "Status"], ...historyRides.map((r) => [r.bookingNumber || r._id, r.pickup || r.from || "", r.drop || r.to || "", r.fare || r.amount || 0, r.status || ""])];
+                      const csv = rows.map((x) => x.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+                      const a = document.createElement("a");
+                      a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+                      a.download = "rider-history.csv";
+                      a.click();
+                    }}
+                    className="rounded-xl text-xs h-8"
+                  >
+                    Export CSV
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate('/rider/dashboard?tab=history')}
+                    className="rounded-xl text-xs h-8"
+                  >
+                    View All History
+                  </Button>
+                </div>
               </div>
 
               {historyRides.length === 0 ? (

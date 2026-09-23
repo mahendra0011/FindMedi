@@ -25,7 +25,8 @@ export default function LabReports() {
   const fetchReports = async () => {
     try {
       const data = await api.getLabBookings();
-      setReports(data || []);
+      const list = Array.isArray(data) ? data : (data?.bookings || data?.data || []);
+      setReports(list || []);
     } catch (e) {
       console.error(e);
       setReports([]);

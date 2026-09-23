@@ -127,7 +127,7 @@ export function registerResourceRoutes(app, context) {
   app.post(
     "/api/resources",
     asyncRoute(authRequired),
-    requireRoles("admin", "counsellor"),
+    requireRoles("admin", "counsellor", "psychiatrist"),
     body("title").notEmpty().trim().escape().withMessage("Title is required"),
     body("type").isIn(VALID_TYPES).withMessage("Type must be video, article, audiobook, audio, pdf, or blog"),
     body("category").optional().trim().escape(),
@@ -156,7 +156,7 @@ export function registerResourceRoutes(app, context) {
   app.get(
     "/api/resources/mine",
     asyncRoute(authRequired),
-    requireRoles("counsellor", "admin"),
+    requireRoles("counsellor", "psychiatrist", "admin"),
     asyncRoute(async (req, res) => {
       const resources = await Resource.find({ createdBy: req.user._id }).sort({ createdAt: -1 });
       res.json(resources);
@@ -166,7 +166,7 @@ export function registerResourceRoutes(app, context) {
   app.patch(
     "/api/resources/:id",
     asyncRoute(authRequired),
-    requireRoles("counsellor", "admin"),
+    requireRoles("counsellor", "psychiatrist", "admin"),
     body("title").optional().trim().escape(),
     body("type").optional().isIn(VALID_TYPES),
     body("category").optional().trim().escape(),
@@ -195,7 +195,7 @@ export function registerResourceRoutes(app, context) {
   app.delete(
     "/api/resources/:id",
     asyncRoute(authRequired),
-    requireRoles("counsellor", "admin"),
+    requireRoles("counsellor", "psychiatrist", "admin"),
     asyncRoute(async (req, res) => {
       const resource = await Resource.findById(req.params.id);
       if (!resource) { res.status(404).json({ error: "Resource not found" }); return; }

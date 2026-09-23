@@ -87,11 +87,7 @@ export default function DiagnosticDashboard() {
   const [newStaff, setNewStaff] = useState({ name: '', role: 'Lab Technician', email: '', phone: '', licenseNumber: '', experience: '' });
   const [assignmentForm, setAssignmentForm] = useState({ bookingId: '', phlebotomistId: '' });
 
-  // Prescription Queue
-  const [rxQueue] = useState([]);
-
-  // Billing
-  const [bills] = useState([]);
+  // Prescription Queue (derived from lab orders/bookings with Rx flag)
   const [billFilter, setBillFilter] = useState('All');
 
   // Reports
@@ -144,6 +140,8 @@ export default function DiagnosticDashboard() {
   const staffList = staffData?.staff || staffData?.data || staffData || [];
   const reviews = reviewsData?.reviews || reviewsData?.data || reviewsData || [];
   const refunds = refundsData?.payments || refundsData?.data || refundsData || [];
+  const rxQueue = orders.filter((o) => o.prescriptionRequired || o.prescriptionId || o.rxUrl);
+  const bills = bookings.filter((b) => b.totalAmount || b.amount || b.invoiceId);
 
   // Mutations
   const updateBookingMut = useMutation({

@@ -62,7 +62,7 @@ export function registerTreatmentRoutes(app, context) {
   app.post(
     "/api/prescriptions",
     asyncRoute(authRequired),
-    requireRoles("counsellor"),
+    requireRoles("counsellor", "psychiatrist"),
     body("userId").notEmpty().withMessage("User ID is required"),
     body("medicines").isArray({ min: 1 }).withMessage("At least one medicine is required"),
     body("medicines.*.name").notEmpty().withMessage("Medicine name is required"),
@@ -103,9 +103,9 @@ export function registerTreatmentRoutes(app, context) {
   app.get(
     "/api/prescriptions",
     asyncRoute(authRequired),
-    requireRoles("counsellor", "admin"),
+    requireRoles("counsellor", "psychiatrist", "admin"),
     asyncRoute(async (req, res) => {
-      const filter = req.user.role === "counsellor" ? { counsellor: req.user._id } : {};
+      const filter = ["counsellor", "psychiatrist"].includes(req.user.role) ? { counsellor: req.user._id } : {};
       const prescriptions = await Prescription.find(filter)
         .populate("counsellor", "name")
         .populate("user", "name email")
@@ -119,7 +119,7 @@ export function registerTreatmentRoutes(app, context) {
   app.post(
     "/api/assignments",
     asyncRoute(authRequired),
-    requireRoles("counsellor"),
+    requireRoles("counsellor", "psychiatrist"),
     body("userId").notEmpty().withMessage("User ID is required"),
     body("title").trim().isLength({ min: 1 }).withMessage("Title is required"),
     validate,

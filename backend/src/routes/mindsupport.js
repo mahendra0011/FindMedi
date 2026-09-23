@@ -64,19 +64,70 @@ router.use(async (req, res, next) => {
 export function attachMindRealtime(mainIo) {
   if (!mainIo || mainIo.__mindAttached) return;
   mainIo.__mindAttached = true;
+  const joinRooms = (socket, userId, role) => {
+    if (!userId) return;
+    try {
+      socket.join(`user:${userId}`);
+      if (role) socket.join(`role:${role}`);
+      socket.emit('realtime:ready', { userId: String(userId), role: role || 'user' });
+    } catch { /* best-effort */ }
+  };
   mainIo.on('connection', (socket) => {
     try {
       const userId = socket.handshake.auth?.userId || socket.handshake.query?.userId || '';
       const role = socket.handshake.auth?.role || socket.handshake.query?.role || '';
-      if (userId) {
-        socket.join(`user:${userId}`);
-        if (role) socket.join(`role:${role}`);
-        socket.emit('realtime:ready', { userId: String(userId), role: role || 'user' });
+      if (userId) joinRooms(socket, userId, role);
+      // Token-based join (frontend sends { token })
+      const token = socket.handshake.auth?.token || socket.handshake.query?.token || '';
+      if (token && !userId) {
+        import('jsonwebtoken').then(({ default: jwt }) => {
+          try {
+            const payload = jwt.verify(token, process.env.JWT_SECRET);
+            const uid = payload.id || payload._id || payload.userId;
+            if (uid) joinRooms(socket, String(uid), payload.role || role);
+          } catch { /* invalid token, ignore */ }
+        }).catch(() => {});
       }
     } catch {
       // realtime rooms are best-effort; never break the main connection
     }
+    // Explicit join event from mind socket lib
+    socket.on('join', (payload) => {
+      try {
+        if (typeof payload === 'string') {
+          joinRooms(socket, payload, '');
+          return;
+        }
+        const uid = payload?.userId || payload?.user_id || '';
+        const r = payload?.role || '';
+        if (uid) {
+          joinRooms(socket, String(uid), r);
+          return;
+        }
+        const t = payload?.token || '';
+        if (t) {
+          import('jsonwebtoken').then(({ default: jwt }) => {
+            try {
+              const p = jwt.verify(t, process.env.JWT_SECRET);
+              const id = p.id || p._id || p.userId;
+              if (id) joinRooms(socket, String(id), p.role || r);
+            } catch { /* ignore */ }
+          }).catch(() => {});
+        }
+      } catch { /* ignore */ }
+    });
+    // Bridge mind chat events: allow clients to trigger refresh for peers
+    socket.on('message:new', (msg) => {
+      try {
+        if (msg?.toId) mainIo.to(`user:${msg.toId}`).emit('message:new', msg);
+        if (msg?.fromId) mainIo.to(`user:${msg.fromId}`).emit('message:new', msg);
+      } catch { /* ignore */ }
+    });
   });
+  // Expose bridge so mindsupport routes can push via mainIo too
+  try {
+    global.__mainIo = mainIo;
+  } catch { /* ignore */ }
 }
 
 export default router;

@@ -1059,6 +1059,14 @@ export default function AmbulanceDashboard() {
               <ArrowLeft className="w-3.5 h-3.5" /> Back to Overview
             </Button>
             <h3 className="font-bold text-base text-foreground">Emergency Mission History ({totalJobsCount})</h3>
+            <Button variant="outline" size="sm" className="ml-auto rounded-xl h-8 text-xs" onClick={() => {
+              const rows = [["Job", "Patient", "Pickup", "Status"], ...allJobs.map((j) => [j._id, j.patientDetails?.name || "Emergency Patient", j.location?.address || "", j.status || ""])];
+              const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+              const a = document.createElement("a");
+              a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+              a.download = "ambulance-jobs.csv";
+              a.click();
+            }}>Export CSV</Button>
           </div>
 
           <div className="rounded-3xl border border-border/80 bg-card p-5 shadow-sm space-y-3">

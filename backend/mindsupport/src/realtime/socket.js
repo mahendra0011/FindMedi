@@ -17,10 +17,25 @@ export function createRealtimeServer(httpServer) {
     },
   });
 
-  // Auth removed: MindSupport is now part of the FindMedi platform, which handles
-  // authentication. Sockets connect openly; user rooms attach when known.
   io.use(async (socket, next) => {
     try {
+      const token = socket.handshake.auth?.token || socket.handshake.query?.token || "";
+      if (token) {
+        try {
+          const jwt = await import("jsonwebtoken");
+          const secret = process.env.JWT_SECRET || process.env.MIND_JWT_SECRET || "dev-secret";
+          const payload = jwt.default.verify(token, secret);
+          const uid = payload.id || payload._id || payload.userId;
+          if (uid) {
+            const user = await User.findById(uid);
+            if (user && user.status !== "suspended") {
+              socket.user = user;
+              next();
+              return;
+            }
+          }
+        } catch { /* fallback to userId */ }
+      }
       const userId = socket.handshake.auth?.userId || socket.handshake.query?.userId || "";
       const role = socket.handshake.auth?.role || socket.handshake.query?.role || "";
       if (userId) {

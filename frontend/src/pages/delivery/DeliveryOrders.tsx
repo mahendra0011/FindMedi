@@ -248,6 +248,11 @@ export default function DeliveryOrders() {
                     </div>
                     <p className="font-semibold text-foreground text-sm">{d.dropAddress}</p>
                     <p className="text-[11px] text-muted-foreground">Require patient confirmation & 4-digit OTP</p>
+                    {d.dropAddress && (
+                      <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(d.dropAddress)}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline">
+                        <Navigation className="w-3.5 h-3.5" /> Navigate
+                      </a>
+                    )}
                   </div>
                 </div>
 

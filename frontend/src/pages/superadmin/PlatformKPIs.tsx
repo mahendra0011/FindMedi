@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   TrendingUp, Users, Stethoscope, Activity, DollarSign, Building2, FlaskConical, Pill,
@@ -29,10 +30,11 @@ export default function PlatformKPIs() {
           weeklyAppointments: dash.weeklyAppointments || [],
           revenueData: dash.revenueData || [],
           commission: commission,
-          hospitalCount: hospitals?.total || 0,
-          userCount: users?.total || 0,
-          facilityCount: facilities?.total || 0,
-          pendingCount: pendingHosp?.length || 0,
+          hospitalCount: hospitals?.total ?? (Array.isArray(hospitals?.data) ? hospitals.data.length : Array.isArray(hospitals) ? hospitals.length : 0),
+          userCount: users?.total ?? (Array.isArray(users?.data) ? users.data.length : Array.isArray(users) ? users.length : 0),
+          facilityCount: facilities?.total ?? (Array.isArray(facilities?.data) ? facilities.data.length : Array.isArray(facilities) ? facilities.length : 0),
+          pendingCount: pendingHosp?.length || pendingHosp?.total || 0,
+          fetchedAt: new Date(),
         });
       } catch { toast.error('Failed to load platform KPIs'); }
       setLoading(false);
@@ -55,7 +57,7 @@ export default function PlatformKPIs() {
         </div>
         <Badge variant="outline" className="text-xs gap-1.5 px-3 py-1.5">
           <Clock className="w-3.5 h-3.5" />
-          Updated just now
+          Updated {data?.fetchedAt ? data.fetchedAt.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : "just now"}
         </Badge>
       </div>
 
@@ -202,22 +204,22 @@ export default function PlatformKPIs() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <a href="#/superadmin/pending" className="flex items-center gap-2.5 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/30 hover:bg-amber-100 dark:hover:bg-amber-950/40 transition-colors">
+            <Link to="/superadmin/pending" className="flex items-center gap-2.5 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/30 hover:bg-amber-100 dark:hover:bg-amber-950/40 transition-colors">
               <Clock className="w-5 h-5 text-amber-600" />
               <span className="text-sm font-medium text-amber-800 dark:text-amber-300">Review Pending{pendingCount > 0 && ` (${pendingCount})`}</span>
-            </a>
-            <a href="#/superadmin/users" className="flex items-center gap-2.5 p-3 rounded-xl bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-950/40 transition-colors">
+            </Link>
+            <Link to="/superadmin/users" className="flex items-center gap-2.5 p-3 rounded-xl bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-950/40 transition-colors">
               <Users className="w-5 h-5 text-blue-600" />
               <span className="text-sm font-medium text-blue-800 dark:text-blue-300">Manage Users</span>
-            </a>
-            <a href="#/superadmin/revenue" className="flex items-center gap-2.5 p-3 rounded-xl bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900/30 hover:bg-green-100 dark:hover:bg-green-950/40 transition-colors">
+            </Link>
+            <Link to="/superadmin/revenue" className="flex items-center gap-2.5 p-3 rounded-xl bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900/30 hover:bg-green-100 dark:hover:bg-green-950/40 transition-colors">
               <DollarSign className="w-5 h-5 text-green-600" />
               <span className="text-sm font-medium text-green-800 dark:text-green-300">Revenue Details</span>
-            </a>
-            <a href="#/superadmin/tickets" className="flex items-center gap-2.5 p-3 rounded-xl bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-900/30 hover:bg-purple-100 dark:hover:bg-purple-950/40 transition-colors">
+            </Link>
+            <Link to="/superadmin/tickets" className="flex items-center gap-2.5 p-3 rounded-xl bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-900/30 hover:bg-purple-100 dark:hover:bg-purple-950/40 transition-colors">
               <Activity className="w-5 h-5 text-purple-600" />
               <span className="text-sm font-medium text-purple-800 dark:text-purple-300">Support Tickets</span>
-            </a>
+            </Link>
           </div>
         </CardContent>
       </Card>
