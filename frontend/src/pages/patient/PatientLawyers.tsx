@@ -99,7 +99,7 @@ export default function PatientLawyers() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              <Scale className="w-7 h-7 text-indigo-600" />
+              <Scale className="w-7 h-7 text-slate-900 dark:text-slate-100" />
               My Legal Help & Lawyer Consultations
             </h1>
             <p className="text-xs text-slate-500 mt-1">
@@ -110,7 +110,7 @@ export default function PatientLawyers() {
           <Button
             type="button"
             onClick={() => navigate('/find-lawyer')}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-md gap-1.5"
+            className="bg-slate-900 hover:bg-black text-white font-bold text-xs rounded-xl shadow-md gap-1.5"
           >
             <Scale className="w-4 h-4" /> Book New Legal Consultation
           </Button>
@@ -118,7 +118,7 @@ export default function PatientLawyers() {
 
         {/* Top Banner: Active / In-Progress Consultation */}
         {activeBooking && (
-          <div className="p-5 rounded-3xl bg-indigo-600 text-white shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="p-5 rounded-3xl bg-slate-900 text-white shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3.5">
               <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center font-bold text-lg shrink-0">
                 <span className="w-3.5 h-3.5 bg-emerald-400 rounded-full animate-ping" />
@@ -130,7 +130,7 @@ export default function PatientLawyers() {
                 <h3 className="text-base font-bold mt-0.5">
                   Consultation in {activeBooking.category?.replace(/_/g, ' ')}
                 </h3>
-                <p className="text-xs text-indigo-100">
+                <p className="text-xs text-slate-100">
                   Adv. {activeBooking.lawyerId?.userId?.name || 'Advocate'} • {activeBooking.consultationMode?.replace('_', ' ')}
                 </p>
               </div>
@@ -139,7 +139,7 @@ export default function PatientLawyers() {
             <Button
               type="button"
               onClick={() => navigate(`/find-lawyer?bookingId=${activeBooking._id}`)}
-              className="bg-white text-indigo-700 hover:bg-indigo-50 font-bold text-xs rounded-xl shadow-md gap-1 self-stretch sm:self-auto"
+              className="bg-white text-slate-900 hover:bg-slate-100 font-bold text-xs rounded-xl shadow-md gap-1 self-stretch sm:self-auto"
             >
               Open Consultation Window <ArrowRight className="w-4 h-4" />
             </Button>
@@ -149,7 +149,7 @@ export default function PatientLawyers() {
         {/* Quick Stats Widget */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-3.5">
-            <div className="w-11 h-11 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 flex items-center justify-center font-bold">
+            <div className="w-11 h-11 rounded-xl bg-slate-100 dark:bg-white/10 text-slate-900 dark:text-slate-100 flex items-center justify-center font-bold">
               <Scale className="w-5 h-5" />
             </div>
             <div>
@@ -173,7 +173,7 @@ export default function PatientLawyers() {
           </div>
 
           <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-3.5">
-            <div className="w-11 h-11 rounded-xl bg-purple-50 dark:bg-purple-950/40 text-purple-600 flex items-center justify-center font-bold">
+            <div className="w-11 h-11 rounded-xl bg-slate-100 dark:bg-white/10 text-slate-800 dark:text-slate-200 flex items-center justify-center font-bold">
               <Layers className="w-5 h-5" />
             </div>
             <div>
@@ -192,7 +192,7 @@ export default function PatientLawyers() {
             onClick={() => setActiveTab('cases')}
             className={`pb-3 border-b-2 transition-colors flex items-center gap-1.5 ${
               activeTab === 'cases'
-                ? 'border-indigo-600 text-indigo-600'
+                ? 'border-slate-900 dark:border-white text-slate-900 dark:text-slate-100'
                 : 'border-transparent text-slate-500 hover:text-slate-700'
             }`}
           >
@@ -205,7 +205,7 @@ export default function PatientLawyers() {
             onClick={() => setActiveTab('bookings')}
             className={`pb-3 border-b-2 transition-colors flex items-center gap-1.5 ${
               activeTab === 'bookings'
-                ? 'border-indigo-600 text-indigo-600'
+                ? 'border-slate-900 dark:border-white text-slate-900 dark:text-slate-100'
                 : 'border-transparent text-slate-500 hover:text-slate-700'
             }`}
           >
@@ -218,7 +218,7 @@ export default function PatientLawyers() {
             onClick={() => setActiveTab('documents')}
             className={`pb-3 border-b-2 transition-colors flex items-center gap-1.5 ${
               activeTab === 'documents'
-                ? 'border-indigo-600 text-indigo-600'
+                ? 'border-slate-900 dark:border-white text-slate-900 dark:text-slate-100'
                 : 'border-transparent text-slate-500 hover:text-slate-700'
             }`}
           >
@@ -231,7 +231,7 @@ export default function PatientLawyers() {
             onClick={() => setActiveTab('favorites')}
             className={`pb-3 border-b-2 transition-colors flex items-center gap-1.5 ${
               activeTab === 'favorites'
-                ? 'border-indigo-600 text-indigo-600'
+                ? 'border-slate-900 dark:border-white text-slate-900 dark:text-slate-100'
                 : 'border-transparent text-slate-500 hover:text-slate-700'
             }`}
           >
@@ -255,7 +255,7 @@ export default function PatientLawyers() {
                 <Button
                   size="sm"
                   onClick={() => navigate('/find-lawyer')}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs"
+                  className="bg-slate-900 hover:bg-black text-white rounded-xl text-xs"
                 >
                   Find a Lawyer Now →
                 </Button>
@@ -277,7 +277,7 @@ export default function PatientLawyers() {
                         <div className="flex items-center gap-2">
                           <Badge
                             variant="secondary"
-                            className="bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border-none capitalize font-semibold text-[11px]"
+                            className="bg-slate-100 dark:bg-white/10 text-slate-900 dark:text-slate-200 border-none capitalize font-semibold text-[11px]"
                           >
                             {c.category?.replace(/_/g, ' ')}
                           </Badge>
@@ -311,7 +311,7 @@ export default function PatientLawyers() {
                                 `/find-lawyer?followUpThreadId=${c.caseThreadId}`
                               )
                             }
-                            className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs rounded-xl font-bold gap-1 shadow-sm"
+                            className="bg-slate-900 hover:bg-black text-white text-xs rounded-xl font-bold gap-1 shadow-sm"
                           >
                             <RotateCcw className="w-3.5 h-3.5" /> Book Follow-Up
                           </Button>
@@ -361,7 +361,7 @@ export default function PatientLawyers() {
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => handleDownloadReceipt(sess._id, sess.bookingNumber)}
-                                  className="h-7 px-2 text-indigo-600 hover:text-indigo-700"
+                                  className="h-7 px-2 text-slate-900 dark:text-slate-100 hover:text-white"
                                 >
                                   <Download className="w-3.5 h-3.5" />
                                 </Button>
@@ -381,7 +381,7 @@ export default function PatientLawyers() {
                                   Advocate Notes:
                                 </span>
                                 {sess.caseNotes.map((n: any, nIdx: number) => (
-                                  <div key={nIdx} className="text-slate-600 dark:text-slate-400 pl-2 border-l-2 border-indigo-400">
+                                  <div key={nIdx} className="text-slate-600 dark:text-slate-400 pl-2 border-l-2 border-slate-600">
                                     {n.note}
                                   </div>
                                 ))}
@@ -484,7 +484,7 @@ export default function PatientLawyers() {
                               b.status === 'completed'
                                 ? 'bg-emerald-600 text-white'
                                 : b.status === 'confirmed'
-                                ? 'bg-indigo-600 text-white'
+                                ? 'bg-slate-900 text-white'
                                 : b.status === 'in_progress'
                                 ? 'bg-amber-600 text-white animate-pulse'
                                 : 'bg-slate-500 text-white'
@@ -508,7 +508,7 @@ export default function PatientLawyers() {
                             variant="ghost"
                             size="sm"
                             onClick={() => handleDownloadReceipt(b._id, b.bookingNumber)}
-                            className="h-7 text-xs rounded-lg text-indigo-600 hover:text-indigo-700"
+                            className="h-7 text-xs rounded-lg text-slate-900 dark:text-slate-100 hover:text-white"
                           >
                             <Download className="w-3.5 h-3.5" />
                           </Button>
@@ -546,7 +546,7 @@ export default function PatientLawyers() {
                     className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/40 flex items-center justify-between text-xs"
                   >
                     <div className="flex items-center gap-2.5 truncate">
-                      <FileText className="w-4 h-4 text-indigo-600 shrink-0" />
+                      <FileText className="w-4 h-4 text-slate-900 dark:text-slate-100 shrink-0" />
                       <div className="truncate">
                         <div className="font-bold text-slate-800 dark:text-slate-200 truncate">
                           {doc.documentName || doc.url || `Document #${idx + 1}`}
@@ -595,7 +595,7 @@ export default function PatientLawyers() {
                     <Button
                       size="sm"
                       onClick={() => navigate('/find-lawyer')}
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold"
+                      className="bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-bold"
                     >
                       Book Again
                     </Button>

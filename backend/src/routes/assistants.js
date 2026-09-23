@@ -266,7 +266,11 @@ router.get('/', async (req, res) => {
     }
 
     if (city && city !== 'All') {
-      query.operatingCity = new RegExp(city.trim(), 'i');
+      const cityRegex = new RegExp(city.trim(), 'i');
+      query.$or = [
+        { operatingCity: cityRegex },
+        { hospitalsCovered: { $in: [cityRegex] } },
+      ];
     }
 
     if (category && category !== 'All') {

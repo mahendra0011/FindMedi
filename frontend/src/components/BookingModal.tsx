@@ -142,7 +142,17 @@ export default function BookingModal({
     if (mode === 'home_visit' || mode === 'home') return Number(fees.home_visit || doc.home_visit_fee || doc.consultation_fees || doc.fees || 0);
     return Number(fees.offline || doc.offline_fee || doc.consultation_fees || doc.fees || 0);
   };
-  const currentFee = getModeBasedFee(appointmentMode, currentDoc);
+  // Fallback multipliers for counsellor/psychiatrist jab appointmentFees set nahi hai
+  const MODE_FALLBACK_MULT = { video: 1, audio: 0.8, call: 0.8, voice: 0.8, chat: 0.6, offline: 1, home_visit: 1.2, home: 1.2 };
+  const hasExplicitModeFees = !!(currentDoc?.appointmentFees?.video || currentDoc?.appointmentFees?.chat || currentDoc?.appointmentFees?.audio || currentDoc?.video_fee || currentDoc?.chat_fee || currentDoc?.audio_fee);
+  const getResolvedModeFee = (mode, doc) => {
+    if (!doc) return 0;
+    if (hasExplicitModeFees) return getModeBasedFee(mode, doc);
+    const base = Number(doc?.consultation_fees || doc?.fees || doc?.sessionPricing || 800) || 800;
+    const mult = MODE_FALLBACK_MULT[mode] ?? 1;
+    return Math.round(base * mult);
+  };
+  const currentFee = getResolvedModeFee(appointmentMode, currentDoc);
 
   // ---- Mind packages (counsellor/psychiatrist ke supportPlanPrices se) ----
   // Sirf packages dikhte hain + har package par (i) button se complete details.
@@ -195,11 +205,31 @@ export default function BookingModal({
     }
     return plans;
   }, [currentDoc]);
+  // ── Mode pe package price change: Video = base, Audio/Chat ka ratio se scale ──
+  const basePackageFee = useMemo(() => {
+    if (hasExplicitModeFees) return Number(currentDoc?.appointmentFees?.video || currentDoc?.video_fee || 500) || 500;
+    return Number(currentDoc?.consultation_fees || currentDoc?.fees || currentDoc?.sessionPricing || 800) || 800;
+  }, [currentDoc, hasExplicitModeFees]);
+  const modeFeeRatio = useMemo(() => {
+    if (hasExplicitModeFees) {
+      const mf = getModeBasedFee(appointmentMode, currentDoc);
+      const vf = Number(currentDoc?.appointmentFees?.video || currentDoc?.video_fee || basePackageFee) || basePackageFee || 1;
+      if (!mf || !vf) return 1;
+      return mf / vf;
+    }
+    return MODE_FALLBACK_MULT[appointmentMode] ?? 1;
+  }, [appointmentMode, currentDoc, basePackageFee, hasExplicitModeFees]);
+  const getAdjustedPrice = (basePrice) => Math.max(0, Math.round(Number(basePrice || 0) * modeFeeRatio));
+  const adjustedProviderPlans = useMemo(() => providerPlans.map(p => {
+    const adj = getAdjustedPrice(p.price);
+    return { ...p, displayPrice: adj, perSessionDisplay: p.sessions > 0 ? Math.round(adj / p.sessions) : adj, originalPrice: p.price };
+  }), [providerPlans, modeFeeRatio]);
   const hasPackages = providerPlans.length > 0;
-  const selectedPackage = selectedPackageId === 'single' ? null : (providerPlans.find(p => p.id === selectedPackageId) || null);
-  // Mind providers (package wale): price kabhi mode se nahi badalta — sirf single/package price.
-  const singleFee = Number(currentDoc?.consultation_fees || currentDoc?.fees || currentFee || 0);
-  const effectiveFee = hasPackages ? (selectedPackage ? selectedPackage.price : singleFee) : currentFee;
+  const selectedPackageBase = selectedPackageId === 'single' ? null : (providerPlans.find(p => p.id === selectedPackageId) || null);
+  const selectedPackage = selectedPackageId === 'single' ? null : (adjustedProviderPlans.find(p => p.id === selectedPackageId) || null);
+  // Single session fee bhi mode-aware (counsellor ke liye bhi video < chat < audio alag)
+  const singleFee = currentFee || Number(currentDoc?.consultation_fees || currentDoc?.fees || 0);
+  const effectiveFee = hasPackages ? (selectedPackage ? selectedPackage.displayPrice : singleFee) : currentFee;
 
   const isHospital = useMemo(() => {
     if (facility?.type === 'hospital') return true;
@@ -307,7 +337,7 @@ export default function BookingModal({
     }
     setBookingDetails({ doctor: currentDoc.name, specialization: currentDoc.specialization, date: bookingDate, time: bookingTime, fees: effectiveFee, mode: appointmentMode, packageId: selectedPackage?.id || '', packageName: selectedPackage?.name || '' });
     
-    setBookingStep(hasPackages ? 6 : 1); // Mind providers → naya package step, warna "Who is this for?"
+    setBookingStep(1); // Package & Mode already selected in Quick booking (step 0) for counsellor/psychiatrist
   };
 
   const handlePayment = async () => {
@@ -644,7 +674,7 @@ export default function BookingModal({
                 </div>
               </div>
               {/* Appointment Mode Selector */}
-              <div className={`space-y-2 ${hasPackages ? 'order-5 hidden' : 'order-1'}`}>
+              <div className={`space-y-2 ${hasPackages ? 'order-1' : 'order-1'}`}>
                 <label className="text-xs font-semibold text-foreground">{hasPackages ? 'Modes Provided' : 'Mode of Appointment'}</label>
                 <div className={`grid gap-2 ${availableModes.length === 1 ? 'grid-cols-1' : availableModes.length === 2 ? 'grid-cols-2' : availableModes.length === 3 ? 'grid-cols-3' : availableModes.length === 4 ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2 sm:grid-cols-5'}`}>
                   {[
@@ -655,7 +685,7 @@ export default function BookingModal({
                     { key: 'chat', label: 'Chat', desc: 'Text', Icon: MessageSquare, color: 'text-blue-600', activeBg: 'border-blue-500 bg-blue-50 dark:bg-blue-500/10' },
                   ].filter(m => availableModes.includes(m.key) || (m.key === 'home_visit' && availableModes.includes('home')) || (m.key === 'audio' && (availableModes.includes('audio') || availableModes.includes('call') || availableModes.includes('voice') || availableModes.includes('video')))).map(({ key, label, desc, Icon, color, activeBg }) => {
                     const active = appointmentMode === key || (key === 'home_visit' && appointmentMode === 'home') || (key === 'audio' && (appointmentMode === 'voice' || appointmentMode === 'call'));
-                    const fee = getModeBasedFee(key, currentDoc);
+                    const fee = getResolvedModeFee(key, currentDoc);
                     return (
                       <button key={key} type="button" onClick={() => setAppointmentMode(key)}
                         className={`relative flex flex-col items-center gap-1.5 py-3 px-2.5 rounded-xl border-2 text-center transition-all ${
@@ -672,7 +702,7 @@ export default function BookingModal({
                           <p className={`text-[10px] ${active ? 'text-foreground' : 'text-muted-foreground'}`}>{desc}</p>
                         ) : (
                           <p className={`text-[10px] font-bold ${active ? 'text-foreground' : 'text-muted-foreground'}`}>
-                            {fee > 0 ? `�,1${fee}` : 'Free'}
+                            {fee > 0 ? `₹${fee}` : 'Free'}
                           </p>
                         )}
                       </button>
@@ -683,7 +713,7 @@ export default function BookingModal({
 
               {/* Package selection — sirf counsellor/psychiatrist (jinke packages hain) */}
               {hasPackages && (
-                <div className="space-y-2 rounded-xl border border-primary/20 bg-primary/[0.03] p-3 order-4 hidden">
+                <div className="space-y-2 rounded-xl border border-primary/20 bg-primary/[0.03] p-3 order-2">
                   <div className="flex items-center gap-1.5">
                     <PackageIcon className="w-3.5 h-3.5 text-primary" />
                     <label className="text-xs font-semibold text-foreground">Select Package <span className="font-normal text-muted-foreground">(optional)</span></label>
@@ -700,9 +730,8 @@ export default function BookingModal({
                       </span>
                       <span className="text-xs font-bold text-primary shrink-0">₹{hasPackages ? (singleFee || 0) : (currentFee || 0)}</span>
                     </button>
-                    {providerPlans.map((p) => {
+                    {adjustedProviderPlans.map((p) => {
                       const active = selectedPackageId === p.id;
-                      const perSession = p.sessions > 0 ? Math.round(p.price / p.sessions) : p.price;
                       return (
                         <div key={p.id} className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl border-2 text-left transition-all ${active ? 'border-primary bg-primary/5 shadow-sm' : 'border-border/60 bg-card hover:border-primary/30'}`}>
                           <button type="button" onClick={() => setSelectedPackageId(active ? 'single' : p.id)} className="flex items-center gap-2 flex-1 min-w-0 text-left">
@@ -711,9 +740,9 @@ export default function BookingModal({
                             </span>
                             <span className="flex-1 min-w-0">
                               <span className="block text-xs font-semibold text-foreground truncate">{p.name}</span>
-                              <span className="block text-[10px] text-muted-foreground">{p.sessions} session{p.sessions > 1 ? 's' : ''} • {p.validity} • ~₹{perSession}/session</span>
+                              <span className="block text-[10px] text-muted-foreground">{p.sessions} session{p.sessions > 1 ? 's' : ''} • {p.validity} • ~₹{p.perSessionDisplay}/session</span>
                             </span>
-                            <span className="text-xs font-bold text-primary shrink-0">₹{p.price}</span>
+                            <span className="text-xs font-bold text-primary shrink-0">₹{p.displayPrice}</span>
                           </button>
                           <button type="button" aria-label={`${p.name} details`} title="Package details"
                             onClick={() => setPackageInfoId(p.id)}
@@ -726,10 +755,11 @@ export default function BookingModal({
                   </div>
                 </div>
               )}
-              <div className={`grid grid-cols-2 gap-2 ${hasPackages ? 'order-6 hidden' : 'order-2'}`}>
+              <div className={`grid grid-cols-2 gap-2 ${hasPackages ? 'order-3' : 'order-2'}`}>
                 <div className="p-2 rounded-xl bg-primary/5 border border-primary/10 text-center">
                   <p className="text-[11px] text-muted-foreground mb-0.5">{selectedPackage ? 'Package Price' : 'Consultation Fee'}</p>
-                  <p className="font-bold text-sm text-primary">�,1{effectiveFee || 0}</p>
+                  <p className="font-bold text-sm text-primary">₹{effectiveFee || 0}</p>
+                  {hasPackages && <p className="text-[9px] text-muted-foreground mt-0.5">Mode ke hisaab se auto update</p>}
                 </div>
                 <div className="p-2 rounded-xl bg-emerald-50 border border-emerald-200 dark:bg-emerald-500/10 text-center">
                   <p className="text-[11px] text-muted-foreground mb-0.5">Avg Treatment Time</p>
@@ -738,16 +768,19 @@ export default function BookingModal({
                   </p>
                 </div>
               </div>
-              <div className={`space-y-1.5 ${hasPackages ? 'order-1' : 'order-3'}`}>
-                <label className="text-xs font-medium text-foreground">Select Date</label>
-                <Input type="date" className="w-full" value={bookingDate} onChange={e => setBookingDate(e.target.value)} min={getISTDateString()} max={maxBookableDate || undefined} />
-                {maxBookableDate && bookingWindow && (
-                  <p className="text-[10px] text-muted-foreground">
-                    📅 You can book up to <strong>{bookingWindow.value} {bookingWindow.unit}</strong> in advance ({maxBookableDate})
-                  </p>
-                )}
-              </div>
-              <div className={`space-y-1.5 ${hasPackages ? 'order-2' : 'order-4'}`}>
+              {!hasPackages && (
+                <div className="space-y-1.5 order-3">
+                  <label className="text-xs font-medium text-foreground">Select Date</label>
+                  <Input type="date" className="w-full" value={bookingDate} onChange={e => setBookingDate(e.target.value)} min={getISTDateString()} max={maxBookableDate || undefined} />
+                  {maxBookableDate && bookingWindow && (
+                    <p className="text-[10px] text-muted-foreground">
+                      📅 You can book up to <strong>{bookingWindow.value} {bookingWindow.unit}</strong> in advance ({maxBookableDate})
+                    </p>
+                  )}
+                </div>
+              )}
+              {!hasPackages && (
+                <div className="space-y-1.5 order-4">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-medium text-foreground">Select Time Slot</label>
                   <span className="inline-flex items-center gap-1 text-[10px] font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-md">
@@ -834,15 +867,27 @@ export default function BookingModal({
                   </div>
                 )}
               </div>
-              <div className={`space-y-1.5 ${hasPackages ? 'order-3' : 'order-5'}`}>
-                <label className="text-xs font-medium text-foreground">Notes (optional)</label>
-                <textarea value={bookingNotes} onChange={e => setBookingNotes(e.target.value)} placeholder="Any specific concerns…" className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm resize-none" rows={2} />
-              </div>
+              )}
+              {!hasPackages && (
+                <div className="space-y-1.5 order-5">
+                  <label className="text-xs font-medium text-foreground">Notes (optional)</label>
+                  <textarea value={bookingNotes} onChange={e => setBookingNotes(e.target.value)} placeholder="Any specific concerns…" className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm resize-none" rows={2} />
+                </div>
+              )}
             </div>
             <DialogFooter>
-              <Button size="sm" className="w-full" disabled={!bookingDate || !bookingTime || bookingLoading} onClick={handleProceedToPayment}>
-                <>Next: Who is this for? <ChevronRight className="w-3.5 h-3.5 ml-1" /></>
-              </Button>
+              {hasPackages ? (
+                <Button size="sm" className="w-full" disabled={!effectiveFee || effectiveFee <= 0} onClick={() => {
+                  if (!effectiveFee || effectiveFee <= 0) { toast.error('Please select a valid package/mode'); return; }
+                  setBookingStep(6);
+                }}>
+                  <>Next: Schedule <ChevronRight className="w-3.5 h-3.5 ml-1" /></>
+                </Button>
+              ) : (
+                <Button size="sm" className="w-full" disabled={!bookingDate || !bookingTime || bookingLoading} onClick={handleProceedToPayment}>
+                  <>Next: Who is this for? <ChevronRight className="w-3.5 h-3.5 ml-1" /></>
+                </Button>
+              )}
             </DialogFooter>
           </>
         )}
@@ -854,102 +899,220 @@ export default function BookingModal({
                 <Button variant="ghost" size="icon" className="w-7 h-7 -ml-1" onClick={() => setBookingStep(0)}>
                   <ArrowLeft className="w-4 h-4" />
                 </Button>
-                Choose Package & Mode
+                {hasPackages ? 'Schedule Appointment' : 'Choose Package & Mode'}
               </DialogTitle>
               <DialogDescription>
-                Package select karo (optional) aur session ka mode chuno — {currentDoc?.name}
+                {hasPackages ? `Date & time select karo — ${currentDoc?.name}` : `Package select karo (optional) aur session ka mode chuno — ${currentDoc?.name}`}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-3 py-2">
-              <div className="space-y-2 rounded-xl border border-primary/20 bg-primary/[0.03] p-3">
-                <div className="flex items-center gap-1.5">
-                  <PackageIcon className="w-3.5 h-3.5 text-primary" />
-                  <label className="text-xs font-semibold text-foreground">Select Package <span className="font-normal text-muted-foreground">(optional)</span></label>
-                </div>
-                <div className="space-y-1.5">
-                  <button key="single" type="button" onClick={() => setSelectedPackageId('single')}
-                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl border-2 text-left transition-all ${selectedPackageId === 'single' ? 'border-primary bg-primary/5 shadow-sm' : 'border-border/60 bg-card hover:border-primary/30'}`}>
-                    <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${selectedPackageId === 'single' ? 'border-primary' : 'border-muted-foreground/40'}`}>
-                      {selectedPackageId === 'single' && <span className="w-2 h-2 rounded-full bg-primary" />}
-                    </span>
-                    <span className="flex-1 min-w-0">
-                      <span className="block text-xs font-semibold text-foreground">Single Session</span>
-                      <span className="block text-[10px] text-muted-foreground">Sirf ye wali appointment</span>
-                    </span>
-                    <span className="text-xs font-bold text-primary shrink-0">₹{singleFee || 0}</span>
-                  </button>
-                  {providerPlans.map((p) => {
-                    const active = selectedPackageId === p.id;
-                    const perSession = p.sessions > 0 ? Math.round(p.price / p.sessions) : p.price;
-                    return (
-                      <div key={p.id} className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl border-2 text-left transition-all ${active ? 'border-primary bg-primary/5 shadow-sm' : 'border-border/60 bg-card hover:border-primary/30'}`}>
-                        <button type="button" onClick={() => setSelectedPackageId(active ? 'single' : p.id)} className="flex items-center gap-2 flex-1 min-w-0 text-left">
-                          <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${active ? 'border-primary' : 'border-muted-foreground/40'}`}>
-                            {active && <span className="w-2 h-2 rounded-full bg-primary" />}
-                          </span>
-                          <span className="flex-1 min-w-0">
-                            <span className="block text-xs font-semibold text-foreground truncate">{p.name}</span>
-                            <span className="block text-[10px] text-muted-foreground">{p.sessions} session{p.sessions > 1 ? 's' : ''} • {p.validity} • ~₹{perSession}/session</span>
-                          </span>
-                          <span className="text-xs font-bold text-primary shrink-0">₹{p.price}</span>
-                        </button>
-                        <button type="button" aria-label={`${p.name} details`} title="Package details"
-                          onClick={() => setPackageInfoId(p.id)}
-                          className="w-6 h-6 rounded-full border border-border bg-background flex items-center justify-center shrink-0 hover:border-primary hover:text-primary text-muted-foreground transition-colors">
-                          <Info className="w-3.5 h-3.5" />
-                        </button>
+              {hasPackages ? (
+                <>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="p-2 rounded-xl bg-primary/5 border border-primary/10 text-center">
+                      <p className="text-[11px] text-muted-foreground mb-0.5">{selectedPackage ? 'Package Price' : 'Consultation Fee'}</p>
+                      <p className="font-bold text-sm text-primary">₹{effectiveFee || 0}</p>
+                      <p className="text-[9px] text-muted-foreground mt-0.5">{appointmentMode === 'video' ? 'Video' : appointmentMode === 'audio' ? 'Audio' : 'Chat'} mode • auto updated</p>
+                    </div>
+                    <div className="p-2 rounded-xl bg-emerald-50 border border-emerald-200 dark:bg-emerald-500/10 text-center">
+                      <p className="text-[11px] text-muted-foreground mb-0.5">Avg Treatment Time</p>
+                      <p className="font-semibold text-xs text-emerald-600">
+                        {currentDoc?.slotDuration || 15} mins
+                      </p>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-foreground">Select Date</label>
+                    <Input type="date" className="w-full" value={bookingDate} onChange={e => setBookingDate(e.target.value)} min={getISTDateString()} max={maxBookableDate || undefined} />
+                    {maxBookableDate && bookingWindow && (
+                      <p className="text-[10px] text-muted-foreground">
+                        📅 You can book up to <strong>{bookingWindow.value} {bookingWindow.unit}</strong> in advance ({maxBookableDate})
+                      </p>
+                    )}
+                  </div>
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-medium text-foreground">Select Time Slot</label>
+                      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-md">
+                        <Clock className="w-3 h-3" /> Avg {slotDuration} mins
+                      </span>
+                    </div>
+                    <select value={selectedHour || ''} onChange={e => { setSelectedHour(e.target.value); setBookingTime(''); }} className="w-full h-9 px-3 rounded-xl border border-border bg-background text-sm">
+                      <option value="">Choose hour</option>
+                      {hourGroups.map(([hourLabel, hourSlots]) => {
+                        const allUnavailable = hourSlots.every(s => isSlotFull(s) || isSlotDisabled(s) || isSlotPendingUpdate(s));
+                        return (
+                          <option key={hourLabel} value={hourLabel} disabled={allUnavailable}>
+                            {hourLabel}{allUnavailable ? ' (Full)' : ''}
+                          </option>
+                        );
+                      })}
+                    </select>
+                    {selectedHour && (
+                      <div className="space-y-2">
+                        <p className="text-[11px] text-muted-foreground">
+                          {(() => {
+                            const hs = hourGroups.find(([h]) => h === selectedHour)?.[1] || [];
+                            const unavailableCount = hs.filter(s => isSlotFull(s) || isSlotDisabled(s) || isSlotPendingUpdate(s)).length;
+                            return `${hs.length - unavailableCount} of ${hs.length} slots available in ${selectedHour}`;
+                          })()}
+                        </p>
+                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                          {(hourGroups.find(([h]) => h === selectedHour)?.[1] || []).map(t => {
+                            const disabled = isSlotDisabled(t);
+                            const pendingUpdate = isSlotPendingUpdate(t);
+                            const full = isSlotFull(t);
+                            const locked = isSlotLocked(t);
+                            const unavailable = disabled || full || pendingUpdate || locked;
+                            const selected = bookingTime === t;
+                            return (
+                              <button
+                                key={t}
+                                type="button"
+                                disabled={unavailable || lockingSlot}
+                                onClick={() => handleSelectSlot(t)}
+                                className={`flex flex-col items-center gap-0.5 px-1.5 py-2 rounded-lg border text-center transition-all ${
+                                  selected
+                                    ? 'border-primary bg-primary text-primary-foreground shadow-sm ring-2 ring-primary/30'
+                                    : locked
+                                    ? 'border-amber-300 bg-amber-500/10 text-amber-700 dark:text-amber-300 cursor-not-allowed'
+                                    : unavailable
+                                    ? 'border-red-300 bg-red-500/10 text-red-600 dark:text-red-300 cursor-not-allowed'
+                                    : 'border-border bg-card text-foreground hover:border-primary/50 hover:bg-primary/5'
+                                }`}
+                              >
+                                <span className="text-xs font-semibold">{rangeFor(t)}</span>
+                                <span className={`text-[9px] leading-none font-medium ${selected ? 'text-primary-foreground/90' : 'text-muted-foreground'}`}>
+                                  {disabled ? 'Disabled' : pendingUpdate ? 'Pending Update' : full ? 'Booked' : locked ? '🔒 In Booking' : 'Available'}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
-                    );
-                  })}
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-foreground">Modes Provided</label>
-                <div className={`grid gap-2 ${availableModes.length === 1 ? 'grid-cols-1' : availableModes.length === 2 ? 'grid-cols-2' : availableModes.length === 3 ? 'grid-cols-3' : availableModes.length === 4 ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2 sm:grid-cols-5'}`}>
-                  {[
-                    { key: 'offline', label: offlineLabel, desc: offlineDesc, Icon: MapPin, color: 'text-violet-600', activeBg: 'border-violet-500 bg-violet-50 dark:bg-violet-500/10' },
-                    { key: 'home_visit', label: 'Home Visit', desc: 'At Home', Icon: Home, color: 'text-amber-600', activeBg: 'border-amber-500 bg-amber-50 dark:bg-amber-500/10' },
-                    { key: 'video', label: 'Video Call', desc: 'Live Video', Icon: Video, color: 'text-emerald-600', activeBg: 'border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10' },
-                    { key: 'audio', label: 'Audio Call', desc: 'Voice Call', Icon: Phone, color: 'text-teal-600', activeBg: 'border-teal-500 bg-teal-50 dark:bg-teal-500/10' },
-                    { key: 'chat', label: 'Chat', desc: 'Text', Icon: MessageSquare, color: 'text-blue-600', activeBg: 'border-blue-500 bg-blue-50 dark:bg-blue-500/10' },
-                  ].filter(m => availableModes.includes(m.key) || (m.key === 'home_visit' && availableModes.includes('home')) || (m.key === 'audio' && (availableModes.includes('audio') || availableModes.includes('call') || availableModes.includes('voice') || availableModes.includes('video')))).map(({ key, label, desc, Icon, color, activeBg }) => {
-                    const active = appointmentMode === key || (key === 'home_visit' && appointmentMode === 'home') || (key === 'audio' && (appointmentMode === 'voice' || appointmentMode === 'call'));
-                    return (
-                      <button key={key} type="button" onClick={() => setAppointmentMode(key)}
-                        className={`relative flex flex-col items-center gap-1.5 py-3 px-2.5 rounded-xl border-2 text-center transition-all ${
-                          active ? activeBg + ' shadow-sm' : 'border-border/60 bg-card hover:border-primary/30'
-                        }`}>
-                        {active && (
-                          <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-primary flex items-center justify-center">
-                            <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                          </div>
-                        )}
-                        <Icon className={`w-4 h-4 ${active ? color : 'text-muted-foreground'}`} />
-                        <p className={`text-[11px] font-semibold leading-none ${active ? color : 'text-foreground'}`}>{label}</p>
-                        <p className={`text-[10px] ${active ? 'text-foreground' : 'text-muted-foreground'}`}>{desc}</p>
+                    )}
+                    {bookingTime && (
+                      <div className="flex items-center gap-2 text-xs mt-1">
+                        <div className={`px-2 py-1 rounded-md ${isSlotFull(bookingTime) ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                          {isSlotFull(bookingTime) ? '⚠️ This slot is full' : '✅ Slot Available'}
+                        </div>
+                        <div className="px-2 py-1 rounded-md bg-primary/10 text-primary font-medium">
+                          {fullRangeFor(bookingTime)}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-foreground">Notes (optional)</label>
+                    <textarea value={bookingNotes} onChange={e => setBookingNotes(e.target.value)} placeholder="Any specific concerns…" className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm resize-none" rows={2} />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="space-y-2 rounded-xl border border-primary/20 bg-primary/[0.03] p-3">
+                    <div className="flex items-center gap-1.5">
+                      <PackageIcon className="w-3.5 h-3.5 text-primary" />
+                      <label className="text-xs font-semibold text-foreground">Select Package <span className="font-normal text-muted-foreground">(optional)</span></label>
+                      <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">{appointmentMode === 'video' ? 'Video' : appointmentMode === 'audio' || appointmentMode === 'call' || appointmentMode === 'voice' ? 'Audio' : appointmentMode === 'chat' ? 'Chat' : appointmentMode} price</span>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">Mode select karne par package price auto update hoga — Video Call sabse zyada, Chat sabse kam.</p>
+                    <div className="space-y-1.5">
+                      <button key="single" type="button" onClick={() => setSelectedPackageId('single')}
+                        className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl border-2 text-left transition-all ${selectedPackageId === 'single' ? 'border-primary bg-primary/5 shadow-sm' : 'border-border/60 bg-card hover:border-primary/30'}`}>
+                        <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${selectedPackageId === 'single' ? 'border-primary' : 'border-muted-foreground/40'}`}>
+                          {selectedPackageId === 'single' && <span className="w-2 h-2 rounded-full bg-primary" />}
+                        </span>
+                        <span className="flex-1 min-w-0">
+                          <span className="block text-xs font-semibold text-foreground">Single Session</span>
+                          <span className="block text-[10px] text-muted-foreground">Sirf ye wali appointment</span>
+                        </span>
+                        <span className="text-xs font-bold text-primary shrink-0">₹{singleFee || 0}</span>
                       </button>
-                    );
-                  })}
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="p-2 rounded-xl bg-primary/5 border border-primary/10 text-center">
-                  <p className="text-[11px] text-muted-foreground mb-0.5">{selectedPackage ? 'Package Price' : 'Consultation Fee'}</p>
-                  <p className="font-bold text-sm text-primary">₹{effectiveFee || 0}</p>
-                </div>
-                <div className="p-2 rounded-xl bg-emerald-50 border border-emerald-200 dark:bg-emerald-500/10 text-center">
-                  <p className="text-[11px] text-muted-foreground mb-0.5">Avg Treatment Time</p>
-                  <p className="font-semibold text-xs text-emerald-600">
-                    {currentDoc?.slotDuration || 15} mins
-                  </p>
-                </div>
-              </div>
+                      {adjustedProviderPlans.map((p) => {
+                        const active = selectedPackageId === p.id;
+                        return (
+                          <div key={p.id} className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl border-2 text-left transition-all ${active ? 'border-primary bg-primary/5 shadow-sm' : 'border-border/60 bg-card hover:border-primary/30'}`}>
+                            <button type="button" onClick={() => setSelectedPackageId(active ? 'single' : p.id)} className="flex items-center gap-2 flex-1 min-w-0 text-left">
+                              <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${active ? 'border-primary' : 'border-muted-foreground/40'}`}>
+                                {active && <span className="w-2 h-2 rounded-full bg-primary" />}
+                              </span>
+                              <span className="flex-1 min-w-0">
+                                <span className="block text-xs font-semibold text-foreground truncate">{p.name}</span>
+                                <span className="block text-[10px] text-muted-foreground">{p.sessions} session{p.sessions > 1 ? 's' : ''} • {p.validity} • ~₹{p.perSessionDisplay}/session</span>
+                              </span>
+                              <span className="text-xs font-bold text-primary shrink-0">₹{p.displayPrice}</span>
+                            </button>
+                            <button type="button" aria-label={`${p.name} details`} title="Package details"
+                              onClick={() => setPackageInfoId(p.id)}
+                              className="w-6 h-6 rounded-full border border-border bg-background flex items-center justify-center shrink-0 hover:border-primary hover:text-primary text-muted-foreground transition-colors">
+                              <Info className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-foreground">Modes Provided</label>
+                    <div className={`grid gap-2 ${availableModes.length === 1 ? 'grid-cols-1' : availableModes.length === 2 ? 'grid-cols-2' : availableModes.length === 3 ? 'grid-cols-3' : availableModes.length === 4 ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2 sm:grid-cols-5'}`}>
+                      {[
+                        { key: 'offline', label: offlineLabel, desc: offlineDesc, Icon: MapPin, color: 'text-violet-600', activeBg: 'border-violet-500 bg-violet-50 dark:bg-violet-500/10' },
+                        { key: 'home_visit', label: 'Home Visit', desc: 'At Home', Icon: Home, color: 'text-amber-600', activeBg: 'border-amber-500 bg-amber-50 dark:bg-amber-500/10' },
+                        { key: 'video', label: 'Video Call', desc: 'Live Video', Icon: Video, color: 'text-emerald-600', activeBg: 'border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10' },
+                        { key: 'audio', label: 'Audio Call', desc: 'Voice Call', Icon: Phone, color: 'text-teal-600', activeBg: 'border-teal-500 bg-teal-50 dark:bg-teal-500/10' },
+                        { key: 'chat', label: 'Chat', desc: 'Text', Icon: MessageSquare, color: 'text-blue-600', activeBg: 'border-blue-500 bg-blue-50 dark:bg-blue-500/10' },
+                      ].filter(m => availableModes.includes(m.key) || (m.key === 'home_visit' && availableModes.includes('home')) || (m.key === 'audio' && (availableModes.includes('audio') || availableModes.includes('call') || availableModes.includes('voice') || availableModes.includes('video')))).map(({ key, label, desc, Icon, color, activeBg }) => {
+                        const active = appointmentMode === key || (key === 'home_visit' && appointmentMode === 'home') || (key === 'audio' && (appointmentMode === 'voice' || appointmentMode === 'call'));
+                        return (
+                          <button key={key} type="button" onClick={() => setAppointmentMode(key)}
+                            className={`relative flex flex-col items-center gap-1.5 py-3 px-2.5 rounded-xl border-2 text-center transition-all ${
+                              active ? activeBg + ' shadow-sm' : 'border-border/60 bg-card hover:border-primary/30'
+                            }`}>
+                            {active && (
+                              <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-primary flex items-center justify-center">
+                                <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                              </div>
+                            )}
+                            <Icon className={`w-4 h-4 ${active ? color : 'text-muted-foreground'}`} />
+                            <p className={`text-[11px] font-semibold leading-none ${active ? color : 'text-foreground'}`}>{label}</p>
+                            <p className={`text-[10px] ${active ? 'text-foreground' : 'text-muted-foreground'}`}>{desc}</p>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="p-2 rounded-xl bg-primary/5 border border-primary/10 text-center">
+                      <p className="text-[11px] text-muted-foreground mb-0.5">{selectedPackage ? 'Package Price' : 'Consultation Fee'}</p>
+                      <p className="font-bold text-sm text-primary">₹{effectiveFee || 0}</p>
+                    </div>
+                    <div className="p-2 rounded-xl bg-emerald-50 border border-emerald-200 dark:bg-emerald-500/10 text-center">
+                      <p className="text-[11px] text-muted-foreground mb-0.5">Avg Treatment Time</p>
+                      <p className="font-semibold text-xs text-emerald-600">
+                        {currentDoc?.slotDuration || 15} mins
+                      </p>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
             <DialogFooter>
               <Button variant="outline" size="sm" onClick={() => setBookingStep(0)}>Back</Button>
-              <Button size="sm" onClick={() => setBookingStep(1)}>
-                Next: Who is this for? <ChevronRight className="w-3.5 h-3.5 ml-1" />
-              </Button>
+              {hasPackages ? (
+                <Button size="sm" disabled={!bookingDate || !bookingTime} onClick={() => {
+                  if (!bookingDate || !bookingTime) { toast.error('Please select date and time'); return; }
+                  if (isSlotFull(bookingTime)) { toast.error('This time slot is full. Please choose a different time.'); return; }
+                  if (!effectiveFee || effectiveFee <= 0) { toast.error('Doctor consultation fee is not set. Please contact support.'); return; }
+                  setBookingDetails({ doctor: currentDoc.name, specialization: currentDoc.specialization, date: bookingDate, time: bookingTime, fees: effectiveFee, mode: appointmentMode, packageId: selectedPackage?.id || '', packageName: selectedPackage?.name || '' });
+                  setBookingStep(1);
+                }}>
+                  Next: Who is this for? <ChevronRight className="w-3.5 h-3.5 ml-1" />
+                </Button>
+              ) : (
+                <Button size="sm" onClick={() => setBookingStep(1)}>
+                  Next: Who is this for? <ChevronRight className="w-3.5 h-3.5 ml-1" />
+                </Button>
+              )}
             </DialogFooter>
           </>
         )}
@@ -958,7 +1121,7 @@ export default function BookingModal({
           <>
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <Button variant="ghost" size="icon" className="w-7 h-7 -ml-1" onClick={() => setBookingStep(hasPackages ? 6 : 0)}>
+                <Button variant="ghost" size="icon" className="w-7 h-7 -ml-1" onClick={() => setBookingStep(0)}>
                   <ArrowLeft className="w-4 h-4" />
                 </Button>
                 Who is this appointment for?
@@ -1076,9 +1239,9 @@ export default function BookingModal({
                 )}
               </div>
             </div>
-            {/* Package/Mode/Fee ab alag step 6 me (family step se hataya) */}
+            {/* Package/Mode/Fee ab quick booking (step 0) me hi */}
             <DialogFooter>
-              <Button variant="outline" size="sm" onClick={() => setBookingStep(hasPackages ? 6 : 0)}>Back</Button>
+              <Button variant="outline" size="sm" onClick={() => setBookingStep(0)}>Back</Button>
               <Button size="sm" onClick={() => {
                 if (bookingFor === 'family' && !selectedFamilyMember) {
                   toast.error('Please select a family member');
@@ -1197,11 +1360,11 @@ export default function BookingModal({
             </DialogHeader>
             <div className="py-3 space-y-3">
               <BillCheckout
-                amount={currentFee}
+                amount={effectiveFee}
                 serviceType="appointment"
                 provider={facility?.name || currentDoc?.name}
-                details={{ doctor: currentDoc?.name, specialization: currentDoc?.specialization, date: formatDisplayDate(bookingDate), time: bookingTime, type: appointmentMode === 'chat' ? 'Chat Consultation' : appointmentMode === 'video' ? 'Video Consultation' : appointmentMode === 'audio' || appointmentMode === 'call' || appointmentMode === 'voice' ? 'Audio Call Consultation' : appointmentMode === 'home_visit' || appointmentMode === 'home' ? 'Home Visit Consultation' : offlineConsultationType }}
-                lineItems={[{ name: `${appointmentMode === 'chat' ? 'Chat' : appointmentMode === 'video' ? 'Video' : appointmentMode === 'audio' || appointmentMode === 'call' || appointmentMode === 'voice' ? 'Audio Call' : appointmentMode === 'home_visit' || appointmentMode === 'home' ? 'Home Visit' : offlineFeeName} Consultation Fee`, price: currentFee, qty: 1 }]}
+                details={{ doctor: currentDoc?.name, specialization: currentDoc?.specialization, date: formatDisplayDate(bookingDate), time: bookingTime, type: selectedPackage ? `${selectedPackage.name} • ${appointmentMode === 'chat' ? 'Chat' : appointmentMode === 'video' ? 'Video' : appointmentMode === 'audio' || appointmentMode === 'call' || appointmentMode === 'voice' ? 'Audio Call' : appointmentMode === 'home_visit' || appointmentMode === 'home' ? 'Home Visit' : offlineConsultationType}` : (appointmentMode === 'chat' ? 'Chat Consultation' : appointmentMode === 'video' ? 'Video Consultation' : appointmentMode === 'audio' || appointmentMode === 'call' || appointmentMode === 'voice' ? 'Audio Call Consultation' : appointmentMode === 'home_visit' || appointmentMode === 'home' ? 'Home Visit Consultation' : offlineConsultationType) }}
+                lineItems={[{ name: selectedPackage ? `${selectedPackage.name} (${selectedPackage.sessions} session${selectedPackage.sessions > 1 ? 's' : ''}) • ${appointmentMode === 'chat' ? 'Chat' : appointmentMode === 'video' ? 'Video' : 'Audio Call'}` : `${appointmentMode === 'chat' ? 'Chat' : appointmentMode === 'video' ? 'Video' : appointmentMode === 'audio' || appointmentMode === 'call' || appointmentMode === 'voice' ? 'Audio Call' : appointmentMode === 'home_visit' || appointmentMode === 'home' ? 'Home Visit' : offlineFeeName} Consultation Fee`, price: effectiveFee, qty: 1 }]}
                 platformFee={0}
                 gst={0}
                 discount={0}
@@ -1224,7 +1387,7 @@ export default function BookingModal({
               <DialogFooter className="gap-2 sm:gap-2">
                 <Button variant="outline" size="sm" className="w-full sm:w-auto flex-1" onClick={() => setBookingStep(3)}>Back</Button>
                 <Button size="sm" className="w-full sm:w-auto flex-1" disabled={paymentLoading} onClick={handlePayment}>
-                  {paymentLoading ? <>Processing…</> : <>Pay ₹{currentFee}</>}
+                  {paymentLoading ? <>Processing…</> : <>Pay ₹{effectiveFee}</>}
                 </Button>
               </DialogFooter>
             </div>
@@ -1283,12 +1446,14 @@ export default function BookingModal({
     <Dialog open={!!packageInfoId} onOpenChange={(o) => { if (!o) setPackageInfoId(null); }}>
       <DialogContent className="sm:max-w-[420px] rounded-2xl">
         {(() => {
-          const p = providerPlans.find(x => x.id === packageInfoId);
+          const p = adjustedProviderPlans.find(x => x.id === packageInfoId) || providerPlans.find(x => x.id === packageInfoId);
           if (!p) return null;
-          const perSession = p.sessions > 0 ? Math.round(p.price / p.sessions) : p.price;
-          const singleFee = currentFee || 0;
-          const fullSingle = singleFee > 0 ? singleFee * p.sessions : 0;
-          const savings = fullSingle > p.price ? fullSingle - p.price : 0;
+          const displayPrice = p.displayPrice ?? p.price;
+          const perSession = p.perSessionDisplay ?? (p.sessions > 0 ? Math.round(displayPrice / p.sessions) : displayPrice);
+          const modeLabel = appointmentMode === 'chat' ? 'Chat' : appointmentMode === 'video' ? 'Video Call' : appointmentMode === 'audio' || appointmentMode === 'call' || appointmentMode === 'voice' ? 'Audio Call' : appointmentMode;
+          const singleForSave = singleFee || 0;
+          const fullSingle = singleForSave > 0 ? singleForSave * p.sessions : 0;
+          const savings = fullSingle > displayPrice ? fullSingle - displayPrice : 0;
           return (
             <>
               <DialogHeader>
@@ -1296,13 +1461,16 @@ export default function BookingModal({
                   <PackageIcon className="w-4 h-4 text-primary" />
                   {p.name}
                 </DialogTitle>
-                <DialogDescription>Package ki complete details</DialogDescription>
+                <DialogDescription>Package ki complete details — Mode: {modeLabel}</DialogDescription>
               </DialogHeader>
               <div className="space-y-2 py-2 text-sm">
                 <div className="flex items-center justify-between p-2.5 rounded-xl bg-primary/5 border border-primary/10">
-                  <span className="text-muted-foreground">Package price</span>
-                  <span className="font-bold text-primary">₹{p.price}</span>
+                  <span className="text-muted-foreground">Package price <span className="text-[10px]">({modeLabel})</span></span>
+                  <span className="font-bold text-primary">₹{displayPrice}</span>
                 </div>
+                {p.originalPrice !== displayPrice && (
+                  <p className="text-[11px] text-muted-foreground">Base price ₹{p.originalPrice} × mode ratio {modeFeeRatio.toFixed(2)} = ₹{displayPrice}</p>
+                )}
                 <div className="grid grid-cols-2 gap-2">
                   <div className="p-2.5 rounded-xl bg-muted/50 border border-border/60">
                     <p className="text-[11px] text-muted-foreground">Sessions</p>
@@ -1326,6 +1494,7 @@ export default function BookingModal({
                   <p className="text-xs text-muted-foreground">Modes: <span className="font-medium text-foreground">{p.modes.join(', ')}</span></p>
                 )}
                 <p className="text-xs text-muted-foreground">Provider: <span className="font-medium text-foreground">{currentDoc?.name}</span></p>
+                <p className="text-[11px] text-amber-600 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-lg p-2">💡 Mode change karne par package price auto update hota hai (Video {' > '} Audio {' > '} Chat ke fees ke hisaab se).</p>
               </div>
               <DialogFooter>
                 <Button variant="outline" size="sm" onClick={() => setPackageInfoId(null)}>Close</Button>

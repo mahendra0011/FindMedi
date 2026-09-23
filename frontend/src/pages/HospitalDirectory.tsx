@@ -44,11 +44,29 @@ export default function HospitalDirectory() {
   const [hospitals, setHospitals] = useState([]);
   const [allHospitals, setAllHospitals] = useState([]);
   const [search, setSearch] = useState('');
-  const [cityFilter] = useState(searchParams.get('city') || '');
+  const [cityFilter, setCityFilter] = useState(
+    () => searchParams.get('city') || localStorage.getItem('findmedi_city') || localStorage.getItem('mediCore_city') || ''
+  );
   const [specFilter, setSpecFilter] = useState(searchParams.get('specialty') || '');
   const [loading, setLoading] = useState(true);
   const [selectedDept, setSelectedDept] = useState('');
   const [showAllSpecialties, setShowAllSpecialties] = useState(false);
+
+  // Synchronize with global navbar city selection
+  useEffect(() => {
+    const onCityChange = (e: any) => {
+      const newCity = e.detail || localStorage.getItem('findmedi_city') || localStorage.getItem('mediCore_city');
+      if (newCity && newCity !== cityFilter) {
+        setCityFilter(newCity);
+      }
+    };
+    window.addEventListener('cityChange', onCityChange);
+    window.addEventListener('storage', onCityChange);
+    return () => {
+      window.removeEventListener('cityChange', onCityChange);
+      window.removeEventListener('storage', onCityChange);
+    };
+  }, [cityFilter]);
 
   // Advanced filters
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
@@ -226,8 +244,15 @@ export default function HospitalDirectory() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
-        <h1 className="font-heading text-3xl font-bold text-foreground">Find a Hospital</h1>
-        <p className="text-muted-foreground mt-1">Browse specialties or search for hospitals near you</p>
+        <h1 className="font-heading text-3xl font-bold text-foreground">
+          Find a Hospital
+          {cityFilter && cityFilter !== 'All' && (
+            <span className="ml-2.5 text-sm font-semibold text-primary px-3 py-1 rounded-full border border-primary/20 bg-primary/5 inline-flex items-center gap-1 align-middle">
+              📍 {cityFilter}
+            </span>
+          )}
+        </h1>
+        <p className="text-muted-foreground mt-1">Browse specialties or search for hospitals in {cityFilter && cityFilter !== 'All' ? cityFilter : 'your city'}</p>
       </div>
 
       <div className="relative mb-8">

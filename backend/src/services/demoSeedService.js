@@ -1,4 +1,6 @@
+import mongoose from 'mongoose';
 import User from '../models/User.js';
+import Doctor from '../models/Doctor.js';
 import RiderProfile from '../models/RiderProfile.js';
 import AssistantProfile from '../models/AssistantProfile.js';
 import LawyerProfile from '../models/LawyerProfile.js';
@@ -714,7 +716,404 @@ export async function ensureDemoUsers() {
       await demoAmb.save();
     }
 
-    logger.info('Demo seed finished: 5 Riders, 5 Assistants, 5 Lawyers, 1 Ambulance Driver, and ServiceCities active.');
+    // ─── 5. Demo Counsellors (Therapy & Emotional Wellbeing — NO "Dr." prefix) ─
+    const demoCounsellors = [
+      {
+        name: 'Aisha Mehra',
+        email: 'aisha.mehra@mindsupport.seed',
+        phone: '9876543291',
+        gender: 'Female',
+        specialization: 'Anxiety and Stress Management',
+        qualifications: 'PhD Clinical Psychology, RCI registered',
+        education: 'PhD Clinical Psychology, RCI registered',
+        counsellorType: 'professional',
+        experience: '8 years',
+        bio: 'Licensed psychologist helping students manage anxiety, panic, exam stress, and emotional overwhelm with practical coping plans.',
+        consultation_fees: 599,
+        location: 'Mumbai, Maharashtra',
+        languages: ['English', 'Hindi'],
+        rating: 4.9,
+        reviews_count: 128,
+        patients: 1400,
+        areas_of_expertise: ['Anxiety', 'Stress', 'Student Pressure'],
+        profile_photo: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=400&fit=crop&crop=face&auto=format',
+        supportPlanPrices: { oneTime: 599, shortTerm: 1799, mediumTerm: 2999, longTerm: 4799 },
+      },
+      {
+        name: 'Neha Iyer',
+        email: 'neha.iyer@mindsupport.seed',
+        phone: '9876543292',
+        gender: 'Female',
+        specialization: 'Depression and Mood Support',
+        qualifications: 'M.Phil Clinical Psychology, licensed therapist',
+        education: 'M.Phil Clinical Psychology, licensed therapist',
+        counsellorType: 'professional',
+        experience: '10 years',
+        bio: 'Professional counsellor supporting low mood, loneliness, grief, emotional numbness, and therapy progress tracking.',
+        consultation_fees: 549,
+        location: 'Chennai, Tamil Nadu',
+        languages: ['English', 'Tamil'],
+        rating: 4.8,
+        reviews_count: 142,
+        patients: 1650,
+        areas_of_expertise: ['Depression', 'Loneliness', 'General'],
+        profile_photo: 'https://images.unsplash.com/photo-1594824476967-48c8b964273f?w=400&h=400&fit=crop&crop=face&auto=format',
+        supportPlanPrices: { oneTime: 549, shortTerm: 1649, mediumTerm: 2749, longTerm: 4399 },
+      },
+      {
+        name: 'Priya Nair',
+        email: 'priya.nair@mindsupport.seed',
+        phone: '9876543293',
+        gender: 'Female',
+        specialization: 'Trauma Support and Grounding',
+        qualifications: 'PsyD Counselling Psychology, trauma-informed care',
+        education: 'PsyD Counselling Psychology, trauma-informed care',
+        counsellorType: 'professional',
+        experience: '12 years',
+        bio: 'Trauma-informed therapist helping clients with grounding, safety planning, triggers, PTSD symptoms, and emotional regulation.',
+        consultation_fees: 599,
+        location: 'Kochi, Kerala',
+        languages: ['English', 'Malayalam', 'Hindi'],
+        rating: 4.9,
+        reviews_count: 166,
+        patients: 1800,
+        areas_of_expertise: ['Trauma Support', 'PTSD', 'Anxiety'],
+        profile_photo: 'https://images.unsplash.com/photo-1587614382344-4ecb093b79b2?w=400&h=400&fit=crop&crop=face&auto=format',
+        supportPlanPrices: { oneTime: 599, shortTerm: 1799, mediumTerm: 2999, longTerm: 4799 },
+      },
+      {
+        name: 'Rahul Verma',
+        email: 'rahul.verma@mindsupport.seed',
+        phone: '9876543294',
+        gender: 'Male',
+        specialization: 'Career Pressure and Confidence',
+        qualifications: 'Peer support certification and career mentoring training',
+        education: 'Peer support certification and career mentoring training',
+        counsellorType: 'mentor',
+        experience: '5 years',
+        bio: 'Community mentor focused on career stress, self-confidence, interview pressure, and small-step motivation for students.',
+        consultation_fees: 299,
+        location: 'Pune, Maharashtra',
+        languages: ['English', 'Hindi', 'Marathi'],
+        rating: 4.7,
+        reviews_count: 86,
+        patients: 890,
+        areas_of_expertise: ['Career Stress', 'Self Confidence', 'Motivation'],
+        profile_photo: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&h=400&fit=crop&crop=face&auto=format',
+        supportPlanPrices: { oneTime: 299, shortTerm: 899, mediumTerm: 1499, longTerm: 2399 },
+      },
+      {
+        name: 'Ananya Verma',
+        email: 'counsellor@findmedi.com',
+        phone: '9876543298',
+        gender: 'Female',
+        specialization: 'Mental Wellness & Counselling',
+        qualifications: 'M.A. Clinical Psychology, Certified Counsellor',
+        education: 'M.A. Clinical Psychology',
+        counsellorType: 'professional',
+        experience: '6 years',
+        bio: 'Compassionate licensed therapist specializing in anxiety, stress relief, academic burnout, and emotional balance.',
+        consultation_fees: 599,
+        location: 'Civil Lines, Jabalpur, MP',
+        languages: ['Hindi', 'English'],
+        rating: 4.9,
+        reviews_count: 120,
+        patients: 1100,
+        areas_of_expertise: ['Anxiety', 'Stress', 'Student Pressure', 'Emotional Balance'],
+        profile_photo: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=400&fit=crop&crop=face&auto=format',
+        supportPlanPrices: { oneTime: 599, shortTerm: 1499, mediumTerm: 2499, longTerm: 3999 },
+      },
+    ];
+
+    for (const c of demoCounsellors) {
+      let u = await User.findOne({ email: c.email });
+      if (!u) {
+        u = new User({
+          name: c.name,
+          email: c.email,
+          password: 'password',
+          role: 'counsellor',
+          phone: c.phone,
+          gender: c.gender,
+          isVerified: true,
+          status: 'active',
+          approvalStatus: 'approved',
+          specialization: c.specialization,
+          qualification: c.qualifications,
+          experience: c.experience,
+          bio: c.bio,
+          consultationModes: ['google-meet', 'in-person', 'voice-call', 'video-chat', 'chat-only'],
+        });
+        await u.save();
+        logger.info(`Created demo counsellor user: ${c.email}`);
+      } else {
+        u.name = c.name;
+        u.role = 'counsellor';
+        u.status = 'active';
+        u.approvalStatus = 'approved';
+        u.isVerified = true;
+        u.specialization = c.specialization;
+        u.qualification = c.qualifications;
+        u.experience = c.experience;
+        u.bio = c.bio;
+        u.password = 'password';
+        await u.save();
+      }
+
+      await Doctor.updateOne(
+        { email: c.email },
+        {
+          $set: {
+            name: c.name,
+            email: c.email,
+            specialization: 'Counselling',
+            department: 'Mental Health & Counselling',
+            qualifications: c.qualifications,
+            experience: c.experience,
+            bio: c.bio,
+            consultation_fees: c.consultation_fees,
+            location: c.location,
+            phone: c.phone,
+            languages: c.languages,
+            rating: c.rating,
+            reviews_count: c.reviews_count,
+            patients: c.patients,
+            gender: c.gender === 'Male' ? 'male' : 'female',
+            areas_of_expertise: c.areas_of_expertise,
+            profile_photo: c.profile_photo,
+            supportPlanPrices: c.supportPlanPrices,
+            appointmentFees: {
+              video: c.consultation_fees,
+              audio: Math.round(c.consultation_fees * 0.8),
+              chat: Math.round(c.consultation_fees * 0.6),
+              offline: c.consultation_fees,
+            },
+            appointmentModes: ['video', 'audio', 'chat', 'offline'],
+            approved: true,
+            available: true,
+            doctor_type: 'clinic',
+            user_id: u._id,
+          },
+        },
+        { upsert: true }
+      );
+    }
+
+    // Sync with mind_users collection & strip accidental "Dr." prefixes from counsellors
+    try {
+      if (mongoose.connection?.db) {
+        const mindUsers = mongoose.connection.db.collection('mind_users');
+        for (const c of demoCounsellors) {
+          await mindUsers.updateOne(
+            { email: c.email },
+            {
+              $set: {
+                name: c.name,
+                email: c.email,
+                role: 'counsellor',
+                status: 'approved',
+                verificationStatus: 'approved',
+                counsellorType: c.counsellorType,
+                specialization: c.specialization,
+                sessionPricing: c.consultation_fees,
+                education: c.education,
+                experience: c.experience,
+                languages: c.languages,
+                bio: c.bio,
+                consultationModes: ['google-meet', 'in-person', 'voice-call'],
+                rating: c.rating,
+                reviews: c.reviews_count,
+                location: c.location,
+              },
+            },
+            { upsert: true }
+          );
+        }
+
+        // Remove "Dr." prefix from any counsellors in mind_users
+        const drCounsellors = await mindUsers.find({ role: 'counsellor', name: /^Dr\.?\s+/i }).toArray();
+        for (const c of drCounsellors) {
+          const cleanName = c.name.replace(/^Dr\.?\s+/i, '').trim();
+          await mindUsers.updateOne({ _id: c._id }, { $set: { name: cleanName } });
+        }
+      }
+    } catch (e) {
+      logger.warn('mind_users sync note: ' + e.message);
+    }
+
+    // ─── 6. 5 Demo Psychiatrists (Medical Doctors — Diagnosis & Medication) ───
+    const demoPsychiatrists = [
+      {
+        name: 'Dr. Rohan Deshmukh',
+        email: 'psychiatrist@findmedi.com',
+        phone: '9876543210',
+        specialization: 'Psychiatry',
+        qualifications: 'MBBS, MD Psychiatry',
+        experience: '12 years',
+        bio: 'Senior psychiatrist specialising in diagnosis, depression, mood disorders, and psychiatric medication management alongside supportive therapy.',
+        department: 'Psychiatry',
+        consultation_fees: 1800,
+        location: 'Civil Lines, Jabalpur, MP',
+        languages: ['Hindi', 'English', 'Marathi'],
+        rating: 4.8,
+        reviews_count: 210,
+        patients: 3200,
+        gender: 'male',
+        areas_of_expertise: ['Depression', 'Mood Disorders', 'Dysthymia', 'Pharmacotherapy'],
+        profile_photo: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=400&h=400&fit=crop&crop=face&auto=format',
+        supportPlanPrices: { oneTime: 1800, shortTerm: 5000, mediumTerm: 9000, longTerm: 16000 },
+      },
+      {
+        name: 'Dr. Ananya Sharma',
+        email: 'psychiatrist2@findmedi.com',
+        phone: '9876543211',
+        specialization: 'Psychiatry',
+        qualifications: 'MBBS, MD Psychiatry',
+        experience: '9 years',
+        bio: 'Consultant psychiatrist focused on clinical diagnosis, panic disorders, phobias, and medication support for severe anxiety.',
+        department: 'Psychiatry',
+        consultation_fees: 1500,
+        location: 'Palasia, Indore, MP',
+        languages: ['Hindi', 'English'],
+        rating: 4.9,
+        reviews_count: 186,
+        patients: 2400,
+        gender: 'female',
+        areas_of_expertise: ['Anxiety Disorders', 'Panic Attacks', 'Phobia', 'Clinical Evaluation'],
+        profile_photo: 'https://images.unsplash.com/photo-1594824476967-48c8b964273f?w=400&h=400&fit=crop&crop=face&auto=format',
+        supportPlanPrices: { oneTime: 1500, shortTerm: 4500, mediumTerm: 8500, longTerm: 14000 },
+      },
+      {
+        name: 'Dr. Vikram Rao',
+        email: 'psychiatrist3@findmedi.com',
+        phone: '9876543212',
+        specialization: 'Psychiatry',
+        qualifications: 'MBBS, MD Psychiatry',
+        experience: '15 years',
+        bio: 'Senior consultant psychiatrist for bipolar disorder, mania, schizophrenia, psychosis, and adult neuropsychiatric stabilization.',
+        department: 'Psychiatry',
+        consultation_fees: 2000,
+        location: 'Arera Colony, Bhopal, MP',
+        languages: ['Hindi', 'English'],
+        rating: 4.7,
+        reviews_count: 164,
+        patients: 4100,
+        gender: 'male',
+        areas_of_expertise: ['Bipolar Disorder', 'Schizophrenia', 'Psychosis', 'Neuropsychiatry'],
+        profile_photo: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&h=400&fit=crop&crop=faces&auto=format',
+        supportPlanPrices: { oneTime: 2000, shortTerm: 6000, mediumTerm: 11000, longTerm: 18000 },
+      },
+      {
+        name: 'Dr. Kavya Menon',
+        email: 'psychiatrist4@findmedi.com',
+        phone: '9876543213',
+        specialization: 'Psychiatry',
+        qualifications: 'MBBS, MD Psychiatry',
+        experience: '10 years',
+        bio: 'Psychiatrist treating clinical insomnia, sleep-wake schedule disorders, substance dependence, and de-addiction medical therapy.',
+        department: 'Psychiatry',
+        consultation_fees: 1600,
+        location: 'Shivaji Nagar, Pune, MH',
+        languages: ['Hindi', 'English', 'Marathi'],
+        rating: 4.8,
+        reviews_count: 142,
+        patients: 2600,
+        gender: 'female',
+        areas_of_expertise: ['Sleep Disorders', 'Insomnia', 'Addiction Medicine', 'De-addiction'],
+        profile_photo: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=400&fit=crop&crop=face&auto=format',
+        supportPlanPrices: { oneTime: 1600, shortTerm: 4800, mediumTerm: 8800, longTerm: 14500 },
+      },
+      {
+        name: 'Dr. Aditya Patel',
+        email: 'psychiatrist5@findmedi.com',
+        phone: '9876543214',
+        specialization: 'Psychiatry',
+        qualifications: 'MBBS, MD Psychiatry',
+        experience: '8 years',
+        bio: 'Child and adolescent psychiatrist helping with ADHD, autism spectrum support, OCD, and pediatric behavioural medication management.',
+        department: 'Psychiatry',
+        consultation_fees: 1400,
+        location: 'Saket, New Delhi',
+        languages: ['Hindi', 'English'],
+        rating: 4.7,
+        reviews_count: 128,
+        patients: 1900,
+        gender: 'male',
+        areas_of_expertise: ['Child & Adolescent', 'ADHD', 'Autism', 'OCD'],
+        profile_photo: 'https://images.unsplash.com/photo-1537368910025-700350fe46c7?w=400&h=400&fit=crop&crop=faces&auto=format',
+        supportPlanPrices: { oneTime: 1400, shortTerm: 4200, mediumTerm: 8000, longTerm: 13000 },
+      },
+    ];
+
+    for (const d of demoPsychiatrists) {
+      let u = await User.findOne({ email: d.email });
+      if (!u) {
+        u = new User({
+          name: d.name,
+          email: d.email,
+          password: 'password',
+          role: 'psychiatrist',
+          phone: d.phone,
+          specialization: d.specialization,
+          qualification: d.qualifications,
+          gender: d.gender === 'male' ? 'Male' : 'Female',
+          isVerified: true,
+          status: 'active',
+          approvalStatus: 'approved',
+        });
+        await u.save();
+        logger.info(`Created demo psychiatrist user: ${d.email}`);
+      } else {
+        u.name = d.name;
+        u.role = 'psychiatrist';
+        u.status = 'active';
+        u.approvalStatus = 'approved';
+        u.isVerified = true;
+        u.password = 'password';
+        await u.save();
+      }
+
+      await Doctor.updateOne(
+        { email: d.email },
+        {
+          $set: {
+            name: d.name,
+            email: d.email,
+            specialization: d.specialization,
+            qualifications: d.qualifications,
+            experience: d.experience,
+            bio: d.bio,
+            department: d.department,
+            consultation_fees: d.consultation_fees,
+            location: d.location,
+            phone: d.phone,
+            languages: d.languages,
+            rating: d.rating,
+            reviews_count: d.reviews_count,
+            patients: d.patients,
+            gender: d.gender,
+            areas_of_expertise: d.areas_of_expertise,
+            profile_photo: d.profile_photo,
+            supportPlanPrices: d.supportPlanPrices,
+            appointmentFees: {
+              video: d.consultation_fees,
+              audio: Math.round(d.consultation_fees * 0.8),
+              chat: Math.round(d.consultation_fees * 0.6),
+              offline: d.consultation_fees,
+            },
+            appointmentModes: ['video', 'audio', 'chat', 'offline'],
+            available: true,
+            approved: true,
+            doctor_type: 'clinic',
+            user_id: u._id,
+          },
+        },
+        { upsert: true }
+      );
+      logger.info(`Upserted psychiatrist Doctor: ${d.name} (${d.email})`);
+    }
+
+    logger.info('Demo seed finished: 5 Riders, 5 Assistants, 5 Lawyers, 1 Ambulance Driver, 1 Counsellor, 5 Psychiatrists, and ServiceCities active.');
   } catch (err) {
     logger.warn('Error verifying demo accounts: ' + err.message);
   }

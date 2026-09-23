@@ -183,11 +183,21 @@ const Counselling = () => {
       }
       if (!doc) {
         // Fallback: counsellor object ko doctor-shape me map karo (BookingModal defensive hai)
+        const baseFee = Number(counsellor.sessionPricing) || lowestPrice(counsellor) || 800;
         doc = {
           _id: counsellor.doctorId || counsellor.id,
           name: counsellor.name,
           specialization: "Counselling",
-          consultation_fees: Number(counsellor.sessionPricing) || lowestPrice(counsellor) || 800,
+          consultation_fees: baseFee,
+          appointmentFees: {
+            video: baseFee,
+            audio: Math.round(baseFee * 0.8),
+            chat: Math.round(baseFee * 0.6),
+            offline: baseFee,
+            home_visit: Math.round(baseFee * 1.2),
+          },
+          supportPlanPrices: counsellor.supportPlanPrices || {},
+          customPackages: counsellor.customPackages || [],
           languages: counsellor.languages || ["English"],
           location: counsellor.city || counsellor.location || "Online",
           available: counsellor.bookingEnabled !== false,
@@ -716,11 +726,12 @@ const Counselling = () => {
 };
 
 function CounsellorCard({ counsellor, booking, onView, onBook, bookingBusy, index = 0 }) {
+  const cleanName = (counsellor.name || "").replace(/^Dr\.?\s+/i, "");
   const accepting = counsellor.bookingEnabled !== false;
   const languages = counsellor.languages?.length ? counsellor.languages : ["English"];
   const onlineModes = (counsellor.consultationModes?.length ? counsellor.consultationModes.filter(m => m !== "in-person") : []);
   const modes = onlineModes.length ? onlineModes : ["google-meet", "voice-call"];
-  const imgUrl = avatarUrl(counsellor.name, counsellor.profilePhotoUrl);
+  const imgUrl = avatarUrl(cleanName, counsellor.profilePhotoUrl);
   const categories = (counsellor.categories || []).slice(0, 3);
   const isMentor = counsellor.counsellorType === "mentor";
   const badgeLabel = counsellor.badge || (isMentor ? "Community Mentor" : "Verified Professional");
@@ -752,12 +763,12 @@ function CounsellorCard({ counsellor, booking, onView, onBook, bookingBusy, inde
         {/* Top: Photo + Name + Info */}
         <div className="flex items-start gap-4 mb-3">
           <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center overflow-hidden shrink-0 border-2 border-primary/10 shadow-sm group-hover:shadow-md group-hover:scale-105 transition-all duration-300">
-            <img src={imgUrl} alt={counsellor.name} className="w-full h-full object-cover" />
+            <img src={imgUrl} alt={cleanName} className="w-full h-full object-cover" />
           </div>
           <div className="min-w-0 flex-1 pt-1">
             <div className="flex items-center gap-2 flex-wrap">
               <h3 className="font-heading font-semibold text-foreground truncate group-hover:text-primary transition-colors">
-                {counsellor.name}
+                {cleanName}
               </h3>
               <span
                 className={cn(
@@ -860,19 +871,21 @@ function CounsellorCard({ counsellor, booking, onView, onBook, bookingBusy, inde
 function CounsellorProfile({ counsellor, loading, selectedPlanId, setSelectedPlanId, recommendedPlanId, concernTags, setConcernTags, booking, onBack, onSchedule }) {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const cleanName = (counsellor?.name || "").replace(/^Dr\.?\s+/i, "");
   const selectedPlan = planFromList(counsellor, selectedPlanId);
   const planList = plansFor(counsellor);
   const languages = counsellor?.languages?.length ? counsellor.languages : ["English"];
   const categories = counsellor?.categories?.length ? counsellor.categories : selectedPlan?.bestFor || ["Stress", "Anxiety"];
   const onlineModesDetail = (counsellor?.consultationModes?.length ? counsellor.consultationModes.filter(m => m !== "in-person") : []);
   const consultationModes = onlineModesDetail.length ? onlineModesDetail : ["google-meet", "voice-call"];
-  const imgUrl = avatarUrl(counsellor?.name, counsellor?.profilePhotoUrl);
+  const imgUrl = avatarUrl(cleanName, counsellor?.profilePhotoUrl);
   const isMentor = counsellor?.counsellorType === "mentor";
   const badgeLabel = counsellor?.badge || (isMentor ? "Community Mentor" : "Verified Professional");
 
   const [reviews, setReviews] = useState([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [selectedMode, setSelectedMode] = useState("google-meet");
+  const [showIntakeDetails, setShowIntakeDetails] = useState(false);
   const [reviewForm, setReviewForm] = useState({ rating: 5, comment: "", submitting: false });
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportReason, setReportReason] = useState("");
@@ -882,6 +895,14 @@ function CounsellorProfile({ counsellor, loading, selectedPlanId, setSelectedPla
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  // Mode ratios for counselling: Meet=1, Audio=0.8, Chat=0.6
+  const getAdjustedPlanPrice = (plan) => {
+    const base = planPrice(plan);
+    if (!base) return 0;
+    const mult = selectedMode === "voice-call" || selectedMode === "audio" ? 0.8 : selectedMode === "chat-only" || selectedMode === "chat" ? 0.6 : 1;
+    return Math.round(base * mult);
+  };
 
   useEffect(() => {
     if (!counsellor?.id) return;
@@ -1031,7 +1052,7 @@ function CounsellorProfile({ counsellor, loading, selectedPlanId, setSelectedPla
             <ChevronRight className="w-3.5 h-3.5" />
             <Link to="/mind/counselling" className="hover:text-primary transition-colors">Find Counsellor</Link>
             <ChevronRight className="w-3.5 h-3.5" />
-            <span className="text-foreground font-medium truncate max-w-[200px]">{counsellor.name}</span>
+            <span className="text-foreground font-medium truncate max-w-[200px]">{cleanName}</span>
           </nav>
         </div>
 
@@ -1044,7 +1065,7 @@ function CounsellorProfile({ counsellor, loading, selectedPlanId, setSelectedPla
                 <div className="flex flex-col sm:flex-row items-start gap-6">
                   <div className="relative">
                     <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-primary font-heading font-bold text-4xl overflow-hidden flex-shrink-0 border-2 border-border/40 ring-4 ring-background">
-                      <img src={imgUrl} alt={counsellor.name} className="w-full h-full object-cover" />
+                      <img src={imgUrl} alt={cleanName} className="w-full h-full object-cover" />
                     </div>
                     <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-emerald-500 border-[3px] border-background flex items-center justify-center shadow-md">
                       <Check className="w-4 h-4 text-white" />
@@ -1052,7 +1073,7 @@ function CounsellorProfile({ counsellor, loading, selectedPlanId, setSelectedPla
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-1.5">
-                      <h1 className="font-heading text-2xl sm:text-3xl font-bold text-foreground">{counsellor.name}</h1>
+                      <h1 className="font-heading text-2xl sm:text-3xl font-bold text-foreground">{cleanName}</h1>
                       <Badge variant="outline" className={`w-fit text-xs ${isMentor ? "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400" : "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400"}`}>
                         <ShieldCheck className="w-3 h-3 mr-1" /> {badgeLabel}
                       </Badge>
@@ -1255,21 +1276,46 @@ function CounsellorProfile({ counsellor, loading, selectedPlanId, setSelectedPla
               <motion.div variants={fadeUp}>
                 <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden">
                   <CardContent className="p-6 sm:p-8">
-                    <h2 className="font-heading text-xl font-bold text-foreground mb-2 flex items-center gap-2.5">
-                      <span className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center"><Video className="w-4 h-4 text-primary" /></span>
-                      How We Meet
-                    </h2>
-                    <p className="text-sm text-muted-foreground mb-5">Online only — no clinic visits. Choose the mode that feels right.</p>
-                    <div className="grid grid-cols-2 gap-3">
-                      {consultationModes.map(mode => (
-                        <div key={mode} className="bg-card border border-border/70 rounded-xl p-4 text-center">
-                          <div className="flex justify-center mb-2">
-                            {mode === "google-meet" ? <Video className="h-5 w-5 text-cyan-700" /> : mode === "voice-call" ? <Phone className="h-5 w-5 text-primary" /> : <MessageCircle className="h-5 w-5 text-emerald-600" />}
-                          </div>
-                          <p className="text-sm font-medium text-foreground">{modeLabel(mode)}</p>
-                          <p className="text-xs text-muted-foreground mt-1">{mode === "google-meet" ? "Video sessions" : mode === "voice-call" ? "Audio sessions" : "In-person"}</p>
-                        </div>
-                      ))}
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+                      <h2 className="font-heading text-xl font-bold text-foreground flex items-center gap-2.5">
+                        <span className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center"><Video className="w-4 h-4 text-primary" /></span>
+                        How We Meet & Consultation Modes
+                      </h2>
+                      <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20 capitalize font-medium w-fit">
+                        Current: {modeLabel(selectedMode)}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-5">Click a mode below to customize your session type and see mode-adjusted package rates.</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {consultationModes.map(mode => {
+                        const isModeActive = selectedMode === mode;
+                        return (
+                          <button
+                            key={mode}
+                            type="button"
+                            onClick={() => setSelectedMode(mode)}
+                            className={cn(
+                              "relative border rounded-xl p-4 text-center transition-all duration-200 cursor-pointer text-left hover:-translate-y-0.5",
+                              isModeActive
+                                ? "border-primary bg-primary/10 ring-2 ring-primary/30 shadow-md"
+                                : "bg-card border-border/70 hover:border-primary/40 hover:bg-muted/50"
+                            )}
+                          >
+                            {isModeActive && (
+                              <span className="absolute top-2 right-2 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px]">
+                                <Check className="h-2.5 w-2.5" />
+                              </span>
+                            )}
+                            <div className="flex justify-center mb-2">
+                              {mode === "google-meet" ? <Video className="h-5 w-5 text-cyan-600" /> : mode === "voice-call" ? <Phone className="h-5 w-5 text-primary" /> : <MessageCircle className="h-5 w-5 text-emerald-600" />}
+                            </div>
+                            <p className={cn("text-sm font-semibold", isModeActive ? "text-primary" : "text-foreground")}>{modeLabel(mode)}</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {mode === "google-meet" ? "100% standard (Video)" : mode === "voice-call" ? "20% off (Audio)" : "40% off (Chat only)"}
+                            </p>
+                          </button>
+                        );
+                      })}
                     </div>
                   </CardContent>
                 </Card>
@@ -1279,40 +1325,126 @@ function CounsellorProfile({ counsellor, loading, selectedPlanId, setSelectedPla
               <motion.div variants={fadeUp}>
                 <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden">
                   <CardContent className="p-6 sm:p-8">
-                    <h2 className="font-heading text-xl font-bold text-foreground mb-2 flex items-center gap-2.5">
-                      <span className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center"><Package className="w-4 h-4 text-primary" /></span>
-                      Support Packages
-                    </h2>
-                    <p className="text-sm text-muted-foreground mb-6">Choose one plan for your journey. You can upgrade later.</p>
-                    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                      {planList.map(plan => (
-                        <button key={plan.id} onClick={() => setSelectedPlanId(plan.id)}
-                          className={`relative text-left p-5 rounded-xl border transition-all duration-300 hover:-translate-y-0.5 ${
-                            selectedPlan?.id === plan.id ? "bg-gradient-to-br from-primary/10 to-primary/5 border-primary/30 shadow-lg shadow-primary/10" : "bg-muted/50 border-border/70 hover:border-primary/30 hover:bg-muted/60"
-                          } ${recommendedPlanId === plan.id && selectedPlan?.id !== plan.id ? "ring-1 ring-emerald-500/40" : ""}`}
-                        >
-                          {recommendedPlanId === plan.id && selectedPlan?.id !== plan.id && (
-                            <span className="absolute top-3 right-3 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500">
-                              <Sparkles className="h-3 w-3 text-white" />
-                            </span>
-                          )}
-                          {selectedPlan?.id === plan.id && (
-                            <span className="absolute top-3 right-3 flex h-5 w-5 items-center justify-center rounded-full bg-primary">
-                              <Check className="h-3 w-3 text-white" />
-                            </span>
-                          )}
-                          <h3 className="font-bold text-base mb-1">{plan.name}</h3>
-                          <p className="text-xs text-muted-foreground mb-3">{plan.summary}</p>
-                          <p className="text-2xl font-bold mb-2">{formatRupees(planPrice(plan))}<span className="text-xs font-normal text-muted-foreground ml-1">once</span></p>
-                          <p className="text-xs text-muted-foreground">{plan.duration} • {plan.cadence}</p>
-                          <div className="flex flex-wrap gap-1.5 mt-3">
-                            {(plan.bestFor || []).slice(0, 2).map(item => (
-                              <span key={item} className="px-2 py-0.5 bg-primary/10 text-primary rounded text-[10px]">{item}</span>
-                            ))}
-                          </div>
-                        </button>
-                      ))}
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+                      <h2 className="font-heading text-xl font-bold text-foreground flex items-center gap-2.5">
+                        <span className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center"><Package className="w-4 h-4 text-primary" /></span>
+                        Support Packages
+                      </h2>
+                      <span className="text-xs text-muted-foreground">Prices tailored for <strong className="text-foreground">{modeLabel(selectedMode)}</strong></span>
                     </div>
+                    <p className="text-sm text-muted-foreground mb-6">Choose one plan for your journey. Rates reflect your chosen mode.</p>
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                      {planList.map(plan => {
+                        const originalPrice = planPrice(plan);
+                        const adjustedPrice = getAdjustedPlanPrice(plan);
+                        const isSelected = selectedPlan?.id === plan.id;
+                        return (
+                          <button key={plan.id} onClick={() => setSelectedPlanId(plan.id)}
+                            className={`relative text-left p-5 rounded-xl border transition-all duration-300 hover:-translate-y-0.5 ${
+                              isSelected ? "bg-gradient-to-br from-primary/10 to-primary/5 border-primary/30 shadow-lg shadow-primary/10" : "bg-muted/50 border-border/70 hover:border-primary/30 hover:bg-muted/60"
+                            } ${recommendedPlanId === plan.id && !isSelected ? "ring-1 ring-emerald-500/40" : ""}`}
+                          >
+                            {recommendedPlanId === plan.id && !isSelected && (
+                              <span className="absolute top-3 right-3 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500">
+                                <Sparkles className="h-3 w-3 text-white" />
+                              </span>
+                            )}
+                            {isSelected && (
+                              <span className="absolute top-3 right-3 flex h-5 w-5 items-center justify-center rounded-full bg-primary">
+                                <Check className="h-3 w-3 text-white" />
+                              </span>
+                            )}
+                            <h3 className="font-bold text-base mb-1">{plan.name}</h3>
+                            <p className="text-xs text-muted-foreground mb-3">{plan.summary}</p>
+                            <div className="mb-2">
+                              <span className="text-2xl font-bold">{formatRupees(adjustedPrice)}</span>
+                              {adjustedPrice !== originalPrice && (
+                                <span className="text-xs text-muted-foreground line-through ml-2">{formatRupees(originalPrice)}</span>
+                              )}
+                              <span className="text-xs font-normal text-muted-foreground ml-1">total</span>
+                            </div>
+                            <p className="text-xs text-muted-foreground">{plan.duration} • {plan.cadence}</p>
+                            <div className="flex flex-wrap gap-1.5 mt-3">
+                              {(plan.bestFor || []).slice(0, 2).map(item => (
+                                <span key={item} className="px-2 py-0.5 bg-primary/10 text-primary rounded text-[10px]">{item}</span>
+                              ))}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              {/* INTAKE ASSESSMENT & REQUIREMENTS */}
+              <motion.div variants={fadeUp}>
+                <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden">
+                  <CardContent className="p-6 sm:p-8">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <span className="w-8 h-8 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-600">
+                          <FileText className="w-4 h-4" />
+                        </span>
+                        <div>
+                          <h2 className="font-heading text-lg font-bold text-foreground">Intake Assessment & Form Details</h2>
+                          <p className="text-xs text-muted-foreground">What you'll complete before your first session with {cleanName}</p>
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowIntakeDetails(prev => !prev)}
+                        className="text-xs gap-1 text-primary"
+                      >
+                        {showIntakeDetails ? 'Hide details' : 'View requirements'}
+                        {showIntakeDetails ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                      </Button>
+                    </div>
+
+                    <div className="mt-4 grid sm:grid-cols-3 gap-3">
+                      <div className="p-3.5 rounded-xl border border-border/60 bg-muted/30">
+                        <p className="text-xs font-semibold text-foreground flex items-center gap-1.5 mb-1">
+                          <CheckCircle className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                          Emotional Needs & Concerns
+                        </p>
+                        <p className="text-[11px] text-muted-foreground leading-relaxed">
+                          Identify what brings you in (Stress, Grief, Relationships, Exams, Burnout) and key goals for therapy.
+                        </p>
+                      </div>
+                      <div className="p-3.5 rounded-xl border border-border/60 bg-muted/30">
+                        <p className="text-xs font-semibold text-foreground flex items-center gap-1.5 mb-1">
+                          <CheckCircle className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                          Prior Support & Context
+                        </p>
+                        <p className="text-[11px] text-muted-foreground leading-relaxed">
+                          Mention any previous counselling or coping strategies you have tried so {cleanName} can personalize guidance.
+                        </p>
+                      </div>
+                      <div className="p-3.5 rounded-xl border border-border/60 bg-muted/30">
+                        <p className="text-xs font-semibold text-foreground flex items-center gap-1.5 mb-1">
+                          <CheckCircle className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                          Comfort & Preferred Mode
+                        </p>
+                        <p className="text-[11px] text-muted-foreground leading-relaxed">
+                          Confirm audio, video, or chat format preference and share any emergency contact details privately.
+                        </p>
+                      </div>
+                    </div>
+
+                    {showIntakeDetails && (
+                      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mt-4 pt-4 border-t border-border/60 space-y-3">
+                        <div className="p-4 rounded-xl bg-purple-500/5 border border-purple-500/20 text-xs space-y-2">
+                          <p className="font-semibold text-purple-700 dark:text-purple-300">Counselling Intake Steps:</p>
+                          <ol className="list-decimal pl-4 space-y-1.5 text-muted-foreground">
+                            <li><strong className="text-foreground">Step 1:</strong> Select package and preferred consultation mode ({modeLabel(selectedMode)}).</li>
+                            <li><strong className="text-foreground">Step 2:</strong> Purchase package and open your private onboarding portal.</li>
+                            <li><strong className="text-foreground">Step 3:</strong> Fill out the brief intake assessment questionnaire to outline goals.</li>
+                            <li><strong className="text-foreground">Step 4:</strong> Pick your live calendar dates/times for sessions seamlessly.</li>
+                          </ol>
+                        </div>
+                      </motion.div>
+                    )}
                   </CardContent>
                 </Card>
               </motion.div>
@@ -1507,18 +1639,29 @@ function CounsellorProfile({ counsellor, loading, selectedPlanId, setSelectedPla
                     <p className="text-xs text-emerald-700">Recommended: <span className="font-semibold">{planFromList(counsellor, recommendedPlanId)?.name}</span></p>
                   </div>
                 )}
-                <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Selected Plan</p>
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-xs uppercase tracking-wider text-muted-foreground">Selected Plan</p>
+                  <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20 capitalize font-medium">
+                    {modeLabel(selectedMode)}
+                  </Badge>
+                </div>
                 <h3 className="text-xl font-bold mb-1">{selectedPlan?.name}</h3>
                 <p className="text-sm text-muted-foreground mb-4">{selectedPlan?.summary}</p>
                 <div className="bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 rounded-xl p-4 mb-4">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider">Package Total</p>
-                  <p className="text-3xl font-bold mt-1 text-foreground">{formatRupees(planPrice(selectedPlan))}</p>
-                  <p className="text-xs text-muted-foreground">one-time booking</p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider">Package Total ({modeLabel(selectedMode).split(' ')[0]})</p>
+                    <span className="text-[10px] text-primary font-medium bg-primary/10 px-1.5 py-0.5 rounded">Mode-adjusted</span>
+                  </div>
+                  <p className="text-3xl font-bold mt-1 text-foreground">{formatRupees(getAdjustedPlanPrice(selectedPlan))}</p>
+                  {getAdjustedPlanPrice(selectedPlan) !== planPrice(selectedPlan) && (
+                    <p className="text-xs text-muted-foreground mt-0.5">Original standard fee: <span className="line-through">{formatRupees(planPrice(selectedPlan))}</span></p>
+                  )}
+                  <p className="text-xs text-muted-foreground mt-1">one-time booking</p>
                 </div>
                 <div className="space-y-2 text-sm mb-4">
                   <div className="flex justify-between py-1.5 border-b border-border/50"><span className="text-muted-foreground">Duration</span><span className="font-medium">{selectedPlan?.duration || "Flexible"}</span></div>
                   <div className="flex justify-between py-1.5 border-b border-border/50"><span className="text-muted-foreground">Cadence</span><span className="font-medium">{selectedPlan?.cadence || "Flexible"}</span></div>
-                  <div className="flex justify-between py-1.5 border-b border-border/50"><span className="text-muted-foreground">Mode</span><span className="font-medium">{consultationModes.map(modeLabel).join(", ")}</span></div>
+                  <div className="flex justify-between py-1.5 border-b border-border/50"><span className="text-muted-foreground">Mode</span><span className="font-medium text-primary">{modeLabel(selectedMode)}</span></div>
                   <div className="flex justify-between py-1.5"><span className="text-muted-foreground">Response</span><span className="font-medium text-emerald-600">{counsellor?.responseTime || "Within 24 hours"}</span></div>
                 </div>
                 <div className="mb-4">

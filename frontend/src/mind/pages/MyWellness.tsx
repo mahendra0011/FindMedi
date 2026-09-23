@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Activity,
   AlertTriangle,
@@ -105,7 +106,11 @@ const pct = (value, total) => (total ? Math.round((value / total) * 100) : 0);
 
 const MyWellness = () => {
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlTab = searchParams.get("tab");
+  const allowedTabs = ["dashboard", "goals", "assessment", "mood", "emergency"];
+  const activeTab = allowedTabs.includes(urlTab || "") ? urlTab! : "dashboard";
+  const setActiveTab = (v: string) => setSearchParams({ tab: v });
   const [moodEntries, setMoodEntries] = useState([]);
   const [currentMood, setCurrentMood] = useState(null);
   const [moodNote, setMoodNote] = useState("");
@@ -288,8 +293,9 @@ const MyWellness = () => {
             </header>
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-              <TabsList className="dashboard-panel grid h-auto grid-cols-2 gap-1 rounded-xl bg-muted/80 p-1 sm:grid-cols-5">
+              <TabsList className="hidden">
                 <TabsTrigger value="dashboard" className="rounded-lg data-[state=active]:bg-background">Dashboard</TabsTrigger>
+                <TabsTrigger value="goals" className="rounded-lg data-[state=active]:bg-background">Goals</TabsTrigger>
                 <TabsTrigger value="assessment" className="rounded-lg data-[state=active]:bg-background">Risk Assessment</TabsTrigger>
                 <TabsTrigger value="mood" className="rounded-lg data-[state=active]:bg-background">Mood Tracking</TabsTrigger>
                 <TabsTrigger value="emergency" className="rounded-lg data-[state=active]:bg-background">Emergency</TabsTrigger>
@@ -375,6 +381,11 @@ const MyWellness = () => {
                   </div>
                 </WellnessPanel>
 
+                <MoodTrends entries={displayEntries} averageMood={averageMood || 4} />
+
+              </TabsContent>
+
+              <TabsContent value="goals" className="dashboard-tab-motion space-y-6">
                 <WellnessPanel>
                   <PanelHeader icon={Target} title="Wellness Goals & Achievements" subtitle="Set and track mental health goals for better well-being" />
                   <div className="mt-2 flex items-center justify-between text-sm">
@@ -408,13 +419,6 @@ const MyWellness = () => {
                     <div className="font-semibold">Keep going! Small steps lead to big changes.</div>
                     <div className="text-xs text-foreground/60 mt-1">{displayGoals.length - completedGoals} goals remaining</div>
                   </div>
-                </WellnessPanel>
-
-                <MoodTrends entries={displayEntries} averageMood={averageMood || 4} />
-
-                <WellnessPanel>
-                  <PanelHeader icon={Target} title="Counsellor Assignments" subtitle="Exercises and tasks assigned by your counsellor" />
-                  <AssignmentsSection />
                 </WellnessPanel>
               </TabsContent>
 
@@ -679,126 +683,6 @@ function MoodTrends({ entries, averageMood }) {
         <div className="mt-2 text-sm">You are maintaining a positive mood pattern.</div>
       </div>
     </WellnessPanel>
-  );
-}
-
-function AssignmentsSection() {
-  const [assignments, setAssignments] = useState([]);
-  const [filter, setFilter] = useState("this-week");
-
-  useEffect(() => {
-    let active = true;
-    api.get("/api/assignments/my")
-      .then(({ data }) => { if (active) setAssignments(data || []); })
-      .catch(() => { if (active) setAssignments([]); });
-    return () => { active = false; };
-  }, []);
-
-  const now = new Date();
-  const getFilterStart = () => {
-    if (filter === "today") return new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    if (filter === "this-week") return new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay());
-    return new Date(now.getFullYear(), now.getMonth(), 1);
-  };
-
-  const filtered = assignments.filter((a) => new Date(a.createdAt) >= getFilterStart());
-  const pending = filtered.filter((a) => a.status === "pending");
-  const completed = filtered.filter((a) => a.status === "completed");
-  const total = filtered.length;
-  const pctDone = total > 0 ? Math.round((completed.length / total) * 100) : 0;
-
-  return (
-    <div className="mt-4 space-y-4">
-      <div className="flex gap-1">
-        {["today", "this-week", "this-month"].map((opt) => (
-          <button
-            key={opt}
-            type="button"
-            onClick={() => setFilter(opt)}
-            className={`flex-1 rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
-              filter === opt
-                ? "bg-primary/20 text-primary border border-primary/30"
-                : "text-foreground/60 hover:text-foreground/80 hover:bg-background/60"
-            }`}
-          >
-            {opt === "today" ? "Today" : opt === "this-week" ? "This Week" : "This Month"}
-          </button>
-        ))}
-      </div>
-
-      {total === 0 ? (
-        <div className="flex flex-col items-center gap-3 py-6 text-center">
-          <ClipboardList className="h-10 w-10 text-foreground/20" />
-          <p className="text-sm text-foreground/60">No assignments this {filter.replace("this-", "")}.</p>
-        </div>
-      ) : (
-        <>
-          <div className="grid grid-cols-3 gap-2 text-center">
-            <div className="rounded-xl bg-background/50 border border-glass-border/30 p-2">
-              <div className="text-lg font-bold">{total}</div>
-              <div className="text-[10px] text-foreground/60">Total</div>
-            </div>
-            <div className="rounded-xl bg-background/50 border border-glass-border/30 p-2">
-              <div className="text-lg font-bold text-emerald-500">{completed.length}</div>
-              <div className="text-[10px] text-foreground/60">Done</div>
-            </div>
-            <div className="rounded-xl bg-background/50 border border-glass-border/30 p-2">
-              <div className="text-lg font-bold text-amber-500">{pending.length}</div>
-              <div className="text-[10px] text-foreground/60">Pending</div>
-            </div>
-          </div>
-          <div>
-            <div className="flex justify-between text-xs mb-1">
-              <span className="text-foreground/60">Progress</span>
-              <span className="font-semibold text-primary">{pctDone}%</span>
-            </div>
-            <Progress value={pctDone} className="h-2" />
-          </div>
-          {pending.length > 0 && (
-            <div>
-              <h4 className="text-sm font-semibold text-foreground/70 mb-2">Pending ({pending.length})</h4>
-              <div className="space-y-2">
-                {pending.map((a) => (
-                  <div key={a.id} className="flex items-start gap-3 rounded-xl border border-glass-border/25 bg-background/35 p-3">
-                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-foreground/30 mt-0.5">
-                      <span className="h-2 w-2 rounded-full bg-primary" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium">{a.title}</p>
-                      {a.description && <p className="text-xs text-foreground/60 mt-0.5">{a.description}</p>}
-                      <div className="flex flex-wrap gap-2 mt-1.5 text-[10px] text-foreground/50">
-                        {a.category && <Badge variant="outline" className="text-[10px]">{a.category}</Badge>}
-                        {a.dueDate && <span>Due: {new Date(a.dueDate).toLocaleDateString()}</span>}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          {completed.length > 0 && (
-            <details className="group">
-              <summary className="cursor-pointer text-sm font-semibold text-foreground/50 hover:text-foreground/70 transition-colors">
-                Completed ({completed.length})
-              </summary>
-              <div className="mt-2 space-y-2">
-                {completed.map((a) => (
-                  <div key={a.id} className="flex items-start gap-3 rounded-xl border border-emerald-500/10 bg-emerald-500/5 p-3 opacity-70">
-                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white mt-0.5">
-                      <Check className="h-3.5 w-3.5" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium line-through text-foreground/50">{a.title}</p>
-                      {a.completedAt && <p className="text-[10px] text-emerald-500/70 mt-0.5">Done: {new Date(a.completedAt).toLocaleDateString()}</p>}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </details>
-          )}
-        </>
-      )}
-    </div>
   );
 }
 

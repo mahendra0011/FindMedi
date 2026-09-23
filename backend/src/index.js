@@ -520,6 +520,19 @@ if (process.env.NODE_ENV !== 'test') {
           );
         } catch {}
       }, 60 * 1000);
+      // Graceful EADDRINUSE handling: without this the whole process died with an
+      // unhandled 'error' event stack trace whenever a stale backend still held the port.
+      server.on('error', (err) => {
+        if (err?.code === 'EADDRINUSE') {
+          logger.error(`Port ${PORT} is already in use - another FindMedi backend is probably still running.`);
+          logger.error('   Fix: run "npm run free-ports" from the project root (or close the other terminal).');
+          logger.error('   Tip: this watcher retries automatically on the next file change.');
+          process.exit(1);
+        }
+        logger.error('Server error: ' + err.message);
+        process.exit(1);
+      });
+
       server.listen(PORT, () => {
         const serverUrl = `http://localhost:${PORT}`;
         logger.info(`🚀 Server running on ${serverUrl}`);

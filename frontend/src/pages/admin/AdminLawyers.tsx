@@ -98,7 +98,7 @@ export default function AdminLawyers() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              <Scale className="w-7 h-7 text-indigo-600" />
+              <Scale className="w-7 h-7 text-slate-900 dark:text-slate-100" />
               Legal Services & Advocate Management
             </h1>
             <p className="text-xs text-slate-500 mt-1">
@@ -114,7 +114,7 @@ export default function AdminLawyers() {
             onClick={() => setActiveTab('approvals')}
             className={`pb-3 border-b-2 flex items-center gap-1.5 transition-colors ${
               activeTab === 'approvals'
-                ? 'border-indigo-600 text-indigo-600'
+                ? 'border-slate-900 text-slate-900 dark:border-white dark:text-slate-100'
                 : 'border-transparent text-slate-500 hover:text-slate-700'
             }`}
           >
@@ -127,7 +127,7 @@ export default function AdminLawyers() {
             onClick={() => setActiveTab('all')}
             className={`pb-3 border-b-2 flex items-center gap-1.5 transition-colors ${
               activeTab === 'all'
-                ? 'border-indigo-600 text-indigo-600'
+                ? 'border-slate-900 text-slate-900 dark:border-white dark:text-slate-100'
                 : 'border-transparent text-slate-500 hover:text-slate-700'
             }`}
           >
@@ -140,7 +140,7 @@ export default function AdminLawyers() {
             onClick={() => setActiveTab('bookings')}
             className={`pb-3 border-b-2 flex items-center gap-1.5 transition-colors ${
               activeTab === 'bookings'
-                ? 'border-indigo-600 text-indigo-600'
+                ? 'border-slate-900 text-slate-900 dark:border-white dark:text-slate-100'
                 : 'border-transparent text-slate-500 hover:text-slate-700'
             }`}
           >
@@ -153,7 +153,7 @@ export default function AdminLawyers() {
             onClick={() => setActiveTab('analytics')}
             className={`pb-3 border-b-2 flex items-center gap-1.5 transition-colors ${
               activeTab === 'analytics'
-                ? 'border-indigo-600 text-indigo-600'
+                ? 'border-slate-900 text-slate-900 dark:border-white dark:text-slate-100'
                 : 'border-transparent text-slate-500 hover:text-slate-700'
             }`}
           >
@@ -188,7 +188,7 @@ export default function AdminLawyers() {
                               className="w-14 h-14 rounded-2xl object-cover border"
                             />
                           ) : (
-                            <div className="w-14 h-14 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-bold text-lg">
+                            <div className="w-14 h-14 rounded-2xl bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 flex items-center justify-center font-bold text-lg">
                               {(user.name || 'Adv').charAt(0).toUpperCase()}
                             </div>
                           )}
@@ -208,7 +208,7 @@ export default function AdminLawyers() {
                                 Email: <strong>{user.email}</strong> • Phone: <strong>{user.phone}</strong>
                               </div>
                               <div>
-                                Bar Enrollment No: <strong className="text-indigo-600 font-mono">{lawyer.barCouncilNumber}</strong> ({lawyer.stateBarCouncil})
+                                Bar Enrollment No: <strong className="text-slate-900 dark:text-slate-100 font-mono">{lawyer.barCouncilNumber}</strong> ({lawyer.stateBarCouncil})
                               </div>
                               <div>
                                 Experience: {lawyer.yearsOfPractice || 0} years • City: {lawyer.jurisdictionCity}
@@ -232,7 +232,7 @@ export default function AdminLawyers() {
                             type="button"
                             size="sm"
                             onClick={() => handleApprove(lawyer._id)}
-                            className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs"
+                            className="bg-slate-900 hover:bg-black text-white dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white font-bold rounded-xl text-xs"
                           >
                             Approve & Verify
                           </Button>
@@ -286,7 +286,7 @@ export default function AdminLawyers() {
                   className="pl-9 rounded-xl text-xs"
                 />
               </div>
-              <Button size="sm" onClick={fetchData} className="rounded-xl text-xs bg-indigo-600 text-white">
+              <Button size="sm" onClick={fetchData} className="rounded-xl text-xs bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900">
                 Search
               </Button>
             </div>
@@ -309,7 +309,7 @@ export default function AdminLawyers() {
                       <td className="py-3 font-bold text-slate-900 dark:text-slate-100">
                         Adv. {l.userId?.name || 'Advocate'}
                       </td>
-                      <td className="py-3 font-mono text-indigo-600">
+                      <td className="py-3 font-mono text-slate-900 dark:text-slate-100">
                         {l.barCouncilNumber}
                       </td>
                       <td className="py-3 text-slate-500">
@@ -384,7 +384,7 @@ export default function AdminLawyers() {
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
                   {bookings.map((b) => (
                     <tr key={b._id}>
-                      <td className="py-3 font-mono font-bold text-indigo-600">
+                      <td className="py-3 font-mono font-bold text-slate-900 dark:text-slate-100">
                         {b.bookingNumber || b._id.slice(-6)}
                       </td>
                       <td className="py-3 text-slate-800 dark:text-slate-200">
@@ -403,7 +403,7 @@ export default function AdminLawyers() {
                             b.status === 'completed'
                               ? 'bg-emerald-600 text-white'
                               : b.status === 'confirmed'
-                              ? 'bg-indigo-600 text-white'
+                              ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900'
                               : 'bg-slate-500 text-white'
                           }
                         >
@@ -438,7 +438,7 @@ export default function AdminLawyers() {
 
               <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
                 <div className="text-xs text-slate-500">Platform Commission (10%)</div>
-                <div className="text-2xl font-black text-indigo-600 mt-1">
+                <div className="text-2xl font-black text-slate-900 dark:text-slate-100 mt-1">
                   ₹{(analytics?.platformRevenue || 0).toLocaleString()}
                 </div>
               </div>

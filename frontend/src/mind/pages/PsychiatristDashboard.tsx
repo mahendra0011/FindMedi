@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Activity,
   AlertTriangle,
@@ -75,10 +75,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/mind/components/ui/tabs";
 import { Textarea } from "@/mind/components/ui/textarea";
 import { useToast } from "@/mind/components/ui/use-toast";
+import { useSearchParams } from "react-router-dom";
 import { api } from "@/mind/lib/api";
 import { getRealtimeSocket } from "@/mind/lib/socket";
 import { setCounsellorEarningsFromDashboard, selectCounsellorEarnings, selectRevenueTransactions, selectRevenueMonthlyTrends } from "@/mind/store/revenueSlice";
-import { useSearchParams } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "@/mind/store/hooks";
 
 const fallback = {
@@ -181,7 +181,7 @@ function parseAvailabilityRows(items = []) {
   if (!items.length) return [newAvailabilityRow("Monday", "10:00", "16:00")];
   return items.map((item, index) => {
     const text = String(item || "");
-    const match = text.match(/^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s*:?\s*(\d{1,2}:?\d{0,2})\s*(?:-|â€“|to)\s*(\d{1,2}:?\d{0,2})/i);
+    const match = text.match(/^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s*:?\s*(\d{1,2}:?\d{0,2})\s*(?:-|–|to)\s*(\d{1,2}:?\d{0,2})/i);
     const dayMap = { mon: "Monday", tue: "Tuesday", wed: "Wednesday", thu: "Thursday", fri: "Friday", sat: "Saturday", sun: "Sunday" };
     const normalizeTime = (value, fallback) => {
       const raw = String(value || "").replace(/[^0-9:]/g, "");
@@ -274,7 +274,7 @@ const CounsellorDashboard = () => {
   const dispatch = useAppDispatch();
   const [searchParams, setSearchParams] = useSearchParams();
   const _rawTab = searchParams.get("tab") || "sessions";
-  const activeTab = ["sessions", "patients", "notes", "resources", "settings"].includes(_rawTab) ? _rawTab : "sessions";
+  const activeTab = ["sessions","patients","notes","resources","settings"].includes(_rawTab) ? _rawTab : "sessions";
   const counsellorEarnings = useAppSelector(selectCounsellorEarnings);
   const revenueTransactions = useAppSelector(selectRevenueTransactions);
   const revenueMonthly = useAppSelector(selectRevenueMonthlyTrends);
@@ -1218,7 +1218,7 @@ const load = useCallback(async () => {
                             }`}
                           >
                             {theme === option.id && (
-                              <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground shadow-sm">âœ“</span>
+                              <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground shadow-sm">✓</span>
                             )}
                             <div className={`mx-auto mb-3 h-10 w-10 rounded-full ${option.color} border-2 border-white/20 shadow-inner transition-transform duration-300 group-hover:scale-110`}>
                               <div className={`h-full w-full rounded-full ${option.color} opacity-60 blur-sm`} />
@@ -1967,7 +1967,7 @@ function TransactionRow({ txn }) {
         </div>
         <div>
           <div className="text-sm font-medium">{txn.patientName || "Anonymous"}</div>
-          <div className="text-xs text-foreground/55">{date} â€¢ {txn.plan || "Session"}</div>
+          <div className="text-xs text-foreground/55">{date} • {txn.plan || "Session"}</div>
         </div>
       </div>
       <div className="text-right">
@@ -2195,10 +2195,10 @@ function CounsellorResources() {
                   <p className="text-sm font-semibold truncate">{r.title}</p>
                   <p className="text-xs text-foreground/50 flex items-center gap-2">
                     <span className="capitalize">{r.type}</span>
-                    <span>Â·</span>
+                    <span>·</span>
                     <span>{r.category}</span>
-                    {r.language && <><span>Â·</span><span>{r.language}</span></>}
-                    {r.durationMin > 0 && <><span>Â·</span><span>{r.durationMin} min</span></>}
+                    {r.language && <><span>·</span><span>{r.language}</span></>}
+                    {r.durationMin > 0 && <><span>·</span><span>{r.durationMin} min</span></>}
                   </p>
                 </div>
                 <div className="flex gap-1 shrink-0">

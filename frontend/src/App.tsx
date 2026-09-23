@@ -642,7 +642,6 @@ const App = () => (
                       <Route path="/mind/session-schedule" element={<MindSessionSchedule />} />
                       <Route path="/mind/resources" element={<MindResourceHub />} />
                       <Route path="/mind/peer" element={<MindPeerSupport />} />
-                      <Route path="/mind/wellness" element={<MindUserOnlyRoute><MindWellness /></MindUserOnlyRoute>} />
                       <Route path="/mind/legal" element={<MindPrivacy />} />
                       <Route path="/mind/intake/:packageId" element={<MindIntakeForm />} />
                       {/* Mind dashboards with FindMedi-like sidebar */}
@@ -695,6 +694,8 @@ const App = () => (
                     {/* Mind provider dashboards merged into FindMedi shell (single sidebar) */}
                     <Route path="/mind/counsellor" element={<MindStore><MindCounsellorDashboard /></MindStore>} />
                     <Route path="/mind/psychiatrist" element={<MindStore><MindPsychiatristDashboard /></MindStore>} />
+                    {/* My Wellness inside main dashboard (AppSidebar My Wellness dropdown) */}
+                    <Route path="/mind/wellness" element={<MindUserOnlyRoute><MindStore><MindWellness /></MindStore></MindUserOnlyRoute>} />
                     <Route path="/ai-chat" element={<AIChatPage />} />
                     <Route path="/notifications" element={<Notifications />} />
                     <Route path="/settings" element={<Settings />} />

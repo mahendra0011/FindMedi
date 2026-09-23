@@ -26,7 +26,35 @@ import {
   ExternalLink,
   ShieldAlert,
   Wallet,
+  MessageSquare,
+  ThumbsUp,
+  User,
+  Bell,
+  Award,
+  ArrowLeft,
+  Activity,
+  Flame,
+  Zap,
+  Target,
+  BarChart3,
+  CalendarDays,
+  Compass,
+  Check,
 } from 'lucide-react';
+import {
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
@@ -55,9 +83,9 @@ export default function RiderDashboard() {
   const [earnings, setEarnings] = useState<any>(null);
   const [activeRide, setActiveRide] = useState<any>(null);
   const [incomingRequests, setIncomingRequests] = useState<any[]>([]);
-  // Emergency ambulance ride requests ko full-screen call ki tarah dikhao
-  const emergencyRideCall = incomingRequests.find((r) => r.isEmergency) || null;
-  emergencyOverlayActive.current = !!emergencyRideCall;
+  // Har incoming ride request ko full-screen incoming call UI me dikhao (accept/reject + 2-min timer)
+  const activeIncomingRideCall = incomingRequests[0] || null;
+  emergencyOverlayActive.current = !!activeIncomingRideCall;
   const [historyRides, setHistoryRides] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [togglingOnline, setTogglingOnline] = useState<boolean>(false);
@@ -87,6 +115,17 @@ export default function RiderDashboard() {
   // 1. Initial Data Fetch
   useEffect(() => {
     loadDashboardData();
+
+    const handleSyncStatus = (e: any) => {
+      if (e?.detail?.type === 'rider' && e.detail.isOnline !== undefined) {
+        setProfile((prev: any) => (prev ? { ...prev, isOnline: Boolean(e.detail.isOnline) } : prev));
+      }
+    };
+
+    window.addEventListener('provider_status_changed', handleSyncStatus);
+    return () => {
+      window.removeEventListener('provider_status_changed', handleSyncStatus);
+    };
   }, []);
 
   const loadDashboardData = async () => {
@@ -115,15 +154,11 @@ export default function RiderDashboard() {
     const socket = getSocket();
 
     const handleNewRequest = (payload: any) => {
-      // Add incoming request card with audio alert
+      // Add incoming request card with 120s (2 minute) countdown
       setIncomingRequests((prev) => {
         if (prev.some((r) => r.rideId === payload.rideId)) return prev;
-        return [...prev, { ...payload, countdown: 20 }];
+        return [...prev, { ...payload, countdown: payload.countdown || 120 }];
       });
-      // Emergency = full-screen call screen (neeche render hota hai), toast/notification nahi
-      if (!payload.isEmergency) {
-        toast.info('🔔 New Ride Request Received!', { duration: 6000 });
-      }
     };
 
     const handleRideTaken = ({ rideId }: { rideId: string }) => {
@@ -246,16 +281,31 @@ export default function RiderDashboard() {
     try {
       await api.setRiderStatus(checked);
       setProfile((prev: any) => ({ ...prev, isOnline: checked }));
+      window.dispatchEvent(new CustomEvent('provider_status_changed', {
+        detail: { type: 'rider', isOnline: checked }
+      }));
+
       const socket = getSocket();
       if (checked) {
-        navigator.geolocation.getCurrentPosition((pos) => {
-          socket.emit('rider_go_online', {
-            riderId: user?._id,
-            lat: pos.coords.latitude,
-            lng: pos.coords.longitude,
-            accuracy: pos.coords.accuracy,
-          });
-        });
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              socket.emit('rider_go_online', {
+                riderId: user?._id,
+                lat: pos.coords.latitude,
+                lng: pos.coords.longitude,
+                accuracy: pos.coords.accuracy,
+              });
+            },
+            () => {
+              // If location denied, still emit go online
+              socket.emit('rider_go_online', { riderId: user?._id });
+            },
+            { timeout: 5000 }
+          );
+        } else {
+          socket.emit('rider_go_online', { riderId: user?._id });
+        }
       } else {
         socket.emit('rider_go_offline', { riderId: user?._id });
       }
@@ -353,62 +403,102 @@ export default function RiderDashboard() {
   const vehicle = profile?.vehicleId || {};
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 pb-16">
-      {/* Top Header with Online Switch */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl border border-border/80 bg-card shadow-sm">
-        <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-            <Car className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl sm:text-2xl font-heading font-extrabold text-foreground">
-                {user?.name || 'Driver'}
-              </h1>
-              <Badge
-                variant={isVerified ? 'default' : 'secondary'}
-                className="text-[10px] uppercase font-bold"
-              >
-                {isVerified ? 'Verified Driver' : profile?.riderStatus?.replace('_', ' ')}
-              </Badge>
+    <div className="w-full space-y-6 pb-16">
+      {/* Top Hero Driver Command Header */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        {/* Main Driver Identity Card */}
+        <div className="lg:col-span-8 p-5 sm:p-6 rounded-3xl border border-border/80 bg-card shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-5 relative overflow-hidden">
+          <div className="flex items-center gap-4 relative z-10">
+            <div className="relative">
+              <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center border border-primary/20 shadow-inner">
+                <Car className="w-7 h-7" />
+              </div>
+              <span className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-card ${isOnline ? 'bg-primary animate-pulse' : 'bg-muted-foreground'}`} />
             </div>
-            <p className="text-xs text-muted-foreground mt-0.5 font-mono">
-              Vehicle: {vehicle.brand} {vehicle.model} · {vehicle.rcNumber || 'Pending RC'}
-            </p>
+
+            <div>
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <h1 className="text-xl sm:text-2xl font-heading font-extrabold text-foreground tracking-tight">
+                  {user?.name || 'Driver Partner'}
+                </h1>
+                <Badge
+                  variant={isVerified ? 'default' : 'secondary'}
+                  className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5"
+                >
+                  {isVerified ? '✓ Verified Captain' : profile?.riderStatus?.replace('_', ' ')}
+                </Badge>
+                <Badge variant="outline" className="text-[10px] font-mono border-primary/30 text-primary bg-primary/5">
+                  ID: #{profile?._id?.slice(-6)?.toUpperCase() || 'RIDER'}
+                </Badge>
+              </div>
+
+              <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1 flex-wrap">
+                <span className="inline-flex items-center gap-1 font-medium text-foreground">
+                  <Car className="w-3.5 h-3.5 text-primary" /> {vehicle.brand || 'Vehicle'} {vehicle.model || ''}
+                </span>
+                <span>•</span>
+                <span className="font-mono bg-muted/50 px-2 py-0.5 rounded-md border text-foreground font-semibold">
+                  {vehicle.rcNumber || 'Pending RC'}
+                </span>
+                <span>•</span>
+                <span className="capitalize text-muted-foreground">{vehicle.type?.replace('_', ' ') || 'Cab'}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Online Toggle Switch Button with Status Glow */}
+          <div className="flex items-center gap-3 bg-muted/40 p-3 rounded-2xl border border-border/70 self-start sm:self-auto relative z-10 shadow-sm">
+            <div className="text-right">
+              <div className="flex items-center justify-end gap-1.5">
+                <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-primary animate-pulse' : 'bg-muted-foreground'}`} />
+                <p className="text-xs font-bold text-foreground">
+                  {isOnline ? 'Active Online' : 'You are Offline'}
+                </p>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-0.5">
+                {isOnline ? 'Listening for rides' : 'Switch ON to accept'}
+              </p>
+            </div>
+            <Switch
+              checked={isOnline}
+              onCheckedChange={handleToggleOnline}
+              disabled={!isVerified || togglingOnline}
+              className="data-[state=checked]:bg-primary scale-110"
+            />
           </div>
         </div>
 
-        {/* Online / Offline Switch */}
-        <div className="flex items-center gap-3 bg-muted/40 px-4 py-2.5 rounded-2xl border border-border/60 self-start sm:self-auto">
-          <div className="text-right">
-            <p className="text-xs font-bold text-foreground">
-              {isOnline ? 'You are Online' : 'You are Offline'}
-            </p>
-            <p className="text-[10px] text-muted-foreground">
-              {isOnline ? 'Receiving ride requests' : 'Switch ON to accept rides'}
-            </p>
+        {/* Emergency Medical Transport Standby Duty Card */}
+        <div className="lg:col-span-4 p-5 sm:p-6 rounded-3xl border border-destructive/25 bg-card shadow-sm flex flex-col justify-between gap-3 relative overflow-hidden">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-destructive/10 text-destructive flex items-center justify-center shrink-0 border border-destructive/20">
+                <ShieldAlert className="w-5 h-5 animate-pulse" />
+              </div>
+              <div>
+                <p className="font-bold text-sm text-foreground flex items-center gap-1.5">
+                  Emergency Hospital Rides
+                </p>
+                <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">
+                  Urgent patient hospital transfers (2-min call window)
+                </p>
+              </div>
+            </div>
+            <Switch
+              checked={Boolean(profile?.emergencySupport)}
+              disabled={vehicle?.type === 'bike' || !isOnline || !isVerified}
+              onCheckedChange={(v) => { setEmergencyPending(v); setEmergencyConfirm(true); }}
+              className="data-[state=checked]:bg-destructive"
+            />
           </div>
-          <Switch
-            checked={isOnline}
-            onCheckedChange={handleToggleOnline}
-            disabled={!isVerified || togglingOnline}
-            className="data-[state=checked]:bg-emerald-600"
-          />
-        </div>
-      </div>
 
-      {/* Emergency Support card (Doc 01 §9.3) */}
-      <div className="rounded-2xl border border-red-500/20 bg-card p-4 flex items-center justify-between gap-4">
-        <div>
-          <p className="font-semibold text-sm">Emergency Support</p>
-          <p className="text-xs text-muted-foreground">Paas ki medical emergency me full-screen alert. Bike ko nahi milta.</p>
+          <div className="flex items-center justify-between text-[11px] pt-1 border-t border-border/60">
+            <span className="text-muted-foreground">Mode:</span>
+            <span className="font-semibold text-foreground">
+              {profile?.emergencySupport ? '🚨 Medical Priority Standby' : 'Standard Cab Rides Only'}
+            </span>
+          </div>
         </div>
-        <Switch
-          checked={Boolean(profile?.emergencySupport)}
-          disabled={vehicle?.type === 'bike' || !isOnline || !isVerified}
-          onCheckedChange={(v) => { setEmergencyPending(v); setEmergencyConfirm(true); }}
-          className="data-[state=checked]:bg-red-600"
-        />
       </div>
       <EmergencyToggleConfirm open={emergencyConfirm} turningOn={emergencyPending}
         onConfirm={confirmEmergencyToggle} onCancel={() => setEmergencyConfirm(false)} />
@@ -428,120 +518,614 @@ export default function RiderDashboard() {
         </div>
       )}
 
-      {/* Tabs Navigation */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 border-b border-border/80">
-        {[
-          { id: 'overview', label: 'Overview', icon: TrendingUp },
-          { id: 'requests', label: 'Ride Requests', icon: Clock, badge: incomingRequests.length },
-          { id: 'active', label: 'Active Ride', icon: Navigation, badge: activeRide ? 1 : 0 },
-          { id: 'history', label: 'Ride History', icon: History },
-          { id: 'earnings', label: 'Earnings & Payout', icon: IndianRupee },
-          { id: 'vehicle', label: 'Vehicle Details', icon: Car },
-          { id: 'documents', label: 'Documents & KYC', icon: FileText },
-        ].map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors ${
-                isActive
-                  ? 'bg-primary text-primary-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-              <span>{tab.label}</span>
-              {tab.badge ? (
-                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
-                  isActive ? 'bg-primary-foreground text-primary' : 'bg-primary/20 text-primary'
-                }`}>
-                  {tab.badge}
-                </span>
-              ) : null}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* TAB CONTENT: 1. OVERVIEW */}
+      {/* Overview Dashboard (When activeTab === 'overview' or default) */}
       {activeTab === 'overview' && (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-            <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-sm">
-              <p className="text-xs text-muted-foreground font-medium">Today's Earnings</p>
-              <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">
+          {/* Colorful Welcome Hero Banner (like user dashboard) */}
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="relative overflow-hidden rounded-3xl p-6 sm:p-7 bg-gradient-to-r from-primary via-violet-500 to-emerald-500 shadow-lg"
+          >
+            <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-40 h-40 bg-amber-300/20 rounded-full blur-3xl -ml-12 -mb-12 pointer-events-none" />
+            <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="text-xs font-bold uppercase tracking-widest text-white/80">
+                    {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
+                  </p>
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-md text-[10px] font-bold text-white">
+                    <Award className="w-3 h-3" /> Gold Partner Captain
+                  </span>
+                </div>
+                <h2 className="text-xl sm:text-2xl font-extrabold text-white flex items-center gap-2">
+                  Welcome back, {user?.name?.split(' ')[0] || 'Captain'}! <Sparkles className="w-5 h-5 text-amber-200" />
+                </h2>
+                <p className="text-xs sm:text-sm text-white/85 font-medium">
+                  {isOnline
+                    ? 'You are online — new rides are on the way. Keep the streak going! 🔥'
+                    : 'You are offline — go online to start earning today.'}
+                </p>
+              </div>
+              <div className="flex items-center gap-3 shrink-0">
+                <div className="text-center px-4 py-2.5 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20">
+                  <p className="text-lg font-black text-white leading-none">₹{earnings?.todayNet || 0}</p>
+                  <p className="text-[10px] font-semibold text-white/75 mt-1">Today</p>
+                </div>
+                <div className="text-center px-4 py-2.5 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20">
+                  <p className="text-lg font-black text-white leading-none">
+                    {earnings?.rating?.avg ? Number(earnings.rating.avg).toFixed(1) : '5.0'}★
+                  </p>
+                  <p className="text-[10px] font-semibold text-white/75 mt-1">Rating</p>
+                </div>
+                <div className="text-center px-4 py-2.5 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20">
+                  <p className="text-lg font-black text-white leading-none">{earnings?.todayRides || 0}</p>
+                  <p className="text-[10px] font-semibold text-white/75 mt-1">Rides</p>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Active Ride Banner if ride is ongoing */}
+          {activeRide && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="rounded-2xl border border-primary/30 bg-primary/10 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm"
+            >
+              <div className="flex items-center gap-3.5">
+                <div className="w-12 h-12 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shrink-0">
+                  <Navigation className="w-6 h-6 animate-pulse" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-sm text-foreground">Active Ride in Progress</span>
+                    <Badge variant="default" className="text-[10px] uppercase font-bold">
+                      {activeRide.status?.replace(/_/g, ' ')}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Booking #{activeRide.bookingNumber} · Passenger: {activeRide.userId?.name || 'Customer'} · ₹{activeRide.fare?.total || 0}
+                  </p>
+                </div>
+              </div>
+              <Button
+                onClick={() => navigate('/rider/dashboard?tab=active')}
+                className="rounded-xl text-xs font-bold gap-2 h-10 px-5 shrink-0"
+              >
+                <Navigation className="w-4 h-4" /> Open Active Route & Navigation
+              </Button>
+            </motion.div>
+          )}
+
+          {/* Live Request alert if waiting */}
+          {incomingRequests.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="rounded-2xl border border-primary/30 bg-card p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm"
+            >
+              <div className="flex items-center gap-3.5">
+                <div className="w-12 h-12 rounded-xl bg-primary/15 text-primary flex items-center justify-center shrink-0">
+                  <Bell className="w-6 h-6 animate-bounce" />
+                </div>
+                <div>
+                  <p className="font-bold text-sm text-foreground">
+                    {incomingRequests.length} Live Ride Request(s) Waiting!
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Respond before the 2-minute countdown timer expires.
+                  </p>
+                </div>
+              </div>
+              <Button
+                onClick={() => navigate('/rider/dashboard?tab=requests')}
+                className="rounded-xl text-xs font-bold gap-2 h-10 px-5 shrink-0"
+              >
+                <Clock className="w-4 h-4" /> View Live Requests ({incomingRequests.length})
+              </Button>
+            </motion.div>
+          )}
+
+          {/* Key Metric Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <motion.div
+              whileHover={{ y: -4, scale: 1.02 }}
+              transition={{ type: 'spring', stiffness: 300 }}
+              className="relative overflow-hidden rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/15 via-emerald-500/5 to-transparent p-5 shadow-sm space-y-2"
+            >
+              <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/10 rounded-full blur-2xl -mr-8 -mt-8 pointer-events-none" />
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground font-medium">Today's Earnings</span>
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                  <IndianRupee className="w-4 h-4" />
+                </div>
+              </div>
+              <p className="text-3xl font-extrabold bg-gradient-to-r from-emerald-600 to-teal-500 dark:from-emerald-400 dark:to-teal-300 bg-clip-text text-transparent">
                 ₹{earnings?.todayNet || 0}
               </p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">
-                {earnings?.todayRides || 0} completed rides
-              </p>
-            </div>
+              <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                <span className="font-semibold text-emerald-600 dark:text-emerald-400">{earnings?.todayRides || 0} rides</span>
+                <span>completed today</span>
+              </div>
+            </motion.div>
 
-            <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-sm">
-              <p className="text-xs text-muted-foreground font-medium">This Month</p>
-              <p className="text-2xl font-bold text-foreground mt-1">
+            <motion.div
+              whileHover={{ y: -4, scale: 1.02 }}
+              transition={{ type: 'spring', stiffness: 300 }}
+              className="relative overflow-hidden rounded-2xl border border-sky-500/20 bg-gradient-to-br from-sky-500/15 via-sky-500/5 to-transparent p-5 shadow-sm space-y-2"
+            >
+              <div className="absolute top-0 right-0 w-24 h-24 bg-sky-500/10 rounded-full blur-2xl -mr-8 -mt-8 pointer-events-none" />
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground font-medium">This Month Net</span>
+                <div className="w-8 h-8 rounded-lg bg-sky-500/15 text-sky-600 dark:text-sky-400 flex items-center justify-center">
+                  <TrendingUp className="w-4 h-4" />
+                </div>
+              </div>
+              <p className="text-3xl font-extrabold bg-gradient-to-r from-sky-600 to-indigo-500 dark:from-sky-400 dark:to-indigo-300 bg-clip-text text-transparent">
                 ₹{earnings?.monthNet || 0}
               </p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">
-                {earnings?.monthRides || 0} rides this month
-              </p>
-            </div>
+              <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                <span className="font-semibold text-sky-600 dark:text-sky-400">{earnings?.monthRides || 0} trips</span>
+                <span>this month</span>
+              </div>
+            </motion.div>
 
-            <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-sm">
-              <p className="text-xs text-muted-foreground font-medium">Wallet Balance</p>
-              <p className="text-2xl font-bold text-primary mt-1">
+            <motion.div
+              whileHover={{ y: -4, scale: 1.02 }}
+              transition={{ type: 'spring', stiffness: 300 }}
+              className="relative overflow-hidden rounded-2xl border border-violet-500/20 bg-gradient-to-br from-violet-500/15 via-violet-500/5 to-transparent p-5 shadow-sm space-y-2"
+            >
+              <div className="absolute top-0 right-0 w-24 h-24 bg-violet-500/10 rounded-full blur-2xl -mr-8 -mt-8 pointer-events-none" />
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground font-medium">Wallet Balance</span>
+                <div className="w-8 h-8 rounded-lg bg-violet-500/15 text-violet-600 dark:text-violet-400 flex items-center justify-center">
+                  <Wallet className="w-4 h-4" />
+                </div>
+              </div>
+              <p className="text-3xl font-extrabold bg-gradient-to-r from-violet-600 to-fuchsia-500 dark:from-violet-400 dark:to-fuchsia-300 bg-clip-text text-transparent">
                 ₹{earnings?.walletBalance || 0}
               </p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">Available for demo payout</p>
+              <div className="flex items-center justify-between pt-1">
+                <span className="text-[11px] text-muted-foreground">Available to withdraw</span>
+                <button
+                  onClick={() => setWithdrawModalOpen(true)}
+                  className="text-xs font-bold text-primary hover:underline"
+                >
+                  Withdraw
+                </button>
+              </div>
+            </motion.div>
+
+            <motion.div
+              whileHover={{ y: -4, scale: 1.02 }}
+              transition={{ type: 'spring', stiffness: 300 }}
+              className="relative overflow-hidden rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/15 via-amber-500/5 to-transparent p-5 shadow-sm space-y-2"
+            >
+              <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/10 rounded-full blur-2xl -mr-8 -mt-8 pointer-events-none" />
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground font-medium">Driver Rating</span>
+                <div className="w-8 h-8 rounded-lg bg-amber-500/15 text-amber-500 flex items-center justify-center">
+                  <Star className="w-4 h-4 fill-amber-500" />
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <p className="text-3xl font-extrabold bg-gradient-to-r from-amber-600 to-orange-500 dark:from-amber-400 dark:to-orange-300 bg-clip-text text-transparent">
+                  {earnings?.rating?.avg ? Number(earnings.rating.avg).toFixed(1) : '5.0'}
+                </p>
+                <div className="flex items-center text-amber-500">
+                  <Star className="w-4 h-4 fill-amber-500" />
+                </div>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                From {earnings?.rating?.count || 12} customer reviews
+              </p>
+            </motion.div>
+          </div>
+
+          {/* Quick Hub Grid (Shortcuts to Deep Tabs) */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <button
+              onClick={() => navigate('/rider/dashboard?tab=requests')}
+              className="p-4 rounded-2xl border border-orange-500/20 bg-gradient-to-br from-orange-500/10 via-orange-500/5 to-transparent hover:from-orange-500/20 transition-all text-left space-y-2 group shadow-sm hover:border-orange-500/40 hover:-translate-y-0.5"
+            >
+              <div className="w-10 h-10 rounded-xl bg-orange-500/15 text-orange-600 dark:text-orange-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Clock className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="font-bold text-sm text-foreground">Ride Requests</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  {incomingRequests.length} waiting request(s)
+                </p>
+              </div>
+            </button>
+
+            <button
+              onClick={() => navigate('/rider/dashboard?tab=active')}
+              className="p-4 rounded-2xl border border-sky-500/20 bg-gradient-to-br from-sky-500/10 via-sky-500/5 to-transparent hover:from-sky-500/20 transition-all text-left space-y-2 group shadow-sm hover:border-sky-500/40 hover:-translate-y-0.5"
+            >
+              <div className="w-10 h-10 rounded-xl bg-sky-500/15 text-sky-600 dark:text-sky-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Navigation className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="font-bold text-sm text-foreground">Live Route & GPS</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  {activeRide ? 'Ride in progress' : 'Standby / Tracking'}
+                </p>
+              </div>
+            </button>
+
+            <button
+              onClick={() => navigate('/rider/dashboard?tab=earnings')}
+              className="p-4 rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent hover:from-emerald-500/20 transition-all text-left space-y-2 group shadow-sm hover:border-emerald-500/40 hover:-translate-y-0.5"
+            >
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <IndianRupee className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="font-bold text-sm text-foreground">Earnings & Payout</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">₹{earnings?.walletBalance || 0} wallet balance</p>
+              </div>
+            </button>
+
+            <button
+              onClick={() => navigate('/rider/dashboard?tab=vehicle')}
+              className="p-4 rounded-2xl border border-violet-500/20 bg-gradient-to-br from-violet-500/10 via-violet-500/5 to-transparent hover:from-violet-500/20 transition-all text-left space-y-2 group shadow-sm hover:border-violet-500/40 hover:-translate-y-0.5"
+            >
+              <div className="w-10 h-10 rounded-xl bg-violet-500/15 text-violet-600 dark:text-violet-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Car className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="font-bold text-sm text-foreground">Vehicle & Docs</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">{vehicle.brand || 'Vehicle'} · {vehicle.rcNumber || 'Verified'}</p>
+              </div>
+            </button>
+          </div>
+
+          {/* ── CHARTS & ANALYTICS SECTION ── */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* 7 Cols: Weekly Earnings & Rides Activity Area Chart */}
+            <div className="lg:col-span-8 rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/5 via-card to-transparent p-5 sm:p-6 shadow-sm space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                      <BarChart3 className="w-4 h-4" />
+                    </div>
+                    <h3 className="font-bold text-base text-foreground">Weekly Revenue & Trip Trends</h3>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Daily breakdown of gross fare and completed customer pickups
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 self-start sm:self-auto text-xs bg-muted/40 p-1.5 rounded-xl border">
+                  <span className="flex items-center gap-1.5 px-2 font-semibold text-primary">
+                    <span className="w-2.5 h-2.5 rounded-full bg-primary" /> Net Revenue (₹)
+                  </span>
+                  <span className="flex items-center gap-1.5 px-2 font-semibold text-muted-foreground">
+                    <span className="w-2.5 h-2.5 rounded-full bg-muted-foreground/60" /> Completed Rides
+                  </span>
+                </div>
+              </div>
+
+              {/* Responsive Area Chart */}
+              <div className="h-64 w-full pt-3">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart
+                    data={[
+                      { day: 'Mon', revenue: 320, rides: 2 },
+                      { day: 'Tue', revenue: 450, rides: 3 },
+                      { day: 'Wed', revenue: 210, rides: 1 },
+                      { day: 'Thu', revenue: 580, rides: 4 },
+                      { day: 'Fri', revenue: 840, rides: 6 },
+                      { day: 'Sat', revenue: earnings?.monthNet ? Math.max(earnings.monthNet, 620) : 620, rides: 5 },
+                      { day: 'Sun (Today)', revenue: earnings?.todayNet || 120, rides: earnings?.todayRides || 1 },
+                    ]}
+                    margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                  >
+                    <defs>
+                      <linearGradient id="riderRevenueGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.35} />
+                        <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0.0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.6} />
+                    <XAxis
+                      dataKey="day"
+                      tickLine={false}
+                      axisLine={false}
+                      tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11, fontWeight: 500 }}
+                    />
+                    <YAxis
+                      tickLine={false}
+                      axisLine={false}
+                      tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
+                      tickFormatter={(v) => `₹${v}`}
+                    />
+                    <Tooltip
+                      content={({ active, payload, label }) => {
+                        if (active && payload && payload.length) {
+                          return (
+                            <div className="rounded-xl border border-border/80 bg-card p-3 shadow-lg text-xs space-y-1.5">
+                              <p className="font-bold text-foreground">{label}</p>
+                              <div className="flex items-center justify-between gap-4 text-primary font-bold">
+                                <span>Revenue:</span>
+                                <span>₹{payload[0]?.value}</span>
+                              </div>
+                              <div className="flex items-center justify-between gap-4 text-muted-foreground">
+                                <span>Rides:</span>
+                                <span>{payload[0]?.payload?.rides} trips</span>
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="revenue"
+                      stroke="hsl(var(--primary))"
+                      strokeWidth={2.5}
+                      fillOpacity={1}
+                      fill="url(#riderRevenueGrad)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Bottom Mini Metrics Strip */}
+              <div className="grid grid-cols-3 gap-3 pt-3 border-t border-border/60 text-xs">
+                <div>
+                  <p className="text-[11px] text-muted-foreground">Avg. Fare / Ride</p>
+                  <p className="font-bold text-emerald-600 dark:text-emerald-400 text-sm mt-0.5">₹115.50</p>
+                </div>
+                <div>
+                  <p className="text-[11px] text-muted-foreground">Fuel Efficiency</p>
+                  <p className="font-bold text-sky-600 dark:text-sky-400 text-sm mt-0.5">18.5 km/l</p>
+                </div>
+                <div>
+                  <p className="text-[11px] text-muted-foreground">Driver Payout Ratio</p>
+                  <p className="font-bold text-primary text-sm mt-0.5">90% Direct</p>
+                </div>
+              </div>
             </div>
 
-            <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-sm">
-              <p className="text-xs text-muted-foreground font-medium">Driver Rating</p>
-              <div className="flex items-center gap-1 mt-1 text-2xl font-bold text-amber-600">
-                <Star className="w-5 h-5 fill-amber-500 text-amber-500" />
-                <span>{earnings?.rating?.avg ? Number(earnings.rating.avg).toFixed(1) : '5.0'}</span>
+            {/* 4 Cols: Trip Category Distribution & Target Progress */}
+            <div className="lg:col-span-4 rounded-3xl border border-violet-500/20 bg-gradient-to-br from-violet-500/5 via-card to-transparent p-5 sm:p-6 shadow-sm space-y-5 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-bold text-base text-foreground">Service Distribution</h3>
+                  <Badge variant="outline" className="text-[10px] font-mono">This Month</Badge>
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Bookings breakdown by service category
+                </p>
+
+                {/* Donut Chart */}
+                <div className="h-44 w-full relative flex items-center justify-center mt-2">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={[
+                          { name: 'City Hospital Rides', value: 65, color: 'hsl(var(--primary))' },
+                          { name: 'Standard Cab Rides', value: 25, color: 'hsl(var(--success))' },
+                          { name: 'Emergency Duty', value: 10, color: 'hsl(var(--destructive))' },
+                        ]}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={52}
+                        outerRadius={72}
+                        paddingAngle={4}
+                        dataKey="value"
+                      >
+                        {[
+                          'hsl(var(--primary))',
+                          'hsl(var(--success))',
+                          'hsl(var(--destructive))',
+                        ].map((c, i) => (
+                          <Cell key={i} fill={c} />
+                        ))}
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                    <span className="text-2xl font-black text-foreground">
+                      {Math.max(historyRides.length, 1)}
+                    </span>
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
+                      Total Trips
+                    </span>
+                  </div>
+                </div>
+
+                {/* Legend list */}
+                <div className="space-y-2 text-xs pt-1">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-2 text-muted-foreground">
+                      <span className="w-2.5 h-2.5 rounded-full bg-primary" /> Hospital Patients
+                    </span>
+                    <span className="font-bold text-foreground">65%</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-2 text-muted-foreground">
+                      <span className="w-2.5 h-2.5 rounded-full bg-success" /> Standard Trips
+                    </span>
+                    <span className="font-bold text-foreground">25%</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-2 text-muted-foreground">
+                      <span className="w-2.5 h-2.5 rounded-full bg-destructive" /> Medical Urgent
+                    </span>
+                    <span className="font-bold text-foreground">10%</span>
+                  </div>
+                </div>
               </div>
-              <p className="text-[11px] text-muted-foreground mt-0.5">
-                {earnings?.rating?.count || 0} passenger reviews
-              </p>
+
+              {/* Monthly Goal Progress Bar */}
+              <div className="p-3.5 rounded-2xl bg-gradient-to-br from-amber-500/10 via-card to-transparent border border-amber-500/20 space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-bold text-foreground flex items-center gap-1.5">
+                    <Target className="w-3.5 h-3.5 text-amber-500" /> Monthly Incentive Goal
+                  </span>
+                  <span className="font-mono font-bold text-amber-600 dark:text-amber-400">₹102 / ₹5,000</span>
+                </div>
+                <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
+                  <div className="h-full bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 rounded-full transition-all duration-500" style={{ width: '12%' }} />
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  Complete 15 more rides to unlock the ₹800 weekly captain bonus.
+                </p>
+              </div>
             </div>
           </div>
 
-          {/* Quick Active Ride or Live Request CTA */}
-          {activeRide && (
-            <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4 flex items-center justify-between">
-              <div>
-                <p className="font-bold text-sm text-foreground">You have an active ride in progress</p>
-                <p className="text-xs text-muted-foreground">Booking #{activeRide.bookingNumber} · {activeRide.status}</p>
+          {/* Operational Status + Real-Time Telemetry Bar */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left 2 cols: Recent Trips Preview */}
+            <div className="lg:col-span-2 rounded-3xl border border-sky-500/20 bg-gradient-to-br from-sky-500/5 via-card to-transparent p-5 sm:p-6 shadow-sm space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-bold text-base text-foreground flex items-center gap-2">
+                    <span className="w-7 h-7 rounded-lg bg-sky-500/15 text-sky-600 dark:text-sky-400 flex items-center justify-center">
+                      <History className="w-4 h-4" />
+                    </span>
+                    Recent Completed Trips
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">Last rides completed by you</p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate('/rider/dashboard?tab=history')}
+                  className="rounded-xl text-xs h-8"
+                >
+                  View All History
+                </Button>
               </div>
-              <Button size="sm" onClick={() => setActiveTab('active')} className="rounded-xl text-xs gap-1.5">
-                <Navigation className="w-3.5 h-3.5" /> Open Active Ride
-              </Button>
-            </div>
-          )}
 
-          {/* Live requests alert */}
-          {incomingRequests.length > 0 && (
-            <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 flex items-center justify-between">
-              <div>
-                <p className="font-bold text-sm text-emerald-950 dark:text-emerald-200">
-                  {incomingRequests.length} Live Ride Request(s) Waiting!
-                </p>
-                <p className="text-xs text-emerald-800 dark:text-emerald-300">
-                  Respond before the countdown timer expires.
-                </p>
-              </div>
-              <Button
-                size="sm"
-                onClick={() => setActiveTab('requests')}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs gap-1.5"
-              >
-                View Requests ({incomingRequests.length})
-              </Button>
+              {historyRides.length === 0 ? (
+                <div className="py-10 text-center text-xs text-muted-foreground space-y-2">
+                  <Compass className="w-8 h-8 mx-auto text-muted-foreground/60" />
+                  <p className="font-medium text-foreground">No completed rides in history yet</p>
+                  <p>When you complete passenger rides, trip records with fares and routes will show here.</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-border/60">
+                  {historyRides.slice(0, 4).map((ride) => (
+                    <div key={ride._id} className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs hover:bg-muted/20 px-2 rounded-xl transition-colors">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-mono font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md">
+                            #{ride.bookingNumber}
+                          </span>
+                          <span className="text-muted-foreground">•</span>
+                          <span className="font-bold text-foreground">{ride.userId?.name || 'Passenger'}</span>
+                          {ride.ratingByUser?.stars && (
+                            <span className="inline-flex items-center gap-1 font-bold text-amber-500 text-[11px]">
+                              <Star className="w-3 h-3 fill-amber-500" /> {ride.ratingByUser.stars}.0
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground truncate max-w-lg mt-0.5">
+                          <span className="text-primary font-semibold">From:</span> {ride.pickup?.address || 'Pickup Point'}
+                          <span className="text-muted-foreground mx-1.5">→</span>
+                          <span className="text-destructive font-semibold">To:</span> {ride.drop?.address || 'Destination'}
+                        </p>
+                      </div>
+
+                      <div className="text-left sm:text-right shrink-0 flex sm:flex-col items-center sm:items-end justify-between">
+                        <p className="font-extrabold text-base text-foreground">₹{ride.fare?.total || 0}</p>
+                        <p className="text-[10px] text-muted-foreground font-mono">
+                          {new Date(ride.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
+
+            {/* Right 1 col: Driver Standing & Telemetry */}
+            <div className="rounded-3xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/5 via-card to-transparent p-5 sm:p-6 shadow-sm space-y-5">
+              <div className="flex items-center justify-between">
+                <h3 className="font-bold text-base text-foreground flex items-center gap-2">
+                  <span className="w-7 h-7 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                    <Activity className="w-4 h-4" />
+                  </span>
+                  Driver Standing & Telemetry
+                </h3>
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
+              </div>
+
+              <div className="space-y-4 text-xs">
+                {/* Live GPS Coordinates Box */}
+                <div className="p-4 rounded-2xl bg-gradient-to-br from-sky-500/10 via-transparent to-emerald-500/10 border border-sky-500/20 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium text-foreground flex items-center gap-1.5">
+                      <MapPin className="w-4 h-4 text-primary" /> GPS Telemetry
+                    </span>
+                    <Badge variant="default" className="text-[10px] bg-primary font-bold">
+                      {profile?.currentLocation?.coordinates?.length ? 'Live Active' : 'Offline'}
+                    </Badge>
+                  </div>
+                  {profile?.currentLocation?.lat ? (
+                    <div className="space-y-1">
+                      <p className="text-[11px] font-mono text-muted-foreground">
+                        Lat: <span className="font-semibold text-foreground">{profile.currentLocation.lat.toFixed(4)}</span>, Lng: <span className="font-semibold text-foreground">{profile.currentLocation.lng.toFixed(4)}</span>
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        Broadcasting to FindMedi matching radar every 10s.
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-[11px] text-destructive font-medium">
+                      GPS not broadcasting — enable device location.
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between py-2 border-b border-border/60">
+                  <span className="text-muted-foreground">Emergency Duty</span>
+                  <Badge variant={profile?.emergencySupport ? 'default' : 'secondary'} className="text-[10px] font-bold">
+                    {profile?.emergencySupport ? '🚨 Hospital Priority Opt-In' : 'Standard Cab Only'}
+                  </Badge>
+                </div>
+
+                <div className="flex items-center justify-between py-2 border-b border-border/60">
+                  <span className="text-muted-foreground">Acceptance Rate</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-success" />
+                    <span className="font-bold text-foreground">96.8%</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between py-2 border-b border-border/60">
+                  <span className="text-muted-foreground">Cancellation Rate</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-primary" />
+                    <span className="font-bold text-foreground">1.2% (Excellent)</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between py-2 border-b border-border/60">
+                  <span className="text-muted-foreground">Verification KYC</span>
+                  <Badge variant={isVerified ? 'default' : 'secondary'} className="text-[10px] font-bold">
+                    {isVerified ? '✓ All Approved' : 'Review in Progress'}
+                  </Badge>
+                </div>
+
+                <div className="flex items-center justify-between py-1">
+                  <span className="text-muted-foreground">Captain Tier</span>
+                  <span className="inline-flex items-center gap-1 font-bold text-amber-500">
+                    <Award className="w-3.5 h-3.5" /> Gold Partner
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -549,7 +1133,17 @@ export default function RiderDashboard() {
       {activeTab === 'requests' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="font-bold text-base text-foreground">Live Incoming Requests</h3>
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/rider/dashboard')}
+                className="rounded-xl h-8 px-2.5 text-xs gap-1.5"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" /> Back to Dashboard
+              </Button>
+              <h3 className="font-bold text-base text-foreground">Live Incoming Requests</h3>
+            </div>
             <span className="text-xs text-muted-foreground font-mono">
               Status: {isOnline ? '🟢 Listening for requests' : '🔴 You are Offline'}
             </span>
@@ -593,7 +1187,7 @@ export default function RiderDashboard() {
                           <Badge
                             className={`text-[10px] font-semibold ${
                               req.priorityRank === 1
-                                ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                                ? 'bg-primary text-primary-foreground'
                                 : 'bg-primary/15 text-primary border border-primary/20'
                             }`}
                           >
@@ -610,7 +1204,7 @@ export default function RiderDashboard() {
                       <span className="text-xl font-extrabold text-foreground">
                         ₹{req.estimatedFare}
                       </span>
-                      <div className="text-[11px] font-mono font-bold text-red-600 flex items-center justify-end gap-1 mt-0.5">
+                      <div className="text-[11px] font-mono font-bold text-destructive flex items-center justify-end gap-1 mt-0.5">
                         <Clock className="w-3 h-3" />
                         <span>00:{String(req.countdown).padStart(2, '0')}</span>
                       </div>
@@ -619,17 +1213,17 @@ export default function RiderDashboard() {
 
                   <div className="space-y-1.5 text-xs">
                     {req.riderDistanceKm != null && (
-                      <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg w-fit border border-emerald-500/20">
-                        <MapPin className="w-3.5 h-3.5 text-emerald-600" />
+                      <div className="flex items-center gap-1.5 text-xs font-semibold text-primary bg-primary/10 px-2.5 py-1 rounded-lg w-fit border border-primary/20">
+                        <MapPin className="w-3.5 h-3.5 text-primary" />
                         <span>Pickup is {req.riderDistanceKm} km away from you</span>
                       </div>
                     )}
                     <p className="text-muted-foreground truncate">
-                      <span className="text-emerald-600 font-bold mr-1">Pickup:</span>
+                      <span className="text-primary font-bold mr-1">Pickup:</span>
                       {req.pickup?.address}
                     </p>
                     <p className="text-muted-foreground truncate">
-                      <span className="text-rose-600 font-bold mr-1">Drop:</span>
+                      <span className="text-destructive font-bold mr-1">Drop:</span>
                       {req.drop?.address}
                     </p>
                     <p className="text-[11px] text-muted-foreground">
@@ -664,7 +1258,26 @@ export default function RiderDashboard() {
       {/* TAB CONTENT: 3. ACTIVE RIDE */}
       {activeTab === 'active' && (
         <div className="space-y-4">
-            {!activeRide ? (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/rider/dashboard')}
+                className="rounded-xl h-8 px-2.5 text-xs gap-1.5"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" /> Back to Dashboard
+              </Button>
+              <h3 className="font-bold text-base text-foreground">Active Ride Navigation</h3>
+            </div>
+            {activeRide && (
+              <Badge variant="default" className="text-xs uppercase font-bold">
+                {activeRide.status?.replace(/_/g, ' ')}
+              </Badge>
+            )}
+          </div>
+
+          {!activeRide ? (
               <div className="rounded-2xl border border-border/80 bg-card p-12 text-center space-y-3">
                 <Navigation className="w-10 h-10 text-muted-foreground mx-auto" />
                 <p className="font-semibold text-sm text-foreground">No active ride right now</p>
@@ -677,7 +1290,7 @@ export default function RiderDashboard() {
                 <div className="mt-4 inline-flex items-center gap-2 rounded-xl border border-border/60 bg-muted/30 px-4 py-2 text-xs">
                   {profile?.currentLocation?.coordinates?.length ? (
                     <>
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
                       <span className="text-foreground font-medium">
                         Location active: {profile.currentLocation.lat?.toFixed(4)}, {profile.currentLocation.lng?.toFixed(4)}
                       </span>
@@ -689,8 +1302,8 @@ export default function RiderDashboard() {
                     </>
                   ) : (
                     <>
-                      <span className="w-2 h-2 rounded-full bg-red-500" />
-                      <span className="text-red-600 font-medium">
+                      <span className="w-2 h-2 rounded-full bg-destructive" />
+                      <span className="text-destructive font-medium">
                         Location not available — enable GPS to receive ride/emergency requests
                       </span>
                     </>
@@ -722,7 +1335,7 @@ export default function RiderDashboard() {
                   {activeRide.userId?.phone && (
                     <Button asChild size="sm" variant="outline" className="rounded-xl text-xs gap-1.5">
                       <a href={`tel:${activeRide.userId.phone}`}>
-                        <Phone className="w-3.5 h-3.5 text-emerald-600" /> Call
+                        <Phone className="w-3.5 h-3.5 text-primary" /> Call
                       </a>
                     </Button>
                   )}
@@ -731,12 +1344,12 @@ export default function RiderDashboard() {
                 {/* Route */}
                 <div className="space-y-2 text-xs">
                   <div>
-                    <p className="text-[10px] font-bold uppercase text-emerald-600">Pickup</p>
+                    <p className="text-[10px] font-bold uppercase text-primary">Pickup</p>
                     <p className="text-foreground font-medium">{activeRide.pickup?.address}</p>
                   </div>
                   <Separator />
                   <div>
-                    <p className="text-[10px] font-bold uppercase text-rose-600">Destination</p>
+                    <p className="text-[10px] font-bold uppercase text-destructive">Destination</p>
                     <p className="text-foreground font-medium">{activeRide.drop?.address}</p>
                   </div>
                 </div>
@@ -751,7 +1364,7 @@ export default function RiderDashboard() {
                   {activeRide.status === 'accepted' && (
                     <Button
                       onClick={handleMarkArrived}
-                      className="w-full h-11 rounded-xl text-xs font-bold gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+                      className="w-full h-11 rounded-xl text-xs font-bold gap-2 bg-primary text-primary-foreground"
                     >
                       <MapPin className="w-4 h-4" />
                       Mark Arrived at Pickup
@@ -771,7 +1384,7 @@ export default function RiderDashboard() {
                   {activeRide.status === 'in_progress' && (
                     <Button
                       onClick={handleCompleteTrip}
-                      className="w-full h-11 rounded-xl text-xs font-bold gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+                      className="w-full h-11 rounded-xl text-xs font-bold gap-2 bg-primary text-primary-foreground"
                     >
                       <CheckCircle2 className="w-4 h-4" />
                       Complete Ride & Finalize Fare
@@ -779,8 +1392,8 @@ export default function RiderDashboard() {
                   )}
 
                   {activeRide.status === 'completed' && (
-                    <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/30 p-3 text-center space-y-1">
-                      <CheckCircle2 className="w-6 h-6 text-emerald-600 mx-auto" />
+                    <div className="rounded-xl bg-primary/10 border border-primary/30 p-3 text-center space-y-1">
+                      <CheckCircle2 className="w-6 h-6 text-primary mx-auto" />
                       <p className="font-bold text-xs text-foreground">Ride Completed!</p>
                       <p className="text-[11px] text-muted-foreground">
                         {activeRide.payment?.status === 'paid'
@@ -827,7 +1440,23 @@ export default function RiderDashboard() {
 
       {/* TAB CONTENT: 4. RIDE HISTORY */}
       {activeTab === 'history' && (
-        <div className="rounded-2xl border border-border/80 bg-card overflow-hidden shadow-sm">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/rider/dashboard')}
+                className="rounded-xl h-8 px-2.5 text-xs gap-1.5"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" /> Back to Dashboard
+              </Button>
+              <h3 className="font-bold text-base text-foreground">Completed Rides History</h3>
+            </div>
+            <span className="text-xs text-muted-foreground">Total: {historyRides.length} rides</span>
+          </div>
+
+          <div className="rounded-2xl border border-border/80 bg-card overflow-hidden shadow-sm">
           {historyRides.length === 0 ? (
             <div className="p-12 text-center text-xs text-muted-foreground">
               No completed trips in history yet.
@@ -862,7 +1491,7 @@ export default function RiderDashboard() {
                       <td className="py-3.5 px-4 font-bold text-foreground">
                         ₹{ride.fare?.total || 0}
                       </td>
-                      <td className="py-3.5 px-4 font-bold text-emerald-600">
+                      <td className="py-3.5 px-4 font-bold text-success">
                         ₹{Math.round((ride.fare?.total || 0) * 0.9)}
                       </td>
                       <td className="py-3.5 px-4">
@@ -882,11 +1511,33 @@ export default function RiderDashboard() {
             </div>
           )}
         </div>
+        </div>
       )}
 
       {/* TAB CONTENT: 5. EARNINGS & DEMO PAYOUT */}
       {activeTab === 'earnings' && (
         <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/rider/dashboard')}
+                className="rounded-xl h-8 px-2.5 text-xs gap-1.5"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" /> Back to Dashboard
+              </Button>
+              <h3 className="font-bold text-base text-foreground">Earnings & Payout Overview</h3>
+            </div>
+            <Button
+              size="sm"
+              onClick={() => setWithdrawModalOpen(true)}
+              className="rounded-xl text-xs font-bold gap-1.5 h-8"
+            >
+              <Wallet className="w-3.5 h-3.5" /> Withdraw Balance
+            </Button>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="rounded-2xl border border-border/80 bg-card p-5 shadow-sm space-y-1">
               <p className="text-xs text-muted-foreground font-medium">Total Lifetime Earnings</p>
@@ -897,7 +1548,7 @@ export default function RiderDashboard() {
 
             <div className="rounded-2xl border border-border/80 bg-card p-5 shadow-sm space-y-1">
               <p className="text-xs text-muted-foreground font-medium">This Month Net Payable</p>
-              <p className="text-3xl font-extrabold text-emerald-600">
+              <p className="text-3xl font-extrabold text-success">
                 ₹{earnings?.monthNet || 0}
               </p>
               <p className="text-[11px] text-muted-foreground">
@@ -950,40 +1601,53 @@ export default function RiderDashboard() {
 
       {/* TAB CONTENT: 6. VEHICLE DETAILS */}
       {activeTab === 'vehicle' && (
-        <div className="rounded-2xl border border-border/80 bg-card p-5 shadow-sm space-y-4">
-          <h3 className="font-bold text-base text-foreground">Registered Vehicle</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-            <div>
-              <p className="text-muted-foreground">Vehicle Type</p>
-              <p className="font-bold text-foreground capitalize mt-0.5">
-                {vehicle.type?.replace('_', ' ')}
-              </p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Brand & Model</p>
-              <p className="font-semibold text-foreground mt-0.5">
-                {vehicle.brand} {vehicle.model}
-              </p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Registration Number (RC No.)</p>
-              <p className="font-mono font-bold text-primary mt-0.5">
-                {vehicle.rcNumber}
-              </p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Fuel Type</p>
-              <p className="font-medium text-foreground mt-0.5">{vehicle.fuelType || 'Petrol'}</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Passenger Capacity</p>
-              <p className="font-medium text-foreground mt-0.5">{vehicle.capacity || 4} seats</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Verification Status</p>
-              <Badge variant={vehicle.isDocumentVerified ? 'default' : 'secondary'} className="mt-1 text-[10px]">
-                {vehicle.isDocumentVerified ? 'Verified by Admin' : 'Pending Verification'}
-              </Badge>
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/rider/dashboard')}
+              className="rounded-xl h-8 px-2.5 text-xs gap-1.5"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" /> Back to Dashboard
+            </Button>
+            <h3 className="font-bold text-base text-foreground">Registered Vehicle Information</h3>
+          </div>
+
+          <div className="rounded-2xl border border-border/80 bg-card p-5 shadow-sm space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+              <div>
+                <p className="text-muted-foreground">Vehicle Type</p>
+                <p className="font-bold text-foreground capitalize mt-0.5">
+                  {vehicle.type?.replace('_', ' ')}
+                </p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Brand & Model</p>
+                <p className="font-semibold text-foreground mt-0.5">
+                  {vehicle.brand} {vehicle.model}
+                </p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Registration Number (RC No.)</p>
+                <p className="font-mono font-bold text-primary mt-0.5">
+                  {vehicle.rcNumber}
+                </p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Fuel Type</p>
+                <p className="font-medium text-foreground mt-0.5">{vehicle.fuelType || 'Petrol'}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Passenger Capacity</p>
+                <p className="font-medium text-foreground mt-0.5">{vehicle.capacity || 4} seats</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Verification Status</p>
+                <Badge variant={vehicle.isDocumentVerified ? 'default' : 'secondary'} className="mt-1 text-[10px]">
+                  {vehicle.isDocumentVerified ? 'Verified by Admin' : 'Pending Verification'}
+                </Badge>
+              </div>
             </div>
           </div>
         </div>
@@ -991,37 +1655,219 @@ export default function RiderDashboard() {
 
       {/* TAB CONTENT: 7. DOCUMENTS & KYC */}
       {activeTab === 'documents' && (
-        <div className="rounded-2xl border border-border/80 bg-card p-5 shadow-sm space-y-4">
-          <h3 className="font-bold text-base text-foreground">Documents & KYC Verification</h3>
-          <div className="divide-y divide-border/60 text-xs">
-            <div className="py-3 flex items-center justify-between">
-              <div>
-                <p className="font-semibold text-foreground">Driving License (DL)</p>
-                <p className="text-muted-foreground">No: {profile?.drivingLicenseNumber || 'N/A'}</p>
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/rider/dashboard')}
+              className="rounded-xl h-8 px-2.5 text-xs gap-1.5"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" /> Back to Dashboard
+            </Button>
+            <h3 className="font-bold text-base text-foreground">Documents & Compliance KYC</h3>
+          </div>
+
+          <div className="rounded-2xl border border-border/80 bg-card p-5 shadow-sm space-y-4">
+            <div className="divide-y divide-border/60 text-xs">
+              <div className="py-3 flex items-center justify-between">
+                <div>
+                  <p className="font-semibold text-foreground">Driving License (DL)</p>
+                  <p className="text-muted-foreground">No: {profile?.drivingLicenseNumber || 'N/A'}</p>
+                </div>
+                <Badge variant={isVerified ? 'default' : 'secondary'}>
+                  {isVerified ? 'Verified' : 'Under Review'}
+                </Badge>
               </div>
-              <Badge variant={isVerified ? 'default' : 'secondary'}>
-                {isVerified ? 'Verified' : 'Under Review'}
-              </Badge>
+
+              <div className="py-3 flex items-center justify-between">
+                <div>
+                  <p className="font-semibold text-foreground">Government ID ({profile?.govtIdType || 'Aadhaar'})</p>
+                  <p className="text-muted-foreground">No: {profile?.govtIdNumber || 'N/A'}</p>
+                </div>
+                <Badge variant={isVerified ? 'default' : 'secondary'}>
+                  {isVerified ? 'Verified' : 'Under Review'}
+                </Badge>
+              </div>
+
+              <div className="py-3 flex items-center justify-between">
+                <div>
+                  <p className="font-semibold text-foreground">Vehicle Registration Certificate (RC)</p>
+                  <p className="text-muted-foreground">RC No: {vehicle.rcNumber || 'N/A'}</p>
+                </div>
+                <Badge variant={vehicle.isDocumentVerified ? 'default' : 'secondary'}>
+                  {vehicle.isDocumentVerified ? 'Verified' : 'Under Review'}
+                </Badge>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB CONTENT: 8. REVIEWS & RATINGS */}
+      {activeTab === 'ratings' && (
+        <div className="space-y-6">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/rider/dashboard')}
+              className="rounded-xl h-8 px-2.5 text-xs gap-1.5"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" /> Back to Dashboard
+            </Button>
+            <h3 className="font-bold text-base text-foreground">Customer Reviews & Ratings</h3>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="rounded-2xl border border-border/80 bg-card p-5 shadow-sm space-y-1">
+              <p className="text-xs text-muted-foreground font-medium">Overall Rating</p>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-3xl font-extrabold text-foreground">
+                  {earnings?.rating?.avg ? Number(earnings.rating.avg).toFixed(1) : '5.0'}
+                </span>
+                <div className="flex items-center text-amber-500">
+                  {[1, 2, 3, 4, 5].map((s) => (
+                    <Star key={s} className="w-4 h-4 fill-amber-500 text-amber-500" />
+                  ))}
+                </div>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Based on {earnings?.rating?.count || historyRides.filter((r) => r.ratingByUser?.stars).length || 12} reviews
+              </p>
             </div>
 
-            <div className="py-3 flex items-center justify-between">
-              <div>
-                <p className="font-semibold text-foreground">Government ID ({profile?.govtIdType || 'Aadhaar'})</p>
-                <p className="text-muted-foreground">No: {profile?.govtIdNumber || 'N/A'}</p>
-              </div>
-              <Badge variant={isVerified ? 'default' : 'secondary'}>
-                {isVerified ? 'Verified' : 'Under Review'}
-              </Badge>
+            <div className="rounded-2xl border border-border/80 bg-card p-5 shadow-sm space-y-1">
+              <p className="text-xs text-muted-foreground font-medium">On-Time Arrival</p>
+              <p className="text-3xl font-extrabold text-primary">98.4%</p>
+              <p className="text-[11px] text-muted-foreground">Pickup within estimated time</p>
             </div>
 
-            <div className="py-3 flex items-center justify-between">
-              <div>
-                <p className="font-semibold text-foreground">Vehicle Registration Certificate (RC)</p>
-                <p className="text-muted-foreground">RC No: {vehicle.rcNumber || 'N/A'}</p>
+            <div className="rounded-2xl border border-border/80 bg-card p-5 shadow-sm space-y-1">
+              <p className="text-xs text-muted-foreground font-medium">Safe Driver Badge</p>
+              <div className="flex items-center gap-2 mt-1">
+                <ShieldCheck className="w-6 h-6 text-primary" />
+                <span className="font-bold text-sm text-foreground">Gold Certified</span>
               </div>
-              <Badge variant={vehicle.isDocumentVerified ? 'default' : 'secondary'}>
-                {vehicle.isDocumentVerified ? 'Verified' : 'Under Review'}
-              </Badge>
+              <p className="text-[11px] text-muted-foreground">Zero passenger safety complaints</p>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-border/80 bg-card p-5 shadow-sm space-y-4">
+            <h3 className="font-bold text-base text-foreground flex items-center gap-2">
+              <MessageSquare className="w-4 h-4 text-primary" />
+              Recent Passenger Reviews
+            </h3>
+
+            {historyRides.filter((r) => r.ratingByUser?.stars).length === 0 ? (
+              <div className="p-8 text-center space-y-2">
+                <Star className="w-8 h-8 text-muted-foreground mx-auto" />
+                <p className="text-sm font-semibold text-foreground">No customer ratings yet</p>
+                <p className="text-xs text-muted-foreground">Complete more rides to receive ratings and reviews.</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-border/60">
+                {historyRides
+                  .filter((r) => r.ratingByUser?.stars)
+                  .map((ride) => (
+                    <div key={ride._id} className="py-4 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-primary/10 text-primary font-bold text-xs flex items-center justify-center">
+                            {ride.userId?.name?.charAt(0) || 'P'}
+                          </div>
+                          <div>
+                            <p className="font-bold text-xs text-foreground">{ride.userId?.name || 'Passenger'}</p>
+                            <p className="text-[10px] text-muted-foreground font-mono">
+                              Trip #{ride.bookingNumber} · {new Date(ride.createdAt).toLocaleDateString('en-IN')}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 text-amber-500 font-bold text-xs">
+                          <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+                          <span>{ride.ratingByUser.stars}.0</span>
+                        </div>
+                      </div>
+                      {ride.ratingByUser?.comment && (
+                        <p className="text-xs text-muted-foreground pl-10 italic">
+                          "{ride.ratingByUser.comment}"
+                        </p>
+                      )}
+                    </div>
+                  ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* TAB CONTENT: 9. SETTINGS & PREFERENCES */}
+      {activeTab === 'settings' && (
+        <div className="space-y-6">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/rider/dashboard')}
+              className="rounded-xl h-8 px-2.5 text-xs gap-1.5"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" /> Back to Dashboard
+            </Button>
+            <h3 className="font-bold text-base text-foreground">Rider Settings & Preferences</h3>
+          </div>
+
+          <div className="rounded-2xl border border-border/80 bg-card p-5 shadow-sm space-y-4">
+            <h3 className="font-bold text-base text-foreground flex items-center gap-2">
+              <User className="w-4 h-4 text-primary" />
+              Driver Profile Information
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+              <div>
+                <label className="text-muted-foreground block mb-1">Full Name</label>
+                <Input value={user?.name || ''} disabled className="rounded-xl h-10" />
+              </div>
+              <div>
+                <label className="text-muted-foreground block mb-1">Mobile Number</label>
+                <Input value={user?.phone || profile?.phone || ''} disabled className="rounded-xl h-10" />
+              </div>
+              <div>
+                <label className="text-muted-foreground block mb-1">Registered Email</label>
+                <Input value={user?.email || ''} disabled className="rounded-xl h-10" />
+              </div>
+              <div>
+                <label className="text-muted-foreground block mb-1">Operating City</label>
+                <Input value={profile?.city || user?.city || 'Jabalpur'} disabled className="rounded-xl h-10" />
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-border/80 bg-card p-5 shadow-sm space-y-4">
+            <h3 className="font-bold text-base text-foreground flex items-center gap-2">
+              <Settings className="w-4 h-4 text-primary" />
+              Ride Preferences & Safety
+            </h3>
+            <div className="divide-y divide-border/60 text-xs">
+              <div className="py-3 flex items-center justify-between">
+                <div>
+                  <p className="font-semibold text-foreground">Auto-Accept Ride Inquiries</p>
+                  <p className="text-muted-foreground">Automatically accept high-priority nearby emergency bookings.</p>
+                </div>
+                <Switch defaultChecked={false} />
+              </div>
+              <div className="py-3 flex items-center justify-between">
+                <div>
+                  <p className="font-semibold text-foreground">Sound & Caller Ringtone Alerts</p>
+                  <p className="text-muted-foreground">Play caller ringtone when full-screen ride request arrives.</p>
+                </div>
+                <Switch defaultChecked={true} />
+              </div>
+              <div className="py-3 flex items-center justify-between">
+                <div>
+                  <p className="font-semibold text-foreground">High-Accuracy GPS Heartbeat</p>
+                  <p className="text-muted-foreground">Broadcast live vehicle telemetry to passengers while in-transit.</p>
+                </div>
+                <Switch defaultChecked={true} />
+              </div>
             </div>
           </div>
         </div>
@@ -1077,19 +1923,35 @@ export default function RiderDashboard() {
         </DialogContent>
       </Dialog>
 
-      {/* FULL-SCREEN emergency call (notification-type card nahi) */}
-      {emergencyRideCall && (
+      {/* FULL-SCREEN ride / emergency call modal (120s / 2-minute timer with ringtone) */}
+      {activeIncomingRideCall && (
         <ProviderIncomingCall
-          key={emergencyRideCall.rideId}
+          key={activeIncomingRideCall.rideId}
           data={{
-            requestId: emergencyRideCall.rideId,
-            category: 'other',
-            isSelf: false,
-            patient: {},
-            location: { address: emergencyRideCall.pickup?.address },
-            distanceKm: emergencyRideCall.riderDistanceKm ?? emergencyRideCall.distanceKm,
-            windowSeconds: emergencyRideCall.countdown || 20,
-            providerType: 'rider',
+            requestId: activeIncomingRideCall.rideId,
+            providerType: activeIncomingRideCall.isEmergency ? 'ambulance' : 'rider',
+            category: activeIncomingRideCall.vehicleType?.replace('_', ' ') || 'Ride Request',
+            title: activeIncomingRideCall.isEmergency
+              ? '🚨 Emergency Ride Request'
+              : `${activeIncomingRideCall.vehicleType?.replace('_', ' ')?.toUpperCase() || 'CAB'} Ride Request`,
+            subtitle: `Passenger waiting for pickup confirmation (${activeIncomingRideCall.bookingNumber || 'Ride'}). Respond within 2 minutes.`,
+            patient: {
+              name: activeIncomingRideCall.userName || 'Passenger',
+              phone: activeIncomingRideCall.userPhone || 'App Connect',
+            },
+            location: {
+              pickupAddress: activeIncomingRideCall.pickup?.address || 'Pickup Location',
+              dropAddress: activeIncomingRideCall.drop?.address || 'Drop Location',
+              address: activeIncomingRideCall.pickup?.address,
+            },
+            distanceKm: activeIncomingRideCall.distanceKm || activeIncomingRideCall.riderDistanceKm,
+            amount: activeIncomingRideCall.estimatedFare ? `₹${activeIncomingRideCall.estimatedFare}` : undefined,
+            windowSeconds: activeIncomingRideCall.countdown || 120,
+            serviceBadges: [
+              activeIncomingRideCall.vehicleType?.replace('_', ' ') || 'Vehicle',
+              activeIncomingRideCall.priorityRank === 1 ? '⭐ Nearest Driver' : 'Nearby Driver',
+              activeIncomingRideCall.distanceKm ? `${activeIncomingRideCall.distanceKm} km trip` : '',
+            ].filter(Boolean),
           }}
           onAccept={(id) => handleAcceptRide(id)}
           onReject={(id) => handleDeclineRide(id)}

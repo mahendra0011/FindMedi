@@ -221,12 +221,17 @@ export default function BookAssistant() {
       const res = await api.getAssistants(params);
       let list = res?.assistants || (Array.isArray(res) ? res : []);
 
-      // Strict client-side filter: if a specific city is selected, ONLY show assistants for that city
+      // Strict client-side filter: if a specific city is selected, ONLY show assistants for that city/service area
       if (cityFilter && cityFilter !== 'All') {
         const cq = cityFilter.toLowerCase().trim();
         list = list.filter((a: any) => {
           const acity = (a.operatingCity || '').toLowerCase().trim();
-          return acity === cq || acity.includes(cq) || cq.includes(acity);
+          const matchesOperatingCity = acity === cq || acity.includes(cq) || cq.includes(acity);
+          const matchesCoveredArea = (a.hospitalsCovered || []).some((h: string) => {
+            const hq = (h || '').toLowerCase().trim();
+            return hq === cq || hq.includes(cq) || cq.includes(hq);
+          });
+          return matchesOperatingCity || matchesCoveredArea;
         });
       }
 
@@ -466,22 +471,7 @@ export default function BookAssistant() {
               )}
             </div>
 
-            {/* City Selector Dropdown */}
-            <div className="sm:w-52 shrink-0 relative">
-              <MapPin className="w-4 h-4 absolute left-3.5 top-3 text-red-500 pointer-events-none" />
-              <select
-                value={cityFilter}
-                onChange={(e) => handleCityFilterChange(e.target.value)}
-                className="w-full h-10 pl-9 pr-3 rounded-xl border border-border bg-background text-xs font-semibold focus:ring-2 focus:ring-primary/20 cursor-pointer"
-              >
-                <option value="All">All Cities</option>
-                {allCityOptions.map((c: string) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-            </div>
+
 
             {/* Filter Toggle Button */}
             <Button

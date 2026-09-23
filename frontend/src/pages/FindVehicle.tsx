@@ -40,6 +40,26 @@ export default function FindVehicle() {
   const [riderLocation, setRiderLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [fetchingActive, setFetchingActive] = useState<boolean>(true);
 
+  // Global City Synchronization (from Navbar)
+  const [selectedCity, setSelectedCity] = useState<string>(
+    () => localStorage.getItem('findmedi_city') || localStorage.getItem('mediCore_city') || 'Jabalpur'
+  );
+
+  useEffect(() => {
+    const onCityChange = (e: any) => {
+      const newCity = e.detail || localStorage.getItem('findmedi_city') || localStorage.getItem('mediCore_city');
+      if (newCity && newCity !== selectedCity) {
+        setSelectedCity(newCity);
+      }
+    };
+    window.addEventListener('cityChange', onCityChange);
+    window.addEventListener('storage', onCityChange);
+    return () => {
+      window.removeEventListener('cityChange', onCityChange);
+      window.removeEventListener('storage', onCityChange);
+    };
+  }, [selectedCity]);
+
   // 1. Initial Load: Check for active ride or deep-linked rideId
   useEffect(() => {
     if (!user) {
@@ -227,9 +247,14 @@ export default function FindVehicle() {
           <h1 className="text-2xl sm:text-3xl font-heading font-extrabold text-foreground flex items-center gap-2">
             <span className="p-1.5 rounded-xl bg-primary/10 text-primary">🚗</span>
             Find & Book a Vehicle
+            {selectedCity && selectedCity !== 'All' && (
+              <Badge variant="outline" className="text-xs font-semibold text-primary border-primary/30 bg-primary/5 ml-1">
+                📍 {selectedCity}
+              </Badge>
+            )}
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-            Instant on-demand patient pickup, hospital visits, ambulances, and personal rides.
+            Instant on-demand patient pickup, hospital visits, ambulances, and personal rides in {selectedCity && selectedCity !== 'All' ? selectedCity : 'your area'}.
           </p>
         </div>
 

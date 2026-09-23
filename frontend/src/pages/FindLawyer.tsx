@@ -72,13 +72,13 @@ export const LAWYER_CATEGORY_THEME: Record<
   },
   'Civil & Property': {
     icon: HomeIcon,
-    color: 'from-blue-500/20 to-blue-500/5',
-    textColor: 'text-blue-600',
+    color: 'from-slate-700/20 to-slate-700/5',
+    textColor: 'text-slate-900 dark:text-slate-100',
   },
   'Corporate & Contract': {
     icon: Briefcase,
-    color: 'from-indigo-500/20 to-indigo-500/5',
-    textColor: 'text-indigo-600',
+    color: 'from-slate-800/20 to-slate-700/5',
+    textColor: 'text-slate-900 dark:text-slate-100',
   },
   'General Consultation': {
     icon: MessagesSquare,
@@ -305,7 +305,7 @@ export default function FindLawyer() {
         {/* Page Header — same pattern as Doctor list */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase tracking-wider mb-2">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/10 text-slate-900 dark:bg-white/10 dark:text-slate-100 text-xs font-bold uppercase tracking-wider mb-2">
               <Scale className="w-3.5 h-3.5" />
               Verified In-App Advocates & Hospital Legal Help
             </div>
@@ -318,7 +318,7 @@ export default function FindLawyer() {
           </div>
         </div>
 
-        {/* Search Bar & City Selector */}
+        {/* Search Bar */}
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
@@ -328,28 +328,6 @@ export default function FindLawyer() {
               placeholder="Search advocates by name, practice area, or court..."
               className="pl-12 h-12 text-sm sm:text-base rounded-2xl bg-card border-border/60 shadow-sm"
             />
-          </div>
-          <div className="sm:w-56 shrink-0 relative">
-            <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-red-500 pointer-events-none" />
-            <select
-              value={cityFilter}
-              onChange={(e) => {
-                const val = e.target.value;
-                setCityFilter(val);
-                if (val !== 'All') {
-                  localStorage.setItem('findmedi_city', val);
-                  window.dispatchEvent(new CustomEvent('cityChange', { detail: val }));
-                }
-              }}
-              className="w-full h-12 pl-10 pr-4 rounded-2xl bg-card border border-border/60 text-xs sm:text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-sm cursor-pointer"
-            >
-              <option value="All">All Service Cities</option>
-              {serviceCities.map((c) => (
-                <option key={c._id || c.name} value={c.name}>
-                  {c.name} {c.state ? `(${c.state})` : ''}
-                </option>
-              ))}
-            </select>
           </div>
         </div>
 
@@ -383,7 +361,7 @@ export default function FindLawyer() {
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="font-heading text-lg font-bold text-foreground flex items-center gap-2">
-              <Scale className="w-5 h-5 text-primary" />
+              <Scale className="w-5 h-5 text-slate-900 dark:text-slate-100" />
               Browse by Legal Specialization
             </h2>
           </div>
@@ -392,7 +370,7 @@ export default function FindLawyer() {
             {DEFAULT_LAWYER_CATEGORIES.map((cat) => {
               const isAll = cat === 'All';
               const theme = isAll
-                ? { icon: Scale, color: 'from-primary/20 to-primary/5', textColor: 'text-primary' }
+                ? { icon: Scale, color: 'from-slate-900/15 to-slate-900/5', textColor: 'text-slate-900 dark:text-slate-100' }
                 : getLawyerCategoryCard(cat);
               const Icon = theme.icon;
               const count = isAll
@@ -412,8 +390,8 @@ export default function FindLawyer() {
                   className={cn(
                     'flex flex-col items-center justify-center gap-2 p-3 rounded-2xl border transition-all text-center group',
                     isSelected
-                      ? 'border-primary bg-primary/10 shadow-md shadow-primary/10 ring-1 ring-primary'
-                      : 'border-border/60 bg-card hover:border-primary/40 hover:shadow-sm'
+                      ? 'border-slate-900 bg-slate-900/10 dark:border-white dark:bg-white/10 shadow-md shadow-slate-900/10 ring-1 ring-slate-900'
+                      : 'border-border/60 bg-card hover:border-slate-900/40 hover:shadow-sm'
                   )}
                 >
                   <div
@@ -427,7 +405,7 @@ export default function FindLawyer() {
                   <span
                     className={cn(
                       'text-[11px] font-semibold leading-tight line-clamp-2',
-                      isSelected ? 'text-primary' : 'text-foreground'
+                      isSelected ? 'text-slate-900 dark:text-slate-100' : 'text-foreground'
                     )}
                   >
                     {isAll ? 'All Categories' : cat}
@@ -476,7 +454,7 @@ export default function FindLawyer() {
                 step={100}
                 value={feeRange[0]}
                 onChange={(e) => setFeeRange([parseInt(e.target.value), feeRange[1]])}
-                className="w-16 h-1 accent-primary"
+                className="w-16 h-1 accent-slate-900 dark:accent-white"
               />
               <span className="text-[11px] text-muted-foreground w-10 text-right">
                 ₹{feeRange[0]}
@@ -489,7 +467,7 @@ export default function FindLawyer() {
                 step={100}
                 value={feeRange[1]}
                 onChange={(e) => setFeeRange([feeRange[0], parseInt(e.target.value)])}
-                className="w-16 h-1 accent-primary"
+                className="w-16 h-1 accent-slate-900 dark:accent-white"
               />
               <span className="text-[11px] text-muted-foreground w-10">₹{feeRange[1]}</span>
             </div>
@@ -560,7 +538,7 @@ export default function FindLawyer() {
                     {/* Language Spoken */}
                     <div>
                       <label className="text-xs font-semibold text-muted-foreground mb-2 block flex items-center gap-1">
-                        <Languages className="w-3.5 h-3.5 text-primary" /> Languages Spoken
+                        <Languages className="w-3.5 h-3.5 text-slate-900 dark:text-slate-100" /> Languages Spoken
                       </label>
                       <div className="flex flex-wrap gap-1.5">
                         {LANGUAGES.map((l) => (
@@ -584,7 +562,7 @@ export default function FindLawyer() {
                     {/* Court Search */}
                     <div>
                       <label className="text-xs font-semibold text-muted-foreground mb-2 block flex items-center gap-1">
-                        <Scale className="w-3.5 h-3.5 text-primary" /> Court Practiced In
+                        <Scale className="w-3.5 h-3.5 text-slate-900 dark:text-slate-100" /> Court Practiced In
                       </label>
                       <Input
                         placeholder="e.g. High Court, District Court, Consumer Forum"
@@ -597,11 +575,11 @@ export default function FindLawyer() {
                     {/* Bar Council Verification Info */}
                     <div>
                       <label className="text-xs font-semibold text-muted-foreground mb-2 block flex items-center gap-1">
-                        <BadgeCheck className="w-3.5 h-3.5 text-primary" /> Verification Standard
+                        <BadgeCheck className="w-3.5 h-3.5 text-slate-900 dark:text-slate-100" /> Verification Standard
                       </label>
                       <div className="p-2.5 rounded-xl bg-muted/30 border border-border/40 text-xs text-muted-foreground">
                         <p className="flex items-center gap-1.5 font-medium text-foreground mb-0.5">
-                          <BadgeCheck className="w-4 h-4 text-primary" /> 100% Bar Council Verified
+                          <BadgeCheck className="w-4 h-4 text-slate-900 dark:text-slate-100" /> 100% Bar Council Verified
                         </p>
                         <p className="text-[11px]">
                           All advocates are verified against State Bar Council enrollment numbers before consultation enablement.

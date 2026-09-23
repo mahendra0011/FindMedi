@@ -73,7 +73,7 @@ router.get('/presence', async (req, res) => {
 
 router.get('/', async (req, res) => {
   try {
-    const { page, limit, search, available, specialization, location, includeAll, hospitalId, facilityId, doctor_type } = req.query;
+    const { page, limit, search, available, specialization, location, city, includeAll, hospitalId, facilityId, doctor_type } = req.query;
 
     const cacheKey = `doctors_list_${JSON.stringify(req.query)}`;
     const cached = await getCache(cacheKey);
@@ -98,7 +98,8 @@ router.get('/', async (req, res) => {
       { specialization: new RegExp(search, 'i') },
     ];
     if (specialization && specialization !== 'All') filter.specialization = new RegExp(specialization, 'i');
-    if (location && location !== 'All') filter.location = new RegExp(location, 'i');
+    const locOrCity = city || location;
+    if (locOrCity && locOrCity !== 'All') filter.location = new RegExp(locOrCity, 'i');
     if (available !== undefined) filter.available = available === 'true';
     if (doctor_type) filter.doctor_type = doctor_type;
 

@@ -98,7 +98,7 @@ export default function LawyerProfile() {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+          <div className="w-10 h-10 border-4 border-slate-900 dark:border-white border-t-transparent rounded-full animate-spin" />
           <span className="text-sm text-slate-400">Loading advocate profile…</span>
         </div>
       </div>
@@ -128,7 +128,6 @@ export default function LawyerProfile() {
     practiceCategories = [],
     yearsOfPractice = 5,
     consultationFee = 800,
-    followUpFee = 500,
     rating = 5.0,
     reviewsCount = 0,
     casesHandled = 25,
@@ -187,8 +186,8 @@ export default function LawyerProfile() {
     },
     {
       icon: Award,
-      iconColor: 'text-indigo-500',
-      iconBg: 'bg-indigo-50 dark:bg-indigo-950/40',
+      iconColor: 'text-slate-700 dark:text-slate-300',
+      iconBg: 'bg-slate-100 dark:bg-white/10',
       label: 'Experience',
       value: `${yearsOfPractice} Years`,
       sub: 'Active Practice',
@@ -216,7 +215,7 @@ export default function LawyerProfile() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 
         {/* ── Back Navigation ── */}
-        <Button variant="ghost" size="sm" asChild className="gap-2 rounded-xl text-xs text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/30">
+        <Button variant="ghost" size="sm" asChild className="gap-2 rounded-xl text-xs text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:hover:bg-white/10">
           <Link to="/find-lawyer">
             <ArrowLeft className="w-4 h-4" /> Back to Find a Lawyer
           </Link>
@@ -232,7 +231,7 @@ export default function LawyerProfile() {
           className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm"
         >
           {/* Thin accent bar */}
-          <div className="h-1.5 w-full bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-500" />
+          <div className="h-1.5 w-full bg-gradient-to-r from-black via-slate-800 to-slate-600" />
 
           <div className="px-6 sm:px-8 py-6">
             {/* Top row: avatar + info + status + action buttons */}
@@ -243,7 +242,7 @@ export default function LawyerProfile() {
                   {profilePhoto ? (
                     <img src={profilePhoto} alt={name} className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-indigo-500 to-violet-600">
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-800 to-slate-700">
                       <span className="text-3xl font-bold text-white">{initials}</span>
                     </div>
                   )}
@@ -259,7 +258,7 @@ export default function LawyerProfile() {
                   <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
                     Adv. {name}
                   </h1>
-                  <Badge className="bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800 text-[11px] gap-1 font-semibold">
+                  <Badge className="bg-slate-200 dark:bg-white/10 text-slate-900 dark:text-slate-200 border-slate-200 dark:border-slate-700 text-[11px] gap-1 font-semibold">
                     <BadgeCheck className="w-3.5 h-3.5" /> Bar Council Verified
                   </Badge>
                   {isPoliceVerified && (
@@ -269,7 +268,7 @@ export default function LawyerProfile() {
                   )}
                 </div>
 
-                <p className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 mt-1">
+                <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 mt-1">
                   {practiceCategories.join(' · ') || 'Legal Advocate'}
                 </p>
 
@@ -281,7 +280,7 @@ export default function LawyerProfile() {
                     </span>
                   )}
                   <span className="flex items-center gap-1 text-slate-700 dark:text-slate-300 font-medium">
-                    <Briefcase className="w-3.5 h-3.5 text-indigo-400" />
+                    <Briefcase className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
                     {practiceType === 'firm' && lawFirmName
                       ? `${lawFirmName} (${yearsAtCurrentPractice} yrs)`
                       : `Independent Practice · ${yearsAtCurrentPractice || yearsOfPractice} yrs`}
@@ -306,17 +305,21 @@ export default function LawyerProfile() {
                   variant="outline"
                   size="sm"
                   onClick={() => setShowScheduleModal(true)}
-                  className="flex-1 sm:flex-none gap-2 rounded-xl text-xs h-10 px-4 border-slate-200 dark:border-slate-700 hover:border-indigo-300 hover:text-indigo-600"
+                  className="flex-1 sm:flex-none gap-2 rounded-xl text-xs h-10 px-4 border-slate-200 dark:border-slate-700 hover:border-slate-900 hover:text-slate-900"
                 >
                   <CalendarDays className="w-4 h-4" /> Schedule Consultation
                 </Button>
                 <Button
                   size="sm"
                   onClick={() => setShowUrgentIntake(true)}
-                  disabled={!isAvailable}
-                  className="flex-1 sm:flex-none gap-2 rounded-xl text-xs h-10 px-5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-bold shadow-lg shadow-indigo-500/25 border-0"
+                  title={
+                    isAvailable
+                      ? 'Advocate is online — book an urgent consultation now'
+                      : 'Advocate is offline right now — your request will still be sent and queued on their console'
+                  }
+                  className="flex-1 sm:flex-none gap-2 rounded-xl text-xs h-10 px-5 bg-gradient-to-r from-slate-900 to-slate-700 hover:from-black hover:to-slate-800 text-white font-bold shadow-lg shadow-slate-900/25 border-0"
                 >
-                  <Gavel className="w-4 h-4" /> Book Urgent
+                  <Gavel className="w-4 h-4" /> {isAvailable ? 'Book Urgent' : 'Send Request'}
                 </Button>
               </div>
             </div>
@@ -359,8 +362,8 @@ export default function LawyerProfile() {
               className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 space-y-3"
             >
               <h2 className="font-bold text-base text-slate-800 dark:text-slate-100 flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 flex items-center justify-center">
-                  <User className="w-4 h-4 text-indigo-500" />
+                <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-white/10 flex items-center justify-center">
+                  <User className="w-4 h-4 text-slate-700 dark:text-slate-300" />
                 </div>
                 About Adv. {name}
               </h2>
@@ -372,7 +375,7 @@ export default function LawyerProfile() {
               {barCouncilNumber && (
                 <div className="pt-2 grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <div className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
-                    <GraduationCap className="w-4 h-4 text-indigo-400 shrink-0" />
+                    <GraduationCap className="w-4 h-4 text-slate-500 dark:text-slate-400 shrink-0" />
                     <div>
                       <p className="text-[10px] text-slate-400 uppercase tracking-wide">Bar Council Number</p>
                       <p className="text-xs font-bold text-slate-700 dark:text-slate-200">{barCouncilNumber}</p>
@@ -380,7 +383,7 @@ export default function LawyerProfile() {
                   </div>
                   {stateBarCouncil && (
                     <div className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
-                      <Building className="w-4 h-4 text-indigo-400 shrink-0" />
+                      <Building className="w-4 h-4 text-slate-500 dark:text-slate-400 shrink-0" />
                       <div>
                         <p className="text-[10px] text-slate-400 uppercase tracking-wide">State</p>
                         <p className="text-xs font-bold text-slate-700 dark:text-slate-200">{stateBarCouncil}</p>
@@ -389,7 +392,7 @@ export default function LawyerProfile() {
                   )}
                   {yearOfEnrollment && (
                     <div className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
-                      <CalendarDays className="w-4 h-4 text-indigo-400 shrink-0" />
+                      <CalendarDays className="w-4 h-4 text-slate-500 dark:text-slate-400 shrink-0" />
                       <div>
                         <p className="text-[10px] text-slate-400 uppercase tracking-wide">Enrolled</p>
                         <p className="text-xs font-bold text-slate-700 dark:text-slate-200">{yearOfEnrollment}</p>
@@ -405,8 +408,8 @@ export default function LawyerProfile() {
               className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 space-y-3"
             >
               <h2 className="font-bold text-base text-slate-800 dark:text-slate-100 flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-violet-50 dark:bg-violet-950/40 flex items-center justify-center">
-                  <Gavel className="w-4 h-4 text-violet-500" />
+                <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-white/10 flex items-center justify-center">
+                  <Gavel className="w-4 h-4 text-slate-700 dark:text-slate-300" />
                 </div>
                 Legal Areas of Practice
               </h2>
@@ -414,7 +417,7 @@ export default function LawyerProfile() {
                 {practiceCategories.map((cat: string, i: number) => (
                   <span
                     key={i}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 transition-colors hover:bg-indigo-100 dark:hover:bg-indigo-900/50"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-white/10 text-slate-900 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-colors hover:bg-slate-200 dark:hover:bg-white/10"
                   >
                     <Scale className="w-3.5 h-3.5" /> {cat}
                   </span>
@@ -437,9 +440,9 @@ export default function LawyerProfile() {
                   {courtsPracticedIn.map((court: string, i: number) => (
                     <div
                       key={i}
-                      className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 text-sm text-slate-700 dark:text-slate-300 font-medium hover:border-indigo-200 dark:hover:border-indigo-800 transition-colors"
+                      className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 text-sm text-slate-700 dark:text-slate-300 font-medium hover:border-slate-200 dark:hover:border-slate-500 transition-colors"
                     >
-                      <Building className="w-4 h-4 text-indigo-400 shrink-0" />
+                      <Building className="w-4 h-4 text-slate-500 dark:text-slate-400 shrink-0" />
                       <span>{court}</span>
                     </div>
                   ))}
@@ -508,8 +511,8 @@ export default function LawyerProfile() {
               >
                 <div className="flex items-center justify-between">
                   <h2 className="font-bold text-base text-slate-800 dark:text-slate-100 flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center">
-                      <HelpCircle className="w-4 h-4 text-blue-500" />
+                    <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-white/10 flex items-center justify-center">
+                      <HelpCircle className="w-4 h-4 text-slate-700 dark:text-slate-300" />
                     </div>
                     Frequently Asked Questions
                   </h2>
@@ -522,7 +525,7 @@ export default function LawyerProfile() {
                       className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 space-y-2"
                     >
                       <p className="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-start gap-2">
-                        <span className="shrink-0 w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 text-[10px] font-bold flex items-center justify-center mt-0.5">
+                        <span className="shrink-0 w-5 h-5 rounded-full bg-slate-200 dark:bg-white/10 text-slate-900 dark:text-slate-100 text-[10px] font-bold flex items-center justify-center mt-0.5">
                           Q
                         </span>
                         {faq.question}
@@ -612,8 +615,8 @@ export default function LawyerProfile() {
               className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 space-y-5 sticky top-6 shadow-sm"
             >
               {/* Next Available Slot */}
-              <div className="p-3.5 rounded-2xl bg-gradient-to-r from-indigo-50 to-violet-50 dark:from-indigo-950/30 dark:to-violet-950/30 border border-indigo-200/60 dark:border-indigo-800/40 space-y-1.5">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400">
+              <div className="p-3.5 rounded-2xl bg-gradient-to-r from-slate-100 to-slate-100 dark:from-black/30 dark:to-slate-900/30 border border-slate-200/60 dark:border-slate-700/40 space-y-1.5">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900 dark:text-slate-100">
                   <CalendarDays className="w-3.5 h-3.5" />
                   <span>Next Available Slot</span>
                 </div>
@@ -630,12 +633,11 @@ export default function LawyerProfile() {
                 </h3>
                 <div className="mt-3 space-y-2">
                   <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
-                    <span className="text-xs text-slate-500">First Consultation</span>
+                    <div>
+                      <span className="text-xs text-slate-500">Consultation Fee</span>
+                      <p className="text-[10px] text-slate-400">Payable after the session completes</p>
+                    </div>
                     <span className="text-lg font-bold text-slate-800 dark:text-slate-100">₹{consultationFee}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
-                    <span className="text-xs text-slate-500">Follow-Up Consultation</span>
-                    <span className="text-base font-bold text-slate-700 dark:text-slate-200">₹{followUpFee}</span>
                   </div>
                 </div>
               </div>
@@ -646,7 +648,7 @@ export default function LawyerProfile() {
               <div className="space-y-2">
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Consultation Mode</label>
                 <div className="flex flex-wrap gap-2">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 border border-violet-200 dark:border-violet-800">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-white/10 text-slate-900 dark:text-slate-200 border border-slate-200 dark:border-slate-700">
                     <Building className="w-3.5 h-3.5" /> In-Person Hospital & Client Visit
                   </span>
                 </div>
@@ -675,17 +677,25 @@ export default function LawyerProfile() {
 
               {/* CTA Buttons */}
               <div className="space-y-2.5 pt-2">
+                {!isAvailable && (
+                  <div className="p-3 rounded-xl bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-[11px] text-slate-600 dark:text-slate-300 flex items-start gap-2">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-slate-500" />
+                    <span>
+                      Adv. {name} is offline right now — you can still send the request. It will be queued on
+                      their legal console and they are notified instantly.
+                    </span>
+                  </div>
+                )}
                 <Button
                   onClick={() => setShowUrgentIntake(true)}
-                  disabled={!isAvailable}
-                  className="w-full h-11 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-bold gap-2 shadow-lg shadow-indigo-500/25 border-0 text-sm"
+                  className="w-full h-11 rounded-xl bg-gradient-to-r from-slate-900 via-zinc-900 to-black hover:from-black hover:to-zinc-900 text-white font-bold gap-2 shadow-lg shadow-slate-900/25 border-0 text-sm"
                 >
-                  <Gavel className="w-4 h-4" /> Book Urgent Consultation
+                  <Gavel className="w-4 h-4" /> {isAvailable ? 'Book Urgent Consultation' : 'Send Consultation Request'}
                 </Button>
                 <Button
                   variant="outline"
                   onClick={() => setShowScheduleModal(true)}
-                  className="w-full h-11 rounded-xl gap-2 text-xs border-slate-200 dark:border-slate-700 hover:border-indigo-300 hover:text-indigo-600"
+                  className="w-full h-11 rounded-xl gap-2 text-xs border-slate-200 dark:border-slate-700 hover:border-slate-900 hover:text-slate-900 dark:hover:border-slate-400 dark:hover:text-slate-100"
                 >
                   <CalendarDays className="w-4 h-4" /> Schedule Future Session
                 </Button>

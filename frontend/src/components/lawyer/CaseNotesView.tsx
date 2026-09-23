@@ -44,7 +44,7 @@ export const CaseNotesView: React.FC<Props> = ({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-white/10 text-slate-900 dark:text-slate-100 flex items-center justify-center">
             <FileText className="w-4 h-4" />
           </div>
           <div>
@@ -84,14 +84,14 @@ export const CaseNotesView: React.FC<Props> = ({
             value={newNote}
             onChange={(e) => setNewNote(e.target.value)}
             placeholder="Type live case observation, relevant medical law precedent, documents needed, or advice given..."
-            className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:text-slate-100"
+            className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-900 dark:focus:border-white dark:text-slate-100"
           />
           <div className="flex justify-end">
             <Button
               type="submit"
               disabled={saving || !newNote.trim()}
               size="sm"
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-sm gap-1.5"
+              className="bg-slate-900 hover:bg-black text-white font-bold text-xs rounded-xl shadow-sm gap-1.5"
             >
               <Send className="w-3.5 h-3.5" />
               {saving ? 'Saving...' : 'Add Case Note'}
@@ -113,7 +113,7 @@ export const CaseNotesView: React.FC<Props> = ({
               className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/90 shadow-sm space-y-1.5 text-xs animate-in fade-in duration-200"
             >
               <div className="flex items-center justify-between text-[11px] text-slate-400">
-                <span className="font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
+                <span className="font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1">
                   Advocate Case Note #{index + 1}
                 </span>
                 <span className="flex items-center gap-1">

@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, UserRound, Stethoscope, CalendarDays, FileText,
   CreditCard, Percent, Settings, ChevronLeft, ChevronRight, Activity, LogOut,
-  Home, Search, Star, Users, BarChart3, Bell, Building2, Clock, Calendar, CalendarClock, DollarSign, FileUp, Download, TestTube, AlertTriangle, Menu, X, Bed, Pill, FlaskConical, Hospital,   Heart, Brain, Syringe, ClipboardList, ShieldCheck, Baby, Ambulance, IndianRupee, History, Flag, ShoppingCart, Megaphone, Settings2, Truck, Microscope, HelpCircle, MapPinned, User, Bookmark, Upload, TrendingUp, FileCheck, Tags,   Headset, Shield, Tag, MapPin, Globe, Package, RotateCcw, Bot, Video, MessageCircle, Phone, CheckCircle2, Car, UserCheck, Scale, Briefcase, QrCode, BookOpen, NotebookPen
+  Home, Search, Star, Users, BarChart3, Bell, Building2, Clock, Calendar, CalendarClock, DollarSign, FileUp, Download, TestTube, AlertTriangle, Menu, X, Bed, Pill, FlaskConical, Hospital, Heart, Brain, Syringe, ClipboardList, ShieldCheck, Baby, Ambulance, IndianRupee, History, Flag, ShoppingCart, Megaphone, Settings2, Truck, Microscope, HelpCircle, MapPinned, User, Bookmark, Upload, TrendingUp, FileCheck, Tags,   Headset, Shield, Tag, MapPin, Globe, Package, RotateCcw, Bot, Video, MessageCircle, Phone, CheckCircle2, Car, UserCheck, Scale, Briefcase, QrCode, BookOpen, NotebookPen, Target, Smile
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { t } from '@/lib/settings';
@@ -177,7 +177,6 @@ const navConfig = {
   // Offline/in-person, tests/lab, prescriptions nahi — counsellor prescribe nahi karta, sirf assignments deta hai.
   counsellor: [
     { icon: LayoutDashboard, labelKey: 'nav.findmediDashboard', path: '/dashboard'            },
-    { icon: Brain,           labelKey: 'nav.mindDashboard',     path: '/mind/counsellor'      },
     { icon: ClipboardList,   labelKey: 'nav.mindSessions',      path: '/mind/counsellor?tab=sessions' },
     { icon: Users,           labelKey: 'nav.mindPatients',      path: '/mind/counsellor?tab=patients' },
     { icon: NotebookPen,     labelKey: 'nav.mindNotes',         path: '/mind/counsellor?tab=notes' },
@@ -207,7 +206,6 @@ const navConfig = {
   // Psychiatrist: FindMedi dashboard + Mindsupport tabs merged (single sidebar, full sections).
   psychiatrist: [
     { icon: LayoutDashboard, labelKey: 'nav.findmediDashboard', path: '/dashboard'            },
-    { icon: Brain,           labelKey: 'nav.mindDashboard',     path: '/mind/psychiatrist'    },
     { icon: ClipboardList,   labelKey: 'nav.mindSessions',      path: '/mind/psychiatrist?tab=sessions' },
     { icon: Users,           labelKey: 'nav.mindPatients',      path: '/mind/psychiatrist?tab=patients' },
     { icon: NotebookPen,     labelKey: 'nav.mindNotes',         path: '/mind/psychiatrist?tab=notes' },
@@ -319,6 +317,12 @@ const navConfig = {
     { icon: FileText,        labelKey: 'nav.muAssignments',         path: '/mind/user?tab=assignments', isMind: true },
     { icon: NotebookPen,     labelKey: 'nav.muJournal',             path: '/mind/user?tab=journal', isMind: true },
     { icon: Settings,        labelKey: 'nav.mindSettings',          path: '/mind/user?tab=settings', isMind: true },
+    // 🧘 My Wellness (expandable parent section)
+    { icon: LayoutDashboard, labelKey: 'nav.myWellnessDashboard',   path: '/mind/wellness?tab=dashboard', isMyWellness: true },
+    { icon: Target,          labelKey: 'nav.myWellnessGoals',       path: '/mind/wellness?tab=goals', isMyWellness: true },
+    { icon: ClipboardList,   labelKey: 'nav.myWellnessRisk',        path: '/mind/wellness?tab=assessment', isMyWellness: true },
+    { icon: Smile,           labelKey: 'nav.myWellnessMood',        path: '/mind/wellness?tab=mood', isMyWellness: true },
+    { icon: AlertTriangle,   labelKey: 'nav.myWellnessEmergency',   path: '/mind/wellness?tab=emergency', isMyWellness: true },
     { icon: IndianRupee,     labelKey: 'nav.paymentHistory',        path: '/patient/history'            },
     { icon: MapPinned,       labelKey: 'nav.addresses',             path: '/patient/addresses'          },
     { icon: Bell,            labelKey: 'nav.notifications',         path: '/notifications'              },
@@ -389,7 +393,7 @@ const navConfig = {
   ],
 };
 
-const roleBadgeColor = { hospital_admin: 'bg-primary/20 text-primary', doctor: 'bg-info/20 text-info', patient: 'bg-success/20 text-success', clinic_doctor: 'bg-warning/20 text-warning', lab_owner: 'bg-purple-500/20 text-purple-600', pharmacy_owner: 'bg-rose-500/20 text-rose-600', delivery_boy: 'bg-blue-500/20 text-blue-600', rider: 'bg-teal-500/20 text-teal-600', assistant: 'bg-emerald-500/20 text-emerald-600', lawyer: 'bg-indigo-500/20 text-indigo-600', ambulance: 'bg-red-500/20 text-red-600', counsellor: 'bg-violet-500/20 text-violet-600', psychiatrist: 'bg-fuchsia-500/20 text-fuchsia-600' };
+const roleBadgeColor = { hospital_admin: 'bg-primary/20 text-primary', doctor: 'bg-info/20 text-info', patient: 'bg-success/20 text-success', clinic_doctor: 'bg-warning/20 text-warning', lab_owner: 'bg-purple-500/20 text-purple-600', pharmacy_owner: 'bg-rose-500/20 text-rose-600', delivery_boy: 'bg-blue-500/20 text-blue-600', rider: 'bg-teal-500/20 text-teal-600', assistant: 'bg-emerald-500/20 text-emerald-600', lawyer: 'bg-slate-900/15 text-slate-900 dark:bg-white/15 dark:text-slate-100', ambulance: 'bg-red-500/20 text-red-600', counsellor: 'bg-violet-500/20 text-violet-600', psychiatrist: 'bg-fuchsia-500/20 text-fuchsia-600' };
 
 
 function SidebarContent({ collapsed, onToggleCollapse, onNavClick }: any) {
@@ -404,6 +408,7 @@ function SidebarContent({ collapsed, onToggleCollapse, onNavClick }: any) {
   const language = user?.settings?.language || 'en';
   const [myHealthOpen, setMyHealthOpen] = useState(true);
   const [mindOpen, setMindOpen] = useState(true);
+  const [myWellnessOpen, setMyWellnessOpen] = useState(true);
 
   return (
     <div className={`flex flex-col h-full bg-sidebar text-sidebar-foreground ${collapsed ? 'w-[72px]' : 'w-64'}`}>
@@ -439,7 +444,7 @@ function SidebarContent({ collapsed, onToggleCollapse, onNavClick }: any) {
       {/* Navigation */}
       <nav className="sidebar-nav min-h-0 flex-1 py-3 px-2 space-y-0.5 overflow-y-auto overscroll-contain">
         {navItems.map((item: any, idx: number) => {
-          const { icon: Icon, labelKey, path, isHealth, isMind } = item;
+          const { icon: Icon, labelKey, path, isHealth, isMind, isMyWellness } = item;
           const currentFull = location.pathname + (location.search || '');
           let isActive = false;
           if (path.startsWith('/mind/user?tab=')) {
@@ -463,6 +468,7 @@ function SidebarContent({ collapsed, onToggleCollapse, onNavClick }: any) {
 
           const isFirstHealth = isHealth && (idx === 0 || !navItems[idx - 1]?.isHealth);
           const isFirstMind = isMind && (idx === 0 || !navItems[idx - 1]?.isMind);
+          const isFirstMyWellness = isMyWellness && (idx === 0 || !navItems[idx - 1]?.isMyWellness);
 
           if (isHealth && !myHealthOpen && !collapsed && !isActive) {
             return isFirstHealth ? (
@@ -500,8 +506,44 @@ function SidebarContent({ collapsed, onToggleCollapse, onNavClick }: any) {
             ) : null;
           }
 
+          if (isMyWellness && !myWellnessOpen && !collapsed && !isActive) {
+            return isFirstMyWellness ? (
+              <div key="mywellness-header-collapsed" className="pt-2 pb-1">
+                <button
+                  type="button"
+                  onClick={() => setMyWellnessOpen(true)}
+                  className="w-full flex items-center justify-between px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-teal-500 hover:bg-teal-500/10 rounded-xl transition-all"
+                >
+                  <span className="flex items-center gap-2">
+                    <Heart className="w-3.5 h-3.5 text-teal-500" />
+                    <span>My Wellness</span>
+                  </span>
+                  <ChevronRight className="w-3.5 h-3.5 transition-transform duration-200" />
+                </button>
+              </div>
+            ) : null;
+          }
+
           return (
             <React.Fragment key={`${path}-${labelKey}-${idx}`}>
+              {isFirstMyWellness && (
+                <div className="pt-2 pb-1">
+                  <button
+                    type="button"
+                    onClick={() => setMyWellnessOpen(!myWellnessOpen)}
+                    title={collapsed ? "My Wellness" : undefined}
+                    className={`w-full flex items-center justify-between px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-teal-500 hover:bg-teal-500/10 rounded-xl transition-all ${collapsed ? 'justify-center' : ''}`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <Heart className="w-3.5 h-3.5 text-teal-500" />
+                      {!collapsed && <span>My Wellness</span>}
+                    </span>
+                    {!collapsed && (
+                      <ChevronRight className={`w-3.5 h-3.5 transition-transform duration-200 ${myWellnessOpen ? 'rotate-90' : ''}`} />
+                    )}
+                  </button>
+                </div>
+              )}
               {isFirstMind && (
                 <div className="pt-2 pb-1">
                   <button
@@ -548,7 +590,7 @@ function SidebarContent({ collapsed, onToggleCollapse, onNavClick }: any) {
               ) : (
                 <Link to={path} onClick={onNavClick}
                   title={collapsed ? label : undefined}
-                  className={`sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${isActive ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-lg shadow-sidebar-primary/20' : 'text-sidebar-foreground/65 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'} ${collapsed ? 'justify-center' : ''} ${isHealth && !collapsed ? 'ml-2 pl-3 border-l border-rose-500/30' : ''} ${isMind && !collapsed ? 'ml-2 pl-3 border-l border-violet-500/30' : ''}`}>
+                  className={`sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${isActive ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-lg shadow-sidebar-primary/20' : 'text-sidebar-foreground/65 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'} ${collapsed ? 'justify-center' : ''} ${isHealth && !collapsed ? 'ml-2 pl-3 border-l border-rose-500/30' : ''} ${isMind && !collapsed ? 'ml-2 pl-3 border-l border-violet-500/30' : ''} ${isMyWellness && !collapsed ? 'ml-2 pl-3 border-l border-teal-500/30' : ''}`}>
                   <Icon className={`w-[18px] h-[18px] flex-shrink-0 ${!isActive ? 'group-hover:scale-110 transition-transform' : ''}`} />
                   {!collapsed && <span className="text-sm font-medium">{label}</span>}
                 </Link>

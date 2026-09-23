@@ -15,6 +15,8 @@ import {
   broadcastLawyerBooking,
   notifyBookingUpdate,
   LEGAL_CATEGORIES_INFO,
+  CATEGORY_MAP_TO_SLUG,
+  CATEGORY_MAP_TO_DISPLAY,
 } from '../services/lawyerService.js';
 import { generateLawyerReceiptPdf } from '../services/lawyerReceiptService.js';
 import { getIO } from '../services/socketService.js';
@@ -641,6 +643,73 @@ router.get('/lawyer-history', protect, async (req, res) => {
   } catch (err) {
     logger.error(`Error fetching lawyer history: ${err.message}`);
     res.status(500).json({ message: 'Failed to fetch history' });
+  }
+});
+
+// ─── GET /api/lawyer-booking/lawyer-requests ───────────────────────────────
+// Pending consultation requests for the logged-in advocate.
+// Covers both targeted (1-to-1) and urgent broadcast (unassigned) requests so
+// that requests received while the advocate was offline are never lost.
+router.get('/lawyer-requests', protect, async (req, res) => {
+  try {
+    const profile = await LawyerProfile.findOne({ userId: req.user._id });
+    if (!profile) {
+      return res.status(404).json({ message: 'Lawyer profile not found' });
+    }
+
+    const pendingStatuses = ['requested', 'reschedule_proposed'];
+
+    // 1. Direct / targeted requests addressed to this advocate
+    const targeted = await LawyerBooking.find({
+      lawyerId: req.user._id,
+      status: { $in: pendingStatuses },
+    })
+      .populate('userId', 'name email phone avatar')
+      .sort({ createdAt: -1 });
+
+    // 2. Unassigned urgent broadcasts matching this advocate's practice areas
+    const catSlugs = (profile.practiceCategories || []).flatMap((c) => {
+      const slug = CATEGORY_MAP_TO_SLUG[c] || c;
+      const display = CATEGORY_MAP_TO_DISPLAY[c] || c;
+      return [c, slug, display];
+    });
+
+    const broadcastFilter = {
+      lawyerId: null,
+      status: { $in: pendingStatuses },
+      urgency: 'urgent',
+      targetLawyerOnly: { $ne: true },
+      ...(catSlugs.length ? { category: { $in: catSlugs } } : {}),
+    };
+
+    // Only surface broadcasts this advocate is actually eligible to handle
+    if (profile.acceptsUrgent === false) {
+      return res.json({ success: true, count: targeted.length, requests: targeted });
+    }
+
+    let broadcasts = await LawyerBooking.find(broadcastFilter)
+      .populate('userId', 'name email phone avatar')
+      .sort({ createdAt: -1 })
+      .limit(25);
+
+    // Prefer same-city broadcasts; fall back to all matching broadcast requests
+    const city = profile.operatingCity || profile.jurisdictionCity;
+    if (city) {
+      const sameCity = broadcasts.filter(
+        (b) =>
+          !b.location?.city ||
+          String(b.location.city).toLowerCase().includes(String(city).toLowerCase())
+      );
+      if (sameCity.length > 0) broadcasts = sameCity;
+    }
+
+    const targetedIds = new Set(targeted.map((b) => String(b._id)));
+    const merged = [...targeted, ...broadcasts.filter((b) => !targetedIds.has(String(b._id)))];
+
+    res.json({ success: true, count: merged.length, requests: merged });
+  } catch (err) {
+    logger.error(`Error fetching lawyer pending requests: ${err.message}`);
+    res.status(500).json({ message: 'Failed to fetch pending requests' });
   }
 });
 

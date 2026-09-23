@@ -9,6 +9,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
 import { allCities } from '@/data/cities';
 import { api } from '@/lib/api';
+import { getSocket } from '@/lib/socket';
 
 const DEFAULT_MAIN_NAV = [
   { label: 'Home', path: '/' },
@@ -49,6 +50,14 @@ const LAWYER_NAV_ITEMS = [
   { label: '💰 Earnings', path: '/lawyer/dashboard?tab=earnings' },
 ];
 
+const AMBULANCE_NAV_ITEMS = [
+  { label: 'Home', path: '/' },
+  { label: '🚑 Ambulance Dashboard', path: '/ambulance/dashboard' },
+  { label: '🚨 Active Mission', path: '/ambulance/dashboard?tab=active' },
+  { label: '📜 Mission History', path: '/ambulance/dashboard?tab=history' },
+  { label: '🩺 Equipment & Specs', path: '/ambulance/dashboard?tab=vehicle' },
+];
+
 export default function PublicNavbar() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -62,40 +71,75 @@ export default function PublicNavbar() {
   const [assistantStatusLoading, setAssistantStatusLoading] = useState(false);
   const [isLawyerOnline, setIsLawyerOnline] = useState(false);
   const [lawyerStatusLoading, setLawyerStatusLoading] = useState(false);
+  const [isAmbulanceOnline, setIsAmbulanceOnline] = useState(false);
+  const [ambulanceStatusLoading, setAmbulanceStatusLoading] = useState(false);
 
   const isRider = user?.role === 'rider';
   const isAssistant = user?.role === 'assistant';
   const isLawyer = user?.role === 'lawyer';
+  const isAmbulance = user?.role === 'ambulance';
 
   useEffect(() => {
     if (isRider) {
       api.getRiderProfile()
-        .then((res) => {
-          if (res?.profile?.isOnline !== undefined) {
-            setIsRiderOnline(Boolean(res.profile.isOnline));
+        .then((res: any) => {
+          const onlineVal = res?.rider?.isOnline !== undefined ? res.rider.isOnline : res?.profile?.isOnline;
+          if (onlineVal !== undefined) {
+            setIsRiderOnline(Boolean(onlineVal));
           }
         })
         .catch(() => {});
     }
     if (isAssistant) {
       api.getMyAssistantProfile()
-        .then((res) => {
-          if (res?.profile?.isAvailable !== undefined) {
-            setIsAssistantOnline(Boolean(res.profile.isAvailable));
+        .then((res: any) => {
+          const availVal = res?.profile?.isAvailable !== undefined ? res.profile.isAvailable : res?.isAvailable;
+          if (availVal !== undefined) {
+            setIsAssistantOnline(Boolean(availVal));
           }
         })
         .catch(() => {});
     }
     if (isLawyer) {
       api.getMyLawyerProfile()
-        .then((res) => {
-          if (res?.profile?.isAvailable !== undefined) {
-            setIsLawyerOnline(Boolean(res.profile.isAvailable));
+        .then((res: any) => {
+          const availVal = res?.profile?.isAvailable !== undefined ? res.profile.isAvailable : res?.isAvailable;
+          if (availVal !== undefined) {
+            setIsLawyerOnline(Boolean(availVal));
           }
         })
         .catch(() => {});
     }
-  }, [isRider, isAssistant, isLawyer]);
+    if (isAmbulance) {
+      api.get('/ambulance/me')
+        .then((res: any) => {
+          if (res?.ambulance?.isOnline !== undefined) {
+            setIsAmbulanceOnline(Boolean(res.ambulance.isOnline));
+          }
+        })
+        .catch(() => {});
+    }
+
+    const handleSyncStatus = (e: any) => {
+      if (e?.detail?.type === 'rider' && e.detail.isOnline !== undefined) {
+        setIsRiderOnline(Boolean(e.detail.isOnline));
+      }
+      if (e?.detail?.type === 'assistant' && e.detail.isAvailable !== undefined) {
+        setIsAssistantOnline(Boolean(e.detail.isAvailable));
+      }
+      if (e?.detail?.type === 'lawyer' && e.detail.isAvailable !== undefined) {
+        setIsLawyerOnline(Boolean(e.detail.isAvailable));
+      }
+      if (e?.detail?.type === 'ambulance' && e.detail.isOnline !== undefined) {
+        setIsAmbulanceOnline(Boolean(e.detail.isOnline));
+      }
+    };
+
+    window.addEventListener('provider_status_changed', handleSyncStatus);
+    return () => {
+      window.removeEventListener('provider_status_changed', handleSyncStatus);
+    };
+  }, [isRider, isAssistant, isLawyer, isAmbulance]);
 
   const handleToggleOnline = async () => {
     if (riderStatusLoading) return;
@@ -104,6 +148,33 @@ export default function PublicNavbar() {
       const next = !isRiderOnline;
       await api.setRiderStatus(next);
       setIsRiderOnline(next);
+      window.dispatchEvent(new CustomEvent('provider_status_changed', {
+        detail: { type: 'rider', isOnline: next }
+      }));
+
+      const socket = getSocket();
+      if (next) {
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              socket.emit('rider_go_online', {
+                riderId: user?._id,
+                lat: pos.coords.latitude,
+                lng: pos.coords.longitude,
+                accuracy: pos.coords.accuracy,
+              });
+            },
+            () => {
+              socket.emit('rider_go_online', { riderId: user?._id });
+            },
+            { timeout: 5000 }
+          );
+        } else {
+          socket.emit('rider_go_online', { riderId: user?._id });
+        }
+      } else {
+        socket.emit('rider_go_offline', { riderId: user?._id });
+      }
     } catch (err) {
       console.error('Failed to toggle status:', err);
     } finally {
@@ -118,6 +189,11 @@ export default function PublicNavbar() {
       const next = !isAssistantOnline;
       await api.setAssistantStatus(next);
       setIsAssistantOnline(next);
+      window.dispatchEvent(new CustomEvent('provider_status_changed', {
+        detail: { type: 'assistant', isAvailable: next }
+      }));
+      const socket = getSocket();
+      socket.emit(next ? 'assistant_go_available' : 'assistant_go_unavailable', { assistantId: user?._id });
     } catch (err) {
       console.error('Failed to toggle assistant status:', err);
     } finally {
@@ -132,10 +208,48 @@ export default function PublicNavbar() {
       const next = !isLawyerOnline;
       await api.setLawyerStatus(next);
       setIsLawyerOnline(next);
+      window.dispatchEvent(new CustomEvent('provider_status_changed', {
+        detail: { type: 'lawyer', isAvailable: next }
+      }));
+      const socket = getSocket();
+      socket.emit(next ? 'lawyer_go_available' : 'lawyer_go_unavailable', { lawyerId: user?._id });
     } catch (err) {
       console.error('Failed to toggle lawyer status:', err);
     } finally {
       setLawyerStatusLoading(false);
+    }
+  };
+
+  const handleToggleAmbulanceOnline = async () => {
+    if (ambulanceStatusLoading) return;
+    setAmbulanceStatusLoading(true);
+    try {
+      const next = !isAmbulanceOnline;
+      if (next) {
+        const pos = await new Promise<GeolocationPosition>((res, rej) =>
+          navigator.geolocation.getCurrentPosition(res, rej, { enableHighAccuracy: true, timeout: 10000 })
+        );
+        const res: any = await api.put('/ambulance/me/online', {
+          online: true,
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          accuracy: pos.coords.accuracy,
+        });
+        setIsAmbulanceOnline(Boolean(res.isOnline));
+        window.dispatchEvent(new CustomEvent('provider_status_changed', {
+          detail: { type: 'ambulance', isOnline: true }
+        }));
+      } else {
+        const res: any = await api.put('/ambulance/me/online', { online: false });
+        setIsAmbulanceOnline(Boolean(res.isOnline));
+        window.dispatchEvent(new CustomEvent('provider_status_changed', {
+          detail: { type: 'ambulance', isOnline: false }
+        }));
+      }
+    } catch (err) {
+      console.error('Failed to toggle ambulance status:', err);
+    } finally {
+      setAmbulanceStatusLoading(false);
     }
   };
 
@@ -190,8 +304,15 @@ export default function PublicNavbar() {
           </Link>
 
           <nav className="hidden xl:flex items-center gap-0.5">
-            {isRider || isAssistant || isLawyer ? (
-              (isRider ? RIDER_NAV_ITEMS : isAssistant ? ASSISTANT_NAV_ITEMS : LAWYER_NAV_ITEMS).map((item) => (
+            {isRider || isAssistant || isLawyer || isAmbulance ? (
+              (isRider
+                ? RIDER_NAV_ITEMS
+                : isAssistant
+                ? ASSISTANT_NAV_ITEMS
+                : isLawyer
+                ? LAWYER_NAV_ITEMS
+                : AMBULANCE_NAV_ITEMS
+              ).map((item) => (
                 <Link
                   key={item.path}
                   to={item.path}
@@ -338,11 +459,27 @@ export default function PublicNavbar() {
               onClick={handleToggleLawyerOnline}
               disabled={lawyerStatusLoading}
               className={`hidden sm:flex items-center gap-1.5 rounded-full px-3 text-xs font-semibold ${
-                isLawyerOnline ? 'bg-indigo-600 hover:bg-indigo-700 text-white' : 'border-border text-muted-foreground'
+                isLawyerOnline ? 'bg-slate-900 hover:bg-black text-white dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200' : 'border-border text-muted-foreground'
               }`}
             >
               <span className={`w-2 h-2 rounded-full ${isLawyerOnline ? 'bg-white animate-pulse' : 'bg-muted-foreground'}`} />
               {isLawyerOnline ? 'Available' : 'Unavailable'}
+            </Button>
+          )}
+
+          {/* Ambulance Online / Offline Switch */}
+          {isAmbulance && (
+            <Button
+              variant={isAmbulanceOnline ? 'default' : 'outline'}
+              size="sm"
+              onClick={handleToggleAmbulanceOnline}
+              disabled={ambulanceStatusLoading}
+              className={`hidden sm:flex items-center gap-1.5 rounded-full px-3 text-xs font-semibold ${
+                isAmbulanceOnline ? 'bg-destructive hover:bg-destructive/90 text-white' : 'border-border text-muted-foreground'
+              }`}
+            >
+              <span className={`w-2 h-2 rounded-full ${isAmbulanceOnline ? 'bg-white animate-pulse' : 'bg-muted-foreground'}`} />
+              {isAmbulanceOnline ? 'Emergency Online' : 'Offline'}
             </Button>
           )}
 
@@ -457,7 +594,7 @@ export default function PublicNavbar() {
               Assistant Console
             </Button>
           ) : isLawyer ? (
-            <Button onClick={() => navigate('/lawyer/dashboard')} className="hidden sm:flex gap-2 whitespace-nowrap shrink-0 bg-indigo-600 hover:bg-indigo-700 text-white">
+            <Button onClick={() => navigate('/lawyer/dashboard')} className="hidden sm:flex gap-2 whitespace-nowrap shrink-0 bg-slate-900 hover:bg-black text-white dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200">
               <Scale className="w-4 h-4" />
               Advocate Console
             </Button>
@@ -531,7 +668,7 @@ export default function PublicNavbar() {
                 <Link
                   to="/patient/lawyers"
                   onClick={() => setMobileOpen(false)}
-                  className="block px-3 py-2 rounded-lg text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:bg-muted/50"
+                  className="block px-3 py-2 rounded-lg text-sm font-medium text-slate-900 dark:text-slate-100 hover:bg-muted/50"
                 >
                   ⚖️ My Lawyer Consultations
                 </Link>
@@ -570,12 +707,30 @@ export default function PublicNavbar() {
                 variant="ghost"
                 size="sm"
                 onClick={() => {
-                  navigate(isRider ? '/rider/dashboard' : isAssistant ? '/assistant/dashboard' : isLawyer ? '/lawyer/dashboard' : '/dashboard');
+                  navigate(
+                    isRider
+                      ? '/rider/dashboard'
+                      : isAssistant
+                      ? '/assistant/dashboard'
+                      : isLawyer
+                      ? '/lawyer/dashboard'
+                      : isAmbulance
+                      ? '/ambulance/dashboard'
+                      : '/dashboard'
+                  );
                   setMobileOpen(false);
                 }}
                 className="w-full justify-start"
               >
-                {isRider ? 'Rider Console' : isAssistant ? 'Assistant Console' : isLawyer ? 'Advocate Console' : 'Dashboard'}
+                {isRider
+                  ? 'Rider Console'
+                  : isAssistant
+                  ? 'Assistant Console'
+                  : isLawyer
+                  ? 'Advocate Console'
+                  : isAmbulance
+                  ? 'Ambulance Console'
+                  : 'Dashboard'}
               </Button>
             )}
             {isRider ? (
@@ -587,8 +742,12 @@ export default function PublicNavbar() {
                 {isAssistantOnline ? 'Currently Available (Go Offline)' : 'Currently Offline (Go Available)'}
               </Button>
             ) : isLawyer ? (
-              <Button onClick={() => { handleToggleLawyerOnline(); }} className={`w-full ${isLawyerOnline ? 'bg-indigo-600 text-white' : 'bg-muted'}`}>
+              <Button onClick={() => { handleToggleLawyerOnline(); }} className={`w-full ${isLawyerOnline ? 'bg-slate-900 hover:bg-black text-white dark:bg-white dark:text-slate-900' : 'bg-muted'}`}>
                 {isLawyerOnline ? 'Currently Available (Go Offline)' : 'Currently Offline (Go Available)'}
+              </Button>
+            ) : isAmbulance ? (
+              <Button onClick={() => { handleToggleAmbulanceOnline(); }} className={`w-full ${isAmbulanceOnline ? 'bg-destructive text-white' : 'bg-muted'}`}>
+                {isAmbulanceOnline ? 'Emergency Online (Go Offline)' : 'Currently Offline (Go Emergency Online)'}
               </Button>
             ) : null}
 

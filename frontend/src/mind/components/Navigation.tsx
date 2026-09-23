@@ -1,12 +1,10 @@
 import { useState } from "react";
 import { Button } from "@/mind/components/ui/button";
 import {
-    BarChart3,
     BookOpen,
     Brain,
     BrainCircuit,
     Calendar,
-    Heart,
     Home,
     Info,
     Menu,
@@ -43,8 +41,6 @@ const Navigation = () => {
         { name: "Peer Support", icon: Users, route: "/mind/peer" },
         { name: "Find Counsellor", icon: Calendar, route: "/mind/counselling" },
         { name: "Psychiatrist", icon: BrainCircuit, route: "/mind/psychiatrists" },
-        { name: "Dashboard", icon: BarChart3, route: "/mind/dashboard" },
-        { name: "My Wellness", icon: Heart, route: "/mind/wellness" },
         { name: "About", icon: Info, route: "/mind/about" },
     ];
 
