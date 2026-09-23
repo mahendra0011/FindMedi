@@ -192,7 +192,7 @@ router.put('/:id/auto-confirm', protect, async (req, res) => {
 
 router.get('/me/auto-confirm', protect, async (req, res) => {
   try {
-    if (!['doctor', 'clinic_doctor'].includes(req.user.role)) return res.status(403).json({ message: 'Doctor access required' });
+    if (!['doctor', 'clinic_doctor', 'counsellor', 'psychiatrist'].includes(req.user.role)) return res.status(403).json({ message: 'Doctor access required' });
     if (!req.user.doctorProfileId) return res.status(404).json({ message: 'Doctor profile not found' });
     const doctor = await Doctor.findById(req.user.doctorProfileId).select('autoConfirmAppointment').lean();
     res.json({ autoConfirmAppointment: doctor?.autoConfirmAppointment ?? null });
@@ -201,7 +201,7 @@ router.get('/me/auto-confirm', protect, async (req, res) => {
 
 router.put('/me/auto-confirm', protect, async (req, res) => {
   try {
-    if (!['doctor', 'clinic_doctor'].includes(req.user.role)) return res.status(403).json({ message: 'Doctor access required' });
+    if (!['doctor', 'clinic_doctor', 'counsellor', 'psychiatrist'].includes(req.user.role)) return res.status(403).json({ message: 'Doctor access required' });
     if (!req.user.doctorProfileId) return res.status(404).json({ message: 'Doctor profile not found' });
     const { autoConfirmAppointment } = req.body;
     const doctor = await Doctor.findByIdAndUpdate(
@@ -216,7 +216,7 @@ router.put('/me/auto-confirm', protect, async (req, res) => {
 
 router.get('/me/slot-capacity', protect, async (req, res) => {
   try {
-    if (!['doctor', 'clinic_doctor'].includes(req.user.role)) return res.status(403).json({ message: 'Doctor access required' });
+    if (!['doctor', 'clinic_doctor', 'counsellor', 'psychiatrist'].includes(req.user.role)) return res.status(403).json({ message: 'Doctor access required' });
     if (!req.user.doctorProfileId) return res.status(404).json({ message: 'Doctor profile not found' });
     const doctor = await Doctor.findById(req.user.doctorProfileId).select('maxBookingsPerSlot slotDuration').lean();
     res.json({ maxBookingsPerSlot: doctor?.maxBookingsPerSlot || 1, slotDuration: doctor?.slotDuration || 15 });
@@ -225,7 +225,7 @@ router.get('/me/slot-capacity', protect, async (req, res) => {
 
 router.put('/me/slot-capacity', protect, async (req, res) => {
   try {
-    if (!['doctor', 'clinic_doctor'].includes(req.user.role)) return res.status(403).json({ message: 'Doctor access required' });
+    if (!['doctor', 'clinic_doctor', 'counsellor', 'psychiatrist'].includes(req.user.role)) return res.status(403).json({ message: 'Doctor access required' });
     if (!req.user.doctorProfileId) return res.status(404).json({ message: 'Doctor profile not found' });
     const n = Number(req.body.maxBookingsPerSlot);
     if (!Number.isInteger(n) || n < 1 || n > 20) {

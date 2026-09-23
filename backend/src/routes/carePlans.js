@@ -13,7 +13,7 @@ const router = express.Router();
 
 // ─── Permission helpers: kaun plan dekh sakta hai ───
 async function resolveDoctorId(user) {
-  if (user.role !== 'doctor' && user.role !== 'clinic_doctor') return null;
+  if (user.role !== 'doctor' && user.role !== 'clinic_doctor' && user.role !== 'counsellor' && user.role !== 'psychiatrist') return null;
   const doc = await Doctor.findOne({
     $or: [{ user_id: user._id.toString() }, { email: user.email }],
   }).select('_id');
@@ -32,7 +32,7 @@ async function canViewPlan(plan, user) {
 // Doctor views consented care plans for their patients
 router.get('/doctor-view', protect, async (req, res) => {
   try {
-    if (req.user.role !== 'doctor' && req.user.role !== 'clinic_doctor') {
+    if (req.user.role !== 'doctor' && req.user.role !== 'clinic_doctor' && req.user.role !== 'counsellor' && req.user.role !== 'psychiatrist') {
       return res.status(403).json({ message: 'Access restricted to doctors only' });
     }
 
@@ -142,7 +142,7 @@ router.post('/', protect, async (req, res) => {
       return res.status(400).json({ message: 'Plan name and condition are required' });
     }
 
-    const isDoctor = req.user.role === 'doctor' || req.user.role === 'clinic_doctor';
+    const isDoctor = req.user.role === 'doctor' || req.user.role === 'clinic_doctor' || req.user.role === 'counsellor' || req.user.role === 'psychiatrist';
     const targetUserId = (isDoctor && patientUserId) ? patientUserId : req.user._id;
 
     const nextFollowUp = new Date();

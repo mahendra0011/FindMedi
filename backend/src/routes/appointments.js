@@ -68,7 +68,7 @@ router.get('/', protect, async (req, res) => {
         { patientId: req.user._id },
         { patientId: { $exists: false }, patient: req.user.name },
       ];
-    } else if (req.user.role === 'doctor' || req.user.role === 'clinic_doctor') {
+    } else if (req.user.role === 'doctor' || req.user.role === 'clinic_doctor' || req.user.role === 'counsellor' || req.user.role === 'psychiatrist') {
       filter.doctorId = req.user.doctorProfileId;
       if (req.user.hospitalId) filter.hospitalId = req.user.hospitalId;
     } else if (req.user.role === 'hospital_admin') {
@@ -77,7 +77,7 @@ router.get('/', protect, async (req, res) => {
     
     if (hospitalId && req.user.role === 'superadmin') filter.hospitalId = hospitalId;
     
-    if (search && (req.user.role === 'doctor' || req.user.role === 'clinic_doctor')) {
+    if (search && (req.user.role === 'doctor' || req.user.role === 'clinic_doctor' || req.user.role === 'counsellor' || req.user.role === 'psychiatrist')) {
       filter.$or = [{ patient: new RegExp(search, 'i') }];
     }
     
@@ -204,7 +204,7 @@ router.get('/my-appointments', protect, async (req, res) => {
         { patientId: req.user._id },
         { patientId: { $exists: false }, patient: req.user.name },
       ];
-    } else if (req.user.role === 'doctor' || req.user.role === 'clinic_doctor') {
+    } else if (req.user.role === 'doctor' || req.user.role === 'clinic_doctor' || req.user.role === 'counsellor' || req.user.role === 'psychiatrist') {
       filter.doctorId = req.user.doctorProfileId;
       if (req.user.hospitalId) filter.hospitalId = req.user.hospitalId;
     } else if (req.user.role === 'hospital_admin') {
@@ -585,7 +585,7 @@ router.put('/:id/transit', protect, async (req, res) => {
     if (!appointment) return res.status(404).json({ message: 'Appointment not found' });
 
     const isPatient = req.user.role === 'patient' && appointment.patientId?.toString() === req.user._id.toString();
-    const isDoctor = (req.user.role === 'doctor' || req.user.role === 'clinic_doctor') && appointment.doctorId?.toString() === req.user.doctorProfileId?.toString();
+    const isDoctor = (req.user.role === 'doctor' || req.user.role === 'clinic_doctor' || req.user.role === 'counsellor' || req.user.role === 'psychiatrist') && appointment.doctorId?.toString() === req.user.doctorProfileId?.toString();
     const isAdmin = req.user.role === 'hospital_admin' || req.user.role === 'superadmin';
 
     if (!isPatient && !isDoctor && !isAdmin) {
@@ -663,7 +663,7 @@ router.put('/:id', protect, validate(updateAppointmentSchema), async (req, res) 
     if (req.user.hospitalId && appointment.hospitalId && appointment.hospitalId.toString() !== req.user.hospitalId.toString()) {
       return res.status(403).json({ message: 'Not authorized to modify this appointment' });
     }
-    if ((req.user.role === 'doctor' || req.user.role === 'clinic_doctor') && appointment.doctorId && appointment.doctorId.toString() !== req.user.doctorProfileId?.toString()) {
+    if ((req.user.role === 'doctor' || req.user.role === 'clinic_doctor' || req.user.role === 'counsellor' || req.user.role === 'psychiatrist') && appointment.doctorId && appointment.doctorId.toString() !== req.user.doctorProfileId?.toString()) {
       return res.status(403).json({ message: 'Not authorized to modify this appointment' });
     }
     
@@ -739,7 +739,7 @@ router.delete('/:id', protect, async (req, res) => {
     if (req.user.hospitalId && appointment.hospitalId && appointment.hospitalId.toString() !== req.user.hospitalId.toString()) {
       return res.status(403).json({ message: 'Not authorized to delete this appointment' });
     }
-    if ((req.user.role === 'doctor' || req.user.role === 'clinic_doctor') && appointment.doctorId?.toString() !== req.user.doctorProfileId?.toString()) {
+    if ((req.user.role === 'doctor' || req.user.role === 'clinic_doctor' || req.user.role === 'counsellor' || req.user.role === 'psychiatrist') && appointment.doctorId?.toString() !== req.user.doctorProfileId?.toString()) {
       return res.status(403).json({ message: 'Not authorized to delete this appointment' });
     }
     await Appointment.findByIdAndDelete(req.params.id);

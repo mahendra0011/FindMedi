@@ -45,7 +45,7 @@ setInterval(cleanupStalePending, 5 * 60 * 1000);
 router.get('/', protect, async (req, res, next) => {
   try {
     const { page, limit, serviceType } = req.query;
-    const isDoctor = req.user.role === 'doctor' || req.user.role === 'clinic_doctor';
+    const isDoctor = req.user.role === 'doctor' || req.user.role === 'clinic_doctor' || req.user.role === 'counsellor' || req.user.role === 'psychiatrist';
     let filter = {};
     if (isDoctor) {
       // Doctors see payments for their own clinic. Provider name match alone is
@@ -161,7 +161,7 @@ router.post('/pay', protect, async (req, res, next) => {
     // ── If appointment data is provided, create appointment first (atomic flow) ──
     if (apptData && serviceType === 'appointment') {
       try {
-        const { doctorId, doctor, doctorName, department, date, time, notes, type, symptoms, priority, facilityId, preConsultationDetails, appointmentMode } = apptData;
+        const { doctorId, doctor, doctorName, department, date, time, notes, type, symptoms, priority, facilityId, preConsultationDetails, appointmentMode, packageId, packageName, packageSessions } = apptData;
         const patientName = req.user.name;
         const patientId = req.user._id;
 
@@ -269,6 +269,9 @@ router.post('/pay', protect, async (req, res, next) => {
             appointmentMode: appointmentMode || (type?.toLowerCase().includes('chat') ? 'chat' : type?.toLowerCase().includes('video') ? 'video' : type?.toLowerCase().includes('audio') || type?.toLowerCase().includes('voice') ? 'audio' : type?.toLowerCase().includes('home') ? 'home_visit' : 'offline'),
             symptoms: symptoms || '',
             notes: notes || '',
+            packageId: packageId || '',
+            packageName: packageName || '',
+            packageSessions: Number(packageSessions) || 0,
             priority: priority || 'Normal',
             estimatedWaitTime,
             hospitalId: hospitalId || undefined,

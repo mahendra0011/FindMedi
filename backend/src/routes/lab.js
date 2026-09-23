@@ -65,7 +65,7 @@ router.get('/orders', protect, async (req, res) => {
     } else if (patientId) {
       filter.patientId = patientId;
     }
-    if (req.user.role === 'doctor') {
+    if (req.user.role === 'doctor' || req.user.role === 'counsellor' || req.user.role === 'psychiatrist') {
       filter.doctorId = req.user.doctorProfileId;
     } else if (doctorId) {
       filter.doctorId = doctorId;
@@ -236,7 +236,7 @@ router.put('/orders/:id/deliver-report', protect, validate(labDeliverReportSchem
 router.get('/stats', protect, async (req, res) => {
   try {
     const filter = {};
-    if (req.user.role === 'doctor') filter.doctorId = req.user.doctorProfileId;
+    if (req.user.role === 'doctor' || req.user.role === 'counsellor' || req.user.role === 'psychiatrist') filter.doctorId = req.user.doctorProfileId;
     if (req.user.role === 'patient') filter.patientId = req.user._id;
     if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
     if ((req.user.facilityId || req.user.hospitalId) && req.user.role !== 'superadmin') filter.facilityId = req.user.facilityId || req.user.hospitalId;

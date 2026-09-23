@@ -33,7 +33,7 @@ router.get('/', protect, async (req, res) => {
         { patientId: req.user._id },
         { patientId: { $exists: false }, patient: req.user.name },
       ];
-    } else if (req.user.role === 'doctor') {
+    } else if (req.user.role === 'doctor' || req.user.role === 'counsellor' || req.user.role === 'psychiatrist') {
       filter.doctorId = req.user.doctorProfileId;
       if (req.user.hospitalId) filter.hospitalId = req.user.hospitalId;
     } else if (req.user.role === 'hospital_admin' && req.user.hospitalId) {
@@ -71,7 +71,7 @@ router.get('/patient/:patientId', protect, async (req, res) => {
 
     if (req.user.role === 'patient') {
       filter.patientId = req.user._id;
-} else if (req.user.role === 'doctor') {
+} else if (req.user.role === 'doctor' || req.user.role === 'counsellor' || req.user.role === 'psychiatrist') {
       filter.doctorId = req.user.doctorProfileId;
       if (req.user.hospitalId) filter.hospitalId = req.user.hospitalId;
     } else if (req.user.role === 'hospital_admin' && req.user.hospitalId) {
@@ -107,7 +107,7 @@ router.post('/', protect, validate(createRecordSchema), async (req, res) => {
       }
       
       // For doctors creating records, if no patient found, return error
-      if (!finalPatientId && req.user.role === 'doctor') {
+      if (!finalPatientId && req.user.role === 'doctor' || req.user.role === 'counsellor' || req.user.role === 'psychiatrist') {
         return res.status(400).json({ message: 'Patient not found. Please select a valid patient.' });
       }
     }
@@ -137,7 +137,7 @@ date: getISTDateString(),
     }
     
     // Notify admins about new record created by doctor
-    if (req.user.role === 'doctor') {
+    if (req.user.role === 'doctor' || req.user.role === 'counsellor' || req.user.role === 'psychiatrist') {
       const admins = await User.find({ role: 'hospital_admin', status: 'active' }).select('_id');
       await Notification.insertMany(admins.map(admin => ({
         title: 'New Medical Record Generated',

@@ -51,7 +51,7 @@ const router = express.Router();
 router.get('/', protect, async (req, res) => {
   try {
     const filter = {};
-    if (req.user.role === 'doctor') {
+    if (req.user.role === 'doctor' || req.user.role === 'counsellor' || req.user.role === 'psychiatrist') {
       const doctor = await Doctor.findOne({ email: req.user.email });
       if (doctor) filter.doctorId = doctor._id;
     }
@@ -66,7 +66,7 @@ router.get('/', protect, async (req, res) => {
 // Doctor: create a new schedule change request
 router.post('/', protect, validate(createScheduleChangeRequestSchema), async (req, res) => {
   try {
-    if (req.user.role !== 'doctor') {
+    if (req.user.role !== 'doctor' && req.user.role !== 'counsellor' && req.user.role !== 'psychiatrist') {
       return res.status(403).json({ message: 'Only doctors can request schedule changes' });
     }
     const doctor = await Doctor.findOne({ email: req.user.email });
@@ -126,7 +126,7 @@ router.put('/:id/cancel', protect, async (req, res) => {
       return res.status(400).json({ message: `Request already ${request.status.toLowerCase()} — cannot cancel` });
     }
     // Only the requesting doctor can cancel their own request
-    if (req.user.role === 'doctor') {
+    if (req.user.role === 'doctor' || req.user.role === 'counsellor' || req.user.role === 'psychiatrist') {
       const doctor = await Doctor.findOne({ email: req.user.email });
       if (!doctor || doctor._id.toString() !== request.doctorId.toString()) {
         return res.status(403).json({ message: 'You can only cancel your own requests' });

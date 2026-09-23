@@ -14,7 +14,7 @@ const getNotificationUserId = async (req) => {
   if (role === 'hospital_admin') {
     return req.query.userId || null;
   }
-  if (role === 'doctor') {
+  if (role === 'doctor' || role === 'counsellor' || role === 'psychiatrist') {
     const doctor = await Doctor.findOne({ user_id: rawId });
     return (doctor && doctor.user_id) ? doctor.user_id : rawId;
   }
