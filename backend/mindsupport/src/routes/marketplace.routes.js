@@ -506,7 +506,9 @@ app.put(
   body("time").optional().notEmpty().withMessage("Time cannot be empty"),
   body("mode").optional().isIn(["google-meet", "in-person", "voice-call", "video-chat", "chat-only", "online"]).withMessage("Valid mode required"),
   body("concern").optional().trim().escape(),
-  body("notes").optional().trim().escape(),
+  // B6-9: notes are AES-encrypted before storage — never HTML-escape them,
+  // else decrypted text contains entities like &#x27; / &amp;.
+  body("notes").optional().trim(),
   validate,
   asyncRoute(authRequired),
   asyncRoute(async (req, res) => {

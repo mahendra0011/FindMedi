@@ -88,6 +88,9 @@ const emptyDoctor = () => ({
   name: '', specialization: '', qualifications: '', experience: '', email: '', phone: '',
   appointmentModes: [],
   appointmentFees: { chat: '', video: '', offline: '', home_visit: '' },
+  medicalCouncil: '', registrationNumber: '', degreeCertificate: '',
+  emergencyAvailable: false, emergencyFeeMultiplier: '',
+  telemedicineCompliance: false, payoutUpi: '', payoutAccount: '', payoutIfsc: '',
 });
 
 const emptyAmbulance = () => ({
@@ -95,6 +98,7 @@ const emptyAmbulance = () => ({
   ambulanceType: 'BLS',
   equipmentLevel: '',
   driverName: '', driverPhone: '', loginEmail: '',
+  emtOnBoard: false,
 });
 
 const BASE_STEPS = [
@@ -187,6 +191,9 @@ export default function JoinPlatform() {
   const [account, setAccount] = useState({ name: '', email: '', phone: '', password: '' });
   const [facility, setFacility] = useState({
     name: '', address: '', city: '', state: '', pincode: '', license: '', description: '',
+    traumaLevel: '', emergencyContactPhone: '', genWardRate: '', icuRate: '', emergencyDeposit: '',
+    refundTerms: false, statutoryDocs: '', bankAccount: '', bankIfsc: '', bankName: '',
+    nablRegNo: '', pathologistName: '', pathologistRegNo: '', homeCollection: false, homeCollectionFee: '', homeRadius: '', statCommitment: false,
     specialties: [], timing: '', established: '', phone: '', email: '', website: '',
     logo: '', image: '',
     amenities: { parking: false, acWaitingArea: false, wheelchairAccess: false, cardPayment: false, inHousePharmacy: false, drinkingWater: false, wifi: false, homeVisit: false, homeDelivery: false, prescriptionUpload: false },
@@ -218,15 +225,23 @@ export default function JoinPlatform() {
   const [newAccreditation, setNewAccreditation] = useState('');
   const [agreed, setAgreed] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  // Section-10 mandatory compliance pledges (one per role, required at step 6)
+  const [assistantConduct, setAssistantConduct] = useState(false);
+  const [lawyerEmergencyPledge, setLawyerEmergencyPledge] = useState(false);
+  const [counsellorCrisisPledge, setCounsellorCrisisPledge] = useState(false);
+  const [psychiatristCompliancePledge, setPsychiatristCompliancePledge] = useState(false);
+  const [riderEmergencyPledge, setRiderEmergencyPledge] = useState(false);
+  const [deliveryEmergencyPledge, setDeliveryEmergencyPledge] = useState(false);
 
   // Delivery Boy state
   const [delivery, setDelivery] = useState({
     name: '', phone: '', email: '', password: '', dateOfBirth: '', gender: '',
     address: '', city: '', pincode: '',
-    vehicleType: '', vehicleNumber: '', drivingLicenseNumber: '',
+    vehicleType: '', vehicleNumber: '', drivingLicenseNumber: '', aadhaarNumber: '',
     bankAccountNumber: '', bankIfsc: '', bankAccountHolderName: '', upiId: '',
     deliveryZone: [], availability: 'full-time', startTime: '', endTime: '',
     emergencyContactName: '', emergencyContactPhone: '', pharmacyId: '',
+    hasInsulatedBag: false, emergencyOptIn: false,
   });
   const [deliveryDocs, setDeliveryDocs] = useState({
     aadharFront: null, aadharBack: null, panCard: null, photo: null,
@@ -291,7 +306,8 @@ export default function JoinPlatform() {
     name: '', phone: '', email: '', password: '', dateOfBirth: '', gender: 'Male',
     address: '', city: '',
     govtIdType: 'Aadhaar', govtIdNumber: '',
-    drivingLicenseNumber: '', drivingLicenseExpiry: '',
+    drivingLicenseNumber: '', drivingLicenseExpiry: '', commercialEndorsement: '', pucNumber: '', emergencyStandby: false,
+    bankAccount: '', bankIfsc: '',
     vehicleType: 'car', vehicleBrand: '', vehicleModel: '',
     rcNumber: '', insuranceNumber: '', insuranceExpiry: '',
     vehicleColor: '', seatingCapacity: 4, fuelType: 'Petrol',
@@ -557,7 +573,7 @@ export default function JoinPlatform() {
       if (step === 3) return delivery.vehicleType;
       if (step === 4) return deliveryDocs.aadharFront && deliveryDocs.photo && delivery.bankAccountNumber && delivery.bankIfsc && delivery.bankAccountHolderName;
       if (step === 5) return true;
-      if (step === 6) return agreed;
+      if (step === 6) return agreed && deliveryEmergencyPledge;
       return true;
     }
     if (type === 'rider') {
@@ -599,7 +615,7 @@ export default function JoinPlatform() {
         return rider.operatingArea?.trim().length >= 2 && rider.availableDays.length > 0;
       }
       if (step === 6) {
-        return agreed;
+        return agreed && riderEmergencyPledge;
       }
       return true;
     }
@@ -629,16 +645,19 @@ export default function JoinPlatform() {
       if (step === 4) {
         return (
           Number(assistant.pricePerHour) > 0 &&
+          Number(assistant.pricePerFullDay) > 0 &&
           assistant.bankAccountHolder?.trim().length >= 2 &&
           assistant.bankAccountNumber?.trim().length >= 6 &&
-          assistant.bankIfsc?.trim().length >= 4
+          assistant.bankIfsc?.trim().length >= 4 &&
+          assistantDocs.govtIdDoc &&
+          assistantDocs.policeVerificationDoc
         );
       }
       if (step === 5) {
         return assistant.availableDays.length > 0;
       }
       if (step === 6) {
-        return agreed;
+        return agreed && assistantConduct;
       }
       return true;
     }
@@ -660,7 +679,8 @@ export default function JoinPlatform() {
         return (
           lawyer.practiceCategories.length > 0 &&
           lawyer.courtsPracticedIn.length > 0 &&
-          lawyer.bio?.trim().length >= 5
+          lawyer.bio?.trim().length >= 5 &&
+          lawyerDocs.barCouncilCertDoc
         );
       }
       if (step === 4) {
@@ -678,7 +698,7 @@ export default function JoinPlatform() {
         );
       }
       if (step === 6) {
-        return agreed;
+        return agreed && lawyerEmergencyPledge;
       }
       return true;
     }
@@ -703,7 +723,9 @@ export default function JoinPlatform() {
         return (
           counsellor.specialization?.trim().length >= 3 &&
           counsellor.categories.length > 0 &&
-          counsellor.bio?.trim().length >= 5
+          counsellor.bio?.trim().length >= 5 &&
+          counsellorDocs.degreeDoc &&
+          counsellorDocs.govtIdDoc
         );
       }
       if (step === 4) {
@@ -721,7 +743,7 @@ export default function JoinPlatform() {
         );
       }
       if (step === 6) {
-        return agreed;
+        return agreed && counsellorCrisisPledge;
       }
       return true;
     }
@@ -745,7 +767,9 @@ export default function JoinPlatform() {
         return (
           psychiatrist.specialization?.trim().length >= 3 &&
           psychiatrist.categories.length > 0 &&
-          psychiatrist.bio?.trim().length >= 5
+          psychiatrist.bio?.trim().length >= 5 &&
+          psychiatristDocs.degreeDoc &&
+          psychiatristDocs.govtIdDoc
         );
       }
       if (step === 4) {
@@ -763,13 +787,21 @@ export default function JoinPlatform() {
         );
       }
       if (step === 6) {
-        return agreed;
+        return agreed && psychiatristCompliancePledge;
       }
       return true;
     }
     if (step === 1) return !!type;
     if (step === 2) return account.name?.length >= 2 && account.email?.includes('@') && account.phone?.length >= 10 && account.password?.length >= 8 && account.password === confirmPassword;
-    if (step === 3) return facility.name && facility.address && facility.city;
+    if (step === 3) {
+      if (type === 'hospital') {
+        return facility.name && facility.address && facility.city && facility.license?.trim().length >= 3
+          && facility.traumaLevel && facility.emergencyContactPhone?.length >= 10
+          && facility.genWardRate && facility.icuRate && facility.emergencyDeposit
+          && facility.refundTerms && facility.bankAccount && facility.bankIfsc;
+      }
+      return facility.name && facility.address && facility.city && facility.license?.trim().length >= 3;
+    }
     if (step === maxStep) return agreed;
     return true;
   };
@@ -778,6 +810,66 @@ export default function JoinPlatform() {
      setLoading(true);
      setError('');
      try {
+       if (type === 'diagnostic') {
+        if (!facility.nablRegNo && !facility.license) {
+          throw new Error('NABL / establishment registration mandatory hai');
+        }
+        if (!facility.pathologistName || !facility.pathologistRegNo) {
+          throw new Error('Chief pathologist name + registration mandatory hai');
+        }
+        if (!facility.bankAccount || !facility.bankIfsc) {
+          throw new Error('Settlement bank account + IFSC mandatory hai');
+        }
+      }
+      if (type === 'rider') {
+        if (!rider.drivingLicenseNumber || !rider.commercialEndorsement) {
+          throw new Error('Commercial DL + endorsement mandatory hai');
+        }
+        if (!rider.rcNumber || !rider.pucNumber) {
+          throw new Error('RC + PUC mandatory hai');
+        }
+        if (!rider.bankAccount || !rider.bankIfsc) {
+          throw new Error('Bank account + IFSC mandatory hai');
+        }
+        if (!riderEmergencyPledge) {
+          throw new Error('Emergency hospital transit (1.25x) declaration mandatory hai');
+        }
+      }
+      if (type === 'delivery') {
+        if (!deliveryEmergencyPledge) {
+          throw new Error('Urgent emergency medicine delivery (Night / Rain) declaration mandatory hai');
+        }
+      }
+      if (type === 'delivery') {
+        if (!delivery.drivingLicenseNumber || !delivery.aadhaarNumber) {
+          throw new Error('DL number + Aadhaar mandatory hai');
+        }
+        if (!delivery.vehicleType || !delivery.vehicleNumber) {
+          throw new Error('Vehicle type + RC mandatory hai');
+        }
+        if (!delivery.hasInsulatedBag) {
+          throw new Error('Insulated bag checkbox mandatory hai');
+        }
+        if (!delivery.upiId && (!delivery.bankAccountNumber || !delivery.bankIfsc)) {
+          throw new Error('Payout UPI / bank mandatory hai');
+        }
+      }
+      if ((type === 'hospital' || type === 'clinic' || type === 'doctor') && doctors?.length) {
+         for (const d of doctors) {
+           if (!d.medicalCouncil || !d.registrationNumber || !d.degreeCertificate) {
+             throw new Error('Doctor council verification (council, registration number, degree certificate) mandatory hai');
+           }
+           if (!d.appointmentFees?.offline && !d.appointmentFees?.video) {
+             throw new Error('Doctor OPD + Video fee mandatory hai');
+           }
+           if (!d.telemedicineCompliance) {
+             throw new Error('NMC Telemedicine compliance checkbox mandatory hai');
+           }
+           if (!d.payoutUpi && (!d.payoutAccount || !d.payoutIfsc)) {
+             throw new Error('Doctor payout UPI / bank mandatory hai');
+           }
+         }
+       }
        if (type === 'delivery') {
          const payload = {
            name: delivery.name,
@@ -897,6 +989,10 @@ export default function JoinPlatform() {
         }
 
         if (type === 'assistant') {
+          if (!assistantDocs.govtIdDoc) throw new Error('Aadhaar / Govt ID upload mandatory hai');
+          if (!assistantDocs.policeVerificationDoc) throw new Error('Police verification certificate mandatory hai');
+          if (!(Number(assistant.pricePerHour) > 0 && Number(assistant.pricePerFullDay) > 0)) throw new Error('Day-shift aur night/full-day rate dono mandatory hain');
+          if (!assistantConduct) throw new Error('Hospital Attendant Code of Conduct accept karna mandatory hai');
           let govtIdDocUrl = '';
           let policeVerificationDocUrl = '';
 
@@ -957,6 +1053,10 @@ export default function JoinPlatform() {
         }
 
         if (type === 'lawyer') {
+          if (!lawyerDocs.barCouncilCertDoc) throw new Error('Bar Council certificate upload mandatory hai');
+          if (!lawyer.barCouncilNumber?.trim() || !lawyer.stateBarCouncil) throw new Error('Bar enrollment number + State Bar Council mandatory hai');
+          if (!(Number(lawyer.consultationFee) > 0)) throw new Error('30-min consultation fee mandatory hai');
+          if (!lawyerEmergencyPledge) throw new Error('Emergency medico-legal standby declaration mandatory hai');
           let barCouncilCertUrl = '';
           let lawDegreeCertUrl = '';
           let govtIdDocUrl = '';
@@ -1032,6 +1132,10 @@ export default function JoinPlatform() {
         }
 
         if (type === 'counsellor') {
+          if (!counsellorDocs.degreeDoc) throw new Error('Psychology degree certificate upload mandatory hai');
+          if (!counsellorDocs.govtIdDoc) throw new Error('Govt ID upload mandatory hai');
+          if (!(Number(counsellor.sessionPricing) > 0)) throw new Error('45-min session fee mandatory hai');
+          if (!counsellorCrisisPledge) throw new Error('Crisis protocol (Tele-MANAS 14416) agreement mandatory hai');
           let degreeDocUrl = '';
           let govtIdDocUrl = '';
           let certificateDocUrl = '';
@@ -1115,6 +1219,11 @@ export default function JoinPlatform() {
         }
 
         if (type === 'psychiatrist') {
+          if (!psychiatristDocs.degreeDoc) throw new Error('MBBS / MD / DNB degree upload mandatory hai');
+          if (!psychiatristDocs.govtIdDoc) throw new Error('Govt ID upload mandatory hai');
+          if (!psychiatrist.licenseNumber?.trim()) throw new Error('NMC / State Medical Council registration mandatory hai');
+          if (!(Number(psychiatrist.sessionPricing) > 0)) throw new Error('Evaluation fee mandatory hai');
+          if (!psychiatristCompliancePledge) throw new Error('Telemedicine + Mental Healthcare Act compliance agreement mandatory hai');
           let degreeDocUrl = '';
           let govtIdDocUrl = '';
           let certificateDocUrl = '';
@@ -1213,7 +1322,16 @@ export default function JoinPlatform() {
         specialist: type === 'diagnostic' ? specialist : undefined,
       };
       if (type === 'hospital' && facility.ambulanceSupport) {
-        payload.ambulances = ambulances.filter(a => a.registrationNumber?.trim()).map(a => ({ ...a }));
+        const listed = ambulances.filter(a => a.registrationNumber?.trim());
+        for (const a of listed) {
+          if (!a.driverName?.trim() || !String(a.driverPhone || '').replace(/\D/g, '').slice(-10)) {
+            throw new Error(`Ambulance ${a.registrationNumber}: driver name + 10-digit phone mandatory hai`);
+          }
+          if (a.ambulanceType === 'ALS' && !a.emtOnBoard) {
+            throw new Error(`Ambulance ${a.registrationNumber}: ALS ke liye certified EMT on-board mandatory hai`);
+          }
+        }
+        payload.ambulances = listed.map(a => ({ ...a }));
       }
       if (type === 'hospital' || type === 'clinic') {
         payload.doctors = doctors.filter(d => d.name && d.specialization).map(d => ({
@@ -1826,13 +1944,21 @@ export default function JoinPlatform() {
                    </div>
                  </div>
 
-                 <label className="flex items-start gap-3 p-4 bg-muted/20 rounded-xl border border-border/40 cursor-pointer">
-                   <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} className="mt-0.5 w-4 h-4 rounded border-border accent-primary" />
-                   <div>
-                     <p className="text-sm font-medium text-foreground">I confirm that all provided information is accurate</p>
-                     <p className="text-xs text-muted-foreground mt-0.5">By submitting, you agree to FindMedi's <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link> and <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>. Your registration will be reviewed by our team.</p>
-                   </div>
-                 </label>
+                  <label className="flex items-start gap-3 p-4 bg-muted/20 rounded-xl border border-border/40 cursor-pointer">
+                    <input type="checkbox" checked={deliveryEmergencyPledge} onChange={e => setDeliveryEmergencyPledge(e.target.checked)} className="mt-0.5 w-4 h-4 rounded border-border accent-primary" />
+                    <div>
+                      <p className="text-sm font-medium text-foreground">Available for urgent emergency medicine delivery (Night / Rain) <span className="text-red-500">*</span></p>
+                      <p className="text-xs text-muted-foreground mt-0.5">I agree to receive high-priority emergency dispatch calls for critical medicine orders.</p>
+                    </div>
+                  </label>
+
+                  <label className="flex items-start gap-3 p-4 bg-muted/20 rounded-xl border border-border/40 cursor-pointer">
+                    <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} className="mt-0.5 w-4 h-4 rounded border-border accent-primary" />
+                    <div>
+                      <p className="text-sm font-medium text-foreground">I confirm that all provided information is accurate</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">By submitting, you agree to FindMedi's <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link> and <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>. Your registration will be reviewed by our team.</p>
+                    </div>
+                  </label>
                </div>
 
                {error && <p className="text-sm text-destructive bg-destructive/10 px-3 py-2 rounded-lg mb-4">{error}</p>}
@@ -2389,6 +2515,16 @@ export default function JoinPlatform() {
                   </div>
 
                   <label className="flex items-start gap-3 p-4 bg-muted/20 rounded-xl border border-border/40 cursor-pointer">
+                    <input type="checkbox" checked={riderEmergencyPledge} onChange={e => setRiderEmergencyPledge(e.target.checked)} className="mt-0.5 w-4 h-4 rounded border-border accent-primary" />
+                    <div>
+                      <p className="text-sm font-medium text-foreground">Emergency hospital transit calls (1.25x fare) <span className="text-red-500">*</span></p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        I agree to receive high-priority emergency hospital transit calls with the 1.25x emergency fare tier.
+                      </p>
+                    </div>
+                  </label>
+
+                  <label className="flex items-start gap-3 p-4 bg-muted/20 rounded-xl border border-border/40 cursor-pointer">
                     <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} className="mt-0.5 w-4 h-4 rounded border-border accent-primary" />
                     <div>
                       <p className="text-sm font-medium text-foreground">I confirm that all uploaded documents are genuine and valid</p>
@@ -2802,6 +2938,16 @@ export default function JoinPlatform() {
                       </div>
                     </div>
                   </div>
+
+                  <label className="flex items-start gap-3 p-4 bg-muted/20 rounded-xl border border-border/40 cursor-pointer">
+                    <input type="checkbox" checked={assistantConduct} onChange={e => setAssistantConduct(e.target.checked)} className="mt-0.5 w-4 h-4 rounded border-border accent-primary" />
+                    <div>
+                      <p className="text-sm font-medium text-foreground">Hospital Attendant Code of Conduct <span className="text-red-500">*</span></p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        I agree to maintain patient hygiene, zero absenteeism during booked hours, and prompt SOS notification in emergencies.
+                      </p>
+                    </div>
+                  </label>
 
                   <label className="flex items-start gap-3 p-4 bg-muted/20 rounded-xl border border-border/40 cursor-pointer">
                     <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} className="mt-0.5 w-4 h-4 rounded border-border accent-primary" />
@@ -3264,6 +3410,16 @@ export default function JoinPlatform() {
                       </div>
                     </div>
                   </div>
+
+                  <label className="flex items-start gap-3 p-4 bg-muted/20 rounded-xl border border-border/40 cursor-pointer">
+                    <input type="checkbox" checked={lawyerEmergencyPledge} onChange={e => setLawyerEmergencyPledge(e.target.checked)} className="mt-0.5 w-4 h-4 rounded border-border accent-primary" />
+                    <div>
+                      <p className="text-sm font-medium text-foreground">Emergency medico-legal standby declaration <span className="text-red-500">*</span></p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        I am available for emergency medico-legal hospital visits and urgent bail calls as per my availability calendar, and will accept priority rescheduling on court clashes.
+                      </p>
+                    </div>
+                  </label>
 
                   <label className="flex items-start gap-3 p-4 bg-muted/20 rounded-xl border border-border/40 cursor-pointer">
                     <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} className="mt-0.5 w-4 h-4 rounded border-border accent-primary" />
@@ -3772,6 +3928,16 @@ export default function JoinPlatform() {
                   </div>
 
                   <label className="flex items-start gap-3 p-4 bg-muted/20 rounded-xl border border-border/40 cursor-pointer">
+                    <input type="checkbox" checked={counsellorCrisisPledge} onChange={e => setCounsellorCrisisPledge(e.target.checked)} className="mt-0.5 w-4 h-4 rounded border-border accent-primary" />
+                    <div>
+                      <p className="text-sm font-medium text-foreground">Crisis protocol agreement <span className="text-red-500">*</span></p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        I understand the platform crisis protocol and agree to escalate imminent self-harm risks to the Tele-MANAS 14416 national helpline.
+                      </p>
+                    </div>
+                  </label>
+
+                  <label className="flex items-start gap-3 p-4 bg-muted/20 rounded-xl border border-border/40 cursor-pointer">
                     <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} className="mt-0.5 w-4 h-4 rounded border-border accent-primary" />
                     <div>
                       <p className="text-sm font-medium text-foreground">I declare that my credentials and experience are authentic</p>
@@ -4264,6 +4430,16 @@ export default function JoinPlatform() {
                   </div>
 
                   <label className="flex items-start gap-3 p-4 bg-muted/20 rounded-xl border border-border/40 cursor-pointer">
+                    <input type="checkbox" checked={psychiatristCompliancePledge} onChange={e => setPsychiatristCompliancePledge(e.target.checked)} className="mt-0.5 w-4 h-4 rounded border-border accent-primary" />
+                    <div>
+                      <p className="text-sm font-medium text-foreground">Telepsychiatry compliance agreement <span className="text-red-500">*</span></p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        I agree to strictly comply with the Telemedicine Practice Guidelines and the Mental Healthcare Act 2017 regarding online psychotropic drug prescriptions.
+                      </p>
+                    </div>
+                  </label>
+
+                  <label className="flex items-start gap-3 p-4 bg-muted/20 rounded-xl border border-border/40 cursor-pointer">
                     <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} className="mt-0.5 w-4 h-4 rounded border-border accent-primary" />
                     <div>
                       <p className="text-sm font-medium text-foreground">I declare that my medical registration and degrees are authentic</p>
@@ -4586,6 +4762,10 @@ export default function JoinPlatform() {
                                       <Button type="button" variant="ghost" size="sm" onClick={() => setAmbulances(p => p.filter((_, j) => j !== i))}>✕</Button>
                                     )}
                                   </div>
+                                  <label className="flex items-center gap-2 text-xs">
+                                    <input type="checkbox" checked={!!a.emtOnBoard} onChange={e => setAmbulances(p => p.map((x, j) => j === i ? { ...x, emtOnBoard: e.target.checked } : x))} className="rounded" />
+                                    Certified EMT / paramedic on-board {a.ambulanceType === 'ALS' ? <span className="text-red-500">* (ALS ke liye mandatory)</span> : ''}
+                                  </label>
                                 </div>
                               ))}
                               <Button type="button" variant="outline" size="sm" onClick={() => setAmbulances(p => [...p, emptyAmbulance()])}>+ Add Ambulance</Button>

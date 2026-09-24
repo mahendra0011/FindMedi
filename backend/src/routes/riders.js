@@ -39,6 +39,8 @@ router.put('/profile', protect, async (req, res) => {
       availableTimeSlot,
       bankDetails,
       vehicleDetails,
+      settings,
+      emergencySupport,
     } = req.body;
 
     const rider = await RiderProfile.findOne({ userId: req.user._id });
@@ -47,7 +49,19 @@ router.put('/profile', protect, async (req, res) => {
     if (operatingArea) rider.operatingArea = operatingArea;
     if (availableDays) rider.availableDays = availableDays;
     if (availableTimeSlot) rider.availableTimeSlot = availableTimeSlot;
-    if (bankDetails) rider.bankDetails = { ...rider.bankDetails, ...bankDetails };
+    if (bankDetails) rider.bankDetails = { ...rider.bankDetails?.toObject?.() || rider.bankDetails, ...bankDetails };
+    if (emergencySupport !== undefined) rider.emergencySupport = Boolean(emergencySupport);
+    if (settings && typeof settings === 'object') {
+      const next = { ...(rider.settings?.toObject?.() || rider.settings || {}) };
+      if (settings.waitMinutes !== undefined) next.waitMinutes = Math.max(0, Number(settings.waitMinutes) || 0);
+      if (settings.noShowFee !== undefined) next.noShowFee = Math.max(0, Number(settings.noShowFee) || 0);
+      if (typeof settings.lateRefund === 'boolean') next.lateRefund = settings.lateRefund;
+      if (typeof settings.acAvailable === 'boolean') next.acAvailable = settings.acAvailable;
+      if (typeof settings.wheelchairFit === 'boolean') next.wheelchairFit = settings.wheelchairFit;
+      if (['local', 'regional', 'intercity'].includes(settings.transferScope)) next.transferScope = settings.transferScope;
+      if (typeof settings.payoutUpi === 'string') next.payoutUpi = settings.payoutUpi.trim();
+      rider.settings = next;
+    }
 
     await rider.save();
 
@@ -217,6 +231,25 @@ router.post('/withdraw-demo', protect, async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ message: 'Withdrawal failed', error: err.message });
+  }
+});
+
+// ─── POST /api/rider/documents — R-9: re-upload a rejected KYC document ──
+router.post('/documents', protect, async (req, res) => {
+  try {
+    const { docType, docUrl } = req.body;
+    if (!docType || !docUrl) return res.status(400).json({ message: 'docType and docUrl are required' });
+    const rider = await RiderProfile.findOne({ userId: req.user._id });
+    if (!rider) return res.status(404).json({ message: 'Rider profile not found' });
+    const docs = { ...(rider.docs?.toObject?.() || rider.docs || {}) };
+    docs[docType] = { url: docUrl, status: 'pending', uploadedAt: new Date() };
+    rider.docs = docs;
+    // Re-upload re-opens verification if it was rejected.
+    if (rider.riderStatus === 'rejected') rider.riderStatus = 'pending_approval';
+    await rider.save();
+    res.json({ success: true, message: 'Document uploaded for verification', docs });
+  } catch (err) {
+    res.status(500).json({ message: 'Upload failed', error: err.message });
   }
 });
 

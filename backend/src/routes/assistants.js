@@ -46,6 +46,9 @@ router.put('/profile', protect, async (req, res) => {
       availableDays,
       availableTimeSlots,
       isAvailable,
+      settings,
+      certifications,
+      operatingCity,
     } = req.body;
 
     const profile = await AssistantProfile.findOne({ userId: req.user._id });
@@ -61,7 +64,24 @@ router.put('/profile', protect, async (req, res) => {
     if (pricePerHour !== undefined) profile.pricePerHour = Number(pricePerHour);
     if (pricePerFullDay !== undefined) profile.pricePerFullDay = Number(pricePerFullDay);
     if (extraSkills) profile.extraSkills = { ...profile.extraSkills, ...extraSkills };
-    if (bankDetails) profile.bankDetails = { ...profile.bankDetails, ...bankDetails };
+    if (bankDetails) profile.bankDetails = { ...profile.bankDetails?.toObject?.() || profile.bankDetails, ...bankDetails };
+    // Section-10 settings master with strict allow-list
+    if (settings && typeof settings === 'object') {
+      const next = { ...(profile.settings?.toObject?.() || profile.settings || {}) };
+      if (typeof settings.emergencyStandby === 'boolean') next.emergencyStandby = settings.emergencyStandby;
+      if (['full_6h', 'half_2_6h', 'none_enroute'].includes(settings.refundPolicy)) next.refundPolicy = settings.refundPolicy;
+      if (settings.rateCard && typeof settings.rateCard === 'object') {
+        next.rateCard = { ...(next.rateCard || {}) };
+        for (const k of ['halfDay4h', 'day8h', 'night12h', 'full24h']) {
+          if (settings.rateCard[k] !== undefined && Number(settings.rateCard[k]) >= 0) next.rateCard[k] = Number(settings.rateCard[k]);
+        }
+      }
+      if (Array.isArray(settings.clinicalTags)) next.clinicalTags = settings.clinicalTags.map(String).slice(0, 20);
+      if (Array.isArray(settings.preferredHospitals)) next.preferredHospitals = settings.preferredHospitals.map(String).slice(0, 5);
+      profile.settings = next;
+    }
+    if (certifications) profile.certifications = certifications;
+    if (operatingCity) profile.operatingCity = operatingCity;
     if (availableDays) profile.availableDays = availableDays;
     if (availableTimeSlots) profile.availableTimeSlots = availableTimeSlots;
     if (isAvailable !== undefined && profile.assistantStatus === 'active') {
@@ -134,11 +154,19 @@ router.get('/earnings', protect, async (req, res) => {
     const thisMonthCommission = Math.round(thisMonthGross * 0.10);
     const thisMonthNet = thisMonthGross - thisMonthCommission;
 
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const todayBookings = bookings.filter(b => new Date(b.createdAt) >= startOfToday);
+    const todayGross = todayBookings.reduce((sum, b) => sum + (b.cost?.total || 0), 0);
+    const todayCommission = Math.round(todayGross * 0.10);
+    const todayNet = todayGross - todayCommission;
+
     res.json({
       walletBalance: profile.walletBalance || 0,
       totalGross: grossEarnings,
       platformCommission,
       netEarnings,
+      todayNet,
       thisMonthNet,
       totalCompleted: bookings.length,
       rating: profile.rating || { avg: 5.0, count: 0 },

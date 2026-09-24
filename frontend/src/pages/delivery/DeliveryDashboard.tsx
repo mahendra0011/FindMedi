@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Package,
+  FlaskConical,
   IndianRupee,
   Star,
   TrendingUp,
@@ -41,11 +42,19 @@ import { getSocket, joinRoom } from '@/lib/socket';
 import { Link } from 'react-router-dom';
 import ProviderIncomingCall from '@/components/emergency/ProviderIncomingCall';
 
+const LAB_TYPES = ['lab_report', 'lab_sample'];
+const isLabTask = (d) => LAB_TYPES.includes(d?.serviceType);
+const taskFee = (d) => d?.deliveryFee || d?.orderRef?.deliveryFee || 50;
+const taskTitle = (d) => (isLabTask(d) ? 'Lab Report' : 'Medicine');
+const taskContact = (d) => d?.patientPhone || d?.orderRef?.phone || '';
+const taskBadges = (d) => (isLabTask(d) ? ['Lab Report', 'Diagnostic Parcel'] : ['Express Delivery', 'Prescription Parcel']);
+
 export default function DeliveryDashboard() {
   const { user } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [deliveries, setDeliveries] = useState<{ active: any[]; history: any[] }>({ active: [], history: [] });
-  const [deliveryTab, setDeliveryTab] = useState<'active' | 'history'>('active');
+  const [deliveryTab, setDeliveryTab] = useState<'active' | 'history' | 'lab'>('active');
+  const labActive = deliveries.active.filter(isLabTask);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [otpInput, setOtpInput] = useState<{ [deliveryId: string]: string }>({});
@@ -74,6 +83,9 @@ export default function DeliveryDashboard() {
 
     socket.on('delivery:new_assignment', handleNewDelivery);
     socket.on('delivery:status', handleDeliveryStatus);
+    deliveries.active.forEach((d) => {
+      if (d.orderId) socket.emit('join', `order:${d.orderId}`);
+    });
 
     return () => {
       socket.off('delivery:new_assignment', handleNewDelivery);
@@ -107,14 +119,20 @@ export default function DeliveryDashboard() {
     };
   }, [profile?._id, profile?.isOnline, deliveries.active]);
 
+  const [loadError, setLoadError] = useState(null);
+
   const loadData = async (isSilent = false) => {
     if (!isSilent) setLoading(true);
     else setRefreshing(true);
+    setLoadError(null);
     try {
       const [prof, dels] = await Promise.all([
         api.get('/delivery-partners/profile/me').catch(() => null),
         api.get('/delivery-partners/my-deliveries').catch(() => ({ active: [], history: [] })),
       ]);
+      if (!prof) {
+        setLoadError('Delivery profile nahi mila. Retry karo ya KYC check karo.');
+      }
       setProfile(prof);
       setDeliveries({
         active: dels?.active || [],
@@ -130,8 +148,8 @@ export default function DeliveryDashboard() {
   const toggleOnline = async (onlineState: boolean) => {
     if (!profile?._id) return;
     try {
-      await api.put(`/delivery-partners/profile/${profile._id}`, { isOnline: onlineState });
-      setProfile((p: any) => ({ ...p, isOnline: onlineState }));
+      await api.put(`/delivery-partners/profile/${profile._id}`, { isOnline: onlineState, isAvailable: onlineState });
+      setProfile((p: any) => ({ ...p, isOnline: onlineState, isAvailable: onlineState }));
       toast.success(onlineState ? '🟢 Duty ON: You are ready to accept medicine runs' : '⚪ Duty OFF: You will not receive dispatches');
     } catch {
       toast.error('Failed to change duty state');
@@ -180,11 +198,11 @@ export default function DeliveryDashboard() {
     const today = new Date().toDateString();
     return completedHistory
       .filter((d) => d.deliveredAt && new Date(d.deliveredAt).toDateString() === today)
-      .reduce((sum, d) => sum + (d.orderRef?.deliveryFee || 50), 0);
+      .reduce((sum, d) => sum + taskFee(d), 0);
   }, [completedHistory]);
 
   const totalAllTimeEarnings = useMemo(() => {
-    return completedHistory.reduce((sum, d) => sum + (d.orderRef?.deliveryFee || 50), 0);
+    return completedHistory.reduce((sum, d) => sum + taskFee(d), 0);
   }, [completedHistory]);
 
   const onTimePercentage = useMemo(() => {
@@ -202,6 +220,15 @@ export default function DeliveryDashboard() {
         <p className="text-xs font-semibold text-muted-foreground animate-pulse">
           Connecting to FindMedi Delivery Fleet...
         </p>
+      </div>
+    );
+  }
+
+  if (loadError && !profile) {
+    return (
+      <div className="rounded-2xl border p-8 text-center space-y-3">
+        <p className="font-semibold">{loadError}</p>
+        <Button onClick={() => loadData()}>Retry</Button>
       </div>
     );
   }
@@ -291,15 +318,15 @@ export default function DeliveryDashboard() {
           {
             icon: TrendingUp,
             title: 'Completed Trips',
-            val: profile?.totalDeliveries || completedHistory.length,
-            sub: 'Medicine parcels delivered',
+            val: completedHistory.length,
+            sub: 'Parcels & lab reports delivered',
             bg: 'bg-primary/10 text-primary',
           },
           {
             icon: Star,
             title: 'Customer Rating',
-            val: profile?.rating ? Number(profile.rating).toFixed(1) : '5.0',
-            sub: 'Top Tier Express Rider',
+            val: profile?.rating ? Number(profile.rating).toFixed(1) : 'New',
+            sub: profile?.rating ? 'Top Tier Express Rider' : 'No ratings yet',
             bg: 'bg-warning/10 text-warning',
           },
         ].map((stat, i) => {
@@ -367,7 +394,7 @@ export default function DeliveryDashboard() {
           <div>
             <div className="flex items-center gap-2">
               <h2 className="font-heading font-black text-xl text-foreground">
-                Medicine Delivery Hub
+                Delivery Hub
               </h2>
               {deliveries.active.length > 0 && (
                 <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary text-primary-foreground animate-pulse">
@@ -376,7 +403,7 @@ export default function DeliveryDashboard() {
               )}
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Pickup from partner pharmacy and deliver safely to patient doorsteps
+              Medicines + lab reports — pickup se doorstep tak
             </p>
           </div>
 
@@ -405,6 +432,18 @@ export default function DeliveryDashboard() {
             >
               <Clock className="w-3.5 h-3.5" />
               <span>Past Completed ({deliveries.history.length})</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setDeliveryTab('lab')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                deliveryTab === 'lab'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <FlaskConical className="w-3.5 h-3.5" />
+              <span>Lab Reports ({labActive.length})</span>
             </button>
           </div>
         </div>
@@ -451,16 +490,21 @@ export default function DeliveryDashboard() {
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border/60">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-black">
-                          <Package className="w-5 h-5" />
+                          {isLabTask(d) ? <FlaskConical className="w-5 h-5" /> : <Package className="w-5 h-5" />}
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
                             <span className="font-extrabold text-foreground text-sm">
-                              Order #{d.orderId || d._id?.slice(-6)}
+                              {taskTitle(d)} #{d.orderId || d._id?.slice(-6)}
                             </span>
                             <Badge className="bg-primary/15 text-primary border-primary/20 text-[10px]">
                               {d.status}
                             </Badge>
+                            {isLabTask(d) && (
+                              <Badge className="bg-violet-500/15 text-violet-600 border-violet-500/20 text-[10px]">
+                                Lab Report
+                              </Badge>
+                            )}
                           </div>
                           <span className="text-[11px] text-muted-foreground">
                             Assigned {d.assignedAt ? new Date(d.assignedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'recently'}
@@ -469,16 +513,16 @@ export default function DeliveryDashboard() {
                       </div>
 
                       <div className="flex items-center gap-3">
-                        {d.orderRef?.phone && (
+                        {taskContact(d) && (
                           <a
-                            href={`tel:${d.orderRef.phone}`}
+                            href={`tel:${taskContact(d)}`}
                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary/10 text-primary font-bold text-xs hover:bg-primary/20 transition-colors"
                           >
                             <Phone className="w-3.5 h-3.5" /> Call Customer
                           </a>
                         )}
                         <span className="text-sm font-black text-foreground bg-muted/60 px-3 py-1.5 rounded-xl border border-border">
-                          Fee: ₹{d.orderRef?.deliveryFee || 50}
+                          Fee: ₹{taskFee(d)}
                         </span>
                       </div>
                     </div>
@@ -512,7 +556,7 @@ export default function DeliveryDashboard() {
                       <div className="p-3.5 rounded-xl bg-muted/30 border border-border/60 space-y-1">
                         <div className="flex items-center gap-1 text-primary font-bold">
                           <Building2 className="w-3.5 h-3.5" />
-                          <span>Pickup Pharmacy</span>
+                          <span>{isLabTask(d) ? 'Pickup Lab' : 'Pickup Pharmacy'}</span>
                         </div>
                         <p className="font-semibold text-foreground text-sm">{d.pickupAddress || 'FindMedi Partner Pharmacy'}</p>
                       </div>
@@ -583,6 +627,22 @@ export default function DeliveryDashboard() {
           </div>
         )}
 
+        {/* ── Tab: Lab Reports ────────────────────────────────────── */}
+        {deliveryTab === 'lab' && (
+          <div className="space-y-3">
+            {labActive.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground text-xs">No lab report tasks right now.</div>
+            ) : (
+              labActive.map((d) => (
+                <div key={d._id} className="p-4 rounded-xl bg-muted/20 border border-border/50 flex items-center justify-between gap-3">
+                  <span className="font-bold text-sm">Lab Report #{d.orderId || d._id?.slice(-6)} · {d.status}</span>
+                  <span className="text-sm font-black">₹{taskFee(d)}</span>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
         {/* ── Tab: Completed History ────────────────────────────────────── */}
         {deliveryTab === 'history' && (
           <div className="space-y-3">
@@ -598,10 +658,15 @@ export default function DeliveryDashboard() {
                 >
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-sm text-foreground">Order #{d.orderId || d._id?.slice(-6)}</span>
+                      <span className="font-bold text-sm text-foreground">{taskTitle(d)} #{d.orderId || d._id?.slice(-6)}</span>
                       <Badge className="bg-success/10 text-success border-success/20 text-[10px]">
                         Delivered
                       </Badge>
+                      {isLabTask(d) && (
+                        <Badge className="bg-violet-500/15 text-violet-600 border-violet-500/20 text-[10px]">
+                          Lab Report
+                        </Badge>
+                      )}
                     </div>
                     <p className="text-xs text-muted-foreground">
                       Delivered to: <strong>{d.dropAddress || 'Customer'}</strong>
@@ -613,7 +678,7 @@ export default function DeliveryDashboard() {
 
                   <div className="text-right">
                     <span className="text-base font-black text-success block">
-                      +₹{d.orderRef?.deliveryFee || 50}
+                      +₹{taskFee(d)}
                     </span>
                     <span className="text-[10px] text-muted-foreground">Credited to Balance</span>
                   </div>
@@ -631,20 +696,20 @@ export default function DeliveryDashboard() {
           data={{
             requestId: activeIncomingCall._id || activeIncomingCall.deliveryId,
             providerType: 'rider',
-            title: `Medicine Delivery: Order #${activeIncomingCall.orderId || 'NEW'}`,
-            subtitle: 'New pharmacy delivery task assigned. Review pickup details and accept within 2 minutes.',
+            title: `${taskTitle(activeIncomingCall)} Delivery: #${activeIncomingCall.orderId || 'NEW'}`,
+            subtitle: `New ${isLabTask(activeIncomingCall) ? 'lab report' : 'pharmacy'} task assigned. Review pickup details and accept within 2 minutes.`,
             patient: {
-              name: activeIncomingCall.orderRef?.userName || 'Customer Patient',
-              phone: activeIncomingCall.orderRef?.phone || 'App Contact',
+              name: activeIncomingCall.patientName || activeIncomingCall.orderRef?.userName || 'Customer Patient',
+              phone: taskContact(activeIncomingCall) || 'App Contact',
             },
             location: {
               pickupAddress: activeIncomingCall.pickupAddress || 'Partner Pharmacy Store',
               dropAddress: activeIncomingCall.dropAddress || 'Customer Address',
               address: activeIncomingCall.pickupAddress,
             },
-            amount: activeIncomingCall.orderRef?.deliveryFee || 50,
+            amount: taskFee(activeIncomingCall),
             windowSeconds: 120,
-            serviceBadges: ['Express Delivery', 'Prescription Parcel'],
+            serviceBadges: taskBadges(activeIncomingCall),
           }}
           onAccept={async (deliveryId) => {
             setActiveIncomingCall(null);

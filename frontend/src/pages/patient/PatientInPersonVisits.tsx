@@ -284,11 +284,18 @@ export default function PatientInPersonVisits() {
             </Button>
             <Button
               size="sm"
-              onClick={() => navigate('/doctors')}
+              onClick={() => navigate('/patient/doctors')}
               className="bg-white text-violet-700 hover:bg-white/90 h-9 rounded-xl font-semibold gap-1.5 shadow-sm"
             >
               <Stethoscope className="w-3.5 h-3.5" />
               Book New Visit
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => navigate('/find-vehicle?emergency=true')}
+              className="bg-rose-600 hover:bg-rose-700 text-white h-9 rounded-xl font-bold gap-1.5"
+            >
+              SOS Panic
             </Button>
           </div>
         </div>

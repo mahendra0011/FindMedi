@@ -57,6 +57,21 @@ const ambulanceSchema = new mongoose.Schema({
     updatedAt: { type: Date, default: null },
   },
 
+  // §8 ambulance ops master.
+  settings: {
+    lifeSupportTier: { type: String, enum: ['BLS', 'ALS', 'PTV', 'NICU'], default: 'BLS' },
+    oxygenOk: { type: Boolean, default: false },
+    aedOk: { type: Boolean, default: false },
+    suctionOk: { type: Boolean, default: false },
+    spineBoardOk: { type: Boolean, default: false },
+    emtOnBoard: { type: Boolean, default: false },
+    baseDispatchFee: { type: Number, default: 0, min: 0 },
+    perKmRate: { type: Number, default: 0, min: 0 },
+    oxygenFee: { type: Number, default: 0, min: 0 },
+    erAutoAlert: { type: Boolean, default: true },
+    maxRadiusKm: { type: Number, default: 25, min: 0 },
+  },
+
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });

@@ -371,17 +371,27 @@ router.get('/orders', protect, async (req, res) => {
   try {
     const { status, search, orderId } = req.query;
     const filter = {};
+    let ownershipOr = null;
     if (req.user.role === 'patient') {
-      filter.$or = [
+      ownershipOr = [
         { patientId: req.user._id },
         { patientId: { $exists: false }, patientName: req.user.name },
       ];
+      filter.$or = ownershipOr;
     }
     if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
     if ((req.user.facilityId || req.user.hospitalId) && req.user.role !== 'superadmin') filter.facilityId = req.user.facilityId || req.user.hospitalId;
     if (status && status !== 'All') filter.status = status;
     if (orderId) filter.orderId = orderId;
-    if (search) filter.$or = [{ orderId: new RegExp(search, 'i') }, { patientName: new RegExp(search, 'i') }];
+    if (search) {
+      const searchOr = [{ orderId: new RegExp(search, 'i') }, { patientName: new RegExp(search, 'i') }];
+      if (ownershipOr) {
+        filter.$and = [{ $or: ownershipOr }, { $or: searchOr }];
+        delete filter.$or;
+      } else {
+        filter.$or = searchOr;
+      }
+    }
     let query = PharmacyOrder.find(filter).sort({ orderDate: -1 });
     if (orderId) query = query.populate('items.medicineId', 'name form');
     const orders = await query;
@@ -489,7 +499,7 @@ router.put('/deliveries/:id', protect, validate(pharmacyDeliverySchema), async (
   try {
     const delivery = await PharmacyDelivery.findById(req.params.id);
     if (!delivery) return res.status(404).json({ message: 'Delivery not found' });
-    if (req.body.tracking) delivery.tracking.push({ location: req.body.tracking, time: new Date() });
+    if (req.body.tracking) delivery.trackingHistory.push({ location: req.body.tracking, time: new Date() });
     Object.assign(delivery, req.body);
     await delivery.save();
     res.json(delivery);

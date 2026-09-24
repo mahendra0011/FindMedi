@@ -125,6 +125,11 @@ export default function AdminVehicleRides() {
         </p>
       </div>
 
+      <div className="rounded-2xl border p-4 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-xs text-muted-foreground">Live GPS map: textual lat/long + ETA shown per ride. Open in Maps for turn-by-turn.</p>
+        <a href="https://www.google.com/maps" target="_blank" rel="noreferrer" className="text-xs font-semibold rounded-lg border px-3 py-1.5">Open Live Map</a>
+      </div>
+
       {/* Tabs */}
       <div className="flex items-center gap-1.5 border-b border-border/80 pb-1 overflow-x-auto">
         {[

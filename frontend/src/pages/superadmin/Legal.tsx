@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { FileText, Save, History, Eye, Clock, Shield } from 'lucide-react';
+import { FileText, Save, History, Eye, Clock, Shield, AlertTriangle, RotateCcw, UserCheck, Video, HeartHandshake, Cookie } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +11,12 @@ import { api } from '@/lib/api';
 const CONTENT_KEYS = [
   { key: 'terms', label: 'Terms & Conditions', icon: FileText },
   { key: 'privacy', label: 'Privacy Policy', icon: Shield },
+  { key: 'disclaimer', label: 'Emergency Disclaimer', icon: AlertTriangle },
+  { key: 'refund', label: 'Refund & Standby Fees', icon: RotateCcw },
+  { key: 'grievance', label: 'Grievance & DPO Office', icon: UserCheck },
+  { key: 'telemedicine', label: 'Telemedicine Consent', icon: Video },
+  { key: 'patient_rights', label: 'Patient Rights Charter', icon: HeartHandshake },
+  { key: 'cookies', label: 'Cookie Policy', icon: Cookie },
 ];
 
 export default function Legal() {

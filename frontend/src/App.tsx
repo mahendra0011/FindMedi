@@ -82,6 +82,19 @@ const SADataExport = lazy(() => import('./pages/superadmin/DataExport'));
 const SACities = lazy(() => import('./pages/superadmin/Cities'));
 const SALegal = lazy(() => import('./pages/superadmin/Legal'));
 const SAIntegrations = lazy(() => import('./pages/superadmin/Integrations'));
+const SAEmergencyWarRoom = lazy(() => import('./pages/superadmin/EmergencyWarRoom'));
+const SAKycCommand = lazy(() => import('./pages/superadmin/KycCommand'));
+const SATaxLedger = lazy(() => import('./pages/superadmin/TaxLedger'));
+const SAAiSafety = lazy(() => import('./pages/superadmin/AiSafety'));
+const SASecurity = lazy(() => import('./pages/superadmin/Security'));
+const TermsOfService = lazy(() => import('./pages/TermsOfService'));
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
+const Disclaimer = lazy(() => import('./pages/Disclaimer'));
+const RefundPolicy = lazy(() => import('./pages/RefundPolicy'));
+const GrievanceRedressal = lazy(() => import('./pages/GrievanceRedressal'));
+const TelemedicineConsent = lazy(() => import('./pages/TelemedicineConsent'));
+const PatientRights = lazy(() => import('./pages/PatientRights'));
+const CookiePolicy = lazy(() => import('./pages/CookiePolicy'));
 const HospitalDirectory = lazy(() => import('./pages/HospitalDirectory'));
 const HospitalProfile = lazy(() => import('./pages/HospitalProfile'));
 const HospitalDoctors = lazy(() => import('./pages/HospitalDoctors'));
@@ -186,6 +199,8 @@ const DoctorConsultations = lazy(() => import('./pages/doctor/DoctorConsultation
 const DoctorReviews = lazy(() => import('./pages/doctor/DoctorReviews'));
 const DoctorTestResults = lazy(() => import('./pages/doctor/DoctorTestResults'));
 const DoctorEarnings = lazy(() => import('./pages/doctor/DoctorEarnings'));
+const DoctorAnalytics = lazy(() => import('./pages/doctor/DoctorAnalytics'));
+const DoctorRefunds = lazy(() => import('./pages/doctor/DoctorRefunds'));
 const DoctorSchedule = lazy(() => import('./pages/doctor/DoctorSchedule'));
 const DoctorScheduleEdit = lazy(() => import('./pages/doctor/DoctorScheduleEdit'));
 const DoctorEmergency = lazy(() => import('./pages/doctor/DoctorEmergency'));
@@ -223,6 +238,7 @@ const ClinicNotifications = lazy(() => import('./pages/clinic/ClinicNotification
 const ClinicPlatformSettings = lazy(() => import('./pages/clinic/ClinicPlatformSettings'));
 
 const DeliveryDashboard = lazy(() => import('./pages/delivery/DeliveryDashboard'));
+const StaffDashboardPage = lazy(() => import('./pages/StaffDashboard'));
 const DeliveryOrders = lazy(() => import('./pages/delivery/DeliveryOrders'));
 const DeliveryHistory = lazy(() => import('./pages/delivery/DeliveryHistory'));
 const DeliveryEarnings = lazy(() => import('./pages/delivery/DeliveryEarnings'));
@@ -295,7 +311,6 @@ const MindAdminDashboard = lazy(() => import('./mind/pages/AdminDashboard'));
 const MindWellness = lazy(() => import('./mind/pages/MyWellness'));
 const MindPrivacy = lazy(() => import('./mind/pages/PrivacyPolicy'));
 const MindIntakeForm = lazy(() => import('./mind/pages/IntakeFormPage'));
-const MindDashboard = lazy(() => import('./mind/pages/Dashboard'));
 const MindUserDashboard = lazy(() => import('./mind/pages/UserDashboard'));
 const MindCounsellorDashboard = lazy(() => import('./mind/pages/CounsellorDashboard'));
 const MindPsychiatristDashboard = lazy(() => import('./mind/pages/PsychiatristDashboard'));
@@ -473,6 +488,10 @@ function getDefaultDashboardPath(user) {
   return paths[user?.role]?.[value] || '';
 }
 
+function StaffDashboard() {
+  return <StaffDashboardPage />;
+}
+
 function RoleDashboard() {
   const { user } = useAuth();
   const defaultPath = getDefaultDashboardPath(user);
@@ -491,6 +510,7 @@ function RoleDashboard() {
   if (user?.role === 'lawyer') return <Navigate to="/lawyer/dashboard" replace />;
   if (user?.role === 'lab_owner') return <Navigate to="/lab-business/dashboard" replace />;
   if (user?.role === 'pharmacy_owner') return <Navigate to="/pharmacy-business/dashboard" replace />;
+  if (['nurse','pharmacist','lab_receptionist','lab_technician','pathologist','radiologist','dietitian','physiotherapist','counselor','accountant','security','technician','helper'].includes(user?.role)) return <StaffDashboard />;
   return <PatientDashboard />;
 }
 
@@ -570,6 +590,14 @@ const App = () => (
                   <Route path="/login" element={<Login />} />
                     <Route path="/signup" element={<Signup />} />
                     <Route path="/join-platform" element={<JoinPlatform />} />
+                    <Route path="/terms" element={<TermsOfService />} />
+                    <Route path="/privacy" element={<PrivacyPolicy />} />
+                    <Route path="/disclaimer" element={<Disclaimer />} />
+                    <Route path="/refund-policy" element={<RefundPolicy />} />
+                    <Route path="/grievance" element={<GrievanceRedressal />} />
+                    <Route path="/telemedicine-consent" element={<TelemedicineConsent />} />
+                    <Route path="/patient-rights" element={<PatientRights />} />
+                    <Route path="/cookies" element={<CookiePolicy />} />
                   <Route path="/forgot-password" element={<ForgotPassword />} />
                   <Route path="/verify-otp" element={<OTPVerification />} />
                   <Route path="/pending-approval" element={<PendingApproval />} />
@@ -646,8 +674,10 @@ const App = () => (
                       <Route path="/mind/intake/:packageId" element={<MindIntakeForm />} />
                       {/* Mind dashboards with FindMedi-like sidebar */}
                       <Route element={<MindDashboardShell />}>
-                        <Route path="/mind/dashboard" element={<MindDashboard />} />
-                        <Route path="/mind/admin" element={<MindAdminDashboard />} />
+                        {/* U-3/U-9: legacy anonymous console retired — canonical
+                            client console is /mind/user (protected). Bookmarks keep working. */}
+                        <Route path="/mind/dashboard" element={<Navigate to="/mind/user" replace />} />
+                        <Route path="/mind/admin" element={<RoleRoute allowedRoles={['superadmin']}><MindAdminDashboard /></RoleRoute>} />
                       </Route>
                     </Route>
 
@@ -692,8 +722,8 @@ const App = () => (
                     {/* Mind user dashboard merged into FindMedi shell (single dashboard) */}
                     <Route path="/mind/user" element={<MindUserOnlyRoute><MindStore><MindUserDashboard /></MindStore></MindUserOnlyRoute>} />
                     {/* Mind provider dashboards merged into FindMedi shell (single sidebar) */}
-                    <Route path="/mind/counsellor" element={<MindStore><MindCounsellorDashboard /></MindStore>} />
-                    <Route path="/mind/psychiatrist" element={<MindStore><MindPsychiatristDashboard /></MindStore>} />
+                    <Route path="/mind/counsellor" element={<RoleRoute allowedRoles={['counsellor', 'doctor']}><MindStore><MindCounsellorDashboard /></MindStore></RoleRoute>} />
+                    <Route path="/mind/psychiatrist" element={<RoleRoute allowedRoles={['psychiatrist', 'doctor']}><MindStore><MindPsychiatristDashboard /></MindStore></RoleRoute>} />
                     {/* My Wellness inside main dashboard (AppSidebar My Wellness dropdown) */}
                     <Route path="/mind/wellness" element={<MindUserOnlyRoute><MindStore><MindWellness /></MindStore></MindUserOnlyRoute>} />
                     <Route path="/ai-chat" element={<AIChatPage />} />
@@ -727,6 +757,11 @@ const App = () => (
                     <Route path="/superadmin/cities" element={<RoleRoute allowedRoles={['superadmin']}><SACities /></RoleRoute>} />
                     <Route path="/superadmin/legal" element={<RoleRoute allowedRoles={['superadmin']}><SALegal /></RoleRoute>} />
                     <Route path="/superadmin/integrations" element={<RoleRoute allowedRoles={['superadmin']}><SAIntegrations /></RoleRoute>} />
+                    <Route path="/superadmin/emergency-war-room" element={<RoleRoute allowedRoles={['superadmin']}><SAEmergencyWarRoom /></RoleRoute>} />
+                    <Route path="/superadmin/kyc-command" element={<RoleRoute allowedRoles={['superadmin']}><SAKycCommand /></RoleRoute>} />
+                    <Route path="/superadmin/tax-ledger" element={<RoleRoute allowedRoles={['superadmin']}><SATaxLedger /></RoleRoute>} />
+                    <Route path="/superadmin/ai-safety" element={<RoleRoute allowedRoles={['superadmin']}><SAAiSafety /></RoleRoute>} />
+                    <Route path="/superadmin/security" element={<RoleRoute allowedRoles={['superadmin']}><SASecurity /></RoleRoute>} />
 
                     {/* Admin routes */}
                     <Route path="/admin/users" element={<RoleRoute allowedRoles={['hospital_admin', 'superadmin']}><AdminUsers /></RoleRoute>} />
@@ -823,25 +858,27 @@ const App = () => (
                     <Route path="/patient/lawyers" element={<RoleRoute allowedRoles={['patient']}><PatientLawyers /></RoleRoute>} />
 
                     {/* Doctor routes */}
-                    <Route path="/doctor/appointments/approve" element={<RoleRoute allowedRoles={['doctor']}><DoctorAppointments /></RoleRoute>} />
-                    <Route path="/doctor/appointments/upcoming" element={<RoleRoute allowedRoles={['doctor']}><DoctorAppointments /></RoleRoute>} />
-                    <Route path="/doctor/appointments/history" element={<RoleRoute allowedRoles={['doctor']}><DoctorAppointments /></RoleRoute>} />
-                    <Route path="/doctor/appointments/approved" element={<RoleRoute allowedRoles={['doctor']}><DoctorAppointments /></RoleRoute>} />
-                    <Route path="/doctor/appointments" element={<RoleRoute allowedRoles={['doctor']}><DoctorAppointments /></RoleRoute>} />
-                    <Route path="/doctor/online-appointments" element={<RoleRoute allowedRoles={['doctor']}><DoctorOnlineAppointments /></RoleRoute>} />
-                    <Route path="/doctor/home-visit" element={<RoleRoute allowedRoles={['doctor']}><DoctorInPersonAppointments /></RoleRoute>} />
-                    <Route path="/doctor/in-person" element={<RoleRoute allowedRoles={['doctor']}><DoctorInPersonAppointments /></RoleRoute>} />
-                    <Route path="/doctor/chat" element={<RoleRoute allowedRoles={['doctor']}><ChatPage /></RoleRoute>} />
-                    <Route path="/doctor/calls" element={<RoleRoute allowedRoles={['doctor']}><DoctorCalls /></RoleRoute>} />
+                    <Route path="/doctor/appointments/approve" element={<RoleRoute allowedRoles={['doctor', 'hospital_admin']}><DoctorAppointments /></RoleRoute>} />
+                    <Route path="/doctor/appointments/upcoming" element={<RoleRoute allowedRoles={['doctor', 'hospital_admin']}><DoctorAppointments /></RoleRoute>} />
+                    <Route path="/doctor/appointments/history" element={<RoleRoute allowedRoles={['doctor', 'hospital_admin']}><DoctorAppointments /></RoleRoute>} />
+                    <Route path="/doctor/appointments/approved" element={<RoleRoute allowedRoles={['doctor', 'hospital_admin']}><DoctorAppointments /></RoleRoute>} />
+                    <Route path="/doctor/appointments" element={<RoleRoute allowedRoles={['doctor', 'hospital_admin']}><DoctorAppointments /></RoleRoute>} />
+                    <Route path="/doctor/online-appointments" element={<RoleRoute allowedRoles={['doctor', 'hospital_admin']}><DoctorOnlineAppointments /></RoleRoute>} />
+                    <Route path="/doctor/home-visit" element={<RoleRoute allowedRoles={['doctor', 'hospital_admin']}><DoctorInPersonAppointments /></RoleRoute>} />
+                    <Route path="/doctor/in-person" element={<RoleRoute allowedRoles={['doctor', 'hospital_admin']}><DoctorInPersonAppointments /></RoleRoute>} />
+                    <Route path="/doctor/chat" element={<RoleRoute allowedRoles={['doctor', 'hospital_admin']}><ChatPage /></RoleRoute>} />
+                    <Route path="/doctor/calls" element={<RoleRoute allowedRoles={['doctor', 'hospital_admin']}><DoctorCalls /></RoleRoute>} />
                     <Route path="/doctor/call/:appointmentId" element={<RoleRoute allowedRoles={['doctor', 'clinic_doctor']}><DoctorCallRoom /></RoleRoute>} />
                     <Route path="/doctor/call-room/:appointmentId" element={<RoleRoute allowedRoles={['doctor', 'clinic_doctor']}><DoctorCallRoom /></RoleRoute>} />
-                    <Route path="/doctor/video-calls" element={<RoleRoute allowedRoles={['doctor']}><DoctorVideoCalls /></RoleRoute>} />
+                    <Route path="/doctor/video-calls" element={<RoleRoute allowedRoles={['doctor', 'hospital_admin']}><DoctorVideoCalls /></RoleRoute>} />
                     <Route path="/doctor/video-call/:appointmentId" element={<RoleRoute allowedRoles={['doctor', 'clinic_doctor']}><DoctorVideoCallRoom /></RoleRoute>} />
                     <Route path="/doctor/video-call-room/:appointmentId" element={<RoleRoute allowedRoles={['doctor', 'clinic_doctor']}><DoctorVideoCallRoom /></RoleRoute>} />
                     <Route path="/doctor/patients" element={<RoleRoute allowedRoles={['doctor']}><DoctorPatients /></RoleRoute>} />
                     <Route path="/doctor/consultations" element={<RoleRoute allowedRoles={['doctor']}><DoctorConsultations /></RoleRoute>} />
                     <Route path="/doctor/reviews" element={<RoleRoute allowedRoles={['doctor']}><DoctorReviews /></RoleRoute>} />
                     <Route path="/doctor/earnings" element={<RoleRoute allowedRoles={['doctor']}><DoctorEarnings /></RoleRoute>} />
+                    <Route path="/doctor/analytics" element={<RoleRoute allowedRoles={['doctor']}><DoctorAnalytics /></RoleRoute>} />
+                    <Route path="/doctor/refunds" element={<RoleRoute allowedRoles={['doctor']}><DoctorRefunds /></RoleRoute>} />
                     <Route path="/doctor/schedule" element={<RoleRoute allowedRoles={['doctor']}><DoctorScheduleEdit /></RoleRoute>} />
                     <Route path="/doctor/test-results" element={<RoleRoute allowedRoles={['doctor']}><DoctorTestResults /></RoleRoute>} />
                     <Route path="/doctor/emergency" element={<RoleRoute allowedRoles={['doctor']}><DoctorEmergency /></RoleRoute>} />
@@ -928,27 +965,27 @@ const App = () => (
                      <Route path="/clinic/analytics" element={<RoleRoute allowedRoles={['clinic_doctor']}><ClinicAnalytics /></RoleRoute>} />
 
                     {/* Delivery Partner routes */}
-                    <Route path="/delivery/dashboard" element={<RoleRoute allowedRoles={['delivery_boy']}><DeliveryDashboard /></RoleRoute>} />
+                    <Route path="/delivery/dashboard" element={<Navigate to="/dashboard" replace />} />
                     <Route path="/delivery/orders" element={<RoleRoute allowedRoles={['delivery_boy']}><DeliveryOrders /></RoleRoute>} />
-                    <Route path="/delivery/deliveries" element={<RoleRoute allowedRoles={['delivery_boy']}><DeliveryOrders /></RoleRoute>} />
+                    <Route path="/delivery/deliveries" element={<Navigate to="/delivery/orders" replace />} />
                     <Route path="/delivery/history" element={<RoleRoute allowedRoles={['delivery_boy']}><DeliveryHistory /></RoleRoute>} />
                     <Route path="/delivery/earnings" element={<RoleRoute allowedRoles={['delivery_boy']}><DeliveryEarnings /></RoleRoute>} />
                     <Route path="/delivery/zone" element={<RoleRoute allowedRoles={['delivery_boy']}><DeliveryZone /></RoleRoute>} />
                     <Route path="/delivery/reviews" element={<RoleRoute allowedRoles={['delivery_boy']}><DeliveryReviews /></RoleRoute>} />
                     <Route path="/delivery/documents" element={<RoleRoute allowedRoles={['delivery_boy']}><DeliveryDocuments /></RoleRoute>} />
                     <Route path="/delivery/settings" element={<RoleRoute allowedRoles={['delivery_boy']}><DeliverySettings /></RoleRoute>} />
-                    <Route path="/delivery/profile" element={<RoleRoute allowedRoles={['delivery_boy']}><DeliverySettings /></RoleRoute>} />
+                    <Route path="/delivery/profile" element={<Navigate to="/delivery/settings" replace />} />
 
                     {/* Rider Partner routes */}
                     <Route path="/rider/dashboard" element={<RoleRoute allowedRoles={['rider']}><RiderDashboard /></RoleRoute>} />
-                    <Route path="/rider/requests" element={<RoleRoute allowedRoles={['rider']}><RiderDashboard /></RoleRoute>} />
-                    <Route path="/rider/active" element={<RoleRoute allowedRoles={['rider']}><RiderDashboard /></RoleRoute>} />
-                    <Route path="/rider/earnings" element={<RoleRoute allowedRoles={['rider']}><RiderDashboard /></RoleRoute>} />
-                    <Route path="/rider/history" element={<RoleRoute allowedRoles={['rider']}><RiderDashboard /></RoleRoute>} />
-                    <Route path="/rider/vehicle" element={<RoleRoute allowedRoles={['rider']}><RiderDashboard /></RoleRoute>} />
-                    <Route path="/rider/documents" element={<RoleRoute allowedRoles={['rider']}><RiderDashboard /></RoleRoute>} />
-                    <Route path="/rider/reviews" element={<RoleRoute allowedRoles={['rider']}><RiderDashboard /></RoleRoute>} />
-                    <Route path="/rider/settings" element={<RoleRoute allowedRoles={['rider']}><RiderDashboard /></RoleRoute>} />
+                    <Route path="/rider/requests" element={<Navigate to="/rider/dashboard?tab=requests" replace />} />
+                    <Route path="/rider/active" element={<Navigate to="/rider/dashboard?tab=active" replace />} />
+                    <Route path="/rider/earnings" element={<Navigate to="/rider/dashboard?tab=earnings" replace />} />
+                    <Route path="/rider/history" element={<Navigate to="/rider/dashboard?tab=history" replace />} />
+                    <Route path="/rider/vehicle" element={<Navigate to="/rider/dashboard?tab=vehicle" replace />} />
+                    <Route path="/rider/documents" element={<Navigate to="/rider/dashboard?tab=documents" replace />} />
+                    <Route path="/rider/reviews" element={<Navigate to="/rider/dashboard?tab=ratings" replace />} />
+                    <Route path="/rider/settings" element={<Navigate to="/rider/dashboard?tab=settings" replace />} />
 
                     {/* Ambulance driver routes (Doc 02 §5.1) */}
                     <Route path="/ambulance/dashboard" element={<RoleRoute allowedRoles={['ambulance']}><AmbulanceDashboard /></RoleRoute>} />
@@ -956,20 +993,20 @@ const App = () => (
 
                     {/* Assistant Partner routes */}
                     <Route path="/assistant/dashboard" element={<RoleRoute allowedRoles={['assistant']}><AssistantDashboard /></RoleRoute>} />
-                    <Route path="/assistant/requests" element={<RoleRoute allowedRoles={['assistant']}><AssistantDashboard /></RoleRoute>} />
-                    <Route path="/assistant/active" element={<RoleRoute allowedRoles={['assistant']}><AssistantDashboard /></RoleRoute>} />
-                    <Route path="/assistant/history" element={<RoleRoute allowedRoles={['assistant']}><AssistantDashboard /></RoleRoute>} />
-                    <Route path="/assistant/earnings" element={<RoleRoute allowedRoles={['assistant']}><AssistantDashboard /></RoleRoute>} />
-                    <Route path="/assistant/profile" element={<RoleRoute allowedRoles={['assistant']}><AssistantDashboard /></RoleRoute>} />
-                    
+                    <Route path="/assistant/requests" element={<Navigate to="/assistant/dashboard?tab=requests" replace />} />
+                    <Route path="/assistant/active" element={<Navigate to="/assistant/dashboard?tab=active" replace />} />
+                    <Route path="/assistant/history" element={<Navigate to="/assistant/dashboard?tab=history" replace />} />
+                    <Route path="/assistant/earnings" element={<Navigate to="/assistant/dashboard?tab=earnings" replace />} />
+                    <Route path="/assistant/profile" element={<Navigate to="/assistant/dashboard?tab=profile" replace />} />
+
                     {/* Lawyer / Advocate Partner routes */}
                     <Route path="/lawyer/dashboard" element={<RoleRoute allowedRoles={['lawyer']}><LawyerDashboard /></RoleRoute>} />
-                    <Route path="/lawyer/requests" element={<RoleRoute allowedRoles={['lawyer']}><LawyerDashboard /></RoleRoute>} />
-                    <Route path="/lawyer/cases" element={<RoleRoute allowedRoles={['lawyer']}><LawyerDashboard /></RoleRoute>} />
-                    <Route path="/lawyer/active" element={<RoleRoute allowedRoles={['lawyer']}><LawyerDashboard /></RoleRoute>} />
-                    <Route path="/lawyer/history" element={<RoleRoute allowedRoles={['lawyer']}><LawyerDashboard /></RoleRoute>} />
-                    <Route path="/lawyer/earnings" element={<RoleRoute allowedRoles={['lawyer']}><LawyerDashboard /></RoleRoute>} />
-                    <Route path="/lawyer/profile" element={<RoleRoute allowedRoles={['lawyer']}><LawyerDashboard /></RoleRoute>} />
+                    <Route path="/lawyer/requests" element={<Navigate to="/lawyer/dashboard?tab=requests" replace />} />
+                    <Route path="/lawyer/cases" element={<Navigate to="/lawyer/dashboard?tab=cases" replace />} />
+                    <Route path="/lawyer/active" element={<Navigate to="/lawyer/dashboard?tab=active" replace />} />
+                    <Route path="/lawyer/history" element={<Navigate to="/lawyer/dashboard?tab=cases" replace />} />
+                    <Route path="/lawyer/earnings" element={<Navigate to="/lawyer/dashboard?tab=earnings" replace />} />
+                    <Route path="/lawyer/profile" element={<Navigate to="/lawyer/dashboard?tab=profile" replace />} />
                     </Route>
 
                    <Route path="/register/delivery-partner" element={<DeliveryPartnerRegister />} />

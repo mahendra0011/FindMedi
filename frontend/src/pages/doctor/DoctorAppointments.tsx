@@ -73,6 +73,15 @@ export default function DoctorAppointments() {
   const [rescheduleId, setRescheduleId] = useState(null);
   const [newDate, setNewDate] = useState('');
   const [newTime, setNewTime] = useState('');
+  const [bulkShiftHours, setBulkShiftHours] = useState(1);
+
+  const handleBulkReschedule = async () => {
+    try {
+      const morning = appointments.filter((a) => a.date === selectedDate);
+      await Promise.all(morning.map((a) => api.updateAppointment(a._id, { time: `${bulkShiftHours}h shifted` })));
+      toast.success(`${morning.length} slots shifted by ${bulkShiftHours}h (emergency delay)`);
+    } catch { toast.error('Bulk reschedule failed'); }
+  };
   const [bookedSlots, setBookedSlots] = useState([]);
   const [dateDisabledSlots, setDateDisabledSlots] = useState([]);
   const [completeId, setCompleteId] = useState(null);

@@ -32,7 +32,24 @@ export default function AdminEmergency() {
   const [selectedCase, setSelectedCase] = useState(null);
   const [assignModal, setAssignModal] = useState(null);
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => {
+    loadData();
+    let socket;
+    (async () => {
+      try {
+        const { getSocket } = await import('@/lib/socket');
+        socket = getSocket();
+        socket?.on('emergency:new', (data) => {
+          if (data?.severity === 'Critical') {
+            const audio = new Audio('/sounds/emergency-alert.mp3');
+            audio.play().catch(() => {});
+          }
+          loadData();
+        });
+      } catch {}
+    })();
+    return () => { socket?.off('emergency:new'); };
+  }, []);
 
   const loadData = async () => {
     setLoading(true);

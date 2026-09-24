@@ -13,12 +13,18 @@ import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { getSocket, joinRoom } from '@/lib/socket';
 
+const LAB_TYPES = ['lab_report', 'lab_sample'];
+const isLabTask = (d) => LAB_TYPES.includes(d?.serviceType);
+const taskFee = (d) => d?.deliveryFee ?? d?.orderRef?.deliveryFee ?? 0;
+const taskContact = (d) => d?.patientPhone || d?.orderRef?.phone || '';
+
 export default function DeliveryOrders() {
   const { user } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [deliveries, setDeliveries] = useState<{ active: any[]; history: any[] }>({ active: [], history: [] });
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'active' | 'history'>('active');
+  const [typeFilter, setTypeFilter] = useState<'all' | 'medicines' | 'lab'>('all');
   const [search, setSearch] = useState('');
   const [otpMap, setOtpMap] = useState<{ [id: string]: string }>({});
 
@@ -128,6 +134,15 @@ export default function DeliveryOrders() {
           </div>
         </div>
 
+        <div className="flex p-1 rounded-xl bg-muted/60 border border-border/60 self-start sm:self-auto mb-3">
+          {(['all', 'medicines', 'lab'] as const).map((f) => (
+            <button key={f} type="button" onClick={() => setTypeFilter(f)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold ${typeFilter === f ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}>
+              {f === 'all' ? 'All' : f === 'medicines' ? 'Medicines' : 'Lab Reports'}
+            </button>
+          ))}
+        </div>
+
         {/* Tab Switch */}
         <div className="flex p-1 rounded-xl bg-muted/60 border border-border/60 self-start sm:self-auto">
           <button
@@ -171,7 +186,7 @@ export default function DeliveryOrders() {
               </p>
             </div>
           ) : (
-            deliveries.active.map((d) => (
+            deliveries.active.filter((d) => typeFilter === 'all' || (typeFilter === 'lab' ? isLabTask(d) : !isLabTask(d))).map((d) => (
               <motion.div
                 key={d._id}
                 initial={{ opacity: 0, y: 12 }}
@@ -191,21 +206,21 @@ export default function DeliveryOrders() {
                           {d.status}
                         </Badge>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-0.5">Express Prescription Medicine Run</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{isLabTask(d) ? 'Lab report delivery run' : 'Express prescription medicine run'}</p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-3 self-end sm:self-center">
-                    {d.orderRef?.phone && (
+                    {taskContact(d) && (
                       <a
-                        href={`tel:${d.orderRef.phone}`}
+                        href={`tel:${taskContact(d)}`}
                         className="h-9 px-3.5 rounded-xl bg-primary/10 text-primary text-xs font-bold flex items-center gap-1.5 hover:bg-primary/20 transition-colors"
                       >
                         <Phone className="w-3.5 h-3.5" /> Call Customer
                       </a>
                     )}
                     <span className="text-sm font-black text-foreground bg-muted/60 px-3.5 py-1.5 rounded-xl border border-border">
-                      ₹{d.orderRef?.deliveryFee || 50} Payout
+                      ₹{taskFee(d)} Payout
                     </span>
                   </div>
                 </div>

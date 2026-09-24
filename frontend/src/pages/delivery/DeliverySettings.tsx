@@ -30,6 +30,12 @@ export default function DeliverySettings() {
     vehicleNumber: '',
     emergencyContact: { name: '', phone: '', relation: 'Family' },
     notifications: { sound: true, highPriorityAlerts: true, smsBackup: true },
+    nightDispatch: false,
+    codCeiling: '5000',
+    insulatedBag: false,
+    maxRadius: '8 km',
+    payoutUpi: '',
+    breakdownSos: true,
   });
 
   useEffect(() => {
@@ -40,6 +46,8 @@ export default function DeliverySettings() {
     try {
       const prof = await api.get('/delivery-partners/profile/me');
       setProfile(prof);
+      const st = prof.settings || {};
+      const radiusNum = st.maxRadiusKm ?? parseInt(String(prof.maxRadius || '8'), 10) ?? 8;
       setForm({
         name: prof.name || user?.name || '',
         phone: prof.phone || user?.phone || '',
@@ -51,6 +59,12 @@ export default function DeliverySettings() {
         vehicleNumber: prof.vehicleNumber || '',
         emergencyContact: prof.emergencyContact || { name: '', phone: '', relation: 'Family' },
         notifications: { sound: true, highPriorityAlerts: true, smsBackup: true },
+        nightDispatch: Boolean(st.nightDispatch ?? false),
+        codCeiling: String(st.codCeiling ?? '5000'),
+        insulatedBag: Boolean(st.insulatedBag ?? false),
+        maxRadius: `${Number(radiusNum) || 8} km`,
+        payoutUpi: st.payoutUpi || prof.bankDetails?.upiId || '',
+        breakdownSos: st.breakdownSos !== false,
       });
     } catch {
       toast.error('Failed to load profile');
@@ -68,7 +82,20 @@ export default function DeliverySettings() {
     setSaving(true);
     try {
       if (profile?._id) {
-        await api.put(`/delivery-partners/profile/${profile._id}`, form);
+        // §8 ops master persists under settings.* (top-level keys would be dropped).
+        const { nightDispatch, codCeiling, insulatedBag, maxRadius, payoutUpi, breakdownSos, ...rest } = form;
+        await api.put(`/delivery-partners/profile/${profile._id}`, {
+          ...rest,
+          bankDetails: { ...(profile.bankDetails || {}), upiId: payoutUpi },
+          settings: {
+            nightDispatch: Boolean(nightDispatch),
+            codCeiling: Number(codCeiling) || 0,
+            insulatedBag: Boolean(insulatedBag),
+            maxRadiusKm: parseInt(String(maxRadius), 10) || 0,
+            payoutUpi,
+            breakdownSos: breakdownSos !== false,
+          },
+        });
       }
       toast.success('Profile preferences successfully saved!');
     } catch {
@@ -345,6 +372,15 @@ export default function DeliverySettings() {
             <p className="text-xs text-muted-foreground">
               In case of sudden accident, vehicle breakdown, or medical distress on duty, FindMedi safety dispatch alerts this contact immediately.
             </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+              <label className="flex items-center gap-2 text-xs font-semibold"><Switch checked={form.nightDispatch} onCheckedChange={(v) => setForm((p) => ({ ...p, nightDispatch: v }))} /> Night Emergency Dispatch</label>
+              <div><Label className="text-xs font-bold">COD Ceiling ₹</Label><select value={form.codCeiling} onChange={(e) => setForm((p) => ({ ...p, codCeiling: e.target.value }))} className="w-full h-10 px-3 rounded-xl border text-sm"><option>2000</option><option>5000</option><option>10000</option></select></div>
+              <label className="flex items-center gap-2 text-xs font-semibold"><Switch checked={form.insulatedBag} onCheckedChange={(v) => setForm((p) => ({ ...p, insulatedBag: v }))} /> Insulated Bag Certified</label>
+              <div><Label className="text-xs font-bold">Max Radius</Label><select value={form.maxRadius} onChange={(e) => setForm((p) => ({ ...p, maxRadius: e.target.value }))} className="w-full h-10 px-3 rounded-xl border text-sm"><option>3 km</option><option>5 km</option><option>8 km</option><option>12 km</option></select></div>
+              <div><Label className="text-xs font-bold">Payout UPI</Label><Input value={form.payoutUpi} onChange={(e) => setForm((p) => ({ ...p, payoutUpi: e.target.value }))} placeholder="rider@upi" className="rounded-xl" /></div>
+              <label className="flex items-center gap-2 text-xs font-semibold"><Switch checked={form.breakdownSos} onCheckedChange={(v) => setForm((p) => ({ ...p, breakdownSos: v }))} /> Breakdown SOS</label>
+            </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">

@@ -61,14 +61,14 @@ export default function ClinicNotifications() {
 
   const markRead = async (id) => {
     try {
-      await api.updateNotification(id, { read: true });
+      await api.markNotificationRead(id);
       setNotifications(prev => prev.map(n => n._id === id ? { ...n, read: true } : n));
     } catch (e) { console.error(e); }
   };
 
   const markAllRead = async () => {
     try {
-      await Promise.all(notifications.filter(n => !n.read).map(n => api.updateNotification(n._id, { read: true })));
+      await api.markAllRead();
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
     } catch (e) { console.error(e); }
   };

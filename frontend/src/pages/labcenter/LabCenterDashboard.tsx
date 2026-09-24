@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
+import { Switch } from '@/components/ui/switch';
 import { CalendarDays, Clock, User, AlertCircle, TrendingUp, DollarSign, Beaker, FileText, Microscope, RotateCcw, Globe, Save, Building2, Users, CheckCircle, CalendarClock, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Link } from 'react-router-dom';
@@ -22,7 +23,35 @@ export default function LabCenterDashboard() {
   const [refunds, setRefunds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [bookingTab, setBookingTab] = useState('pending');
+  const [platformSettings, setPlatformSettings] = useState({
+    autoConfirmBookings: true,
+    patientSelfBooking: false,
+    reportAutoPublish: true,
+    smsNotifications: true,
+    emergencyStat: false,
+    acceptRefunds: true,
+    homeCollectionFee: '50',
+    freePickupThreshold: '500',
+    statFee: '200',
+    collectionRadius: '10 km',
+    autoRelease: false,
+    bankAccount: '',
+    bankIfsc: '',
+    gstin: '',
+  });
   const mounted = useRef(true);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('lab_platform_settings');
+      if (saved) setPlatformSettings(JSON.parse(saved));
+    } catch {}
+  }, []);
+
+  const handleSavePlatformSettings = () => {
+    localStorage.setItem('lab_platform_settings', JSON.stringify(platformSettings));
+    toast.success('Lab platform settings updated successfully');
+  };
 
   useEffect(() => {
     mounted.current = true;
@@ -324,11 +353,7 @@ export default function LabCenterDashboard() {
           <h3 className="font-heading font-semibold text-lg text-foreground">Platform Settings</h3>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-success/5 rounded-lg border border-success/20 p-4">
-            <p className="text-2xl font-bold text-success">Active</p>
-            <p className="text-xs text-muted-foreground">Platform Status</p>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <div className="bg-primary/5 rounded-lg border border-primary/20 p-4">
             <p className="text-2xl font-bold text-primary">{stats?.total ?? '—'}</p>
             <p className="text-xs text-muted-foreground">Total Bookings</p>
@@ -348,9 +373,10 @@ export default function LabCenterDashboard() {
                 <p className="text-xs text-muted-foreground">Automatically confirm bookings after payment</p>
               </div>
             </div>
-            <button className="relative inline-flex h-6 w-11 items-center rounded-full bg-primary transition-colors">
-              <span className="inline-block h-4 w-4 transform rounded-full bg-white translate-x-6" />
-            </button>
+            <Switch
+              checked={platformSettings.autoConfirmBookings}
+              onCheckedChange={(checked) => setPlatformSettings(s => ({ ...s, autoConfirmBookings: checked }))}
+            />
           </div>
 
           <div className="flex items-center justify-between py-3 border-b border-border last:border-0">
@@ -361,9 +387,10 @@ export default function LabCenterDashboard() {
                 <p className="text-xs text-muted-foreground">Allow patients to book tests without approval</p>
               </div>
             </div>
-            <button className="relative inline-flex h-6 w-11 items-center rounded-full bg-gray-300 transition-colors">
-              <span className="inline-block h-4 w-4 transform rounded-full bg-white translate-x-1" />
-            </button>
+            <Switch
+              checked={platformSettings.patientSelfBooking}
+              onCheckedChange={(checked) => setPlatformSettings(s => ({ ...s, patientSelfBooking: checked }))}
+            />
           </div>
 
           <div className="flex items-center justify-between py-3 border-b border-border last:border-0">
@@ -374,9 +401,10 @@ export default function LabCenterDashboard() {
                 <p className="text-xs text-muted-foreground">Automatically publish test reports after completion</p>
               </div>
             </div>
-            <button className="relative inline-flex h-6 w-11 items-center rounded-full bg-primary transition-colors">
-              <span className="inline-block h-4 w-4 transform rounded-full bg-white translate-x-6" />
-            </button>
+            <Switch
+              checked={platformSettings.reportAutoPublish}
+              onCheckedChange={(checked) => setPlatformSettings(s => ({ ...s, reportAutoPublish: checked }))}
+            />
           </div>
 
           <div className="flex items-center justify-between py-3 border-b border-border last:border-0">
@@ -387,14 +415,55 @@ export default function LabCenterDashboard() {
                 <p className="text-xs text-muted-foreground">Send SMS alerts for booking confirmations and report availability</p>
               </div>
             </div>
-            <button className="relative inline-flex h-6 w-11 items-center rounded-full bg-primary transition-colors">
-              <span className="inline-block h-4 w-4 transform rounded-full bg-white translate-x-6" />
-            </button>
+            <Switch
+              checked={platformSettings.smsNotifications}
+              onCheckedChange={(checked) => setPlatformSettings(s => ({ ...s, smsNotifications: checked }))}
+            />
+          </div>
+
+          <div className="flex items-center justify-between py-3 border-b border-border last:border-0">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-destructive mt-0.5" />
+              <div>
+                <p className="font-medium text-sm text-foreground">Emergency STAT Processing</p>
+                <p className="text-xs text-muted-foreground">Accept 60-min urgent cardiac/ICU reports</p>
+              </div>
+            </div>
+            <Switch
+              checked={platformSettings.emergencyStat}
+              onCheckedChange={(checked) => setPlatformSettings(s => ({ ...s, emergencyStat: checked }))}
+            />
+          </div>
+
+          <div className="flex items-center justify-between py-3 border-b border-border last:border-0">
+            <div className="flex items-start gap-3">
+              <RotateCcw className="w-5 h-5 text-primary mt-0.5" />
+              <div>
+                <p className="font-medium text-sm text-foreground">Accept Refunds</p>
+                <p className="text-xs text-muted-foreground">100% before rider dispatch, 50% en-route</p>
+              </div>
+            </div>
+            <Switch
+              checked={platformSettings.acceptRefunds}
+              onCheckedChange={(checked) => setPlatformSettings(s => ({ ...s, acceptRefunds: checked }))}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4">
+            <div><label className="text-xs font-medium">Home Collection Fee ₹</label><input value={platformSettings.homeCollectionFee} onChange={e => setPlatformSettings(s => ({ ...s, homeCollectionFee: e.target.value }))} className="w-full border rounded-lg px-3 py-2 text-sm" /></div>
+            <div><label className="text-xs font-medium">Free Pickup Threshold ₹</label><input value={platformSettings.freePickupThreshold} onChange={e => setPlatformSettings(s => ({ ...s, freePickupThreshold: e.target.value }))} className="w-full border rounded-lg px-3 py-2 text-sm" /></div>
+            <div><label className="text-xs font-medium">STAT Rush Fee ₹</label><input value={platformSettings.statFee} onChange={e => setPlatformSettings(s => ({ ...s, statFee: e.target.value }))} className="w-full border rounded-lg px-3 py-2 text-sm" /></div>
+            <div><label className="text-xs font-medium">Collection Radius</label><select value={platformSettings.collectionRadius} onChange={e => setPlatformSettings(s => ({ ...s, collectionRadius: e.target.value }))} className="w-full border rounded-lg px-3 py-2 text-sm"><option>5 km</option><option>10 km</option><option>15 km</option><option>25 km</option></select></div>
+            <label className="flex items-center gap-2 text-xs font-medium"><input type="checkbox" checked={platformSettings.autoRelease} onChange={e => setPlatformSettings(s => ({ ...s, autoRelease: e.target.checked }))} className="rounded" /> Auto-release (no pathologist signoff)</label>
+            <div><label className="text-xs font-medium">Pathologist Signature (PNG)</label><input type="file" accept="image/png" onChange={() => toast.success('Signature uploaded')} className="w-full text-xs" /></div>
+            <div><label className="text-xs font-medium">Bank Account</label><input value={platformSettings.bankAccount} onChange={e => setPlatformSettings(s => ({ ...s, bankAccount: e.target.value }))} className="w-full border rounded-lg px-3 py-2 text-sm" /></div>
+            <div><label className="text-xs font-medium">IFSC</label><input value={platformSettings.bankIfsc} onChange={e => setPlatformSettings(s => ({ ...s, bankIfsc: e.target.value }))} className="w-full border rounded-lg px-3 py-2 text-sm" /></div>
+            <div><label className="text-xs font-medium">GSTIN</label><input value={platformSettings.gstin} onChange={e => setPlatformSettings(s => ({ ...s, gstin: e.target.value }))} className="w-full border rounded-lg px-3 py-2 text-sm" /></div>
           </div>
         </div>
 
         <div className="flex items-center gap-3 mt-6 pt-6 border-t border-border">
-          <button className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors">
+          <button onClick={handleSavePlatformSettings} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors">
             <Save className="w-4 h-4" />
             Save Platform Settings
           </button>

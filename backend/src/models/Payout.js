@@ -14,6 +14,12 @@ const payoutSchema = new mongoose.Schema({
   paidAt: { type: Date },
   transactionRef: { type: String, default: '' },
   notes: { type: String, default: '' },
+  // SA-M5: four-eyes approvals (adminId + name + timestamp each).
+  approvals: [{
+    adminId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    adminName: { type: String, default: '' },
+    at: { type: Date, default: Date.now },
+  }],
 }, { timestamps: true });
 
 export default mongoose.model('Payout', payoutSchema);

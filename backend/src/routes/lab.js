@@ -7,17 +7,36 @@ import HealthPackage from '../models/HealthPackage.js';
 import Test from '../models/Test.js';
 import User from '../models/User.js';
 import Notification from '../models/Notification.js';
-import { protect, adminOnly } from '../middleware/auth.js';
+import PharmacyDelivery from '../models/PharmacyDelivery.js';
+import DeliveryPartner from '../models/DeliveryPartner.js';
+import { protect, adminOnly, requireRole } from '../middleware/auth.js';
 import { validate, createLabOrderSchema } from '../utils/validate.js';
 import { auditLog } from '../middleware/audit.js';
 import { generateOrderId, generateSampleId, generateTimestampedId } from '../utils/idGenerator.js';
 import { toCsvNative, toCsvFallback, NATIVE_CSV_AVAILABLE } from '../services/napiCsvService.js';
+import { getIO, emitDeliveryStatus } from '../services/socketService.js';
+
+// Lab staff jo apne center ke reports manage / courier se bhej sakte hain.
+const LAB_STAFF_ROLES = ['lab_owner', 'lab_receptionist', 'lab_technician', 'pathologist', 'hospital_admin', 'superadmin'];
+// Report courier dispatch ke liye allowed roles (doctors bhi bhej sakte hain).
+const REPORT_DISPATCH_ROLES = [...LAB_STAFF_ROLES, 'doctor', 'clinic_doctor', 'radiologist'];
 
 const labRegisterSampleSchema = z.object({ testIndex: z.number().int().nonnegative(), sampleType: z.string().optional() });
 const labCollectSampleSchema = z.object({ testIndex: z.number().int().nonnegative(), rejectionReason: z.string().optional() });
 const labEnterResultSchema = z.object({ testIndex: z.number().int().nonnegative(), resultValue: z.string().min(1), normalRange: z.string().optional(), unit: z.string().optional() });
 const labVerifySchema = z.object({ testIndex: z.number().int().nonnegative(), approved: z.boolean().optional(), notes: z.string().optional() });
 const labDeliverReportSchema = z.object({ testIndex: z.number().int().nonnegative(), reportUrl: z.string().optional() });
+const labDispatchReportSchema = z.object({
+  reportUrl: z.string().optional(),
+  dropAddress: z.string().optional(),
+  pickupAddress: z.string().optional(),
+  pickupName: z.string().optional(),
+  patientPhone: z.string().optional(),
+  deliveryFee: z.coerce.number().nonnegative().optional(),
+  estimatedTime: z.string().optional(),
+  notes: z.string().optional(),
+  deliveryPartnerId: z.string().optional(),
+}).passthrough();
 const labBookingSchema = z.object({}).passthrough();
 const labEquipmentSchema = z.object({}).passthrough();
 const labPackageSchema = z.object({}).passthrough();
@@ -271,17 +290,27 @@ router.get('/bookings', protect, async (req, res) => {
   try {
     const { status, date, search } = req.query;
     const filter = {};
+    let ownershipOr = null;
     if (req.user.role === 'patient') {
-      filter.$or = [
+      ownershipOr = [
         { patientId: req.user._id },
         { patientId: { $exists: false }, patientName: req.user.name },
       ];
+      filter.$or = ownershipOr;
     }
     if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
     if ((req.user.facilityId || req.user.hospitalId) && req.user.role !== 'superadmin') filter.facilityId = req.user.facilityId || req.user.hospitalId;
     if (status && status !== 'All') filter.status = status;
     if (date) filter.bookingDate = { $gte: new Date(date), $lt: new Date(new Date(date).getTime() + 86400000) };
-    if (search) filter.$or = [{ bookingId: new RegExp(search, 'i') }, { patientName: new RegExp(search, 'i') }];
+    if (search) {
+      const searchOr = [{ bookingId: new RegExp(search, 'i') }, { patientName: new RegExp(search, 'i') }];
+      if (ownershipOr) {
+        filter.$and = [{ $or: ownershipOr }, { $or: searchOr }];
+        delete filter.$or;
+      } else {
+        filter.$or = searchOr;
+      }
+    }
     const bookings = await LabBooking.find(filter).sort({ createdAt: -1 });
     res.json({ bookings });
   } catch (err) { res.status(500).json({ message: err.message }); }
@@ -304,7 +333,7 @@ router.post('/bookings', protect, validate(labBookingSchema), async (req, res) =
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/bookings/:id', protect, adminOnly, validate(labBookingSchema), async (req, res) => {
+router.put('/bookings/:id', protect, requireRole(LAB_STAFF_ROLES), validate(labBookingSchema), async (req, res) => {
   try {
     const booking = await LabBooking.findById(req.params.id);
     if (!booking) return res.status(404).json({ message: 'Booking not found' });
@@ -318,7 +347,7 @@ Object.assign(booking, req.body);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.delete('/bookings/:id', protect, adminOnly, async (req, res) => {
+router.delete('/bookings/:id', protect, requireRole(LAB_STAFF_ROLES), async (req, res) => {
   try {
     const booking = await LabBooking.findById(req.params.id);
     if (!booking) return res.status(404).json({ message: 'Booking not found' });
@@ -332,6 +361,179 @@ await LabBooking.findByIdAndDelete(req.params.id);
 });
 
 // ─── Equipment ─────────────────────────────────────────────────────────────
+// ─── Report Courier Delivery (delivery boy fleet: medicines + lab reports) ────
+function generateDeliveryOtp() {
+  return String(Math.floor(1000 + Math.random() * 9000));
+}
+
+// Shared helper: lab report ko courier delivery task bana ke delivery partner fleet me daal deta hai.
+async function createReportDeliveryTask({ req, res, booking, order }) {
+  const body = req.body || {};
+  const isBooking = Boolean(booking);
+  const record = booking || order;
+
+  // Report URL ke bina courier ke paas bhejne ke liye kuch nahi hota.
+  const reportUrl = body.reportUrl || record.reportUrl;
+  if (!reportUrl) {
+    return res.status(400).json({ message: 'Report is not uploaded yet. Upload the report first or pass reportUrl.' });
+  }
+
+  // Drop address resolution: request body -> home collection address -> patient profile address.
+  let dropAddress = String(body.dropAddress || '').trim();
+  if (!dropAddress && isBooking) dropAddress = String(booking.homeCollectionAddress || '').trim();
+  if (!dropAddress) {
+    const patientId = isBooking ? booking.patientId : order.patientId;
+    if (patientId) {
+      const patientUser = await User.findById(patientId).select('address city state pincode').lean().catch(() => null);
+      if (patientUser) {
+        dropAddress = [patientUser.address, patientUser.city, patientUser.state, patientUser.pincode]
+          .filter(Boolean)
+          .join(', ');
+      }
+    }
+  }
+  if (!dropAddress) {
+    return res.status(400).json({ message: 'Delivery address required — patient has no home-collection address on file.' });
+  }
+
+  const pickupName = body.pickupName || 'FindMedi Diagnostic Center';
+  const pickupAddress = body.pickupAddress || pickupName;
+  const deliveryFee = Number(body.deliveryFee ?? (isBooking ? booking.reportDeliveryFee : 0) ?? 0) || 0;
+
+  const task = await PharmacyDelivery.create({
+    serviceType: 'lab_report',
+    orderId: isBooking ? booking.bookingId : order.orderId,
+    labBookingId: isBooking ? booking._id : undefined,
+    labOrderId: isBooking ? undefined : order._id,
+    status: 'Pending Assignment',
+    pickupName,
+    pickupAddress,
+    dropAddress,
+    patientName: isBooking ? booking.patientName : order.patientName,
+    patientPhone: body.patientPhone || (isBooking ? booking.patientPhone : '') || '',
+    deliveryFee,
+    notes: body.notes,
+    estimatedTime: body.estimatedTime,
+    deliveryOtp: generateDeliveryOtp(),
+    hospitalId: req.user.hospitalId || record.hospitalId,
+    facilityId: req.user.facilityId || record.facilityId,
+  });
+
+  // Report metadata update (booking me mode + task link save karo).
+  if (isBooking) {
+    booking.reportUrl = reportUrl;
+    booking.reportReadyAt = booking.reportReadyAt || new Date();
+    if (!booking.reportStatus || booking.reportStatus === 'Pending Upload') booking.reportStatus = 'Uploaded';
+    booking.reportDeliveryMode = 'Courier';
+    booking.reportDeliveryFee = deliveryFee;
+    booking.reportDeliveryTaskId = task._id;
+    await booking.save();
+  } else if (!order.reportUrl) {
+    order.reportUrl = reportUrl;
+    await order.save();
+  }
+
+  // Optional turant assignment — deliveryPartnerId diya gaya ho to seedha assign karo.
+  let partner = null;
+  const partnerId = body.deliveryPartnerId;
+  if (partnerId) {
+    const found = await DeliveryPartner.findById(partnerId);
+    if (found && found.status === 'approved') {
+      partner = found;
+      task.deliveryPartnerId = partner._id;
+      task.status = 'Assigned';
+      task.assignedAt = new Date();
+      await task.save();
+      await DeliveryPartner.findByIdAndUpdate(partner._id, { isAvailable: false });
+    }
+  }
+
+  await auditLog('dispatch_lab_report', req.user._id, {
+    recordId: record._id, ip: req.ip, userAgent: req.get('user-agent'),
+  });
+
+  // Patient ko notify karo (report ready + courier status + delivery OTP).
+  const notifyUserId = isBooking ? booking.patientId : order.patientId;
+  if (notifyUserId) {
+    await Notification.create({
+      userId: String(notifyUserId),
+      title: partner ? 'Lab report out for delivery' : 'Lab report ready for delivery',
+      message: `Your report for ${task.orderId} ${partner ? `is assigned to ${partner.name}` : 'will be handed to a delivery partner shortly'}. Delivery OTP: ${task.deliveryOtp}`,
+      type: 'records',
+    }).catch(() => {});
+  }
+
+  // Delivery partner ke socket room me assignment event (incoming-call modal).
+  if (partner) {
+    try {
+      const io = getIO();
+      if (io) {
+        io.to(`user:${partner.userId}`).emit('delivery:new_assignment', {
+          deliveryId: task._id,
+          delivery: task,
+          serviceType: 'lab_report',
+        });
+      }
+    } catch { /* socket optional — REST refresh se bhi data aa jata hai */ }
+  }
+  emitDeliveryStatus(task.orderId, task.status);
+
+  return { task, partner };
+}
+
+// Send a booking's report by courier (delivery partner).
+router.post('/bookings/:id/dispatch-report', protect, requireRole(REPORT_DISPATCH_ROLES), validate(labDispatchReportSchema), async (req, res) => {
+  try {
+    const booking = await LabBooking.findById(req.params.id);
+    if (!booking) return res.status(404).json({ message: 'Booking not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && booking.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    const { task, partner } = await createReportDeliveryTask({ req, res, booking });
+    return res.status(201).json({ task, assignedTo: partner ? { _id: partner._id, name: partner.name } : null });
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+// Latest courier task for a booking (Reports tab me live status dikhane ke liye).
+router.get('/bookings/:id/dispatch-report', protect, async (req, res) => {
+  try {
+    const task = await PharmacyDelivery.findOne({ labBookingId: req.params.id }).sort({ createdAt: -1 }).lean();
+    res.json({ task });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// Doctor-ordered lab order ka report courier se bhejo.
+router.post('/orders/:id/dispatch-report', protect, requireRole(REPORT_DISPATCH_ROLES), validate(labDispatchReportSchema), async (req, res) => {
+  try {
+    const order = await LabOrder.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+    if (req.user.hospitalId && req.user.role !== 'superadmin' && order.hospitalId?.toString() !== req.user.hospitalId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    const { task, partner } = await createReportDeliveryTask({ req, res, order });
+    return res.status(201).json({ task, assignedTo: partner ? { _id: partner._id, name: partner.name } : null });
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+// Lab ke saare courier report tasks (dispatch board / status tracking).
+router.get('/report-deliveries', protect, async (req, res) => {
+  try {
+    const { status, limit = 50 } = req.query;
+    const filter = { serviceType: 'lab_report' };
+    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    if ((req.user.facilityId || req.user.hospitalId) && req.user.role !== 'superadmin') {
+      filter.facilityId = req.user.facilityId || req.user.hospitalId;
+    }
+    if (status && status !== 'All') filter.status = status;
+    const deliveries = await PharmacyDelivery.find(filter)
+      .sort({ createdAt: -1 })
+      .limit(Math.min(Number(limit) || 50, 200))
+      .populate('labBookingId', 'bookingId patientName tests reportUrl visitType')
+      .lean();
+    res.json({ deliveries });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
 router.get('/equipment', protect, async (req, res) => {
   try {
     const filter = {};

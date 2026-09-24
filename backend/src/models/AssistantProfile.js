@@ -64,6 +64,24 @@ const assistantProfileSchema = new mongoose.Schema({
     accountNumber: { type: String, default: '' },
     ifsc: { type: String, default: '' },
     upiId: { type: String, default: '' },
+    verified: { type: Boolean, default: false },
+  },
+  // Section-10 settings master (dashboard settings tab persists here)
+  settings: {
+    emergencyStandby: { type: Boolean, default: false },
+    refundPolicy: {
+      type: String,
+      enum: ['full_6h', 'half_2_6h', 'none_enroute'],
+      default: 'full_6h',
+    },
+    rateCard: {
+      halfDay4h: { type: Number, default: 0, min: 0 },
+      day8h: { type: Number, default: 0, min: 0 },
+      night12h: { type: Number, default: 0, min: 0 },
+      full24h: { type: Number, default: 0, min: 0 },
+    },
+    clinicalTags: [{ type: String }],
+    preferredHospitals: [{ type: String }],
   },
   availableDays: [{ type: String }],
   availableTimeSlots: [

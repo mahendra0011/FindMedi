@@ -341,7 +341,7 @@ export const BookingStatusPanel: React.FC<Props> = ({
             <div>
               <div className="text-xs text-slate-500">Total Amount</div>
               <div className="text-xl font-black text-slate-900 dark:text-slate-100">
-                ₹{booking.cost?.total || 600}
+                ₹{typeof booking.cost?.total === 'number' ? booking.cost.total : 0}
               </div>
               <div className="text-xs mt-0.5 flex items-center gap-1.5">
                 Status:{' '}
@@ -469,7 +469,7 @@ export const BookingStatusPanel: React.FC<Props> = ({
               <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border text-xs">
                 <div className="text-slate-400">Total Payable</div>
                 <div className="text-2xl font-black text-emerald-600">
-                  ₹{booking.cost?.total || 600}
+                  ₹{typeof booking.cost?.total === 'number' ? booking.cost.total : 0}
                 </div>
                 <div className="text-[10px] text-slate-400 mt-0.5">
                   Assistant: {otherUser?.name || 'Hospital Assistant'} • {booking.hospital}

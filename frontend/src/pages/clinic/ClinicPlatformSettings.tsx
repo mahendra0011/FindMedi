@@ -23,6 +23,22 @@ export default function ClinicPlatformSettings() {
   const [appointmentModes, setAppointmentModes] = useState(['chat', 'video', 'offline']);
   const [emergencySupport, setEmergencySupport] = useState(false);
   const [refundOnMissedOrCancelled, setRefundOnMissedOrCancelled] = useState(true);
+  // §8 clinic operations master (persisted under Doctor.settings).
+  const [walkInAccepted, setWalkInAccepted] = useState(true);
+  const [refundTier, setRefundTier] = useState('full_2h');
+  const [inClinicFee, setInClinicFee] = useState('');
+  const [homeVisitFee, setHomeVisitFee] = useState('');
+  const [travelPerKm, setTravelPerKm] = useState('');
+  const [homeVisitRadiusKm, setHomeVisitRadiusKm] = useState('5');
+  const [shift1Start, setShift1Start] = useState('09:00');
+  const [shift1End, setShift1End] = useState('13:00');
+  const [shift2Start, setShift2Start] = useState('17:00');
+  const [shift2End, setShift2End] = useState('21:00');
+  const [posBankHolder, setPosBankHolder] = useState('');
+  const [posBankAccount, setPosBankAccount] = useState('');
+  const [posBankIfsc, setPosBankIfsc] = useState('');
+  const [establishmentLicense, setEstablishmentLicense] = useState('');
+  const [establishmentLicenseExpiry, setEstablishmentLicenseExpiry] = useState('');
 
   useEffect(() => {
     const load = async () => {
@@ -51,6 +67,23 @@ export default function ClinicPlatformSettings() {
           if (myDoc.appointmentModes?.length) setAppointmentModes(myDoc.appointmentModes);
           if (myDoc.emergencySupport !== undefined) setEmergencySupport(myDoc.emergencySupport);
           if (myDoc.refundOnMissedOrCancelled !== undefined) setRefundOnMissedOrCancelled(myDoc.refundOnMissedOrCancelled);
+          const st = myDoc.settings || {};
+          const pick = (k, fb = '') => (st[k] !== undefined && st[k] !== '' ? st[k] : fb);
+          if (st.walkInAccepted !== undefined) setWalkInAccepted(Boolean(st.walkInAccepted));
+          setRefundTier(pick('refundTier', 'full_2h'));
+          setInClinicFee(String(pick('inClinicFee', '')));
+          setHomeVisitFee(String(pick('homeVisitFee', '')));
+          setTravelPerKm(String(pick('travelPerKm', '')));
+          setHomeVisitRadiusKm(String(pick('homeVisitRadiusKm', '5')));
+          setShift1Start(String(pick('shift1Start', '09:00')));
+          setShift1End(String(pick('shift1End', '13:00')));
+          setShift2Start(String(pick('shift2Start', '17:00')));
+          setShift2End(String(pick('shift2End', '21:00')));
+          setPosBankHolder(String(pick('posBankHolder', '')));
+          setPosBankAccount(String(pick('posBankAccount', '')));
+          setPosBankIfsc(String(pick('posBankIfsc', '')));
+          setEstablishmentLicense(String(pick('establishmentLicense', '')));
+          setEstablishmentLicenseExpiry(String(pick('establishmentLicenseExpiry', '')));
         }
       } catch (err) {
         console.error('Failed to load doctor:', err);
@@ -82,6 +115,17 @@ export default function ClinicPlatformSettings() {
           appointmentModes,
           emergencySupport,
           refundOnMissedOrCancelled,
+          settings: {
+            walkInAccepted,
+            refundTier,
+            inClinicFee: Number(inClinicFee) || 0,
+            homeVisitFee: Number(homeVisitFee) || 0,
+            travelPerKm: Number(travelPerKm) || 0,
+            homeVisitRadiusKm: Number(homeVisitRadiusKm) || 0,
+            shift1Start, shift1End, shift2Start, shift2End,
+            posBankHolder, posBankAccount, posBankIfsc,
+            establishmentLicense, establishmentLicenseExpiry,
+          },
         });
       }
       await api.updateProfile({
@@ -269,6 +313,88 @@ export default function ClinicPlatformSettings() {
               </p>
             </div>
           </label>
+        </div>
+
+        {/* §8 Clinic Operations Master */}
+        <div className="rounded-xl border border-border bg-card p-6 space-y-4">
+          <h3 className="font-semibold text-foreground text-lg flex items-center gap-2">
+            <Building2 className="w-5 h-5 text-primary" /> Walk-ins, Fees, Shifts & Compliance
+          </h3>
+          <label className="flex items-start gap-3 p-3.5 rounded-xl border border-border/60 hover:bg-muted/30 cursor-pointer transition-colors">
+            <input type="checkbox" checked={walkInAccepted} onChange={e => setWalkInAccepted(e.target.checked)} className="w-4 h-4 rounded border-border text-primary mt-0.5 cursor-pointer" />
+            <div>
+              <span className="font-semibold text-sm text-foreground">Accept urgent walk-ins & acute care</span>
+              <p className="text-xs text-muted-foreground mt-0.5">Nearby emergency patients can discover this clinic for minor wound/IV stabilization.</p>
+            </div>
+          </label>
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1.5">Cancellation & refund rule</label>
+            <select value={refundTier} onChange={e => setRefundTier(e.target.value)} className="h-10 text-sm rounded-lg border border-input bg-background px-3 w-full">
+              <option value="full_2h">100% refund if cancelled &gt;2h before</option>
+              <option value="half_30m_2h">50% refund if cancelled 30m–2h before</option>
+              <option value="none_30m">No refund if cancelled &lt;30m before</option>
+            </select>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">In-clinic base fee (₹)</label>
+              <Input type="number" min={0} value={inClinicFee} onChange={e => setInClinicFee(e.target.value)} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">Home visit fee (₹)</label>
+              <Input type="number" min={0} value={homeVisitFee} onChange={e => setHomeVisitFee(e.target.value)} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">Travel per km (₹)</label>
+              <Input type="number" min={0} value={travelPerKm} onChange={e => setTravelPerKm(e.target.value)} />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1.5">Home-visit radius: {homeVisitRadiusKm} km</label>
+            <input type="range" min={2} max={15} step={1} value={homeVisitRadiusKm} onChange={e => setHomeVisitRadiusKm(e.target.value)} className="w-full accent-primary" />
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">Shift 1 start</label>
+              <Input type="time" value={shift1Start} onChange={e => setShift1Start(e.target.value)} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">Shift 1 end</label>
+              <Input type="time" value={shift1End} onChange={e => setShift1End(e.target.value)} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">Shift 2 start</label>
+              <Input type="time" value={shift2Start} onChange={e => setShift2Start(e.target.value)} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">Shift 2 end</label>
+              <Input type="time" value={shift2End} onChange={e => setShift2End(e.target.value)} />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">POS bank holder</label>
+              <Input value={posBankHolder} onChange={e => setPosBankHolder(e.target.value)} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">POS bank account</label>
+              <Input value={posBankAccount} onChange={e => setPosBankAccount(e.target.value)} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">POS bank IFSC</label>
+              <Input value={posBankIfsc} onChange={e => setPosBankIfsc(e.target.value.toUpperCase())} />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">Clinical establishment license no.</label>
+              <Input value={establishmentLicense} onChange={e => setEstablishmentLicense(e.target.value)} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">License valid till</label>
+              <Input type="date" value={establishmentLicenseExpiry} onChange={e => setEstablishmentLicenseExpiry(e.target.value)} />
+            </div>
+          </div>
         </div>
 
         {/* Auto Confirm Appointment */}

@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { getSocket } from '@/lib/socket';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import { emergencyOverlayActive } from '@/lib/emergencyState';
 import SOSButton from './SOSButton';
+import DualEmergencyFAB from './DualEmergencyFAB';
+import EmergencyDoctorModal from './EmergencyDoctorModal';
 import SOSConfirmModal from './SOSConfirmModal';
 import SOSSearchingScreen from './SOSSearchingScreen';
 import SOSAssignedScreen from './SOSAssignedScreen';
@@ -19,8 +22,10 @@ import { installEmergencyAudioUnlock } from '@/utils/emergencyRing';
 
 export default function EmergencyFlowController() {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+  const [doctorModalOpen, setDoctorModalOpen] = useState(false);
   const [activeRequest, setActiveRequest] = useState<any>(null);
   const [searching, setSearching] = useState(false);
   const [noResponders, setNoResponders] = useState(false);
@@ -112,6 +117,10 @@ export default function EmergencyFlowController() {
       setIncomingEmergency(null);
       setHospitalSelectRequestId(data.requestId);
       toast.success('You have secured the emergency dispatch! En route to pickup.');
+      // A-3: link overlay → dashboard — ambulance drivers land on the Active mission tab.
+      if (user?.role === 'ambulance') {
+        try { navigate('/ambulance/dashboard?tab=active'); } catch { /* ignore */ }
+      }
     };
 
     const onLost = (data: any) => {
@@ -397,8 +406,17 @@ export default function EmergencyFlowController() {
   return (
     <>
       {user && !searching && !assignedData && (
-        <SOSButton onClick={() => setConfirmModalOpen(true)} />
+        <DualEmergencyFAB
+          onOpenAmbulance={() => setConfirmModalOpen(true)}
+          onOpenDoctor={() => setDoctorModalOpen(true)}
+        />
       )}
+
+      <EmergencyDoctorModal
+        isOpen={doctorModalOpen}
+        onClose={() => setDoctorModalOpen(false)}
+        currentUser={user}
+      />
 
       <SOSConfirmModal
         open={confirmModalOpen}

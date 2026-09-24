@@ -23,6 +23,22 @@ const labBookingSchema = new mongoose.Schema({
   notes: { type: String },
   reportUrl: { type: String },
   reportReadyAt: { type: Date },
+
+  // ── Report delivery (digital + physical courier through delivery partners) ──
+  reportStatus: {
+    type: String,
+    enum: ['Pending Upload', 'Uploaded', 'Delivered'],
+    default: 'Pending Upload',
+  },
+  reportDeliveryMode: {
+    type: String,
+    enum: ['Digital', 'Courier', 'Pickup'],
+    default: 'Digital',
+  },
+  reportDeliveryFee: { type: Number, default: 0 },
+  reportDeliveredAt: { type: Date },
+  reportDeliveryTaskId: { type: mongoose.Schema.Types.ObjectId, ref: 'PharmacyDelivery' },
+
   hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   createdAt: { type: Date, default: Date.now },

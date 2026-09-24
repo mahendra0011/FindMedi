@@ -2,9 +2,25 @@ import express from 'express';
 import logger from '../config/logger.js';
 import Hospital from '../models/Hospital.js';
 import Facility from '../models/Facility.js';
+import AiSafetyEvent from '../models/AiSafetyEvent.js';
 import { getCachedAIReply, setCachedAIReply } from '../config/redis.js';
 
 const router = express.Router();
+
+// SA-M4: crisis patterns that trigger a red-flag safety event (matched
+// keyword is stored — never the raw prompt text).
+const RED_FLAG_PATTERNS = [
+  { re: /(suicid|kill (myself|me)|end my life|self[\s-]?harm|hurt myself)/i, trigger: 'suicidal-ideation' },
+  { re: /(severe chest pain|crushing chest|heart attack|myocardial)/i, trigger: 'cardiac-red-flag' },
+  { re: /(anaphylaxis|throat closing|can'?t breathe|severe allergic)/i, trigger: 'respiratory-red-flag' },
+  { re: /(overdose|took too many pills|poisoning)/i, trigger: 'overdose-red-flag' },
+];
+
+const estTokens = (chars) => Math.ceil(Number(chars || 0) / 4);
+
+function logSafetyEvent(doc) {
+  AiSafetyEvent.create(doc).catch((e) => logger.error(`AI safety log failed: ${e.message}`));
+}
 
 const SYSTEM_PROMPT = `You are FindMedi AI, a helpful health assistant. Your role:
 - Answer health-related questions only (symptoms, diseases, medicines, fitness, nutrition, mental health)
@@ -17,11 +33,16 @@ const SYSTEM_PROMPT = `You are FindMedi AI, a helpful health assistant. Your rol
   2. "specialty": A single string representing the primary medical specialty needed for this condition (e.g., "Cardiology", "Neurology", "Orthopedics", "Dermatology", "General Medicine", "Pediatrics"). If the user is just saying hello or asking a non-medical question, set this to null.`;
 
 router.post('/', async (req, res) => {
+  const startedAt = Date.now();
   try {
     const { message, image, history = [] } = req.body;
     if ((!message || !message.trim()) && !image) {
       return res.status(400).json({ reply: 'Please ask a health-related question or provide an image.' });
     }
+
+    // SA-M4: red-flag screen on the user prompt (keyword only, no raw text stored).
+    const promptText = String(message || '');
+    const hit = RED_FLAG_PATTERNS.find((p) => p.re.test(promptText));
 
     // Check Redis AI cache for single-turn text queries
     const isSingleTurnText = !image && (!history || history.length === 0);
@@ -33,6 +54,9 @@ router.post('/', async (req, res) => {
       const cachedResponse = await getCachedAIReply(cacheKey);
       if (cachedResponse) {
         res.setHeader('X-Cache', 'HIT');
+        if (hit) {
+          logSafetyEvent({ kind: 'red_flag', trigger: hit.trigger, userId: req.user?._id, model, latencyMs: Date.now() - startedAt, promptChars: promptText.length, replyChars: 0, promptTokensEst: estTokens(promptText.length), replyTokensEst: 0 });
+        }
         return res.json({ ...cachedResponse, cached: true });
       }
     }
@@ -135,6 +159,19 @@ router.post('/', async (req, res) => {
     if (cacheKey && reply) {
       await setCachedAIReply(cacheKey, { reply, suggestions }, 86400); // 24-hour cache
     }
+
+    // SA-M4: usage + red-flag observation (lengths only, fire-and-forget).
+    logSafetyEvent({
+      kind: hit ? 'red_flag' : 'request',
+      trigger: hit ? hit.trigger : '',
+      userId: req.user?._id,
+      model,
+      latencyMs: Date.now() - startedAt,
+      promptChars: promptText.length,
+      replyChars: String(reply || '').length,
+      promptTokensEst: estTokens(promptText.length),
+      replyTokensEst: estTokens(String(reply || '').length),
+    });
 
     res.json({ reply, suggestions });
   } catch (err) {

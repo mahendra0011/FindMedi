@@ -37,8 +37,8 @@ export default function LabReports() {
 
   const handleUpload = async (id) => {
     try {
-      await api.updateLabBooking(id, { status: 'Uploaded', notes: 'Report uploaded', notified: false });
-      setReports(prev => prev.map(r => r._id === id ? { ...r, status: 'Uploaded', notes: 'Report uploaded', notified: false } : r));
+      await api.updateLabBooking(id, { reportStatus: 'Uploaded', notes: 'Report uploaded', notified: false });
+      setReports(prev => prev.map(r => r._id === id ? { ...r, reportStatus: 'Uploaded', notes: 'Report uploaded', notified: false } : r));
     } catch (e) { console.error(e); }
   };
 
@@ -51,10 +51,23 @@ export default function LabReports() {
 
   const handleNotify = async (id) => {
     try {
-      await api.updateLabBooking(id, { status: 'Delivered', notified: true });
-      setReports(prev => prev.map(r => r._id === id ? { ...r, status: 'Delivered', notified: true } : r));
+      await api.updateLabBooking(id, { reportStatus: 'Delivered', notified: true });
+      setReports(prev => prev.map(r => r._id === id ? { ...r, reportStatus: 'Delivered', notified: true } : r));
       await api.createNotification({ title: 'Report Ready', message: 'Your lab report is ready for download', type: 'records' });
     } catch (e) { console.error(e); }
+  };
+
+  const dispatch = async (id) => {
+    const fee = prompt('Delivery fee for this report (₹)', '40');
+    const res = await api.dispatchLabReport(id, { deliveryFee: Number(fee) || 0 }).catch(() => null);
+    if (!res?.task) return;
+    setReports(prev => prev.map(r => r._id === id ? { ...r, reportStatus: 'Uploaded', reportDeliveryMode: 'Courier', reportDeliveryTaskId: res.task._id, courierStatus: res.task.status } : r));
+  };
+
+  const courierChip = (r) => {
+    const s = r.courierStatus || (r.reportDeliveryTaskId ? 'Assigned' : null);
+    if (!s) return null;
+    return <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-600">{s}</span>;
   };
 
   const filtered = reports.filter(r => {
@@ -115,28 +128,34 @@ export default function LabReports() {
                 </div>
                 <div className="flex flex-col items-end gap-2">
                   <Badge className={statusColors[r.status] || 'bg-muted'}>{r.status}</Badge>
+                  {courierChip(r)}
                   {r.status === 'Uploaded' && !r.notified && (
                     <span className="flex items-center gap-1 text-xs text-warning"><AlertCircle className="w-3 h-3" /> Not notified</span>
                   )}
                 </div>
               </div>
               <div className="flex gap-2 mt-4 pt-3 border-t border-border/40">
-                {r.status === 'Pending Upload' && (
+                {(r.reportStatus || r.status) === 'Pending Upload' && (
                   <Button size="sm" className="flex-1 gap-1" onClick={() => handleUpload(r._id)}>
                     <Upload className="w-4 h-4" /> Upload Report
                   </Button>
                 )}
-                {r.status === 'Uploaded' && !r.notified && (
+                {(r.reportStatus || r.status) === 'Uploaded' && !r.notified && (
                   <Button size="sm" className="flex-1 gap-1 bg-success hover:bg-success/90" onClick={() => handleNotify(r._id)}>
                     <Send className="w-4 h-4" /> Notify Patient
                   </Button>
                 )}
-                {r.status === 'Uploaded' && r.notified && (
+                {(r.reportStatus || r.status) === 'Uploaded' && r.notified && (
                   <Button size="sm" variant="outline" className="flex-1 gap-1" disabled>
                     <CheckCircle className="w-4 h-4" /> Notified
                   </Button>
                 )}
-                {(r.status === 'Uploaded' || r.status === 'Delivered') && (
+                {(r.reportStatus || r.status) === 'Uploaded' && (
+                  <Button size="sm" variant="outline" className="gap-1" onClick={() => dispatch(r._id)}>
+                    Send by Delivery Boy
+                  </Button>
+                )}
+                {((r.reportStatus || r.status) === 'Uploaded' || (r.reportStatus || r.status) === 'Delivered') && (
                   <Button size="sm" variant="outline" className="gap-1" onClick={() => handleDownload(r._id)}>
                     <Download className="w-4 h-4" /> Download
                   </Button>

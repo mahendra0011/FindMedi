@@ -4,8 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import {
   CalendarDays, Clock, User, CheckCircle, CheckCircle2, AlertCircle, Star, DollarSign,
   Stethoscope, Activity, Users, FlaskConical, RotateCcw,
-  MapPin, Globe, Phone, Video, MessageCircle, ChevronRight, Car, Sparkles,
-  Building2, Check, X, CalendarClock, Heart
+  MapPin, Phone, Video, MessageCircle, ChevronRight, Car, Sparkles,
+  Building2, Check, X, CalendarClock, Heart, RefreshCw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -67,37 +67,33 @@ export default function DoctorDashboard() {
   const [patientCarePlans, setPatientCarePlans] = useState([]);
   const [loading, setLoading] = useState(true);
   const mounted = useRef(true);
+  const appointmentsSectionRef = useRef(null);
+  const handleStatClick = (tab) => {
+    setApptTab(tab);
+    appointmentsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const results = await Promise.allSettled([
-        api.getAppointments(),
-        api.getReviews(),
-        api.getBilling(),
-        api.getRecords(),
-        api.getRefunds(),
+        api.getAppointments({ limit: 200, page: 1 }),
+        api.getReviews(user?.doctorProfileId ? { doctorId: user.doctorProfileId } : {}),
+        api.getBilling({ limit: 200, page: 1 }),
+        api.getRecords({ limit: 200, page: 1 }),
+        api.getRefunds({ limit: 200, page: 1 }),
         api.getDoctorCarePlans(),
       ]);
       if (!mounted.current) return;
       const [a, r, b, records, rf, cp] = results.map(res => res.status === 'fulfilled' ? res.value : []);
       if (cp?.carePlans) setPatientCarePlans(cp.carePlans);
-      const docName = String(user?.name || "").toLowerCase().replace(/^dr\.?\s+/i, "");
-      const docId = String(user?._id || user?.id || "");
       const appts = a?.data || a || [];
-      const myAppointments = appts?.filter(apt =>
-        String(apt.doctor || apt.doctorName || "").toLowerCase().replace(/^dr\.?\s+/i, "").includes(docName) ||
-        (docId && String(apt.doctorId || apt.doctor_id || "") === docId)
-      ) || [];
-      setAppointments(myAppointments);
-      setReviews(r?.filter(rv => rv.doctorName === user?.name || (docId && String(rv.doctorId || "") === docId)) || []);
+      setAppointments(Array.isArray(appts) ? appts : []);
+      const reviewsList = r?.reviews || r?.data || r || [];
+      setReviews(Array.isArray(reviewsList) ? reviewsList : []);
 
       const billsArray = b?.data || b?.bills || b || [];
-      const myBills = billsArray?.filter(bill =>
-        String(bill.doctor || bill.doctorName || "").toLowerCase().replace(/^dr\.?\s+/i, "").includes(docName) ||
-        (docId && String(bill.doctorId || "") === docId)
-      ) || [];
-      setBills(myBills);
+      setBills(Array.isArray(billsArray) ? billsArray : []);
 
       const allRecords = records?.data || records?.records || records || [];
       const myLabReports = allRecords
@@ -107,11 +103,7 @@ export default function DoctorDashboard() {
       setLabReports(myLabReports);
 
       const refundArray = rf?.payments || rf?.data || rf || [];
-      const myRefunds = refundArray.filter(item =>
-        String(item.doctor || item.doctorName || "").toLowerCase().replace(/^dr\.?\s+/i, "").includes(docName) ||
-        (docId && String(item.doctorId || "") === docId)
-      ) || [];
-      setRefunds(myRefunds);
+      setRefunds(Array.isArray(refundArray) ? refundArray : []);
 
       const failed = results.filter(r => r.status === 'rejected');
       if (failed.length > 0) {
@@ -129,7 +121,7 @@ export default function DoctorDashboard() {
       }
     } catch (e) { console.error(e); toast.error('Failed to load dashboard data'); }
     if (mounted.current) setLoading(false);
-  }, [user?.name]);
+  }, [user?.name, user?._id, user?.doctorProfileId]);
 
   useEffect(() => {
     mounted.current = true;
@@ -137,11 +129,11 @@ export default function DoctorDashboard() {
     return () => { mounted.current = false; };
   }, [load]);
 
-  // Realtime — naya booking/status change turant dikhein
-  useAppointmentRealtime(load);
+  // Realtime — naya booking/status change turant dikhein (silent, no flicker)
+  useAppointmentRealtime(() => load(true));
 
   const today = getISTDateString();
-  const todayAppts = appointments.filter(a => a.date === today);
+  const todayAppts = appointments.filter(a => a.date === today && (a.status || '').toLowerCase() !== 'cancelled');
   const pendingAppts = appointments.filter(a => (a.status || '').toLowerCase() === 'pending');
   const upcomingAppts = appointments
     .filter(a => a.date > today && ((a.status || '').toLowerCase() === 'confirmed' || (a.status || '').toLowerCase() === 'approved'))
@@ -185,7 +177,7 @@ export default function DoctorDashboard() {
     try {
       await api.updateAppointment(id, { status });
       toast.success(`Appointment marked as ${status}`);
-      load();
+      load(true);
     } catch (err) {
       console.error(err);
       toast.error(`Failed to update status: ${err.message || 'Error'}`);
@@ -202,8 +194,13 @@ export default function DoctorDashboard() {
   const pendingRefunds = refunds.filter(r => r.status === 'Pending' || r.status === 'pending').length;
 
   if (loading) return (
-    <div className="flex justify-center py-20">
-      <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {[0,1,2,3].map((i) => (
+        <div key={i} className="rounded-2xl border p-5 animate-pulse">
+          <div className="h-4 w-24 bg-muted rounded mb-3" />
+          <div className="h-8 w-16 bg-muted rounded" />
+        </div>
+      ))}
     </div>
   );
 
@@ -212,15 +209,22 @@ export default function DoctorDashboard() {
       <LicenseExpiryReminder />
       {/* Header */}
       <div className="bg-gradient-to-r from-primary to-primary/80 rounded-3xl p-6 text-white">
-        <h1 className="font-heading text-2xl font-bold">Welcome, Dr. {user?.name}</h1>
-        <p className="opacity-90">Here's your practice overview</p>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h1 className="font-heading text-2xl font-bold">Welcome, Dr. {user?.name}</h1>
+            <p className="opacity-90">Here's your practice overview</p>
+          </div>
+          <Button variant="secondary" size="sm" onClick={() => load(true)} className="gap-1.5 rounded-xl">
+            <RefreshCw className="w-3.5 h-3.5" /> Refresh
+          </Button>
+        </div>
       </div>
 
       {/* Stats Grid - Clickable to switch Appointments Tab */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <motion.div
           whileHover={{ scale: 1.02 }}
-          onClick={() => setApptTab('today')}
+          onClick={() => handleStatClick('today')}
           className={`bg-card rounded-2xl border p-5 cursor-pointer transition-all ${apptTab === 'today' ? 'border-primary ring-2 ring-primary/20 shadow-md' : 'border-border/60'}`}
         >
           <div className="flex items-center gap-3 mb-2">
@@ -234,7 +238,7 @@ export default function DoctorDashboard() {
         
         <motion.div
           whileHover={{ scale: 1.02 }}
-          onClick={() => setApptTab('pending')}
+          onClick={() => handleStatClick('pending')}
           className={`bg-card rounded-2xl border p-5 cursor-pointer transition-all ${apptTab === 'pending' ? 'border-warning ring-2 ring-warning/20 shadow-md' : 'border-border/60'}`}
         >
           <div className="flex items-center justify-between mb-2">
@@ -253,7 +257,7 @@ export default function DoctorDashboard() {
         
         <motion.div
           whileHover={{ scale: 1.02 }}
-          onClick={() => setApptTab('upcoming')}
+          onClick={() => handleStatClick('upcoming')}
           className={`bg-card rounded-2xl border p-5 cursor-pointer transition-all ${apptTab === 'upcoming' ? 'border-purple-500 ring-2 ring-purple-500/20 shadow-md' : 'border-border/60'}`}
         >
           <div className="flex items-center gap-3 mb-2">
@@ -267,7 +271,7 @@ export default function DoctorDashboard() {
         
         <motion.div
           whileHover={{ scale: 1.02 }}
-          onClick={() => setApptTab('complete')}
+          onClick={() => handleStatClick('complete')}
           className={`bg-card rounded-2xl border p-5 cursor-pointer transition-all ${apptTab === 'complete' ? 'border-emerald-500 ring-2 ring-emerald-500/20 shadow-md' : 'border-border/60'}`}
         >
           <div className="flex items-center gap-3 mb-2">
@@ -437,8 +441,8 @@ export default function DoctorDashboard() {
                 Encrypted text chat, symptom discussions, and medical report sharing.
               </p>
             </div>
-            <div className="mt-4 pt-2.5 border-t border-border/40 flex items-center justify-between text-xs font-semibold text-amber-600">
-              <span>Direct Messages</span>
+            <div className="mt-4 pt-2.5 border-t border-amber-500/20 flex items-center justify-between text-xs font-semibold text-amber-600">
+              <span>{todayChatAppts.length} active today</span>
               <span className="flex items-center gap-0.5">Chat <ChevronRight className="w-3.5 h-3.5" /></span>
             </div>
           </div>
@@ -451,7 +455,7 @@ export default function DoctorDashboard() {
       {/* Two Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* 4-Tab Appointments Management Hub (Pending, Upcoming, Today, Complete) */}
-        <div className="bg-card rounded-2xl border border-border/60 p-6 flex flex-col justify-between">
+        <div ref={appointmentsSectionRef} className="bg-card rounded-2xl border border-border/60 p-6 flex flex-col justify-between">
           <div>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
               <div className="flex items-center gap-2">

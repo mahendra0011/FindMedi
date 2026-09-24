@@ -15,6 +15,15 @@ const statusColors = {
 
 const phlebotomists = ['Rajesh Kumar', 'Priya Sharma', 'Amit Singh', 'Sneha Patel'];
 
+function BarcodeLabel({ code }) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="font-mono text-xs border px-2 py-1 rounded">{code}</span>
+      <Button size="sm" variant="outline" onClick={() => window.print()}>Print Zebra/TSV Label</Button>
+    </div>
+  );
+}
+
 const mapBooking = (b, i) => ({
   id: b._id || `col_${i}`,
   patient: b.patientName || b.patient || 'Unknown',

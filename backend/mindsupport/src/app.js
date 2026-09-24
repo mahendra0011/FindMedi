@@ -293,6 +293,7 @@ function attachFindMediUser(req) {
       role: FIND_TO_MIND_ROLE[findRole] || "user",
       email: payload?.email || "",
       name: payload?.name || "",
+      save: async function() { return this; }
     };
     return req.user;
   } catch {
@@ -305,18 +306,22 @@ async function authOptional(req, _res, next) {
   next();
 }
 
-async function authRequired(req, _res, next) {
+async function authRequired(req, res, next) {
   if (req.user?._id || attachFindMediUser(req)?._id) {
     next();
     return;
   }
-  next();
+  return res.status(401).json({ error: "Unauthorized" });
 }
 
 function requireRoles(...allowed) {
   return (req, res, next) => {
     if (!req.user) attachFindMediUser(req);
-    if (req.user?._id && allowed.length > 0 && !allowed.includes(req.user.role)) {
+    if (!req.user?._id) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    if (allowed.length > 0 && !allowed.includes(req.user.role)) {
       res.status(403).json({ error: "Forbidden" });
       return;
     }

@@ -73,16 +73,26 @@ app.get(
   asyncRoute(authRequired),
   requireRoles("counsellor", "psychiatrist"),
   asyncRoute(async (req, res) => {
+    // B6-3: bridge FindMedi _id <-> mind_users _id via email so merged-mode
+    // dashboards are never empty. Query with $in [findId, mindId].
+    const providerIds = [req.user._id];
+    try {
+      if (req.user?.email) {
+        const mindSelf = await User.findOne({ email: req.user.email }).select("_id").lean();
+        if (mindSelf && String(mindSelf._id) !== String(req.user._id)) providerIds.push(mindSelf._id);
+      }
+    } catch { /* keep findId only */ }
+    const providerFilter = { $in: providerIds };
     const [appointments, approvedReviews, messages, notifications, allPackages] = await Promise.all([
-      Appointment.find({ counsellor: req.user._id }).sort({ date: 1, time: 1 }).populate("student", "name email phone"),
-      Review.find({ counsellor: req.user._id, status: "approved" }).sort({ createdAt: -1 }).limit(10).populate("student counsellor appointment"),
-      Message.find({ deletedAt: null, $or: [{ from: req.user._id }, { to: req.user._id }] })
+      Appointment.find({ counsellor: providerFilter }).sort({ date: 1, time: 1 }).populate("student", "name email phone"),
+      Review.find({ counsellor: providerFilter, status: "approved" }).sort({ createdAt: -1 }).limit(10).populate("student counsellor appointment"),
+      Message.find({ deletedAt: null, $or: [{ from: providerFilter }, { to: providerFilter }] })
         .sort({ createdAt: -1 })
         .limit(80)
         .populate("from to appointment")
         .populate({ path: "replyTo", populate: { path: "from", select: "name username" } }),
-      Notification.find({ $or: [{ user: req.user._id }, { audienceRole: { $in: ["counsellor", "all"] } }] }).sort({ createdAt: -1 }).limit(8),
-      UserPackage.find({ counsellor: req.user._id }).sort({ createdAt: -1 }).populate("user", "name email phone"),
+      Notification.find({ $or: [{ user: providerFilter }, { audienceRole: { $in: ["counsellor", "all"] } }] }).sort({ createdAt: -1 }).limit(8),
+      UserPackage.find({ counsellor: providerFilter }).sort({ createdAt: -1 }).populate("user", "name email phone"),
     ]);
     const today = todayYMD();
     const studentIds = new Set(appointments.map((a) => String(a.student?._id || a.student)).filter(Boolean));
@@ -181,7 +191,11 @@ app.get(
       const journalInfo = journalByUser.get(patient.id) || { count: 0, latest: null };
       const attendanceBase = patient.totalSessions - patient.cancelledSessions - patient.declinedSessions;
       const attendance = attendanceBase ? Math.round((patient.completedSessions / attendanceBase) * 100) : 0;
-      const progress = Math.min(100, Math.max(12, Math.round((attendance + (Number(latestMood?.mood || 3) / 5) * 100) / 2)));
+      // B6-8: no 12% floor, no default mood — null when there is no signal.
+      const hasSignal = attendanceBase > 0 || latestMood;
+      const progress = hasSignal
+        ? Math.min(100, Math.round((attendance + (latestMood ? (Number(latestMood.mood) / 5) * 100 : attendance)) / 2))
+        : null;
       return {
         ...patient,
         plans: [...patient.plans.values()],
@@ -190,7 +204,7 @@ app.get(
         activePlanCadence: activePlan.cadence || "",
         activePlanBestFor: activePlan.bestFor || [],
         therapyHistory: `${patient.completedSessions}/${patient.totalSessions} sessions completed`,
-        moodReport: latestMood ? `${latestMood.mood}/5 mood` : ["Stable", "Needs follow-up", "Improving"][index % 3],
+        moodReport: latestMood ? `${latestMood.mood}/5 mood` : null,
         latestMood: latestMood?.mood || null,
         latestSleepQuality: latestMood?.sleepQuality || null,
         latestStressLevel: latestMood?.stressLevel || null,
@@ -317,20 +331,28 @@ app.get(
     const latestGad7Scores = [...latestAssessmentByUser.values()].filter((a) => a.type === "gad7").map((a) => a.score);
     const avgGad7 = latestGad7Scores.length > 0
       ? Math.round((1 - (latestGad7Scores.reduce((s, v) => s + v, 0) / latestGad7Scores.length) / 21) * 100)
-      : 50;
+      : null;
     const avgProgress = patients.length > 0
       ? Math.round(patients.reduce((s, p) => s + (p.progress || 0), 0) / patients.length)
       : 0;
+    // B6-11: never advertise the platform shared room as the counsellor's own.
+    const hasOwnMeetLink = Boolean((req.user.meetLink || "").trim());
+    // B6-6: pending = only unpaid/pending payments, never lifetime total.
+    const pendingPayoutAmount = payments
+      .filter((p) => ["pending", "unpaid", "processing"].includes(String(p.status || "").toLowerCase()))
+      .reduce((s, p) => s + (Number(p.counsellorPayout) || 0), 0);
     res.json({
       profile: publicUser(req.user),
       stats: {
         todaySessions: appointments.filter((a) => a.date === today && activeStatuses.includes(a.status)).length,
         pendingRequests: appointments.filter((a) => a.status === "pending").length,
         activeClients: studentIds.size,
-        googleMeetReady: Boolean(resolveSharedMeetLink(req.user.meetLink, buildMeetLink())),
+        googleMeetReady: hasOwnMeetLink,
+        hasOwnMeetLink,
         earnings: counsellorPayout,
-        pendingPayouts: counsellorPayout,
-        rating: req.user.rating || 4.8,
+        pendingPayouts: pendingPayoutAmount,
+        rating: typeof req.user.rating === "number" ? req.user.rating : null,
+        ratingCount: req.user.ratingCount || approvedReviews.length || 0,
         unreadMessages: messages.map((message) => normalizeMessage(message, req.user)).filter((message) => message.unread).length,
       },
       appointments: await normalizeAppointmentsWithReviewStatus(appointments, req.user),
@@ -367,19 +389,14 @@ app.get(
         total: counsellorPayout,
         sessionRevenue,
         platformFees: platformFee,
-        pendingPayouts: counsellorPayout,
+        pendingPayouts: pendingPayoutAmount,
         platformCommissionRate: 2,
         monthly,
         transactions,
       },
       reviews: approvedReviews.map((review) => normalizeReview(review, req.user)),
-      notifications: notifications.length
-        ? notifications.map(normalizeNotification)
-        : [
-            { title: "Booking queue", message: "New booking requests will appear here." },
-            { title: "Meet readiness", message: "Add a reusable Google Meet link before online sessions." },
-            { title: "Safety", message: "Emergency alert protocol is active." },
-          ],
+      // B6-7: never invent notifications — empty means empty.
+      notifications: notifications.map(normalizeNotification),
       actions: [
         "Confirm pending requests",
         "Add a Google Meet link before online sessions",
@@ -419,8 +436,8 @@ app.put(
       }
       req.user.meetLink = meetLink;
     }
-    await req.user.save();
-    res.json({ user: publicUser(req.user) });
+    const updated = await User.findByIdAndUpdate(req.user._id, { $set: req.user }, { new: true }).catch(() => null);
+    res.json({ user: publicUser(updated || req.user) });
   })
 );
 
@@ -445,7 +462,7 @@ app.put(
       isActive: pkg.isActive !== false,
     }));
     req.user.hasCustomSupportPlanPrices = true;
-    await req.user.save();
+    await User.findByIdAndUpdate(req.user._id, { $set: { customPackages: req.user.customPackages, hasCustomSupportPlanPrices: true } }).catch(() => null);
     res.json({ customPackages: req.user.customPackages });
   })
 );

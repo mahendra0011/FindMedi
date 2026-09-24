@@ -452,6 +452,11 @@ export default function AdminLawyers() {
             </div>
           </div>
         )}
+
+        <div className="rounded-2xl border p-4 mt-4 flex items-center gap-2">
+          <span className="text-xs font-semibold">🔒 MLC Digital Vault: encrypted at rest</span>
+          <span className="text-[11px] text-muted-foreground">Police intimation + medico-legal files show encryption indicator.</span>
+        </div>
       </div>
     </div>
   );

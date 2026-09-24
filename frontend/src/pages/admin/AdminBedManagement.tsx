@@ -17,6 +17,7 @@ export default function AdminBedManagement() {
   const [statusFilter, setStatusFilter] = useState('');
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [view, setView] = useState('cards');
   const [editId, setEditId] = useState(null);
   const [form, setForm] = useState({ bedNumber: '', ward: 'General', bedType: 'General', dailyRate: '', floor: '', isAC: false });
 
@@ -103,6 +104,51 @@ export default function AdminBedManagement() {
         ))}
       </div>
 
+      <div className="rounded-2xl border p-4 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-muted-foreground">Ward layout map (2D floor-plan) — General / ICU / Emergency blocks</p>
+        <div className="flex gap-2">
+          <Button variant={view === 'plan' ? 'default' : 'outline'} size="sm" onClick={() => setView(view === 'plan' ? 'cards' : 'plan')}>{view === 'plan' ? 'Card View' : 'Floor-plan View'}</Button>
+          <Button variant="outline" size="sm" onClick={() => window.location.hash = '#/patient-registration'}>Admit Patient to Bed</Button>
+        </div>
+      </div>
+
+      {view === 'plan' && !loading && (
+        <div className="space-y-4">
+          {Object.entries(
+            filtered.reduce((acc, b) => {
+              const f = b.floor || 'Ground';
+              (acc[f] = acc[f] || []).push(b);
+              return acc;
+            }, {})
+          ).map(([floor, list]) => (
+            <div key={floor} className="rounded-2xl border border-border/60 p-4">
+              <p className="text-sm font-bold mb-3">Floor: {floor} <span className="text-muted-foreground font-normal">({list.length} beds · {list.filter(b => b.status === 'Available').length} free)</span></p>
+              <div className="space-y-3">
+                {Object.entries(
+                  list.reduce((acc, b) => {
+                    (acc[b.ward || 'General'] = acc[b.ward || 'General'] || []).push(b);
+                    return acc;
+                  }, {})
+                ).map(([ward, beds]) => (
+                  <div key={ward}>
+                    <p className="text-xs font-semibold text-muted-foreground mb-1.5">{ward}</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {beds.map((b) => (
+                        <span key={b._id} title={`${b.bedNumber} — ${b.status}`}
+                          className={`w-9 h-9 rounded-lg flex items-center justify-center text-[10px] font-bold border ${b.status === 'Available' ? 'bg-emerald-500/15 text-emerald-700 border-emerald-500/30' : b.status === 'Occupied' ? 'bg-red-500/15 text-red-700 border-red-500/30' : 'bg-amber-500/15 text-amber-700 border-amber-500/30'}`}>
+                          {String(b.bedNumber).slice(-3)}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+          {filtered.length === 0 && <p className="text-center py-8 text-muted-foreground text-sm">No beds to map.</p>}
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -120,7 +166,7 @@ export default function AdminBedManagement() {
 
       {loading ? (
         <div className="flex justify-center py-12"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>
-      ) : filtered.length === 0 ? (
+      ) : view === 'plan' ? null : filtered.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">No beds found. Add a bed to get started.</div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">

@@ -535,6 +535,7 @@ const UserDashboard = () => {
   const [quickMoodNote, setQuickMoodNote] = useState("");
   const [currentAffirmationIdx, setCurrentAffirmationIdx] = useState(0);
   const [consentAccepted, setConsentAccepted] = useState(false);
+  const [consentRecord, setConsentRecord] = useState(null);
   const [showConsent, setShowConsent] = useState(false);
   const [intakeSubmitted, setIntakeSubmitted] = useState({});
   const [assignments, setAssignments] = useState([]);
@@ -542,17 +543,19 @@ const UserDashboard = () => {
 
 
 
-  const loadDashboard = useCallback(() => {
+  const [loadError, setLoadError] = useState("");
+  const loadDashboard = useCallback((silent = false) => {
     let active = true;
-    setLoading(true);
+    if (!silent) setLoading(true);
+    setLoadError("");
     Promise.all([
       api.get("/api/user/dashboard"),
-      api.get("/api/assignments/my")
+      api.get("/api/assignments/my").catch(() => ({ data: [] }))
     ])
       .then(([{ data: dashboardData }, { data: assignmentsData }]) => {
         if (active) {
           setData({ ...emptyData, ...dashboardData });
-          setAssignments(assignmentsData || []);
+          setAssignments(Array.isArray(assignmentsData) ? assignmentsData : []);
           setUsernameDraft((current) => current || dashboardData.profile?.username || "");
           setPhoneDraft(dashboardData.profile?.phone || "");
           setEmergencyContactName(dashboardData.profile?.emergencyContactName || "");
@@ -561,8 +564,15 @@ const UserDashboard = () => {
           setNotificationPrefs((current) => ({ ...defaultNotificationPrefs, ...current, ...(dashboardData.profile?.notificationSettings || {}) }));
         }
       })
-      .catch(() => {
-        if (active) setData(emptyData);
+      // U-8: failures are visible — toast + error state + assignments reset.
+      .catch((error) => {
+        if (active) {
+          setData(emptyData);
+          setAssignments([]);
+          const msg = error?.response?.data?.error || error?.message || "Could not load your dashboard.";
+          setLoadError(msg);
+          if (!silent) toast({ variant: "destructive", title: "Dashboard load failed", description: msg });
+        }
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -599,28 +609,61 @@ const UserDashboard = () => {
     if (dashboardTabs.includes(tab)) setActiveTab(tab);
   }, [searchParams]);
 
+  // B6-13 parity: debounce socket-triggered reloads (silent — no spinner storm).
   useEffect(() => {
     const socket = getRealtimeSocket();
     if (!socket) return undefined;
-    const refresh = () => loadDashboard();
+    let timer: number | undefined;
+    let lastRun = 0;
+    const refresh = () => {
+      const now = Date.now();
+      if (now - lastRun < 5000) {
+        if (timer) window.clearTimeout(timer);
+        timer = window.setTimeout(() => {
+          lastRun = Date.now();
+          loadDashboard(true);
+        }, 5000);
+        return;
+      }
+      lastRun = now;
+      loadDashboard(true);
+    };
     socket.on("message:new", refresh);
     return () => {
       socket.off("message:new", refresh);
+      if (timer) window.clearTimeout(timer);
     };
   }, [loadDashboard]);
 
+  // U-11: consent is readable — store the full record (acceptedAt) for display.
+  const refreshConsentStatus = () => {
+    api.get("/api/consent/status")
+      .then(({ data }) => {
+        setConsentAccepted(Boolean(data.accepted));
+        setConsentRecord(data.consent || null);
+      })
+      .catch(() => {});
+  };
   useEffect(() => {
-    api.get("/api/consent/status").then(({ data }) => setConsentAccepted(data.accepted)).catch(() => {});
+    refreshConsentStatus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // U-5: intake status is fetched once per package id (not on every
+  // packages identity change / socket refresh), with abort on unmount.
   useEffect(() => {
-    if (data.packages?.length > 0) {
-      data.packages.forEach(pkg => {
-        api.get(`/api/intake/${pkg.id}`).then(({ data }) => {
-          if (data.submitted) setIntakeSubmitted(prev => ({ ...prev, [pkg.id]: true }));
-        }).catch(() => {});
-      });
-    }
+    const ids = (data.packages || []).map((p) => p.id).filter((id) => id && !intakeSubmitted[id]);
+    if (ids.length === 0) return undefined;
+    let active = true;
+    ids.forEach((id) => {
+      api.get(`/api/intake/${id}`).then(({ data: intake }) => {
+        if (active && intake.submitted) setIntakeSubmitted((prev) => ({ ...prev, [id]: true }));
+      }).catch(() => {});
+    });
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data.packages]);
 
   useEffect(() => {
@@ -651,21 +694,7 @@ const UserDashboard = () => {
     if (sessionFilter === "cancelled") return data.appointments.filter((a) => a.status === "cancelled" || a.status === "declined");
     return data.appointments;
   }, [data.appointments, sessionFilter]);
-  const bookedCounsellorIds = useMemo(
-    () =>
-      new Set(
-        (data.appointments || [])
-          .filter((appointment) => !["cancelled", "declined"].includes(appointment.status))
-          .map((appointment) => appointment.counsellorId)
-          .filter(Boolean)
-      ),
-    [data.appointments]
-  );
-  const bookedTherapists = useMemo(
-    () => (data.therapists || []).filter((therapist) => bookedCounsellorIds.has(therapist.id)),
-    [bookedCounsellorIds, data.therapists]
-  );
-  const latestMood = data.moodEntries?.[0]?.mood || data.stats.moodScore || 4;
+  const latestMood = data.moodEntries?.[0]?.mood || data.stats.moodScore || null;
   const currentRisk = data.latestAssessment?.level || data.stats.latestRiskLevel || "not-started";
   const moodDistribution = useMemo(() => {
     const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
@@ -722,10 +751,14 @@ const UserDashboard = () => {
 
   const triggerSOS = async () => {
     try {
-      await api.post("/api/wellness/emergency", { type: "sos", source: "user-dashboard", message: "User dashboard SOS support requested" });
+      // U-4: use the server's honest message (it knows who was actually notified).
+      const { data } = await api.post("/api/wellness/emergency", { type: "sos", source: "user-dashboard", message: "User dashboard SOS support requested" });
+      const notified = data?.request?.notifiedCounsellors || [];
       toast({
         title: "Emergency support sent",
-        description: "Your booked counsellor and platform admin were notified. Call helplines if this is urgent.",
+        description: data?.message || (notified.length
+          ? "Your booked counsellor and platform admin were notified. Call helplines if this is urgent."
+          : "Recorded and sent to platform admin. No booked counsellor found — call helplines if this is urgent."),
       });
     } catch (error) {
       toast({ variant: "destructive", title: "Emergency request failed", description: error?.message || "" });
@@ -820,6 +853,13 @@ const UserDashboard = () => {
         <section className="dashboard-motion py-6 md:py-10 bg-gradient-to-br from-primary/8 via-background via-secondary/8 to-accent/5">
           <div className="dashboard-shell max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
+              {/* U-8: load failures are visible with retry. */}
+              {loadError && (
+                <div className="mb-4 p-4 bg-destructive/10 border border-destructive/30 rounded-lg flex items-start justify-between gap-3">
+                  <p className="text-sm text-destructive">{loadError}</p>
+                  <Button size="sm" variant="outline" onClick={() => loadDashboard()}>Retry</Button>
+                </div>
+              )}
 
               <TabsContent value="home" className="dashboard-tab-motion space-y-6">
             <GlowPanel className="dashboard-panel p-6">
@@ -861,7 +901,7 @@ const UserDashboard = () => {
               <button type="button" onClick={() => data.stats.unreadMessages > 0 && setActiveTab("sessions")} className="text-left">
                 <Metric title="Upcoming sessions" value={data.stats.upcomingSessions} icon={CalendarDays} />
               </button>
-              <Metric title="Mood score" value={`${data.stats.moodScore}/5`} icon={Smile} />
+              <Metric title="Mood score" value={data.stats.moodScore != null ? `${data.stats.moodScore}/5` : "No check-ins yet"} icon={Smile} />
               <Metric title="Wellness streak" value={`${data.stats.wellnessStreak} days`} icon={HeartPulse} />
               <button type="button" onClick={() => setActiveTab("sessions")} className="text-left w-full">
                 <Metric title="Unread messages" value={data.stats.unreadMessages} icon={MessageCircle} />
@@ -2382,6 +2422,23 @@ const UserDashboard = () => {
                   </Card>
                 </div>
 
+                {/* U-11: consent record is readable — show accepted date/version. */}
+                <Card className="dashboard-card-motion relative overflow-hidden border-primary/20">
+                  <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium">Data privacy consent</p>
+                      <p className="text-xs text-foreground/60">
+                        {consentAccepted
+                          ? `Accepted${consentRecord?.acceptedAt || consentRecord?.createdAt ? ` on ${new Date(consentRecord.acceptedAt || consentRecord.createdAt).toLocaleDateString("en-IN")}` : ""} under DPDP Act, 2023.`
+                          : "Not yet accepted — review required to continue using MindSupport."}
+                      </p>
+                    </div>
+                    {!consentAccepted && (
+                      <Button size="sm" variant="outline" onClick={() => setShowConsent(true)}>Review</Button>
+                    )}
+                  </CardContent>
+                </Card>
+
                 <div className="dashboard-stagger grid md:grid-cols-3 gap-4">
                   <FeatureTile icon={Lock} title="Security" text="JWT authentication, role-based access, and login tracking are enabled." />
                   <FeatureTile icon={Bell} title="Notifications" text="Session reminders, mood checks, and counsellor messages." />
@@ -2400,7 +2457,7 @@ const UserDashboard = () => {
           </div>
         </section>
       </main>
-      <ConsentDialog open={showConsent} onOpenChange={setShowConsent} onAccept={() => setConsentAccepted(true)} />
+      <ConsentDialog open={showConsent} onOpenChange={setShowConsent} onAccept={() => { setConsentAccepted(true); refreshConsentStatus(); }} />
     </div>
   );
 };
@@ -2597,7 +2654,14 @@ function ConsentDialog({ open, onOpenChange, onAccept }) {
         onOpenChange(false);
       }
     } catch (e) {
-      toast({ title: "Error", description: "Failed to submit consent", variant: "destructive" });
+      // U-11: 409 means another session already recorded consent — treat as success.
+      if (e?.response?.status === 409) {
+        toast({ title: "Consent already recorded", description: "Your acceptance is already on file." });
+        onAccept();
+        onOpenChange(false);
+      } else {
+        toast({ title: "Error", description: e?.response?.data?.error || e?.message || "Failed to submit consent", variant: "destructive" });
+      }
     } finally {
       setSubmitting(false);
     }

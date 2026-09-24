@@ -41,6 +41,15 @@ const deliveryPartnerSchema = new mongoose.Schema({
   assignedPharmacyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Facility' },
   rating: { type: Number, default: 0 },
   totalDeliveries: { type: Number, default: 0 },
+  // §8 delivery ops master.
+  settings: {
+    nightDispatch: { type: Boolean, default: false },
+    codCeiling: { type: Number, default: 2000, min: 0 },
+    insulatedBag: { type: Boolean, default: false },
+    maxRadiusKm: { type: Number, default: 5, min: 0 },
+    payoutUpi: { type: String, default: '' },
+    breakdownSos: { type: Boolean, default: true },
+  },
 }, { timestamps: true });
 
 export default mongoose.model('DeliveryPartner', deliveryPartnerSchema);

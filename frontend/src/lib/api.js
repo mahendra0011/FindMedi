@@ -382,14 +382,14 @@ export const api = {
   uploadDeliveryDocs:   (userId, docs) => {
     const body = new FormData();
     Object.entries(docs).forEach(([key, file]) => { if (file) body.append(key, file); });
-    return request(`/delivery-boy/upload-docs/${userId}`, { method:'POST', body });
+    return request(`/delivery-partners/upload-document`, { method:'POST', body });
   },
-  getPendingDeliveryBoys: () => request('/delivery-boy/pending'),
-  getAllDeliveryBoys:   ()  => request('/delivery-boy/all'),
-  approveDeliveryBoy:   (id, body) => request(`/delivery-boy/approve/${id}`, { method:'PUT', body: JSON.stringify(body) }),
-  updateDeliveryLocation: (id, body) => request(`/delivery-boy/location/${id}`, { method:'PUT', body: JSON.stringify(body) }),
-  getNearbyDeliveryBoys: (lat, lng, radius) => request(`/delivery-boy/nearby?lat=${lat}&lng=${lng}&radius=${radius || 10}`),
-  getDeliveryProfile:   (id) => request(`/delivery-boy/profile/${id}`),
+  getPendingDeliveryBoys: () => request('/delivery-partners/pending'),
+  getAllDeliveryBoys:   ()  => request('/delivery-partners/all'),
+  approveDeliveryBoy:   (id, body) => request(`/delivery-partners/${id}/verify`, { method:'PUT', body: JSON.stringify(body) }),
+  updateDeliveryLocation: (id, body) => request(`/delivery-partners/profile/${id}`, { method:'PUT', body: JSON.stringify(body) }),
+  getNearbyDeliveryBoys: (lat, lng, radius) => request(`/delivery-partners/nearby?lat=${lat}&lng=${lng}&radius=${radius || 10}`),
+  getDeliveryProfile:   (id) => request(`/delivery-partners/profile/${id}`),
   updateDeliveryProfile: (id, body) => request(`/delivery-boy/profile/${id}`, { method:'PUT', body: JSON.stringify(body) }),
 
   getBeds:        (p={})  => request('/beds?' + new URLSearchParams(p)),
@@ -475,6 +475,10 @@ export const api = {
   enterResult:        (id,body) => request(`/lab/orders/${id}/enter-result`, { method:'PUT', body: JSON.stringify(body) }),
   verifyLabResult:    (id,body) => request(`/lab/orders/${id}/verify`, { method:'PUT', body: JSON.stringify(body) }),
   deliverLabReport:   (id,body) => request(`/lab/orders/${id}/deliver-report`, { method:'PUT', body: JSON.stringify(body) }),
+  dispatchLabReport:    (bookingId, body) => request(`/lab/bookings/${bookingId}/dispatch-report`, { method:'POST', body: JSON.stringify(body) }),
+  getLabReportTask:     (bookingId)       => request(`/lab/bookings/${bookingId}/dispatch-report`),
+  dispatchLabOrder:     (orderId, body)   => request(`/lab/orders/${orderId}/dispatch-report`,   { method:'POST', body: JSON.stringify(body) }),
+  getReportDeliveries:  (p = {})          => request('/lab/report-deliveries?' + new URLSearchParams(p)),
   exportLabOrders:      (p={})    => request('/lab/export?' + new URLSearchParams(p)),
 
   getBloodUnits:      (p={})    => request('/bloodbank/units?' + new URLSearchParams(p)),
@@ -520,7 +524,16 @@ export const api = {
   getPayouts:                 (p={})    => request('/commission/payouts?' + new URLSearchParams(p)),
   createPayout:               (body)    => request('/commission/payouts', { method:'POST', body: JSON.stringify(body) }),
   markPayoutPaid:             (id,b)    => request(`/commission/payouts/${id}/pay`, { method:'PUT', body: JSON.stringify(b) }),
+  approvePayout:              (id)      => request(`/commission/payouts/${id}/approve`, { method:'PUT' }),
   getCommissionStats:         ()        => request('/commission/stats'),
+  getTaxSummary:              (q)       => request('/commission/tax-summary?quarter=' + encodeURIComponent(q)),
+  // SA-M5 security + SA-M4 AI safety
+  getAdminSessions:           ()        => request('/admin/security/sessions'),
+  killAdminSession:           (id)      => request(`/admin/security/sessions/${id}`, { method:'DELETE' }),
+  get2faStatus:               ()        => request('/admin/security/2fa-status'),
+  reset2fa:                   (userId)  => request(`/admin/security/2fa-reset/${userId}`, { method:'POST' }),
+  getAiSafetyEvents:          (p={})    => request('/admin/security/ai-safety/events?' + new URLSearchParams(p)),
+  getAiSafetyStats:           ()        => request('/admin/security/ai-safety/stats'),
 
   getDisputes:            (p={})    => request('/disputes?' + new URLSearchParams(p)),
   updateDisputeStatus:    (id,b)    => request(`/disputes/${id}/status`, { method:'PUT', body: JSON.stringify(b) }),
@@ -713,6 +726,7 @@ export const api = {
   // ── Rider Driver APIs ──
   getRiderProfile:        ()        => request('/rider/profile'),
   updateRiderProfile:     (body)    => request('/rider/profile', { method: 'PUT', body: JSON.stringify(body) }),
+  uploadRiderDocument:    (body)    => request('/rider/documents', { method: 'POST', body: JSON.stringify(body) }),
   setRiderStatus:         (isOnline)=> request('/rider/status', { method: 'PUT', body: JSON.stringify({ isOnline }) }),
   updateRiderLocation:    (lat, lng)=> request('/rider/location', { method: 'PUT', body: JSON.stringify({ lat, lng }) }),
   getRiderEarnings:       ()        => request('/rider/earnings'),
@@ -853,6 +867,13 @@ export const api = {
   suspendAdminLawyer:        (id)      => request(`/admin/lawyers/${id}/suspend`, { method: 'PUT' }),
   getAdminLawyerBookings:    (p={})    => request('/admin/lawyers/bookings?' + new URLSearchParams(p)),
   getAdminLawyerAnalytics:   ()        => request('/admin/lawyers/analytics'),
+  // Aliases used by pages/admin/AdminLawyers.tsx
+  getPendingLawyers:         ()        => request('/admin/lawyers/pending'),
+  getAdminLawyers:           (p={})    => request('/admin/lawyers/all?' + new URLSearchParams(p)),
+  approveLawyer:             (id)      => request(`/admin/lawyers/${id}/approve`, { method: 'PUT' }),
+  rejectLawyer:              (id, reason) => request(`/admin/lawyers/${id}/reject`, { method: 'PUT', body: JSON.stringify(typeof reason === 'object' ? reason : { reason }) }),
+  suspendLawyer:             (id, suspend, reason) => request(`/admin/lawyers/${id}/suspend`, { method: 'PUT', body: JSON.stringify(typeof suspend === 'object' ? suspend : { suspend, reason }) }),
+  getLawyerAnalytics:        ()        => request('/admin/lawyers/analytics'),
 
   // ── Medicine Reminders & Adherence ──
   getMedicineReminders:      (p={})    => request('/medicine-reminders' + (Object.keys(p).length ? '?' + new URLSearchParams(p) : '')),

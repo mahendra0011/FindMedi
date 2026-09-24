@@ -483,10 +483,19 @@ export async function notifyRideUpdate(ride, event = 'ride_status_update') {
     } catch {}
   }
 
-  // Emit to ride room, user room, and ride namespace
+  // Emit to ride room, user room, rider user room, and ride namespace
   io.to(`ride:${ride._id}`).emit(event, payload);
   io.of('/ride').to(`ride:${ride._id}`).emit(event, payload);
   if (ride.userId) {
     io.to(`user:${ride.userId}`).emit(event, payload);
+  }
+  if (ride.riderId) {
+    io.to(`user:${ride.riderId}`).emit(event, payload);
+    if (['cancelled_by_user', 'cancelled_by_rider'].includes(ride.status)) {
+      io.to(`user:${ride.riderId}`).emit('ride_cancelled', {
+        rideId: String(ride._id),
+        reason: ride.cancellationReason || 'Cancelled by passenger',
+      });
+    }
   }
 }

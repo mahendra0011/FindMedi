@@ -51,8 +51,6 @@ import { toast } from 'sonner';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Input } from '../../components/ui/input';
-import { CaseNotesView } from '../../components/lawyer/CaseNotesView';
-import { LawyerChatPanel } from '../../components/lawyer/LawyerChatPanel';
 import { BookingStatusPanel } from '../../components/lawyer/BookingStatusPanel';
 import { api } from '../../lib/api';
 import { useAuth } from '@/context/AuthContext';
@@ -67,6 +65,17 @@ export default function LawyerDashboard() {
 
   // Tab routing sync: supports URL params (?tab=requests) and subpaths
   const getInitialTab = () => {
+    const p = location.pathname.toLowerCase();
+    if (p.includes('/requests')) return 'requests';
+    if (p.includes('/active')) return 'active';
+    if (p.includes('/cases')) return 'cases';
+    if (p.includes('/history')) return 'cases';
+    if (p.includes('/earnings')) return 'earnings';
+    if (p.includes('/profile')) return 'profile';
+    if (p.includes('/documents')) return 'documents';
+    if (p.includes('/reviews')) return 'reviews';
+    if (p.includes('/settings')) return 'settings';
+
     const queryTab = searchParams.get('tab');
     if (queryTab && ['overview', 'requests', 'active', 'cases', 'earnings', 'profile', 'documents', 'reviews', 'settings'].includes(queryTab)) {
       return queryTab as any;
@@ -115,7 +124,79 @@ export default function LawyerDashboard() {
   const [bankAccount, setBankAccount] = useState('');
   const [bankIfsc, setBankIfsc] = useState('');
   const [bankUpi, setBankUpi] = useState('');
+  const [bankGstin, setBankGstin] = useState('');
   const [savingSettings, setSavingSettings] = useState(false);
+  // Section-10 settings master
+  const [editEmergencyStandby, setEditEmergencyStandby] = useState(false);
+  const [editRefundPolicy, setEditRefundPolicy] = useState('lawyer_cancels_full');
+  const [editFeeSchedule, setEditFeeSchedule] = useState({ video30m: 0, chamberVisit: 0, bedsideVisit: 0, noticeDrafting: 0 });
+  const [editPracticingCourts, setEditPracticingCourts] = useState<string[]>([]);
+  const [courtInput, setCourtInput] = useState('');
+  const [editPrivilegeLocked, setEditPrivilegeLocked] = useState(true);
+
+  // Cases search / filter / pagination (L-9)
+  const [caseSearch, setCaseSearch] = useState('');
+  const [caseStatusFilter, setCaseStatusFilter] = useState('all');
+  const [casePage, setCasePage] = useState(1);
+  const CASE_PAGE_SIZE = 10;
+
+  // Real analytics derived from history + earnings (L-3, L-6)
+  const weeklyData = React.useMemo(() => {
+    const days: { day: string; revenue: number; cases: number }[] = [];
+    const now = new Date();
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(now.getDate() - i);
+      const key = d.toDateString();
+      const label = i === 0 ? 'Today' : d.toLocaleDateString('en-IN', { weekday: 'short' });
+      const dayBookings = (history || []).filter((h: any) => {
+        const dt = new Date(h.completedAt || h.scheduledDate || h.createdAt);
+        return !Number.isNaN(dt.getTime()) && dt.toDateString() === key && h.status === 'completed';
+      });
+      days.push({
+        day: label,
+        revenue: dayBookings.reduce((s: number, h: any) => s + (Number(h.fee) || 0), 0),
+        cases: dayBookings.length,
+      });
+    }
+    return days;
+  }, [history]);
+
+  const caseMix = React.useMemo(() => {
+    const counts: Record<string, number> = {};
+    (history || []).forEach((h: any) => {
+      const c = String(h.category || h.caseCategory || 'General').replace(/_/g, ' ');
+      counts[c] = (counts[c] || 0) + 1;
+    });
+    const total = Object.values(counts).reduce((a, b) => a + b, 0) || 1;
+    const palette = ['#4f46e5', '#06b6d4', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
+    return Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([name, value], i) => ({
+        name,
+        value: Math.round((value / total) * 100),
+        count: value,
+        color: palette[i % palette.length],
+      }));
+  }, [history]);
+
+  const filteredHistory = React.useMemo(() => {
+    const q = caseSearch.trim().toLowerCase();
+    return (history || []).filter((h: any) => {
+      if (caseStatusFilter !== 'all' && h.status !== caseStatusFilter) return false;
+      if (!q) return true;
+      return [h.userId?.name, h.category, h.caseCategory, h.bookingNumber, h.consultationMode]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+        .includes(q);
+    });
+  }, [history, caseSearch, caseStatusFilter]);
+
+  const totalCasePages = Math.max(1, Math.ceil(filteredHistory.length / CASE_PAGE_SIZE));
+  const safeCasePage = Math.min(casePage, totalCasePages);
+  const pagedHistory = filteredHistory.slice((safeCasePage - 1) * CASE_PAGE_SIZE, safeCasePage * CASE_PAGE_SIZE);
 
   const fetchDashboardData = async (isManual = false) => {
     try {
@@ -144,9 +225,20 @@ export default function LawyerDashboard() {
           setBankIfsc(p.bankDetails.ifsc || '');
           setBankUpi(p.bankDetails.upiId || '');
         }
+        if (p.gstin) setBankGstin(p.gstin);
+        if (p.settings) {
+          setEditEmergencyStandby(Boolean(p.settings.emergencyStandby));
+          if (p.settings.refundPolicy) setEditRefundPolicy(p.settings.refundPolicy);
+          if (p.settings.feeSchedule) setEditFeeSchedule({ video30m: 0, chamberVisit: 0, bedsideVisit: 0, noticeDrafting: 0, ...p.settings.feeSchedule });
+          if (Array.isArray(p.settings.practicingCourts)) setEditPracticingCourts(p.settings.practicingCourts);
+          if (typeof p.settings.privilegeLocked === 'boolean') setEditPrivilegeLocked(p.settings.privilegeLocked);
+        }
+        if (Array.isArray(p.courtsPracticedIn) && p.courtsPracticedIn.length && !p.settings?.practicingCourts?.length) {
+          setEditPracticingCourts(p.courtsPracticedIn);
+        }
       }
       setEarnings(earningsRes);
-      setActiveBooking(activeRes?.activeBooking || null);
+      setActiveBooking(activeRes?.booking || activeRes?.activeBooking || null);
       setHistory(historyRes?.bookings || []);
 
       // Merge pending requests from the server with anything received over socket.
@@ -332,7 +424,7 @@ export default function LawyerDashboard() {
 
   const handleDeclineRequest = async (bookingId: string) => {
     if (!bookingId) return;
-    const reason = window.prompt('Reason for declining:') || 'Court commitment';
+    const reason = 'Court commitment';
     try {
       await api.declineLawyerBooking(bookingId, reason);
       setIncomingRequests((prev) => prev.filter((r) => String(r._id) !== String(bookingId)));
@@ -344,17 +436,18 @@ export default function LawyerDashboard() {
 
   const handleProposeTime = async (bookingId: string) => {
     if (!proposedTime) {
-      alert('Please select proposed alternate time');
+      toast.warning('Please select proposed alternate time');
       return;
     }
     try {
-      await api.proposeLawyerTime(bookingId, proposedTime);
-      alert('Proposed alternate time sent to client.');
+      const [pDate, pTime] = proposedTime.includes('T') ? proposedTime.split('T') : [proposedTime, '10:00'];
+      await api.proposeLawyerTime(bookingId, { date: pDate, time: pTime, reason: 'Advocate proposed alternate consultation slot' });
+      toast.success('Proposed alternate time sent to client.');
       setProposingId(null);
       setIncomingRequests((prev) => prev.filter((r) => r._id !== bookingId));
       fetchDashboardData(true);
     } catch (err: any) {
-      alert(err.message || 'Propose time failed');
+      toast.error(err.message || 'Propose time failed');
     }
   };
 
@@ -392,10 +485,10 @@ export default function LawyerDashboard() {
         followUpFee: editFollowUpFee,
         sessionDuration: editDuration,
       });
-      alert('Profile updated successfully!');
+      toast.success('Profile updated successfully!');
       fetchDashboardData(true);
     } catch (err: any) {
-      alert(err.message || 'Save failed');
+      toast.error(err.message || 'Save failed');
     } finally {
       setSavingProfile(false);
     }
@@ -413,11 +506,24 @@ export default function LawyerDashboard() {
           ifsc: bankIfsc,
           upiId: bankUpi,
         },
+        gstin: bankGstin.trim(),
+        settings: {
+          emergencyStandby: editEmergencyStandby,
+          refundPolicy: editRefundPolicy,
+          feeSchedule: {
+            video30m: Number(editFeeSchedule.video30m) || 0,
+            chamberVisit: Number(editFeeSchedule.chamberVisit) || 0,
+            bedsideVisit: Number(editFeeSchedule.bedsideVisit) || 0,
+            noticeDrafting: Number(editFeeSchedule.noticeDrafting) || 0,
+          },
+          practicingCourts: editPracticingCourts.slice(0, 10),
+          privilegeLocked: editPrivilegeLocked,
+        },
       });
-      alert('Settings saved successfully!');
+      toast.success('Settings saved successfully!');
       fetchDashboardData(true);
     } catch (err: any) {
-      alert(err.message || 'Failed to save settings');
+      toast.error(err.message || 'Failed to save settings');
     } finally {
       setSavingSettings(false);
     }
@@ -472,19 +578,19 @@ export default function LawyerDashboard() {
             <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 dark:text-slate-400 mt-1.5 font-medium">
               <span className="flex items-center gap-1 text-amber-500 font-bold">
                 <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                {profile?.rating?.avg ? profile.rating.avg.toFixed(1) : '5.0'}
+                {profile?.rating?.avg ? profile.rating.avg.toFixed(1) : 'New'}
                 <span className="text-slate-400 font-normal">
-                  ({profile?.rating?.count || history.length || 0} reviews)
+                  ({profile?.rating?.count ?? history.length} reviews)
                 </span>
               </span>
               <span>•</span>
               <span className="text-slate-900 dark:text-slate-100 font-bold">
-                Bar Reg: {profile?.barCouncilNumber || 'MP/1842/2019'}
+                Bar Reg: {profile?.barCouncilNumber || 'Pending verification'}
               </span>
               <span>•</span>
               <span className="flex items-center gap-1 text-slate-600 dark:text-slate-300">
                 <Briefcase className="w-3.5 h-3.5 text-slate-700 dark:text-slate-300" />
-                {profile?.yearsOfPractice || 8} Yrs Practice • {profile?.stateBarCouncil || 'High Court of MP'}
+                {profile?.yearsOfPractice ? `${profile.yearsOfPractice} Yrs Practice` : 'Experience pending'} • {profile?.stateBarCouncil || 'Bar council pending'}
               </span>
             </div>
           </div>
@@ -670,7 +776,7 @@ export default function LawyerDashboard() {
                 <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-3.5 text-center sm:text-left min-w-[130px] col-span-2 sm:col-span-1">
                   <span className="text-[10px] text-slate-200 uppercase font-bold tracking-wider block">Completed Cases</span>
                   <span className="text-xl font-black text-white">
-                    {earnings?.totalBookings || history.length || 0}
+                    {earnings?.completedConsultationsCount ?? history.length}
                   </span>
                 </div>
               </div>
@@ -873,19 +979,11 @@ export default function LawyerDashboard() {
                 </div>
               </div>
 
-                {/* Responsive Area Chart */}
+                {/* Responsive Area Chart — real last-7-days revenue from completed bookings (L-3) */}
                 <div className="h-64 w-full pt-3">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart
-                      data={[
-                        { day: 'Mon', revenue: 1500, cases: 2 },
-                        { day: 'Tue', revenue: 2500, cases: 3 },
-                        { day: 'Wed', revenue: 1000, cases: 1 },
-                        { day: 'Thu', revenue: 3000, cases: 4 },
-                        { day: 'Fri', revenue: 2000, cases: 2 },
-                        { day: 'Sat', revenue: earnings?.totalEarnings ? Math.max(earnings.totalEarnings, 3500) : 3500, cases: 4 },
-                        { day: 'Sun (Today)', revenue: 1500, cases: 2 },
-                      ]}
+                      data={weeklyData}
                       margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
                     >
                       <defs>
@@ -967,17 +1065,12 @@ export default function LawyerDashboard() {
                     Consultations categorized by healthcare law topics
                   </p>
 
-                  {/* Donut Chart */}
+                  {/* Donut Chart — real category mix from history (L-3) */}
                   <div className="h-44 w-full relative flex items-center justify-center mt-2">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
-                          data={[
-                            { name: 'Medical Negligence', value: 40, color: '#4f46e5' },
-                            { name: 'Insurance Claims', value: 30, color: '#06b6d4' },
-                            { name: 'Consumer Court', value: 20, color: '#10b981' },
-                            { name: 'Hospital Disputes', value: 10, color: '#f59e0b' },
-                          ]}
+                          data={caseMix.length > 0 ? caseMix : [{ name: 'No cases yet', value: 100, color: '#e2e8f0' }]}
                           cx="50%"
                           cy="50%"
                           innerRadius={46}
@@ -985,13 +1078,8 @@ export default function LawyerDashboard() {
                           paddingAngle={4}
                           dataKey="value"
                         >
-                          {[
-                            { color: '#4f46e5' },
-                            { color: '#06b6d4' },
-                            { color: '#10b981' },
-                            { color: '#f59e0b' },
-                          ].map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          {((caseMix.length > 0 ? caseMix : [{ color: '#e2e8f0' }]) as any[]).map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={(entry as any).color} />
                           ))}
                         </Pie>
                         <Tooltip
@@ -1011,30 +1099,23 @@ export default function LawyerDashboard() {
                     </ResponsiveContainer>
                     <div className="absolute text-center pointer-events-none">
                       <span className="text-xl font-black text-slate-900 dark:text-slate-100">
-                        {earnings?.totalBookings || history.length || 18}
+                        {earnings?.completedConsultationsCount ?? history.length}
                       </span>
                       <span className="block text-[10px] text-slate-400 font-medium">Cases</span>
                     </div>
                   </div>
 
-                  {/* Legend list */}
+                  {/* Legend list — real mix (L-3) */}
                   <div className="grid grid-cols-2 gap-2 pt-2 text-[11px]">
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-full bg-slate-900" />
-                      <span className="text-slate-600 dark:text-slate-400 truncate">Negligence (40%)</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-full bg-cyan-500" />
-                      <span className="text-slate-600 dark:text-slate-400 truncate">Insurance (30%)</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                      <span className="text-slate-600 dark:text-slate-400 truncate">Consumer (20%)</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-                      <span className="text-slate-600 dark:text-slate-400 truncate">Disputes (10%)</span>
-                    </div>
+                    {caseMix.length === 0 && (
+                      <span className="text-slate-400 col-span-2">No consultations yet — complete a case to see mix.</span>
+                    )}
+                    {caseMix.map((c) => (
+                      <div key={c.name} className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full" style={{ background: c.color }} />
+                        <span className="text-slate-600 dark:text-slate-400 truncate">{c.name} ({c.value}%)</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
@@ -1057,7 +1138,7 @@ export default function LawyerDashboard() {
                       {activeBooking.status?.replace('_', ' ') || 'ACTIVE CONSULTATION'}
                     </Badge>
                     <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-                      Booking #{activeBooking._id?.slice(-6)}
+                      Booking #{activeBooking.bookingNumber || activeBooking._id?.slice(-6)}
                     </span>
                   </div>
 
@@ -1226,22 +1307,44 @@ export default function LawyerDashboard() {
           </div>
         )}
 
-        {/* ── 4. CASES HISTORY TAB ───────────────────────────────── */}
+        {/* ── 4. CASES HISTORY TAB (search + filter + pagination — L-9) ── */}
         {activeTab === 'cases' && (
           <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-            <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
-              Consultation Case History
-            </h3>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                Consultation Case History ({filteredHistory.length})
+              </h3>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Search client / category / booking no..."
+                  value={caseSearch}
+                  onChange={(e) => { setCaseSearch(e.target.value); setCasePage(1); }}
+                  className="h-9 text-xs w-56"
+                />
+                <select
+                  value={caseStatusFilter}
+                  onChange={(e) => { setCaseStatusFilter(e.target.value); setCasePage(1); }}
+                  className="h-9 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-2"
+                >
+                  <option value="all">All status</option>
+                  <option value="completed">Completed</option>
+                  <option value="confirmed">Confirmed</option>
+                  <option value="active">Active</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+              </div>
+            </div>
 
-            {history.length === 0 ? (
+            {filteredHistory.length === 0 ? (
               <div className="py-12 text-center text-xs text-slate-500">
-                No past consultations found.
+                {history.length === 0 ? 'No past consultations found.' : 'No cases match your search.'}
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead className="border-b border-slate-100 dark:border-slate-800 text-slate-400 uppercase">
                     <tr>
+                      <th className="pb-3 font-semibold">Booking</th>
                       <th className="pb-3 font-semibold">Date</th>
                       <th className="pb-3 font-semibold">Client</th>
                       <th className="pb-3 font-semibold">Category</th>
@@ -1252,8 +1355,11 @@ export default function LawyerDashboard() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-                    {history.map((h) => (
+                    {pagedHistory.map((h) => (
                       <tr key={h._id}>
+                        <td className="py-3 font-mono text-slate-500">
+                          #{h.bookingNumber || h._id?.slice(-6)}
+                        </td>
                         <td className="py-3">
                           {new Date(h.scheduledDate || h.createdAt).toLocaleDateString()}
                         </td>
@@ -1294,6 +1400,33 @@ export default function LawyerDashboard() {
                 </table>
               </div>
             )}
+            {filteredHistory.length > 0 && (
+              <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
+                <span>Page {safeCasePage} of {totalCasePages} • {filteredHistory.length} cases</span>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={safeCasePage <= 1}
+                    onClick={() => setCasePage((p) => Math.max(1, p - 1))}
+                    className="h-8 text-xs"
+                  >
+                    Prev
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={safeCasePage >= totalCasePages}
+                    onClick={() => setCasePage((p) => Math.min(totalCasePages, p + 1))}
+                    className="h-8 text-xs"
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -1318,10 +1451,10 @@ export default function LawyerDashboard() {
                   Gross Earnings
                 </div>
                 <div className="text-3xl font-black text-slate-900 dark:text-slate-100 mt-1">
-                  ₹{earnings?.totalEarnings?.toLocaleString() || 0}
+                  ₹{(earnings?.totalEarnings ?? 0).toLocaleString()}
                 </div>
                 <div className="text-[11px] text-slate-500 mt-2">
-                  Platform Fee: 10% auto-deducted
+                  Commission: ₹{(earnings?.platformCommission ?? 0).toLocaleString()} (10%) • Net: ₹{(earnings?.netPayable ?? 0).toLocaleString()} • This month: ₹{(earnings?.thisMonthEarnings ?? 0).toLocaleString()}
                 </div>
               </div>
 
@@ -1330,7 +1463,7 @@ export default function LawyerDashboard() {
                   Completed Cases
                 </div>
                 <div className="text-3xl font-black text-slate-900 dark:text-slate-100 mt-1">
-                  {earnings?.totalBookings || history.length}
+                  {earnings?.completedConsultationsCount ?? history.length}
                 </div>
                 <div className="text-[11px] text-slate-500 mt-2">
                   100% Paid & Settled Consultations
@@ -1579,6 +1712,119 @@ export default function LawyerDashboard() {
               />
             </div>
 
+            <div className="flex items-center justify-between p-4 rounded-2xl bg-rose-500/5 border border-rose-500/20">
+              <div>
+                <div className="font-bold text-xs text-slate-900 dark:text-slate-100">
+                  Emergency medico-legal / bail standby
+                </div>
+                <div className="text-[11px] text-slate-500">
+                  Distressed families facing detention or MLC FIR can find you on standby.
+                </div>
+              </div>
+              <input
+                type="checkbox"
+                checked={editEmergencyStandby}
+                onChange={(e) => setEditEmergencyStandby(e.target.checked)}
+                className="w-5 h-5 rounded"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                Court-conflict reschedule & refund policy
+              </label>
+              <select
+                value={editRefundPolicy}
+                onChange={(e) => setEditRefundPolicy(e.target.value)}
+                className="h-9 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 w-full"
+              >
+                <option value="lawyer_cancels_full">100% refund if lawyer cancels</option>
+                <option value="court_clash_reschedule">Free priority reschedule on court clash</option>
+                <option value="client_12h_full">100% refund on client cancel &gt;12h before</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                Legal fee schedule (₹)
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                {([
+                  ['video30m', '30m Video Advisory'],
+                  ['chamberVisit', 'Chamber Visit'],
+                  ['bedsideVisit', 'Hospital Bedside Visit'],
+                  ['noticeDrafting', 'Legal Notice Drafting'],
+                ] as const).map(([key, label]) => (
+                  <div key={key}>
+                    <label className="block text-[11px] text-slate-500 mb-1">{label}</label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={editFeeSchedule[key]}
+                      onChange={(e) => setEditFeeSchedule({ ...editFeeSchedule, [key]: Number(e.target.value) })}
+                      className="rounded-xl text-xs"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                Primary practicing courts
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {editPracticingCourts.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setEditPracticingCourts(editPracticingCourts.filter((x) => x !== c))}
+                    className="px-3 py-1.5 rounded-full bg-slate-900 text-white text-xs font-bold"
+                    title="Remove"
+                  >
+                    {c} ✕
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  value={courtInput}
+                  onChange={(e) => setCourtInput(e.target.value)}
+                  placeholder="e.g. Supreme Court, High Court of MP, NCDRC"
+                  className="rounded-xl text-xs"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    const v = courtInput.trim();
+                    if (v && !editPracticingCourts.includes(v)) setEditPracticingCourts([...editPracticingCourts, v].slice(0, 10));
+                    setCourtInput('');
+                  }}
+                  className="text-xs shrink-0"
+                >
+                  Add
+                </Button>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+              <div>
+                <div className="font-bold text-xs text-slate-900 dark:text-slate-100">
+                  Client-attorney privilege lock
+                </div>
+                <div className="text-[11px] text-slate-500">
+                  Health records shared by the patient stay encrypted under privilege.
+                </div>
+              </div>
+              <input
+                type="checkbox"
+                checked={editPrivilegeLocked}
+                onChange={(e) => setEditPrivilegeLocked(e.target.checked)}
+                className="w-5 h-5 rounded"
+              />
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
@@ -1628,7 +1874,23 @@ export default function LawyerDashboard() {
                   className="rounded-xl text-xs"
                 />
               </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  GSTIN (for fee invoices)
+                </label>
+                <Input
+                  type="text"
+                  placeholder="e.g. 23ABCDE1234F1Z5"
+                  value={bankGstin}
+                  onChange={(e) => setBankGstin(e.target.value.toUpperCase())}
+                  className="rounded-xl text-xs"
+                />
+              </div>
             </div>
+            {profile?.bankDetails?.verified && (
+              <p className="text-[11px] font-bold text-emerald-600">✓ Settlement account verified by admin</p>
+            )}
 
             <div className="flex justify-end pt-3">
               <Button

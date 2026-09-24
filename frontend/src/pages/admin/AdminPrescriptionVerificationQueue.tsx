@@ -48,6 +48,8 @@ export default function AdminPrescriptionVerificationQueue() {
   const [selectedRx, setSelectedRx] = useState(null);
   const [verifyNotes, setVerifyNotes] = useState('');
   const [actionType, setActionType] = useState('verify');
+  const [zoom, setZoom] = useState(1);
+  const [rotation, setRotation] = useState(0);
 
   const load = async () => {
     try {
@@ -283,6 +285,25 @@ export default function AdminPrescriptionVerificationQueue() {
                 <div className="mb-6">
                   <p className="text-xs text-muted-foreground mb-1">Clinical Notes</p>
                   <div className="p-3 bg-muted/20 rounded-xl text-sm">{selectedRx.clinicalNotes}</div>
+                </div>
+              )}
+
+              {(selectedRx.scanUrl || selectedRx.imageUrl || selectedRx.attachmentUrl) && (
+                <div className="mb-6">
+                  <p className="text-xs text-muted-foreground mb-2">Scanned Prescription</p>
+                  <div className="flex gap-2 mb-2">
+                    <Button size="sm" variant="outline" onClick={() => setZoom((z) => Math.min(3, +(z + 0.25).toFixed(2)))}>Zoom +</Button>
+                    <Button size="sm" variant="outline" onClick={() => setZoom((z) => Math.max(0.5, +(z - 0.25).toFixed(2)))}>Zoom -</Button>
+                    <Button size="sm" variant="outline" onClick={() => setRotation((r) => (r + 90) % 360)}>Rotate</Button>
+                  </div>
+                  <div className="overflow-auto rounded-xl border">
+                    <img src={selectedRx.scanUrl || selectedRx.imageUrl || selectedRx.attachmentUrl} alt="Prescription scan" style={{ transform: `scale(${zoom}) rotate(${rotation}deg)`, maxWidth: '100%' }} />
+                  </div>
+                </div>
+              )}
+              {selectedRx.ocrConfidence != null && (
+                <div className="mb-6">
+                  <p className="text-xs text-muted-foreground mb-1">OCR Confidence: {Math.round(selectedRx.ocrConfidence * 100)}%</p>
                 </div>
               )}
 

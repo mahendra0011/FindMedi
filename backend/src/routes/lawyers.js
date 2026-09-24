@@ -190,6 +190,8 @@ router.put('/profile', protect, async (req, res) => {
       bankDetails,
       jurisdictionCity,
       lawFirmName,
+      settings,
+      gstin,
     } = req.body;
 
     if (bio !== undefined) profile.bio = bio;
@@ -208,9 +210,24 @@ router.put('/profile', protect, async (req, res) => {
     if (lawFirmName !== undefined) profile.lawFirmName = lawFirmName;
     if (bankDetails) {
       profile.bankDetails = {
-        ...profile.bankDetails,
+        ...profile.bankDetails?.toObject?.() || profile.bankDetails,
         ...bankDetails,
       };
+    }
+    if (gstin !== undefined) profile.gstin = String(gstin).trim().slice(0, 20);
+    if (settings && typeof settings === 'object') {
+      const next = { ...(profile.settings?.toObject?.() || profile.settings || {}) };
+      if (typeof settings.emergencyStandby === 'boolean') next.emergencyStandby = settings.emergencyStandby;
+      if (['lawyer_cancels_full', 'court_clash_reschedule', 'client_12h_full'].includes(settings.refundPolicy)) next.refundPolicy = settings.refundPolicy;
+      if (settings.feeSchedule && typeof settings.feeSchedule === 'object') {
+        next.feeSchedule = { ...(next.feeSchedule || {}) };
+        for (const k of ['video30m', 'chamberVisit', 'bedsideVisit', 'noticeDrafting']) {
+          if (settings.feeSchedule[k] !== undefined && Number(settings.feeSchedule[k]) >= 0) next.feeSchedule[k] = Number(settings.feeSchedule[k]);
+        }
+      }
+      if (Array.isArray(settings.practicingCourts)) next.practicingCourts = settings.practicingCourts.map(String).slice(0, 10);
+      if (typeof settings.privilegeLocked === 'boolean') next.privilegeLocked = settings.privilegeLocked;
+      profile.settings = next;
     }
 
     await profile.save();
@@ -263,6 +280,34 @@ router.get('/earnings', protect, async (req, res) => {
       lawyerId: req.user._id,
       status: 'completed',
     }).sort({ completedAt: -1 });
+
+    // L-11 backfill: settle pre-feature completed bookings once, so legacy
+    // wallets converge instead of diverging from lifetime revenue.
+    const unsettled = completedBookings.filter((b) => !b.settledAt && (Number(b.fee) || 0) > 0);
+    if (unsettled.length > 0) {
+      let backfillNet = 0;
+      let backfillGross = 0;
+      for (const b of unsettled) {
+        const gross = Number(b.fee) || 0;
+        const net = Math.round(gross * 0.9);
+        b.settledAt = new Date();
+        b.settlementAmount = net;
+        backfillNet += net;
+        backfillGross += gross;
+        await b.save().catch(() => {});
+      }
+      if (backfillNet > 0) {
+        await LawyerProfile.findOneAndUpdate(
+          { userId: req.user._id },
+          { $inc: { walletBalance: backfillNet, totalEarnings: backfillGross } }
+        ).catch(() => {});
+        const fresh = await LawyerProfile.findOne({ userId: req.user._id }).lean().catch(() => null);
+        if (fresh) {
+          profile.walletBalance = fresh.walletBalance;
+          profile.totalEarnings = fresh.totalEarnings;
+        }
+      }
+    }
 
     const totalGross = completedBookings.reduce((sum, b) => sum + (b.fee || 0), 0);
     const platformCommission = Math.round(totalGross * 0.1); // 10%

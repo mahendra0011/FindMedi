@@ -66,13 +66,24 @@ export default function PublicFooter() {
           </div>
         </div>
 
-        {/* Bottom Bar */}
-        <div className="mt-10 pt-6 border-t border-border/60 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-          <p>&copy; 2026 FindMedi Healthcare. All rights reserved.</p>
-          <div className="flex items-center gap-4">
-            <Link to="/" className="hover:text-primary transition-colors">Privacy Policy</Link>
-            <Link to="/" className="hover:text-primary transition-colors">Terms of Service</Link>
-            <Link to="/" className="hover:text-primary transition-colors">Cookie Policy</Link>
+        {/* Bottom Legal & Compliance Strip */}
+        <div className="mt-10 pt-6 border-t border-border/60 space-y-4">
+          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-6 gap-y-2 text-xs text-muted-foreground">
+            <Link to="/privacy" className="hover:text-primary transition-colors">Privacy Policy (DPDP 2023)</Link>
+            <Link to="/terms" className="hover:text-primary transition-colors">Terms of Service</Link>
+            <Link to="/disclaimer" className="hover:text-primary transition-colors">Emergency Disclaimer (Sec 134A)</Link>
+            <Link to="/refund-policy" className="hover:text-primary transition-colors">Refunds & Standby Fees</Link>
+            <Link to="/grievance" className="hover:text-primary transition-colors">Grievance & DPO Office</Link>
+            <Link to="/telemedicine-consent" className="hover:text-primary transition-colors">Telemedicine Consent (NMC 2020)</Link>
+            <Link to="/patient-rights" className="hover:text-primary transition-colors">Patient Rights Charter</Link>
+            <Link to="/cookies" className="hover:text-primary transition-colors">Cookie Policy</Link>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground pt-2 border-t border-border/40">
+            <p>&copy; {new Date().getFullYear()} FindMedi Healthcare Technologies Pvt. Ltd. All rights reserved.</p>
+            <p className="text-[11px] text-muted-foreground">
+              Ayushman Bharat Digital Mission (ABDM) • National Medical Commission (NMC) • DPDP Act 2023 Compliant
+            </p>
           </div>
         </div>
       </div>

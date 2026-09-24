@@ -23,10 +23,19 @@ function AuditLogsTab() {
       if (actionFilter) params.action = actionFilter;
       if (search) params.search = search;
       const data = await api.getAuditLogs(params);
+      const pages = Math.max(1, data.totalPages || 1);
+      const want = Math.max(1, data.page || p || 1);
+      // SA-6: filters can shrink totalPages below the active offset — clamp
+      // into range and refetch once instead of showing an empty table.
+      if (want > pages) {
+        if (p !== pages) fetchLogs(pages);
+        else { setLogs([]); setTotal(data.total || 0); setPage(pages); setTotalPages(pages); }
+        return;
+      }
       setLogs(data.logs || []);
       setTotal(data.total || 0);
-      setPage(data.page || 1);
-      setTotalPages(data.totalPages || 1);
+      setPage(want);
+      setTotalPages(pages);
     } catch { toast.error('Failed to load audit logs'); }
     setLoading(false);
   }, [page, actionFilter, search]);

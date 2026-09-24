@@ -6,9 +6,11 @@ import {
   IndianRupee, TrendingUp, RotateCcw, Sparkles, ChevronRight, Quote, MessageCircle,
   ClipboardList, TestTube, FileText, Bell, Zap, Syringe, Pill, Ambulance, Activity,
   Download, CreditCard, Smartphone, Landmark, Wallet,
-  Building2, Video, Phone, MapPin, CalendarClock, Car, CheckCircle2, X
+  Building2, Video, Phone, MapPin, CalendarClock, Car, CheckCircle2, X,
+  Navigation, ShieldCheck, Siren
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { api, downloadPaymentInvoice, txToEarningsBill } from '@/lib/api';
@@ -16,6 +18,10 @@ import { getISTDateString, formatDisplayDate } from '@/lib/dateUtils';
 import { useAppointmentRealtime } from '@/lib/useAppointmentRealtime';
 import LicenseExpiryReminder from '@/components/LicenseExpiryReminder';
 import EarningsAnalytics from '@/components/EarningsAnalytics';
+import DoctorIncomingEmergencyModal from '@/components/emergency/DoctorIncomingEmergencyModal';
+import DoctorActiveEmergencyHUD from '@/components/emergency/DoctorActiveEmergencyHUD';
+import { useDoctorEmergencyGps } from '@/hooks/useDoctorEmergencyGps';
+import { getSocket } from '@/lib/socket';
 
 function getAppointmentModeMeta(appt) {
   if (!appt) return { key: 'clinic', label: 'In Clinic', icon: Building2, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20' };
@@ -91,25 +97,167 @@ const [refunds, setRefunds] = useState([]);
   const [apptTab, setApptTab] = useState('pending');
   const [tipIndex, setTipIndex] = useState(0);
   const [greeting, setGreeting] = useState('');
+  const [scheduleData, setScheduleData] = useState(null);
+  const [isEmergencyDuty, setIsEmergencyDuty] = useState(false);
+  const [emergencyRadius, setEmergencyRadius] = useState(10);
+  const [gpsStatusText, setGpsStatusText] = useState('Standby');
+  const [togglingDuty, setTogglingDuty] = useState(false);
+  const [incomingEmergency, setIncomingEmergency] = useState<any>(null);
+  const [activeEmergency, setActiveEmergency] = useState<any>(null);
+  const [showStatutoryModal, setShowStatutoryModal] = useState(false);
   const mounted = useRef(true);
 
+  // Background continuous GPS telemetry when duty is active
+  useDoctorEmergencyGps(isEmergencyDuty, activeEmergency?._id);
+
+  useEffect(() => {
+    api.get('/emergency-doctor/duty-status')
+      .then((res: any) => {
+        if (mounted.current && res?.isEmergencyDutyActive !== undefined) {
+          setIsEmergencyDuty(!!res.isEmergencyDutyActive);
+          if (res.emergencyRadiusKm) setEmergencyRadius(res.emergencyRadiusKm);
+          if (res.isEmergencyDutyActive) setGpsStatusText('Active (Tracking)');
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  // Real-time Socket listener for incoming emergency flying squad alerts
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+    const uid = user?.id || user?._id;
+    if (uid) {
+      socket.emit('join_room', { room: `user_${uid}` });
+      socket.emit('join_room', { room: `user:${uid}` });
+    }
+    const onEmergencyAlert = (data: any) => {
+      setIncomingEmergency(data);
+      toast.error(`🚨 INCOMING EMERGENCY CALL: ${data.patientName || 'Emergency Patient'}!`);
+    };
+    socket.on('emergency_doctor:incoming_alert', onEmergencyAlert);
+    socket.on('incoming_emergency_doctor', onEmergencyAlert);
+
+    return () => {
+      socket.off('emergency_doctor:incoming_alert', onEmergencyAlert);
+      socket.off('incoming_emergency_doctor', onEmergencyAlert);
+    };
+  }, [user?.id, user?._id]);
+
+  const handleToggleEmergencyDuty = (nextState: boolean) => {
+    if (nextState) {
+      setShowStatutoryModal(true);
+    } else {
+      executeToggleEmergencyDuty(false);
+    }
+  };
+
+  const executeToggleEmergencyDuty = async (nextState: boolean) => {
+    setTogglingDuty(true);
+    let coords: [number, number] | undefined;
+    if (nextState && navigator.geolocation) {
+      setGpsStatusText('Acquiring GPS...');
+      try {
+        const pos: any = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 6000 });
+        });
+        coords = [pos.coords.longitude, pos.coords.latitude];
+        setGpsStatusText('Active (GPS Locked)');
+      } catch {
+        setGpsStatusText('Active (City Perimeter)');
+        coords = [79.9864, 23.1815];
+      }
+    } else {
+      setGpsStatusText('Standby Offline');
+    }
+
+    try {
+      await api.put('/emergency-doctor/toggle-duty', {
+        isEmergencyDutyActive: nextState,
+        emergencyRadiusKm: emergencyRadius,
+        coordinates: coords,
+      });
+      setIsEmergencyDuty(nextState);
+      if (nextState) {
+        toast.success('🚨 Emergency Doctor Duty Activated! You are now live in the emergency flying squad dispatch pool.');
+      } else {
+        toast.info('Emergency Doctor Duty Deactivated. Standing by offline.');
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to update emergency duty status');
+    } finally {
+      setTogglingDuty(false);
+      setShowStatutoryModal(false);
+    }
+  };
+
+  const handleAcceptDispatch = async (requestId: string) => {
+    try {
+      const res: any = await api.post(`/emergency-doctor/${requestId}/accept`);
+      setIncomingEmergency(null);
+      if (res?.request) {
+        setActiveEmergency(res.request);
+      } else {
+        setActiveEmergency({ _id: requestId, status: 'assigned', ...incomingEmergency });
+      }
+      toast.success('🩺 Emergency Dispatch Claimed! Proceed safely to patient location.');
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || err?.message || 'Dispatch was claimed by another doctor');
+    }
+  };
+
+  const handleDeclineDispatch = (requestId: string) => {
+    setIncomingEmergency(null);
+    toast.info('Dispatch run declined');
+  };
+
+  const handleMarkArrived = async (requestId: string) => {
+    await api.put(`/emergency-doctor/${requestId}/status`, { status: 'arrived' });
+    setActiveEmergency((prev: any) => (prev ? { ...prev, status: 'arrived' } : null));
+  };
+
+  const handleCompleteVisit = async (requestId: string, clinicalReport: any) => {
+    await api.put(`/emergency-doctor/${requestId}/status`, {
+      status: 'completed',
+      clinicalReport,
+    });
+    setActiveEmergency(null);
+    load(true);
+  };
+
+  const handleRequestAmbulanceBackup = async (requestId: string) => {
+    await api.put(`/emergency-doctor/${requestId}/status`, {
+      status: 'escalated_to_ambulance',
+      note: 'Attending doctor requested backup ICU Ambulance',
+    });
+    toast.success('🚨 Backup ICU Ambulance requested for patient!');
+  };
+
+  useEffect(() => {
+    api.get('/doctors/schedule').then((d) => { if (mounted.current) setScheduleData(d); }).catch(() => {});
+  }, []);
+
   const handleAcceptAppt = async (id) => {
+    const previousAppointments = [...appointments];
+    setAppointments(prev => prev.map(a => a._id === id ? { ...a, status: 'Confirmed' } : a));
     try {
       await api.updateAppointment(id, { status: 'Confirmed' });
       toast.success('Appointment confirmed successfully');
-      setAppointments(prev => prev.map(a => a._id === id ? { ...a, status: 'Confirmed' } : a));
     } catch {
-      toast.error('Failed to confirm appointment');
+      setAppointments(previousAppointments);
+      toast.error('Failed to confirm appointment. Reverting change.');
     }
   };
 
   const handleRejectAppt = async (id) => {
+    const previousAppointments = [...appointments];
+    setAppointments(prev => prev.map(a => a._id === id ? { ...a, status: 'Cancelled' } : a));
     try {
       await api.updateAppointment(id, { status: 'Cancelled' });
       toast.info('Appointment request rejected');
-      setAppointments(prev => prev.map(a => a._id === id ? { ...a, status: 'Cancelled' } : a));
     } catch {
-      toast.error('Failed to reject appointment');
+      setAppointments(previousAppointments);
+      toast.error('Failed to reject appointment. Reverting change.');
     }
   };
 
@@ -127,33 +275,40 @@ const [refunds, setRefunds] = useState([]);
     return () => clearInterval(interval);
   }, []);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const results = await Promise.allSettled([
-        api.getAppointments(),
-        api.getTransactions({ limit: 500 }),
-        api.getReviews(),
+        api.getAppointments({ limit: 100 }),
+        api.getTransactions({ limit: 100 }),
+        api.getReviews(user?.doctorProfileId ? { doctorId: user.doctorProfileId } : {}),
         api.getLabBookings(),
       ]);
       if (!mounted.current) return;
       const [a, tx, r, lb] = results.map(res => res.status === 'fulfilled' ? res.value : []);
       const appts = a?.data || a || [];
-      const myAppts = appts?.filter(apt => String(apt.doctor || apt.doctorName || "").toLowerCase().includes(String(user?.name || "").toLowerCase())) || [];
+      const myAppts = Array.isArray(appts) ? appts : [];
       setAppointments(myAppts);
       const txList = tx?.data || tx?.payments || tx || [];
       setBills(txList.filter(t => t.status === 'completed' || t.status === 'pending').map(txToEarningsBill));
       setPayments(txList.filter(t => t.status === 'completed'));
-      setRefunds(txList.filter(t => t.status === 'refunded' || t.status === 'pending'));
-      setReviews(r?.filter(rv => rv.doctorName === user?.name) || []);
+      setRefunds(txList.filter(t => t.status === 'refunded'));
+      const reviewsList = r?.reviews || r?.data || r || [];
+      setReviews(Array.isArray(reviewsList) ? reviewsList : []);
       setPatients(Array.from(new Set(myAppts.map(apt => apt.patient).filter(Boolean))));
       const labBookingsArray = lb?.bookings || lb?.data || lb || [];
       setTestRequests(labBookingsArray);
       const failed = results.filter(res => res.status === 'rejected');
-      if (failed.length > 0) toast.error(`Failed to load ${failed.length} data source(s)`);
+      if (failed.length > 0) {
+        const hasGenuineError = failed.some(x => {
+          const status = x.reason?.status || x.reason?.response?.status;
+          return status && status !== 503;
+        });
+        if (hasGenuineError) toast.error(`Failed to load ${failed.length} data source(s)`);
+      }
     } catch (e) { console.error(e); toast.error('Failed to load dashboard data'); }
     if (mounted.current) setLoading(false);
-  }, [user?.name]);
+  }, [user?.name, user?._id, user?.doctorProfileId]);
 
   useEffect(() => {
     mounted.current = true;
@@ -161,8 +316,8 @@ const [refunds, setRefunds] = useState([]);
     return () => { mounted.current = false; };
   }, [load]);
 
-  // Realtime — naya booking/status change turant dikhein
-  useAppointmentRealtime(load);
+  // Realtime — naya booking/status change turant dikhein (silent, no flicker)
+  useAppointmentRealtime(() => load(true));
 
   const today = getISTDateString();
   const todayAppts = appointments.filter(a => a.date === today);
@@ -173,7 +328,8 @@ const [refunds, setRefunds] = useState([]);
   const todayRevenue = bills.filter(b => b.date === today && b.status === 'Paid').reduce((s, b) => s + (b.paid || b.amount || 0), 0);
   const weekStart = new Date();
   weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-  const weekStartStr = weekStart.toISOString().split('T')[0];
+  const weekStartIST = new Date(weekStart.getTime() + (5.5 * 3600e3 - weekStart.getTimezoneOffset() * 60e3));
+  const weekStartStr = weekStartIST.toISOString().split('T')[0];
   const weekAppts = appointments.filter(a => a.date >= weekStartStr && a.date <= today);
   const weekRevenue = bills.filter(b => b.date >= weekStartStr && b.date <= today && b.status === 'Paid').reduce((s, b) => s + (b.paid || b.amount || 0), 0);
   const totalRefunded = refunds.reduce((s, r) => s + (r.refund_amount || r.amount || 0), 0);
@@ -192,8 +348,13 @@ const [refunds, setRefunds] = useState([]);
   };
 
   if (loading) return (
-    <div className="flex justify-center py-20">
-      <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {[0,1,2,3,4,5,6,7].map((i) => (
+        <div key={i} className="rounded-2xl border p-5 animate-pulse">
+          <div className="h-4 w-24 bg-muted rounded mb-3" />
+          <div className="h-8 w-16 bg-muted rounded" />
+        </div>
+      ))}
     </div>
   );
 
@@ -213,6 +374,9 @@ const [refunds, setRefunds] = useState([]);
             <p className="text-white/80 mt-1">Here's your clinic overview for today</p>
           </div>
           <div className="flex items-center gap-3">
+            <Button variant="secondary" size="sm" onClick={() => load(true)} className="gap-1.5 rounded-xl">
+              <RotateCcw className="w-3.5 h-3.5" /> Refresh
+            </Button>
             <div className="hidden sm:block bg-white/15 backdrop-blur-sm rounded-xl px-4 py-2.5 text-sm">
               <p className="text-white/70 text-xs">{new Date().toLocaleDateString('en-IN', { weekday: 'long' })}</p>
               <p className="font-semibold">{new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
@@ -224,6 +388,94 @@ const [refunds, setRefunds] = useState([]);
           </div>
         </div>
       </motion.div>
+
+      {/* ── Emergency Doctor Flying Squad Command Bar ── */}
+      <motion.div
+        initial={{ opacity: 0, y: -5 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mb-6 rounded-3xl border-2 border-teal-500/40 bg-gradient-to-r from-teal-500/10 via-card to-cyan-500/10 p-4 sm:p-5 shadow-lg backdrop-blur-sm"
+      >
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+          {/* Status Branding & Description */}
+          <div className="flex items-center gap-3.5">
+            <div className="relative w-12 h-12 rounded-2xl bg-gradient-to-tr from-teal-500 to-cyan-500 text-white flex items-center justify-center shadow-md flex-shrink-0">
+              <span className={`absolute inset-0 rounded-2xl bg-teal-400/40 ${isEmergencyDuty ? 'animate-ping' : ''}`} />
+              <Stethoscope className="w-6 h-6 text-white relative z-10" />
+            </div>
+
+            <div>
+              <div className="flex items-center gap-2.5">
+                <h3 className="font-heading font-black text-sm sm:text-base text-foreground">
+                  Emergency Doctor Flying Squad
+                </h3>
+                <span
+                  className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full transition-all ${
+                    isEmergencyDuty
+                      ? 'bg-teal-500/20 text-teal-400 border border-teal-500/40 animate-pulse'
+                      : 'bg-muted text-muted-foreground'
+                  }`}
+                >
+                  {isEmergencyDuty ? 'Active On-Duty' : 'Standby Offline'}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Respond to critical patient crises in your area. Live GPS beacons stream every 5s while duty is active.
+              </p>
+            </div>
+          </div>
+
+          {/* Controls: Live GPS + Radius + Toggle */}
+          <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-between lg:justify-end">
+            {/* GPS Telemetry Pill */}
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-card border border-border/80 text-xs">
+              <Navigation className={`w-3.5 h-3.5 ${isEmergencyDuty ? 'text-teal-400 animate-spin' : 'text-muted-foreground'}`} />
+              <span className="text-muted-foreground">GPS:</span>
+              <span className="font-semibold text-foreground">{gpsStatusText}</span>
+            </div>
+
+            {/* Response Radius Selector */}
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-card border border-border/80 text-xs">
+              <MapPin className="w-3.5 h-3.5 text-cyan-400" />
+              <span className="text-muted-foreground">Perimeter:</span>
+              <select
+                value={emergencyRadius}
+                onChange={(e) => setEmergencyRadius(Number(e.target.value))}
+                disabled={!isEmergencyDuty}
+                className="bg-transparent font-bold text-foreground focus:outline-none cursor-pointer"
+              >
+                <option value={5}>5 km (Local)</option>
+                <option value={10}>10 km (City)</option>
+                <option value={15}>15 km (Metro)</option>
+              </select>
+            </div>
+
+            {/* Main Toggle Switch */}
+            <div className="flex items-center gap-2.5 pl-2 border-l border-border/60">
+              <span className="text-xs font-bold text-foreground">
+                {isEmergencyDuty ? 'ON DUTY' : 'STANDBY'}
+              </span>
+              <Switch
+                checked={isEmergencyDuty}
+                onCheckedChange={handleToggleEmergencyDuty}
+                disabled={togglingDuty}
+                className="data-[state=checked]:bg-teal-500 cursor-pointer"
+              />
+            </div>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* ── Active Emergency Run HUD ── */}
+      {activeEmergency && (
+        <div className="mb-6">
+          <DoctorActiveEmergencyHUD
+            activeRequest={activeEmergency}
+            onMarkArrived={handleMarkArrived}
+            onCompleteVisit={handleCompleteVisit}
+            onRequestAmbulanceBackup={handleRequestAmbulanceBackup}
+          />
+        </div>
+      )}
 
       {/* Stats Grid — 8 interactive colored tiles */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
@@ -707,24 +959,67 @@ const [refunds, setRefunds] = useState([]);
             </Button>
           </div>
           <div className="space-y-3">
-            <div className="p-3.5 bg-muted/20 rounded-2xl border border-border/30">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-semibold text-foreground">Morning Shift</span>
-                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600">Active</span>
-              </div>
-              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                <Clock className="w-3.5 h-3.5 text-cyan-500" /> 09:00 AM – 01:00 PM
-              </p>
-            </div>
-            <div className="p-3.5 bg-muted/20 rounded-2xl border border-border/30">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-semibold text-foreground">Evening Shift</span>
-                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">Scheduled</span>
-              </div>
-              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                <Clock className="w-3.5 h-3.5 text-primary" /> 05:00 PM – 09:00 PM
-              </p>
-            </div>
+            {scheduleData?.shifts?.length > 0 ? (
+              scheduleData.shifts.map((s, idx) => (
+                <div key={idx} className="p-3.5 bg-muted/20 rounded-2xl border border-border/30">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-semibold text-foreground">{s.name || `Shift ${idx + 1}`}</span>
+                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600">Active</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                    <Clock className="w-3.5 h-3.5 text-cyan-500" /> {s.startTime} – {s.endTime}
+                  </p>
+                </div>
+              ))
+            ) : (
+            (() => {
+              const currentHour = new Date().getHours();
+              const isMorningActive = currentHour >= 9 && currentHour < 13;
+              const isMorningPast = currentHour >= 13;
+              const isEveningActive = currentHour >= 17 && currentHour < 21;
+              const isEveningPast = currentHour >= 21;
+
+              return (
+                <>
+                  <div className="p-3.5 bg-muted/20 rounded-2xl border border-border/30">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-semibold text-foreground">Morning OPD Shift</span>
+                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                        isMorningActive
+                          ? 'bg-emerald-500/10 text-emerald-600 animate-pulse'
+                          : isMorningPast
+                          ? 'bg-muted text-muted-foreground'
+                          : 'bg-primary/10 text-primary'
+                      }`}>
+                        {isMorningActive ? 'Active Now' : isMorningPast ? 'Completed' : 'Upcoming'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                      <Clock className="w-3.5 h-3.5 text-cyan-500" /> 09:00 AM – 01:00 PM
+                    </p>
+                  </div>
+
+                  <div className="p-3.5 bg-muted/20 rounded-2xl border border-border/30">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-semibold text-foreground">Evening OPD Shift</span>
+                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                        isEveningActive
+                          ? 'bg-emerald-500/10 text-emerald-600 animate-pulse'
+                          : isEveningPast
+                          ? 'bg-muted text-muted-foreground'
+                          : 'bg-primary/10 text-primary'
+                      }`}>
+                        {isEveningActive ? 'Active Now' : isEveningPast ? 'Completed' : 'Upcoming'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                      <Clock className="w-3.5 h-3.5 text-primary" /> 05:00 PM – 09:00 PM
+                    </p>
+                  </div>
+                </>
+              );
+            })()
+            )}
           </div>
         </div>
 
@@ -939,6 +1234,79 @@ const [refunds, setRefunds] = useState([]);
           </div>
         )}
       </motion.div>
+
+      {/* ── Doctor Incoming Emergency Alert Modal with Siren ── */}
+      {incomingEmergency && (
+        <DoctorIncomingEmergencyModal
+          dispatchData={incomingEmergency}
+          onAccept={handleAcceptDispatch}
+          onDecline={handleDeclineDispatch}
+        />
+      )}
+
+      {/* ── Statutory Medical Council Licensure & Emergency Duty Affirmation Modal ── */}
+      {showStatutoryModal && (
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="w-full max-w-lg bg-card rounded-3xl border-2 border-teal-500/40 p-6 shadow-2xl space-y-4"
+          >
+            <div className="flex items-center gap-3 border-b border-border/60 pb-3">
+              <div className="w-12 h-12 rounded-2xl bg-teal-500/20 text-teal-400 flex items-center justify-center flex-shrink-0">
+                <ShieldCheck className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-heading font-black text-lg text-foreground">
+                  Statutory Licensure & Emergency Duty Affirmation
+                </h3>
+                <p className="text-xs text-muted-foreground">National Medical Commission (NMC) & Good Samaritan Protocol</p>
+              </div>
+            </div>
+
+            <div className="space-y-3 text-xs text-muted-foreground leading-relaxed">
+              <div className="p-3 rounded-2xl bg-teal-500/10 border border-teal-500/20 text-foreground space-y-1">
+                <p className="font-bold flex items-center gap-1.5 text-teal-400">
+                  <CheckCircle2 className="w-4 h-4" /> Medical Practitioner Declaration:
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  By going on Emergency Flying Squad Duty, I affirm that I possess an active, unencumbered Medical Council Registration (NMC or State Medical Council) and carry a standard first-response diagnostic kit.
+                </p>
+              </div>
+
+              <ul className="list-disc pl-5 space-y-1 text-[11px]">
+                <li><strong>Background GPS Telemetry:</strong> I consent to background GPS beacon streaming every 5 seconds while on active duty to calculate real-time emergency dispatch proximity.</li>
+                <li><strong>Bedside Clinical Triage:</strong> I agree to respond to acute crises in good faith, perform bedside stabilization, and escalate to ICU Ambulance when indicated.</li>
+                <li><strong>Good Samaritan Statutory Protection:</strong> I acknowledge my statutory immunity under Section 134A of the Motor Vehicles Act 2019 for emergency care rendered in good faith.</li>
+              </ul>
+
+              <p className="text-[11px] pt-1">
+                Please review FindMedi's full{' '}
+                <Link to="/terms" target="_blank" className="text-primary underline font-medium">Emergency Terms of Service</Link>{' '}
+                and{' '}
+                <Link to="/privacy" target="_blank" className="text-primary underline font-medium">DPDP Privacy Policy</Link>.
+              </p>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <Button
+                variant="outline"
+                className="flex-1 rounded-xl h-11 text-xs font-bold"
+                onClick={() => setShowStatutoryModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => executeToggleEmergencyDuty(true)}
+                disabled={togglingDuty}
+                className="flex-1 rounded-xl h-11 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs shadow-lg shadow-teal-600/25"
+              >
+                {togglingDuty ? 'Activating...' : 'I Affirm & Go On Duty'}
+              </Button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }

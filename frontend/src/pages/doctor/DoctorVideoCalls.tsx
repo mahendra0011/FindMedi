@@ -19,6 +19,15 @@ import { useAuth } from '@/context/AuthContext';
 import { useVideoCall } from '@/context/VideoCallContext';
 import { formatDisplayDate } from '@/lib/dateUtils';
 
+function VirtualBackgroundToggle() {
+  const [blur, setBlur] = useState(false);
+  return (
+    <Button variant="outline" size="sm" onClick={() => setBlur((b) => !b)}>
+      {blur ? 'Blur ON (clinical background)' : 'Blur background'}
+    </Button>
+  );
+}
+
 function formatDuration(secs) {
   if (!secs || secs <= 0) return '00:00';
   const m = Math.floor(secs / 60);
