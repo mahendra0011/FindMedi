@@ -121,6 +121,11 @@ export default function AdminDoctors() {
                 <div className="flex items-center gap-2"><Mail className="w-3.5 h-3.5" /><span>{doc.email}</span></div>
               </div>
               <div className="flex flex-wrap gap-2">
+                {doc.licenseUrl || doc.degreeUrl ? (
+                  <a href={doc.licenseUrl || doc.degreeUrl} target="_blank" rel="noreferrer" className="flex-1 min-w-[88px] text-center text-xs font-semibold rounded-lg border px-2 py-1.5">License / Degree PDF</a>
+                ) : (
+                  <span className="flex-1 min-w-[88px] text-center text-[11px] text-muted-foreground rounded-lg border px-2 py-1.5">No license PDF</span>
+                )}
                 <Button variant="outline" size="sm" className="flex-1 min-w-[88px]" onClick={() => handleEdit(doc)}>Edit</Button>
                 {!doc.approved && (
                   <Button variant="outline" size="sm" className="flex-1 min-w-[88px] gap-1 text-success hover:text-success" onClick={() => handleApprove(doc._id)}>

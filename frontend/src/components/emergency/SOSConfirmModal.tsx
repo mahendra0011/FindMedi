@@ -7,7 +7,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { MapPin, AlertOctagon, X, Navigation } from 'lucide-react';
+import { MapPin, AlertOctagon, X, Navigation, ShieldCheck, AlertTriangle } from 'lucide-react';
 import SOSReporterModeSelect from './SOSReporterModeSelect';
 import SOSSelfSummary from './SOSSelfSummary';
 import SOSOtherForm from './SOSOtherForm';
@@ -241,17 +241,36 @@ export default function SOSConfirmModal({
               {reporterMode === 'self' ? (
                 <SOSSelfSummary user={currentUser} />
               ) : (
-                <SOSOtherForm
-                  formData={otherFormData}
-                  onChange={(field, value) =>
-                    setOtherFormData((prev) => ({ ...prev, [field]: value }))
-                  }
-                  currentUser={currentUser}
-                />
+                <>
+                  <SOSOtherForm
+                    formData={otherFormData}
+                    onChange={(field, value) =>
+                      setOtherFormData((prev) => ({ ...prev, [field]: value }))
+                    }
+                    currentUser={currentUser}
+                  />
+
+                  {/* Good Samaritan Statutory Shield */}
+                  <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-xs space-y-1">
+                    <div className="flex items-center gap-1.5 font-bold text-emerald-600 dark:text-emerald-400">
+                      <ShieldCheck className="w-4 h-4 shrink-0" />
+                      <span>Good Samaritan Protection (Sec 134A Motor Vehicles Act)</span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                      You are legally protected from police detention, civil/criminal liability, or hospital payment demands for aiding someone in an emergency.
+                    </p>
+                  </div>
+                </>
               )}
 
               {/* Optional Category */}
               <SOSCategoryPicker selected={category} onSelect={setCategory} />
+
+              {/* Statutory Prank/False Dispatch Notice */}
+              <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-700 dark:text-amber-400">
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                <span>IPC Sec 182 / BNS Warning: Prank or malicious emergency dispatch is a punishable criminal offense.</span>
+              </div>
 
               {/* Final SOS Submit */}
               <div className="pt-3 border-t border-border/60 flex items-center gap-2">

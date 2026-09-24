@@ -367,7 +367,25 @@ router.put('/:id', protect, validate(updateDoctorSchema), async (req, res) => {
     if (!isSelf && !isHospitalAdmin && !isClinicAdmin && !isSuperAdmin) {
       return res.status(403).json({ message: 'Not authorized to update this doctor' });
     }
-    const updated = await Doctor.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    // §8: fold legacy flat settings keys into settings.* so nothing is dropped.
+    const body = { ...req.body };
+    const flatKeys = ['emergencyOnCall', 'refundGuarantee', 'videoFee', 'inPersonFee', 'emergencyFee', 'followUpFee', 'followUpWindow', 'bufferTime', 'vacationFrom', 'vacationTo', 'vacationReason', 'councilName', 'councilRegNo', 'councilYear', 'payoutUpi', 'payoutAccount', 'payoutIfsc',
+      'walkInAccepted', 'refundTier', 'inClinicFee', 'homeVisitFee', 'travelPerKm', 'homeVisitRadiusKm', 'shift1Start', 'shift1End', 'shift2Start', 'shift2End', 'posBankHolder', 'posBankAccount', 'posBankIfsc', 'establishmentLicense', 'establishmentLicenseExpiry'];
+    const hasFlat = flatKeys.some((k) => body[k] !== undefined);
+    if (hasFlat || (body.settings && typeof body.settings === 'object')) {
+      const prev = doctor.settings?.toObject?.() || doctor.settings || {};
+      const merged = { ...prev, ...(body.settings || {}) };
+      for (const k of flatKeys) {
+        if (body[k] !== undefined) {
+          merged[k] = (k === 'emergencyOnCall') ? Boolean(body[k])
+            : (['videoFee', 'inPersonFee', 'emergencyFee'].includes(k)) ? (Number(body[k]) || 0)
+            : body[k];
+          delete body[k];
+        }
+      }
+      body.settings = merged;
+    }
+    const updated = await Doctor.findByIdAndUpdate(req.params.id, body, { new: true, runValidators: true });
     res.json(updated);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });

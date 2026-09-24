@@ -48,6 +48,13 @@ export default function AdminLabSettings() {
           accreditations: f.accreditations || [],
           amenities: f.amenities || { parking: false, acWaitingArea: false, wheelchairAccess: false, cardPayment: false, drinkingWater: false, wifi: false },
           socialLinks: f.socialLinks || { facebook: '', instagram: '', youtube: '' },
+          // §8 lab ops master lives under details.labOps (free object, no schema change).
+          labOps: {
+            statSupport: false, refundTier: 'full_before_dispatch', homeCollectionFee: '', freePickupThreshold: '',
+            statRushFee: '', geofenceRadiusKm: '10', pathologistSealUrl: '', autoRelease: false,
+            bankHolder: '', bankAccount: '', bankIfsc: '', gstin: '',
+            ...(f.details?.labOps || {}),
+          },
         });
       } catch (e) { console.error(e); toast.error('Failed to load lab data'); }
       setLoading(false);
@@ -57,18 +64,30 @@ export default function AdminLabSettings() {
 
   const update = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
+  const [accredDraft, setAccredDraft] = useState('');
   const addAccreditation = () => {
-    const v = prompt('Enter accreditation:');
-    if (v) update('accreditations', [...form.accreditations, v.trim().toUpperCase()]);
+    const v = accredDraft.trim().toUpperCase();
+    if (v) update('accreditations', [...(form.accreditations || []), v]);
+    setAccredDraft('');
   };
+
+  const setOps = (k, v) => setForm(p => ({ ...p, labOps: { ...p.labOps, [k]: v } }));
 
   const handleSave = async () => {
     setSaving(true);
     try {
       const f = await api.getMyFacility();
+      const { labOps, ...rest } = form;
       await api.updateFacility(f._id, {
-        ...form,
+        ...rest,
         establishedYear: form.establishedYear ? Number(form.establishedYear) : undefined,
+        details: { ...(f.details || {}), labOps: {
+          ...labOps,
+          homeCollectionFee: Number(labOps.homeCollectionFee) || 0,
+          freePickupThreshold: Number(labOps.freePickupThreshold) || 0,
+          statRushFee: Number(labOps.statRushFee) || 0,
+          geofenceRadiusKm: Number(labOps.geofenceRadiusKm) || 0,
+        } },
       });
       toast.success('Lab settings updated successfully');
     } catch (e) { toast.error(e.message || 'Failed to update'); }
@@ -126,7 +145,12 @@ export default function AdminLabSettings() {
           </div>
           <Separator />
           <div className="space-y-2">
-            <div className="flex items-center justify-between"><Label>Accreditations</Label><Button variant="outline" size="sm" onClick={addAccreditation}><Plus className="w-3 h-3 mr-1" /> Add</Button></div>
+            <div className="flex items-center justify-between"><Label>Accreditations</Label>
+              <div className="flex gap-2">
+                <Input value={accredDraft} onChange={e => setAccredDraft(e.target.value)} placeholder="e.g. NABL" className="h-8 w-32 text-xs" />
+                <Button variant="outline" size="sm" onClick={addAccreditation}><Plus className="w-3 h-3 mr-1" /> Add</Button>
+              </div>
+            </div>
             <div className="flex flex-wrap gap-2">
               {form.accreditations?.map((a, i) => (
                 <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
@@ -199,6 +223,51 @@ export default function AdminLabSettings() {
               <Input value={form.socialLinks?.[s] || ''} onChange={e => update('socialLinks', { ...form.socialLinks, [s]: e.target.value })} placeholder={`https://${s}.com/...`} />
             </div>
           ))}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle className="flex items-center gap-2"><Clock className="w-5 h-5" /> Operations Master (§8)</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          <label className="flex items-start gap-3 p-3 rounded-xl border cursor-pointer">
+            <input type="checkbox" checked={!!form.labOps?.statSupport} onChange={e => setOps('statSupport', e.target.checked)} className="mt-0.5 w-4 h-4 rounded accent-primary" />
+            <span>
+              <span className="block text-sm font-medium">24/7 STAT & urgent sample processing</span>
+              <span className="block text-xs text-muted-foreground">ER/ICU can discover this lab for 60-min Troponin/D-Dimer turnaround.</span>
+            </span>
+          </label>
+          <div className="space-y-2">
+            <Label>Phlebotomy cancellation & refund tier</Label>
+            <select value={form.labOps?.refundTier || 'full_before_dispatch'} onChange={e => setOps('refundTier', e.target.value)} className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm">
+              <option value="full_before_dispatch">100% refund before rider dispatch</option>
+              <option value="half_enroute">50% refund after rider en route</option>
+              <option value="none_drawn">0% refund once sample drawn</option>
+            </select>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            <div className="space-y-2"><Label>Home collection fee (₹)</Label><Input type="number" min={0} value={form.labOps?.homeCollectionFee ?? ''} onChange={e => setOps('homeCollectionFee', e.target.value)} /></div>
+            <div className="space-y-2"><Label>Free pickup above (₹)</Label><Input type="number" min={0} value={form.labOps?.freePickupThreshold ?? ''} onChange={e => setOps('freePickupThreshold', e.target.value)} /></div>
+            <div className="space-y-2"><Label>STAT rush fee (₹)</Label><Input type="number" min={0} value={form.labOps?.statRushFee ?? ''} onChange={e => setOps('statRushFee', e.target.value)} /></div>
+          </div>
+          <div className="space-y-2">
+            <Label>Home-collection geofence: {form.labOps?.geofenceRadiusKm || 10} km</Label>
+            <input type="range" min={5} max={25} step={5} value={form.labOps?.geofenceRadiusKm || 10} onChange={e => setOps('geofenceRadiusKm', e.target.value)} className="w-full accent-primary" />
+          </div>
+          <div className="space-y-2"><Label>Pathologist digital seal URL (PNG)</Label><Input value={form.labOps?.pathologistSealUrl || ''} onChange={e => setOps('pathologistSealUrl', e.target.value)} placeholder="https://…/seal.png" /></div>
+          <label className="flex items-start gap-3 p-3 rounded-xl border cursor-pointer">
+            <input type="checkbox" checked={!!form.labOps?.autoRelease} onChange={e => setOps('autoRelease', e.target.checked)} className="mt-0.5 w-4 h-4 rounded accent-primary" />
+            <span>
+              <span className="block text-sm font-medium">Automated report release</span>
+              <span className="block text-xs text-muted-foreground">Release without pathologist signoff (else reports queue until signoff).</span>
+            </span>
+          </label>
+          <Separator />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2"><Label>Settlement holder</Label><Input value={form.labOps?.bankHolder || ''} onChange={e => setOps('bankHolder', e.target.value)} /></div>
+            <div className="space-y-2"><Label>Settlement account</Label><Input value={form.labOps?.bankAccount || ''} onChange={e => setOps('bankAccount', e.target.value)} /></div>
+            <div className="space-y-2"><Label>IFSC</Label><Input value={form.labOps?.bankIfsc || ''} onChange={e => setOps('bankIfsc', e.target.value.toUpperCase())} /></div>
+            <div className="space-y-2"><Label>GSTIN (15-char)</Label><Input value={form.labOps?.gstin || ''} onChange={e => setOps('gstin', e.target.value.toUpperCase())} /></div>
+          </div>
         </CardContent>
       </Card>
 

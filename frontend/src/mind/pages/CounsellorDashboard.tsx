@@ -80,6 +80,7 @@ import { useSearchParams } from "react-router-dom";
 import { api } from "@/mind/lib/api";
 import { getRealtimeSocket } from "@/mind/lib/socket";
 import SecureChatPanel from "@/mind/components/SecureChatPanel";
+import ProviderSettingsMaster, { defaultProviderSettings } from "@/mind/components/ProviderSettingsMaster";
 import { setCounsellorEarningsFromDashboard, selectCounsellorEarnings, selectRevenueTransactions, selectRevenueMonthlyTrends } from "@/mind/store/revenueSlice";
 import { useAppDispatch, useAppSelector } from "@/mind/store/hooks";
 
@@ -118,169 +119,29 @@ const fallback = {
 const NOTIFICATION_HTTP_POLL_MS = 30000;
 
 
-const noteTemplates = [
-  "Client appeared stable. Continued grounding practice and daily mood tracking recommended.",
-  "Discussed stress triggers, sleep routine, and one small action before next session.",
-  "Reviewed safety plan, support contacts, and escalation steps if risk increases.",
-  "Created weekly wellness task: breathing practice, hydration, and journaling check-in.",
-];
-
-const statusTone = {
-  upcoming: "bg-blue-500/15 text-blue-600 border-blue-500/20",
-  pending: "bg-amber-500/15 text-amber-600 border-amber-500/20",
-  confirmed: "bg-blue-500/15 text-blue-600 border-blue-500/20",
-  completed: "bg-emerald-500/15 text-emerald-600 border-emerald-500/20",
-  cancelled: "bg-rose-500/15 text-rose-600 border-rose-500/20",
-  declined: "bg-rose-500/15 text-rose-600 border-rose-500/20",
-};
-
-
-const defaultPrivacySettings = {
-  showOnlineStatus: true,
-  allowMessages: true,
-  shareProgressWithCounsellor: true,
-  anonymousDisplayName: "",
-};
-
-const defaultNotificationSettings = {
-  session: true,
-  messages: true,
-  payments: true,
-  platform: true,
-  emergency: true,
-};
-
-const dayOptions = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-
-const packagePricePlans = [
-  {
-    key: "oneTime",
-    title: "One-Time Session",
-    detail: "Single counselling session",
-    hint: "Immediate support, one-off guidance",
-    fallback: 599,
-  },
-  {
-    key: "shortTerm",
-    title: "Short-Term Support",
-    detail: "4-8 sessions, every two days",
-    hint: "Stress, anxiety, exams, loneliness",
-    fallback: 1499,
-  },
-  {
-    key: "mediumTerm",
-    title: "Medium-Term Support",
-    detail: "8-15 sessions, weekly or bi-weekly",
-    hint: "Mild depression, relationships, healing",
-    fallback: 2499,
-  },
-  {
-    key: "longTerm",
-    title: "Long-Term Therapy",
-    detail: "3-6+ months, weekly or bi-weekly",
-    hint: "Trauma, severe anxiety, chronic depression",
-    fallback: 3999,
-  },
-];
-
-const defaultPackagePrices = packagePricePlans.reduce((acc, plan) => ({ ...acc, [plan.key]: String(plan.fallback) }), {});
-
-function newAvailabilityRow(day = "Monday", start = "10:00", end = "16:00") {
-  return { id: `${day}-${Date.now()}-${Math.random().toString(16).slice(2)}`, day, start, end };
-}
-
-function parseAvailabilityRows(items = []) {
-  if (!items.length) return [newAvailabilityRow("Monday", "10:00", "16:00")];
-  return items.map((item, index) => {
-    const text = String(item || "");
-    const match = text.match(/^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s*:?\s*(\d{1,2}:?\d{0,2})\s*(?:-|–|to)\s*(\d{1,2}:?\d{0,2})/i);
-    const dayMap = { mon: "Monday", tue: "Tuesday", wed: "Wednesday", thu: "Thursday", fri: "Friday", sat: "Saturday", sun: "Sunday" };
-    const normalizeTime = (value, fallback) => {
-      const raw = String(value || "").replace(/[^0-9:]/g, "");
-      if (!raw) return fallback;
-      if (raw.includes(":")) return raw.length === 4 ? `0${raw}` : raw;
-      return `${raw.padStart(2, "0")}:00`;
-    };
-    if (!match) return newAvailabilityRow(dayOptions[index % dayOptions.length], "10:00", "16:00");
-    const key = match[1].slice(0, 3).toLowerCase();
-    return {
-      id: `${index}-${text}`,
-      day: dayMap[key] || match[1],
-      start: normalizeTime(match[2], "10:00"),
-      end: normalizeTime(match[3], "16:00"),
-    };
-  });
-}
-
-function serializeAvailabilityRows(rows = []) {
-  return rows
-    .filter((row) => row.day && row.start && row.end)
-    .map((row) => `${row.day}: ${row.start}-${row.end}`);
-}
-
-function todayYMD() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function formatMoney(value) {
-  return `Rs. ${Number(value || 0).toLocaleString("en-IN")}`;
-}
-
-function normalizePackagePrices(profile: any = {}) {
-  const source = profile.supportPlanPrices || {};
-  const basePrice = Number(profile.sessionPricing) || 0;
-  return packagePricePlans.reduce((acc, plan) => {
-    const saved = Number(source[plan.key]);
-    const multiplier = plan.key === "oneTime" ? 1 : plan.key === "shortTerm" ? 3 : plan.key === "mediumTerm" ? 5 : 8;
-    const fallback = saved || (basePrice ? Math.round((basePrice * multiplier) / 50) * 50 - 1 : plan.fallback);
-    acc[plan.key] = String(saved > 0 ? saved : fallback || plan.fallback);
-    return acc;
-  }, {});
-}
-
-function fallbackBaseSessionPrice(profile: any = {}) {
-  return Number(profile.sessionPricing) || (profile.counsellorType === "mentor" ? 299 : 599);
-}
-
-function counsellorPayout(value, commissionRate = 2) {
-  return Math.max(0, Math.round(Number(value || 0) * ((100 - Number(commissionRate || 2)) / 100)));
-}
-
-function sessionStatusLabel(status = "") {
-  if (["pending", "confirmed"].includes(status)) return "Upcoming";
-  if (status === "completed") return "Completed";
-  if (["cancelled", "declined"].includes(status)) return "Cancelled";
-  return status || "Upcoming";
-}
-
-function counsellingModeLabel(mode = "") {
-  const labels = {
-    "google-meet": "Google Meet",
-    "voice-call": "Voice Call",
-    "in-person": "In-person",
-    online: "Google Meet",
-  };
-  return labels[mode] || mode || "Google Meet";
-}
-
-const modeLabel = (v) => ({ "video-chat": "Video+Chat", "chat-only": "Chat Only", "google-meet": "Video", "in-person": "Visit+Video", "voice-call": "Voice" })[v] || v || "Meet";
-
-function initials(name = "MS") {
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("");
-}
-
-
-
-function normalizeNotification(item) {
-  if (typeof item === "string") return { title: item.split(":")[0] || "Notice", message: item.split(":").slice(1).join(":").trim() || item };
-  return item || { title: "Notice", message: "" };
-}
-
+// PS-5: shared helpers live in @/mind/lib/providerDashboardShared (single source).
+import {
+  noteTemplates,
+  statusTone,
+  defaultPrivacySettings,
+  defaultNotificationSettings,
+  dayOptions,
+  packagePricePlans,
+  defaultPackagePrices,
+  newAvailabilityRow,
+  parseAvailabilityRows,
+  serializeAvailabilityRows,
+  todayYMD,
+  formatMoney,
+  normalizePackagePrices,
+  fallbackBaseSessionPrice,
+  counsellorPayout,
+  sessionStatusLabel,
+  counsellingModeLabel,
+  modeLabel,
+  initials,
+  normalizeNotification,
+} from "@/mind/lib/providerDashboardShared";
 const CounsellorDashboard = () => {
   const { toast } = useToast();
   const dispatch = useAppDispatch();
@@ -324,6 +185,7 @@ const CounsellorDashboard = () => {
   const [baseSessionPrice, setBaseSessionPrice] = useState("");
   const [privacySettings, setPrivacySettings] = useState(defaultPrivacySettings);
   const [notificationSettings, setNotificationSettings] = useState(defaultNotificationSettings);
+  const [providerSettings, setProviderSettings] = useState(defaultProviderSettings);
   const [theme, setTheme] = useState(() => localStorage.getItem("mindsupport_counsellor_theme") || "default");
   const [customPackages, setCustomPackages] = useState([]);
   const [activeChatPeer, setActiveChatPeer] = useState<string | null>(null);
@@ -357,6 +219,11 @@ const load = useCallback(async () => {
       setCustomPackages(next.profile?.customPackages || []);
       setPrivacySettings({ ...defaultPrivacySettings, ...(next.profile?.privacySettings || {}) });
       setNotificationSettings({ ...defaultNotificationSettings, ...(next.profile?.notificationSettings || {}) });
+      setProviderSettings({
+        ...defaultProviderSettings,
+        ...(next.profile?.providerSettings || {}),
+        payoutBank: { ...defaultProviderSettings.payoutBank, ...(next.profile?.providerSettings?.payoutBank || {}) },
+      });
       setSelectedPatientId((current) => current || next.patients?.[0]?.id || "");
     } catch (error) {
       toast({ variant: "destructive", title: "Unable to load dashboard", description: error?.message || "" });
@@ -388,15 +255,30 @@ const load = useCallback(async () => {
     };
   }, []);
 
+  // B6-13: debounce socket-triggered reloads — burst of message:new events
+  // must not fire a full 8-query dashboard load each time.
   useEffect(() => {
     const socket = getRealtimeSocket();
     if (!socket) return undefined;
+    let timer: number | undefined;
+    let lastRun = 0;
     const refresh = () => {
+      const now = Date.now();
+      if (now - lastRun < 5000) {
+        if (timer) window.clearTimeout(timer);
+        timer = window.setTimeout(() => {
+          lastRun = Date.now();
+          void load();
+        }, 5000);
+        return;
+      }
+      lastRun = now;
       void load();
     };
     socket.on("message:new", refresh);
     return () => {
       socket.off("message:new", refresh);
+      if (timer) window.clearTimeout(timer);
     };
   }, [load]);
 
@@ -558,6 +440,11 @@ const load = useCallback(async () => {
           ...(Number.isFinite(cleanedBasePrice) && cleanedBasePrice > 0 ? { sessionPricing: cleanedBasePrice, supportPlanPrices: packagePricePlans.reduce((acc, plan) => ({ ...acc, [plan.key]: Number(packagePrices[plan.key]) }), {}) } : {}),
           privacySettings,
           notificationSettings,
+          providerSettings: {
+            ...providerSettings,
+            decompressionGapMin: Number(providerSettings.decompressionGapMin) || 0,
+            payoutBank: { ...providerSettings.payoutBank },
+          },
         }),
         api.put("/api/counsellor/availability", {
           availability: serializeAvailabilityRows(availabilityRows),
@@ -787,11 +674,6 @@ const load = useCallback(async () => {
                         </div>
                       </div>
                     </CardHeader>
-                    {activeChatPeer && (
-                      <div className="mb-4">
-                        <SecureChatPanel peerId={activeChatPeer} peerName={activeChatPeerName} onClose={() => setActiveChatPeer(null)} />
-                      </div>
-                    )}
                     <CardContent className="space-y-3">
                       {filteredSessions.length ? (
                         filteredSessions.map((appointment) => (
@@ -1612,9 +1494,6 @@ const load = useCallback(async () => {
                               </Button>
                             )}
                           </div>
-                          {activeChatPeer && String(activeChatPeer) === String(selectedPatient.id) && (
-                            <SecureChatPanel peerId={String(activeChatPeer)} peerName={activeChatPeerName} onClose={() => setActiveChatPeer(null)} />
-                          )}
 
                             {/* Session Timeline + Care Plan */}
                           <div className="grid gap-4 md:grid-cols-2">
@@ -1659,13 +1538,15 @@ const load = useCallback(async () => {
                                 </span>
                                 Care Progress
                               </h3>
+                              {selectedPatient.progress == null ? (
+                                <div className="h-36 flex items-center justify-center text-xs text-foreground/50 text-center px-4">
+                                  Not enough session data yet — progress appears after the first completed session or mood check-in.
+                                </div>
+                              ) : (
                               <div className="h-36">
                                 <ResponsiveContainer width="100%" height="100%">
                                   <RechartsLineChart
                                     data={[
-                                      { label: "Start", progress: Math.max(15, (selectedPatient.progress || 0) - 30) },
-                                      { label: "Week 2", progress: Math.max(25, (selectedPatient.progress || 0) - 18) },
-                                      { label: "Week 4", progress: Math.max(35, (selectedPatient.progress || 0) - 8) },
                                       { label: "Now", progress: selectedPatient.progress || 0 },
                                     ]}
                                     margin={{ top: 5, right: 5, left: -18, bottom: 0 }}
@@ -1684,10 +1565,11 @@ const load = useCallback(async () => {
                                   </RechartsLineChart>
                                 </ResponsiveContainer>
                               </div>
+                              )}
                               <div className="mt-3 space-y-2">
                                 <div className="flex items-center justify-between text-xs">
                                   <span className="text-foreground/60">Mood improvement</span>
-                                  <span className="font-semibold text-primary">{selectedPatient.progress || 0}%</span>
+                                  <span className="font-semibold text-primary">{selectedPatient.progress != null ? `${selectedPatient.progress}%` : "—"}</span>
                                 </div>
                                 <div className="h-1.5 rounded-full bg-foreground/10 overflow-hidden">
                                   <div className="h-full rounded-full bg-gradient-to-r from-primary to-secondary transition-all duration-500" style={{ width: `${selectedPatient.progress || 0}%` }} />
@@ -1815,6 +1697,9 @@ const load = useCallback(async () => {
                     </div>
                   </CardContent>
                 </Card>
+
+                {/* B6-12: therapy assignments (homework/exercises) for patients */}
+                <CounsellorAssignments patients={patients} />
               </TabsContent>
 
 
@@ -2201,6 +2086,8 @@ const load = useCallback(async () => {
                     </CardContent>
                   </Card>
 
+                  <ProviderSettingsMaster value={providerSettings} onChange={setProviderSettings} mode="counsellor" />
+
                   <Card className="glass-card overflow-hidden">
                     <CardHeader className="border-b border-glass-border/40 bg-gradient-to-br from-secondary/10 via-primary/5 to-transparent">
                       <CardTitle className="flex items-center gap-2">
@@ -2236,6 +2123,19 @@ const load = useCallback(async () => {
           </div>
         </section>
       </main>
+      {/* B6-10: single shared secure-chat dock — one SecureChatPanel instance for
+          all tabs, keyed by activeChatPeer. Previously sessions + patients tabs
+          each mounted their own panel off the same state. */}
+      {activeChatPeer && (
+        <div data-chat-dock className="fixed bottom-4 right-4 z-50 w-[min(380px,calc(100vw-2rem)]">
+          <SecureChatPanel
+            key={String(activeChatPeer)}
+            peerId={String(activeChatPeer)}
+            peerName={activeChatPeerName}
+            onClose={() => setActiveChatPeer(null)}
+          />
+        </div>
+      )}
     </div>
   );
 };
@@ -2805,6 +2705,121 @@ function ReviewMetricBar({ label, value, icon: Icon }) {
         />
       </div>
     </div>
+  );
+}
+
+// B6-12: therapy assignments (homework/exercises) — counsellor scope.
+// Prescriptions stay psychiatrist-only (medical scope).
+function CounsellorAssignments({ patients = [] }) {
+  const { toast } = useToast();
+  const [assignments, setAssignments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ userId: "", title: "", description: "", category: "other", dueDate: "" });
+
+  const load = useCallback(async () => {
+    try {
+      const { data } = await api.get("/api/assignments");
+      setAssignments(Array.isArray(data) ? data : []);
+    } catch { setAssignments([]); }
+    finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  async function save() {
+    if (!form.userId || !form.title.trim()) {
+      toast({ variant: "destructive", title: "Patient and title required" });
+      return;
+    }
+    try {
+      await api.post("/api/assignments", {
+        userId: form.userId,
+        title: form.title.trim(),
+        description: form.description,
+        category: form.category,
+        dueDate: form.dueDate || undefined,
+      });
+      toast({ title: "Assignment created" });
+      setShowForm(false);
+      setForm({ userId: "", title: "", description: "", category: "other", dueDate: "" });
+      load();
+    } catch (e) { toast({ variant: "destructive", title: "Failed to save assignment", description: e?.response?.data?.error || e.message }); }
+  }
+
+  return (
+    <Card className="glass-card" data-assignments-card>
+      <CardHeader>
+        <CardTitle className="flex items-center justify-between gap-2">
+          <span className="flex items-center gap-2">
+            <NotebookPen className="h-5 w-5 text-primary" />
+            Therapy Assignments
+          </span>
+          <Button size="sm" variant="outline" onClick={() => setShowForm(!showForm)} className="gap-2">
+            <Plus className="h-4 w-4" /> {showForm ? "Cancel" : "New Assignment"}
+          </Button>
+        </CardTitle>
+        <CardDescription>Homework and exercises for your patients.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {showForm && (
+          <div className="grid gap-3 sm:grid-cols-2 rounded-xl border border-glass-border/30 p-3">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium">Patient *</label>
+              <Select value={form.userId} onValueChange={(v) => setForm((f) => ({ ...f, userId: v }))}>
+                <SelectTrigger><SelectValue placeholder="Select patient" /></SelectTrigger>
+                <SelectContent>
+                  {patients.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>{p.name} — {p.email}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium">Due date</label>
+              <Input type="date" value={form.dueDate} onChange={(e) => setForm((f) => ({ ...f, dueDate: e.target.value }))} />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium">Title *</label>
+              <Input value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} placeholder="e.g. Daily breathing exercise" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium">Category</label>
+              <Select value={form.category} onValueChange={(v) => setForm((f) => ({ ...f, category: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {["other", "exercise", "journal", "reading", "meditation", "exposure"].map((c) => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5 sm:col-span-2">
+              <label className="text-xs font-medium">Instructions</label>
+              <Textarea value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} rows={2} />
+            </div>
+            <div className="sm:col-span-2">
+              <Button onClick={save} className="gap-2"><Plus className="h-4 w-4" /> Create Assignment</Button>
+            </div>
+          </div>
+        )}
+        {loading ? (
+          <p className="text-xs text-foreground/50">Loading assignments...</p>
+        ) : assignments.length === 0 ? (
+          <p className="text-xs text-foreground/50">No assignments yet. Create one for a patient.</p>
+        ) : (
+          <div className="grid gap-3">
+            {assignments.map((a) => (
+              <div key={a.id} className="rounded-xl border border-glass-border/30 p-3">
+                <p className="text-sm font-semibold">{a.title}</p>
+                <p className="text-xs text-foreground/50">{a.userName || a.userEmail} · {a.category} · {a.status}{a.dueDate ? ` · Due ${new Date(a.dueDate).toLocaleDateString("en-IN")}` : ""}</p>
+                {a.description && <p className="mt-1 text-xs text-foreground/60">{a.description}</p>}
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

@@ -393,13 +393,26 @@ function PayoutsTab() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { fetchPayouts(1); }, []);
 
+  const serverMsg = (err) => err?.response?.data?.message || err.message || 'Failed';
   const handleMarkPaid = async (id) => {
     if (!confirm('Mark this payout as paid?')) return;
     try {
       await api.markPayoutPaid(id, { transactionRef: `TXN-${crypto.randomUUID()}` });
       toast.success('Payout marked as paid');
       fetchPayouts(page);
-    } catch { toast.error('Failed'); }
+    } catch (err) {
+      // SA-M5: four-eyes 403 surfaces exactly how many approvals are still missing.
+      toast.error(serverMsg(err));
+      fetchPayouts(page);
+    }
+  };
+
+  const handleApprove = async (id) => {
+    try {
+      await api.approvePayout(id);
+      toast.success('Approval recorded');
+      fetchPayouts(page);
+    } catch (err) { toast.error(serverMsg(err)); }
   };
 
   const statusTotals = {};
@@ -461,10 +474,20 @@ function PayoutsTab() {
                   </td>
                   <td className="px-4 py-3 text-right">
                     {p.status === 'pending' && (
-                      <Button size="sm" variant="default" className="bg-success hover:bg-success/90 gap-1"
-                        onClick={() => handleMarkPaid(p._id)}>
-                        <CheckCircle className="w-3.5 h-3.5" /> Mark Paid
-                      </Button>
+                      <div className="flex gap-1.5 justify-end items-center">
+                        {(p.netPayout || 0) >= 100000 && (
+                          <span className="text-[11px] text-muted-foreground tabular-nums" title={(p.approvals || []).map((a) => a.adminName || 'admin').join(', ') || 'No approvals yet'}>
+                            {(p.approvals || []).length}/2 approvals
+                          </span>
+                        )}
+                        <Button size="sm" variant="outline" onClick={() => handleApprove(p._id)}>
+                          Approve
+                        </Button>
+                        <Button size="sm" variant="default" className="bg-success hover:bg-success/90 gap-1"
+                          onClick={() => handleMarkPaid(p._id)}>
+                          <CheckCircle className="w-3.5 h-3.5" /> Mark Paid
+                        </Button>
+                      </div>
                     )}
                     {p.status === 'paid' && p.transactionRef && (
                       <span className="text-xs text-muted-foreground">{p.transactionRef}</span>

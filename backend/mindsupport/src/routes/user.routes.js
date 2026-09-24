@@ -71,21 +71,31 @@ app.get(
   asyncRoute(authRequired),
   requireRoles("user"),
   asyncRoute(async (req, res) => {
+    // U-1: bridge FindMedi _id <-> mind_users _id via email so merged-mode
+    // patient dashboards are never empty. All user-scoped queries use $in.
+    const userIds = [req.user._id];
+    try {
+      if (req.user?.email) {
+        const mindSelf = await User.findOne({ email: req.user.email }).select("_id").lean();
+        if (mindSelf && String(mindSelf._id) !== String(req.user._id)) userIds.push(mindSelf._id);
+      }
+    } catch { /* keep findId only */ }
+    const userFilter = { $in: userIds };
     const [appointments, moods, latestAssessment, resources, counsellors, journals, messages, payments, notifications, packages] = await Promise.all([
-      Appointment.find({ student: req.user._id }).sort({ date: 1, time: 1 }).populate("counsellor", "name email phone specialization clinicName clinicAddress clinicMapLink city"),
-      MoodEntry.find({ user: req.user._id }).sort({ date: -1 }).limit(14),
-      Assessment.findOne({ user: req.user._id }).sort({ createdAt: -1 }),
+      Appointment.find({ student: userFilter }).sort({ date: 1, time: 1 }).populate("counsellor", "name email phone specialization clinicName clinicAddress clinicMapLink city"),
+      MoodEntry.find({ user: userFilter }).sort({ date: -1 }).limit(14),
+      Assessment.findOne({ user: userFilter }).sort({ createdAt: -1 }),
       Resource.find().sort({ createdAt: -1 }).limit(6),
       User.find({ role: "counsellor", status: { $in: approvedCounsellorStatuses } }).sort({ name: 1 }).limit(8),
-      Journal.find({ user: req.user._id }).sort({ createdAt: -1 }).limit(8),
-      Message.find({ deletedAt: null, $or: [{ from: req.user._id }, { to: req.user._id }] })
+      Journal.find({ user: userFilter }).sort({ createdAt: -1 }).limit(8),
+      Message.find({ deletedAt: null, $or: [{ from: userFilter }, { to: userFilter }] })
         .sort({ createdAt: -1 })
         .limit(80)
         .populate("from to appointment")
         .populate({ path: "replyTo", populate: { path: "from", select: "name username" } }),
-      Payment.find({ user: req.user._id }).sort({ createdAt: -1 }).limit(8),
-      Notification.find({ $or: [{ user: req.user._id }, { audienceRole: { $in: ["user", "all"] } }] }).sort({ createdAt: -1 }).limit(8),
-      UserPackage.find({ user: req.user._id }).sort({ createdAt: -1 }).populate("counsellor", "name email"),
+      Payment.find({ user: userFilter }).sort({ createdAt: -1 }).limit(8),
+      Notification.find({ $or: [{ user: userFilter }, { audienceRole: { $in: ["user", "all"] } }] }).sort({ createdAt: -1 }).limit(8),
+      UserPackage.find({ user: userFilter }).sort({ createdAt: -1 }).populate("counsellor", "name email"),
     ]);
     const now = new Date();
     for (const pkg of packages) {
@@ -111,9 +121,10 @@ app.get(
     const latestPhq9 = latestAssessment?.type === "phq9" && latestAssessment?.responses?.q3 != null ? latestAssessment : null;
     const latestGad7 = latestAssessment?.type === "gad7" && latestAssessment?.score != null ? latestAssessment : null;
     const phq9SleepScore = latestPhq9 ? latestPhq9.responses.q3 : null;
-    const sleepQualityScore = phq9SleepScore != null ? Math.round(Math.max(1, 10 - phq9SleepScore * 2.5)) : 7;
+    // U-6: no assessment → null (never a healthy-looking default). UI renders 0/"Not started".
+    const sleepQualityScore = phq9SleepScore != null ? Math.round(Math.max(1, 10 - phq9SleepScore * 2.5)) : null;
     const gad7TotalScore = latestGad7 ? latestGad7.score : null;
-    const anxietyScore = gad7TotalScore != null ? Math.round(Math.max(1, Math.min(10, 10 - (gad7TotalScore - 5) * 0.5))) : 6;
+    const anxietyScore = gad7TotalScore != null ? Math.round(Math.max(1, Math.min(10, 10 - (gad7TotalScore - 5) * 0.5))) : null;
 
     const weeklyMoodData = [];
     for (let i = 6; i >= 0; i--) {
@@ -125,8 +136,8 @@ app.get(
       weeklyMoodData.push({
         label: dayNames[d.getDay()],
         mood: avgMood,
-        sleep: avgMood > 0 ? sleepQualityScore : 0,
-        anxiety: avgMood > 0 ? anxietyScore : 0,
+        sleep: avgMood > 0 ? sleepQualityScore : null,
+        anxiety: avgMood > 0 ? anxietyScore : null,
       });
     }
 
@@ -175,10 +186,18 @@ app.get(
         completedSessions: appointments.filter((a) => a.status === "completed").length,
         moodEntries: moods.length,
         latestRiskLevel: latestAssessment?.level || "not-started",
-        moodScore: moods[0]?.mood || 4,
+        moodScore: moods[0]?.mood || null,
         wellnessStreak,
         unreadMessages: normalizedMessages.filter((message) => message.unread).length,
-        dailyTip: "Take two minutes today to breathe slowly and name one thing you handled well.",
+        // U-7: tip is derived from real state, never a static string pretending insight.
+        dailyTip: (() => {
+          if (moods.length === 0) return "Welcome! Log your first mood check-in to start tracking your journey.";
+          const last = moods[0]?.mood;
+          if (last != null && last <= 2) return "Low patch? Consider journaling what's weighing on you, or reach out to your counsellor.";
+          if (upcoming.length > 0) return `You have ${upcoming.length} upcoming session${upcoming.length > 1 ? "s" : ""} — note one thing you'd like to discuss.`;
+          if (wellnessStreak >= 3) return `${wellnessStreak}-day check-in streak — consistency builds insight. Keep going.`;
+          return "Take two minutes today to breathe slowly and name one thing you handled well.";
+        })(),
       },
       appointments: await normalizeAppointmentsWithReviewStatus(appointments, req.user),
       moodEntries: moods,
@@ -199,19 +218,19 @@ app.get(
         sessionPricing: counsellor.sessionPricing || 0,
         languages: counsellor.languages || [],
         experience: counsellor.experience || "",
-        rating: counsellor.rating || [4.9, 4.8, 4.7, 4.9][index % 4],
-        reviews: counsellor.reviews || 42 + index * 17,
-        availability: counsellor.availability || ["Mon 10:00-14:00", "Wed 12:00-16:00"],
-        categories: counsellor.categories?.length
-          ? counsellor.categories
-          : ["Anxiety", "Depression", "Stress", "PTSD", "Addiction", "Relationship issues", "Career pressure"].slice(index, index + 4),
-        nextSlot: `${today} ${index % 2 === 0 ? "15:00" : "17:30"}`,
+        // U-6: never invent social proof — real values or empty (UI shows "New").
+        rating: counsellor.reviews > 0 ? counsellor.rating : null,
+        reviews: counsellor.reviews || 0,
+        availability: counsellor.availability?.length ? counsellor.availability : [],
+        categories: counsellor.categories?.length ? counsellor.categories : [],
+        nextSlot: null,
       })),
       analytics: {
         weeklyMood: weeklyMoodData,
         emotionalStability,
         therapyProgress,
-        sleepQuality: sleepQualityScore * 10,
+        sleepQuality: sleepQualityScore != null ? sleepQualityScore * 10 : null,
+        hasAssessment: Boolean(latestPhq9 || latestGad7),
       },
       journal: journals.map(normalizeJournal),
       packages: packages.map((pkg) => {
@@ -296,17 +315,56 @@ app.put(
     if (body.notificationSettings && typeof body.notificationSettings === "object") {
       user.notificationSettings = { ...(user.notificationSettings?.toObject?.() || user.notificationSettings || {}), ...body.notificationSettings };
     }
-    await user.save();
-    res.json({ user: publicUser(user) });
+    // Section-10 provider settings master (allow-listed)
+    if (body.providerSettings && typeof body.providerSettings === "object") {
+      const ps = body.providerSettings;
+      const next = { ...(user.providerSettings?.toObject?.() || user.providerSettings || {}) };
+      if (typeof ps.crisisStandby === "boolean") next.crisisStandby = ps.crisisStandby;
+      if (["full_24h", "half_4_24h", "none_4h", "full_12h", "none_2h"].includes(ps.refundPolicy)) next.refundPolicy = ps.refundPolicy;
+      if (ps.decompressionGapMin !== undefined && Number(ps.decompressionGapMin) >= 0 && Number(ps.decompressionGapMin) <= 60) next.decompressionGapMin = Number(ps.decompressionGapMin);
+      if (typeof ps.rciNumber === "string") next.rciNumber = ps.rciNumber.trim().slice(0, 40);
+      if (typeof ps.nmcRegNumber === "string") next.nmcRegNumber = ps.nmcRegNumber.trim().slice(0, 40);
+      if (typeof ps.notesLock === "boolean") next.notesLock = ps.notesLock;
+      if (typeof ps.sealUrl === "string") next.sealUrl = ps.sealUrl.trim().slice(0, 500);
+      if (typeof ps.scheduleXRestricted === "boolean") next.scheduleXRestricted = ps.scheduleXRestricted;
+      for (const k of ["intakeFee", "rxReviewFee", "emergencyTriageFee"]) {
+        if (ps[k] !== undefined && Number(ps[k]) >= 0) next[k] = Number(ps[k]);
+      }
+      if (ps.payoutBank && typeof ps.payoutBank === "object") {
+        next.payoutBank = { ...(next.payoutBank || {}) };
+        for (const k of ["accountHolder", "accountNumber", "ifsc", "upiId"]) {
+          if (typeof ps.payoutBank[k] === "string") next.payoutBank[k] = ps.payoutBank[k].trim().slice(0, 60);
+        }
+        if (typeof ps.payoutBank.verified === "boolean") next.payoutBank.verified = ps.payoutBank.verified;
+      }
+      user.providerSettings = next;
+    }
+    if (typeof body.licenseNumber === "string") user.licenseNumber = body.licenseNumber.trim().slice(0, 40);
+    const updated = await User.findByIdAndUpdate(user._id, { $set: user }, { new: true }).catch(() => null);
+    res.json({ user: publicUser(updated || user) });
   })
 );
+
+// U-1/U-10: all ids this caller may own (merged-mode FindMedi + mind).
+async function resolveMyIds(req) {
+  const ids = [req.user._id];
+  try {
+    if (req.user?.email && User) {
+      const mindSelf = await User.findOne({ email: req.user.email }).select("_id").lean().catch(() => null);
+      if (mindSelf && String(mindSelf._id) !== String(req.user._id)) ids.push(mindSelf._id);
+    }
+  } catch { /* ignore */ }
+  return ids;
+}
 
 app.get(
   "/api/journals",
   asyncRoute(authRequired),
   requireRoles("user", "admin"),
   asyncRoute(async (req, res) => {
-    const userId = req.user.role === "admin" && req.query.userId ? req.query.userId : req.user._id;
+    const userId = req.user.role === "admin" && req.query.userId
+      ? req.query.userId
+      : { $in: await resolveMyIds(req) };
     const journals = await Journal.find({ user: userId }).sort({ createdAt: -1 });
     res.json(journals.map(normalizeJournal));
   })
@@ -336,8 +394,10 @@ app.post(
       sharedAt: sharedWithCounsellor ? new Date() : undefined,
     });
     if (sharedWithCounsellor) {
-      const appointments = await Appointment.find({ student: req.user._id, status: { $in: ["confirmed", "completed"] } }).distinct("counsellor");
-      const packages = await UserPackage.find({ user: req.user._id, counsellor: { $ne: null } }).distinct("counsellor");
+      // U-10: dual-id so booked counsellors resolve in merged mode and get notified.
+      const myIds = await resolveMyIds(req);
+      const appointments = await Appointment.find({ student: { $in: myIds }, status: { $in: ["confirmed", "completed"] } }).distinct("counsellor");
+      const packages = await UserPackage.find({ user: { $in: myIds }, counsellor: { $ne: null } }).distinct("counsellor");
       const counsellorIds = [...new Set([...appointments.map(String), ...packages.map(String)])];
       for (const counsellorId of counsellorIds) {
         await createNotification({
@@ -363,7 +423,7 @@ app.patch(
   body("trigger").optional().trim().escape(),
   validate,
   asyncRoute(async (req, res) => {
-    const query = req.user.role === "admin" ? { _id: req.params.id } : { _id: req.params.id, user: req.user._id };
+    const query = req.user.role === "admin" ? { _id: req.params.id } : { _id: req.params.id, user: { $in: await resolveMyIds(req) } };
     const entry = await Journal.findOne(query);
     if (!entry) {
       res.status(404).json({ error: "Journal entry not found" });

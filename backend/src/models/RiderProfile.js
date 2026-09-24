@@ -68,6 +68,18 @@ const riderProfileSchema = new mongoose.Schema({
   totalEarnings: { type: Number, default: 0 },
   walletBalance: { type: Number, default: 0 },
   cancellationStrikes: { type: Number, default: 0 },
+  // R-9: re-uploaded KYC docs (docType → { url, status, uploadedAt }).
+  docs: { type: Object, default: {} },
+  // §8 rider ops master.
+  settings: {
+    waitMinutes: { type: Number, default: 5, min: 0 },
+    noShowFee: { type: Number, default: 50, min: 0 },
+    lateRefund: { type: Boolean, default: true },
+    acAvailable: { type: Boolean, default: false },
+    wheelchairFit: { type: Boolean, default: false },
+    transferScope: { type: String, enum: ['local', 'regional', 'intercity'], default: 'local' },
+    payoutUpi: { type: String, default: '' },
+  },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });

@@ -8,7 +8,7 @@ export default function LicenseExpiryReminder() {
   const [expiringLicenses, setExpiringLicenses] = useState([]);
 
   useEffect(() => {
-    if (user?.role !== 'superadmin') return;
+    if (!['superadmin', 'doctor', 'clinic_doctor', 'pharmacy_owner', 'lab_owner', 'hospital_admin', 'ambulance'].includes(user?.role)) return;
 
     const checkLicenses = async () => {
       try {

@@ -20,6 +20,31 @@ router.use(async (req, res, next) => {
 // GET /api/ambulance/me
 router.get('/me', (req, res) => res.json({ success: true, ambulance: req.ambulance }));
 
+// PUT /api/ambulance/me/settings — §8 ops master (tier, equipment, tariff, radius).
+router.put('/me/settings', async (req, res) => {
+  try {
+    const s = req.body?.settings;
+    if (!s || typeof s !== 'object') return res.status(400).json({ message: 'settings object chahiye' });
+    const amb = req.ambulance;
+    const next = { ...(amb.settings?.toObject?.() || amb.settings || {}) };
+    if (['BLS', 'ALS', 'PTV', 'NICU'].includes(s.lifeSupportTier)) {
+      next.lifeSupportTier = s.lifeSupportTier;
+      amb.ambulanceType = s.lifeSupportTier === 'PTV' ? 'PATIENT_TRANSPORT' : s.lifeSupportTier;
+    }
+    for (const k of ['oxygenOk', 'aedOk', 'suctionOk', 'spineBoardOk', 'emtOnBoard', 'erAutoAlert']) {
+      if (typeof s[k] === 'boolean') next[k] = s[k];
+    }
+    for (const k of ['baseDispatchFee', 'perKmRate', 'oxygenFee', 'maxRadiusKm']) {
+      if (s[k] !== undefined && Number(s[k]) >= 0) next[k] = Number(s[k]);
+    }
+    amb.settings = next;
+    await amb.save();
+    res.json({ success: true, settings: amb.settings });
+  } catch (err) {
+    res.status(500).json({ message: err.message || 'Settings save nahi hui' });
+  }
+});
+
 // PUT /api/ambulance/me/online { online, lat, lng, accuracy }
 router.put('/me/online', async (req, res) => {
   const { online, lat, lng, accuracy } = req.body;

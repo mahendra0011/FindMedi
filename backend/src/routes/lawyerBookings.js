@@ -232,6 +232,7 @@ router.post('/:id/accept', protect, async (req, res) => {
     const io = getIO();
     if (io) {
       io.of('/lawyer').emit('booking_taken', { bookingId: booking._id, lawyerId: req.user._id });
+      io.emit('booking_taken', { bookingId: booking._id, lawyerId: req.user._id });
     }
 
     res.json({ success: true, message: 'Consultation confirmed', booking });
@@ -406,6 +407,21 @@ router.post('/:id/complete', protect, async (req, res) => {
     booking.completedAt = new Date();
     booking.finalCaseSummary = req.body.finalCaseSummary || 'Consultation session completed.';
     booking.statusHistory.push({ status: 'completed', at: new Date(), note: 'Consultation concluded' });
+    // L-11: settle net payout into the advocate's wallet exactly once, so
+    // wallet can never silently diverge from completed revenue.
+    let settledAmount = 0;
+    if (!booking.settledAt) {
+      const gross = Number(booking.fee) || 0;
+      settledAmount = Math.round(gross * 0.9);
+      booking.settledAt = new Date();
+      booking.settlementAmount = settledAmount;
+      if (settledAmount > 0) {
+        await LawyerProfile.findOneAndUpdate(
+          { userId: booking.lawyerId },
+          { $inc: { walletBalance: settledAmount, totalEarnings: gross } }
+        ).catch((e) => logger.error(`Lawyer wallet settlement failed: ${e.message}`));
+      }
+    }
     await booking.save();
 
     await notifyBookingUpdate(booking, 'booking_status_update');
@@ -417,7 +433,7 @@ router.post('/:id/complete', protect, async (req, res) => {
       userId: String(booking.userId),
     }).catch(() => {});
 
-    res.json({ success: true, message: 'Consultation marked completed', booking });
+    res.json({ success: true, message: settledAmount > 0 ? `Consultation marked completed — ₹${settledAmount} settled to wallet` : 'Consultation marked completed', booking, settledAmount });
   } catch (err) {
     logger.error(`Error completing lawyer consultation: ${err.message}`);
     res.status(500).json({ message: 'Failed to complete consultation' });

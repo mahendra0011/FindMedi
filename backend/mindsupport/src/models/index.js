@@ -101,6 +101,31 @@ const userSchema = new mongoose.Schema(
       platform: { type: Boolean, default: true },
       emergency: { type: Boolean, default: true },
     },
+    // Section-10 provider settings master (counsellor + psychiatrist)
+    providerSettings: {
+      crisisStandby: { type: Boolean, default: false },
+      refundPolicy: {
+        type: String,
+        enum: ["full_24h", "half_4_24h", "none_4h", "full_12h", "none_2h"],
+        default: "full_24h",
+      },
+      decompressionGapMin: { type: Number, default: 15, min: 0, max: 60 },
+      rciNumber: { type: String, default: "" },
+      nmcRegNumber: { type: String, default: "" },
+      notesLock: { type: Boolean, default: false },
+      sealUrl: { type: String, default: "" },
+      scheduleXRestricted: { type: Boolean, default: true },
+      intakeFee: { type: Number, default: 0, min: 0 },
+      rxReviewFee: { type: Number, default: 0, min: 0 },
+      emergencyTriageFee: { type: Number, default: 0, min: 0 },
+      payoutBank: {
+        accountHolder: { type: String, default: "" },
+        accountNumber: { type: String, default: "" },
+        ifsc: { type: String, default: "" },
+        upiId: { type: String, default: "" },
+        verified: { type: Boolean, default: false },
+      },
+    },
     otpVerified: { type: Boolean, default: false },
     otpVerifiedAt: Date,
     lastLoginAt: Date,
@@ -519,6 +544,11 @@ const prescriptionSchema = new mongoose.Schema({
   diagnosis: { type: String, default: "" },
   notes: { type: String, default: "" },
   followUpDate: Date,
+  // PS-6: prescription lifecycle (revoke / renew audit trail).
+  status: { type: String, enum: ["active", "revoked"], default: "active" },
+  revokedAt: Date,
+  revokeReason: { type: String, default: "" },
+  renewedFrom: { type: mongoose.Schema.Types.ObjectId, ref: "MindPrescription" },
   medicines: [{
     name: { type: String, required: true },
     dosage: { type: String, default: "" },

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Search, ArrowLeft, Store, Star, ShoppingCart, Lock, Plus, Minus, Pill, BadgeCheck, Percent, ChevronRight, FileText, SlidersHorizontal, X, ArrowUpDown, IndianRupee, Tags, Filter } from 'lucide-react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { Search, ArrowLeft, Store, Star, ShoppingCart, Lock, Plus, Minus, Pill, BadgeCheck, Percent, ChevronRight, FileText, SlidersHorizontal, X, ArrowUpDown, IndianRupee, Tags, Filter, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -179,7 +179,7 @@ export default function StoreMedicines() {
         </div>
 
         {/* Upload Prescription CTA */}
-        <button onClick={() => { const inStock = allMeds.filter(m => m.inStock); inStock.forEach(m => addItem(m, storeId)); toast.success(`${inStock.length} items added to cart`); navigate('/cart'); }} className="w-full text-left mb-6 bg-gradient-to-r from-primary/10 via-primary/5 to-card rounded-2xl border border-primary/20 p-5 hover:shadow-lg hover:border-primary/40 transition-all group">
+        <button onClick={() => { const inStock = allMeds.filter(m => m.inStock); inStock.forEach(m => addItem(m, storeId)); toast.success(`${inStock.length} items added to cart`); navigate('/cart'); }} className="w-full text-left mb-4 bg-gradient-to-r from-primary/10 via-primary/5 to-card rounded-2xl border border-primary/20 p-5 hover:shadow-lg hover:border-primary/40 transition-all group">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-2xl bg-primary/15 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
               <FileText className="w-6 h-6 text-primary" />
@@ -191,6 +191,19 @@ export default function StoreMedicines() {
             <ChevronRight className="w-5 h-5 text-primary/40 group-hover:text-primary group-hover:translate-x-1 transition-all" />
           </div>
         </button>
+
+        {/* Statutory Narcotics & Schedule X Prohibition Notice */}
+        <div className="mb-6 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
+          <div className="flex items-start sm:items-center gap-2 text-amber-700 dark:text-amber-400">
+            <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5 sm:mt-0" />
+            <span>
+              <strong>Drugs Rules 1945 Notice:</strong> Schedule X, NDPS narcotics, & habit-forming drugs cannot be dispensed online. Valid doctor prescription mandatory for all Rx items.
+            </span>
+          </div>
+          <Link to="/telemedicine-consent" className="shrink-0 text-amber-600 dark:text-amber-400 font-bold underline hover:opacity-80 text-[11px] self-end sm:self-auto">
+            Prescription Policy &rarr;
+          </Link>
+        </div>
 
         {/* Search + Categories + Filters */}
         <div className="mb-6">

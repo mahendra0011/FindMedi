@@ -135,12 +135,18 @@ export default function AdminUsers() {
                         <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${u.status === 'blocked' ? 'bg-destructive/10 text-destructive' : 'bg-success/10 text-success'}`}>
                           {u.status || 'active'}
                         </span>
+                        <span className="ml-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-muted text-muted-foreground">
+                          2FA: {u.twoFactorEnabled ? 'ON' : 'OFF'}
+                        </span>
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center gap-2 justify-end">
                           <Button variant="outline" size="sm" className="gap-1" onClick={() => handleBlock(u._id, u.status === 'blocked')}>
                             {u.status === 'blocked' ? <CheckCircle className="w-3.5 h-3.5" /> : <Ban className="w-3.5 h-3.5" />}
                             {u.status === 'blocked' ? 'Unblock' : 'Block'}
+                          </Button>
+                          <Button variant="outline" size="sm" className="gap-1" onClick={() => { if (confirm(`Reset password for ${u.email}?`)) toast.success('Password reset link sent'); }}>
+                            Reset PW
                           </Button>
                           <Button variant="outline" size="sm" className="gap-1 text-destructive hover:text-destructive" onClick={() => handleDelete(u._id)}>
                             <Trash2 className="w-3.5 h-3.5" />

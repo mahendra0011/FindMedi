@@ -1,65 +1,150 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useAppointmentRealtime } from '@/lib/useAppointmentRealtime';
 import {
   Stethoscope, CalendarDays, CreditCard, Clock, TrendingUp, UserRound,
-  RotateCcw, Globe, Save, Building2, Users, CheckCircle, AlertCircle,
-  Video, Phone, MessageCircle, MapPin, CalendarClock, ChevronRight, CheckCircle2, Sparkles
+  RotateCcw, Globe, Building2, CheckCircle, AlertCircle,
+  Video, Phone, MessageCircle, MapPin, CalendarClock, ChevronRight, Sparkles
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
+import { AnimatePresence, motion } from 'framer-motion';
 import StatCard from '@/components/StatCard';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 import { api } from '@/lib/api';
+import { getSocket } from '@/lib/socket';
 import { useAuth } from '@/context/AuthContext';
 import { useSelector } from 'react-redux';
 import { selectSetting } from '@/store/slices/settingsSlice';
 import { applyUserSettings } from '@/lib/settings';
-import { getISTDateString, formatDisplayDate } from '@/lib/dateUtils';
+import { getISTDateString } from '@/lib/dateUtils';
 
 const COLORS = ['hsl(174,62%,38%)','hsl(210,80%,55%)','hsl(38,92%,50%)','hsl(152,60%,42%)','hsl(210,12%,50%)'];
 
-const FALLBACK = {
-  stats: { totalPatients: 1247, totalDoctors: 48, todayAppointments: 32, revenue: 62400 },
-  weeklyAppointments: [
-    { day:'Mon',count:24},{day:'Tue',count:18},{day:'Wed',count:32},
-    { day:'Thu',count:27},{day:'Fri',count:20},{day:'Sat',count:15},{day:'Sun',count:8},
-  ],
-  revenueData: [
-    {month:'Jan',revenue:42000},{month:'Feb',revenue:38000},{month:'Mar',revenue:51000},
-    {month:'Apr',revenue:47000},{month:'May',revenue:55000},{month:'Jun',revenue:62000},
-  ],
-  departmentData: [
-    {name:'Cardiology',value:30},{name:'Neurology',value:22},{name:'Orthopedics',value:18},
-    {name:'Pediatrics',value:15},{name:'Other',value:15},
-  ],
-  recentAppointments: [
-    {_id:1,patient:'Sarah Johnson',doctor:'Dr. Smith',time:'10:00 AM',status:'Confirmed'},
-    {_id:2,patient:'Mike Chen',doctor:'Dr. Patel',time:'11:30 AM',status:'Pending'},
-    {_id:3,patient:'Emma Wilson',doctor:'Dr. Lee',time:'2:00 PM',status:'Confirmed'},
-    {_id:4,patient:'James Brown',doctor:'Dr. Garcia',time:'3:30 PM',status:'Cancelled'},
-    {_id:5,patient:'Lisa Davis',doctor:'Dr. Kim',time:'4:00 PM',status:'Confirmed'},
-  ],
-  refunds: [
-    {_id:1,patient:'Sarah Johnson',amount:1500,status:'Refunded',date:'2026-07-20',reason:'Appointment Cancelled'},
-    {_id:2,patient:'Mike Chen',amount:800,status:'Pending',date:'2026-07-22',reason:'Service Not Satisfactory'},
-  ],
+const EMPTY_DASHBOARD = {
+  stats: { totalPatients: 0, totalDoctors: 0, todayAppointments: 0, revenue: 0 },
+  weeklyAppointments: [],
+  revenueData: [],
+  departmentData: [],
+  recentAppointments: [],
+  refunds: [],
 };
 
 const statusCls = { Confirmed:'bg-success/10 text-success', Pending:'bg-warning/10 text-warning', Cancelled:'bg-destructive/10 text-destructive', Completed:'bg-info/10 text-info' };
 const tooltipStyle = { borderRadius:'0.75rem', border:'1px solid hsl(200,20%,90%)', fontSize:12 };
+
+function OperationsStrip() {
+  const navigate = useNavigate();
+  const [ops, setOps] = useState({ bedsFree: null, bedsTotal: null, erActive: null, pendingVerif: null, staffOnLeave: null });
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const [bedStats, erStats, leavePending] = await Promise.all([
+          api.getBedStats().catch(() => null),
+          api.getEmergencyStats().catch(() => null),
+          api.getPendingLeaveRequests().catch(() => null),
+        ]);
+        if (!alive) return;
+        setOps({
+          bedsFree: bedStats?.available ?? bedStats?.free ?? null,
+          bedsTotal: bedStats?.total ?? null,
+          erActive: erStats?.active ?? erStats?.count ?? null,
+          pendingVerif: null,
+          staffOnLeave: Array.isArray(leavePending) ? leavePending.length : leavePending?.count ?? null,
+        });
+        api.get('/prescriptions/verification-queue').then((v) => {
+          if (!alive) return;
+          const n = Array.isArray(v) ? v.length : v?.queue?.length ?? v?.count ?? null;
+          setOps((o) => ({ ...o, pendingVerif: n }));
+        }).catch(() => {});
+      } catch {}
+    })();
+    return () => { alive = false; };
+  }, []);
+  const items = [
+    { label: 'Beds Free/Total', value: ops.bedsFree != null && ops.bedsTotal != null ? `${ops.bedsFree}/${ops.bedsTotal}` : '—', path: '/admin/beds' },
+    { label: 'ER Active', value: ops.erActive ?? '—', path: '/admin/emergency' },
+    { label: 'Pending Verifications', value: ops.pendingVerif ?? '—', path: '/admin/prescription-verification' },
+    { label: 'Staff On Leave', value: ops.staffOnLeave ?? '—', path: '/admin/leave-requests' },
+  ];
+  return (
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      {items.map((it) => (
+        <button key={it.label} onClick={() => navigate(it.path)} className="rounded-2xl border p-4 text-left hover:border-primary/40 hover:shadow-md transition-all">
+          <p className="text-2xl font-bold">{it.value}</p>
+          <p className="text-xs text-muted-foreground">{it.label}</p>
+        </button>
+      ))}
+    </div>
+  );
+}
 
 export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const settings = useSelector(selectSetting) || {};
   const [apptTab, setApptTab] = useState('pending');
-  const { data = FALLBACK, isError, error } = useQuery({ queryKey:['dashboard'], queryFn: api.dashboardStats });
-  const { data: apptsData } = useQuery({ queryKey:['admin-appointments'], queryFn: () => api.getAppointments({ limit: 50 }).catch(() => null) });
-  const { data: refundsData } = useQuery({ queryKey:['refunds'], queryFn: () => api.getRefunds().catch(() => ({ payments: FALLBACK.refunds })) });
+  const queryClient = useQueryClient();
+  const { data, isLoading, isError, error, refetch } = useQuery({ queryKey:['dashboard'], queryFn: api.dashboardStats, refetchInterval: 60000 });
+  const { data: apptsData } = useQuery({ queryKey:['admin-appointments'], queryFn: () => api.getAppointments({ limit: 200, page: 1 }).catch(() => null), refetchInterval: 60000 });
+  const { data: refundsData } = useQuery({ queryKey:['refunds'], queryFn: () => api.getRefunds().catch(() => ({ payments: [] })) });
+  useAppointmentRealtime(() => { queryClient.invalidateQueries({ queryKey: ['dashboard'] }); queryClient.invalidateQueries({ queryKey: ['admin-appointments'] }); });
 
-  const { stats, weeklyAppointments, revenueData, departmentData, recentAppointments: fallbackRecent = [] } = data;
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+    const onNewAppointment = () => {
+      refetch();
+      queryClient.invalidateQueries({ queryKey: ['admin-appointments'] });
+    };
+    const onEmergency = () => {
+      toast.error('New Emergency Case Registered in Triage!', { duration: 8000 });
+      refetch();
+    };
+    socket.on('appointment:created', onNewAppointment);
+    socket.on('appointment:statusChange', onNewAppointment);
+    socket.on('emergency:alert', onEmergency);
+    return () => {
+      socket.off('appointment:created', onNewAppointment);
+      socket.off('appointment:statusChange', onNewAppointment);
+      socket.off('emergency:alert', onEmergency);
+    };
+  }, [refetch, queryClient]);
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[0,1,2,3].map((i) => (
+          <div key={i} className="rounded-2xl border p-5 animate-pulse">
+            <div className="h-4 w-24 bg-muted rounded mb-3" />
+            <div className="h-8 w-16 bg-muted rounded" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+  const isNoHospital = error?.message?.includes('No hospital linked') || error?.response?.data?.message?.includes('No hospital linked');
+  if (isError || !data) {
+    return (
+      <div className="rounded-2xl border p-8 text-center space-y-3">
+        {isNoHospital ? (
+          <>
+            <p className="font-heading text-lg font-bold">Hospital link pending hai</p>
+            <p className="text-sm text-muted-foreground">Aapke admin account se abhi koi hospital juda nahi hai. Onboarding team se hospital link karwao, phir dashboard yahin dikhega.</p>
+          </>
+        ) : (
+          <p className="font-semibold">Dashboard load nahi hua{error?.message ? `: ${error.message}` : ""}</p>
+        )}
+        <Button onClick={() => refetch()}>Retry</Button>
+      </div>
+    );
+  }
+
+  const { stats, weeklyAppointments = [], revenueData = [], departmentData = [], recentAppointments: fallbackRecent = [] } = { ...EMPTY_DASHBOARD, ...data };
   const rawAppts = apptsData?.data || apptsData?.appointments || apptsData || fallbackRecent;
-  const appointmentsList = Array.isArray(rawAppts) && rawAppts.length > 0 ? rawAppts : fallbackRecent;
+  const appointmentsList = Array.isArray(rawAppts) ? rawAppts : [];
 
   const todayStr = getISTDateString();
   const pendingAppts = appointmentsList.filter(a => (a.status || '').toLowerCase() === 'pending');
@@ -106,11 +191,14 @@ export default function Dashboard() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-        <StatCard title="Total Patients" value={stats?.totalPatients?.toLocaleString() ?? '—'} change="+12% from last month" changeType="positive" icon={UserRound} />
-        <StatCard title="Active Doctors" value={stats?.totalDoctors ?? '—'} change="+3 new this month" changeType="positive" icon={Stethoscope} iconColor="text-info" iconBg="bg-info/10" />
+        <StatCard title="Total Patients" value={stats?.totalPatients?.toLocaleString() ?? '—'} icon={UserRound} />
+        <StatCard title="Active Doctors" value={stats?.totalDoctors ?? '—'} icon={Stethoscope} iconColor="text-info" iconBg="bg-info/10" />
         <StatCard title="Appointments Today" value={stats?.todayAppointments ?? '—'} change={`${pendingAppts.length} pending`} changeType="neutral" icon={CalendarDays} iconColor="text-warning" iconBg="bg-warning/10" />
-        <StatCard title="Revenue (MTD)" value={`₹${(stats?.revenue ?? 0).toLocaleString()}`} change="+18% from last month" changeType="positive" icon={CreditCard} iconColor="text-success" iconBg="bg-success/10" />
+        <StatCard title="Revenue (MTD)" value={`₹${(stats?.revenueMTD ?? stats?.revenue ?? 0).toLocaleString()}`} icon={CreditCard} iconColor="text-success" iconBg="bg-success/10" />
       </div>
+
+      {/* Operations strip: beds, ER, verifications, leave */}
+      <OperationsStrip />
 
       {/* 5 Consultation Modes Hub (Hospital OPD Suite) */}
       <div className="rounded-3xl border border-border/60 bg-gradient-to-br from-card via-card to-primary/5 p-5 sm:p-6 shadow-sm mb-8">
@@ -395,7 +483,15 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="space-y-2">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={apptTab}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2 }}
+              className="space-y-2"
+            >
             {displayedAppts.slice(0, 5).map((apt, i) => (
               <div key={apt._id ?? i} className="flex items-center justify-between py-3 border-b border-border last:border-0 hover:bg-muted/20 px-2 rounded-xl transition-colors">
                 <div className="flex items-center gap-3">
@@ -424,7 +520,8 @@ export default function Dashboard() {
                 <p className="text-xs text-muted-foreground/60 mt-1">Check full schedule in appointments section</p>
               </div>
             )}
-          </div>
+            </motion.div>
+          </AnimatePresence>
 
           <div className="mt-4 pt-3 border-t border-border flex justify-end">
             <Button variant="ghost" size="sm" onClick={() => navigate('/appointments')} className="text-xs text-primary hover:text-primary gap-1">
@@ -450,7 +547,7 @@ export default function Dashboard() {
                   <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS[i] }} />
                   <span className="text-muted-foreground text-xs">{d.name}</span>
                 </div>
-                <span className="font-medium text-xs text-card-foreground">{d.value}%</span>
+                <span className="font-medium text-xs text-card-foreground">{d.value} appts</span>
               </div>
             ))}
           </div>
@@ -469,8 +566,8 @@ export default function Dashboard() {
             <p className="text-xs text-muted-foreground">Total Refunded</p>
           </div>
           <div className="bg-warning/5 rounded-lg border border-warning/20 p-4">
-            <p className="text-2xl font-bold text-warning">{refunds.filter(r => r.status === 'Pending' || r.status === 'pending').length}</p>
-            <p className="text-xs text-muted-foreground">Pending Requests</p>
+            <p className="text-2xl font-bold text-warning">{refunds.filter(r => { const d = new Date(r.date || r.createdAt || 0); const n = new Date(); return d.getMonth() === n.getMonth() && d.getFullYear() === n.getFullYear(); }).length}</p>
+            <p className="text-xs text-muted-foreground">This Month</p>
           </div>
           <div className="bg-info/5 rounded-lg border border-info/20 p-4">
             <p className="text-2xl font-bold text-info">{refunds.length}</p>
@@ -506,18 +603,13 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Platform Settings Section */}
+      {/* Hospital Settings shortcut (platform toggles live in /admin/hospital-settings) */}
       <div className="mt-6 bg-card rounded-xl border p-6 shadow-sm">
         <div className="flex items-center gap-2 mb-5">
           <Globe className="w-4 h-4 text-primary" />
-          <h3 className="font-heading font-semibold text-lg text-card-foreground">Platform Settings</h3>
+          <h3 className="font-heading font-semibold text-lg text-card-foreground">Hospital Settings</h3>
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-success/5 rounded-lg border border-success/20 p-4">
-            <p className="text-2xl font-bold text-success">Active</p>
-            <p className="text-xs text-muted-foreground">Platform Status</p>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <div className="bg-primary/5 rounded-lg border border-primary/20 p-4">
             <p className="text-2xl font-bold text-primary">{stats?.totalDoctors ?? '—'}</p>
             <p className="text-xs text-muted-foreground">Registered Doctors</p>
@@ -527,67 +619,11 @@ export default function Dashboard() {
             <p className="text-xs text-muted-foreground">Registered Patients</p>
           </div>
         </div>
-
-        <div className="space-y-4">
-          <div className="flex items-center justify-between py-3 border-b border-border last:border-0">
-            <div className="flex items-start gap-3">
-              <Building2 className="w-5 h-5 text-muted-foreground mt-0.5" />
-              <div>
-                <p className="font-medium text-sm text-card-foreground">Auto Confirm Appointments</p>
-                <p className="text-xs text-muted-foreground">Automatically confirm appointments after payment</p>
-              </div>
-            </div>
-            <button className="relative inline-flex h-6 w-11 items-center rounded-full bg-primary transition-colors">
-              <span className="inline-block h-4 w-4 transform rounded-full bg-white translate-x-6" />
-            </button>
-          </div>
-
-          <div className="flex items-center justify-between py-3 border-b border-border last:border-0">
-            <div className="flex items-start gap-3">
-              <Users className="w-5 h-5 text-muted-foreground mt-0.5" />
-              <div>
-                <p className="font-medium text-sm text-card-foreground">Patient Self-Registration</p>
-                <p className="text-xs text-muted-foreground">Allow patients to register without admin approval</p>
-              </div>
-            </div>
-            <button className="relative inline-flex h-6 w-11 items-center rounded-full bg-gray-300 transition-colors">
-              <span className="inline-block h-4 w-4 transform rounded-full bg-white translate-x-1" />
-            </button>
-          </div>
-
-          <div className="flex items-center justify-between py-3 border-b border-border last:border-0">
-            <div className="flex items-start gap-3">
-              <CheckCircle className="w-5 h-5 text-muted-foreground mt-0.5" />
-              <div>
-                <p className="font-medium text-sm text-card-foreground">Online Payments</p>
-                <p className="text-xs text-muted-foreground">Enable online payment gateway for appointments</p>
-              </div>
-            </div>
-            <button className="relative inline-flex h-6 w-11 items-center rounded-full bg-primary transition-colors">
-              <span className="inline-block h-4 w-4 transform rounded-full bg-white translate-x-6" />
-            </button>
-          </div>
-
-          <div className="flex items-center justify-between py-3 border-b border-border last:border-0">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-muted-foreground mt-0.5" />
-              <div>
-                <p className="font-medium text-sm text-card-foreground">Emergency Access</p>
-                <p className="text-xs text-muted-foreground">Allow emergency data access for critical cases</p>
-              </div>
-            </div>
-            <button className="relative inline-flex h-6 w-11 items-center rounded-full bg-primary transition-colors">
-              <span className="inline-block h-4 w-4 transform rounded-full bg-white translate-x-6" />
-            </button>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3 mt-6 pt-6 border-t border-border">
-          <button className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors">
-            <Save className="w-4 h-4" />
-            Save Platform Settings
-          </button>
-          <span className="text-xs text-muted-foreground">Changes apply platform-wide</span>
+        <div className="flex items-center gap-3 mt-2 pt-4 border-t border-border">
+          <Button onClick={() => navigate('/admin/hospital-settings')} className="gap-2">
+            Open Hospital Settings
+          </Button>
+          <span className="text-xs text-muted-foreground">Modes, emergency, ambulance, refund & profile settings</span>
         </div>
       </div>
     </div>

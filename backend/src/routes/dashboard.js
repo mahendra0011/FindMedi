@@ -11,39 +11,54 @@ const router = express.Router();
 
 router.get('/stats', protect, async (req, res) => {
   try {
+    if (!['hospital_admin', 'superadmin'].includes(req.user.role)) {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+    if (req.user.role !== 'superadmin' && !req.user.hospitalId) {
+      return res.status(403).json({ message: 'No hospital linked' });
+    }
     const today = getISTDateString();
 
     const hospitalFilter = req.user.hospitalId && req.user.role !== 'superadmin' ? { hospitalId: req.user.hospitalId } : {};
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
     const billingMatch = { $match: hospitalFilter };
     const appointmentMatch = { $match: { ...hospitalFilter, date: today } };
 
-    const [totalPatients, totalDoctors, todayAppointments, billing, recentAppointments] = await Promise.all([
+    const last7 = [...Array(7)].map((_, i) =>
+      new Date(Date.now() + 5.5 * 3600e3 - i * 864e5).toISOString().slice(0, 10)).reverse();
+
+    const [totalPatients, totalDoctors, todayAppointments, billing, mtdBilling, recentAppointments] = await Promise.all([
       User.countDocuments({ role: 'patient', ...hospitalFilter }),
       User.countDocuments({ role: 'doctor', ...hospitalFilter }),
       Appointment.countDocuments({ date: today, ...hospitalFilter }),
       Billing.aggregate([billingMatch, { $group: { _id: null, revenue: { $sum: '$paid' } } }]),
+      Billing.aggregate([{ $match: { ...hospitalFilter, createdAt: { $gte: monthStart } } }, { $group: { _id: null, revenue: { $sum: '$paid' } } }]),
       Appointment.find({ ...hospitalFilter }).sort({ createdAt: -1 }).limit(5),
     ]);
 
-    // Weekly appointments for chart
-    const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    // Weekly appointments: last 7 IST dates by Appointment.date string
     const weeklyRaw = await Appointment.aggregate([
-      { $match: hospitalFilter },
-      { $group: { _id: { $dayOfWeek: '$createdAt' }, count: { $sum: 1 } } },
+      { $match: { ...hospitalFilter, date: { $in: last7 } } },
+      { $group: { _id: '$date', count: { $sum: 1 } } },
     ]);
     const weeklyMap = {};
     weeklyRaw.forEach(r => { weeklyMap[r._id] = r.count; });
-    const weeklyAppointments = days.map((day, i) => ({ day, count: weeklyMap[i + 1] || 0 }));
+    const weeklyAppointments = last7.map((ds) => {
+      const d = new Date(`${ds}T00:00:00+05:30`);
+      const day = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];
+      return { day, date: ds, count: weeklyMap[ds] || 0 };
+    });
 
-    // Monthly revenue
+    // Monthly revenue: last 6 months, year-aware
     const monthlyRevenue = await Billing.aggregate([
-      billingMatch,
-      { $group: { _id: { $month: '$createdAt' }, revenue: { $sum: '$paid' } } },
-      { $sort: { '_id': 1 } },
-      { $limit: 6 },
+      { $match: { ...hospitalFilter, createdAt: { $gte: sixMonthsAgo } } },
+      { $group: { _id: { y: { $year: '$createdAt' }, m: { $month: '$createdAt' } }, revenue: { $sum: '$paid' } } },
+      { $sort: { '_id.y': 1, '_id.m': 1 } },
     ]);
     const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    const revenueData = monthlyRevenue.map(r => ({ month: months[r._id - 1], revenue: r.revenue }));
+    const revenueData = monthlyRevenue.map(r => ({ month: months[r._id.m - 1], revenue: r.revenue }));
 
     // Department distribution
     const deptRaw = await Appointment.aggregate([
@@ -60,6 +75,7 @@ router.get('/stats', protect, async (req, res) => {
         totalDoctors,
         todayAppointments,
         revenue: billing[0]?.revenue || 0,
+        revenueMTD: mtdBilling[0]?.revenue || 0,
       },
       weeklyAppointments,
       revenueData,

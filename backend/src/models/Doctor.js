@@ -41,6 +41,26 @@ const doctorSchema = new mongoose.Schema({
   facilityType: { type: String, enum: ['hospital', 'clinic', 'lab', 'pharmacy', ''], default: '' },
   reviews_count: { type: Number, default: 0 },
   signatureUrl: { type: String, default: '' },
+  // §8 doctor settings master (persisted from DoctorProfile UI).
+  settings: {
+    emergencyOnCall: { type: Boolean, default: false },
+    refundGuarantee: { type: String, enum: ['auto-refund', 'manual-review', 'no-refund'], default: 'auto-refund' },
+    videoFee: { type: Number, default: 0, min: 0 },
+    inPersonFee: { type: Number, default: 0, min: 0 },
+    emergencyFee: { type: Number, default: 0, min: 0 },
+    followUpFee: { type: String, default: '' },
+    followUpWindow: { type: String, default: '7 Days' },
+    bufferTime: { type: String, default: '5 min' },
+    vacationFrom: { type: String, default: '' },
+    vacationTo: { type: String, default: '' },
+    vacationReason: { type: String, default: '' },
+    councilName: { type: String, default: '' },
+    councilRegNo: { type: String, default: '' },
+    councilYear: { type: String, default: '' },
+    payoutUpi: { type: String, default: '' },
+    payoutAccount: { type: String, default: '' },
+    payoutIfsc: { type: String, default: '' },
+  },
   doctor_type: { type: String, enum: ['hospital', 'clinic'], default: 'hospital' },
   languages: { type: [String], default: [] },
   practice_type: { type: String, enum: ['private', 'corporate', ''], default: '' },
@@ -59,6 +79,17 @@ const doctorSchema = new mongoose.Schema({
   admission_available: { type: Boolean, default: false },
   emergency_consultation: { type: Boolean, default: false },
   emergencySupport: { type: Boolean, default: false },
+  isEmergencyDutyActive: { type: Boolean, default: false },
+  emergencyRadiusKm: { type: Number, default: 10 },
+  emergencyDoctorLocation: {
+    type: { type: String, enum: ['Point'], default: 'Point' },
+    coordinates: { type: [Number], default: [0, 0] },
+    lastUpdatedAt: { type: Date, default: Date.now },
+  },
+  emergencyEquipmentKit: {
+    type: [String],
+    default: ['BLS Kit', 'Pulse Oximeter', 'BP Monitor', 'Nebulizer', 'Glucometer', 'Emergency Injection Kit'],
+  },
   refundOnMissedOrCancelled: { type: Boolean, default: true },
   appointmentModes: {
     type: [String],
@@ -123,6 +154,8 @@ doctorSchema.index({ facilityId: 1, approved: 1 });
 doctorSchema.index({ hospitalId: 1, approved: 1 });
 doctorSchema.index({ specialization: 1 });
 doctorSchema.index({ department: 1 });
+doctorSchema.index({ emergencyDoctorLocation: '2dsphere' });
+doctorSchema.index({ isEmergencyDutyActive: 1, emergencySupport: 1 });
 doctorSchema.index({ createdAt: -1 });
 
 export default mongoose.model('Doctor', doctorSchema);

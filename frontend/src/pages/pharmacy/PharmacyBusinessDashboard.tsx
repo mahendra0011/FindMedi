@@ -11,6 +11,7 @@ import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import StatCard from '@/components/StatCard';
 import LicenseExpiryReminder from '@/components/LicenseExpiryReminder';
+import { Switch } from '@/components/ui/switch';
 
 const statusColors = {
   Completed: 'bg-success/10 text-success',
@@ -27,6 +28,26 @@ export default function PharmacyBusinessDashboard() {
   const [lowStock, setLowStock] = useState([]);
   const [refunds, setRefunds] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [platformSettings, setPlatformSettings] = useState({
+    autoConfirmOrders: true,
+    customerSelfRegistration: false,
+    prescriptionValidation: true,
+    deliveryIntegration: true,
+    emergencySupport: false,
+    acceptRefunds: true,
+  });
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('pharmacy_platform_settings');
+      if (saved) setPlatformSettings(JSON.parse(saved));
+    } catch {}
+  }, []);
+
+  const handleSavePlatformSettings = () => {
+    localStorage.setItem('pharmacy_platform_settings', JSON.stringify(platformSettings));
+    toast.success('Platform and pharmacy settings updated successfully');
+  };
   const mounted = useRef(true);
 
   useEffect(() => {
@@ -385,9 +406,10 @@ export default function PharmacyBusinessDashboard() {
                 <p className="text-xs text-muted-foreground">Automatically confirm orders after payment</p>
               </div>
             </div>
-            <button className="relative inline-flex h-6 w-11 items-center rounded-full bg-primary transition-colors">
-              <span className="inline-block h-4 w-4 transform rounded-full bg-white translate-x-6" />
-            </button>
+            <Switch
+              checked={platformSettings.autoConfirmOrders}
+              onCheckedChange={(checked) => setPlatformSettings(s => ({ ...s, autoConfirmOrders: checked }))}
+            />
           </div>
 
           <div className="flex items-center justify-between py-3 border-b border-border last:border-0">
@@ -398,9 +420,10 @@ export default function PharmacyBusinessDashboard() {
                 <p className="text-xs text-muted-foreground">Allow customers to register without approval</p>
               </div>
             </div>
-            <button className="relative inline-flex h-6 w-11 items-center rounded-full bg-gray-300 transition-colors">
-              <span className="inline-block h-4 w-4 transform rounded-full bg-white translate-x-1" />
-            </button>
+            <Switch
+              checked={platformSettings.customerSelfRegistration}
+              onCheckedChange={(checked) => setPlatformSettings(s => ({ ...s, customerSelfRegistration: checked }))}
+            />
           </div>
 
           <div className="flex items-center justify-between py-3 border-b border-border last:border-0">
@@ -411,9 +434,10 @@ export default function PharmacyBusinessDashboard() {
                 <p className="text-xs text-muted-foreground">Require prescription verification for controlled medicines</p>
               </div>
             </div>
-            <button className="relative inline-flex h-6 w-11 items-center rounded-full bg-primary transition-colors">
-              <span className="inline-block h-4 w-4 transform rounded-full bg-white translate-x-6" />
-            </button>
+            <Switch
+              checked={platformSettings.prescriptionValidation}
+              onCheckedChange={(checked) => setPlatformSettings(s => ({ ...s, prescriptionValidation: checked }))}
+            />
           </div>
 
           <div className="flex items-center justify-between py-3 border-b border-border last:border-0">
@@ -424,14 +448,47 @@ export default function PharmacyBusinessDashboard() {
                 <p className="text-xs text-muted-foreground">Enable third-party delivery for medicine orders</p>
               </div>
             </div>
-            <button className="relative inline-flex h-6 w-11 items-center rounded-full bg-primary transition-colors">
-              <span className="inline-block h-4 w-4 transform rounded-full bg-white translate-x-6" />
-            </button>
+            <Switch
+              checked={platformSettings.deliveryIntegration}
+              onCheckedChange={(checked) => setPlatformSettings(s => ({ ...s, deliveryIntegration: checked }))}
+            />
+          </div>
+
+          {/* Missing Provider Settings: Emergency Support & Refund Toggles */}
+          <div className="flex items-center justify-between py-3 border-b border-border last:border-0">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-destructive mt-0.5" />
+              <div>
+                <p className="font-medium text-sm text-card-foreground">24x7 Emergency Medicine Supply</p>
+                <p className="text-xs text-muted-foreground">Accept urgent night dispatches and hospital SOS orders</p>
+              </div>
+            </div>
+            <Switch
+              checked={platformSettings.emergencySupport}
+              onCheckedChange={(checked) => setPlatformSettings(s => ({ ...s, emergencySupport: checked }))}
+            />
+          </div>
+
+          <div className="flex items-center justify-between py-3 border-b border-border last:border-0">
+            <div className="flex items-start gap-3">
+              <RotateCcw className="w-5 h-5 text-primary mt-0.5" />
+              <div>
+                <p className="font-medium text-sm text-card-foreground">Accept Returns & Refund Policy</p>
+                <p className="text-xs text-muted-foreground">Allow patient returns for sealed non-temperature items within 48h</p>
+              </div>
+            </div>
+            <Switch
+              checked={platformSettings.acceptRefunds}
+              onCheckedChange={(checked) => setPlatformSettings(s => ({ ...s, acceptRefunds: checked }))}
+            />
           </div>
         </div>
 
         <div className="flex items-center gap-3 mt-6 pt-6 border-t border-border">
-          <button className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors">
+          <button
+            onClick={handleSavePlatformSettings}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+          >
             <Save className="w-4 h-4" />
             Save Platform Settings
           </button>

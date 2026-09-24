@@ -14,7 +14,22 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
+import { getSocket } from '@/lib/socket';
 import { useAuth } from '@/context/AuthContext';
+
+function useDoctorGpsSync(enabled) {
+  useEffect(() => {
+    if (!enabled || !navigator.geolocation) return;
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        getSocket()?.emit('doctor:location', { lat: pos.coords.latitude, lng: pos.coords.longitude });
+      },
+      () => {},
+      { enableHighAccuracy: true }
+    );
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, [enabled]);
+}
 import { useAudioCall } from '@/context/AudioCallContext';
 import { api } from '@/lib/api';
 import { getISTDateString } from '@/lib/dateUtils';

@@ -1,16 +1,18 @@
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  CalendarDays, Calendar, User, FileText, TestTube, Bell, AlertTriangle, ClipboardList,
-  Pill, ShoppingCart, Upload, Search, Zap, Heart, ArrowRight, Clock, Star,
-  IndianRupee, Activity, MapPinned, HelpCircle, Phone, MessageCircle, ChevronRight,
-  X, Download, Users, Stethoscope, Syringe, CreditCard, Bookmark,
-  Smartphone, Landmark, Wallet, RotateCcw, Sparkles, CheckCircle2, TrendingUp,
-  ExternalLink, RefreshCw, ChevronLeft, Video, MapPin, Car, Building2, CalendarClock
+  CalendarDays, User, FileText, TestTube, Bell, ClipboardList,
+  Pill, ShoppingCart, Upload, Zap, Heart, Clock, Star,
+  IndianRupee, Phone, MessageCircle, ChevronRight,
+  X, Download, Syringe, CreditCard,
+  Smartphone, Landmark, Wallet, RotateCcw, Sparkles, CheckCircle2,
+  RefreshCw, Video, MapPin, Building2, CalendarClock,
+  Siren
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { api, downloadPaymentInvoice } from '@/lib/api';
 import { getISTDateString, formatDisplayDate } from '@/lib/dateUtils';
@@ -20,6 +22,8 @@ import {
   AlertDialogHeader, AlertDialogTitle
 } from '@/components/ui/alert-dialog';
 import { TodayHealthWidget } from '@/components/patient/TodayHealthWidget';
+import { SupportTicketForm } from '@/components/patient/SupportTicketForm';
+import EmergencyDoctorModal from '@/components/emergency/EmergencyDoctorModal';
 
 function getAppointmentModeMeta(appt) {
   if (!appt) return { key: 'hospital', label: 'In Clinic / Hospital', icon: Building2, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20' };
@@ -54,29 +58,6 @@ const StatusBadge = ({ status, mapping }) => {
 
 const methodIcons = { card: CreditCard, upi: Smartphone, netbanking: Landmark, cash: Wallet };
 
-const SupportTicketForm = ({ onClose, showToast }) => {
-  const [subject, setSubject] = useState('');
-  const [message, setMessage] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const handleSubmit = async () => {
-    if (!subject || !message) return showToast('Please fill all fields', 'error');
-    setSubmitting(true);
-    try {
-      await api.createSupportTicket({ subject, message });
-      showToast('Support ticket submitted');
-      onClose();
-    } catch { showToast('Failed to submit ticket', 'error'); }
-    setSubmitting(false);
-  };
-  return (
-    <div className="space-y-4">
-      <div><label className="text-sm font-medium mb-1 block">Subject</label><Input value={subject} onChange={e => setSubject(e.target.value)} placeholder="Brief title for your issue" /></div>
-      <div><label className="text-sm font-medium mb-1 block">Message</label><textarea value={message} onChange={e => setMessage(e.target.value)} placeholder="Describe your issue in detail..." className="w-full min-h-[100px] rounded-lg border border-input bg-transparent px-3 py-2 text-sm" /></div>
-      <Button className="w-full" onClick={handleSubmit} disabled={submitting || !subject || !message}>{submitting ? 'Submitting...' : 'Submit Ticket'}</Button>
-    </div>
-  );
-};
-
 const Modal = ({ title, children, onClose }) => (
   <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
     <div className="bg-card rounded-2xl border shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
@@ -97,13 +78,13 @@ const statCards = [
 ];
 
 const quickActions = [
-  { label: 'Find Doctors', icon: Building2, link: '/doctors', desc: 'In Clinic / Hospital' },
+  { label: 'Find Doctors', icon: Building2, link: '/patient/doctors', desc: 'In Clinic / Hospital' },
   { label: 'Home Visits', icon: MapPin, link: '/patient/home-visit', desc: 'Live map tracking' },
   { label: 'Video Consult', icon: Video, link: '/patient/video-calls', desc: 'Full HD 1080p' },
   { label: 'Voice Calls', icon: Phone, link: '/patient/calls', desc: 'Audio consults' },
   { label: 'Doctor Chat', icon: MessageCircle, link: '/patient/chat', desc: 'Instant messaging' },
   { label: 'Book Lab Test', icon: Syringe, link: '/patient/services', desc: 'Home collection' },
-  { label: 'Buy Medicine', icon: Pill, link: '/pharmacy', desc: 'Doorstep delivery' },
+  { label: 'Buy Medicine', icon: Pill, link: '/buy-medicine', desc: 'Doorstep delivery' },
   { label: 'Upload Report', icon: Upload, link: '/upload', desc: 'Store securely' },
   { label: 'Saved Doctors', icon: Heart, link: '/patient/favorites', desc: 'Quick access' },
 ];
@@ -119,7 +100,6 @@ export default function PatientDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [showModal, setShowModal] = useState(null);
-  const [toast, setToast] = useState(null);
   const [appointments, setAppointments] = useState([]);
   const [bills, setBills] = useState([]);
   const [medOrders, setMedOrders] = useState([]);
@@ -134,6 +114,7 @@ export default function PatientDashboard() {
   const [greeting, setGreeting] = useState('');
   const [payments, setPayments] = useState([]);
   const [apptTab, setApptTab] = useState('upcoming');
+  const [doctorSosModalOpen, setDoctorSosModalOpen] = useState(false);
 
   useEffect(() => {
     const h = new Date().getHours();
@@ -149,6 +130,30 @@ export default function PatientDashboard() {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    let socket;
+    (async () => {
+      try {
+        const { getSocket } = await import('@/lib/socket');
+        socket = getSocket();
+        const onStatusChange = (data) => {
+          toast.info(`Appointment status updated to: ${data?.status || 'updated'}`);
+          api.getAppointments().then((res) => setAppointments(res?.data || res?.appointments || res || [])).catch(() => {});
+        };
+        const onReportReady = (data) => {
+          toast.success(`Your lab report for ${data?.testName || 'test'} is now ready!`);
+          api.getRecords().then((res) => setReports(res?.data || res?.records || res || [])).catch(() => {});
+        };
+        socket?.on('appointment:statusChange', onStatusChange);
+        socket?.on('lab:reportReady', onReportReady);
+        return () => {
+          socket?.off('appointment:statusChange', onStatusChange);
+          socket?.off('lab:reportReady', onReportReady);
+        };
+      } catch {}
+    })();
+  }, []);
+
   const handleCancelAppointment = async () => {
     if (!cancelTarget) return;
     const id = cancelTarget;
@@ -156,11 +161,14 @@ export default function PatientDashboard() {
     try {
       await api.updateAppointment(id, { status: 'Cancelled' });
       setAppointments(prev => prev.map(ap => ap._id === id ? { ...ap, status: 'Cancelled' } : ap));
-      showToast('Appointment cancelled');
-    } catch { showToast('Failed to cancel', 'error'); }
+      toast.success('Appointment cancelled');
+    } catch { toast.error('Failed to cancel'); }
   };
 
-  const showToast = (msg, type = 'success') => { setToast({ msg, type }); setTimeout(() => setToast(null), 3000); };
+  const showToast = (msg, type = 'success') => {
+    if (type === 'error') toast.error(msg);
+    else toast.success(msg);
+  };
 
   useEffect(() => {
      if (!user?.id) return;
@@ -196,8 +204,8 @@ export default function PatientDashboard() {
           api.getNotifications({}).catch(() => ({ data: [] })),
           api.getLabBookings({}).catch(() => ({ bookings: [] })),
         ]);
-        if (phOrders?.orders?.length) setMedOrders(phOrders.orders);
-        if (rx?.prescriptions?.length) setPrescriptions(rx.prescriptions);
+        setMedOrders(phOrders?.orders || []);
+        setPrescriptions(rx?.prescriptions || []);
         const notifList = n?.notifications || n?.data || n || [];
         if (notifList.length) setNotifs(notifList);
         const revData = await api.getReviews({ patientId: user?.id }).catch(() => []);
@@ -252,8 +260,6 @@ export default function PatientDashboard() {
     );
   };
 
-  const pendingBills = bills.filter(b => !isBillPaid(b));
-  const pendingBillsCount = pendingBills.length;
   const activeRxCount = prescriptions.filter(r => r.status === 'Active').length;
   const activeOrders = medOrders.filter(o => o.status !== 'Delivered').length;
   const readyReportsCount = reports.filter(r => r.status === 'Ready').length;
@@ -268,24 +274,12 @@ export default function PatientDashboard() {
     'Active Orders': activeOrders,
     'Reports Ready': readyReportsCount,
     'Notifications': unreadNotifs,
-    'Test Bookings': recentTests.length,
+    'Test Bookings': testBookings.length,
     'My Reviews': reviews.length,
   };
 
   return (
     <div>
-      {toast && (
-        <motion.div initial={{ opacity: 0, x: 50, scale: 0.95 }} animate={{ opacity: 1, x: 0, scale: 1 }}
-          className={`fixed top-4 right-4 z-[60] px-5 py-3.5 rounded-2xl shadow-2xl text-sm font-medium flex items-center gap-3 ${
-            toast.type === 'success'
-              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200/50 dark:bg-emerald-950 dark:text-emerald-200'
-              : 'bg-red-50 text-red-800 border border-red-200/50 dark:bg-red-950 dark:text-red-200'
-          }`}>
-          <div className={`w-2 h-2 rounded-full ${toast.type === 'success' ? 'bg-emerald-500' : 'bg-red-500'}`} />
-          {toast.msg}
-        </motion.div>
-      )}
-
       {/* Welcome Banner */}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
         className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary via-primary/90 to-primary/70 p-6 text-white mb-6">
@@ -297,9 +291,28 @@ export default function PatientDashboard() {
             <h1 className="font-heading text-2xl sm:text-3xl font-bold mt-0.5">Welcome back, {user?.name?.split(' ')[0] || 'there'}</h1>
             <p className="text-white/80 mt-1">Here's your health snapshot for today</p>
           </div>
-          <div className="flex items-center gap-3">
-            <Button onClick={() => navigate('/find-vehicle?emergency=true')} className="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs h-10 px-4 rounded-xl shadow-lg">
-              🚨 SOS Ambulance
+          <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap">
+            <Button
+              onClick={() => setDoctorSosModalOpen(true)}
+              className="bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 text-white font-bold text-xs h-10 px-4 rounded-xl shadow-lg border border-teal-300/40 flex items-center gap-1.5 cursor-pointer ring-2 ring-teal-400/40 animate-pulse"
+            >
+              <Stethoscope className="w-4 h-4 text-white" />
+              <span>🩺 Emergency Doctor</span>
+            </Button>
+            <Button
+              onClick={() => navigate('/find-vehicle?emergency=true')}
+              className="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs h-10 px-4 rounded-xl shadow-lg flex items-center gap-1.5 cursor-pointer"
+            >
+              <Siren className="w-4 h-4 text-white" />
+              <span>🚨 SOS Ambulance</span>
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => window.location.reload()}
+              className="gap-1.5 rounded-xl text-xs h-10"
+            >
+              <RefreshCw className="w-3.5 h-3.5" /> Refresh
             </Button>
             <div className="hidden sm:block bg-white/15 backdrop-blur-sm rounded-xl px-4 py-2.5 text-sm">
               <p className="text-white/70 text-xs">{new Date().toLocaleDateString('en-IN', { weekday: 'long' })}</p>
@@ -312,6 +325,71 @@ export default function PatientDashboard() {
           </div>
         </div>
       </motion.div>
+
+      {/* ── Dual Emergency Quick Hub ── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 mb-6">
+        {/* Ambulance SOS Card */}
+        <motion.div
+          whileHover={{ y: -2, scale: 1.005 }}
+          whileTap={{ scale: 0.99 }}
+          onClick={() => navigate('/find-vehicle?emergency=true')}
+          className="group relative overflow-hidden rounded-2xl border-2 border-red-500/30 bg-gradient-to-br from-red-600/10 via-card to-rose-600/5 p-4 shadow-sm hover:shadow-md hover:border-red-500/60 transition-all cursor-pointer"
+        >
+          <div className="flex items-center gap-3.5">
+            <div className="relative w-12 h-12 rounded-2xl bg-gradient-to-tr from-red-600 to-rose-500 text-white flex items-center justify-center shadow-md flex-shrink-0 group-hover:scale-105 transition-transform">
+              <span className="absolute inset-0 rounded-2xl bg-red-500/40 animate-ping pointer-events-none" />
+              <Siren className="w-6 h-6 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <h3 className="font-heading font-black text-sm text-foreground group-hover:text-red-500 transition-colors">
+                  Emergency Ambulance SOS
+                </h3>
+                <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-red-500 text-white">
+                  ICU / BLS
+                </span>
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">
+                Hospital transport, stretcher support & emergency paramedic transfer.
+              </p>
+            </div>
+            <div className="w-7 h-7 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 group-hover:translate-x-1 transition-transform flex-shrink-0">
+              <ChevronRight className="w-4 h-4" />
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Emergency Doctor Flying Squad Card */}
+        <motion.div
+          whileHover={{ y: -2, scale: 1.005 }}
+          whileTap={{ scale: 0.99 }}
+          onClick={() => setDoctorSosModalOpen(true)}
+          className="group relative overflow-hidden rounded-2xl border-2 border-teal-500/30 bg-gradient-to-br from-teal-600/10 via-card to-cyan-600/5 p-4 shadow-sm hover:shadow-md hover:border-teal-500/60 transition-all cursor-pointer"
+        >
+          <div className="flex items-center gap-3.5">
+            <div className="relative w-12 h-12 rounded-2xl bg-gradient-to-tr from-teal-500 to-cyan-500 text-white flex items-center justify-center shadow-md flex-shrink-0 group-hover:scale-105 transition-transform">
+              <span className="absolute inset-0 rounded-2xl bg-teal-500/40 animate-ping pointer-events-none" />
+              <Stethoscope className="w-6 h-6 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <h3 className="font-heading font-black text-sm text-foreground group-hover:text-teal-400 transition-colors">
+                  Emergency Doctor at Location
+                </h3>
+                <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-teal-500 text-white">
+                  Flying Squad
+                </span>
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">
+                Nearby clinic doctor rushes to your location with resuscitation kit.
+              </p>
+            </div>
+            <div className="w-7 h-7 rounded-full bg-teal-500/10 flex items-center justify-center text-teal-400 group-hover:translate-x-1 transition-transform flex-shrink-0">
+              <ChevronRight className="w-4 h-4" />
+            </div>
+          </div>
+        </motion.div>
+      </div>
 
       {/* Stats Grid */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
@@ -369,7 +447,7 @@ export default function PatientDashboard() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
           {/* 1: In Clinic / Hospital */}
           <div
-            onClick={() => navigate('/doctors')}
+            onClick={() => navigate('/patient/doctors')}
             className="group relative rounded-2xl border-2 border-blue-500/30 bg-blue-500/5 dark:bg-blue-950/20 p-4 hover:border-blue-500 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 cursor-pointer flex flex-col justify-between"
           >
             <div>
@@ -619,7 +697,7 @@ export default function PatientDashboard() {
                     {apptTab === 'complete' && 'No completed appointment history'}
                   </p>
                   <p className="text-xs text-muted-foreground/60 mt-1">Book an in-clinic, home visit, video or call appointment</p>
-                  <Button size="sm" className="mt-4 rounded-xl shadow-lg shadow-primary/20" onClick={() => navigate('/doctors')}>
+                  <Button size="sm" className="mt-4 rounded-xl shadow-lg shadow-primary/20" onClick={() => navigate('/patient/doctors')}>
                     <Building2 className="w-3.5 h-3.5 mr-1.5" /> Book Appointment
                   </Button>
                 </div>
@@ -710,7 +788,7 @@ export default function PatientDashboard() {
                           </div>
                         )}
                         {apptTab === 'complete' && (
-                          <Button size="sm" variant="outline" className="text-xs h-8 rounded-xl text-primary border-primary/20 hover:bg-primary/5" onClick={() => navigate('/doctors')}>
+                          <Button size="sm" variant="outline" className="text-xs h-8 rounded-xl text-primary border-primary/20 hover:bg-primary/5" onClick={() => navigate('/patient/doctors')}>
                             Book Again
                           </Button>
                         )}
@@ -872,7 +950,7 @@ export default function PatientDashboard() {
               </div>
               <p className="text-sm text-muted-foreground font-medium">No active orders</p>
               <p className="text-xs text-muted-foreground/60 mt-1">Order medicines for delivery</p>
-              <Button size="sm" className="mt-4 rounded-xl shadow-lg shadow-amber-500/20 bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600" onClick={() => navigate('/pharmacy')}>
+              <Button size="sm" className="mt-4 rounded-xl shadow-lg shadow-amber-500/20 bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600" onClick={() => navigate('/buy-medicine')}>
                 <Pill className="w-3.5 h-3.5 mr-1.5" /> Shop Now
               </Button>
             </div>
@@ -1029,6 +1107,12 @@ export default function PatientDashboard() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <EmergencyDoctorModal
+        isOpen={doctorSosModalOpen}
+        onClose={() => setDoctorSosModalOpen(false)}
+        currentUser={user}
+      />
     </div>
   );
 }

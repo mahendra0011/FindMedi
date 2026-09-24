@@ -69,6 +69,7 @@ import { Input } from '../../components/ui/input';
 import { TaskChecklistView } from '../../components/assistant/TaskChecklistView';
 import { AssistantChatPanel } from '../../components/assistant/AssistantChatPanel';
 import { api } from '../../lib/api';
+import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { getSocket, joinAssistantBookingRoom } from '../../lib/socket';
 import { useSearchParams, useLocation, useNavigate, Link } from 'react-router-dom';
@@ -99,6 +100,24 @@ const SERVICE_CATEGORIES = [
 ];
 
 const DAYS_OF_WEEK = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+// Platform commission is defined server-side (assistants.js: 10%). Frontend
+// must never invent amounts — use backend net fields when present, else
+// derive from gross with the same rate. No ||600 fallback.
+const ASSISTANT_COMMISSION_RATE = 0.10;
+const getAssistantNet = (booking: any): number => {
+  if (!booking) return 0;
+  if (typeof booking.assistantPayout === 'number') return Math.round(booking.assistantPayout);
+  if (typeof booking.netPayout === 'number') return Math.round(booking.netPayout);
+  if (typeof booking.netAmount === 'number') return Math.round(booking.netAmount);
+  const gross = booking.cost?.total;
+  if (typeof gross !== 'number' || Number.isNaN(gross)) return 0;
+  return Math.round(gross * (1 - ASSISTANT_COMMISSION_RATE));
+};
+const getAssistantGross = (booking: any): number => {
+  const gross = booking?.cost?.total;
+  return typeof gross === 'number' && !Number.isNaN(gross) ? gross : 0;
+};
 
 export default function AssistantDashboard() {
   const { user } = useAuth();
@@ -194,6 +213,13 @@ export default function AssistantDashboard() {
     name: '',
     phone: '',
   });
+  // Section-10 settings master
+  const [editEmergencyStandby, setEditEmergencyStandby] = useState(false);
+  const [editRefundPolicy, setEditRefundPolicy] = useState('full_6h');
+  const [editRateCard, setEditRateCard] = useState({ halfDay4h: 0, day8h: 0, night12h: 0, full24h: 0 });
+  const [editClinicalTags, setEditClinicalTags] = useState<string[]>([]);
+  const [clinicalTagInput, setClinicalTagInput] = useState('');
+  const [editPreferredHospitals, setEditPreferredHospitals] = useState<string[]>([]);
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileSuccessMsg, setProfileSuccessMsg] = useState('');
 
@@ -225,6 +251,13 @@ export default function AssistantDashboard() {
         if (p.extraSkills) setEditExtraSkills({ ...editExtraSkills, ...p.extraSkills });
         if (p.bankDetails) setEditBankDetails({ ...editBankDetails, ...p.bankDetails });
         if (p.emergencyContact) setEditEmergencyContact({ ...editEmergencyContact, ...p.emergencyContact });
+        if (p.settings) {
+          setEditEmergencyStandby(Boolean(p.settings.emergencyStandby));
+          if (p.settings.refundPolicy) setEditRefundPolicy(p.settings.refundPolicy);
+          if (p.settings.rateCard) setEditRateCard({ halfDay4h: 0, day8h: 0, night12h: 0, full24h: 0, ...p.settings.rateCard });
+          if (Array.isArray(p.settings.clinicalTags)) setEditClinicalTags(p.settings.clinicalTags);
+          if (Array.isArray(p.settings.preferredHospitals)) setEditPreferredHospitals(p.settings.preferredHospitals);
+        }
       }
 
       setEarnings(earningsRes);
@@ -318,7 +351,7 @@ export default function AssistantDashboard() {
       const res = await api.setAssistantStatus(!profile.isAvailable);
       setProfile((prev: any) => ({ ...prev, isAvailable: res.isAvailable }));
     } catch (err: any) {
-      alert(err.message || 'Failed to update availability status');
+      toast.error(err.message || 'Failed to update availability status');
     }
   };
 
@@ -330,7 +363,7 @@ export default function AssistantDashboard() {
       await fetchDashboardData(true);
       setActiveTab('active');
     } catch (err: any) {
-      alert(err.message || 'Could not accept this booking.');
+      toast.error(err.message || 'Could not accept this booking.');
     }
   };
 
@@ -343,7 +376,7 @@ export default function AssistantDashboard() {
       setIncomingRequests((prev) => prev.filter((r) => r._id !== declineTargetId));
       setDeclineTargetId(null);
     } catch (err: any) {
-      alert(err.message || 'Could not decline booking');
+      toast.error(err.message || 'Could not decline booking');
     } finally {
       setDeclining(false);
     }
@@ -360,7 +393,7 @@ export default function AssistantDashboard() {
       await fetchDashboardData(true);
       setActiveTab('history');
     } catch (err: any) {
-      alert(err.message || 'Failed to mark assistance completed.');
+      toast.error(err.message || 'Failed to mark assistance completed.');
     } finally {
       setCompletingShift(false);
     }
@@ -372,7 +405,7 @@ export default function AssistantDashboard() {
       setDownloadingPdfId(bookingId);
       await api.downloadAssistantReceipt(bookingId, `Receipt-${bookingNum || bookingId}.pdf`);
     } catch (err: any) {
-      alert(err.message || 'Failed to download PDF receipt.');
+      toast.error(err.message || 'Failed to download PDF receipt.');
     } finally {
       setDownloadingPdfId(null);
     }
@@ -384,7 +417,7 @@ export default function AssistantDashboard() {
     const amt = Number(withdrawAmount);
     if (!amt || amt <= 0) return;
     if (amt > (profile?.walletBalance || 0)) {
-      alert('Withdrawal amount exceeds available wallet balance.');
+      toast.warning('Withdrawal amount exceeds available wallet balance.');
       return;
     }
     try {
@@ -394,7 +427,7 @@ export default function AssistantDashboard() {
       setWithdrawAmount('');
       fetchDashboardData(true);
     } catch (err: any) {
-      alert(err.message || 'Withdrawal failed');
+      toast.error(err.message || 'Withdrawal failed');
     } finally {
       setWithdrawing(false);
     }
@@ -418,12 +451,24 @@ export default function AssistantDashboard() {
         extraSkills: editExtraSkills,
         bankDetails: editBankDetails,
         emergencyContact: editEmergencyContact,
+        settings: {
+          emergencyStandby: editEmergencyStandby,
+          refundPolicy: editRefundPolicy,
+          rateCard: {
+            halfDay4h: Number(editRateCard.halfDay4h) || 0,
+            day8h: Number(editRateCard.day8h) || 0,
+            night12h: Number(editRateCard.night12h) || 0,
+            full24h: Number(editRateCard.full24h) || 0,
+          },
+          clinicalTags: editClinicalTags,
+          preferredHospitals: (editPreferredHospitals.length > 0 ? editPreferredHospitals : editHospitals).slice(0, 5),
+        },
       });
       setProfileSuccessMsg('Profile and preferences updated successfully!');
       fetchDashboardData(true);
       setTimeout(() => setProfileSuccessMsg(''), 4000);
     } catch (err: any) {
-      alert(err.message || 'Profile update failed.');
+      toast.error(err.message || 'Profile update failed.');
     } finally {
       setSavingProfile(false);
     }
@@ -453,11 +498,25 @@ export default function AssistantDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center p-6 space-y-4">
-        <div className="w-12 h-12 border-4 border-teal-600 border-t-transparent rounded-full animate-spin" />
-        <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">
-          Loading Assistant Workspace...
-        </p>
+      <div className="w-full space-y-6 pb-20 animate-pulse" aria-busy="true" aria-label="Loading Assistant Workspace">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-5 sm:p-6 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div className="space-y-3 flex-1">
+            <div className="h-6 w-48 rounded-xl bg-slate-200 dark:bg-slate-800" />
+            <div className="h-4 w-64 rounded-lg bg-slate-100 dark:bg-slate-800" />
+            <div className="flex gap-2">
+              <div className="h-9 w-28 rounded-xl bg-teal-100 dark:bg-teal-950" />
+              <div className="h-9 w-28 rounded-xl bg-slate-100 dark:bg-slate-800" />
+            </div>
+          </div>
+          <div className="h-16 w-40 rounded-2xl bg-slate-100 dark:bg-slate-800" />
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="h-28 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800" />
+          ))}
+        </div>
+        <div className="h-64 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800" />
+        <p className="text-center text-sm font-semibold text-slate-500">Loading Assistant Workspace...</p>
       </div>
     );
   }
@@ -1177,7 +1236,7 @@ export default function AssistantDashboard() {
                         <div className="text-right">
                           <span className="text-xs text-slate-400 block">Net Payout</span>
                           <span className="text-sm font-black text-emerald-600 dark:text-emerald-400">
-                            ₹{Math.round((req.cost?.total || 600) * 0.9)}
+                            ₹{getAssistantNet(req)}
                           </span>
                         </div>
                       </div>
@@ -1371,8 +1430,8 @@ export default function AssistantDashboard() {
             ) : (
               <div className="space-y-4">
                 {filteredRequests.map((req) => {
-                  const gross = req.cost?.total || 600;
-                  const net = Math.round(gross * 0.9);
+                  const gross = getAssistantGross(req);
+                  const net = getAssistantNet(req);
                   return (
                     <div
                       key={req._id}
@@ -1603,7 +1662,7 @@ export default function AssistantDashboard() {
                   <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-700 space-y-2">
                     <span className="text-xs font-bold text-slate-400 uppercase">Shift Earnings</span>
                     <div className="text-xl font-black text-emerald-600 dark:text-emerald-400">
-                      ₹{Math.round((activeBooking.cost?.total || 600) * 0.9)}
+                      ₹{getAssistantNet(activeBooking)}
                     </div>
                     <p className="text-[11px] text-slate-500">
                       Rate: ₹{activeBooking.cost?.ratePerHour || 150}/hr • Auto credited upon shift completion
@@ -1639,7 +1698,7 @@ export default function AssistantDashboard() {
                           await api.checkInAssistantBooking(activeBooking._id);
                           await fetchDashboardData(true);
                         } catch (e: any) {
-                          alert(e.message || 'Check in failed');
+                          toast.error(e.message || 'Check in failed');
                         }
                       }}
                       className="bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs h-10 px-6 rounded-xl shadow-md shadow-emerald-600/20"
@@ -1659,7 +1718,7 @@ export default function AssistantDashboard() {
                         await api.updateAssistantTask(activeBooking._id, taskId, isDone);
                         await fetchDashboardData(true);
                       } catch (e: any) {
-                        alert(e.message || 'Toggle task failed');
+                        toast.error(e.message || 'Toggle task failed');
                       }
                     }}
                     onAddCustomTask={async (label, category) => {
@@ -1667,7 +1726,7 @@ export default function AssistantDashboard() {
                         await api.addAssistantCustomTask(activeBooking._id, label, category);
                         await fetchDashboardData(true);
                       } catch (e: any) {
-                        alert(e.message || 'Add task failed');
+                        toast.error(e.message || 'Add task failed');
                       }
                     }}
                   />
@@ -2370,6 +2429,109 @@ export default function AssistantDashboard() {
                   />
                 </div>
               </div>
+              {profile?.bankDetails?.verified && (
+                <p className="text-[11px] font-bold text-emerald-600">✓ Payout account verified by admin</p>
+              )}
+            </div>
+
+            {/* Section 7: Emergency Standby + Refund Policy */}
+            <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                7. Emergency Standby & Cancellation Policy
+              </h4>
+              <label className="flex items-start gap-3 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={editEmergencyStandby}
+                  onChange={(e) => setEditEmergencyStandby(e.target.checked)}
+                  className="mt-0.5 w-4 h-4 rounded accent-teal-600"
+                />
+                <span>
+                  <span className="block text-xs font-bold text-slate-800 dark:text-slate-100">Night & acute post-op emergency standby</span>
+                  <span className="block text-[11px] text-slate-500">Families looking for urgent overnight attendants can find you for critical ICU step-down care.</span>
+                </span>
+              </label>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Shift cancellation & refund rule
+                </label>
+                <select
+                  value={editRefundPolicy}
+                  onChange={(e) => setEditRefundPolicy(e.target.value)}
+                  className="h-10 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 w-full"
+                >
+                  <option value="full_6h">100% refund if cancelled &gt;6h before shift</option>
+                  <option value="half_2_6h">50% refund if cancelled 2–6h before shift</option>
+                  <option value="none_enroute">0% refund once assistant is en route</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Section 8: Shift Rate Card */}
+            <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                8. Multi-Shift Rate Card (₹)
+              </h4>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                {([
+                  ['halfDay4h', '4h Half-Day'],
+                  ['day8h', '8h Day Shift'],
+                  ['night12h', '12h Night Shift'],
+                  ['full24h', '24h Full Stay'],
+                ] as const).map(([key, label]) => (
+                  <div key={key}>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">{label}</label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={editRateCard[key]}
+                      onChange={(e) => setEditRateCard({ ...editRateCard, [key]: Number(e.target.value) })}
+                      className="h-10 text-xs rounded-xl"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Section 9: Clinical Tags + Preferred Hospitals */}
+            <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                9. Specialized Skills & Hospital Footprint
+              </h4>
+              <div className="flex flex-wrap gap-2">
+                {editClinicalTags.map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setEditClinicalTags(editClinicalTags.filter((x) => x !== t))}
+                    className="px-3 py-1.5 rounded-full bg-teal-500/10 text-teal-700 dark:text-teal-300 border border-teal-500/20 text-xs font-bold"
+                    title="Remove"
+                  >
+                    {t} ✕
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  value={clinicalTagInput}
+                  onChange={(e) => setClinicalTagInput(e.target.value)}
+                  placeholder="e.g. Tracheostomy Care, Dementia, Bedridden"
+                  className="h-10 text-xs rounded-xl"
+                />
+                <Button
+                  type="button"
+                  onClick={() => {
+                    const v = clinicalTagInput.trim();
+                    if (v && !editClinicalTags.includes(v)) setEditClinicalTags([...editClinicalTags, v].slice(0, 20));
+                    setClinicalTagInput('');
+                  }}
+                  className="h-10 text-xs rounded-xl shrink-0"
+                  variant="outline"
+                >
+                  Add
+                </Button>
+              </div>
+              <p className="text-[11px] text-slate-500">Preferred hospitals (top 5) — use service-areas field above; saved list: {editPreferredHospitals.join(', ') || '—'}</p>
             </div>
 
             {/* Submit Button */}
@@ -2604,10 +2766,16 @@ export default function AssistantDashboard() {
               type="button"
               onClick={async () => {
                 try {
-                  await api.createEmergency({ type: "assistant-sos", severity: "high", message: "Assistant raised SOS from dashboard" });
-                  alert("Platform SOS raised — emergency team notified.");
-                } catch (e) {
-                  alert(e.message || "Failed to raise SOS");
+                  await api.createEmergency({
+                    patientName: user?.name ? `Assistant (${user.name})` : 'Hospital Assistant Attendant',
+                    condition: 'Assistant raised Emergency SOS from bedside console',
+                    severity: 'Critical',
+                    phone: user?.phone || '9876543210'
+                  });
+                  toast.success("🚨 Platform SOS raised — campus emergency team notified.");
+                  setShowSosModal(false);
+                } catch (e: any) {
+                  toast.error(e.message || "Failed to raise SOS");
                 }
               }}
               className="w-full p-3 rounded-2xl bg-rose-600 text-white font-bold text-xs hover:bg-rose-700 transition-colors"
@@ -2673,7 +2841,7 @@ export default function AssistantDashboard() {
             location: {
               address: activeIncomingCall.hospital,
             },
-            amount: Math.round((activeIncomingCall.cost?.total || 600) * 0.9),
+            amount: getAssistantNet(activeIncomingCall),
             windowSeconds: 120,
             scheduledTime: activeIncomingCall.scheduledDate
               ? `${new Date(activeIncomingCall.scheduledDate).toLocaleDateString()} at ${activeIncomingCall.startTime || 'Scheduled time'}`

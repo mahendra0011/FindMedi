@@ -77,10 +77,10 @@ export default function Pharmacy() {
 
   // Delivery
   const [deliveries, setDeliveries] = useState([]);
-  const [deliveryForm, setDeliveryForm] = useState({ orderId: '', deliveryPerson: '', phone: '', estimatedTime: '' });
+  const [deliveryForm, setDeliveryForm] = useState({ orderId: '', deliveryPartnerId: '', pickupAddress: '', dropAddress: '', estimatedTime: '' });
 
   // Billing
-  const [bills] = useState([]);
+  const [bills, setBills] = useState([]);
   const [billFilter, setBillFilter] = useState('All');
 
   // Returns
@@ -96,21 +96,58 @@ export default function Pharmacy() {
   const [newOffer, setNewOffer] = useState({ title: '', code: '', discount: '', type: 'percentage', minPurchase: '0', maxDiscount: '', validTill: '', usageLimit: '100', isActive: true });
 
   // Reviews
-  const [reviews, _setReviews] = useState([]);
+  const [reviews, setReviews] = useState([]);
+
+  const handleAssignDelivery = async () => {
+    try {
+      const order = orders.find((o) => String(o._id) === String(deliveryForm.orderId));
+      const payload = {
+        orderId: order?.orderId || deliveryForm.orderId,
+        orderRef: deliveryForm.orderId,
+        deliveryPartnerId: deliveryForm.deliveryPartnerId,
+        pickupAddress: deliveryForm.pickupAddress || 'Pharmacy counter',
+        dropAddress: deliveryForm.dropAddress || order?.deliveryAddress || order?.address || 'Customer address',
+        estimatedTime: deliveryForm.estimatedTime,
+        serviceType: 'pharmacy_order',
+      };
+      let created;
+      try {
+        created = await api.post('/delivery-partners/assign', { deliveryId: undefined, deliveryPartnerId: payload.deliveryPartnerId });
+      } catch { created = null; }
+      if (!created || !created._id) {
+        created = await api.createPharmacyDelivery(payload);
+      }
+      setDeliveries((ds) => [created, ...ds]);
+      showToast('Rider assigned successfully! Realtime alert sent.');
+      setShowModal(null);
+      loadDeliveries();
+    } catch (err) {
+      showToast(`Assignment failed: ${err.message}`, 'error');
+    }
+  };
+
+  const loadDeliveries = async () => {
+    try {
+      const data = await api.get('/pharmacy/deliveries');
+      setDeliveries(data.deliveries || data || []);
+    } catch (err) {
+      console.error('Failed to load pharmacy deliveries', err);
+    }
+  };
   const reviewCount = reviews.length;
 
   // Reports
   const [reportPeriod, setReportPeriod] = useState('7d');
 
 // Settings
-  const [storeSettings, setStoreSettings] = useState({ name: 'FindMedi Pharmacy', address: '123 Healthcare Ave, New York', phone: '+1 234-567-8900', email: 'pharmacy@findmedi.com', licenseNo: 'PH-LIC-001', timing: '8:00 AM - 10:00 PM', deliveryRadius: '10 km', minOrderAmt: '100', deliveryFee: '30', gst: '18', autoRetry: true });
+  const [storeSettings, setStoreSettings] = useState({ name: 'FindMedi Pharmacy', address: 'MG Road, Indore, MP 452001', phone: '+91 98765 43210', email: 'pharmacy@findmedi.in', licenseNo: 'MP-PH-2024-001', timing: '8:00 AM - 11:00 PM', deliveryRadius: '8 km', minOrderAmt: '99', deliveryFee: '25', gst: '12', autoRetry: true });
 
   const showToast = (msg, type = 'success') => { setToast({ msg, type }); setTimeout(() => setToast(null), 3000); };
 
   const exportBillingCsv = async () => {
     try {
       const data = await pharmApi.getBillingExport();
-      const rows = (data.bills || filteredBills.length ? filteredBills : orders).map(b => ({
+      const rows = ((data.bills && data.bills.length ? data.bills : filteredBills.length ? filteredBills : orders)).map(b => ({
         invoice: b.invoiceId || b.orderId || b._id,
         patient: b.patientName,
         amount: b.total || b.amount || 0,
@@ -134,16 +171,50 @@ showToast('Failed to export billing', 'error');
     }
   };
 
+  const [pharmLoading, setPharmLoading] = useState(true);
+  const [pharmError, setPharmError] = useState(null);
+
   useEffect(() => {
     const load = async () => {
-      const d = await pharmApi.getStats();
-      setStats(d);
-      const m = await pharmApi.getMedicines({});
-      setMedicines(m.medicines || []);
-      const r = await pharmApi.getPrescriptions({});
-      setPrescriptions(r.prescriptions || []);
+      setPharmLoading(true);
+      setPharmError(null);
+      try {
+        const d = await pharmApi.getStats();
+        setStats(d);
+        const m = await pharmApi.getMedicines({});
+        setMedicines(m.medicines || []);
+        const r = await pharmApi.getPrescriptions({});
+        setPrescriptions(r.prescriptions || []);
+        const o = await api.getPharmacyOrders({ limit: 200 }).catch(() => ({ orders: [] }));
+        setOrders(o.orders || o.data || []);
+        await loadDeliveries();
+        const b = await api.getBilling({ limit: 200 }).catch(() => ({ bills: [] }));
+        setBills(b.bills || b.data || []);
+        const ret = await api.getPharmacyReturns({}).catch(() => ({ returns: [] }));
+        setReturns(ret.returns || ret.data || []);
+        const st = await api.getPharmacyStaff({}).catch(() => ({ staff: [] }));
+        setStaffList(st.staff || st.data || []);
+        const off = await api.getPharmacyOffers({}).catch(() => ({ offers: [] }));
+        setOffers(off.offers || off.data || []);
+        const rev = await api.getReviews({ limit: 100 }).catch(() => ({ reviews: [] }));
+        setReviews(rev.reviews || rev.data || []);
+      } catch (e) {
+        setPharmError(e.message || 'Failed to load pharmacy data');
+        showToast('Failed to load pharmacy data', 'error');
+      } finally {
+        setPharmLoading(false);
+      }
     };
     load();
+    let socket;
+    (async () => {
+      try {
+        const { getSocket } = await import('@/lib/socket');
+        socket = getSocket();
+        socket?.on('pharmacy:new_order', () => load());
+      } catch {}
+    })();
+    return () => { socket?.off('pharmacy:new_order'); };
   }, []);
 
   const loadMedicines = async () => {
@@ -460,7 +531,7 @@ showToast('Failed to export billing', 'error');
                       </div>
                     </div>
                     <div className="space-y-1">
-                      {d.tracking.map((t, i) => (
+                      {(d.trackingHistory || d.tracking || []).map((t, i) => (
                         <div key={i} className="flex items-center gap-2 text-xs text-muted-foreground">
                           <div className="w-2 h-2 rounded-full bg-primary" /> {t.location} · {new Date(t.time).toLocaleTimeString()}
                         </div>
@@ -585,7 +656,7 @@ showToast('Failed to export billing', 'error');
                       <p className="text-xs">Exp: {s.experience} · Shift: {s.shift} · Since {s.joinedAt}</p>
                     </div>
                     <div className="flex gap-2 mt-3 pt-3 border-t">
-                      <Button size="sm" variant="outline" onClick={() => { setStaffList(ss => ss.map(st => st._id === s._id ? { ...st, isActive: !st.isActive } : st)); showToast(`Staff ${s.isActive ? 'deactivated' : 'activated'}`); }}>{s.isActive ? 'Deactivate' : 'Activate'}</Button>
+                      <Button size="sm" variant="outline" onClick={async () => { try { await api.updatePharmacyStaff(s._id, { isActive: !s.isActive }); setStaffList(ss => ss.map(st => st._id === s._id ? { ...st, isActive: !st.isActive } : st)); showToast(`Staff ${s.isActive ? 'deactivated' : 'activated'}`); } catch { showToast('Failed to update staff', 'error'); } }}>{s.isActive ? 'Deactivate' : 'Activate'}</Button>
                     </div>
                   </div>
                 ))}
@@ -615,7 +686,7 @@ showToast('Failed to export billing', 'error');
                       <p className="text-xs text-muted-foreground">Valid till: {o.validTill}</p>
                     </div>
                     <div className="flex gap-2 mt-3 pt-3 border-t">
-                      <Button size="sm" variant="outline" onClick={() => { setOffers(os => os.map(off => off._id === o._id ? { ...off, isActive: !off.isActive } : off)); showToast(`Offer ${o.isActive ? 'disabled' : 'enabled'}`); }}>{o.isActive ? 'Disable' : 'Enable'}</Button>
+                      <Button size="sm" variant="outline" onClick={async () => { try { await api.updatePharmacyOffer(o._id, { isActive: !o.isActive }); setOffers(os => os.map(off => off._id === o._id ? { ...off, isActive: !off.isActive } : off)); showToast(`Offer ${o.isActive ? 'disabled' : 'enabled'}`); } catch { showToast('Failed to update offer', 'error'); } }}>{o.isActive ? 'Disable' : 'Enable'}</Button>
                       <Button size="sm" variant="outline" onClick={() => { navigator.clipboard?.writeText(o.code); showToast('Coupon code copied!'); }}><Copy className="w-3 h-3 mr-1" /> Copy Code</Button>
                     </div>
                   </div>
@@ -777,7 +848,7 @@ showToast('Failed to export billing', 'error');
                     <div className={`w-5 h-5 rounded-full bg-white shadow-sm absolute top-0.5 transition-transform ${storeSettings.autoRetry ? 'translate-x-6' : 'translate-x-0.5'}`} />
                   </button>
                 </div>
-                <Button className="w-full" onClick={() => { window.location.hash = '#/admin/pharmacy-settings'; }}><Save className="w-4 h-4 mr-1" /> Save Settings</Button>
+                <Button className="w-full" onClick={async () => { try { localStorage.setItem('pharmacy_store_settings', JSON.stringify(storeSettings)); showToast('Store settings saved'); } catch { showToast('Failed to save', 'error'); } }}><Save className="w-4 h-4 mr-1" /> Save Settings</Button>
               </div>
             </div>
           )}
@@ -853,9 +924,10 @@ showToast('Failed to export billing', 'error');
         <Modal title="Assign Delivery" onClose={() => setShowModal(null)}>
           <div className="space-y-4">
             <div><label className="text-sm font-medium mb-1 block">Select Order</label><select value={deliveryForm.orderId} onChange={e => setDeliveryForm({ ...deliveryForm, orderId: e.target.value })} className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm"><option value="">Select order</option>{orders.filter(o => o.status !== 'Delivered').map(o => <option key={o._id} value={o._id}>{o.orderId} - {o.patientName}</option>)}</select></div>
-            <div className="grid grid-cols-2 gap-4"><div><label className="text-sm font-medium mb-1 block">Delivery Person</label><Input value={deliveryForm.deliveryPerson} onChange={e => setDeliveryForm({ ...deliveryForm, deliveryPerson: e.target.value })} placeholder="Name" /></div><div><label className="text-sm font-medium mb-1 block">Phone</label><Input value={deliveryForm.phone} onChange={e => setDeliveryForm({ ...deliveryForm, phone: e.target.value })} placeholder="Phone" /></div></div>
+            <div><label className="text-sm font-medium mb-1 block">Delivery Partner ID</label><Input value={deliveryForm.deliveryPartnerId} onChange={e => setDeliveryForm({ ...deliveryForm, deliveryPartnerId: e.target.value })} placeholder="Partner _id" /></div>
+            <div className="grid grid-cols-2 gap-4"><div><label className="text-sm font-medium mb-1 block">Pickup Address</label><Input value={deliveryForm.pickupAddress} onChange={e => setDeliveryForm({ ...deliveryForm, pickupAddress: e.target.value })} placeholder="Pharmacy counter" /></div><div><label className="text-sm font-medium mb-1 block">Drop Address</label><Input value={deliveryForm.dropAddress} onChange={e => setDeliveryForm({ ...deliveryForm, dropAddress: e.target.value })} placeholder="Customer address" /></div></div>
             <div><label className="text-sm font-medium mb-1 block">Estimated Time</label><Input value={deliveryForm.estimatedTime} onChange={e => setDeliveryForm({ ...deliveryForm, estimatedTime: e.target.value })} placeholder="e.g. 30 mins" /></div>
-            <Button className="w-full" onClick={async () => { const created = await api.createPharmacyDelivery(deliveryForm); setDeliveries(ds => [created, ...ds]); showToast('Delivery assigned'); setShowModal(null); }} disabled={!deliveryForm.orderId || !deliveryForm.deliveryPerson}>Assign Delivery</Button>
+            <Button className="w-full" onClick={handleAssignDelivery} disabled={!deliveryForm.orderId || !deliveryForm.deliveryPartnerId}>Assign Delivery</Button>
           </div>
         </Modal>
       )}

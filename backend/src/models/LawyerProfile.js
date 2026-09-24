@@ -65,6 +65,25 @@ const lawyerProfileSchema = new mongoose.Schema({
     accountNumber: { type: String, default: '' },
     ifsc: { type: String, default: '' },
     upiId: { type: String, default: '' },
+    verified: { type: Boolean, default: false },
+  },
+  gstin: { type: String, default: '', trim: true },
+  // Section-10 settings master
+  settings: {
+    emergencyStandby: { type: Boolean, default: false },
+    refundPolicy: {
+      type: String,
+      enum: ['lawyer_cancels_full', 'court_clash_reschedule', 'client_12h_full'],
+      default: 'lawyer_cancels_full',
+    },
+    feeSchedule: {
+      video30m: { type: Number, default: 0, min: 0 },
+      chamberVisit: { type: Number, default: 0, min: 0 },
+      bedsideVisit: { type: Number, default: 0, min: 0 },
+      noticeDrafting: { type: Number, default: 0, min: 0 },
+    },
+    practicingCourts: [{ type: String }],
+    privilegeLocked: { type: Boolean, default: true },
   },
   availableDays: [{ type: String }],
   availableTimeSlots: [

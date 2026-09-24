@@ -47,17 +47,27 @@ export default function DeliveryReviews() {
 
   const loadReviews = async () => {
     try {
-      const data = await api.get('/delivery-partners/profile/me').catch(() => null);
-      if (data?.reviews && Array.isArray(data.reviews)) {
-        setReviews(data.reviews);
-      }
+      const [prof, dels] = await Promise.all([
+        api.get('/delivery-partners/profile/me').catch(() => null),
+        api.get('/delivery-partners/my-deliveries').catch(() => ({ history: [] })),
+      ]);
+      const fromProfile = prof?.reviews && Array.isArray(prof.reviews) ? prof.reviews : [];
+      const fromHistory = (dels?.history || []).filter((d) => d.ratingByUser?.stars).map((d) => ({
+        id: d._id,
+        patientName: d.patientName || 'Customer',
+        rating: d.ratingByUser.stars,
+        date: d.deliveredAt,
+        comment: d.ratingByUser.comment || '',
+        tag: 'Verified Delivery',
+      }));
+      setReviews([...fromProfile, ...fromHistory]);
     } catch {
       // fallback
     }
     setLoading(false);
   };
 
-  const reviewList = reviews.length > 0 ? reviews : sampleReviews;
+  const reviewList = reviews;
   const filtered = filter === 'all'
     ? reviewList
     : reviewList.filter((r) => r.rating >= (filter === 'positive' ? 4 : 1) && (filter === 'negative' ? r.rating < 4 : true));
@@ -73,7 +83,7 @@ export default function DeliveryReviews() {
 
   const avgRating = reviewList.length > 0
     ? (reviewList.reduce((s, r) => s + (r.rating || 0), 0) / reviewList.length).toFixed(1)
-    : '4.9';
+    : 'New';
 
   return (
     <div className="space-y-6 w-full pb-12">

@@ -95,6 +95,20 @@ export default function AdminHospitalSettings() {
     emergencySupport: false,
     ambulanceService: false,
     refundOnMissedOrCancelled: true,
+    icuTotal: 0,
+    icuAvailable: 0,
+    refundRule: '100_4h',
+    autoRefund: true,
+    ipdGenWard: '',
+    ipdSemiPrivate: '',
+    ipdIcu: '',
+    opdFeeFloor: '500',
+    bankAccount: '',
+    bankIfsc: '',
+    bankName: '',
+    gstin: '',
+    slotGap: '10',
+    tpaList: [],
     appointmentModes: ['chat', 'video', 'offline'],
     accreditations: [],
     workingHours: { weekdays: '9:00 AM - 6:00 PM', saturday: '9:00 AM - 6:00 PM', sunday: 'Closed' },
@@ -105,6 +119,13 @@ export default function AdminHospitalSettings() {
   });
   const [autoConfirm, setAutoConfirm] = useState(true);
   const [settingsSaving, setSettingsSaving] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+
+  useEffect(() => {
+    const onBeforeUnload = (e) => { if (isDirty) { e.preventDefault(); e.returnValue = ''; } };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [isDirty]);
 
   useEffect(() => {
     const load = async () => {
@@ -149,7 +170,32 @@ export default function AdminHospitalSettings() {
     load();
   }, []);
 
-  const update = (k, v) => setForm(p => ({ ...p, [k]: v }));
+  const update = (k, v) => { setIsDirty(true); setForm(p => ({ ...p, [k]: v })); };
+
+  const [uploadingField, setUploadingField] = useState(null);
+  // §7: real file upload (Cloudinary) with progress — replaces raw-URL-only inputs.
+  const handleLogoUpload = async (e, field) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be 5 MB or smaller');
+      e.target.value = '';
+      return;
+    }
+    setUploadingField(field);
+    try {
+      const u = await api.uploadPublicDocument(file);
+      const url = u?.url || u?.path || u?.secureUrl || '';
+      if (!url) throw new Error('Upload returned no URL');
+      update(field, url);
+      toast.success('Image uploaded');
+    } catch (err) {
+      toast.error(err.message || 'Image upload failed');
+    } finally {
+      setUploadingField(null);
+      e.target.value = '';
+    }
+  };
 
   const toggleMode = (mode) => {
     const current = form.appointmentModes || [];
@@ -390,8 +436,26 @@ export default function AdminHospitalSettings() {
       <Card>
         <CardHeader><CardTitle className="flex items-center gap-2"><Image className="w-5 h-5" /> Images &amp; Logo</CardTitle></CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2"><Label>Logo URL</Label><Input value={form.logo} onChange={e => update('logo', e.target.value)} placeholder="https://..." /></div>
-          <div className="space-y-2"><Label>Cover Image URL</Label><Input value={form.image} onChange={e => update('image', e.target.value)} placeholder="https://..." /></div>
+          <div className="space-y-2"><Label>Logo URL</Label>
+            <div className="flex gap-2">
+              <Input value={form.logo} onChange={e => update('logo', e.target.value)} placeholder="https://..." className="flex-1" />
+              <label className="shrink-0 inline-flex items-center gap-1.5 px-3 h-10 rounded-xl border text-xs font-medium cursor-pointer hover:bg-muted/50">
+                {uploadingField === 'logo' ? 'Uploading...' : 'Upload file'}
+                <input type="file" accept="image/*" className="hidden" disabled={uploadingField === 'logo'} onChange={e => handleLogoUpload(e, 'logo')} />
+              </label>
+            </div>
+            {form.logo && <img src={form.logo} alt="Logo preview" className="h-12 w-12 rounded-xl object-cover border" />}
+          </div>
+          <div className="space-y-2"><Label>Cover Image URL</Label>
+            <div className="flex gap-2">
+              <Input value={form.image} onChange={e => update('image', e.target.value)} placeholder="https://..." className="flex-1" />
+              <label className="shrink-0 inline-flex items-center gap-1.5 px-3 h-10 rounded-xl border text-xs font-medium cursor-pointer hover:bg-muted/50">
+                {uploadingField === 'image' ? 'Uploading...' : 'Upload file'}
+                <input type="file" accept="image/*" className="hidden" disabled={uploadingField === 'image'} onChange={e => handleLogoUpload(e, 'image')} />
+              </label>
+            </div>
+            {form.image && <img src={form.image} alt="Cover preview" className="h-20 w-full rounded-xl object-cover border" />}
+          </div>
         </CardContent>
       </Card>
 

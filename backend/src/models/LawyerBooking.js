@@ -151,6 +151,9 @@ const lawyerBookingSchema = new mongoose.Schema({
   ],
   startedAt: { type: Date },
   completedAt: { type: Date },
+  // L-11: idempotent wallet settlement on completion (net = fee − 10% commission).
+  settledAt: { type: Date },
+  settlementAmount: { type: Number, default: 0 },
   finalCaseSummary: { type: String, default: '' },
   caseNotes: [caseNoteSchema],
   isCaseClosed: { type: Boolean, default: false, index: true },

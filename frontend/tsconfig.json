@@ -14,9 +14,9 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
-    /* Flexibility during JS -> TS conversion */
-    "strict": false,
-    "noImplicitAny": false,
+    /* Strict-ish TS (incremental): strict on, unused still off to avoid build break */
+    "strict": true,
+    "noImplicitAny": true,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,

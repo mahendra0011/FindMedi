@@ -20,6 +20,16 @@ export default function AdminPrescriptionQueue() {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('All');
   const [selectedRx, setSelectedRx] = useState(null);
+  const [barcode, setBarcode] = useState('');
+  const [selectedIds, setSelectedIds] = useState([]);
+
+  const handleBatchDispense = async () => {
+    try {
+      await Promise.all(selectedIds.map((id) => api.dispensePharmacyMedicine(id, {})));
+      toast.success(`${selectedIds.length} prescriptions dispensed`);
+      setSelectedIds([]);
+    } catch { toast.error('Batch dispense failed'); }
+  };
 
   useEffect(() => {
     const load = async () => {

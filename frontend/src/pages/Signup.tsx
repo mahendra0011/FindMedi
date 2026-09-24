@@ -24,6 +24,9 @@ export default function Signup() {
   const [phone, setPhone] = useState('');
   const [gender, setGender] = useState('Male');
   const [dateOfBirth, setDateOfBirth] = useState('');
+  const [bloodGroup, setBloodGroup] = useState('');
+  const [emergencyName, setEmergencyName] = useState('');
+  const [emergencyPhone, setEmergencyPhone] = useState('');
   const [referralCode, setReferralCode] = useState('');
 
   const [showPassword, setShowPassword] = useState(false);
@@ -171,6 +174,18 @@ export default function Signup() {
     }
     if (!gender || !dateOfBirth) {
       setError('Gender and date of birth are required');
+      return;
+    }
+    if (!bloodGroup) {
+      setError('Blood group is required');
+      return;
+    }
+    if (!emergencyName || emergencyPhone.trim().length < 10) {
+      setError('Primary emergency contact (name + 10-digit mobile) is required');
+      return;
+    }
+    if (!agreed) {
+      setError('Terms & DPDP consent is required');
       return;
     }
 

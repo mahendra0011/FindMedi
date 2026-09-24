@@ -39,6 +39,13 @@ export default function SOSVehicleTypeSelect({ selected, onToggle, onContinue, o
           })}
         </div>
         {selected.length === 0 && <p className="text-center text-xs text-red-400">Kam se kam ek vehicle type chuno</p>}
+        <div className="p-3 rounded-2xl bg-slate-800/80 border border-slate-700/80 text-[11px] text-slate-300 flex items-start gap-2">
+          <span className="text-sm shrink-0">🚑</span>
+          <div>
+            <strong className="text-white block font-semibold">National AIS-125 Compliance:</strong>
+            Dispatched ambulances meet Type C (Basic Life Support) & Type D (Advanced Life Support / ICU) specifications with oxygen & emergency kits.
+          </div>
+        </div>
         <div className="flex gap-2">
           <Button type="button" variant="outline" onClick={onBack} className="rounded-xl">Back</Button>
           <Button type="button" onClick={onContinue} disabled={selected.length === 0} className="flex-1 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold">

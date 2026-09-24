@@ -80,6 +80,7 @@ import { useSearchParams } from "react-router-dom";
 import { api } from "@/mind/lib/api";
 import { getRealtimeSocket } from "@/mind/lib/socket";
 import SecureChatPanel from "@/mind/components/SecureChatPanel";
+import ProviderSettingsMaster, { defaultProviderSettings } from "@/mind/components/ProviderSettingsMaster";
 import { setCounsellorEarningsFromDashboard, selectCounsellorEarnings, selectRevenueTransactions, selectRevenueMonthlyTrends } from "@/mind/store/revenueSlice";
 import { useAppDispatch, useAppSelector } from "@/mind/store/hooks";
 
@@ -118,169 +119,29 @@ const fallback = {
 const NOTIFICATION_HTTP_POLL_MS = 30000;
 
 
-const noteTemplates = [
-  "Client appeared stable. Continued grounding practice and daily mood tracking recommended.",
-  "Discussed stress triggers, sleep routine, and one small action before next session.",
-  "Reviewed safety plan, support contacts, and escalation steps if risk increases.",
-  "Created weekly wellness task: breathing practice, hydration, and journaling check-in.",
-];
-
-const statusTone = {
-  upcoming: "bg-blue-500/15 text-blue-600 border-blue-500/20",
-  pending: "bg-amber-500/15 text-amber-600 border-amber-500/20",
-  confirmed: "bg-blue-500/15 text-blue-600 border-blue-500/20",
-  completed: "bg-emerald-500/15 text-emerald-600 border-emerald-500/20",
-  cancelled: "bg-rose-500/15 text-rose-600 border-rose-500/20",
-  declined: "bg-rose-500/15 text-rose-600 border-rose-500/20",
-};
-
-
-const defaultPrivacySettings = {
-  showOnlineStatus: true,
-  allowMessages: true,
-  shareProgressWithCounsellor: true,
-  anonymousDisplayName: "",
-};
-
-const defaultNotificationSettings = {
-  session: true,
-  messages: true,
-  payments: true,
-  platform: true,
-  emergency: true,
-};
-
-const dayOptions = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-
-const packagePricePlans = [
-  {
-    key: "oneTime",
-    title: "One-Time Session",
-    detail: "Single counselling session",
-    hint: "Immediate support, one-off guidance",
-    fallback: 599,
-  },
-  {
-    key: "shortTerm",
-    title: "Short-Term Support",
-    detail: "4-8 sessions, every two days",
-    hint: "Stress, anxiety, exams, loneliness",
-    fallback: 1499,
-  },
-  {
-    key: "mediumTerm",
-    title: "Medium-Term Support",
-    detail: "8-15 sessions, weekly or bi-weekly",
-    hint: "Mild depression, relationships, healing",
-    fallback: 2499,
-  },
-  {
-    key: "longTerm",
-    title: "Long-Term Therapy",
-    detail: "3-6+ months, weekly or bi-weekly",
-    hint: "Trauma, severe anxiety, chronic depression",
-    fallback: 3999,
-  },
-];
-
-const defaultPackagePrices = packagePricePlans.reduce((acc, plan) => ({ ...acc, [plan.key]: String(plan.fallback) }), {});
-
-function newAvailabilityRow(day = "Monday", start = "10:00", end = "16:00") {
-  return { id: `${day}-${Date.now()}-${Math.random().toString(16).slice(2)}`, day, start, end };
-}
-
-function parseAvailabilityRows(items = []) {
-  if (!items.length) return [newAvailabilityRow("Monday", "10:00", "16:00")];
-  return items.map((item, index) => {
-    const text = String(item || "");
-    const match = text.match(/^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s*:?\s*(\d{1,2}:?\d{0,2})\s*(?:-|–|to)\s*(\d{1,2}:?\d{0,2})/i);
-    const dayMap = { mon: "Monday", tue: "Tuesday", wed: "Wednesday", thu: "Thursday", fri: "Friday", sat: "Saturday", sun: "Sunday" };
-    const normalizeTime = (value, fallback) => {
-      const raw = String(value || "").replace(/[^0-9:]/g, "");
-      if (!raw) return fallback;
-      if (raw.includes(":")) return raw.length === 4 ? `0${raw}` : raw;
-      return `${raw.padStart(2, "0")}:00`;
-    };
-    if (!match) return newAvailabilityRow(dayOptions[index % dayOptions.length], "10:00", "16:00");
-    const key = match[1].slice(0, 3).toLowerCase();
-    return {
-      id: `${index}-${text}`,
-      day: dayMap[key] || match[1],
-      start: normalizeTime(match[2], "10:00"),
-      end: normalizeTime(match[3], "16:00"),
-    };
-  });
-}
-
-function serializeAvailabilityRows(rows = []) {
-  return rows
-    .filter((row) => row.day && row.start && row.end)
-    .map((row) => `${row.day}: ${row.start}-${row.end}`);
-}
-
-function todayYMD() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function formatMoney(value) {
-  return `Rs. ${Number(value || 0).toLocaleString("en-IN")}`;
-}
-
-function normalizePackagePrices(profile: any = {}) {
-  const source = profile.supportPlanPrices || {};
-  const basePrice = Number(profile.sessionPricing) || 0;
-  return packagePricePlans.reduce((acc, plan) => {
-    const saved = Number(source[plan.key]);
-    const multiplier = plan.key === "oneTime" ? 1 : plan.key === "shortTerm" ? 3 : plan.key === "mediumTerm" ? 5 : 8;
-    const fallback = saved || (basePrice ? Math.round((basePrice * multiplier) / 50) * 50 - 1 : plan.fallback);
-    acc[plan.key] = String(saved > 0 ? saved : fallback || plan.fallback);
-    return acc;
-  }, {});
-}
-
-function fallbackBaseSessionPrice(profile: any = {}) {
-  return Number(profile.sessionPricing) || (profile.counsellorType === "mentor" ? 299 : 599);
-}
-
-function counsellorPayout(value, commissionRate = 2) {
-  return Math.max(0, Math.round(Number(value || 0) * ((100 - Number(commissionRate || 2)) / 100)));
-}
-
-function sessionStatusLabel(status = "") {
-  if (["pending", "confirmed"].includes(status)) return "Upcoming";
-  if (status === "completed") return "Completed";
-  if (["cancelled", "declined"].includes(status)) return "Cancelled";
-  return status || "Upcoming";
-}
-
-function counsellingModeLabel(mode = "") {
-  const labels = {
-    "google-meet": "Google Meet",
-    "voice-call": "Voice Call",
-    "in-person": "In-person",
-    online: "Google Meet",
-  };
-  return labels[mode] || mode || "Google Meet";
-}
-
-const modeLabel = (v) => ({ "video-chat": "Video+Chat", "chat-only": "Chat Only", "google-meet": "Video", "in-person": "Visit+Video", "voice-call": "Voice" })[v] || v || "Meet";
-
-function initials(name = "MS") {
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("");
-}
-
-
-
-function normalizeNotification(item) {
-  if (typeof item === "string") return { title: item.split(":")[0] || "Notice", message: item.split(":").slice(1).join(":").trim() || item };
-  return item || { title: "Notice", message: "" };
-}
-
+// PS-5: shared helpers live in @/mind/lib/providerDashboardShared (single source).
+import {
+  noteTemplates,
+  statusTone,
+  defaultPrivacySettings,
+  defaultNotificationSettings,
+  dayOptions,
+  packagePricePlans,
+  defaultPackagePrices,
+  newAvailabilityRow,
+  parseAvailabilityRows,
+  serializeAvailabilityRows,
+  todayYMD,
+  formatMoney,
+  normalizePackagePrices,
+  fallbackBaseSessionPrice,
+  counsellorPayout,
+  sessionStatusLabel,
+  counsellingModeLabel,
+  modeLabel,
+  initials,
+  normalizeNotification,
+} from "@/mind/lib/providerDashboardShared";
 const PsychiatristDashboard = () => {
   const { toast } = useToast();
   const dispatch = useAppDispatch();
@@ -324,7 +185,8 @@ const PsychiatristDashboard = () => {
   const [baseSessionPrice, setBaseSessionPrice] = useState("");
   const [privacySettings, setPrivacySettings] = useState(defaultPrivacySettings);
   const [notificationSettings, setNotificationSettings] = useState(defaultNotificationSettings);
-  const [theme, setTheme] = useState(() => localStorage.getItem("mindsupport_counsellor_theme") || "default");
+  const [providerSettings, setProviderSettings] = useState(defaultProviderSettings);
+  const [theme, setTheme] = useState(() => localStorage.getItem("mindsupport_psychiatrist_theme") || localStorage.getItem("mindsupport_counsellor_theme") || "default");
   const [customPackages, setCustomPackages] = useState([]);
   const [activeChatPeer, setActiveChatPeer] = useState<string | null>(null);
   const [activeChatPeerName, setActiveChatPeerName] = useState<string>("");
@@ -357,6 +219,11 @@ const load = useCallback(async () => {
       setCustomPackages(next.profile?.customPackages || []);
       setPrivacySettings({ ...defaultPrivacySettings, ...(next.profile?.privacySettings || {}) });
       setNotificationSettings({ ...defaultNotificationSettings, ...(next.profile?.notificationSettings || {}) });
+      setProviderSettings({
+        ...defaultProviderSettings,
+        ...(next.profile?.providerSettings || {}),
+        payoutBank: { ...defaultProviderSettings.payoutBank, ...(next.profile?.providerSettings?.payoutBank || {}) },
+      });
       setSelectedPatientId((current) => current || next.patients?.[0]?.id || "");
     } catch (error) {
       toast({ variant: "destructive", title: "Unable to load dashboard", description: error?.message || "" });
@@ -388,21 +255,35 @@ const load = useCallback(async () => {
     };
   }, []);
 
+  // B6-13: debounce socket-triggered reloads.
   useEffect(() => {
     const socket = getRealtimeSocket();
     if (!socket) return undefined;
+    let timer: number | undefined;
+    let lastRun = 0;
     const refresh = () => {
+      const now = Date.now();
+      if (now - lastRun < 5000) {
+        if (timer) window.clearTimeout(timer);
+        timer = window.setTimeout(() => {
+          lastRun = Date.now();
+          void load();
+        }, 5000);
+        return;
+      }
+      lastRun = now;
       void load();
     };
     socket.on("message:new", refresh);
     return () => {
       socket.off("message:new", refresh);
+      if (timer) window.clearTimeout(timer);
     };
   }, [load]);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
-    localStorage.setItem("mindsupport_counsellor_theme", theme);
+    localStorage.setItem("mindsupport_psychiatrist_theme", theme);
   }, [theme]);
 
   const appointments = useMemo(() => data.appointments || [], [data.appointments]);
@@ -558,6 +439,13 @@ const load = useCallback(async () => {
           ...(Number.isFinite(cleanedBasePrice) && cleanedBasePrice > 0 ? { sessionPricing: cleanedBasePrice, supportPlanPrices: packagePricePlans.reduce((acc, plan) => ({ ...acc, [plan.key]: Number(packagePrices[plan.key]) }), {}) } : {}),
           privacySettings,
           notificationSettings,
+          providerSettings: {
+            ...providerSettings,
+            intakeFee: Number(providerSettings.intakeFee) || 0,
+            rxReviewFee: Number(providerSettings.rxReviewFee) || 0,
+            emergencyTriageFee: Number(providerSettings.emergencyTriageFee) || 0,
+            payoutBank: { ...providerSettings.payoutBank },
+          },
         }),
         api.put("/api/counsellor/availability", {
           availability: serializeAvailabilityRows(availabilityRows),
@@ -788,11 +676,6 @@ const load = useCallback(async () => {
                         </div>
                       </div>
                     </CardHeader>
-                    {activeChatPeer && (
-                      <div className="mb-4">
-                        <SecureChatPanel peerId={activeChatPeer} peerName={activeChatPeerName} onClose={() => setActiveChatPeer(null)} />
-                      </div>
-                    )}
                     <CardContent className="space-y-3">
                       {filteredSessions.length ? (
                         filteredSessions.map((appointment) => (
@@ -1613,10 +1496,6 @@ const load = useCallback(async () => {
                               </Button>
                             )}
                           </div>
-                          {activeChatPeer && String(activeChatPeer) === String(selectedPatient.id) && (
-                            <SecureChatPanel peerId={String(activeChatPeer)} peerName={activeChatPeerName} onClose={() => setActiveChatPeer(null)} />
-                          )}
-
                             {/* Session Timeline + Care Plan */}
                           <div className="grid gap-4 md:grid-cols-2">
                             <div className="rounded-2xl border border-glass-border/30 bg-gradient-to-br from-background/80 to-background/60 p-4">
@@ -1660,13 +1539,15 @@ const load = useCallback(async () => {
                                 </span>
                                 Care Progress
                               </h3>
+                              {selectedPatient.progress == null ? (
+                                <div className="h-36 flex items-center justify-center text-xs text-foreground/50 text-center px-4">
+                                  Not enough session data yet — progress appears after the first completed session or mood check-in.
+                                </div>
+                              ) : (
                               <div className="h-36">
                                 <ResponsiveContainer width="100%" height="100%">
                                   <RechartsLineChart
                                     data={[
-                                      { label: "Start", progress: Math.max(15, (selectedPatient.progress || 0) - 30) },
-                                      { label: "Week 2", progress: Math.max(25, (selectedPatient.progress || 0) - 18) },
-                                      { label: "Week 4", progress: Math.max(35, (selectedPatient.progress || 0) - 8) },
                                       { label: "Now", progress: selectedPatient.progress || 0 },
                                     ]}
                                     margin={{ top: 5, right: 5, left: -18, bottom: 0 }}
@@ -1685,10 +1566,11 @@ const load = useCallback(async () => {
                                   </RechartsLineChart>
                                 </ResponsiveContainer>
                               </div>
+                              )}
                               <div className="mt-3 space-y-2">
                                 <div className="flex items-center justify-between text-xs">
                                   <span className="text-foreground/60">Mood improvement</span>
-                                  <span className="font-semibold text-primary">{selectedPatient.progress || 0}%</span>
+                                  <span className="font-semibold text-primary">{selectedPatient.progress != null ? `${selectedPatient.progress}%` : "—"}</span>
                                 </div>
                                 <div className="h-1.5 rounded-full bg-foreground/10 overflow-hidden">
                                   <div className="h-full rounded-full bg-gradient-to-r from-primary to-secondary transition-all duration-500" style={{ width: `${selectedPatient.progress || 0}%` }} />
@@ -2206,6 +2088,8 @@ const load = useCallback(async () => {
                     </CardContent>
                   </Card>
 
+                  <ProviderSettingsMaster value={providerSettings} onChange={setProviderSettings} mode="psychiatrist" />
+
                   <Card className="glass-card overflow-hidden">
                     <CardHeader className="border-b border-glass-border/40 bg-gradient-to-br from-secondary/10 via-primary/5 to-transparent">
                       <CardTitle className="flex items-center gap-2">
@@ -2241,6 +2125,18 @@ const load = useCallback(async () => {
           </div>
         </section>
       </main>
+      {/* B6-10: single shared secure-chat dock — one SecureChatPanel instance for
+          all tabs, keyed by activeChatPeer. */}
+      {activeChatPeer && (
+        <div data-chat-dock className="fixed bottom-4 right-4 z-50 w-[min(380px,calc(100vw-2rem)]">
+          <SecureChatPanel
+            key={String(activeChatPeer)}
+            peerId={String(activeChatPeer)}
+            peerName={activeChatPeerName}
+            onClose={() => setActiveChatPeer(null)}
+          />
+        </div>
+      )}
     </div>
   );
 };
@@ -2813,32 +2709,240 @@ function ReviewMetricBar({ label, value, icon: Icon }) {
   );
 }
 
+// PS-6: full prescription lifecycle — edit / revoke (with reason + audit)
+// / renew, plus prescribed-by/at line and print.
+function PrescriptionCard({ r, onChanged }) {
+  const { toast } = useToast();
+  const [editing, setEditing] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [revoking, setRevoking] = useState(false);
+  const [revokeReason, setRevokeReason] = useState("");
+  const [draft, setDraft] = useState({ diagnosis: "", clinicName: "", notes: "", followUpDate: "", medicinesText: "" });
+
+  const startEdit = () => {
+    setDraft({
+      diagnosis: r.diagnosis || "",
+      clinicName: r.clinicName || "",
+      notes: r.notes || "",
+      followUpDate: r.followUpDate ? new Date(r.followUpDate).toISOString().slice(0, 10) : "",
+      medicinesText: (r.medicines || []).map((m) => [m.name, m.dosage, m.frequency, m.duration, m.notes].map((x) => x || "").join(" | ").replace(/\s*\|\s*$/, "")).join("\n"),
+    });
+    setEditing(true);
+  };
+
+  const parseMedicines = () => {
+    const rawLines = draft.medicinesText.split("\n").map((l) => l.trim()).filter(Boolean);
+    const medicines = [];
+    for (let i = 0; i < rawLines.length; i++) {
+      const parts = rawLines[i].split("|").map((s) => s.trim());
+      const name = (parts[0] || "").replace(/^[|\s]+|[|\s]+$/g, "");
+      if (!name) return { error: `Line ${i + 1}: medicine name is required.` };
+      const extra = parts.length > 5 ? ` | ${parts.slice(5).join(" | ")}` : "";
+      medicines.push({ name, dosage: parts[1] || "", frequency: parts[2] || "", duration: parts[3] || "", notes: `${parts[4] || ""}${extra}`.trim() });
+    }
+    if (medicines.length === 0) return { error: "At least one medicine is required." };
+    return { medicines };
+  };
+
+  const saveEdit = async () => {
+    const parsed = parseMedicines();
+    if (parsed.error) {
+      toast({ variant: "destructive", title: "Invalid medicines", description: parsed.error });
+      return;
+    }
+    setBusy(true);
+    try {
+      await api.put(`/api/prescriptions/${r.id}`, {
+        diagnosis: draft.diagnosis,
+        clinicName: draft.clinicName,
+        notes: draft.notes,
+        followUpDate: draft.followUpDate || undefined,
+        medicines: parsed.medicines,
+      });
+      toast({ title: "Prescription updated" });
+      setEditing(false);
+      onChanged();
+    } catch (e) { toast({ variant: "destructive", title: "Update failed", description: e?.response?.data?.error || e.message }); }
+    finally { setBusy(false); }
+  };
+
+  const revoke = async () => {
+    setBusy(true);
+    try {
+      await api.patch(`/api/prescriptions/${r.id}/revoke`, { reason: revokeReason });
+      toast({ title: "Prescription revoked" });
+      setRevoking(false);
+      setRevokeReason("");
+      onChanged();
+    } catch (e) { toast({ variant: "destructive", title: "Revoke failed", description: e?.response?.data?.error || e.message }); }
+    finally { setBusy(false); }
+  };
+
+  const renew = async () => {
+    setBusy(true);
+    try {
+      await api.post(`/api/prescriptions/${r.id}/renew`, {});
+      toast({ title: "Prescription renewed" });
+      onChanged();
+    } catch (e) { toast({ variant: "destructive", title: "Renew failed", description: e?.response?.data?.error || e.message }); }
+    finally { setBusy(false); }
+  };
+
+  const revoked = r.status === "revoked";
+  return (
+    <Card key={r.id} className={`glass-card ${revoked ? "opacity-70" : ""}`}>
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold flex items-center gap-2">
+              {r.diagnosis || "Prescription"} — {r.medicines?.length || 0} medicine(s)
+              {revoked && <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-destructive/15 text-destructive">Revoked</span>}
+              {r.renewedFrom && <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-primary/15 text-primary">Renewed</span>}
+            </p>
+            <p className="text-xs text-foreground/50">{r.userName ? `${r.userName} · ` : ""}{r.clinicName} {r.followUpDate ? `· Follow-up ${new Date(r.followUpDate).toLocaleDateString("en-IN")}` : ""}</p>
+            {(r.counsellorName || r.createdAt) && (
+              <p className="text-[11px] text-foreground/40">
+                {r.counsellorName ? `Prescribed by ${r.counsellorName}` : ""}{r.createdAt ? ` · ${new Date(r.createdAt).toLocaleDateString("en-IN")}` : ""}
+                {r.revokedAt ? ` · Revoked ${new Date(r.revokedAt).toLocaleDateString("en-IN")}${r.revokeReason ? ` (${r.revokeReason})` : ""}` : ""}
+              </p>
+            )}
+          </div>
+          <div className="flex gap-1.5 shrink-0 flex-wrap justify-end">
+            <Button size="sm" variant="outline" onClick={() => window.print()}>Print</Button>
+            {!revoked && <Button size="sm" variant="outline" disabled={busy} onClick={startEdit}>Edit</Button>}
+            {!revoked && <Button size="sm" variant="outline" disabled={busy} onClick={renew}>Renew</Button>}
+            {!revoked && <Button size="sm" variant="destructive" disabled={busy} onClick={() => setRevoking(true)}>Revoke</Button>}
+          </div>
+        </div>
+        {editing ? (
+          <div className="mt-3 space-y-3 rounded-xl border border-glass-border/30 p-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium">Diagnosis</label>
+                <Input value={draft.diagnosis} onChange={(e) => setDraft((f) => ({ ...f, diagnosis: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium">Clinic</label>
+                <Input value={draft.clinicName} onChange={(e) => setDraft((f) => ({ ...f, clinicName: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium">Follow-up date</label>
+                <Input type="date" value={draft.followUpDate} onChange={(e) => setDraft((f) => ({ ...f, followUpDate: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5 sm:col-span-2">
+                <label className="text-xs font-medium">Medicines (one per line: Name | Dosage | Frequency | Duration | Notes)</label>
+                <Textarea value={draft.medicinesText} onChange={(e) => setDraft((f) => ({ ...f, medicinesText: e.target.value }))} rows={3} />
+              </div>
+              <div className="space-y-1.5 sm:col-span-2">
+                <label className="text-xs font-medium">Clinical notes</label>
+                <Textarea value={draft.notes} onChange={(e) => setDraft((f) => ({ ...f, notes: e.target.value }))} rows={2} />
+              </div>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button size="sm" variant="outline" onClick={() => setEditing(false)}>Cancel</Button>
+              <Button size="sm" disabled={busy} onClick={saveEdit}>{busy ? "Saving..." : "Save changes"}</Button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="mt-2 space-y-1">
+              {(r.medicines || []).map((m, i) => (
+                <p key={i} className="text-xs text-foreground/70">{m.name} {m.dosage ? `· ${m.dosage}` : ""} {m.frequency ? `· ${m.frequency}` : ""} {m.duration ? `· ${m.duration}` : ""}{m.notes ? ` · ${m.notes}` : ""}</p>
+              ))}
+            </div>
+            {r.notes && <p className="mt-2 text-xs text-foreground/60">Notes: {r.notes}</p>}
+          </>
+        )}
+        {revoking && (
+          <div className="mt-3 space-y-2 rounded-xl border border-destructive/30 p-3">
+            <label className="text-xs font-medium">Revoke reason (recorded in audit trail)</label>
+            <Input value={revokeReason} onChange={(e) => setRevokeReason(e.target.value)} placeholder="e.g. Side effects reported, switching medication" />
+            <div className="flex gap-2 justify-end">
+              <Button size="sm" variant="outline" onClick={() => { setRevoking(false); setRevokeReason(""); }}>Cancel</Button>
+              <Button size="sm" variant="destructive" disabled={busy} onClick={revoke}>{busy ? "Revoking..." : "Confirm revoke"}</Button>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 function PsychiatristPrescriptions({ patients = [] }) {
   const { toast } = useToast();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ userId: "", diagnosis: "", clinicName: "", notes: "", followUpDate: "", medicinesText: "" });
+  // PS-2: therapy assignments for patients
+  const [assignments, setAssignments] = useState([]);
+  const [showAssignForm, setShowAssignForm] = useState(false);
+  const [assignForm, setAssignForm] = useState({ userId: "", title: "", description: "", category: "other", dueDate: "" });
 
   const load = useCallback(async () => {
     try {
-      const { data } = await api.get("/api/prescriptions");
+      const [{ data }, assignRes] = await Promise.all([
+        api.get("/api/prescriptions"),
+        api.get("/api/assignments").catch(() => ({ data: [] })),
+      ]);
       setItems(Array.isArray(data) ? data : []);
+      setAssignments(Array.isArray(assignRes?.data) ? assignRes.data : []);
     } catch { setItems([]); }
     finally { setLoading(false); }
   }, []);
 
   useEffect(() => { load(); }, [load]);
 
+  async function saveAssignment() {
+    if (!assignForm.userId || !assignForm.title.trim()) {
+      toast({ variant: "destructive", title: "Patient and title required" });
+      return;
+    }
+    try {
+      await api.post("/api/assignments", {
+        userId: assignForm.userId,
+        title: assignForm.title.trim(),
+        description: assignForm.description,
+        category: assignForm.category,
+        dueDate: assignForm.dueDate || undefined,
+      });
+      toast({ title: "Assignment created" });
+      setShowAssignForm(false);
+      setAssignForm({ userId: "", title: "", description: "", category: "other", dueDate: "" });
+      load();
+    } catch (e) { toast({ variant: "destructive", title: "Failed to save assignment", description: e?.response?.data?.error || e.message }); }
+  }
+
+  const [formError, setFormError] = useState("");
   async function save() {
+    setFormError("");
     if (!form.userId || !form.medicinesText.trim()) {
+      setFormError("Patient and at least one medicine are required.");
       toast({ variant: "destructive", title: "Patient and medicines required" });
       return;
     }
-    const medicines = form.medicinesText.split("\n").map((line) => line.trim()).filter(Boolean).map((line) => {
-      const parts = line.split("|").map((s) => s.trim());
-      return { name: parts[0] || line, dosage: parts[1] || "", frequency: parts[2] || "", duration: parts[3] || "", notes: parts[4] || "" };
-    });
+    // PS-3: strict per-line validation — a line of only pipes is rejected,
+    // extra columns beyond 5 are kept in notes instead of silently dropped.
+    const rawLines = form.medicinesText.split("\n").map((l) => l.trim()).filter(Boolean);
+    const medicines: any[] = [];
+    for (let i = 0; i < rawLines.length; i++) {
+      const parts = rawLines[i].split("|").map((s) => s.trim());
+      const name = (parts[0] || "").replace(/^[|\s]+|[|\s]+$/g, "");
+      if (!name) {
+        const msg = `Line ${i + 1}: medicine name is required (format: Name | Dosage | Frequency | Duration | Notes).`;
+        setFormError(msg);
+        toast({ variant: "destructive", title: "Invalid medicine line", description: msg });
+        return;
+      }
+      const extra = parts.length > 5 ? ` | ${parts.slice(5).join(" | ")}` : "";
+      medicines.push({
+        name,
+        dosage: parts[1] || "",
+        frequency: parts[2] || "",
+        duration: parts[3] || "",
+        notes: `${parts[4] || ""}${extra}`.trim(),
+      });
+    }
     try {
       await api.post("/api/prescriptions", {
         userId: form.userId,
@@ -2899,7 +3003,8 @@ function PsychiatristPrescriptions({ patients = [] }) {
               </div>
               <div className="space-y-1.5 sm:col-span-2">
                 <label className="text-xs font-medium">Medicines * (one per line: Name | Dosage | Frequency | Duration | Notes)</label>
-                <Textarea value={form.medicinesText} onChange={(e) => setForm((f) => ({ ...f, medicinesText: e.target.value }))} rows={3} placeholder={"Ativan 1mg | 1mg | Once daily | 14 days | After food"} />
+                <Textarea value={form.medicinesText} onChange={(e) => { setForm((f) => ({ ...f, medicinesText: e.target.value })); setFormError(""); }} rows={3} placeholder={"Ativan 1mg | 1mg | Once daily | 14 days | After food"} />
+                {formError && <p className="text-xs text-destructive font-medium">{formError}</p>}
               </div>
               <div className="space-y-1.5 sm:col-span-2">
                 <label className="text-xs font-medium">Clinical notes</label>
@@ -2910,22 +3015,74 @@ function PsychiatristPrescriptions({ patients = [] }) {
           </CardContent>
         </Card>
       )}
+      <div className="flex items-center justify-between pt-2">
+        <div>
+          <h3 className="text-lg font-semibold">Therapy Assignments</h3>
+          <p className="text-sm text-foreground/60">Homework / exercises for your patients</p>
+        </div>
+        <Button variant="outline" onClick={() => setShowAssignForm(!showAssignForm)} className="gap-2">{showAssignForm ? "Cancel" : <><Plus className="h-4 w-4" /> New Assignment</>}</Button>
+      </div>
+      {showAssignForm && (
+        <Card className="glass-card border-primary/20">
+          <CardContent className="p-4 space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium">Patient *</label>
+                <Select value={assignForm.userId} onValueChange={(v) => setAssignForm((f) => ({ ...f, userId: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Select patient" /></SelectTrigger>
+                  <SelectContent>
+                    {patients.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>{p.name} — {p.email}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium">Due date</label>
+                <Input type="date" value={assignForm.dueDate} onChange={(e) => setAssignForm((f) => ({ ...f, dueDate: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium">Title *</label>
+                <Input value={assignForm.title} onChange={(e) => setAssignForm((f) => ({ ...f, title: e.target.value }))} placeholder="e.g. Daily breathing exercise" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium">Category</label>
+                <Select value={assignForm.category} onValueChange={(v) => setAssignForm((f) => ({ ...f, category: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {["other", "exercise", "journal", "reading", "meditation", "exposure"].map((c) => (
+                      <SelectItem key={c} value={c}>{c}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5 sm:col-span-2">
+                <label className="text-xs font-medium">Instructions</label>
+                <Textarea value={assignForm.description} onChange={(e) => setAssignForm((f) => ({ ...f, description: e.target.value }))} rows={2} />
+              </div>
+            </div>
+            <Button onClick={saveAssignment} className="gap-2"><Plus className="h-4 w-4" /> Create Assignment</Button>
+          </CardContent>
+        </Card>
+      )}
+      <div className="grid gap-3">
+        {assignments.length === 0 ? (
+          <Card className="glass-card"><CardContent className="p-6 text-center text-foreground/50 text-sm">No assignments yet.</CardContent></Card>
+        ) : assignments.map((a) => (
+          <Card key={a.id} className="glass-card">
+            <CardContent className="p-4">
+              <p className="text-sm font-semibold">{a.title}</p>
+              <p className="text-xs text-foreground/50">{a.userName || a.userEmail} · {a.category} · {a.status}{a.dueDate ? ` · Due ${new Date(a.dueDate).toLocaleDateString("en-IN")}` : ""}</p>
+              {a.description && <p className="mt-1 text-xs text-foreground/60">{a.description}</p>}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
       <div className="grid gap-3">
         {items.length === 0 ? (
           <Card className="glass-card"><CardContent className="p-8 text-center text-foreground/50">No prescriptions yet. Create one for a patient.</CardContent></Card>
         ) : items.map((r) => (
-          <Card key={r.id} className="glass-card">
-            <CardContent className="p-4">
-              <p className="text-sm font-semibold">{r.diagnosis || "Prescription"} — {r.medicines?.length || 0} medicine(s)</p>
-              <p className="text-xs text-foreground/50">{r.clinicName} {r.followUpDate ? `· Follow-up ${new Date(r.followUpDate).toLocaleDateString("en-IN")}` : ""}</p>
-              <div className="mt-2 space-y-1">
-                {(r.medicines || []).map((m, i) => (
-                  <p key={i} className="text-xs text-foreground/70">{m.name} {m.dosage ? `· ${m.dosage}` : ""} {m.frequency ? `· ${m.frequency}` : ""} {m.duration ? `· ${m.duration}` : ""}</p>
-                ))}
-              </div>
-              {r.notes && <p className="mt-2 text-xs text-foreground/60">Notes: {r.notes}</p>}
-            </CardContent>
-          </Card>
+          <PrescriptionCard key={r.id} r={r} onChanged={load} />
         ))}
       </div>
     </div>

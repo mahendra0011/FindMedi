@@ -15,6 +15,15 @@ function guestKey(req) {
   return crypto.createHash("sha256").update(raw).digest("hex").slice(0, 16);
 }
 
+// U-4/B6-4: mind Socket.IO server never listens in merged mode — emit on both.
+function emitWellnessRealtime(io, room, event, payload) {
+  try { io?.to(room)?.emit(event, payload); } catch { /* ignore */ }
+  try {
+    const mainIo = global.__mainIo;
+    if (mainIo && mainIo !== io) mainIo.to(room).emit(event, payload);
+  } catch { /* ignore */ }
+}
+
 export function registerWellnessRoutes(app, context) {
   const {
     Appointment,
@@ -160,8 +169,16 @@ app.post(
     ];
     let notifiedCounsellors = [];
     if (req.user.role === "user") {
+      // U-4: dual-id bridge so booked counsellors resolve in merged mode.
+      const studentIds = [req.user._id];
+      try {
+        if (req.user?.email) {
+          const mindSelf = await User.findOne({ email: req.user.email }).select("_id").lean();
+          if (mindSelf && String(mindSelf._id) !== String(req.user._id)) studentIds.push(mindSelf._id);
+        }
+      } catch { /* keep findId only */ }
       const appointments = await Appointment.find({
-        student: req.user._id,
+        student: { $in: studentIds },
         status: { $in: ["pending", "confirmed", "completed"] },
       })
         .sort({ date: -1, time: -1 })
@@ -196,7 +213,8 @@ app.post(
             text: alertText,
             readBy: [req.user._id],
           });
-          io.to(`user:${counsellor._id}`).emit("message:new", {
+          // U-4/B6-4: mind io is dead in merged mode — dual-emit to main io too.
+          emitWellnessRealtime(io, `user:${counsellor._id}`, "message:new", {
             type: "emergency",
             title: "Emergency support requested",
             message: alertText,

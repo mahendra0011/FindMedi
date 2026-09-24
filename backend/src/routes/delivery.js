@@ -49,10 +49,15 @@ router.get('/history', requireUserId, protect, async (req, res) => {
       _id: d._id,
       orderId: d.orderId,
       status: d.status,
+      serviceType: d.serviceType || 'pharmacy',
+      pickupName: d.pickupName,
       pickupAddress: d.pickupAddress,
       dropAddress: d.dropAddress,
+      patientName: d.patientName,
       deliveryOtp: d.deliveryOtp,
+      deliveryFee: d.deliveryFee || d.orderRef?.deliveryFee || 0,
       createdAt: d.createdAt,
+      deliveredAt: d.deliveredAt,
     }));
     return res.json({ tasks });
   } catch {
@@ -72,6 +77,7 @@ router.get('/orders', requireUserId, protect, async (req, res) => {
         .sort({ createdAt: -1 })
         .limit(100)
         .populate('orderRef')
+        .populate('labBookingId', 'bookingId patientName tests visitType reportUrl')
         .lean();
     } catch {
       return res.json({ orders: [] });
@@ -88,6 +94,28 @@ router.get('/orders', requireUserId, protect, async (req, res) => {
           status: o.status || d.status,
           createdAt: o.orderDate || o.createdAt || d.createdAt,
           items: o.items || [],
+          serviceType: 'pharmacy',
+          dropAddress: d.dropAddress,
+          pickupAddress: d.pickupAddress,
+          pickupName: d.pickupName,
+        });
+        continue;
+      }
+      // Lab report / sample run — pharmacy order nahi hai, task ke apne fields use karo.
+      if (d.serviceType && d.serviceType !== 'pharmacy') {
+        const lb = d.labBookingId && typeof d.labBookingId === 'object' ? d.labBookingId : null;
+        orders.push({
+          _id: d._id,
+          orderId: d.orderId,
+          customerName: d.patientName || lb?.patientName || '',
+          total: d.deliveryFee || 0,
+          status: d.status,
+          createdAt: d.createdAt,
+          items: (lb?.tests || []).map((t) => ({ name: t })),
+          serviceType: d.serviceType,
+          dropAddress: d.dropAddress,
+          pickupAddress: d.pickupAddress,
+          pickupName: d.pickupName,
         });
       }
     }
@@ -119,6 +147,7 @@ router.get('/zones', requireUserId, protect, async (req, res) => {
         // ignore, return empty below
       }
     }
+    const isOnline = partner?.isOnline ?? false;
     const zones = (zoneNames || [])
       .filter((z) => typeof z === 'string' && z.trim().length > 0)
       .map((z, i) => ({
@@ -126,7 +155,8 @@ router.get('/zones', requireUserId, protect, async (req, res) => {
         name: z,
         area: z,
         pinCode: '',
-        isActive: true,
+        isActive: isOnline,
+        note: 'Derived from workZone; no separate geofence entity',
       }));
     return res.json({ zones });
   } catch {
@@ -155,14 +185,17 @@ router.get('/earnings', requireUserId, protect, async (req, res) => {
     }
     const earnings = (deliveries || []).map((d) => {
       const o = d.orderRef && typeof d.orderRef === 'object' ? d.orderRef : null;
+      // Lab report/sample tasks me payout task ke apne deliveryFee me hota hai.
       const amount =
-        o && typeof o.deliveryFee === 'number' && o.deliveryFee > 0 ? o.deliveryFee : 0;
+        d.deliveryFee > 0 ? d.deliveryFee : (o && typeof o.deliveryFee === 'number' && o.deliveryFee > 0 ? o.deliveryFee : 0);
+      const isLab = (d.serviceType || 'pharmacy') !== 'pharmacy';
       return {
         _id: d._id,
         amount,
-        type: 'delivery',
-        description: `Delivery ${d.orderId || ''}`.trim(),
+        type: isLab ? 'lab_report' : 'delivery',
+        description: `${isLab ? 'Lab report delivery' : 'Delivery'} ${d.orderId || ''}`.trim(),
         referenceId: d.orderId || String(d._id),
+        serviceType: d.serviceType || 'pharmacy',
         createdAt: d.deliveredAt || d.updatedAt || d.createdAt,
       };
     });
@@ -211,9 +244,21 @@ router.get('/documents', requireUserId, protect, async (req, res) => {
 // GET /delivery/reviews?userId= -> {reviews:[{_id,rating,comment,patientName,createdAt}]}
 router.get('/reviews', requireUserId, protect, async (req, res) => {
   try {
-    // Review model has no delivery-partner reference; return empty list
-    // with the correct shape rather than 500.
-    return res.json({ reviews: [] });
+    const { userId } = req.query;
+    const partner = await findPartnerByUserId(userId);
+    if (!partner) return res.json({ reviews: [] });
+    const tasks = await PharmacyDelivery.find({
+      deliveryPartnerId: partner._id,
+      ratingByUser: { $exists: true, $ne: null },
+    }).sort({ deliveredAt: -1 }).limit(50).lean().catch(() => []);
+    const reviews = (tasks || []).filter((t) => t.ratingByUser?.stars).map((t) => ({
+      _id: t._id,
+      rating: t.ratingByUser.stars,
+      comment: t.ratingByUser.comment || '',
+      patientName: t.patientName || '',
+      createdAt: t.deliveredAt || t.updatedAt,
+    }));
+    return res.json({ reviews });
   } catch {
     return res.json({ reviews: [] });
   }

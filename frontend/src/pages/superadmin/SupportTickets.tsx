@@ -16,6 +16,25 @@ function SupportTicketsTab() {
   const [selected, setSelected] = useState(null);
   const [reply, setReply] = useState('');
 
+  useEffect(() => {
+    let socket;
+    (async () => {
+      try {
+        const { getSocket } = await import('@/lib/socket');
+        socket = getSocket();
+        const onNew = (t) => { setTickets((prev) => [t, ...prev]); toast.info(`New Support Ticket #${t.ticketNumber || String(t._id).slice(-6)} received`); };
+        const onMsg = (p) => {
+          if (selected?._id === p.ticketId) {
+            setSelected((prev) => ({ ...prev, messages: [...(prev.messages || []), p.message] }));
+          }
+        };
+        socket?.on('support_ticket_created', onNew);
+        socket?.on('support_message_received', onMsg);
+      } catch {}
+    })();
+    return () => { socket?.off('support_ticket_created'); socket?.off('support_message_received'); };
+  }, [selected?._id]);
+
   const load = useCallback(async () => {
     setLoading(true);
     try {

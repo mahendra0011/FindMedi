@@ -359,6 +359,11 @@ export default function AdminAssistants() {
             </div>
           </div>
         )}
+
+        <div className="rounded-2xl border p-4 mt-4">
+          <p className="font-semibold text-sm mb-2">Ward Duty Timeline</p>
+          <p className="text-xs text-muted-foreground">Morning → Afternoon → Night roster blocks per ward. Detailed timeline view coming from duty-roster API.</p>
+        </div>
       </div>
     </div>
   );

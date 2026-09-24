@@ -74,6 +74,23 @@ export default function DoctorProfile() {
   const [avatar, setAvatar] = useState('');
   const [signatureUrl, setSignatureUrl] = useState('');
   const [signatureUploading, setSignatureUploading] = useState(false);
+  const [emergencyOnCall, setEmergencyOnCall] = useState(false);
+  const [refundGuarantee, setRefundGuarantee] = useState('auto-refund');
+  const [videoFee, setVideoFee] = useState('');
+  const [inPersonFee, setInPersonFee] = useState('');
+  const [emergencyFee, setEmergencyFee] = useState('');
+  const [followUpFee, setFollowUpFee] = useState('');
+  const [followUpWindow, setFollowUpWindow] = useState('7 Days');
+  const [bufferTime, setBufferTime] = useState('5 min');
+  const [vacationFrom, setVacationFrom] = useState('');
+  const [vacationTo, setVacationTo] = useState('');
+  const [vacationReason, setVacationReason] = useState('');
+  const [councilName, setCouncilName] = useState('');
+  const [councilRegNo, setCouncilRegNo] = useState('');
+  const [councilYear, setCouncilYear] = useState('');
+  const [payoutUpi, setPayoutUpi] = useState('');
+  const [payoutAccount, setPayoutAccount] = useState('');
+  const [payoutIfsc, setPayoutIfsc] = useState('');
 
   const [clinicName, setClinicName] = useState('');
   const [clinicAddress, setClinicAddress] = useState('');
@@ -109,6 +126,26 @@ export default function DoctorProfile() {
           setConsultationFee(myDoc.consultation_fees || myDoc.fees || '');
           setAvatar(myDoc.avatar || '');
           setSignatureUrl(myDoc.signatureUrl || '');
+          // §8 settings live under settings.* (flat legacy keys as fallback).
+          const st = myDoc.settings || {};
+          const pick = (k, fb = '') => (st[k] !== undefined && st[k] !== '' ? st[k] : (myDoc[k] !== undefined && myDoc[k] !== '' ? myDoc[k] : fb));
+          setEmergencyOnCall(Boolean(st.emergencyOnCall ?? myDoc.emergencyOnCall ?? false));
+          setRefundGuarantee(pick('refundGuarantee', 'auto-refund'));
+          setVideoFee(String(pick('videoFee', myDoc.video_fee || '')));
+          setInPersonFee(String(pick('inPersonFee', myDoc.offline_fee || '')));
+          setEmergencyFee(String(pick('emergencyFee', myDoc.emergency_fee || '')));
+          setFollowUpFee(String(pick('followUpFee', '')));
+          setFollowUpWindow(String(pick('followUpWindow', '7 Days')));
+          setBufferTime(String(pick('bufferTime', '5 min')));
+          setVacationFrom(String(pick('vacationFrom', '')));
+          setVacationTo(String(pick('vacationTo', '')));
+          setVacationReason(String(pick('vacationReason', '')));
+          setCouncilName(String(pick('councilName', '')));
+          setCouncilRegNo(String(pick('councilRegNo', '')));
+          setCouncilYear(String(pick('councilYear', '')));
+          setPayoutUpi(String(pick('payoutUpi', '')));
+          setPayoutAccount(String(pick('payoutAccount', '')));
+          setPayoutIfsc(String(pick('payoutIfsc', '')));
           const cp = myDoc.clinicProfile || {};
           setClinicName(cp.clinic_name || '');
           setClinicAddress(cp.clinic_address || '');
@@ -135,7 +172,11 @@ export default function DoctorProfile() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const body = { bio, qualifications: qualification, experience, phone, location: address, consultation_fees: consultationFee ? Number(consultationFee) : 0, avatar };
+      const body = { bio, qualifications: qualification, experience, phone, location: address, consultation_fees: consultationFee ? Number(consultationFee) : 0, avatar,
+        emergencyOnCall, refundGuarantee, videoFee: videoFee ? Number(videoFee) : 0, inPersonFee: inPersonFee ? Number(inPersonFee) : 0,
+        emergencyFee: emergencyFee ? Number(emergencyFee) : 0, followUpFee, followUpWindow, bufferTime,
+        vacationFrom, vacationTo, vacationReason, councilName, councilRegNo, councilYear,
+        payoutUpi, payoutAccount, payoutIfsc };
       if (doctor) {
         await api.updateDoctor(doctor._id, body);
         if (doctor.doctor_type === 'clinic') {
@@ -257,6 +298,31 @@ export default function DoctorProfile() {
               </label>
               <Input value={address} onChange={e => setAddress(e.target.value)} placeholder="Clinic address" />
             </div>
+          </div>
+        </div>
+
+        <hr className="border-border/60" />
+
+        <div>
+          <h3 className="font-heading text-lg font-semibold text-foreground mb-4">Emergency, Refund, Fees & Operations</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <label className="flex items-center gap-2 text-sm"><Switch checked={emergencyOnCall} onCheckedChange={setEmergencyOnCall} /> Acute Care Emergency On-Call</label>
+            <div><label className="text-sm font-medium mb-1 block">Refund Guarantee</label><select value={refundGuarantee} onChange={e => setRefundGuarantee(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm"><option value="auto-refund">Auto-refund 100% + free reschedule</option><option value="manual">Manual review</option></select></div>
+            <div><label className="text-sm font-medium mb-1 block">Video Fee ₹</label><Input value={videoFee} onChange={e => setVideoFee(e.target.value)} placeholder="e.g. 500" /></div>
+            <div><label className="text-sm font-medium mb-1 block">In-Person Fee ₹</label><Input value={inPersonFee} onChange={e => setInPersonFee(e.target.value)} placeholder="e.g. 700" /></div>
+            <div><label className="text-sm font-medium mb-1 block">Emergency Fee ₹</label><Input value={emergencyFee} onChange={e => setEmergencyFee(e.target.value)} placeholder="e.g. 1000" /></div>
+            <div><label className="text-sm font-medium mb-1 block">Follow-up Fee</label><Input value={followUpFee} onChange={e => setFollowUpFee(e.target.value)} placeholder="Free / ₹" /></div>
+            <div><label className="text-sm font-medium mb-1 block">Follow-up Window</label><select value={followUpWindow} onChange={e => setFollowUpWindow(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm"><option>3 Days</option><option>7 Days</option><option>14 Days</option><option>None</option></select></div>
+            <div><label className="text-sm font-medium mb-1 block">Buffer Between Appointments</label><select value={bufferTime} onChange={e => setBufferTime(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm"><option>0 min</option><option>5 min</option><option>10 min</option><option>15 min</option></select></div>
+            <div><label className="text-sm font-medium mb-1 block">Vacation From</label><Input type="date" value={vacationFrom} onChange={e => setVacationFrom(e.target.value)} /></div>
+            <div><label className="text-sm font-medium mb-1 block">Vacation To</label><Input type="date" value={vacationTo} onChange={e => setVacationTo(e.target.value)} /></div>
+            <div className="sm:col-span-2"><label className="text-sm font-medium mb-1 block">Vacation Reason</label><Input value={vacationReason} onChange={e => setVacationReason(e.target.value)} placeholder="Out-of-office reason" /></div>
+            <div><label className="text-sm font-medium mb-1 block">Council Name</label><Input value={councilName} onChange={e => setCouncilName(e.target.value)} placeholder="e.g. Delhi Medical Council" /></div>
+            <div><label className="text-sm font-medium mb-1 block">Council Reg No</label><Input value={councilRegNo} onChange={e => setCouncilRegNo(e.target.value)} /></div>
+            <div><label className="text-sm font-medium mb-1 block">Council Year</label><Input value={councilYear} onChange={e => setCouncilYear(e.target.value)} /></div>
+            <div><label className="text-sm font-medium mb-1 block">Payout UPI</label><Input value={payoutUpi} onChange={e => setPayoutUpi(e.target.value)} /></div>
+            <div><label className="text-sm font-medium mb-1 block">Payout Account</label><Input value={payoutAccount} onChange={e => setPayoutAccount(e.target.value)} /></div>
+            <div><label className="text-sm font-medium mb-1 block">Payout IFSC</label><Input value={payoutIfsc} onChange={e => setPayoutIfsc(e.target.value)} /></div>
           </div>
         </div>
 

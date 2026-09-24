@@ -36,6 +36,14 @@ pincode: f.pincode || '',
           accreditations: f.accreditations || [],
           amenities: f.amenities || { parking: false, acWaitingArea: false, wheelchairAccess: false, cardPayment: false, homeDelivery: false, prescriptionUpload: false },
           socialLinks: f.socialLinks || { facebook: '', instagram: '', youtube: '' },
+          // §9 pharmacy ops master lives under details.pharmacyOps (free object, no schema change).
+          pharmacyOps: {
+            nightDelivery: false, returnRules: 'intact_48h', deliveryBase: '', freeFloor: '',
+            nightSurcharge: '', maxGeofenceKm: '5', drugLicense20: '', drugLicense21: '', drugLicenseExpiry: '',
+            pharmacistName: '', pharmacistRegNo: '', pharmacistCouncil: '',
+            bankHolder: '', bankAccount: '', bankIfsc: '', gstin: '',
+            ...(f.details?.pharmacyOps || {}),
+          },
         });
       } catch (e) { console.error(e); toast.error('Failed to load pharmacy data'); }
       setLoading(false);
@@ -50,13 +58,23 @@ pincode: f.pincode || '',
     if (v) update('accreditations', [...form.accreditations, v.trim().toUpperCase()]);
   };
 
+  const setOps = (k, v) => setForm(p => ({ ...p, pharmacyOps: { ...p.pharmacyOps, [k]: v } }));
+
   const handleSave = async () => {
     setSaving(true);
     try {
       const f = await api.getMyFacility();
+      const { pharmacyOps, ...rest } = form;
       await api.updateFacility(f._id, {
-        ...form,
+        ...rest,
         establishedYear: form.establishedYear ? Number(form.establishedYear) : undefined,
+        details: { ...(f.details || {}), pharmacyOps: {
+          ...pharmacyOps,
+          deliveryBase: Number(pharmacyOps.deliveryBase) || 0,
+          freeFloor: Number(pharmacyOps.freeFloor) || 0,
+          nightSurcharge: Number(pharmacyOps.nightSurcharge) || 0,
+          maxGeofenceKm: Number(pharmacyOps.maxGeofenceKm) || 0,
+        } },
       });
       toast.success('Pharmacy settings updated successfully');
     } catch (e) { toast.error(e.message || 'Failed to update'); }
@@ -151,6 +169,52 @@ pincode: f.pincode || '',
               <Input value={form.socialLinks?.[s] || ''} onChange={e => update('socialLinks', { ...form.socialLinks, [s]: e.target.value })} placeholder={`https://${s}.com/...`} />
             </div>
           ))}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle className="flex items-center gap-2"><Truck className="w-5 h-5" /> Operations Master (§9)</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          <label className="flex items-start gap-3 p-3 rounded-xl border cursor-pointer">
+            <input type="checkbox" checked={!!form.pharmacyOps?.nightDelivery} onChange={e => setOps('nightDelivery', e.target.checked)} className="mt-0.5 w-4 h-4 rounded accent-primary" />
+            <span>
+              <span className="block text-sm font-medium">24/7 night & emergency dispatch</span>
+              <span className="block text-xs text-muted-foreground">Midnight insulin/cardiac orders match drivers willing to run night shifts.</span>
+            </span>
+          </label>
+          <div className="space-y-2">
+            <Label>Medicine return & refund rules</Label>
+            <select value={form.pharmacyOps?.returnRules || 'intact_48h'} onChange={e => setOps('returnRules', e.target.value)} className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm">
+              <option value="intact_48h">48h return on intact strips</option>
+              <option value="no_coldchain">No return on cold-chain biologics</option>
+              <option value="wrong_full">100% refund on wrong delivery</option>
+            </select>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            <div className="space-y-2"><Label>Delivery base (₹)</Label><Input type="number" min={0} value={form.pharmacyOps?.deliveryBase ?? ''} onChange={e => setOps('deliveryBase', e.target.value)} /></div>
+            <div className="space-y-2"><Label>Free above (₹)</Label><Input type="number" min={0} value={form.pharmacyOps?.freeFloor ?? ''} onChange={e => setOps('freeFloor', e.target.value)} /></div>
+            <div className="space-y-2"><Label>Night surcharge (₹)</Label><Input type="number" min={0} value={form.pharmacyOps?.nightSurcharge ?? ''} onChange={e => setOps('nightSurcharge', e.target.value)} /></div>
+          </div>
+          <div className="space-y-2">
+            <Label>Max delivery geofence: {form.pharmacyOps?.maxGeofenceKm || 5} km</Label>
+            <input type="range" min={3} max={12} step={1} value={form.pharmacyOps?.maxGeofenceKm || 5} onChange={e => setOps('maxGeofenceKm', e.target.value)} className="w-full accent-primary" />
+          </div>
+          <Separator />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2"><Label>Drug License Form 20</Label><Input value={form.pharmacyOps?.drugLicense20 || ''} onChange={e => setOps('drugLicense20', e.target.value)} /></div>
+            <div className="space-y-2"><Label>Drug License Form 21</Label><Input value={form.pharmacyOps?.drugLicense21 || ''} onChange={e => setOps('drugLicense21', e.target.value)} /></div>
+            <div className="space-y-2"><Label>License expiry</Label><Input type="date" value={form.pharmacyOps?.drugLicenseExpiry || ''} onChange={e => setOps('drugLicenseExpiry', e.target.value)} /></div>
+            <div className="space-y-2"><Label>Pharmacist council</Label><Input value={form.pharmacyOps?.pharmacistCouncil || ''} onChange={e => setOps('pharmacistCouncil', e.target.value)} placeholder="State Pharmacy Council" /></div>
+            <div className="space-y-2"><Label>Duty pharmacist name</Label><Input value={form.pharmacyOps?.pharmacistName || ''} onChange={e => setOps('pharmacistName', e.target.value)} /></div>
+            <div className="space-y-2"><Label>Pharmacist reg. no.</Label><Input value={form.pharmacyOps?.pharmacistRegNo || ''} onChange={e => setOps('pharmacistRegNo', e.target.value)} /></div>
+          </div>
+          <Separator />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2"><Label>Settlement holder</Label><Input value={form.pharmacyOps?.bankHolder || ''} onChange={e => setOps('bankHolder', e.target.value)} /></div>
+            <div className="space-y-2"><Label>Settlement account</Label><Input value={form.pharmacyOps?.bankAccount || ''} onChange={e => setOps('bankAccount', e.target.value)} /></div>
+            <div className="space-y-2"><Label>IFSC</Label><Input value={form.pharmacyOps?.bankIfsc || ''} onChange={e => setOps('bankIfsc', e.target.value.toUpperCase())} /></div>
+            <div className="space-y-2"><Label>GSTIN (15-char)</Label><Input value={form.pharmacyOps?.gstin || ''} onChange={e => setOps('gstin', e.target.value.toUpperCase())} /></div>
+          </div>
         </CardContent>
       </Card>
 

@@ -38,27 +38,7 @@ const labApi = {
   deliverReport: (id, b) => api.deliverLabReport(id, b),
 };
 
-const CATEGORIES = ['Blood Test', 'Urine/Stool', 'Hormone', 'Vitamin', 'Cardiac Basic', 'Basic Imaging', 'Advanced Imaging', 'Health Package', 'Other'];
-const DEPARTMENTS = ['Pathology', 'Radiology', 'Cardiology', 'Health Packages'];
-const REPORT_TIMES = ['30 mins', '1 hr', '2 hrs', '6 hrs', '12 hrs', '24 hrs', '48 hrs', '72 hrs'];
-
-const TABS = [
-  { id: 'overview', label: 'Overview', icon: BarChart3 },
-  { id: 'catalog', label: 'Test Catalog', icon: FlaskConical },
-  { id: 'bookings', label: 'Bookings', icon: CalendarDays },
-  { id: 'rxqueue', label: 'Rx Queue', icon: ClipboardList },
-  { id: 'samples', label: 'Sample Collection', icon: Syringe },
-  { id: 'appointments', label: 'Appointments', icon: Calendar },
-  { id: 'reports', label: 'Reports', icon: FileText },
-  { id: 'equipment', label: 'Equipment', icon: Microscope },
-  { id: 'staff', label: 'Staff', icon: Users },
-  { id: 'packages', label: 'Packages', icon: Gift },
-  { id: 'billing', label: 'Billing', icon: CreditCard },
-  { id: 'refunds', label: 'Refunds', icon: RotateCcw },
-  { id: 'reviews', label: 'Reviews', icon: Star },
-  { id: 'analytics', label: 'Analytics', icon: TrendingUp },
-  { id: 'settings', label: 'Settings', icon: Settings },
-];
+import { TABS, CATEGORIES, DEPARTMENTS, REPORT_TIMES, StatusBadge, SectionHeader } from '@/components/diagnostic/DiagnosticShared';
 
 export default function DiagnosticDashboard() {
   const qc = useQueryClient();
@@ -66,6 +46,7 @@ export default function DiagnosticDashboard() {
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(null);
   const [toast, setToast] = useState(null);
+  const [dispatchForm, setDispatchForm] = useState({ dropAddress: '', deliveryFee: '40', deliveryPartnerId: '', notes: '' });
 
   // Tests
   const [testForm, setTestForm] = useState({ name: '', category: 'Blood Test', department: 'Pathology', price: '', mrp: '', reportTime: '24 hrs', prescriptionReq: false, homeCollection: false, homeCollectionFee: '50', popular: false, nablAccredited: false, description: '', preparation: '' });
@@ -96,7 +77,7 @@ export default function DiagnosticDashboard() {
   const [appointmentForm, setAppointmentForm] = useState({ patientName: '', patientPhone: '', bookingDate: '', timeSlot: '', testName: '' });
 
   // Settings
-  const [centerSettings, setCenterSettings] = useState({ name: 'FindMedi Diagnostic Center', type: 'Pathology Lab', address: '123 Healthcare Ave, New York', phone: '+1 234-567-8900', email: 'lab@findmedi.com', licenseNo: 'LAB-LIC-001', nablCertified: true, nablCertNo: 'NABL-MC-2024-001', aerbCertified: false, timings: '7:00 AM - 9:00 PM', homeCollectionAvailable: true, reportDeliveryModes: ['Email', 'SMS', 'Portal'] });
+  const [centerSettings, setCenterSettings] = useState({ name: 'FindMedi Diagnostic Center', type: 'Pathology Lab', address: '123 Healthcare Ave, New York', phone: '+1 234-567-8900', email: 'lab@findmedi.com', licenseNo: 'LAB-LIC-001', nablCertified: true, nablCertNo: 'NABL-MC-2024-001', aerbCertified: false, timings: '7:00 AM - 9:00 PM', homeCollectionAvailable: true, emergencySupport: false, acceptRefunds: true, reportDeliveryModes: ['Email', 'SMS', 'Portal', 'Courier'] });
 
   const showToast = (msg, type = 'success') => { setToast({ msg, type }); setTimeout(() => setToast(null), 3000); };
   const exportBillingCsv = () => {
@@ -122,15 +103,18 @@ export default function DiagnosticDashboard() {
   };
 
   // Data queries
-  const { data: stats } = useQuery({ queryKey: ['lab-stats'], queryFn: labApi.getStats });
-  const { data: ordersData } = useQuery({ queryKey: ['lab-orders'], queryFn: () => labApi.getOrders({}) });
+  const { data: stats, isLoading: statsLoading, isError: statsError, refetch: refetchStats } = useQuery({ queryKey: ['lab-stats'], queryFn: labApi.getStats, retry: 1 });
+  const { data: ordersData, isLoading: ordersLoading, isError: ordersError, refetch: refetchOrders } = useQuery({ queryKey: ['lab-orders'], queryFn: () => labApi.getOrders({ limit: 200, page: 1 }), retry: 1 });
   const { data: testsData } = useQuery({ queryKey: ['lab-tests'], queryFn: () => labApi.getTests({}) });
-  const { data: bookingsData } = useQuery({ queryKey: ['lab-bookings'], queryFn: () => labApi.getBookings({}) });
+  const { data: bookingsData, isLoading: bookingsLoading, isError: bookingsError, refetch: refetchBookings } = useQuery({ queryKey: ['lab-bookings'], queryFn: () => labApi.getBookings({ limit: 200, page: 1 }), retry: 1 });
   const { data: equipmentData } = useQuery({ queryKey: ['lab-equipment'], queryFn: () => labApi.getEquipment({}) });
   const { data: packagesData } = useQuery({ queryKey: ['lab-packages'], queryFn: () => labApi.getPackages({}) });
-  const { data: staffData } = useQuery({ queryKey: ['lab-staff'], queryFn: () => api.getStaff({}).catch(() => []) });
-  const { data: reviewsData } = useQuery({ queryKey: ['lab-reviews'], queryFn: () => api.getReviews({}).catch(() => []) });
-  const { data: refundsData } = useQuery({ queryKey: ['lab-refunds'], queryFn: () => api.getRefunds().catch(() => ({ payments: [] })) });
+  const { data: staffData } = useQuery({ queryKey: ['lab-staff'], queryFn: () => api.getStaff({ role: 'lab', limit: 200 }).catch(() => []) });
+  const { data: reviewsData } = useQuery({ queryKey: ['lab-reviews'], queryFn: () => api.getReviews({ limit: 100 }).catch(() => []) });
+  const { data: refundsData } = useQuery({ queryKey: ['lab-refunds'], queryFn: () => api.getRefunds({ limit: 100 }).catch(() => ({ payments: [] })) });
+  const labLoading = statsLoading || ordersLoading || bookingsLoading;
+  const labError = statsError || ordersError || bookingsError;
+  const refetchLab = () => { refetchStats(); refetchOrders(); refetchBookings(); };
 
   const orders = ordersData?.orders || [];
   const tests = testsData?.tests || testsData?.data || testsData || [];
@@ -140,55 +124,55 @@ export default function DiagnosticDashboard() {
   const staffList = staffData?.staff || staffData?.data || staffData || [];
   const reviews = reviewsData?.reviews || reviewsData?.data || reviewsData || [];
   const refunds = refundsData?.payments || refundsData?.data || refundsData || [];
-  const rxQueue = orders.filter((o) => o.prescriptionRequired || o.prescriptionId || o.rxUrl);
+  const rxQueue = [...orders, ...bookings].filter((o) => o.prescriptionRequired || o.prescriptionId || o.prescriptionUrl || o.rxUrl || o.hasPrescription);
   const bills = bookings.filter((b) => b.totalAmount || b.amount || b.invoiceId);
 
   // Mutations
   const updateBookingMut = useMutation({
     mutationFn: ({ id, ...b }) => labApi.updateBooking(id, b),
-    onSuccess: () => qc.invalidateQueries(['lab-bookings', 'lab-stats']),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['lab-bookings'] }); qc.invalidateQueries({ queryKey: ['lab-stats'] }); },
   });
   const createBookingMut = useMutation({
     mutationFn: (b) => labApi.createBooking(b),
-    onSuccess: () => { qc.invalidateQueries(['lab-bookings', 'lab-stats']); setShowModal(null); showToast('Booking created'); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['lab-bookings'] }); qc.invalidateQueries({ queryKey: ['lab-stats'] }); setShowModal(null); showToast('Booking created'); },
     onError: () => showToast('Unable to create booking', 'error'),
   });
   const deliverReportMut = useMutation({
     mutationFn: ({ id, ...b }) => labApi.deliverReport(id, b),
-    onSuccess: () => { qc.invalidateQueries(['lab-orders']); setShowModal(null); showToast('Report delivered and patient notified'); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['lab-orders'] }); setShowModal(null); showToast('Report delivered and patient notified'); },
     onError: () => showToast('Unable to update report', 'error'),
   });
   const createEquipmentMut = useMutation({
     mutationFn: (b) => labApi.createEquipment(b),
-    onSuccess: () => { qc.invalidateQueries(['lab-equipment']); setShowModal(null); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['lab-equipment'] }); setShowModal(null); },
   });
   const updateEquipmentMut = useMutation({
     mutationFn: ({ id, ...b }) => labApi.updateEquipment(id, b),
-    onSuccess: () => { qc.invalidateQueries(['lab-equipment']); setShowModal(null); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['lab-equipment'] }); setShowModal(null); },
   });
   const createPackageMut = useMutation({
     mutationFn: (b) => labApi.createPackage(b),
-    onSuccess: () => { qc.invalidateQueries(['lab-packages']); setShowModal(null); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['lab-packages'] }); setShowModal(null); },
   });
   const updatePackageMut = useMutation({
     mutationFn: ({ id, ...b }) => labApi.updatePackage(id, b),
-    onSuccess: () => { qc.invalidateQueries(['lab-packages']); setShowModal(null); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['lab-packages'] }); setShowModal(null); },
   });
   const createStaffMut = useMutation({
     mutationFn: (b) => api.createStaff(b),
-    onSuccess: () => { qc.invalidateQueries(['lab-staff']); setShowModal(null); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['lab-staff'] }); setShowModal(null); },
   });
   const updateStaffMut = useMutation({
     mutationFn: ({ id, ...b }) => api.updateStaff(id, b),
-    onSuccess: () => qc.invalidateQueries(['lab-staff']),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['lab-staff'] }),
   });
   const createTestMut = useMutation({
     mutationFn: (b) => api.createTest(b),
-    onSuccess: () => { qc.invalidateQueries(['lab-tests']); setShowModal(null); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['lab-tests'] }); setShowModal(null); },
   });
   const updateTestMut = useMutation({
     mutationFn: ({ id, ...b }) => api.updateTest(id, b),
-    onSuccess: () => { qc.invalidateQueries(['lab-tests']); setShowModal(null); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['lab-tests'] }); setShowModal(null); },
   });
 
   const filteredBookings = useMemo(() => {
@@ -212,17 +196,6 @@ export default function DiagnosticDashboard() {
     return { ...stats, todayBookings: todayBookingCount, totalBookings: bookings.length, revenue, pendingRx, lowStock };
   }, [stats, bookings, rxQueue, equipment]);
 
-  const StatusBadge = ({ status, mapping = {} }) => {
-    const colors = mapping[status] || {
-      Confirmed: 'bg-success/10 text-success', Pending: 'bg-warning/10 text-warning', Completed: 'bg-success/10 text-success',
-      Cancelled: 'bg-destructive/10 text-destructive', Processing: 'bg-info/10 text-info', 'Sample Collected': 'bg-info/10 text-info',
-      Operational: 'bg-success/10 text-success', 'Under Maintenance': 'bg-warning/10 text-warning', 'Out of Service': 'bg-destructive/10 text-destructive',
-      Paid: 'bg-success/10 text-success', Unpaid: 'bg-warning/10 text-warning', 'Partially Paid': 'bg-info/10 text-info', Refunded: 'bg-destructive/10 text-destructive',
-    };
-    const c = colors[status] || 'bg-muted text-muted-foreground';
-    return <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${c}`}>{status}</span>;
-  };
-
   const Modal = ({ title, children, onClose }) => (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-card rounded-2xl border shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
@@ -232,18 +205,27 @@ export default function DiagnosticDashboard() {
     </div>
   );
 
-  const SectionHeader = ({ title, subtitle, action }) => (
-    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
-      <div><h2 className="text-xl font-bold text-foreground">{title}</h2>{subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}</div>
-      {action}
-    </div>
-  );
+
 
   return (
     <div>
       {toast && (
         <div className={`fixed top-4 right-4 z-[60] px-4 py-3 rounded-xl shadow-lg text-sm font-medium ${toast.type === 'success' ? 'bg-success text-success-foreground' : 'bg-destructive text-destructive-foreground'}`}>
           {toast.msg}
+        </div>
+      )}
+
+      {labLoading && (
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
+          {[0,1,2,3,4,5].map((i) => (
+            <div key={i} className="rounded-xl border p-4 animate-pulse"><div className="h-4 w-20 bg-muted rounded mb-2" /><div className="h-6 w-12 bg-muted rounded" /></div>
+          ))}
+        </div>
+      )}
+      {labError && (
+        <div className="rounded-xl border p-4 mb-6 text-center space-y-2">
+          <p className="text-sm font-semibold">Lab data load nahi hua</p>
+          <Button size="sm" variant="outline" onClick={() => refetchLab()}>Retry</Button>
         </div>
       )}
 
@@ -406,6 +388,9 @@ export default function DiagnosticDashboard() {
                         <Button size="sm" variant="outline" className="text-destructive" onClick={() => { updateBookingMut.mutate({ id: b._id, status: 'Cancelled' }); showToast('Booking cancelled'); }}><X className="w-3 h-3 mr-1" /> Reject</Button>
                       </>}
                       {b.status === 'Confirmed' && <Button size="sm" variant="outline" onClick={() => { updateBookingMut.mutate({ id: b._id, status: 'Completed' }); showToast('Marked completed'); }}><Check className="w-3 h-3 mr-1" /> Mark Complete</Button>}
+                      <Button size="sm" variant="outline" onClick={async () => { const res = await api.dispatchLabReport(b._id, { deliveryFee: 40 }).catch((e) => { showToast(e?.message || 'Unable to dispatch report', 'error'); return null; }); if (res?.task) showToast(res?.assignedTo ? `Assigned to ${res.assignedTo.name}` : 'Queued for delivery partner'); }}>
+                        <Truck className="w-3 h-3 mr-1" /> Send by Delivery Boy
+                      </Button>
                     </div>
                   </div>
                 ))}
@@ -526,8 +511,11 @@ export default function DiagnosticDashboard() {
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      {o.status === 'Under Verification' && <Button size="sm" onClick={() => { updateBookingMut.mutate({ id: o._id, status: 'Delivered', notified: true }); showToast('Report marked as delivered, patient notified'); }}><Send className="w-3 h-3 mr-1" /> Mark Delivered & Notify</Button>}
-                      {o.status === 'Processing' && <Button size="sm" variant="outline" onClick={() => window.location.hash = '#/lab/orders/' + o._id + '/enter-result'}><Upload className="w-3 h-3 mr-1" /> Upload Results</Button>}
+                      {o.status === 'Under Verification' && <Button size="sm" onClick={() => { deliverReportMut.mutate({ id: o._id, reportUrl: o.reportUrl || '', notified: true }); }}><Send className="w-3 h-3 mr-1" /> Mark Delivered & Notify</Button>}
+                      {o.status === 'Processing' && <Button size="sm" variant="outline" onClick={() => { setShowModal('upload-report'); }}><Upload className="w-3 h-3 mr-1" /> Upload Results</Button>}
+                      <Button size="sm" variant="outline" onClick={async () => { const res = await api.dispatchLabOrder(o._id, { deliveryFee: Number(dispatchForm.deliveryFee) || 40, dropAddress: dispatchForm.dropAddress || undefined }).catch((e) => { showToast(e?.message || 'Unable to dispatch report', 'error'); return null; }); if (res?.task) { showToast(res?.assignedTo ? `Assigned to ${res.assignedTo.name}` : 'Queued for delivery partner'); } }}>
+                        <Truck className="w-3 h-3 mr-1" /> Send by Delivery Boy
+                      </Button>
                     </div>
                   </div>
                 ))}

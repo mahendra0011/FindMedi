@@ -52,7 +52,7 @@ export default function AmbulanceJobs() {
           </Card>
         </motion.div>
       ))}
-      {!jobs.length && <p className="text-sm text-muted-foreground text-center py-8">Koi job history nahi.</p>}
+      {!jobs.length && <p className="text-sm text-muted-foreground text-center py-8">No job history yet.</p>}
       {maxPage > 1 && (
         <div className="flex items-center justify-between pt-2">
           <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => load(page - 1)}>← Prev</Button>

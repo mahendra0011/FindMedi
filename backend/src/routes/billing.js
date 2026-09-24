@@ -50,13 +50,14 @@ router.get('/', protect, async (req, res, next) => {
       filter.patientId = req.user._id;
     } else if (patientId || patient_id) {
       filter.patientId = patientId || patient_id;
-    } else if (req.user.hospitalId && req.user.role !== 'superadmin') {
-      filter.hospitalId = req.user.hospitalId;
-    } else if (req.user.role === 'doctor' || req.user.role === 'clinic_doctor' || req.user.role === 'counsellor' || req.user.role === 'psychiatrist') {
+    } else if (['doctor', 'clinic_doctor', 'counsellor', 'psychiatrist'].includes(req.user.role)) {
       filter.$or = [
-        { doctorId: req.user._id },
+        { doctorId: req.user.doctorProfileId || req.user._id },
         { doctor: { $regex: req.user.name, $options: 'i' } }
       ];
+      if (req.user.hospitalId) filter.hospitalId = req.user.hospitalId;
+    } else if (req.user.hospitalId && req.user.role !== 'superadmin') {
+      filter.hospitalId = req.user.hospitalId;
     }
 
     if (status && status !== 'All') {

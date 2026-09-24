@@ -98,6 +98,56 @@ router.get('/ledger', protect, superadminOnly, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
+// SA-M3: quarterly TDS (194-O, 1% of gross) summary per facility for Form 16A.
+router.get('/tax-summary', protect, superadminOnly, async (req, res) => {
+  try {
+    const { quarter } = req.query; // e.g. "2026-Q3" (fiscal: Q1=Apr-Jun … Q4=Jan-Mar)
+    const m = /^(\d{4})-Q([1-4])$/.exec(String(quarter || ''));
+    if (!m) return res.status(400).json({ message: 'quarter must look like 2026-Q3 (fiscal year)' });
+    const year = Number(m[1]);
+    const q = Number(m[2]);
+    const startMonth = [3, 6, 9, 0][q - 1];
+    const startYear = q === 4 ? year + 1 : year;
+    const start = new Date(startYear, startMonth, 1);
+    const end = new Date(startYear + (startMonth === 0 ? 0 : 0), startMonth + 3, 1);
+    const rows = await TransactionLedger.aggregate([
+      { $match: { createdAt: { $gte: start, $lt: end }, status: { $ne: 'cancelled' } } },
+      {
+        $group: {
+          _id: '$facilityId',
+          facilityName: { $first: '$facilityName' },
+          gross: { $sum: '$amount' },
+          fee: { $sum: '$commissionAmount' },
+          net: { $sum: '$netAmount' },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { gross: -1 } },
+    ]);
+    const totalGross = rows.reduce((s, r) => s + (r.gross || 0), 0);
+    const totalFee = rows.reduce((s, r) => s + (r.fee || 0), 0);
+    res.json({
+      quarter: `${year}-Q${q}`,
+      period: { start, end },
+      facilities: rows.map((r) => ({
+        facilityId: r._id,
+        facilityName: r.facilityName || '',
+        gross: Math.round(r.gross || 0),
+        tds: Math.round((r.gross || 0) * 0.01),
+        gstOnFee: Math.round((r.fee || 0) * 0.18),
+        net: Math.round(r.net || 0),
+        transactions: r.count || 0,
+      })),
+      totals: {
+        gross: Math.round(totalGross),
+        tds: Math.round(totalGross * 0.01),
+        gstOnFee: Math.round(totalFee * 0.18),
+        facilities: rows.length,
+      },
+    });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
 router.get('/payouts', protect, superadminOnly, async (req, res) => {
   try {
     const { facilityId, status, page = 1, limit = 30 } = req.query;
@@ -175,14 +225,48 @@ router.post('/payouts', protect, superadminOnly, validate(payoutCreateSchema), a
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
+// SA-M5: record a four-eyes approval (idempotent per admin).
+router.put('/payouts/:id/approve', protect, superadminOnly, async (req, res) => {
+  try {
+    const payout = await Payout.findById(req.params.id);
+    if (!payout) return res.status(404).json({ message: 'Payout not found' });
+    if (payout.status !== 'pending') return res.status(409).json({ message: `Payout is already ${payout.status}` });
+    const mine = String(req.user._id);
+    if (!payout.approvals.some((a) => String(a.adminId) === mine)) {
+      payout.approvals.push({ adminId: req.user._id, adminName: req.user.name || '', at: new Date() });
+      await payout.save();
+    }
+    try {
+      await auditLog('approve_payout', req.user._id, { payoutId: payout._id, netPayout: payout.netPayout, approvals: payout.approvals.length, ip: req.ip, userAgent: req.get('user-agent') });
+    } catch (err) {
+      logger.error('Audit error:', err);
+    }
+    res.json(payout);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+const FOUR_EYES_THRESHOLD = 100000;
+
 router.put('/payouts/:id/pay', protect, superadminOnly, validate(payoutPaySchema), async (req, res) => {
   try {
-    const payout = await Payout.findByIdAndUpdate(
-      req.params.id,
-      { status: 'paid', paidAt: new Date(), transactionRef: req.body.transactionRef || '' },
-      { new: true }
-    );
+    const payout = await Payout.findById(req.params.id);
     if (!payout) return res.status(404).json({ message: 'Payout not found' });
+    if (payout.status !== 'pending') return res.status(409).json({ message: `Payout is already ${payout.status}` });
+    // SA-M5: payouts at/above threshold need two DISTINCT admin approvals.
+    if ((payout.netPayout || 0) >= FOUR_EYES_THRESHOLD) {
+      const distinct = new Set((payout.approvals || []).map((a) => String(a.adminId)));
+      if (distinct.size < 2) {
+        return res.status(403).json({
+          message: `Four-eyes approval required: ${distinct.size}/2 distinct admin approvals recorded for this ₹${Number(payout.netPayout).toLocaleString('en-IN')} payout`,
+          approvals: payout.approvals,
+          required: 2,
+        });
+      }
+    }
+    payout.status = 'paid';
+    payout.paidAt = new Date();
+    payout.transactionRef = req.body.transactionRef || '';
+    await payout.save();
 
     const config = await CommissionConfig.findOne({ facilityId: payout.facilityId });
     if (config) {

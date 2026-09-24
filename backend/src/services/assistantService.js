@@ -142,6 +142,10 @@ export async function broadcastAssistantBooking(booking) {
       message: `You have a new booking request for ${booking.hospital} on ${new Date(booking.scheduledDate).toLocaleDateString()} (${booking.startTime}).`,
       type: 'assistant',
     }).catch(() => {});
+  } else {
+    if (io) {
+      io.of('/assistant').emit('new_booking_request', summary);
+    }
   }
 }
 

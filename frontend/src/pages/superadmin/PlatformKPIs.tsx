@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -14,33 +14,74 @@ export default function PlatformKPIs() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const [dash, commission, hospitals, users, pendingHosp, facilities] = await Promise.all([
-          api.dashboardStats(),
-          api.getCommissionStats().catch(() => null),
-          api.getHospitals({ limit: 1 }).catch(() => null),
-          api.getUsers({ limit: 1 }).catch(() => null),
-          api.getPendingHospitals().catch(() => null),
-          api.getFacilities({ limit: 1 }).catch(() => null),
-        ]);
-        setData({
-          stats: dash.stats || dash,
-          weeklyAppointments: dash.weeklyAppointments || [],
-          revenueData: dash.revenueData || [],
-          commission: commission,
-          hospitalCount: hospitals?.total ?? (Array.isArray(hospitals?.data) ? hospitals.data.length : Array.isArray(hospitals) ? hospitals.length : 0),
-          userCount: users?.total ?? (Array.isArray(users?.data) ? users.data.length : Array.isArray(users) ? users.length : 0),
-          facilityCount: facilities?.total ?? (Array.isArray(facilities?.data) ? facilities.data.length : Array.isArray(facilities) ? facilities.length : 0),
-          pendingCount: pendingHosp?.length || pendingHosp?.total || 0,
-          fetchedAt: new Date(),
-        });
-      } catch { toast.error('Failed to load platform KPIs'); }
-      setLoading(false);
-    };
-    load();
+  const activeRef = useRef(true);
+  const load = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
+    try {
+      const [dash, commission, hospitals, users, pendingHosp, facilities] = await Promise.all([
+        api.dashboardStats(),
+        api.getCommissionStats().catch(() => null),
+        api.getHospitals({ limit: 1 }).catch(() => null),
+        api.getUsers({ limit: 1 }).catch(() => null),
+        api.getPendingHospitals().catch(() => null),
+        api.getFacilities({ limit: 1 }).catch(() => null),
+      ]);
+      if (!activeRef.current) return;
+      setData({
+        stats: dash.stats || dash,
+        weeklyAppointments: dash.weeklyAppointments || [],
+        revenueData: dash.revenueData || [],
+        commission: commission,
+        hospitalCount: hospitals?.total ?? (Array.isArray(hospitals?.data) ? hospitals.data.length : Array.isArray(hospitals) ? hospitals.length : 0),
+        userCount: users?.total ?? (Array.isArray(users?.data) ? users.data.length : Array.isArray(users) ? users.length : 0),
+        facilityCount: facilities?.total ?? (Array.isArray(facilities?.data) ? facilities.data.length : Array.isArray(facilities) ? facilities.length : 0),
+        pendingCount: pendingHosp?.length || pendingHosp?.total || 0,
+        fetchedAt: new Date(),
+      });
+    } catch { if (!silent) toast.error('Failed to load platform KPIs'); }
+    if (!silent && activeRef.current) setLoading(false);
   }, []);
+
+  useEffect(() => {
+    activeRef.current = true;
+    load();
+    return () => { activeRef.current = false; };
+  }, [load]);
+
+  // SA-4: silent live refresh on critical platform events (throttled, no spinner).
+  useEffect(() => {
+    let socket;
+    let timer;
+    let lastRun = 0;
+    const refresh = () => {
+      const now = Date.now();
+      const run = () => { lastRun = Date.now(); load(true); };
+      if (now - lastRun < 15000) {
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(run, 15000);
+        return;
+      }
+      run();
+    };
+    (async () => {
+      try {
+        const { getSocket } = await import('@/lib/socket');
+        socket = getSocket();
+        if (!socket) return;
+        socket.on('support_ticket_created', refresh);
+        socket.on('emergency_alert_critical', refresh);
+        socket.on('dispute_created', refresh);
+        socket.on('hospital_registered', refresh);
+      } catch { /* socket unavailable — KPIs stay manual-refresh */ }
+    })();
+    return () => {
+      if (timer) clearTimeout(timer);
+      socket?.off('support_ticket_created', refresh);
+      socket?.off('emergency_alert_critical', refresh);
+      socket?.off('dispute_created', refresh);
+      socket?.off('hospital_registered', refresh);
+    };
+  }, [load]);
 
   if (loading) return <div className="flex justify-center py-16"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>;
 

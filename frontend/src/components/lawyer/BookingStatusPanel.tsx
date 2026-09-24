@@ -24,6 +24,7 @@ import { CaseNotesView } from './CaseNotesView';
 import { LawyerChatPanel } from './LawyerChatPanel';
 import { api } from '../../lib/api';
 import { getSocket } from '../../lib/socket';
+import { toast } from 'sonner';
 
 interface Props {
   booking: any;
@@ -66,6 +67,10 @@ export const BookingStatusPanel: React.FC<Props> = ({
   const [finalSummary, setFinalSummary] = useState('');
   const [completing, setCompleting] = useState(false);
 
+  // Lawyer cancel modal (replaces blocking window.prompt)
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+
   // Action loadings
   const [actionLoading, setActionLoading] = useState(false);
 
@@ -103,15 +108,18 @@ export const BookingStatusPanel: React.FC<Props> = ({
     };
   }, [booking._id]);
 
-  const handleCancelBooking = async () => {
-    const reason = prompt('Please enter cancellation reason:');
-    if (!reason) return;
+  const handleCancelBooking = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    const reason = cancelReason.trim() || 'Cancelled by advocate';
     try {
       setActionLoading(true);
       await api.cancelLawyerBooking(booking._id, reason);
+      toast.success('Consultation cancelled');
+      setShowCancelModal(false);
+      setCancelReason('');
       onRefresh();
     } catch (err: any) {
-      alert(err.message || 'Failed to cancel');
+      toast.error(err.message || 'Failed to cancel');
     } finally {
       setActionLoading(false);
     }
@@ -123,7 +131,7 @@ export const BookingStatusPanel: React.FC<Props> = ({
       await api.startLawyerConsultation(booking._id);
       onRefresh();
     } catch (err: any) {
-      alert(err.message || 'Failed to start consultation');
+      toast.error(err.message || 'Failed to start consultation');
     } finally {
       setActionLoading(false);
     }
@@ -137,16 +145,17 @@ export const BookingStatusPanel: React.FC<Props> = ({
   const handleCompleteConsultation = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!finalSummary.trim()) {
-      alert('Please provide a final case summary and recommendations.');
+      toast.error('Please provide a final case summary and recommendations.');
       return;
     }
     try {
       setCompleting(true);
-      await api.completeLawyerConsultation(booking._id, finalSummary.trim());
+      const res: any = await api.completeLawyerConsultation(booking._id, finalSummary.trim());
+      toast.success(res?.message || 'Consultation completed');
       setShowCompleteModal(false);
       onRefresh();
     } catch (err: any) {
-      alert(err.message || 'Failed to complete consultation');
+      toast.error(err.message || 'Failed to complete consultation');
     } finally {
       setCompleting(false);
     }
@@ -163,7 +172,7 @@ export const BookingStatusPanel: React.FC<Props> = ({
       setPaySuccess(true);
       onRefresh();
     } catch (err: any) {
-      alert(err.message || 'Payment simulation failed');
+      toast.error(err.message || 'Payment simulation failed');
     } finally {
       setPaying(false);
     }
@@ -178,9 +187,10 @@ export const BookingStatusPanel: React.FC<Props> = ({
         comment: ratingComment,
       });
       setShowRateModal(false);
+      toast.success('Rating submitted');
       onRefresh();
     } catch (err: any) {
-      alert(err.message || 'Failed to submit rating');
+      toast.error(err.message || 'Failed to submit rating');
     } finally {
       setRatingSubmitting(false);
     }
@@ -218,7 +228,7 @@ export const BookingStatusPanel: React.FC<Props> = ({
               variant="outline"
               size="sm"
               disabled={actionLoading}
-              onClick={handleCancelBooking}
+              onClick={() => setShowCancelModal(true)}
               className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-xl text-xs"
             >
               Cancel Request
@@ -254,9 +264,10 @@ export const BookingStatusPanel: React.FC<Props> = ({
                     booking._id,
                     booking.proposedNewTime
                   );
+                  toast.success('New time accepted');
                   onRefresh();
                 } catch (err: any) {
-                  alert(err.message);
+                  toast.error(err.message);
                 }
               }}
             >
@@ -266,7 +277,7 @@ export const BookingStatusPanel: React.FC<Props> = ({
               variant="outline"
               size="sm"
               className="text-xs rounded-xl"
-              onClick={handleCancelBooking}
+              onClick={() => setShowCancelModal(true)}
             >
               Decline & Cancel
             </Button>
@@ -369,7 +380,7 @@ export const BookingStatusPanel: React.FC<Props> = ({
               type="button"
               variant="ghost"
               size="sm"
-              onClick={handleCancelBooking}
+              onClick={() => setShowCancelModal(true)}
               className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 text-xs"
             >
               Cancel
@@ -706,6 +717,45 @@ export const BookingStatusPanel: React.FC<Props> = ({
                 {paying ? 'Processing...' : 'Confirm Demo Pay'}
               </Button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── CANCEL MODAL (inline reason, no window.prompt) ─────── */}
+      {showCancelModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-4">
+            <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
+              Cancel Consultation
+            </h3>
+            <form onSubmit={handleCancelBooking} className="space-y-4">
+              <textarea
+                rows={3}
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                placeholder="Reason for cancellation (e.g. Court commitment)..."
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-900 dark:focus:border-white dark:text-slate-100"
+              />
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => { setShowCancelModal(false); setCancelReason(''); }}
+                  className="rounded-xl text-xs"
+                >
+                  Keep Booking
+                </Button>
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={actionLoading}
+                  className="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl"
+                >
+                  {actionLoading ? 'Cancelling...' : 'Confirm Cancel'}
+                </Button>
+              </div>
+            </form>
           </div>
         </div>
       )}
