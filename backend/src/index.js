@@ -347,6 +347,7 @@ import ambulanceDriverRoutes from './routes/ambulanceDriver.js';
 import loyaltyRoutes from './routes/loyalty.js';
 import referralRoutes from './routes/referral.js';
 import adminSosSettingsRoutes from './routes/adminSosSettings.js';
+import instantDispatchRoutes from './routes/instantDispatch.js';
 import mindsupportRoutes, { attachMindRealtime } from './routes/mindsupport.js';
 
 // Routes
@@ -442,6 +443,7 @@ app.use('/api/admin/lawyers', adminLawyerRoutes);
 app.use('/api/payment/demo', demoPaymentRoutes);
 app.use('/api/emergency-sos', emergencySOSRoutes);
 app.use('/api/emergency-doctor', emergencyDoctorRoutes);
+app.use('/api/instant', instantDispatchRoutes);
 app.use('/api/ambulance', ambulanceDriverRoutes);
 app.use('/api/service-cities', serviceCityRoutes);
 app.use('/api/medicine-reminders', medicineReminderRoutes);
@@ -513,6 +515,13 @@ if (process.env.NODE_ENV !== 'test') {
         await recoverStuckRequests();
       } catch (e) {
         logger.warn('recoverStuckRequests failed: ' + e.message);
+      }
+      // File 03 — H3 hex-cache reconciler (DB ↔ Redis drift fix, every 5 min)
+      try {
+        const { startHexCacheReconcile } = await import('./jobs/hexCacheReconcile.job.js');
+        startHexCacheReconcile(Number(process.env.HEX_RECONCILE_INTERVAL_MS || 5 * 60 * 1000));
+      } catch (e) {
+        logger.warn('hexCacheReconcile scheduler failed: ' + e.message);
       }
       // Doc 02 §4.3: stale GPS → auto offline (unless on duty), every 60s
       setInterval(async () => {

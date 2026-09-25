@@ -31,6 +31,7 @@ import { Badge } from '@/components/ui/badge';
 import AssistantCard from '@/components/AssistantCard';
 import AssistantUrgentIntakeModal from '@/components/AssistantUrgentIntakeModal';
 import { BookingStatusPanel } from '@/components/assistant/BookingStatusPanel';
+import { InstantSearchingScreen, InstantAssignedScreen, InstantNoRespondersScreen } from '@/components/instant';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
@@ -192,6 +193,70 @@ export default function BookAssistant() {
   useEffect(() => {
     fetchActiveBooking();
   }, [requestedBookingId, user]);
+
+  // Real-time Socket listener for assistant booking updates & instant dispatch
+  useEffect(() => {
+    if (!activeBooking?._id) return;
+    const bookingId = String(activeBooking._id);
+    let socket: any;
+
+    (async () => {
+      try {
+        const { getSocket, joinAssistantBookingRoom } = await import('@/lib/socket');
+        socket = getSocket();
+        const cleanupRoom = joinAssistantBookingRoom(bookingId);
+
+        const handleSearchUpdate = (data: any) => {
+          if (String(data.bookingId || data.requestId) === bookingId) {
+            setActiveBooking((prev: any) => ({
+              ...prev,
+              currentSearchRadiusKm: data.radiusKm,
+            }));
+          }
+        };
+
+        const handleAssigned = (data: any) => {
+          if (String(data.bookingId || data.requestId) === bookingId) {
+            setActiveBooking((prev: any) => ({
+              ...prev,
+              status: 'confirmed',
+              assistantId: data.providerId || data.assistantId,
+              assignedDetails: data,
+            }));
+            fetchActiveBooking();
+          }
+        };
+
+        const handleNoResponders = (data: any) => {
+          if (String(data.bookingId || data.requestId) === bookingId) {
+            setActiveBooking((prev: any) => ({
+              ...prev,
+              status: 'no_responders_found',
+            }));
+          }
+        };
+
+        const handleGeneralUpdate = () => {
+          fetchActiveBooking();
+        };
+
+        socket.on('assistant:search_update', handleSearchUpdate);
+        socket.on('assistant:assigned', handleAssigned);
+        socket.on('assistant:no_responders_found', handleNoResponders);
+        socket.on('assistant_booking_updated', handleGeneralUpdate);
+
+        return () => {
+          cleanupRoom?.();
+          socket.off('assistant:search_update', handleSearchUpdate);
+          socket.off('assistant:assigned', handleAssigned);
+          socket.off('assistant:no_responders_found', handleNoResponders);
+          socket.off('assistant_booking_updated', handleGeneralUpdate);
+        };
+      } catch (err) {
+        console.warn('Socket connection error in BookAssistant:', err);
+      }
+    })();
+  }, [activeBooking?._id]);
 
   // 2. Fetch assistants list from API
   const fetchAssistants = async () => {
@@ -659,6 +724,60 @@ export default function BookAssistant() {
           fetchActiveBooking();
         }}
       />
+
+      {/* FULL-SCREEN Instant Searching Overlay for urgent assistant bookings */}
+      {activeBooking?.status === 'searching' && (
+        <InstantSearchingScreen
+          type="assistant"
+          radiusKm={activeBooking.currentSearchRadiusKm || 5}
+          onCancel={async () => {
+            try {
+              await api.cancelAssistantBooking(activeBooking._id, 'Cancelled during search');
+              setActiveBooking(null);
+            } catch (err: any) {
+              console.warn('Cancel assistant error:', err);
+            }
+          }}
+          requestDetails={activeBooking}
+        />
+      )}
+
+      {/* FULL-SCREEN No Responders Found Overlay */}
+      {activeBooking?.status === 'no_responders_found' && (
+        <InstantNoRespondersScreen
+          type="assistant"
+          onRetry={() => {
+            setShowBroadcastUrgent(true);
+            setActiveBooking(null);
+          }}
+          onSchedule={() => {
+            setActiveBooking(null);
+          }}
+          onDismiss={() => {
+            setActiveBooking(null);
+          }}
+          message="No bedside care attendants accepted the urgent shift within your hospital zone. You can broadcast again or schedule for later."
+        />
+      )}
+      {/* FULL-SCREEN Instant Assigned Overlay — wave winner confirmed */}
+      {activeBooking?.status === 'confirmed' && activeBooking?.assistantId && (
+        <InstantAssignedScreen
+          type="assistant"
+          assignedDetails={{
+            distanceKm: activeBooking.distanceKm,
+            providerDetails: {
+              name: activeBooking.assistantId?.name || 'Verified Care Attendant',
+              specialization: activeBooking.serviceCategories?.join(', ') || 'Hospital Assistance',
+              phone: activeBooking.assistantId?.phone,
+            },
+          }}
+          requestDetails={activeBooking}
+          onViewDetails={() => window.location.href = '/patient/bookings'}
+          onDismiss={() => {
+            setActiveBooking(null);
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -83,7 +83,11 @@ const doctorSchema = new mongoose.Schema({
   emergencyRadiusKm: { type: Number, default: 10 },
   emergencyDoctorLocation: {
     type: { type: String, enum: ['Point'], default: 'Point' },
-    coordinates: { type: [Number], default: [0, 0] },
+    coordinates: { type: [Number], default: [79.9864, 23.1815] },
+    lat: { type: Number, default: 23.1815 },
+    lng: { type: Number, default: 79.9864 },
+    h3Index8: { type: String, index: true, default: null },
+    h3Index9: { type: String, index: true, default: null },
     lastUpdatedAt: { type: Date, default: Date.now },
   },
   emergencyEquipmentKit: {

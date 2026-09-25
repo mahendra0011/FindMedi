@@ -311,8 +311,11 @@ export async function broadcastRideBooking(ride) {
 
 const DISPATCH_TIMEOUT_MS = 15000; // 15s per batch for standard rides
 const EMERGENCY_TIMEOUT_MS = 10000; // 10s per batch for urgent ambulance rides
-const STANDARD_RADIUS_STEPS = [5, 10, 20, 40]; // escalation tiers in km
-const EMERGENCY_RADIUS_STEPS = [15, 30, 50]; // escalation tiers for emergency
+// File 06 §8 — env-configurable (deploy-time tuning without code change).
+// Defaults preserve legacy sequential-dispatch behaviour; the generic instant
+// engine uses its own INSTANT_RIDE_RADII (see rideDispatchService.js).
+const STANDARD_RADIUS_STEPS = (process.env.RIDE_STANDARD_RADIUS_STEPS || '5,10,20,40').split(',').map(Number);
+const EMERGENCY_RADIUS_STEPS = (process.env.RIDE_EMERGENCY_RADIUS_STEPS || '15,30,50').split(',').map(Number);
 
 /**
  * Sequential / tiered dispatch with expanding radius escalation

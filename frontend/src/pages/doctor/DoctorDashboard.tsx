@@ -15,6 +15,8 @@ import { useAppointmentRealtime } from '@/lib/useAppointmentRealtime';
 import LicenseExpiryReminder from '@/components/LicenseExpiryReminder';
 import EarningsAnalytics from '@/components/EarningsAnalytics';
 import { getISTDateString, formatDisplayDate } from '@/lib/dateUtils';
+import { getSocket } from '@/lib/socket';
+import ProviderIncomingCall from '@/components/emergency/ProviderIncomingCall';
 
 function isInPersonAppointment(appt) {
   if (!appt) return false;
@@ -66,6 +68,7 @@ export default function DoctorDashboard() {
   const [refunds, setRefunds] = useState([]);
   const [patientCarePlans, setPatientCarePlans] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeIncomingCall, setActiveIncomingCall] = useState<any | null>(null);
   const mounted = useRef(true);
   const appointmentsSectionRef = useRef(null);
   const handleStatClick = (tab) => {
@@ -131,6 +134,35 @@ export default function DoctorDashboard() {
 
   // Realtime — naya booking/status change turant dikhein (silent, no flicker)
   useAppointmentRealtime(() => load(true));
+
+  // Emergency Doctor instant dispatch wave alert
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+
+    const handleEmergencyDoctorAlert = (payload: any) => {
+      if (!payload?.requestId && !payload?.bookingId) return;
+      setActiveIncomingCall({
+        requestId: payload.requestId || payload.bookingId,
+        bookingNumber: payload.bookingNumber,
+        category: payload.category || 'other',
+        patient: payload.patient,
+        reporter: payload.reporter,
+        location: payload.location,
+        distanceKm: payload.distanceKm,
+        amount: payload.amount,
+        specialInstructions: payload.specialInstructions,
+        windowSeconds: payload.windowSeconds || 30,
+        providerType: 'emergency_doctor' as const,
+        isInstantWave: true,
+      });
+    };
+
+    socket.on('emergency_doctor:alert', handleEmergencyDoctorAlert);
+    return () => {
+      socket.off('emergency_doctor:alert', handleEmergencyDoctorAlert);
+    };
+  }, []);
 
   const today = getISTDateString();
   const todayAppts = appointments.filter(a => a.date === today && (a.status || '').toLowerCase() !== 'cancelled');
@@ -1053,6 +1085,46 @@ export default function DoctorDashboard() {
           </div>
         )}
       </div>
+
+      {/* FULL-SCREEN emergency doctor dispatch alert */}
+      {activeIncomingCall && (
+        <ProviderIncomingCall
+          key={activeIncomingCall.requestId}
+          data={{
+            requestId: activeIncomingCall.requestId,
+            providerType: 'emergency_doctor',
+            category: activeIncomingCall.category || 'other',
+            title: '🩺 Emergency Doctor Request',
+            subtitle: `Patient needs urgent medical attention. Respond within ${activeIncomingCall.windowSeconds || 30} seconds.`,
+            patient: activeIncomingCall.patient,
+            reporter: activeIncomingCall.reporter,
+            location: activeIncomingCall.location,
+            distanceKm: activeIncomingCall.distanceKm,
+            amount: activeIncomingCall.amount ? `₹${activeIncomingCall.amount}` : undefined,
+            windowSeconds: activeIncomingCall.windowSeconds || 30,
+            specialInstructions: activeIncomingCall.specialInstructions,
+            serviceBadges: ['Emergency Doctor', 'Instant Dispatch', activeIncomingCall.distanceKm ? `${activeIncomingCall.distanceKm} km away` : ''].filter(Boolean),
+          }}
+          onAccept={async (requestId) => {
+            try {
+              // Wave dispatch accept: POST /api/instant/emergency_doctor/:id/accept
+              await api.post(`/instant/emergency_doctor/${requestId}/accept`, {});
+              toast.success('Emergency consultation accepted — patient will be notified!');
+              load(true);
+            } catch (err: any) {
+              toast.error(err?.response?.data?.message || 'Could not accept emergency');
+            } finally {
+              setActiveIncomingCall(null);
+            }
+          }}
+          onReject={(requestId) => {
+            setActiveIncomingCall(null);
+          }}
+          onTimeout={(requestId) => {
+            setActiveIncomingCall(null);
+          }}
+        />
+      )}
     </div>
   );
-}
+}

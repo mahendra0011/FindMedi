@@ -5,6 +5,7 @@ import User from '../models/User.js';
 import RideBooking from '../models/RideBooking.js';
 import { protect } from '../middleware/auth.js';
 import { validate, riderStatusSchema, riderLocationSchema } from '../utils/validate.js';
+import { upsertProviderLocationCache, removeProviderFromCache } from '../lib/h3Cache.js';
 import logger from '../config/logger.js';
 
 const router = express.Router();
@@ -117,6 +118,20 @@ router.put('/status', protect, validate(riderStatusSchema), async (req, res) => 
     rider.isOnline = isOnline;
     await rider.save();
 
+    if (isOnline && rider.currentLocation?.lat && rider.currentLocation?.lng) {
+      upsertProviderLocationCache({
+        providerId: req.user._id,
+        providerType: 'rider',
+        lat: rider.currentLocation.lat,
+        lng: rider.currentLocation.lng,
+      }).catch(() => {});
+    } else if (!isOnline) {
+      removeProviderFromCache({
+        providerId: req.user._id,
+        providerType: 'rider',
+      }).catch(() => {});
+    }
+
     res.json({
       success: true,
       message: isOnline ? 'You are now Online and can receive rides' : 'You are now Offline',
@@ -132,10 +147,19 @@ router.put('/status', protect, validate(riderStatusSchema), async (req, res) => 
 router.put('/location', protect, validate(riderLocationSchema), async (req, res) => {
   try {
     const { lat, lng, accuracy } = req.body;
+    const h3Result = await upsertProviderLocationCache({
+      providerId: req.user._id,
+      providerType: 'rider',
+      lat: Number(lat),
+      lng: Number(lng),
+    });
+
     const locUpdate = {
-      'currentLocation.lat': lat,
-      'currentLocation.lng': lng,
-      'currentLocation.coordinates': [lng, lat],
+      'currentLocation.lat': Number(lat),
+      'currentLocation.lng': Number(lng),
+      'currentLocation.coordinates': [Number(lng), Number(lat)],
+      'currentLocation.h3Index8': h3Result?.h3Index8 || null,
+      'currentLocation.h3Index9': h3Result?.h3Index9 || null,
       'currentLocation.updatedAt': new Date(),
     };
     if (accuracy != null) locUpdate['currentLocation.accuracy'] = Number(accuracy);

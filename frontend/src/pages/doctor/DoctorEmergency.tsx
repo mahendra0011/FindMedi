@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { AlertTriangle, User, Clock, MessageSquare, CheckCircle, XCircle, Activity, Phone } from 'lucide-react';
 import { api } from '@/lib/api';
@@ -7,8 +7,9 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import ProviderIncomingCall from '@/components/emergency/ProviderIncomingCall';
 
-const severityColors = {
+const severityColors: Record<string, { bg: string; text: string; border: string }> = {
   Critical: { bg: 'bg-red-500/10', text: 'text-red-600', border: 'border-red-500' },
   Serious: { bg: 'bg-orange-500/10', text: 'text-orange-600', border: 'border-orange-500' },
   Stable: { bg: 'bg-green-500/10', text: 'text-green-600', border: 'border-green-500' },
@@ -18,10 +19,14 @@ const statusFlow = ['Pending', 'Assigned', 'Under Treatment', 'Stable', 'Transfe
 
 export default function DoctorEmergency() {
   const { user } = useAuth();
-  const [emergencies, setEmergencies] = useState([]);
+  const [emergencies, setEmergencies] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCase, setSelectedCase] = useState(null);
+  const [selectedCase, setSelectedCase] = useState<any>(null);
   const [noteText, setNoteText] = useState('');
+  // File 04 — full-screen incoming-call alert for the newest pending case.
+  // List UI below stays as the queue; the overlay guarantees the alert is never missed.
+  const [showIncoming, setShowIncoming] = useState(true);
+  const prevPendingCount = useRef(0);
 
   useEffect(() => { loadEmergencies(); }, []);
 
@@ -30,32 +35,32 @@ export default function DoctorEmergency() {
     try {
       const list = await api.getEmergencies({ status: 'All' });
       setEmergencies(list || []);
-    } catch (e) { toast.error(e.message); }
+    } catch (e: any) { toast.error(e.message); }
     setLoading(false);
   };
 
-  const handleAccept = async (id) => {
+  const handleAccept = async (id: string) => {
     try {
       await api.assignEmergencyDoctor(id, user?.id || user?._id, user?.name);
       toast.success('Emergency case accepted');
       loadEmergencies();
-    } catch (e) { toast.error(e.message); }
+    } catch (e: any) { toast.error(e.message); }
   };
 
-  const handleReject = async (id) => {
+  const handleReject = async (id: string) => {
     try {
       await api.updateEmergencyStatus(id, 'Rejected');
       toast.success('Emergency case rejected');
       loadEmergencies();
-    } catch (e) { toast.error(e.message); }
+    } catch (e: any) { toast.error(e.message); }
   };
 
-  const handleStatusChange = async (id, status) => {
+  const handleStatusChange = async (id: string, status: string) => {
     try {
       await api.updateEmergencyStatus(id, status);
       toast.success(`Status updated to ${status}`);
       loadEmergencies();
-    } catch (e) { toast.error(e.message); }
+    } catch (e: any) { toast.error(e.message); }
   };
 
   const handleAddNote = async () => {
@@ -65,14 +70,49 @@ export default function DoctorEmergency() {
       setNoteText('');
       toast.success('Note added');
       loadEmergencies();
-    } catch (e) { toast.error(e.message); }
+    } catch (e: any) { toast.error(e.message); }
   };
 
   const pendingCases = emergencies.filter(e => e.status === 'Pending');
   const myCases = emergencies.filter(e => e.assignedDoctorName === user?.name);
+  const incomingCase = pendingCases[0] || null;
+
+  // Re-raise the full-screen alert whenever a NEW pending case arrives.
+  useEffect(() => {
+    if (pendingCases.length > prevPendingCount.current) {
+      setShowIncoming(true);
+    }
+    prevPendingCount.current = pendingCases.length;
+  }, [pendingCases.length]);
+
+  const handleIncomingAccept = async (requestId: string) => {
+    await handleAccept(requestId);
+    setShowIncoming(false);
+  };
+
+  const handleIncomingReject = async (requestId: string) => {
+    await handleReject(requestId);
+    setShowIncoming(false);
+  };
 
   return (
     <div className="space-y-6">
+      {/* File 04 — full-screen accept/reject, never a toast-only alert */}
+      {incomingCase && showIncoming && !loading && (
+        <ProviderIncomingCall
+          data={{
+            requestId: String(incomingCase._id),
+            providerType: 'emergency_doctor',
+            title: incomingCase.condition || 'Emergency Case',
+            subtitle: `${incomingCase.severity || 'Critical'} — ${incomingCase.patientName || 'Unknown patient'}. Review and accept before the timer ends.`,
+            patient: { name: incomingCase.patientName, phone: incomingCase.phone },
+            windowSeconds: 30,
+          }}
+          onAccept={handleIncomingAccept}
+          onReject={handleIncomingReject}
+          onTimeout={handleIncomingReject}
+        />
+      )}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="font-heading text-2xl font-bold text-foreground flex items-center gap-2">
@@ -193,7 +233,7 @@ export default function DoctorEmergency() {
                 </div>
                 {selectedCase.notes?.length > 0 && (
                   <div className="space-y-2 mt-2 max-h-40 overflow-y-auto">
-                    {selectedCase.notes.map((n, i) => (
+                    {selectedCase.notes.map((n: any, i: number) => (
                       <div key={i} className="bg-muted/30 rounded-lg p-2 text-sm">
                         <p className="text-foreground">{n.text}</p>
                         <p className="text-xs text-muted-foreground mt-1">{n.doctorName} • {new Date(n.timestamp).toLocaleTimeString()}</p>

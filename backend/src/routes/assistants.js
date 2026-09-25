@@ -4,6 +4,7 @@ import User from '../models/User.js';
 import AssistantBooking from '../models/AssistantBooking.js';
 import { protect } from '../middleware/auth.js';
 import { validate, assistantStatusSchema, searchAssistantSchema } from '../utils/validate.js';
+import { upsertProviderLocationCache, removeProviderFromCache } from '../lib/h3Cache.js';
 import logger from '../config/logger.js';
 
 const router = express.Router();
@@ -116,6 +117,20 @@ router.put('/status', protect, validate(assistantStatusSchema), async (req, res)
     profile.isAvailable = Boolean(isAvailable);
     await profile.save();
 
+    if (Boolean(isAvailable) && profile.currentLocation?.lat && profile.currentLocation?.lng) {
+      upsertProviderLocationCache({
+        providerId: req.user._id,
+        providerType: 'assistant',
+        lat: profile.currentLocation.lat,
+        lng: profile.currentLocation.lng,
+      }).catch(() => {});
+    } else if (!isAvailable) {
+      removeProviderFromCache({
+        providerId: req.user._id,
+        providerType: 'assistant',
+      }).catch(() => {});
+    }
+
     res.json({
       success: true,
       message: `Assistant is now ${isAvailable ? 'Available' : 'Unavailable'}`,
@@ -125,6 +140,45 @@ router.put('/status', protect, validate(assistantStatusSchema), async (req, res)
   } catch (err) {
     logger.error(`Toggle assistant status error: ${err.message}`);
     res.status(500).json({ message: 'Failed to update status', error: err.message });
+  }
+});
+
+// ─── PUT /api/assistant/location ───────────────────────────────────────────
+// Update current location with H3 cache sync
+router.put('/location', protect, async (req, res) => {
+  try {
+    const { lat, lng } = req.body;
+    if (lat == null || lng == null) {
+      return res.status(400).json({ message: 'lat and lng are required' });
+    }
+
+    const h3Result = await upsertProviderLocationCache({
+      providerId: req.user._id,
+      providerType: 'assistant',
+      lat: Number(lat),
+      lng: Number(lng),
+    });
+
+    const updated = await AssistantProfile.findOneAndUpdate(
+      { userId: req.user._id },
+      {
+        $set: {
+          'currentLocation.type': 'Point',
+          'currentLocation.coordinates': [Number(lng), Number(lat)],
+          'currentLocation.lat': Number(lat),
+          'currentLocation.lng': Number(lng),
+          'currentLocation.h3Index8': h3Result?.h3Index8 || null,
+          'currentLocation.h3Index9': h3Result?.h3Index9 || null,
+          'currentLocation.updatedAt': new Date(),
+        },
+      },
+      { new: true }
+    );
+
+    res.json({ success: true, currentLocation: updated?.currentLocation });
+  } catch (err) {
+    logger.error(`Update assistant location error: ${err.message}`);
+    res.status(500).json({ message: 'Failed to update location', error: err.message });
   }
 });
 

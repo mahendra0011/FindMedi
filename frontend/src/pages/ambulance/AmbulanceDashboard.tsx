@@ -63,6 +63,7 @@ import { AmbulanceHistoryTab } from '@/components/ambulance/AmbulanceHistoryTab'
 import { AmbulanceVehicleTab } from '@/components/ambulance/AmbulanceVehicleTab';
 import { AmbulanceSettingsTab } from '@/components/ambulance/AmbulanceSettingsTab';
 import { AmbulanceOverviewTab } from '@/components/ambulance/AmbulanceOverviewTab';
+import ProviderIncomingCall from '@/components/emergency/ProviderIncomingCall';
 
 const mapsUrl = (lat: number, lng: number) =>
   `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`;
@@ -111,6 +112,7 @@ export default function AmbulanceDashboard() {
   const [recentJobs, setRecentJobs] = useState<any[]>([]);
   const [allJobs, setAllJobs] = useState<any[]>([]);
   const [totalJobsCount, setTotalJobsCount] = useState(0);
+  const [activeIncomingCall, setActiveIncomingCall] = useState<any | null>(null);
 
   // Background GPS broadcasting
   useAmbulanceGps(Boolean(amb?.isOnline));
@@ -192,15 +194,37 @@ export default function AmbulanceDashboard() {
       load();
     };
 
+    // Wave-based instant dispatch alert (H3 radius expand engine)
+    const handleInstantAmbulanceAlert = (payload: any) => {
+      if (!payload?.requestId && !payload?.bookingId) return;
+      setActiveIncomingCall({
+        requestId: payload.requestId || payload.bookingId,
+        bookingNumber: payload.bookingNumber,
+        category: payload.category || 'accident',
+        patient: payload.patient,
+        location: payload.location,
+        distanceKm: payload.distanceKm,
+        amount: payload.amount,
+        specialInstructions: payload.specialInstructions,
+        windowSeconds: payload.windowSeconds || 30,
+        providerType: 'ambulance' as const,
+        isInstantWave: true,
+      });
+      const audio = new Audio('/sounds/emergency-alert.mp3');
+      audio.play().catch(() => {});
+    };
+
     s.on('emergency_assigned', handleAssignedJob);
     s.on('emergency_assigned_to_you', handleAssignedJob);
     s.on('incoming_emergency', handleIncomingEmergency);
+    s.on('ambulance:alert', handleInstantAmbulanceAlert);
 
     return () => {
       s.emit('leave_ambulance_room', { ambulanceId: amb._id });
       s.off('emergency_assigned', handleAssignedJob);
       s.off('emergency_assigned_to_you', handleAssignedJob);
       s.off('incoming_emergency', handleIncomingEmergency);
+      s.off('ambulance:alert', handleInstantAmbulanceAlert);
     };
   }, [amb?._id]);
 
@@ -458,6 +482,47 @@ export default function AmbulanceDashboard() {
           setAmb={setAmb}
           user={user}
           setTab={setTab}
+        />
+      )}
+
+      {/* FULL-SCREEN incoming dispatch alert for wave-based instant dispatch engine */}
+      {activeIncomingCall && (
+        <ProviderIncomingCall
+          key={activeIncomingCall.requestId}
+          data={{
+            requestId: activeIncomingCall.requestId,
+            providerType: 'ambulance',
+            category: activeIncomingCall.category || 'accident',
+            title: '🚨 Emergency Dispatch Request',
+            subtitle: `Emergency rescue required. Respond within ${activeIncomingCall.windowSeconds || 30} seconds.`,
+            patient: activeIncomingCall.patient,
+            location: activeIncomingCall.location,
+            distanceKm: activeIncomingCall.distanceKm,
+            amount: activeIncomingCall.amount ? `₹${activeIncomingCall.amount}` : undefined,
+            windowSeconds: activeIncomingCall.windowSeconds || 30,
+            specialInstructions: activeIncomingCall.specialInstructions,
+            serviceBadges: ['Emergency SOS', 'Instant Dispatch', activeIncomingCall.distanceKm ? `${activeIncomingCall.distanceKm} km away` : ''].filter(Boolean),
+          }}
+          onAccept={async (requestId) => {
+            try {
+              // Ambulance accepts via SOS emergency endpoint (instant dispatch
+              // PROVIDER_REGISTRY doesn't include ambulance yet — uses SOS accept).
+              await api.post(`/emergency-sos/${requestId}/accept`, {});
+              toast.success('Emergency accepted — navigate to patient location!');
+              setTab('active');
+              load();
+            } catch (err: any) {
+              toast.error(err?.response?.data?.message || 'Could not accept emergency');
+            } finally {
+              setActiveIncomingCall(null);
+            }
+          }}
+          onReject={(requestId) => {
+            setActiveIncomingCall(null);
+          }}
+          onTimeout={(requestId) => {
+            setActiveIncomingCall(null);
+          }}
         />
       )}
     </div>
