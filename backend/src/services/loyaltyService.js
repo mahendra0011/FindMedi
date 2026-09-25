@@ -12,6 +12,9 @@ export const loyaltyService = {
    */
   async initializeEarnRules() {
     const rules = [
+      { action: 'ride_completed', points: 25 },
+      { action: 'consultation_completed', points: 30 },
+      { action: 'blood_donation_completed', points: 500 },
       { action: 'appointment_completed', points: 20 },
       { action: 'lab_order_completed', points: 50 },
       { action: 'pharmacy_order_completed', points: 30 },

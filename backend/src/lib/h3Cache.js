@@ -1,9 +1,12 @@
 import { latLngToCell, gridDisk } from 'h3-js';
 import { redisClient, isRedisReady } from '../config/redis.js';
 import logger from '../config/logger.js';
-import { H3_RESOLUTION_CITY, H3_RESOLUTION_FINE, H3_MAX_RING_K, H3_MIN_CANDIDATES } from '../config/h3.js';
-
-const HEX_TTL_SECONDS = 300; // 5 min — stale providers auto-expire if heartbeat drops
+import {
+  H3_MAX_RING_K,
+  H3_MIN_CANDIDATES,
+  H3_PROVIDER_TTL_SECONDS,
+  getResolutionForVertical,
+} from '../config/h3.js';
 
 function memberKey(providerId, providerType) {
   return `${providerId}:${providerType}`;
@@ -11,14 +14,25 @@ function memberKey(providerId, providerType) {
 
 /**
  * Upserts provider location in Redis H3 cache.
- * Keeps Mongo as source of truth while keeping Redis synchronized.
+ * Uses resolution tailored to the vertical:
+ * - Res 6: SOS Ambulance
+ * - Res 7: Lawyer, Doctor, Assistant
+ * - Res 8: Urban Rider / Cab / Bike
  */
-export async function upsertProviderLocationCache({ providerId, providerType, lat, lng }) {
+export async function upsertProviderLocationCache({
+  providerId,
+  providerType,
+  lat,
+  lng,
+  bearing = 0,
+  speed = 0,
+  accuracy = 0,
+}) {
   try {
     if (!isRedisReady() || !redisClient.isOpen) return null;
 
-    const h3_8 = latLngToCell(lat, lng, H3_RESOLUTION_CITY);
-    const h3_9 = latLngToCell(lat, lng, H3_RESOLUTION_FINE);
+    const res = getResolutionForVertical(providerType);
+    const h3Cell = latLngToCell(lat, lng, res);
     const key = memberKey(providerId, providerType);
     const locKey = `provider:location:${key}`;
 
@@ -26,23 +40,44 @@ export async function upsertProviderLocationCache({ providerId, providerType, la
     if (old) {
       try {
         const parsed = JSON.parse(old);
-        if (parsed.h3Index8 && parsed.h3Index8 !== h3_8) {
-          await redisClient.sRem(`hex:providers:${parsed.h3Index8}`, key);
+        if (parsed.h3Cell && parsed.h3Cell !== h3Cell) {
+          // Remove from old cell set
+          await redisClient.sRem(`geo:h3:${parsed.resolution || res}:${parsed.h3Cell}:${providerType}`, key);
+          await redisClient.sRem(`hex:providers:${parsed.h3Cell}`, key); // legacy compat
         }
       } catch {
         // ignore JSON parse error on stale key
       }
     }
 
-    await redisClient.sAdd(`hex:providers:${h3_8}`, key);
-    await redisClient.expire(`hex:providers:${h3_8}`, HEX_TTL_SECONDS);
+    // Add to standardized H3 Set
+    const hexKey = `geo:h3:${res}:${h3Cell}:${providerType}`;
+    await redisClient.sAdd(hexKey, key);
+    await redisClient.expire(hexKey, H3_PROVIDER_TTL_SECONDS * 2);
+
+    // Legacy compat key
+    await redisClient.sAdd(`hex:providers:${h3Cell}`, key);
+    await redisClient.expire(`hex:providers:${h3Cell}`, H3_PROVIDER_TTL_SECONDS * 2);
+
+    // Store live ephemeral coordinate hash
     await redisClient.set(
       locKey,
-      JSON.stringify({ lat, lng, h3Index8: h3_8, h3Index9: h3_9, updatedAt: Date.now() }),
-      { EX: HEX_TTL_SECONDS }
+      JSON.stringify({
+        lat,
+        lng,
+        bearing,
+        speed,
+        accuracy,
+        resolution: res,
+        h3Cell,
+        providerType,
+        providerId,
+        updatedAt: Date.now(),
+      }),
+      { EX: H3_PROVIDER_TTL_SECONDS }
     );
 
-    return { h3Index8: h3_8, h3Index9: h3_9 };
+    return { resolution: res, h3Cell };
   } catch (err) {
     logger.error(`upsertProviderLocationCache error: ${err.message}`);
     return null; // Fail-soft: callers fallback to MongoDB $geoNear
@@ -55,13 +90,17 @@ export async function upsertProviderLocationCache({ providerId, providerType, la
 export async function removeProviderFromCache({ providerId, providerType }) {
   try {
     if (!isRedisReady() || !redisClient.isOpen) return;
+    const res = getResolutionForVertical(providerType);
     const key = memberKey(providerId, providerType);
     const locKey = `provider:location:${key}`;
     const old = await redisClient.get(locKey);
     if (old) {
       try {
-        const { h3Index8 } = JSON.parse(old);
-        if (h3Index8) await redisClient.sRem(`hex:providers:${h3Index8}`, key);
+        const { h3Cell, resolution } = JSON.parse(old);
+        if (h3Cell) {
+          await redisClient.sRem(`geo:h3:${resolution || res}:${h3Cell}:${providerType}`, key);
+          await redisClient.sRem(`hex:providers:${h3Cell}`, key);
+        }
       } catch {
         // ignore
       }
@@ -74,15 +113,22 @@ export async function removeProviderFromCache({ providerId, providerType }) {
 
 /**
  * Find candidate provider IDs via H3 k-ring expansion.
- * Returns empty array if Redis is down or no candidates found.
+ * Dynamically queries matching resolution and expands outwards ring by ring.
  */
-export async function findCandidatesByHex({ lat, lng, providerType, maxRingK = H3_MAX_RING_K, excludeIds = [] }) {
+export async function findCandidatesByHex({
+  lat,
+  lng,
+  providerType,
+  maxRingK = H3_MAX_RING_K,
+  excludeIds = [],
+}) {
   try {
     if (!isRedisReady() || !redisClient.isOpen) {
       return { candidates: [], usedRingK: null, source: 'redis_unavailable' };
     }
 
-    const centerHex = latLngToCell(lat, lng, H3_RESOLUTION_CITY);
+    const res = getResolutionForVertical(providerType);
+    const centerHex = latLngToCell(lat, lng, res);
     const excludeSet = new Set(excludeIds.map(String));
     const candidates = new Set();
     let usedRingK = 0;
@@ -90,7 +136,13 @@ export async function findCandidatesByHex({ lat, lng, providerType, maxRingK = H
     for (let k = 0; k <= maxRingK; k++) {
       const ring = k === 0 ? [centerHex] : gridDisk(centerHex, k);
       for (const hex of ring) {
-        const members = await redisClient.sMembers(`hex:providers:${hex}`);
+        // 1. Check standardized key
+        let members = await redisClient.sMembers(`geo:h3:${res}:${hex}:${providerType}`);
+        // 2. Fallback to legacy key if needed
+        if (!members || members.length === 0) {
+          members = await redisClient.sMembers(`hex:providers:${hex}`);
+        }
+
         for (const m of members) {
           const [id, type] = m.split(':');
           if (type === providerType && !excludeSet.has(id)) {

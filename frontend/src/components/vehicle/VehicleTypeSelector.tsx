@@ -134,7 +134,18 @@ export default function VehicleTypeSelector({
               <p className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">{v.desc}</p>
             </div>
 
-
+            {/* Price & ETA Estimate */}
+            {estimate?.fare?.total != null && (
+              <div className="mt-2 pt-1.5 border-t border-border/40 flex items-center justify-between text-xs">
+                <span className="font-bold text-foreground">₹{estimate.fare.total}</span>
+                {estimate.etaMin != null && (
+                  <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                    <Clock className="w-2.5 h-2.5" />
+                    {estimate.etaMin} min
+                  </span>
+                )}
+              </div>
+            )}
           </motion.div>
         );
       })}

@@ -5,6 +5,8 @@ import AssistantBooking from '../models/AssistantBooking.js';
 import AssistantProfile from '../models/AssistantProfile.js';
 import LawyerBooking from '../models/LawyerBooking.js';
 import LawyerProfile from '../models/LawyerProfile.js';
+import EmergencyDoctorRequest from '../models/EmergencyDoctorRequest.js';
+import Doctor from '../models/Doctor.js';
 import Notification from '../models/Notification.js';
 import { protect } from '../middleware/auth.js';
 import { validate, demoPaySchema } from '../utils/validate.js';
@@ -14,13 +16,60 @@ import logger from '../config/logger.js';
 const router = express.Router();
 
 // ─── POST /api/payment/demo/pay ─────────────────────────────────────────────
-// Simulate payment (Demo only for rides and assistant bookings)
+// Simulate payment (Demo for rides, assistant, lawyer, emergency doctor)
 router.post('/pay', protect, validate(demoPaySchema), async (req, res) => {
   try {
-    const { rideId, bookingId, lawyerBookingId, bookingType = 'ride', method = 'demo_wallet' } = req.body;
+    const { rideId, bookingId, lawyerBookingId, doctorRequestId, bookingType = 'ride', method = 'demo_wallet' } = req.body;
     const isLawyer = bookingType === 'lawyer' || Boolean(lawyerBookingId);
-    const isAssistant = !isLawyer && (bookingType === 'assistant' || Boolean(bookingId));
-    const targetId = isLawyer ? (lawyerBookingId || bookingId || rideId) : isAssistant ? (bookingId || rideId) : rideId;
+    const isAssistant = !isLawyer && (bookingType === 'assistant' || (Boolean(bookingId) && bookingType !== 'emergency_doctor'));
+    const isDoctor = bookingType === 'emergency_doctor' || Boolean(doctorRequestId);
+    const targetId = isLawyer ? (lawyerBookingId || bookingId || rideId) : isAssistant ? (bookingId || rideId) : isDoctor ? (doctorRequestId || bookingId || rideId) : rideId;
+
+    if (isDoctor) {
+      const docReq = await EmergencyDoctorRequest.findById(targetId);
+      if (!docReq) {
+        return res.status(404).json({ message: 'Emergency doctor request not found' });
+      }
+
+      const transactionRef = `DEMO-TXN-${Math.floor(100000 + Math.random() * 900000)}`;
+      const paidAt = new Date();
+      const amount = docReq.pricing?.total || 1000;
+
+      const demoPayment = await DemoPayment.create({
+        bookingType: 'emergency_doctor',
+        bookingId: docReq._id,
+        userId: req.user._id,
+        doctorId: docReq.assignedDoctorId,
+        amount,
+        method,
+        status: 'paid',
+        transactionRef,
+        paidAt,
+      });
+
+      docReq.payment = {
+        method,
+        status: 'paid',
+        transactionRef,
+        paidAt,
+      };
+      await docReq.save();
+
+      const io = getIO();
+      if (io) {
+        io.to(`doctor-request:${docReq._id}`).emit('payment_received', {
+          requestId: String(docReq._id),
+          payment: docReq.payment,
+        });
+      }
+
+      return res.json({
+        success: true,
+        message: 'Emergency doctor payment completed (Demo Mode)',
+        payment: docReq.payment,
+        demoPayment,
+      });
+    }
 
     if (isLawyer) {
       const booking = await LawyerBooking.findById(targetId);

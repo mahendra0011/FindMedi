@@ -347,6 +347,8 @@ export function MapControls({
 interface MapMarkerProps {
   longitude: number;
   latitude: number;
+  bearing?: number;
+  smoothGlide?: boolean;
   children?: React.ReactNode;
   draggable?: boolean;
   onClick?: (e: maplibregl.MapMouseEvent) => void;
@@ -360,6 +362,8 @@ interface MapMarkerProps {
 export function MapMarker({
   longitude,
   latitude,
+  bearing = 0,
+  smoothGlide = false,
   children,
   draggable = false,
   onClick,
@@ -373,6 +377,7 @@ export function MapMarker({
   const { map, isLoaded } = useMap();
   const elementRef = React.useRef<HTMLDivElement | null>(null);
   const markerRef = React.useRef<maplibregl.Marker | null>(null);
+  const smootherRef = React.useRef<any>(null);
   const rootRef = React.useRef<ReturnType<typeof createRoot> | null>(null);
   const markerPosition = normalizeLngLat([longitude, latitude], null);
 
@@ -412,8 +417,28 @@ export function MapMarker({
   }, [map, isLoaded, draggable, markerPosition?.[0], markerPosition?.[1], onDragStart, onDrag, onDragEnd, markerOptions]); // eslint-disable-line react-hooks/exhaustive-deps -- marker creation intentionally depends on derived markerPosition coordinates (not the array identity) so parent re-renders do not destroy/recreate the marker
 
   React.useEffect(() => {
-    if (markerPosition) markerRef.current?.setLngLat(markerPosition);
-  }, [markerPosition?.[0], markerPosition?.[1]]); // eslint-disable-line react-hooks/exhaustive-deps -- position sync intentionally depends on derived coordinates (not the markerPosition array identity) so equal positions from a new array do not retrigger setLngLat
+    if (!markerPosition || !markerRef.current) return;
+
+    if (smoothGlide) {
+      if (!smootherRef.current) {
+        import('../../utils/markerInterpolation').then(({ MarkerSmoother }) => {
+          smootherRef.current = new MarkerSmoother(
+            { lat: latitude, lng: longitude, bearing },
+            ([lng, lat], rot) => {
+              markerRef.current?.setLngLat([lng, lat]);
+              if (rot != null && elementRef.current) {
+                elementRef.current.style.transform += ` rotate(${rot}deg)`;
+              }
+            }
+          );
+        });
+      } else {
+        smootherRef.current.setNextTarget({ lat: latitude, lng: longitude, bearing }, 1200);
+      }
+    } else {
+      markerRef.current.setLngLat(markerPosition);
+    }
+  }, [markerPosition?.[0], markerPosition?.[1], bearing, smoothGlide]);
 
   React.useEffect(() => {
     if (!elementRef.current) return undefined;

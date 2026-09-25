@@ -429,10 +429,10 @@ export default function RiderDashboard() {
     }
   };
 
-  const handleStartTrip = async () => {
+  const handleStartTrip = async (otp?: string) => {
     if (!activeRide) return;
     try {
-      const res = await api.startRide(activeRide._id);
+      const res = await api.startRide(activeRide._id, otp ? { otp } : {});
       setActiveRide(res.ride);
       toast.success('Trip started! Drive safely.');
     } catch (err: any) {

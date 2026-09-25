@@ -264,4 +264,37 @@ router.get('/reviews', requireUserId, protect, async (req, res) => {
   }
 });
 
+// ─── Tech Exp 02: Multi-Stop Medicine Delivery Optimization (TSP) ───
+// Optimizes stops order to minimize cold-chain transit time and fuel
+router.post('/optimize-route', protect, async (req, res) => {
+  try {
+    const { pharmacyLocation, deliveryStops } = req.body;
+    if (!pharmacyLocation || !Array.isArray(deliveryStops) || deliveryStops.length === 0) {
+      return res.status(400).json({ message: 'pharmacyLocation and deliveryStops array are required' });
+    }
+
+    const { getOptimizedRoute } = await import('../lib/valhallaRouting.js');
+
+    // Build locations array: origin pharmacy + delivery drop points
+    const locations = [
+      { lat: pharmacyLocation.lat, lon: pharmacyLocation.lng },
+      ...deliveryStops.map(s => ({ lat: s.lat, lon: s.lng })),
+    ];
+
+    const routeResult = await getOptimizedRoute(locations, 'auto');
+
+    res.json({
+      success: true,
+      optimizationEngine: 'Valhalla TSP',
+      totalStops: deliveryStops.length,
+      estimatedTotalDurationMinutes: Math.ceil(routeResult.durationSeconds / 60),
+      estimatedTotalDistanceKm: Number((routeResult.distanceMeters / 1000).toFixed(2)),
+      polyline: routeResult.polyline,
+      maneuvers: routeResult.maneuvers,
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 export default router;

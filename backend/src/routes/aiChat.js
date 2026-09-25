@@ -40,9 +40,33 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ reply: 'Please ask a health-related question or provide an image.' });
     }
 
-    // SA-M4: red-flag screen on the user prompt (keyword only, no raw text stored).
-    const promptText = String(message || '');
-    const hit = RED_FLAG_PATTERNS.find((p) => p.re.test(promptText));
+    // SA-M4 & SPEC 23: red-flag screen on user prompt.
+    // If life-threatening red-flag detected, lock chat and surface immediate Emergency SOS guidance.
+    if (hit) {
+      logSafetyEvent({
+        kind: 'red_flag',
+        trigger: hit.trigger,
+        userId: req.user?._id,
+        model: 'red-flag-interceptor',
+        latencyMs: Date.now() - startedAt,
+        promptChars: promptText.length,
+        replyChars: 0,
+        promptTokensEst: estTokens(promptText.length),
+        replyTokensEst: 0,
+      });
+
+      return res.json({
+        isRedFlagEmergency: true,
+        emergencyTrigger: hit.trigger,
+        reply: '⚠️ CRITICAL EMERGENCY DETECTED: Your symptoms indicate an urgent medical situation. Please do not wait for an online chat response. Use the 1-Tap Emergency SOS or call an ambulance immediately.',
+        actionRequired: 'TRIGGER_EMERGENCY_SOS',
+        emergencyNumber: '112',
+        suggestions: [
+          { name: '1-Tap Emergency Ambulance SOS', type: 'EMERGENCY_SOS', action: '/emergency' },
+          { name: 'Nearest Trauma Emergency Room', type: 'TRAUMA_ER', action: '/hospitals?emergency=true' },
+        ],
+      });
+    }
 
     // Check Redis AI cache for single-turn text queries
     const isSingleTurnText = !image && (!history || history.length === 0);
@@ -54,9 +78,6 @@ router.post('/', async (req, res) => {
       const cachedResponse = await getCachedAIReply(cacheKey);
       if (cachedResponse) {
         res.setHeader('X-Cache', 'HIT');
-        if (hit) {
-          logSafetyEvent({ kind: 'red_flag', trigger: hit.trigger, userId: req.user?._id, model, latencyMs: Date.now() - startedAt, promptChars: promptText.length, replyChars: 0, promptTokensEst: estTokens(promptText.length), replyTokensEst: 0 });
-        }
         return res.json({ ...cachedResponse, cached: true });
       }
     }
