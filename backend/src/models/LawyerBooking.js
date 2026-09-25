@@ -40,6 +40,11 @@ const lawyerBookingSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  // Spec 06: police-detention / bail incident context (optional).
+  firNumber: { type: String, default: '' },
+  policeStationName: { type: String, default: '' },
+  // Spec 06: statutory conflict-of-interest screen (optional opposing party).
+  opposingPartyName: { type: String, default: '' },
   urgency: {
     type: String,
     enum: ['normal', 'urgent'],

@@ -4,6 +4,7 @@ import LawyerProfile from '../models/LawyerProfile.js';
 import User from '../models/User.js';
 import Notification from '../models/Notification.js';
 import { protect } from '../middleware/auth.js';
+import { bookingLimiter } from '../middleware/rateLimit.js';
 import {
   validate,
   bookLawyerSchema,
@@ -27,7 +28,7 @@ const router = express.Router();
 
 // ─── POST /api/lawyer-booking/book ─────────────────────────────────────────
 // Create a new legal consultation booking (Paths A, B, and C)
-router.post('/book', protect, validate(bookLawyerSchema), async (req, res) => {
+router.post('/book', protect, validate(bookLawyerSchema), bookingLimiter, async (req, res) => {
   try {
     const {
       lawyerId,
@@ -51,6 +52,9 @@ router.post('/book', protect, validate(bookLawyerSchema), async (req, res) => {
       otherPatient,
       phone,
       acknowledgeUrgent = false,
+      firNumber = '',
+      policeStationName = '',
+      opposingPartyName = '',
     } = req.body;
 
     const resolvedUrgency = isUrgent || urgency === 'urgent' ? 'urgent' : 'normal';
@@ -95,6 +99,9 @@ router.post('/book', protect, validate(bookLawyerSchema), async (req, res) => {
             otherPatient: otherPatient || undefined,
             phone: phone || req.user.phone || '',
             acknowledgeUrgent: Boolean(acknowledgeUrgent),
+            firNumber: String(firNumber || ''),
+            policeStationName: String(policeStationName || ''),
+            opposingPartyName: String(opposingPartyName || '').slice(0, 120),
             location: req.body.location ? {
               address: req.body.location.address || '',
               lat: req.body.location.lat,
@@ -183,6 +190,28 @@ router.post('/:id/broadcast-fallback', protect, async (req, res) => {
   } catch (err) {
     logger.error(`Error in lawyer broadcast fallback: ${err.message}`);
     res.status(500).json({ message: 'Failed to broadcast request' });
+  }
+});
+
+// ─── POST /api/lawyer-booking/:id/hold-retainer ────────────────────────────
+// Spec 06: pre-authorize consultation retainer in demo escrow (HELD, released on sign-off).
+router.post('/:id/hold-retainer', protect, async (req, res) => {
+  try {
+    const booking = await LawyerBooking.findById(req.params.id);
+    if (!booking) return res.status(404).json({ message: 'Booking not found' });
+    if (String(booking.userId) !== String(req.user._id) && req.user.role !== 'superadmin') {
+      return res.status(403).json({ message: 'Not authorized to hold retainer for this booking' });
+    }
+    const amount = Number(req.body.amount) || Number(booking.fee) || 800;
+    const { holdDemoEscrow } = await import('./demoPayment.js');
+    const { payment, newBalance } = await holdDemoEscrow({
+      userId: req.user._id,
+      amount,
+      ref: { bookingType: 'lawyer', lawyerBookingId: booking._id, lawyerId: booking.lawyerId },
+    });
+    res.status(201).json({ success: true, message: 'Retainer held in demo escrow', payment, demoWalletBalance: newBalance });
+  } catch (err) {
+    res.status(err.statusCode || 500).json({ message: err.message || 'Failed to hold retainer' });
   }
 });
 

@@ -46,6 +46,8 @@ const config = {
     bookingNumber: request.bookingNumber,
     hospital: request.hospital,
     taskDescription: request.taskDescription || request.serviceCategories?.join(', '),
+    specialInstructions: request.specialInstructions || '',
+    patientAllergies: request.patientAllergies || [],
     durationType: request.durationType,
     fee: request.cost?.total || 600,
     distanceKm: candidate.distanceKm,

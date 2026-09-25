@@ -1,5 +1,6 @@
 import express from 'express';
 import { protect } from '../middleware/auth.js';
+import { idempotencyGuard } from '../middleware/idempotency.js';
 import {
   acceptLawyerRequest,
   rejectLawyerRequest,
@@ -23,7 +24,7 @@ const router = express.Router();
  * Universal accept endpoint for instant alert votes
  * POST /api/instant/:type/:id/accept
  */
-router.post('/:type/:id/accept', protect, async (req, res) => {
+router.post('/:type/:id/accept', protect, idempotencyGuard(), async (req, res) => {
   try {
     const { type, id } = req.params;
     const providerId = req.user._id || req.user.id;
@@ -54,7 +55,7 @@ router.post('/:type/:id/accept', protect, async (req, res) => {
  * Universal reject endpoint for instant alerts
  * POST /api/instant/:type/:id/reject
  */
-router.post('/:type/:id/reject', protect, async (req, res) => {
+router.post('/:type/:id/reject', protect, idempotencyGuard(), async (req, res) => {
   try {
     const { type, id } = req.params;
     const providerId = req.user._id || req.user.id;

@@ -2,6 +2,7 @@ import express from 'express';
 import EmergencyDoctorRequest from '../models/EmergencyDoctorRequest.js';
 import Doctor from '../models/Doctor.js';
 import { protect } from '../middleware/auth.js';
+import { bookingLimiter } from '../middleware/rateLimit.js';
 import { getIO } from '../services/socketService.js';
 import { startEmergencyDoctorDispatch, acceptEmergencyDoctorRequest, rejectEmergencyDoctorRequest } from '../services/emergencyDoctorDispatchService.js';
 import { upsertProviderLocationCache, removeProviderFromCache } from '../lib/h3Cache.js';
@@ -29,7 +30,7 @@ function calculateDistanceKm(coord1, coord2) {
 }
 
 // ─── 1. POST /api/emergency-doctor/dispatch ──────────────────────────────
-router.post('/dispatch', protect, async (req, res) => {
+router.post('/dispatch', protect, bookingLimiter, async (req, res) => {
   try {
     const {
       patientName,
@@ -75,6 +76,16 @@ router.post('/dispatch', protect, async (req, res) => {
         },
       ],
     });
+
+    // Spec 09 §4 / Spec 23 §4: ESI-style severity score (1 = critical … 5 = mild).
+    const severityText = `${emergencyCategory || ''} ${symptomsDescription || ''}`;
+    const severityScore = /chest|cardiac|heart|stroke|seizure|unconscious/i.test(severityText) ? 1
+      : /breath|asthma|anaphylaxis|overdose|suicid/i.test(severityText) ? 2
+      : /injur|accident|burn|bleed|fracture/i.test(severityText) ? 3
+      : /fever|pain|vomit|dizz/i.test(severityText) ? 4 : 5;
+    emergencyDoc.severityScore = severityScore;
+    emergencyDoc.timeline.push({ stage: 'triaged', timestamp: new Date(), note: `Severity score ${severityScore}/5` });
+    await emergencyDoc.save();
 
     // Trigger unified wave dispatch with H3 pre-filter and Mongo fallback
     startEmergencyDoctorDispatch(emergencyDoc._id).catch((err) => {
@@ -382,6 +393,106 @@ router.post('/:requestId/cancel', protect, async (req, res) => {
 
     res.json({ success: true, message: 'Emergency doctor request cancelled', request: updated });
   } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ─── 8b. POST /api/emergency-doctor/:requestId/room ────────────────────────
+// Spec 09: issue an encrypted video-triage session for an assigned consultation.
+router.post('/:requestId/room', protect, async (req, res) => {
+  try {
+    const docReq = await EmergencyDoctorRequest.findById(req.params.requestId);
+    if (!docReq) return res.status(404).json({ success: false, message: 'Request not found' });
+    const me = String(req.user._id || req.user.id);
+    const isParty = [String(docReq.userId), String(docReq.patientId), String(docReq.assignedDoctorId)].includes(me);
+    if (!isParty && req.user.role !== 'superadmin') {
+      return res.status(403).json({ success: false, message: 'Not a party to this consultation' });
+    }
+    if (!['assigned', 'in_progress'].includes(docReq.status)) {
+      return res.status(400).json({ success: false, message: 'Room available only for active consultations' });
+    }
+    const { randomUUID } = await import('crypto');
+    if (!docReq.webrtcRoom?.sessionId) {
+      docReq.webrtcRoom = {
+        sessionId: `EDR-${Date.now().toString(36).toUpperCase()}`,
+        token: randomUUID(),
+        startedAt: new Date(),
+        endedAt: null,
+      };
+      if (docReq.status === 'assigned') docReq.status = 'in_progress';
+      docReq.timeline.push({ stage: 'video_room_opened', timestamp: new Date(), note: 'Video triage session issued' });
+      await docReq.save();
+    }
+    const io = getIO();
+    io?.to(`emergency_doctor:${docReq._id}`).emit('emergency_doctor:status_changed', {
+      requestId: String(docReq._id),
+      status: docReq.status,
+      videoSessionId: docReq.webrtcRoom.sessionId,
+    });
+    res.json({ success: true, room: { sessionId: docReq.webrtcRoom.sessionId, token: docReq.webrtcRoom.token } });
+  } catch (err) {
+    logger.error(`Video room error: ${err.message}`);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ─── 9. POST /api/emergency-doctor/:requestId/escalate ─────────────────────
+// Spec 09: doctor escalates to ALS ambulance mid-consultation — spins up a
+// linked SOS EmergencyRequest and starts ambulance dispatch.
+router.post('/:requestId/escalate', protect, async (req, res) => {
+  try {
+    const { requestId } = req.params;
+    const docReq = await EmergencyDoctorRequest.findById(requestId);
+    if (!docReq) return res.status(404).json({ success: false, message: 'Request not found' });
+    if (!['assigned', 'in_progress'].includes(docReq.status)) {
+      return res.status(400).json({ success: false, message: 'Only active consultations can be escalated' });
+    }
+    const doctorId = String(req.user._id || req.user.id);
+    if (docReq.assignedDoctorId && String(docReq.assignedDoctorId) !== doctorId && req.user.role !== 'superadmin') {
+      return res.status(403).json({ success: false, message: 'Only the assigned doctor can escalate' });
+    }
+
+    const symptomToCategory = {
+      chest_pain: 'heart_attack',
+      breathing_issue: 'breathing_issue',
+      injury: 'accident',
+      severe_pain: 'other',
+      high_fever: 'other',
+      mental_health_crisis: 'other',
+      other: 'other',
+    };
+    const { default: EmergencyRequest } = await import('../models/EmergencyRequest.js');
+    const { startEmergencyDispatch } = await import('../services/emergencyDispatchService.js');
+    const sos = await EmergencyRequest.create({
+      userId: docReq.userId,
+      reporterMode: 'other',
+      patientDetails: {
+        name: docReq.patientName || docReq.patientDetails?.name || 'Emergency Patient',
+        age: docReq.patientAge ?? docReq.patientDetails?.age ?? null,
+        gender: docReq.patientDetails?.gender || '',
+        phone: docReq.patientPhone || docReq.patientDetails?.phone || '',
+      },
+      category: symptomToCategory[docReq.symptomCategory] || 'other',
+      location: {
+        type: 'Point',
+        coordinates: docReq.location?.coordinates || docReq.pickupLocation?.coordinates || [79.9864, 23.1815],
+        address: docReq.location?.address || docReq.pickupAddress || '',
+      },
+    });
+    docReq.status = 'escalated_to_ambulance';
+    docReq.timeline.push({ stage: 'escalated_to_ambulance', timestamp: new Date(), note: `Escalated to SOS ${sos._id} by doctor` });
+    await docReq.save();
+    startEmergencyDispatch(sos._id).catch((err) => logger.error(`Escalated SOS dispatch error: ${err.message}`));
+
+    const io = getIO();
+    io?.to(`emergency_doctor:${requestId}`).emit('emergency_doctor:status_changed', {
+      requestId: String(requestId),
+      status: 'escalated_to_ambulance',
+      sosRequestId: String(sos._id),
+    });
+    res.status(201).json({ success: true, message: 'Escalated to ambulance dispatch', sosRequestId: sos._id, request: docReq });
+  } catch (err) {
+    logger.error(`Escalate to ambulance error: ${err.message}`);
     res.status(500).json({ success: false, message: err.message });
   }
 });

@@ -37,7 +37,7 @@ export const referralService = {
    * Apply referral code during signup
    * Called from auth signup handler
    */
-  async applyReferralCode(userId, referralCode) {
+  async applyReferralCode(userId, referralCode, context = {}) {
     if (!referralCode) return;
 
     const referrer = await User.findOne({ 'referral.code': referralCode }).select('_id email');
@@ -50,13 +50,28 @@ export const referralService = {
     const existingReferral = await Referral.findOne({ refereeId: userId }).lean();
     if (existingReferral) return; // already referred
 
+    // Spec 25 §4: device/IP ring detection — hash PII, never store raw IP.
+    const ipHash = context.ip ? crypto.createHash('sha256').update(String(context.ip)).digest('hex').slice(0, 32) : '';
+    const deviceHash = context.userAgent ? crypto.createHash('sha256').update(String(context.userAgent)).digest('hex').slice(0, 32) : '';
+
     // Create pending referral record
     const referral = new Referral({
       referrerId: referrer._id,
       refereeId: userId,
       code: referralCode,
       status: 'pending',
+      ipHash,
+      deviceHash,
     });
+
+    // Fraud ring: 3+ referees from the same IP within 24h → flag, no rewards ever.
+    if (ipHash) {
+      const since = new Date(Date.now() - 24 * 3600 * 1000);
+      const sameIpCount = await Referral.countDocuments({ ipHash, createdAt: { $gte: since } });
+      if (sameIpCount >= 3) {
+        referral.status = 'fraud_flagged';
+      }
+    }
     await referral.save();
 
     // Update user referral fields
@@ -99,8 +114,17 @@ export const referralService = {
       qualifiedAt: new Date(),
     });
 
-    // Credit rewards to both via Loyalty/Points ledger
-    // (This doc assumes points ledger exists elsewhere; here we just mark as rewarded)
+    // Credit rewards to both via the loyalty points ledger (cooling-off over:
+    // credits land only after the referee's first qualifying trip, never at signup).
+    let referrerCredited = 0;
+    let refereeCredited = 0;
+    try {
+      const { loyaltyService } = await import('./loyaltyService.js');
+      referrerCredited = await loyaltyService.earnPoints(referral.referrerId._id, 'referral_qualified', referral._id);
+      refereeCredited = await loyaltyService.earnPoints(refereeId, 'referral_qualified', referral._id);
+    } catch {
+      // Ledger failure must not roll back the qualified referral state.
+    }
     await Referral.findByIdAndUpdate(referral._id, {
       status: 'rewarded',
       rewardedAt: new Date(),
@@ -108,15 +132,13 @@ export const referralService = {
       refereeRewardPoints: settings.refereePoints,
     });
 
-    // TODO: Actually credit points to user wallets via the existing points ledger system
-    // Example: await LoyaltyService.creditPoints(referrerId, settings.referrerPoints, 'referral');
-    // Example: await LoyaltyService.creditPoints(refereeId, settings.refereePoints, 'referral_welcome');
-
     return {
       referrerId: referral.referrerId._id,
       refereeId: refereeId,
       referrerPoints: settings.referrerPoints,
       refereePoints: settings.refereePoints,
+      referrerCredited,
+      refereeCredited,
     };
   },
 

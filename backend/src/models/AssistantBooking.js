@@ -102,6 +102,8 @@ const assistantBookingSchema = new mongoose.Schema({
     type: String,
     default: '',
   },
+  // Spec 07: patient allergy profile surfaced on the provider alert.
+  patientAllergies: [{ type: String }],
   cost: {
     ratePerHour: { type: Number, default: 150 },
     estimatedHours: { type: Number, default: 4 },

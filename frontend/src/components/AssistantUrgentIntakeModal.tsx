@@ -84,6 +84,8 @@ export default function AssistantUrgentIntakeModal({
 
   const [servicesNeeded, setServicesNeeded] = useState<string[]>([]);
   const [taskDescription, setTaskDescription] = useState('');
+  // Spec 07: patient allergy profile surfaced on the assistant alert.
+  const [patientAllergies, setPatientAllergies] = useState('');
   const [urgencyWindow, setUrgencyWindow] = useState<'asap' | 'specific_time'>('asap');
   const [specificTime, setSpecificTime] = useState('11:00 AM');
   const [durationNeeded, setDurationNeeded] = useState<'2hr' | '4hr' | 'full_day'>('2hr');
@@ -102,6 +104,7 @@ export default function AssistantUrgentIntakeModal({
       setSelectedFamilyMember(null);
       setOtherPatient({ name: '', phone: '', age: '' });
       setTaskDescription('');
+      setPatientAllergies('');
       setUrgencyWindow('asap');
       setDurationNeeded('2hr');
       setDocuments([]);
@@ -222,6 +225,10 @@ export default function AssistantUrgentIntakeModal({
         serviceCategories: servicesNeeded,
         taskDescription: taskDescription.trim(),
         specialInstructions: taskDescription.trim(),
+        patientAllergies: patientAllergies
+          .split(',')
+          .map((a) => a.trim())
+          .filter(Boolean),
         urgencyWindow,
         startTime: urgencyWindow === 'asap' ? 'ASAP' : specificTime,
         scheduledDate: new Date().toISOString().split('T')[0],
@@ -425,6 +432,19 @@ export default function AssistantUrgentIntakeModal({
               onChange={(e) => setTaskDescription(e.target.value)}
               className="text-xs rounded-xl resize-none focus:ring-2 focus:ring-primary/20"
               required
+            />
+          </div>
+
+          {/* 4b. Patient allergies (optional, shown to attendant) */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-foreground">
+              Patient allergies <span className="font-normal text-muted-foreground">(optional, comma-separated)</span>
+            </label>
+            <Input
+              placeholder="e.g. Penicillin, Dust, Peanuts"
+              value={patientAllergies}
+              onChange={(e) => setPatientAllergies(e.target.value)}
+              className="text-xs rounded-xl h-10"
             />
           </div>
 

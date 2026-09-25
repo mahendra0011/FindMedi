@@ -5,6 +5,17 @@ import logger from '../config/logger.js';
 
 const WAVE_WINDOW_SECONDS = Number(process.env.INSTANT_WAVE_WINDOW_SECONDS || 15);
 
+// Spec 03 §4: per-vertical accept windows (env-tunable, seconds).
+const TYPE_WINDOW_SECONDS = {
+  ride: Number(process.env.INSTANT_WINDOW_RIDE || 15),
+  lawyer: Number(process.env.INSTANT_WINDOW_LAWYER || 60),
+  assistant: Number(process.env.INSTANT_WINDOW_ASSISTANT || 45),
+  emergency_doctor: Number(process.env.INSTANT_WINDOW_DOCTOR || 25),
+};
+function waveWindowFor(type) {
+  return TYPE_WINDOW_SECONDS[type] || WAVE_WINDOW_SECONDS;
+}
+
 const DEFAULT_COORDS = [79.9864, 23.1815]; // [lng, lat] Jabalpur fallback
 
 /** Resolve [lng, lat] across request shapes (GeoJSON location / pickupLocation / ride pickup {lat,lng}). */
@@ -32,6 +43,9 @@ const NO_RESPONDERS_STATUS = {
   emergency_doctor: 'no_responders_found',
 };
 
+// Spec 03 §5: request IDs already given their single automatic retry.
+const retriedOnce = new Set();
+
 /**
  * Registry to find provider model and location field dynamically
  */
@@ -56,6 +70,7 @@ const PROVIDER_REGISTRY = {
 
 import { rankCandidatesByRoadETA } from '../lib/valhallaRouting.js';
 import { acquireLock, releaseLock } from '../lib/redlock.js';
+import { writeOutboxEvent } from '../lib/transactionalOutbox.js';
 
 /**
  * Hydrates candidate IDs from Redis into models with coordinates, evaluates Valhalla road ETA, and sorts closest first.
@@ -105,7 +120,8 @@ async function hydrateAndFilterCandidates(providerIds, providerType, lat, lng, r
  * Broadcasts alert to candidate providers, waits wave window, and assigns atomically with Redlock.
  */
 async function runGenericWave({ requestId, type, Model, radiusKm, candidates, io, buildAlertPayload, request }) {
-  const windowEndsAt = new Date(Date.now() + WAVE_WINDOW_SECONDS * 1000);
+  const waveWindowSeconds = waveWindowFor(type);
+  const windowEndsAt = new Date(Date.now() + waveWindowSeconds * 1000);
   const notified = candidates.map((c) => ({
     providerId: c.providerId,
     userId: c.userId,
@@ -121,13 +137,25 @@ async function runGenericWave({ requestId, type, Model, radiusKm, candidates, io
     }
   );
 
+  // Spec 03 §5: socket delivery confirmation (packet_ack). Providers whose
+  // client never acks within the window are logged as uncontactable.
+  const ackedProviders = new Set();
+  const onAck = (providerId) => () => {
+    ackedProviders.add(String(providerId));
+  };
   candidates.forEach((c) => {
-    io?.to(`user_${c.userId}`).emit(`${type}:alert`, buildAlertPayload(request, c));
-    io?.to(`user:${c.userId}`).emit(`${type}:alert`, buildAlertPayload(request, c));
+    const payload = buildAlertPayload(request, c);
+    io?.to(`user_${c.userId}`).emit(`${type}:alert`, payload, onAck(c.providerId));
+    io?.to(`user:${c.userId}`).emit(`${type}:alert`, payload, onAck(c.providerId));
   });
 
   // Wait for the wave acceptance window
-  await new Promise((res) => setTimeout(res, WAVE_WINDOW_SECONDS * 1000));
+  await new Promise((res) => setTimeout(res, waveWindowSeconds * 1000));
+
+  const unacked = candidates.filter((c) => !ackedProviders.has(String(c.providerId)));
+  if (unacked.length) {
+    logger.warn(`Wave ${String(requestId)}: ${unacked.length}/${candidates.length} providers never acked the alert`);
+  }
 
   const current = await Model.findById(requestId);
   if (!current || current.status !== 'searching') return { done: true };
@@ -211,6 +239,19 @@ async function runGenericWave({ requestId, type, Model, radiusKm, candidates, io
     });
   }
 
+  // Spec 11: assignment is recorded for the event backbone.
+  writeOutboxEvent({
+    aggregateType: type,
+    aggregateId: String(requestId),
+    eventType: `${type}.assigned`,
+    payload: {
+      providerId: winner.providerId,
+      distanceKm: winner.distanceKm,
+      roadEtaSeconds: winner.roadEtaSeconds,
+      status: updateFields.status,
+    },
+  }).catch(() => {});
+
   return { done: true };
 }
 
@@ -223,6 +264,14 @@ export async function startInstantDispatch(requestId, config) {
   try {
     const request = await Model.findById(requestId);
     if (!request || request.status !== 'searching') return;
+
+    // Spec 11: every dispatch records an outbox event (poller → event backbone).
+    writeOutboxEvent({
+      aggregateType: type,
+      aggregateId: String(requestId),
+      eventType: `${type}.dispatch_started`,
+      payload: { status: 'searching', radiiKm },
+    }).catch(() => {});
 
     const [lng, lat] = resolveRequestCoords(request);
     const io = getIO();
@@ -278,6 +327,21 @@ export async function startInstantDispatch(requestId, config) {
     // All radii exhausted without acceptance
     const finalCheck = await Model.findById(requestId);
     if (finalCheck && finalCheck.status === 'searching') {
+      // Spec 03 §5: one automatic retry with expanded rings (backoff 45s),
+      // then terminal no-responders. Opt out per-request with autoRetry: false.
+      if (finalCheck.autoRetry !== false && !retriedOnce.has(String(requestId))) {
+        retriedOnce.add(String(requestId));
+        const retryRadii = radiiKm.map((r) => Math.round(r * 1.5));
+        const timer = setTimeout(() => {
+          retriedOnce.delete(String(requestId));
+          Model.findById(requestId).then((doc) => {
+            if (!doc || doc.status !== (NO_RESPONDERS_STATUS[type] || 'no_responders_found')) return;
+            doc.status = 'searching';
+            return doc.save().then(() => startInstantDispatch(requestId, { ...config, radiiKm: retryRadii }));
+          }).catch(() => {});
+        }, 45000);
+        if (typeof timer.unref === 'function') timer.unref();
+      }
       finalCheck.status = NO_RESPONDERS_STATUS[type] || 'no_responders_found';
       if (Array.isArray(finalCheck.statusHistory)) {
         finalCheck.statusHistory.push({

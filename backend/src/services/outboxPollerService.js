@@ -1,6 +1,8 @@
 import OutboxEvent from '../models/OutboxEvent.js';
 import logger from '../config/logger.js';
 import { emitKafkaEvent } from '../lib/kafkaProducer.js';
+import { redisClient, isRedisReady } from '../config/redis.js';
+import { handleIncomingEvent } from './kafkaConsumerService.js';
 
 let pollerInterval = null;
 let isProcessing = false;
@@ -45,7 +47,33 @@ export async function pollAndProcessOutbox() {
 
     for (const evt of pendingEvents) {
       try {
+        // Spec 11: idempotent delivery gate — 24h Redis seen-set drops redeliveries.
+        const dedupKey = `event:seen:${evt._id}`;
+        let duplicate = false;
+        try {
+          if (isRedisReady() && redisClient.isOpen) {
+            const set = await redisClient.set(dedupKey, '1', { NX: true, EX: 86400 });
+            if (set !== 'OK') duplicate = true;
+          }
+        } catch {}
+        if (duplicate) {
+          await OutboxEvent.updateOne(
+            { _id: evt._id },
+            { $set: { status: 'PUBLISHED', publishedAt: new Date(), lastError: 'duplicate-suppressed' } }
+          );
+          continue;
+        }
         await dispatchOutboxEvent(evt);
+        // In-process backbone delivery: poller → consumer handlers (real projections).
+        try {
+          await handleIncomingEvent(evt.destinationTopic, {
+            eventType: evt.eventType,
+            aggregateId: evt.aggregateId,
+            payload: evt.payload || {},
+          });
+        } catch (consumerErr) {
+          logger.warn(`Consumer handler failed for ${evt._id}: ${consumerErr.message}`);
+        }
         await OutboxEvent.updateOne(
           { _id: evt._id },
           {
@@ -59,6 +87,11 @@ export async function pollAndProcessOutbox() {
       } catch (err) {
         logger.error(`Failed to publish OutboxEvent [${evt._id}]: ${err.message}`);
         const nextRetry = (evt.retryCount || 0) + 1;
+        const exhausted = nextRetry >= MAX_RETRIES;
+        if (exhausted) {
+          // Dead-letter: no broker DLQ topic without Kafka; terminal FAILED state + ops alert log.
+          logger.error(`[DLQ] OutboxEvent [${evt._id}] exhausted retries (type=${evt.eventType}). Manual triage required.`);
+        }
         await OutboxEvent.updateOne(
           { _id: evt._id },
           {

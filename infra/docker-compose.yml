@@ -2,6 +2,50 @@ version: '3.8'
 
 services:
   # ==========================================
+  # MONGODB REPLICA SET: System of Record
+  # (Single-node replica set: enables transactions + change streams locally)
+  # ==========================================
+  mongo1:
+    image: mongo:7.0
+    container_name: findmedi-mongo1
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    command: ["mongod", "--replset", "rs0", "--bind_ip_all"]
+    restart: unless-stopped
+
+  # ==========================================
+  # VALHALLA: Self-Hosted Routing Engine
+  # (Requires planet/monaco OSM tiles mounted at /custom_files; see runbook)
+  # ==========================================
+  valhalla:
+    image: ghcr.io/nilsnolde/valhalla-valhalla:3.5.0
+    container_name: findmedi-valhalla
+    ports:
+      - "8002:8002"
+    volumes:
+      - valhalla_tiles:/custom_files
+    restart: unless-stopped
+    profiles: ["routing"]
+
+  # ==========================================
+  # NGINX: Edge Reverse Proxy + TLS + Static Cache
+  # ==========================================
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: findmedi-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - valhalla
+    restart: unless-stopped
+    profiles: ["edge"]
+
+  # ==========================================
   # REDIS: Distributed Locks & Spatial Cache
   # ==========================================
   redis:
@@ -111,3 +155,5 @@ services:
 volumes:
   redis_data:
   opensearch_data:
+  mongo_data:
+  valhalla_tiles:

@@ -145,6 +145,43 @@ router.get('/', protect, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// POST /api/transactions/withdraw — instant provider wallet withdrawal (Spec 22 §4).
+// Resolves the caller profile by role, enforces ₹100 minimum reserve, writes a
+// balanced DEBIT/CREDIT pair into TransactionLedger.
+router.post('/withdraw', protect, async (req, res, next) => {
+  try {
+    const amount = Math.round(Number(req.body.amount) || 0);
+    if (!(amount > 0)) return res.status(400).json({ message: 'Valid amount required' });
+    const role = req.user.role;
+    const profileMap = {
+      rider: ['../models/RiderProfile.js', 'ride'],
+      assistant: ['../models/AssistantProfile.js', 'assistant'],
+      lawyer: ['../models/LawyerProfile.js', 'lawyer'],
+    };
+    const entry = profileMap[role];
+    if (!entry) return res.status(403).json({ message: 'Only rider/assistant/lawyer providers can withdraw' });
+    const { default: Profile } = await import(entry[0]);
+    const { default: TransactionLedger } = await import('../models/TransactionLedger.js');
+    const profile = await Profile.findOne({ userId: req.user._id });
+    if (!profile) return res.status(404).json({ message: 'Provider profile not found' });
+    const MIN_RESERVE = 100;
+    if ((profile.walletBalance || 0) < amount + MIN_RESERVE) {
+      return res.status(402).json({
+        message: `Insufficient balance (need ₹${amount + MIN_RESERVE} incl. ₹${MIN_RESERVE} reserve)`,
+        walletBalance: profile.walletBalance || 0,
+      });
+    }
+    profile.walletBalance -= amount;
+    await profile.save();
+    const ref = `WDL-${Date.now().toString(36).toUpperCase()}`;
+    await TransactionLedger.create([
+      { providerId: req.user._id, source: entry[1], sourceId: ref, amount, netAmount: -amount, entryType: 'DEBIT', status: 'completed', bookingNumber: ref },
+      { providerId: req.user._id, source: entry[1], sourceId: ref, amount, netAmount: amount, entryType: 'CREDIT', status: 'completed', bookingNumber: ref },
+    ]);
+    res.json({ success: true, message: `₹${amount} withdrawal recorded`, walletBalance: profile.walletBalance, transactionRef: ref });
+  } catch (err) { next(err); }
+});
+
 // POST /api/transactions/pay — unified payment + confirm (idempotent)
 // Can also accept appointment data to create appointment + payment atomically
 router.post('/pay', protect, async (req, res, next) => {
@@ -631,6 +668,23 @@ router.get('/verify/:id', protect, async (req, res, next) => {
         referenceId: idParam,
         status: 'completed',
       });
+    }
+
+    // Strategy 4: Demo sandbox payment by transaction ref (receipt hash verification).
+    let demoPayment = null;
+    if (!payment) {
+      const { default: DemoPayment } = await import('../models/DemoPayment.js');
+      demoPayment = await DemoPayment.findOne({ transactionRef: idParam }).lean();
+      if (demoPayment) {
+        const { verifyTxnHash } = await import('../lib/receiptSecurity.js');
+        const supplied = req.query.hash ? String(req.query.hash) : null;
+        return res.json({
+          found: true,
+          verified: supplied ? verifyTxnHash(demoPayment.transactionRef, supplied) : null,
+          payment: { ...demoPayment, transaction_id: demoPayment.transactionRef },
+          sandbox: true,
+        });
+      }
     }
 
     if (!payment) {

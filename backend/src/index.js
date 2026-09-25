@@ -280,7 +280,10 @@ import labRoutes from './routes/lab.js';
 import pharmacyRoutes from './routes/pharmacy.js';
 import ipdRoutes from './routes/ipd.js';
 import triageRoutes from './routes/triage.js';
+import clinicalAlertRoutes from './routes/clinicalAlerts.js';
 import radiologyRoutes from './routes/radiology.js';
+import searchRoutes from './routes/search.js';
+import surgeRoutes from './routes/surge.js';
 import insuranceRoutes from './routes/insurance.js';
 import dietRoutes from './routes/diet.js';
 import otRoutes from './routes/ot.js';
@@ -372,6 +375,9 @@ app.use('/api/lab', labRoutes);
 app.use('/api/pharmacy', pharmacyRoutes);
 app.use('/api/ipd', ipdRoutes);
 app.use('/api/triage', triageRoutes);
+app.use('/api/clinical-alerts', clinicalAlertRoutes);
+app.use('/api/search', searchRoutes);
+app.use('/api/surge', surgeRoutes);
 app.use('/api/radiology', radiologyRoutes);
 app.use('/api/insurance', insuranceRoutes);
 app.use('/api/diet', dietRoutes);
@@ -554,6 +560,20 @@ if (process.env.NODE_ENV !== 'test') {
         startHexCacheReconcile(Number(process.env.HEX_RECONCILE_INTERVAL_MS || 5 * 60 * 1000));
       } catch (e) {
         logger.warn('hexCacheReconcile scheduler failed: ' + e.message);
+      }
+      // Spec 14 — in-process demand-surge calculator (every 60s; Flink can replace it).
+      try {
+        const { startSurgeCalc } = await import('./jobs/surgeCalc.job.js');
+        startSurgeCalc(Number(process.env.SURGE_CALC_INTERVAL_MS || 60 * 1000));
+      } catch (e) {
+        logger.warn('surgeCalc scheduler failed: ' + e.message);
+      }
+      // Spec 15 — OpenSearch indices (no-op unless OPENSEARCH_NODE is set).
+      try {
+        const { ensureIndices } = await import('./services/opensearchIndexer.js');
+        ensureIndices().catch(() => {});
+      } catch (e) {
+        logger.warn('opensearch ensureIndices failed: ' + e.message);
       }
       // Doc 02 §4.3: stale GPS → auto offline (unless on duty), every 60s
       setInterval(async () => {

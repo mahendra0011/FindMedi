@@ -1,36 +1,98 @@
 import { KAFKA_TOPICS, isKafkaConfigured } from '../config/kafka.js';
+import { redisClient, isRedisReady } from '../config/redis.js';
+import { upsertProviderLocationCache, removeProviderFromCache } from '../lib/h3Cache.js';
 import logger from '../config/logger.js';
 
 let isListening = false;
 
+async function bumpDemandCounter(h3Cell, vertical) {
+  try {
+    if (!isRedisReady() || !redisClient.isOpen || !h3Cell) return;
+    const key = `demand:h3:${h3Cell}:${vertical || 'all'}`;
+    await redisClient.incr(key);
+    await redisClient.expire(key, 3600);
+  } catch {}
+}
+
 /**
- * Handles incoming Kafka events dispatched from the event bus / outbox stream.
- * Executes downstream projection handlers, audits, and real-time state synchronizations.
+ * Handles incoming backbone events with real projections.
+ * Every branch is fail-soft: handler errors never break the poller loop
+ * (the poller wraps this call in try/catch as a second guard).
  */
 export async function handleIncomingEvent(topic, eventPayload) {
-  const { eventType, aggregateId, payload } = eventPayload;
-  logger.info(`[KAFKA_CONSUMER_RECV] Topic: ${topic} | Type: ${eventType} | ID: ${aggregateId}`);
+  const { eventType, aggregateId, payload = {} } = eventPayload || {};
+  logger.debug(`[KAFKA_CONSUMER_RECV] Topic: ${topic} | Type: ${eventType} | ID: ${aggregateId}`);
 
-  switch (eventType) {
-    case 'RideBookingCreated.v1':
-      // Projection: Update active ride demand stats / metrics
-      break;
+  try {
+    switch (eventType) {
+      case 'ride.dispatch_started':
+      case 'lawyer.dispatch_started':
+      case 'assistant.dispatch_started':
+      case 'emergency_doctor.dispatch_started':
+      case 'emergency_sos.dispatch_started': {
+        // Demand projection: per-H3-cell counters feed the surge job.
+        const cell = payload.h3Cell || payload.h3Index8 || null;
+        const vertical = (eventType || '').split('.')[0];
+        await bumpDemandCounter(cell, vertical);
+        break;
+      }
 
-    case 'RideCompleted.v1':
-      // Downstream: Trigger receipt generation / push analytics
-      break;
+      case 'ride.assigned':
+      case 'lawyer.assigned':
+      case 'assistant.assigned':
+      case 'emergency_doctor.assigned':
+      case 'emergency_sos.assigned': {
+        // Assignment projection: track active provider engagement.
+        try {
+          if (isRedisReady() && redisClient.isOpen && payload.providerId) {
+            await redisClient.set(`engaged:provider:${payload.providerId}`, String(aggregateId), { EX: 3600 });
+          }
+        } catch {}
+        break;
+      }
 
-    case 'LawyerBookingCreated.v1':
-      // Projection: Notify legal intake coordinator
-      break;
+      case 'provider.presence.online': {
+        // Presence projection: keep the H3 hex cache in sync from any producer.
+        if (payload.lat != null && payload.lng != null) {
+          await upsertProviderLocationCache({
+            providerId: String(payload.providerId),
+            providerType: payload.providerType,
+            lat: Number(payload.lat),
+            lng: Number(payload.lng),
+          });
+        }
+        break;
+      }
 
-    case 'AssistantBookingCreated.v1':
-      // Projection: Schedule home care nurse visit
-      break;
+      case 'provider.presence.offline': {
+        await removeProviderFromCache({
+          providerId: String(payload.providerId),
+          providerType: payload.providerType,
+        });
+        break;
+      }
 
-    default:
-      logger.debug(`Unhandled eventType in consumer: ${eventType}`);
-      break;
+      case 'ride.completed': {
+        // Downstream: pre-generate the GST receipt PDF so it is ready on request.
+        try {
+          const { default: RideBooking } = await import('../models/RideBooking.js');
+          const { generateRideReceiptPdf } = await import('./rideReceiptService.js');
+          const ride = await RideBooking.findById(aggregateId || payload.rideId).lean();
+          if (ride) {
+            await generateRideReceiptPdf(ride, null, null, null);
+          }
+        } catch (err) {
+          logger.warn(`Receipt pre-generation skipped: ${err.message}`);
+        }
+        break;
+      }
+
+      default:
+        logger.debug(`Unhandled eventType in consumer: ${eventType}`);
+        break;
+    }
+  } catch (err) {
+    logger.warn(`handleIncomingEvent(${eventType}) failed: ${err.message}`);
   }
 
   return true;
@@ -38,8 +100,9 @@ export async function handleIncomingEvent(topic, eventPayload) {
 
 /**
  * Starts the resilient event subscriber daemon.
- * In development / single-instance mode, it attaches to the in-memory event bus.
- * In production, it connects KafkaJS / Confluent consumer groups.
+ * Without a live Kafka cluster it serves the in-process backbone
+ * (poller → handleIncomingEvent); with brokers configured the same
+ * handler set attaches to consumer groups.
  */
 export function startKafkaConsumer() {
   if (isListening) return;
@@ -47,7 +110,6 @@ export function startKafkaConsumer() {
 
   if (isKafkaConfigured()) {
     logger.info('Starting Production Kafka Consumer Group (findmedi-core-consumers)');
-    // Connects to broker partitions
   } else {
     logger.info('Starting In-Memory Event Backbone Consumer (Development Mode)');
   }

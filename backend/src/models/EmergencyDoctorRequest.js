@@ -62,6 +62,16 @@ const emergencyDoctorRequestSchema = new mongoose.Schema({
     default: 'video',
   },
 
+  // Spec 09: encrypted video triage session (issued on demand, joined via app).
+  webrtcRoom: {
+    sessionId: { type: String, default: '' },
+    token: { type: String, default: '' },
+    startedAt: { type: Date, default: null },
+    endedAt: { type: Date, default: null },
+  },
+  // ESI-style severity score derived from symptom category (1 = critical … 5 = mild).
+  severityScore: { type: Number, min: 1, max: 5, default: null },
+
   location: {
     type: { type: String, enum: ['Point'], default: 'Point' },
     coordinates: { type: [Number], required: true },
@@ -74,7 +84,7 @@ const emergencyDoctorRequestSchema = new mongoose.Schema({
 
   status: {
     type: String,
-    enum: ['searching', 'assigned', 'in_progress', 'completed', 'cancelled_by_user', 'no_responders_found'],
+    enum: ['searching', 'assigned', 'in_progress', 'completed', 'cancelled_by_user', 'no_responders_found', 'escalated_to_ambulance'],
     default: 'searching',
     index: true,
   },

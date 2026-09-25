@@ -4,6 +4,7 @@ import AssistantProfile from '../models/AssistantProfile.js';
 import User from '../models/User.js';
 import Notification from '../models/Notification.js';
 import { protect, optionalProtect } from '../middleware/auth.js';
+import { bookingLimiter } from '../middleware/rateLimit.js';
 import {
   validate,
   bookAssistantSchema,
@@ -24,7 +25,7 @@ const router = express.Router();
 
 // ─── POST /api/assistant-booking/book ───────────────────────────────────────
 // Book a hospital assistant
-router.post('/book', protect, validate(bookAssistantSchema), async (req, res) => {
+router.post('/book', protect, validate(bookAssistantSchema), bookingLimiter, async (req, res) => {
   try {
     const {
       assistantId,
@@ -44,6 +45,7 @@ router.post('/book', protect, validate(bookAssistantSchema), async (req, res) =>
       startTime,
       durationType = '4hr',
       specialInstructions,
+      patientAllergies = [],
     } = req.body;
 
     // Check if user already has an active or in-progress booking
@@ -98,6 +100,9 @@ router.post('/book', protect, validate(bookAssistantSchema), async (req, res) =>
             startTime: startTime || 'Now',
             durationType,
             specialInstructions: specialInstructions || taskDescription || '',
+            patientAllergies: Array.isArray(patientAllergies)
+              ? patientAllergies.map(String).slice(0, 20)
+              : [],
             cost,
             status: isUrgent && !targetAssistantId ? 'searching' : 'requested',
             taskChecklist,
@@ -416,6 +421,65 @@ router.put('/:id/task/:taskId', protect, async (req, res) => {
   } catch (err) {
     logger.error(`Update task error: ${err.message}`);
     res.status(500).json({ message: 'Failed to update task', error: err.message });
+  }
+});
+
+// ─── POST /api/assistant-booking/:id/vitals ─────────────────────────────────
+// Spec 07: bedside vitals logging (BP / pulse / SpO2 / temp) into the EHR chart.
+router.post('/:id/vitals', protect, async (req, res) => {
+  try {
+    const booking = await AssistantBooking.findById(req.params.id);
+    if (!booking) return res.status(404).json({ message: 'Booking not found' });
+    if (String(booking.assistantId) !== String(req.user._id) && req.user.role !== 'superadmin') {
+      return res.status(403).json({ message: 'Only the assigned assistant can log vitals' });
+    }
+    const { vitalType, values = {}, note = '' } = req.body;
+    if (!['bp', 'pulse', 'spo2', 'temperature', 'blood_sugar', 'weight'].includes(vitalType)) {
+      return res.status(400).json({ message: 'Valid vitalType required' });
+    }
+    const { default: VitalsLog } = await import('../models/VitalsLog.js');
+    const entry = await VitalsLog.create({
+      userId: booking.patientId,
+      vitalType,
+      values: {
+        systolic: values.systolic ?? null,
+        diastolic: values.diastolic ?? null,
+        pulse: values.pulse ?? null,
+        spo2: values.spo2 ?? null,
+        tempValue: values.tempValue ?? null,
+        tempUnit: values.tempUnit || 'F',
+        sugarValue: values.sugarValue ?? null,
+        weightKg: values.weightKg ?? null,
+      },
+      note: String(note || '').slice(0, 300),
+      bookingKind: 'assistant',
+      bookingId: booking._id,
+      recordedBy: req.user._id,
+    });
+    res.status(201).json({ success: true, message: 'Vitals logged', vitals: entry });
+  } catch (err) {
+    logger.error(`Log vitals error: ${err.message}`);
+    res.status(500).json({ message: 'Failed to log vitals', error: err.message });
+  }
+});
+
+// ─── GET /api/assistant-booking/:id/vitals ──────────────────────────────────
+// Vitals chart history for a booking (assistant, patient, superadmin).
+router.get('/:id/vitals', protect, async (req, res) => {
+  try {
+    const booking = await AssistantBooking.findById(req.params.id).select('patientId assistantId');
+    if (!booking) return res.status(404).json({ message: 'Booking not found' });
+    const me = String(req.user._id);
+    if (![String(booking.patientId), String(booking.assistantId)].includes(me) && req.user.role !== 'superadmin') {
+      return res.status(403).json({ message: 'Not authorized to view these vitals' });
+    }
+    const { default: VitalsLog } = await import('../models/VitalsLog.js');
+    const vitals = await VitalsLog.find({ bookingKind: 'assistant', bookingId: booking._id })
+      .sort({ recordedAt: -1 }).limit(100).lean();
+    res.json({ success: true, vitals });
+  } catch (err) {
+    logger.error(`Get vitals error: ${err.message}`);
+    res.status(500).json({ message: 'Failed to fetch vitals', error: err.message });
   }
 });
 

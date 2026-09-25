@@ -3,6 +3,7 @@ import EmergencyRequest from '../models/EmergencyRequest.js';
 import Hospital from '../models/Hospital.js';
 import Ambulance from '../models/Ambulance.js';
 import { protect } from '../middleware/auth.js';
+import { bookingLimiter } from '../middleware/rateLimit.js';
 import {
   handleProviderAccept,
   selectDestinationHospital,
@@ -23,7 +24,7 @@ import logger from '../config/logger.js';
 const router = express.Router();
 
 // ─── POST /api/emergency-sos — legacy create (auto tiered dispatch) ───
-router.post('/', protect, async (req, res) => {
+router.post('/', protect, bookingLimiter, async (req, res) => {
   try {
     const { reporterMode = 'self', patientDetails = {}, reporterOwnDetailsShared, reporterDetails, category = '', lat, lng, accuracy, address = '' } = req.body;
     if (lat === undefined || lng === undefined) return res.status(400).json({ message: 'lat/lng required' });

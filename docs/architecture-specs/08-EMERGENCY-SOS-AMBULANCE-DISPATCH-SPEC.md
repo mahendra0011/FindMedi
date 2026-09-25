@@ -56,7 +56,7 @@ Every second saved directly translates to lives saved. The target ambulance disp
 If an ambulance socket does not respond within 12 seconds:
 1. **Parallel Ring**: The request does NOT wait; it simultaneously cascades to the next 3 closest ambulances across adjacent H3 cells.
 2. **Hospital Fleet Integration**: Simultaneously notifies the central dispatch desk of the 2 nearest accredited hospitals.
-3. **SMS / IVR Automated Call Trigger**: Backend triggers an automated voice call via Twilio/Exotel to the ambulance driver's cellular phone.
+3. **Email + In-App Fallback (SMS gateway removed — email-only policy)**: On full exhaustion the backend emails the caller (Brevo) and raises an in-app emergency notification directing them to call 108/112 directly.
 
 ---
 
