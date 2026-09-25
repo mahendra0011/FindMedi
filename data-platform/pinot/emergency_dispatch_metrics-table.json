@@ -1,26 +1,45 @@
 {
-  "tableName": "emergency_dispatch_metrics",
-  "tableType": "REALTIME",
-  "segmentsConfig": {
-    "timeColumnName": "timestamp_epoch_ms",
-    "timeType": "MILLISECONDS",
-    "replication": "1",
-    "retentionTimeUnit": "DAYS",
-    "retentionTimeValue": "30"
-  },
-  "tableIndexConfig": {
-    "invertedIndexColumns": ["vertical", "severityLevel", "status", "h3_res6"],
-    "bloomFilterColumns": ["bookingId", "providerId"],
-    "loadMode": "MMAP",
-    "nullHandlingEnabled": true
-  },
-  "tenants": {
-    "broker": "DefaultTenant",
-    "server": "DefaultTenant"
-  },
-  "metadata": {
-    "customConfigs": {
-      "description": "FindMedi emergency dispatch metrics (spec 14)"
-    }
-  }
+    "tableName":  "emergency_dispatch_metrics",
+    "tableType":  "REALTIME",
+    "segmentsConfig":  {
+                           "timeColumnName":  "timestamp_epoch_ms",
+                           "timeType":  "MILLISECONDS",
+                           "retentionTimeUnit":  "DAYS",
+                           "retentionTimeValue":  "30",
+                           "segmentPushType":  "APPEND",
+                           "segmentAssignmentStrategy":  "BalanceNumSegmentAssignmentStrategy",
+                           "schemaName":  "emergency_dispatch_metrics",
+                           "replication":  "1",
+                           "replicasPerPartition":  "1"
+                       },
+    "tenants":  {
+
+                },
+    "tableIndexConfig":  {
+                             "loadMode":  "MMAP",
+                             "invertedIndexColumns":  [
+                                                          "vertical",
+                                                          "severityLevel",
+                                                          "status",
+                                                          "h3_res6"
+                                                      ],
+                             "streamConfigs":  {
+                                                   "streamType":  "kafka",
+                                                   "stream.kafka.consumer.type":  "simple",
+                                                   "stream.kafka.topic.name":  "findmedi.dispatch.booking-events.v1",
+                                                   "stream.kafka.decoder.class.name":  "org.apache.pinot.plugin.stream.kafka.KafkaJSONMessageDecoder",
+                                                   "stream.kafka.consumer.factory.class.name":  "org.apache.pinot.plugin.stream.kafka20.KafkaConsumerFactory",
+                                                   "stream.kafka.hlc.zk.connect.string":  "zookeeper:2181/kafka",
+                                                   "stream.kafka.zk.broker.url":  "zookeeper:2181/kafka",
+                                                   "stream.kafka.broker.list":  "kafka:29092",
+                                                   "realtime.segment.flush.threshold.rows":  "1000",
+                                                   "realtime.segment.flush.threshold.time":  "3600000",
+                                                   "stream.kafka.consumer.prop.auto.offset.reset":  "smallest"
+                                               }
+                         },
+    "metadata":  {
+                     "customConfigs":  {
+
+                                       }
+                 }
 }
