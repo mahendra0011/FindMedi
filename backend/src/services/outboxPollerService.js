@@ -35,7 +35,11 @@ export async function pollAndProcessOutbox() {
   isProcessing = true;
 
   try {
-    const pendingEvents = await OutboxEvent.find({ status: 'PENDING' })
+    const now = new Date();
+    const pendingEvents = await OutboxEvent.find({
+      status: 'PENDING',
+      $or: [{ nextAttemptAt: null }, { nextAttemptAt: { $lte: now } }],
+    })
       .sort({ createdAt: 1 })
       .limit(BATCH_SIZE)
       .lean();
@@ -92,12 +96,15 @@ export async function pollAndProcessOutbox() {
           // Dead-letter: no broker DLQ topic without Kafka; terminal FAILED state + ops alert log.
           logger.error(`[DLQ] OutboxEvent [${evt._id}] exhausted retries (type=${evt.eventType}). Manual triage required.`);
         }
+        // Spec 11 retry tiers: 5s backoff (attempts 1-2) → 30s (attempts 3-4) → DLQ.
+        const backoffMs = nextRetry <= 2 ? 5000 : 30000;
         await OutboxEvent.updateOne(
           { _id: evt._id },
           {
             $set: {
               retryCount: nextRetry,
-              status: nextRetry >= MAX_RETRIES ? 'FAILED' : 'PENDING',
+              status: exhausted ? 'FAILED' : 'PENDING',
+              nextAttemptAt: exhausted ? null : new Date(Date.now() + backoffMs),
               lastError: err.message,
             },
           }

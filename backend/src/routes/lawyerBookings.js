@@ -568,8 +568,21 @@ router.post('/:id/reschedule', protect, async (req, res) => {
         note: `Rescheduled to ${booking.scheduledDate} ${booking.scheduledTime}`,
       });
     }
-
     await booking.save();
+
+    // Spec 06: auto-release held retainer on consultation sign-off.
+    try {
+      const { default: DemoPayment } = await import('../models/DemoPayment.js');
+      const held = await DemoPayment.findOne({ lawyerBookingId: booking._id, status: 'held_in_escrow' });
+      if (held) {
+        held.status = 'paid';
+        held.paidAt = new Date();
+        await held.save();
+      }
+    } catch (e) {
+      logger.warn(`Retainer auto-release skipped: ${e.message}`);
+    }
+
     await notifyBookingUpdate(booking, 'booking_status_update');
 
     res.json({ success: true, message: 'Consultation rescheduled', booking });

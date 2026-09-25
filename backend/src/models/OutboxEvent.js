@@ -37,6 +37,12 @@ const outboxEventSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    // Spec 11 retry tiers: next attempt timestamp (5s → 30s backoff).
+    nextAttemptAt: {
+      type: Date,
+      default: null,
+      index: true,
+    },
     lastError: {
       type: String,
       default: null,
@@ -53,6 +59,7 @@ const outboxEventSchema = new mongoose.Schema(
 
 // High-speed poller composite index
 outboxEventSchema.index({ status: 1, createdAt: 1 });
+outboxEventSchema.index({ status: 1, nextAttemptAt: 1 });
 
 const OutboxEvent = mongoose.model('OutboxEvent', outboxEventSchema);
 
