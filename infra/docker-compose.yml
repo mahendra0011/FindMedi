@@ -9,10 +9,10 @@ services:
     image: mongo:7.0
     container_name: findmedi-mongo1
     ports:
-      - "27017:27017"
+      - "27018:27017"
     volumes:
       - mongo_data:/data/db
-    command: ["mongod", "--replset", "rs0", "--bind_ip_all"]
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
     restart: unless-stopped
 
   # ==========================================
