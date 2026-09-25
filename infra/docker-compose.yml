@@ -126,6 +126,10 @@ services:
     environment:
       JAVA_OPTS: "-Dplugins.dir=/opt/pinot/plugins -Xms256m -Xmx512m"
 
+  # NOTE: the QuickStart controller above already embeds broker (8000) +
+  # server (7050) + ZK. External server/broker services were removed —
+  # they joined the wrong ensemble. All Pinot APIs go via :9000.
+
   # ==========================================
   # APACHE FLINK: Stateful Stream Processing
   # ==========================================
