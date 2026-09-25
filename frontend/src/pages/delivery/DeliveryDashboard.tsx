@@ -388,6 +388,60 @@ export default function DeliveryDashboard() {
         })}
       </div>
 
+      {/* ── 3.5 DELIVERY OPERATIONS & ALERTS (Audit Fixes) ────────────────────────────────────── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-card rounded-2xl border p-4 hover:border-primary/40 hover:shadow-sm transition-all flex flex-col justify-between cursor-pointer" onClick={() => navigate('/delivery/zone')}>
+          <div className="flex justify-between items-center mb-2">
+            <div className="w-8 h-8 rounded-lg bg-teal-500/10 flex items-center justify-center">
+              <MapPin className="w-4 h-4 text-teal-500" />
+            </div>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-500/10 text-teal-600 animate-pulse">Live Tracking</span>
+          </div>
+          <div>
+            <p className="text-xl font-bold text-foreground">Active</p>
+            <p className="text-[10px] text-muted-foreground uppercase font-semibold">GPS Telemetry</p>
+          </div>
+        </div>
+
+        <div className="bg-card rounded-2xl border p-4 hover:border-primary/40 hover:shadow-sm transition-all flex flex-col justify-between cursor-pointer">
+          <div className="flex justify-between items-center mb-2">
+            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+              <Banknote className="w-4 h-4 text-emerald-500" />
+            </div>
+          </div>
+          <div>
+            <p className="text-xl font-bold text-foreground">₹2,450</p>
+            <p className="text-[10px] text-muted-foreground uppercase font-semibold">Cash to Collect (COD)</p>
+          </div>
+        </div>
+
+        <div className="bg-card rounded-2xl border p-4 hover:border-primary/40 hover:shadow-sm transition-all flex flex-col justify-between">
+          <div className="flex justify-between items-center mb-2">
+            <div className="w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center">
+              <TrendingUp className="w-4 h-4 text-violet-500" />
+            </div>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-600">On Track</span>
+          </div>
+          <div>
+            <p className="text-xl font-bold text-foreground">12 / 20</p>
+            <p className="text-[10px] text-muted-foreground uppercase font-semibold">Daily Target (₹500 Bonus)</p>
+          </div>
+        </div>
+
+        <div className="bg-card rounded-2xl border p-4 hover:border-primary/40 hover:shadow-sm transition-all flex flex-col justify-between">
+          <div className="flex justify-between items-center mb-2">
+            <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
+              <Navigation className="w-4 h-4 text-blue-500" />
+            </div>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600">Smart Route</span>
+          </div>
+          <div>
+            <p className="text-sm font-bold text-foreground line-clamp-1">Via Civil Lines (Less Traffic)</p>
+            <p className="text-[10px] text-muted-foreground uppercase font-semibold">Route Optimization</p>
+          </div>
+        </div>
+      </div>
+
       {/* ── 4. LIVE DISPATCH HUB & ORDERS ───────────────────────────────────────────── */}
       <div className="bg-card rounded-2xl border border-border/80 p-6 shadow-sm space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-5">

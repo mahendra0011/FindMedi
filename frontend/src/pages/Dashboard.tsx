@@ -36,15 +36,23 @@ const tooltipStyle = { borderRadius:'0.75rem', border:'1px solid hsl(200,20%,90%
 
 function OperationsStrip() {
   const navigate = useNavigate();
-  const [ops, setOps] = useState({ bedsFree: null, bedsTotal: null, erActive: null, pendingVerif: null, staffOnLeave: null });
+  const [ops, setOps] = useState({ 
+    bedsFree: null, bedsTotal: null, erActive: null, pendingVerif: null, staffOnLeave: null,
+    pendingLab: null, activeOT: null, activeAmbulance: null, ipdCount: null
+  });
+
   useEffect(() => {
     let alive = true;
     (async () => {
       try {
-        const [bedStats, erStats, leavePending] = await Promise.all([
+        const [bedStats, erStats, leavePending, labStats, otStats, ambulanceStats, ipdStats] = await Promise.all([
           api.getBedStats().catch(() => null),
           api.getEmergencyStats().catch(() => null),
           api.getPendingLeaveRequests().catch(() => null),
+          api.get('/diagnostic/stats').catch(() => null),
+          api.get('/ot/stats').catch(() => null),
+          api.get('/ambulances/stats').catch(() => null),
+          api.get('/ipd/stats').catch(() => null),
         ]);
         if (!alive) return;
         setOps({
@@ -53,7 +61,12 @@ function OperationsStrip() {
           erActive: erStats?.active ?? erStats?.count ?? null,
           pendingVerif: null,
           staffOnLeave: Array.isArray(leavePending) ? leavePending.length : leavePending?.count ?? null,
+          pendingLab: labStats?.pending ?? null,
+          activeOT: otStats?.active ?? otStats?.todayCount ?? null,
+          activeAmbulance: ambulanceStats?.onMission ?? ambulanceStats?.active ?? null,
+          ipdCount: ipdStats?.activeAdmissions ?? ipdStats?.count ?? null,
         });
+        
         api.get('/prescriptions/verification-queue').then((v) => {
           if (!alive) return;
           const n = Array.isArray(v) ? v.length : v?.queue?.length ?? v?.count ?? null;
@@ -63,18 +76,28 @@ function OperationsStrip() {
     })();
     return () => { alive = false; };
   }, []);
+
   const items = [
     { label: 'Beds Free/Total', value: ops.bedsFree != null && ops.bedsTotal != null ? `${ops.bedsFree}/${ops.bedsTotal}` : '—', path: '/admin/beds' },
-    { label: 'ER Active', value: ops.erActive ?? '—', path: '/admin/emergency' },
-    { label: 'Pending Verifications', value: ops.pendingVerif ?? '—', path: '/admin/prescription-verification' },
+    { label: 'ER Active', value: ops.erActive ?? '—', path: '/admin/emergency', highlight: ops.erActive > 0 },
+    { label: 'OT Surgeries Today', value: ops.activeOT ?? '—', path: '/ot' },
+    { label: 'Active IPD Patients', value: ops.ipdCount ?? '—', path: '/ipd' },
+    { label: 'Pending Lab Tests', value: ops.pendingLab ?? '—', path: '/lab', highlight: ops.pendingLab > 0 },
+    { label: 'Pending Rx Verification', value: ops.pendingVerif ?? '—', path: '/admin/prescription-verification', highlight: ops.pendingVerif > 0 },
+    { label: 'Ambulances on Mission', value: ops.activeAmbulance ?? '—', path: '/admin/ambulances' },
     { label: 'Staff On Leave', value: ops.staffOnLeave ?? '—', path: '/admin/leave-requests' },
   ];
+
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-3 mb-8">
       {items.map((it) => (
-        <button key={it.label} onClick={() => navigate(it.path)} className="rounded-2xl border p-4 text-left hover:border-primary/40 hover:shadow-md transition-all">
-          <p className="text-2xl font-bold">{it.value}</p>
-          <p className="text-xs text-muted-foreground">{it.label}</p>
+        <button 
+          key={it.label} 
+          onClick={() => navigate(it.path)} 
+          className={`rounded-2xl border p-3 text-left hover:border-primary/40 hover:shadow-md transition-all ${it.highlight ? 'bg-red-50/50 dark:bg-red-950/20 border-red-200 dark:border-red-900/50' : 'bg-card'}`}
+        >
+          <p className={`text-xl font-bold ${it.highlight ? 'text-red-600 dark:text-red-400' : 'text-foreground'}`}>{it.value}</p>
+          <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider mt-1 line-clamp-1" title={it.label}>{it.label}</p>
         </button>
       ))}
     </div>

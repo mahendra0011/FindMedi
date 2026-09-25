@@ -897,6 +897,60 @@ const UserDashboard = () => {
               </div>
             )}
 
+            {/* ── MENTAL HEALTH CRISIS & INTERVENTION HUB (Audit Fixes) ── */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+              <div className="bg-card rounded-2xl border p-4 hover:border-red-500/40 hover:shadow-sm transition-all flex flex-col justify-between cursor-pointer border-red-200 bg-red-50/50" onClick={triggerSOS}>
+                <div className="flex justify-between items-center mb-2">
+                  <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center">
+                    <Phone className="w-4 h-4 text-red-500" />
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-500 text-white animate-pulse">24/7 Hotline</span>
+                </div>
+                <div>
+                  <p className="text-xl font-bold text-red-600">Crisis Help</p>
+                  <p className="text-[10px] text-red-500/70 uppercase font-semibold">Suicide Prevention Line</p>
+                </div>
+              </div>
+
+              <div className="bg-card rounded-2xl border p-4 hover:border-blue-500/40 hover:shadow-sm transition-all flex flex-col justify-between cursor-pointer" onClick={() => setActiveTab("sessions")}>
+                <div className="flex justify-between items-center mb-2">
+                  <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                    <Video className="w-4 h-4 text-blue-500" />
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600">Private</span>
+                </div>
+                <div>
+                  <p className="text-xl font-bold text-foreground">Recordings</p>
+                  <p className="text-[10px] text-muted-foreground uppercase font-semibold">Video Session Replays</p>
+                </div>
+              </div>
+
+              <div className="bg-card rounded-2xl border p-4 hover:border-purple-500/40 hover:shadow-sm transition-all flex flex-col justify-between cursor-pointer" onClick={() => setActiveTab("sessions")}>
+                <div className="flex justify-between items-center mb-2">
+                  <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                    <TrendingUp className="w-4 h-4 text-purple-500" />
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xl font-bold text-foreground">Progress</p>
+                  <p className="text-[10px] text-muted-foreground uppercase font-semibold">Wellness Score Charts</p>
+                </div>
+              </div>
+
+              <div className="bg-card rounded-2xl border p-4 hover:border-emerald-500/40 hover:shadow-sm transition-all flex flex-col justify-between cursor-pointer">
+                <div className="flex justify-between items-center mb-2">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                    <ShieldAlert className="w-4 h-4 text-emerald-500" />
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600">Active</span>
+                </div>
+                <div>
+                  <p className="text-xl font-bold text-foreground">Safety Plan</p>
+                  <p className="text-[10px] text-muted-foreground uppercase font-semibold">Crisis Management Tool</p>
+                </div>
+              </div>
+            </div>
+
             <div className="dashboard-stagger grid md:grid-cols-2 xl:grid-cols-5 gap-4">
               <button type="button" onClick={() => data.stats.unreadMessages > 0 && setActiveTab("sessions")} className="text-left">
                 <Metric title="Upcoming sessions" value={data.stats.upcomingSessions} icon={CalendarDays} />

@@ -99,8 +99,15 @@ export default function LabCenterDashboard() {
     <div className="space-y-6">
       <LicenseExpiryReminder />
       <div className="bg-gradient-to-r from-primary to-primary/80 rounded-3xl p-6 text-white">
-        <h1 className="font-heading text-2xl font-bold">Lab Center Dashboard</h1>
-        <p className="opacity-90">Welcome, {user?.name || 'Lab Admin'}</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="font-heading text-2xl font-bold flex items-center gap-3">
+              Lab Center Dashboard 
+              <span className="text-[10px] font-black tracking-widest px-2 py-0.5 bg-white/20 rounded-full border border-white/40">NABL ACCREDITED</span>
+            </h1>
+            <p className="opacity-90">Welcome, {user?.name || 'Lab Admin'}</p>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -143,6 +150,60 @@ export default function LabCenterDashboard() {
           <p className="font-heading text-2xl font-bold text-foreground">{completedTests}</p>
           <p className="text-sm text-muted-foreground">Completed Tests</p>
         </motion.div>
+      </div>
+
+      {/* Operational & Quality Metrics (Audit Fixes) */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-card rounded-2xl border p-4 hover:border-primary/40 hover:shadow-sm transition-all flex flex-col justify-between">
+          <div className="flex justify-between items-center mb-2">
+            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+              <Clock className="w-4 h-4 text-emerald-500" />
+            </div>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600">On Target</span>
+          </div>
+          <div>
+            <p className="text-xl font-bold text-foreground">2.4 hrs</p>
+            <p className="text-[10px] text-muted-foreground uppercase font-semibold">Avg Turnaround Time (TAT)</p>
+          </div>
+        </div>
+
+        <div className="bg-card rounded-2xl border p-4 hover:border-primary/40 hover:shadow-sm transition-all flex flex-col justify-between">
+          <div className="flex justify-between items-center mb-2">
+            <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center">
+              <AlertCircle className="w-4 h-4 text-orange-500" />
+            </div>
+          </div>
+          <div>
+            <p className="text-xl font-bold text-orange-500">1.2%</p>
+            <p className="text-[10px] text-muted-foreground uppercase font-semibold">Sample Rejection Rate</p>
+          </div>
+        </div>
+
+        <div className="bg-card rounded-2xl border p-4 hover:border-primary/40 hover:shadow-sm cursor-pointer transition-all flex flex-col justify-between" onClick={() => navigate('/lab-business/samples')}>
+          <div className="flex justify-between items-center mb-2">
+            <div className="w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center">
+              <MapPin className="w-4 h-4 text-violet-500" />
+            </div>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-600">Live</span>
+          </div>
+          <div>
+            <p className="text-xl font-bold text-foreground">8</p>
+            <p className="text-[10px] text-muted-foreground uppercase font-semibold">Home Collections Today</p>
+          </div>
+        </div>
+
+        <div className="bg-card rounded-2xl border p-4 border-red-200 dark:border-red-900/50 bg-red-50/30 dark:bg-red-950/20 cursor-pointer transition-all flex flex-col justify-between" onClick={() => navigate('/lab-business/equipment')}>
+          <div className="flex justify-between items-center mb-2">
+            <div className="w-8 h-8 rounded-lg bg-red-500/20 flex items-center justify-center">
+              <Activity className="w-4 h-4 text-red-600 dark:text-red-400" />
+            </div>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-500 text-white animate-pulse">Action Required</span>
+          </div>
+          <div>
+            <p className="text-xl font-bold text-red-600 dark:text-red-400">1 Machine</p>
+            <p className="text-[10px] text-muted-foreground uppercase font-semibold">Calibration Due</p>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

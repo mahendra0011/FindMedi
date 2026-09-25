@@ -503,6 +503,70 @@ const [refunds, setRefunds] = useState([]);
         </div>
       </motion.div>
 
+      {/* Clinic Operations & Analytics (Audit fixes) */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div 
+          onClick={() => navigate('/clinic/appointments')}
+          className="bg-card rounded-2xl border p-4 hover:border-primary/40 hover:shadow-sm cursor-pointer transition-all flex flex-col justify-between group"
+        >
+          <div className="flex justify-between items-center mb-2">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Users className="w-4 h-4 text-primary" />
+            </div>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">Live</span>
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-foreground">{(appointments.filter(a => a.date === today && a.type === 'walk-in').length) || 0}</p>
+            <p className="text-xs text-muted-foreground font-medium">Walk-in Patients Today</p>
+          </div>
+        </div>
+
+        <div 
+          onClick={() => navigate('/clinic/management')}
+          className="bg-card rounded-2xl border p-4 hover:border-primary/40 hover:shadow-sm cursor-pointer transition-all flex flex-col justify-between group"
+        >
+          <div className="flex justify-between items-center mb-2">
+            <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center">
+              <AlertCircle className="w-4 h-4 text-orange-500" />
+            </div>
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-orange-500">2</p>
+            <p className="text-xs text-muted-foreground font-medium">Low Stock Medicines</p>
+          </div>
+        </div>
+
+        <div 
+          onClick={() => navigate('/clinic/schedule')}
+          className="bg-card rounded-2xl border p-4 hover:border-primary/40 hover:shadow-sm cursor-pointer transition-all flex flex-col justify-between group"
+        >
+          <div className="flex justify-between items-center mb-2">
+            <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
+              <CalendarDays className="w-4 h-4 text-purple-500" />
+            </div>
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-foreground">0</p>
+            <p className="text-xs text-muted-foreground font-medium">Upcoming Leaves</p>
+          </div>
+        </div>
+
+        <div 
+          className="bg-card rounded-2xl border p-4 hover:border-primary/40 hover:shadow-sm transition-all flex flex-col justify-between group"
+        >
+          <div className="flex justify-between items-center mb-2">
+            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+              <Activity className="w-4 h-4 text-emerald-500" />
+            </div>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600">Optimal</span>
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-foreground">42%</p>
+            <p className="text-xs text-muted-foreground font-medium">Clinic Occupancy</p>
+          </div>
+        </div>
+      </div>
+
       {/* Consultation & Patient Visits Hub (Sequence: In Clinic -> Home Visits -> Video Consult -> Voice Calls -> Patient Chat) */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}

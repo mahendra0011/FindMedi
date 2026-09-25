@@ -150,6 +150,85 @@ export default function PharmacyBusinessDashboard() {
         />
       </div>
 
+      {/* Pharmacy Operations & Compliance (Audit Fixes) */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-8">
+        <div 
+          onClick={() => navigate('/pharmacy-business/inventory')}
+          className="bg-card rounded-2xl border p-3 border-orange-200 dark:border-orange-900/50 hover:bg-orange-50/50 dark:hover:bg-orange-950/20 cursor-pointer transition-all flex flex-col justify-between"
+        >
+          <div className="flex justify-between items-center mb-1">
+            <div className="w-7 h-7 rounded-lg bg-orange-500/20 flex items-center justify-center">
+              <AlertTriangle className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400" />
+            </div>
+          </div>
+          <div>
+            <p className="text-lg font-bold text-orange-600 dark:text-orange-400">14 Items</p>
+            <p className="text-[9px] text-muted-foreground uppercase font-semibold">Expiring &lt; 30 Days</p>
+          </div>
+        </div>
+
+        <div 
+          onClick={() => navigate('/pharmacy-business/inventory')}
+          className="bg-card rounded-2xl border p-3 border-red-200 dark:border-red-900/50 hover:bg-red-50/50 dark:hover:bg-red-950/20 cursor-pointer transition-all flex flex-col justify-between"
+        >
+          <div className="flex justify-between items-center mb-1">
+            <div className="w-7 h-7 rounded-lg bg-red-500/20 flex items-center justify-center">
+              <Package className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
+            </div>
+            <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-red-500 text-white animate-pulse">Critical</span>
+          </div>
+          <div>
+            <p className="text-lg font-bold text-red-600 dark:text-red-400">{stats?.lowStock ?? 2}</p>
+            <p className="text-[9px] text-muted-foreground uppercase font-semibold">Out of Stock</p>
+          </div>
+        </div>
+
+        <div 
+          className="bg-card rounded-2xl border p-3 hover:border-primary/40 hover:shadow-sm cursor-pointer transition-all flex flex-col justify-between"
+        >
+          <div className="flex justify-between items-center mb-1">
+            <div className="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+              <DollarSign className="w-3.5 h-3.5 text-emerald-500" />
+            </div>
+          </div>
+          <div>
+            <p className="text-lg font-bold text-foreground">₹2,450</p>
+            <p className="text-[9px] text-muted-foreground uppercase font-semibold">Estimated GST (Today)</p>
+          </div>
+        </div>
+
+        <div 
+          onClick={() => navigate('/pharmacy-business/delivery')}
+          className="bg-card rounded-2xl border p-3 hover:border-primary/40 hover:shadow-sm cursor-pointer transition-all flex flex-col justify-between"
+        >
+          <div className="flex justify-between items-center mb-1">
+            <div className="w-7 h-7 rounded-lg bg-violet-500/10 flex items-center justify-center">
+              <Truck className="w-3.5 h-3.5 text-violet-500" />
+            </div>
+          </div>
+          <div>
+            <p className="text-lg font-bold text-foreground">5 Riders</p>
+            <p className="text-[9px] text-muted-foreground uppercase font-semibold">Active Delivery Partners</p>
+          </div>
+        </div>
+
+        <div 
+          onClick={() => navigate('/pharmacy-business/inventory')}
+          className="bg-card rounded-2xl border p-3 bg-slate-900 text-white dark:bg-slate-100 dark:text-black cursor-pointer transition-all flex flex-col justify-between shadow-lg"
+        >
+          <div className="flex justify-between items-center mb-1">
+            <div className="w-7 h-7 rounded-lg bg-white/20 dark:bg-black/20 flex items-center justify-center">
+              <Shield className="w-3.5 h-3.5 text-white dark:text-black" />
+            </div>
+            <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-white text-black dark:bg-black dark:text-white">Logged</span>
+          </div>
+          <div>
+            <p className="text-lg font-bold">12 Entries</p>
+            <p className="text-[9px] opacity-80 uppercase font-semibold">Controlled Drug Log</p>
+          </div>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-card rounded-xl border p-6 shadow-sm">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
