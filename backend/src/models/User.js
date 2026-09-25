@@ -142,6 +142,10 @@ emergencyContact: {
       enum: ['full', 'minimal'],
       default: 'full',
     },
+    abhaNumber: { type: String, default: '', index: true },
+    abhaAddress: { type: String, default: '' },
+    abhaStatus: { type: String, enum: ['NOT_LINKED', 'PENDING_OTP', 'LINKED'], default: 'NOT_LINKED' },
+    abhaLinkedAt: { type: Date },
   },
 
   createdAt: { type: Date, default: Date.now, index: true },

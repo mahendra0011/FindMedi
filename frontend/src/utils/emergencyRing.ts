@@ -46,21 +46,58 @@ function tone(c: AudioContext, freq: number, start: number, dur: number, gainPea
 }
 
 // Phone-call jaisi repeating ring: do-tone siren x2, phir pause
-function ringBurst() {
+function ringBurst(toneType: 'siren' | 'code_blue' | 'lab_panic' = 'siren') {
   const c = ensureCtx();
   if (!c) return;
   if (c.state === 'suspended') c.resume().catch(() => {});
   const t = c.currentTime;
-  tone(c, 960, t, 0.22);
-  tone(c, 720, t + 0.25, 0.22);
-  tone(c, 960, t + 0.55, 0.22);
-  tone(c, 720, t + 0.8, 0.22);
+
+  if (toneType === 'code_blue') {
+    // 440 Hz continuous resonant clinical emergency pulse
+    tone(c, 440, t, 0.45, 0.4);
+    tone(c, 440, t + 0.6, 0.45, 0.4);
+  } else if (toneType === 'lab_panic') {
+    // High-pitched 880 Hz urgent warning tone
+    tone(c, 880, t, 0.15, 0.35);
+    tone(c, 880, t + 0.25, 0.15, 0.35);
+    tone(c, 880, t + 0.5, 0.15, 0.35);
+  } else {
+    // Dual-frequency emergency transport siren
+    tone(c, 960, t, 0.22);
+    tone(c, 720, t + 0.25, 0.22);
+    tone(c, 960, t + 0.55, 0.22);
+    tone(c, 720, t + 0.8, 0.22);
+  }
 }
 
-export function startEmergencyRing() {
+let wakeLockSentinel: any = null;
+
+async function requestWakeLock() {
+  try {
+    if ('wakeLock' in navigator && (navigator as any).wakeLock) {
+      wakeLockSentinel = await (navigator as any).wakeLock.request('screen');
+    }
+  } catch {
+    /* wake lock unsupported */
+  }
+}
+
+function releaseWakeLock() {
+  try {
+    if (wakeLockSentinel) {
+      wakeLockSentinel.release().catch(() => {});
+      wakeLockSentinel = null;
+    }
+  } catch {
+    /* noop */
+  }
+}
+
+export function startEmergencyRing(toneType: 'siren' | 'code_blue' | 'lab_panic' = 'siren') {
   stopEmergencyRing();
-  ringBurst();
-  ringTimer = setInterval(ringBurst, 1800);
+  requestWakeLock();
+  ringBurst(toneType);
+  ringTimer = setInterval(() => ringBurst(toneType), 1800);
 
   const vibrate = () => {
     try {
@@ -78,6 +115,7 @@ export function stopEmergencyRing() {
   if (vibTimer) clearInterval(vibTimer);
   ringTimer = null;
   vibTimer = null;
+  releaseWakeLock();
   try {
     navigator.vibrate?.(0);
   } catch {

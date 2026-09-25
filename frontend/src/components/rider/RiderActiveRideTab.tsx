@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Navigation, Phone, MapPin, CheckCircle2, ExternalLink, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,7 +9,7 @@ export interface RiderActiveRideTabProps {
   activeRide: any;
   profile: any;
   handleMarkArrived: () => Promise<void>;
-  handleStartTrip: () => Promise<void>;
+  handleStartTrip: (otp?: string) => Promise<void>;
   handleCompleteTrip: () => Promise<void>;
   navigate: (path: string) => void;
 }
@@ -22,6 +22,13 @@ export const RiderActiveRideTab: React.FC<RiderActiveRideTabProps> = ({
   handleCompleteTrip,
   navigate,
 }) => {
+  const [pickupOtp, setPickupOtp] = useState('');
+
+  const handleStartTripWithOtp = async (otp: string) => {
+    await handleStartTrip(otp);
+    setPickupOtp('');
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -137,13 +144,28 @@ export const RiderActiveRideTab: React.FC<RiderActiveRideTabProps> = ({
               )}
 
               {activeRide.status === 'arrived' && (
-                <Button
-                  onClick={handleStartTrip}
-                  className="w-full h-11 rounded-xl text-xs font-bold gap-2 bg-primary text-primary-foreground"
-                >
-                  <Navigation className="w-4 h-4" />
-                  Start Trip (Heading to Dropoff)
-                </Button>
+                <div className="space-y-2.5">
+                  <div className="rounded-xl border border-primary/40 bg-primary/5 p-3 space-y-1.5">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-primary">Passenger 4-Digit Pickup OTP</p>
+                    <input
+                      type="text"
+                      maxLength={4}
+                      placeholder="e.g. 4892"
+                      value={pickupOtp}
+                      onChange={(e) => setPickupOtp(e.target.value.replace(/\D/g, ''))}
+                      className="w-full text-center font-mono text-lg font-extrabold tracking-widest h-10 rounded-lg border border-border bg-background px-3 focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                    <p className="text-[10px] text-muted-foreground">Ask the passenger for the 4-digit verification code shown on their app.</p>
+                  </div>
+                  <Button
+                    onClick={() => handleStartTripWithOtp(pickupOtp)}
+                    disabled={pickupOtp.length !== 4}
+                    className="w-full h-11 rounded-xl text-xs font-bold gap-2 bg-primary text-primary-foreground shadow-md disabled:opacity-50"
+                  >
+                    <Navigation className="w-4 h-4" />
+                    Verify OTP & Start Trip
+                  </Button>
+                </div>
               )}
 
               {activeRide.status === 'in_progress' && (

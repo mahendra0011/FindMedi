@@ -152,15 +152,24 @@ export default function ProviderIncomingCall({
     };
   }, [providerType]);
 
-  // Caller tone / ring tone during incoming state
+  // Caller tone / ring tone during incoming state with per-vertical sound profile (Spec 04)
   useEffect(() => {
     if (acceptedWaiting) {
       stopEmergencyRing();
       return;
     }
-    startEmergencyRing();
+    const toneProfile =
+      providerType === 'ambulance'
+        ? 'siren'
+        : providerType === 'emergency_doctor'
+        ? 'code_blue'
+        : providerType === 'assistant'
+        ? 'lab_panic'
+        : 'siren';
+
+    startEmergencyRing(toneProfile);
     return () => stopEmergencyRing();
-  }, [acceptedWaiting]);
+  }, [acceptedWaiting, providerType]);
 
   // Countdown: 2 minutes timer with auto reject/timeout
   useEffect(() => {

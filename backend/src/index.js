@@ -461,9 +461,41 @@ app.use('/api/auth/2fa', twoFactorRoutes);
 app.use('/auth', authRoutes);
 app.use('/auth/2fa', twoFactorRoutes);
 
-app.get('/api/health', (_, res) => res.json({ status: 'ok', time: new Date() }));
-app.get('/health', (_, res) => res.json({ status: 'ok', time: new Date() }));
-app.get('/', (_, res) => res.json({ status: 'ok', message: 'FindMedi API running', health: '/api/health', docs: '/api/health' }));
+app.get(['/api/health', '/health', '/api/v1/health'], async (_, res) => {
+  const mongoStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+  let redisStatus = 'fallback_memory';
+  try {
+    const { isRedisReady } = await import('./config/redis.js');
+    redisStatus = isRedisReady() ? 'connected' : 'disconnected/fallback';
+  } catch (_) {}
+
+  let kafkaStatus = 'unconfigured';
+  try {
+    const { isKafkaConfigured } = await import('./config/kafka.js');
+    kafkaStatus = isKafkaConfigured() ? 'ready' : 'in_memory_spine';
+  } catch (_) {}
+
+  res.json({
+    status: 'ok',
+    service: 'FindMedi Core Platform',
+    timestamp: new Date().toISOString(),
+    uptimeSeconds: Math.floor(process.uptime()),
+    components: {
+      mongodb: mongoStatus,
+      redis: redisStatus,
+      kafka: kafkaStatus,
+      valhallaRouting: !!process.env.VALHALLA_URL ? 'external_engine' : 'haversine_fallback',
+      paymentMode: 'DEMO_SANDBOX_ESCROW',
+    },
+    h3Resolutions: {
+      ambulanceSos: 6,
+      instantConsult: 7,
+      riderMobility: 8,
+      finePolygon: 9,
+    },
+  });
+});
+app.get('/', (_, res) => res.json({ status: 'ok', message: 'FindMedi API running', health: '/api/v1/health', docs: '/api/v1/health' }));
 
 // ── Serve frontend in production (only if client/dist exists - single-service deploy) ──
 import fs from 'fs';
@@ -578,8 +610,16 @@ if (process.env.NODE_ENV !== 'test') {
 
       const { ensureDemoUsers } = await import('./services/demoSeedService.js');
       await ensureDemoUsers();
+
+      // Start Transactional Outbox Background Poller
+      const { startOutboxPoller } = await import('./services/outboxPollerService.js');
+      startOutboxPoller();
+
+      // Start Event Consumer Subscriber Daemon (processes outbox / kafka pipeline)
+      const { startKafkaConsumer } = await import('./services/kafkaConsumerService.js');
+      startKafkaConsumer();
     } catch (e) {
-      logger.error('⚠️ Failed to sync indexes or seed demo users: ' + e.message);
+      logger.error('⚠️ Failed to sync indexes, seed demo users, or start outbox poller: ' + e.message);
     }
   });
 
@@ -593,6 +633,10 @@ if (process.env.NODE_ENV !== 'test') {
 
   // Graceful shutdown
   process.on('SIGINT', async () => {
+    try {
+      const { stopOutboxPoller } = await import('./services/outboxPollerService.js');
+      stopOutboxPoller();
+    } catch {}
     await mongoose.connection.close();
     logger.info('📦 MongoDB connection closed');
     process.exit(0);

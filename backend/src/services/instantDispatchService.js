@@ -54,8 +54,11 @@ const PROVIDER_REGISTRY = {
   },
 };
 
+import { rankCandidatesByRoadETA } from '../lib/valhallaRouting.js';
+import { acquireLock, releaseLock } from '../lib/redlock.js';
+
 /**
- * Hydrates candidate IDs from Redis into models with distance calculation and sorts closest first.
+ * Hydrates candidate IDs from Redis into models with coordinates, evaluates Valhalla road ETA, and sorts closest first.
  */
 async function hydrateAndFilterCandidates(providerIds, providerType, lat, lng, radiusKm) {
   try {
@@ -71,7 +74,7 @@ async function hydrateAndFilterCandidates(providerIds, providerType, lat, lng, r
 
     const profiles = await Model.find(query).select(`userId user_id ${locField}`).lean();
 
-    return profiles
+    const candidateList = profiles
       .map((p) => {
         const loc = p[locField];
         if (!loc?.coordinates || loc.coordinates.length < 2) return null;
@@ -81,12 +84,16 @@ async function hydrateAndFilterCandidates(providerIds, providerType, lat, lng, r
         return {
           providerId: resolvedUserId,
           userId: resolvedUserId,
+          coordinates: [cLng, cLat],
           distanceKm: Math.round(distanceKm * 10) / 10,
         };
       })
       .filter(Boolean)
-      .filter((c) => c.distanceKm <= radiusKm)
-      .sort((a, b) => a.distanceKm - b.distanceKm);
+      .filter((c) => c.distanceKm <= radiusKm);
+
+    // Rank candidates by real Valhalla road arrival duration
+    const pickupCoords = [lng, lat];
+    return await rankCandidatesByRoadETA(pickupCoords, candidateList, 'auto');
   } catch (err) {
     logger.error(`hydrateAndFilterCandidates error for ${providerType}: ${err.message}`);
     return [];
@@ -95,11 +102,15 @@ async function hydrateAndFilterCandidates(providerIds, providerType, lat, lng, r
 
 /**
  * Generalized wave execution:
- * Broadcasts alert to candidate providers, waits wave window, and assigns atomically.
+ * Broadcasts alert to candidate providers, waits wave window, and assigns atomically with Redlock.
  */
 async function runGenericWave({ requestId, type, Model, radiusKm, candidates, io, buildAlertPayload, request }) {
   const windowEndsAt = new Date(Date.now() + WAVE_WINDOW_SECONDS * 1000);
-  const notified = candidates.map((c) => ({ providerId: c.providerId, userId: c.userId }));
+  const notified = candidates.map((c) => ({
+    providerId: c.providerId,
+    userId: c.userId,
+    roadEtaSeconds: c.roadEtaSeconds,
+  }));
 
   await Model.updateOne(
     { _id: requestId, status: 'searching' },
@@ -123,8 +134,30 @@ async function runGenericWave({ requestId, type, Model, radiusKm, candidates, io
 
   if (!current.acceptances || current.acceptances.length === 0) return { done: false };
 
-  // Lowest distance acceptance wins the wave
-  const winner = [...current.acceptances].sort((a, b) => a.distanceKm - b.distanceKm)[0];
+  // Sort by roadEtaSeconds ASC, fallback to distanceKm ASC
+  const sortedAcceptances = [...current.acceptances].sort((a, b) => {
+    if (a.roadEtaSeconds && b.roadEtaSeconds) return a.roadEtaSeconds - b.roadEtaSeconds;
+    return a.distanceKm - b.distanceKm;
+  });
+
+  // Attempt Redlock on winner to eliminate double booking
+  let winner = null;
+  let lockSecret = null;
+
+  for (const candidate of sortedAcceptances) {
+    const lockKey = `lock:provider:${candidate.providerId}`;
+    lockSecret = await acquireLock(lockKey, 15000);
+    if (lockSecret) {
+      winner = candidate;
+      break;
+    }
+    logger.warn(`Provider [${candidate.providerId}] is already locked in another dispatch. Trying next candidate.`);
+  }
+
+  if (!winner) {
+    logger.warn(`All accepting providers for request [${requestId}] were busy with concurrent locks.`);
+    return { done: false };
+  }
 
   const updateFields = {
     status: ASSIGNED_STATUS[type] || 'assigned',
@@ -152,12 +185,16 @@ async function runGenericWave({ requestId, type, Model, radiusKm, candidates, io
     }
   );
 
+  // Release lock after assignment completes
+  await releaseLock(`lock:provider:${winner.providerId}`, lockSecret);
+
   if (!assignResult.modifiedCount) return { done: true };
 
   const finalPayload = {
     requestId: String(requestId),
     providerId: winner.providerId,
     distanceKm: winner.distanceKm,
+    roadEtaSeconds: winner.roadEtaSeconds,
     status: updateFields.status,
   };
 

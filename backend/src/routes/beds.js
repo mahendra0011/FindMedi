@@ -68,5 +68,46 @@ router.delete('/:id', protect, scopeToHospital, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
+// ─── Tech Exp 04: Redlock Atomic ICU/Ventilator Bed Holding Lock ───
+// Holds an ICU bed exclusively for an incoming ambulance for 5 minutes (300,000 ms)
+router.post('/:id/hold-lock', protect, async (req, res) => {
+  try {
+    const { reservationId, ambulanceRequestId } = req.body;
+    const lockKey = `lock:hospital:bed:${req.params.id}`;
+    const token = reservationId || ambulanceRequestId || String(req.user._id);
+
+    const { acquireLock, releaseLock } = await import('../lib/redlock.js');
+    const lockAcquired = await acquireLock(lockKey, token, 300000); // 5 min hold
+
+    if (!lockAcquired) {
+      return res.status(409).json({
+        success: false,
+        message: 'This bed is currently locked by another emergency trauma transfer.',
+      });
+    }
+
+    // Verify bed is available
+    const bed = await Bed.findById(req.params.id);
+    if (!bed || bed.status !== 'Available') {
+      await releaseLock(lockKey, token);
+      return res.status(400).json({
+        success: false,
+        message: 'Bed is not in Available status',
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'ICU Bed locked exclusively for trauma patient transfer (5-minute TTL)',
+      bedId: bed._id,
+      bedNumber: bed.bedNumber,
+      lockKey,
+      ttlMs: 300000,
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 export default router;
 

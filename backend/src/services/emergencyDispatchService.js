@@ -12,6 +12,7 @@ import { calculateDistanceKm, estimateETA } from './rideService.js';
 export { calculateDistanceKm, estimateETA };
 import logger from '../config/logger.js';
 import { findCandidatesByHex } from '../lib/h3Cache.js';
+import { rankCandidatesByRoadETA } from '../lib/valhallaRouting.js';
 
 // Doc 01 §3 — no hardcodes
 const AMBULANCE_RADII = (process.env.SOS_AMBULANCE_RADII || '5,10,15').split(',').map(Number);
@@ -86,10 +87,18 @@ async function hydrateAmbulanceCandidates(pickupLng, pickupLat, radiusKm, exclud
       if (!coords || coords.length < 2) continue;
       const distanceKm = Math.round(calculateDistanceKm(Number(pickupLat), Number(pickupLng), coords[1], coords[0]) * 10) / 10;
       if (distanceKm > radiusKm) continue;
-      out.push({ ...d, hospital: hosp, distanceKm, userId: d.userId ? String(d.userId) : null });
+      out.push({
+        ...d,
+        hospital: hosp,
+        distanceKm,
+        coordinates: coords, // [lng, lat]
+        userId: d.userId ? String(d.userId) : null
+      });
     }
-    out.sort((a, b) => a.distanceKm - b.distanceKm);
-    return out.slice(0, Number(process.env.SOS_MAX_CANDIDATES_PER_WAVE || 30));
+
+    // Rank candidates by real emergency road arrival duration via Valhalla
+    const ranked = await rankCandidatesByRoadETA([Number(pickupLng), Number(pickupLat)], out, 'emergency');
+    return ranked.slice(0, Number(process.env.SOS_MAX_CANDIDATES_PER_WAVE || 30));
   } catch (err) {
     logger.error(`hydrateAmbulanceCandidates H3 error: ${err.message}`);
     return [];

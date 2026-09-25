@@ -120,3 +120,81 @@ export async function generateRideReceiptPdf(ride, user, rider, vehicle) {
     doc.end();
   });
 }
+
+/**
+ * Generates raw ESC/POS command bytes for 80mm / 58mm mobile Bluetooth thermal receipt printers.
+ * Compliant with Spec 24 & POS-80 standards.
+ */
+export function generateEscPosReceiptBytes(ride, user, rider, vehicle) {
+  const ESC = 0x1B;
+  const GS = 0x1D;
+
+  const buffer = [];
+  const appendStr = (str) => {
+    for (let i = 0; i < str.length; i++) {
+      buffer.push(str.charCodeAt(i));
+    }
+  };
+
+  // Initialize printer
+  buffer.push(ESC, 0x40);
+
+  // Center alignment + Double height/width header
+  buffer.push(ESC, 0x61, 1); // Center
+  buffer.push(GS, 0x21, 0x11); // Double size
+  appendStr('FINDMEDI TRANSPORT\n');
+  buffer.push(GS, 0x21, 0x00); // Normal size
+  appendStr('EMERGENCY & MEDICAL LOGISTICS\n');
+  appendStr('--------------------------------\n');
+
+  // Left alignment for booking details
+  buffer.push(ESC, 0x61, 0); // Left
+  const bookingNum = ride.bookingNumber || String(ride._id).slice(-8).toUpperCase();
+  appendStr(`Booking ID: #${bookingNum}\n`);
+  appendStr(`Date      : ${new Date(ride.createdAt || Date.now()).toLocaleDateString('en-IN')}\n`);
+  appendStr(`Time      : ${new Date(ride.createdAt || Date.now()).toLocaleTimeString('en-IN')}\n`);
+  appendStr(`Vehicle   : ${(ride.vehicleType || 'Cab').toUpperCase()}\n`);
+  appendStr(`Driver    : ${rider?.name || 'Verified Driver'}\n`);
+  appendStr(`Passenger : ${user?.name || 'Passenger'}\n`);
+  appendStr('--------------------------------\n');
+
+  // Route
+  appendStr(`From: ${(ride.pickup?.address || 'Pickup point').slice(0, 30)}\n`);
+  appendStr(`To  : ${(ride.drop?.address || 'Drop point').slice(0, 30)}\n`);
+  appendStr(`Dist: ${ride.distanceKm || 0} km | Duration: ${ride.durationMin || 0} mins\n`);
+  appendStr('--------------------------------\n');
+
+  // Fare Details (Right aligned columns)
+  const baseFare = ride.fare?.base || 0;
+  const distFare = ride.fare?.distanceCharge || 0;
+  const surge = ride.fare?.surge || 0;
+  const total = ride.fare?.total || (baseFare + distFare + surge);
+
+  appendStr(`Base Fare        : Rs. ${baseFare}\n`);
+  appendStr(`Distance Charges : Rs. ${distFare}\n`);
+  if (surge > 0) {
+    appendStr(`Priority Surge   : Rs. ${surge}\n`);
+  }
+  appendStr('================================\n');
+
+  // Total (Bold)
+  buffer.push(ESC, 0x45, 1); // Bold ON
+  appendStr(`TOTAL PAID       : Rs. ${total}\n`);
+  buffer.push(ESC, 0x45, 0); // Bold OFF
+  appendStr('================================\n');
+
+  appendStr(`Payment Method   : ${(ride.payment?.method || 'Demo Wallet').toUpperCase()}\n`);
+  appendStr(`Status           : ${(ride.payment?.status || 'PAID').toUpperCase()}\n`);
+  appendStr('--------------------------------\n');
+
+  // Footer & paper feed / cut
+  buffer.push(ESC, 0x61, 1); // Center
+  appendStr('Thank you for choosing FindMedi!\n');
+  appendStr('Tax SAC: 996412 (Taxi Service)\n');
+  appendStr('GSTIN: 07AAAFF1234M1Z2\n\n\n\n');
+
+  // Partial Cut
+  buffer.push(GS, 0x56, 1);
+
+  return Buffer.from(buffer);
+}

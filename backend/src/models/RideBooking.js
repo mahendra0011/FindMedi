@@ -53,6 +53,10 @@ const rideBookingSchema = new mongoose.Schema({
     surge: { type: Number, default: 0 },
     total: { type: Number, default: 0 },
   },
+  pickupOtp: {
+    type: String,
+    default: () => Math.floor(1000 + Math.random() * 9000).toString(),
+  },
   status: {
     type: String,
     enum: [

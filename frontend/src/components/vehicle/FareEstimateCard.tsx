@@ -61,10 +61,18 @@ export default function FareEstimateCard({
           <Route className="w-4 h-4 text-primary shrink-0" />
           <div>
             <p className="text-[10px] text-muted-foreground">Trip Distance & Time</p>
-            <p className="font-bold text-foreground">{distanceKm} km (~{durationMin}m)</p>
+            <p className="font-bold text-foreground">{distanceKm} km (~{durationMin} mins)</p>
           </div>
         </div>
       </div>
+
+      {/* Estimated Fare Display */}
+      {fare?.total != null && (
+        <div className="flex items-center justify-between p-2.5 rounded-xl bg-primary/10 border border-primary/20 text-xs">
+          <span className="text-muted-foreground font-medium">Estimated Total Fare</span>
+          <span className="text-base font-bold text-primary">₹{fare.total}</span>
+        </div>
+      )}
 
       {/* Direct Payment Note */}
       <div className="p-2.5 rounded-xl bg-muted/30 border border-border/40 text-[11px] text-muted-foreground flex items-center gap-2">

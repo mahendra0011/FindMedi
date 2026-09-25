@@ -75,30 +75,53 @@ router.post('/book', protect, validate(bookAssistantSchema), async (req, res) =>
     const cost = calculateBookingCost(rate, durationType);
     const taskChecklist = buildChecklistForBooking(serviceCategories);
 
-    const booking = await AssistantBooking.create({
-      patientId: req.user._id,
-      assistantId: targetAssistantId,
-      hospital,
-      serviceCategories,
-      isUrgent,
-      targetAssistantOnly: Boolean(targetAssistantOnly),
-      intakeSource,
-      urgencyWindow,
-      onBehalfOf,
-      familyMemberId: familyMemberId || null,
-      otherPatient: otherPatient || {},
-      taskDescription: taskDescription || specialInstructions || '',
-      phone: phone || req.user.phone || '',
-      documents: documents || [],
-      scheduledDate: scheduledDate ? new Date(scheduledDate) : new Date(),
-      startTime: startTime || 'Now',
-      durationType,
-      specialInstructions: specialInstructions || taskDescription || '',
-      cost,
-      status: isUrgent && !targetAssistantId ? 'searching' : 'requested',
-      taskChecklist,
-      statusHistory: [{ status: isUrgent && !targetAssistantId ? 'searching' : 'requested', at: new Date(), note: 'Booking created' }],
-    });
+    const { executeWithOutbox } = await import('../lib/transactionalOutbox.js');
+    const booking = await executeWithOutbox(
+      async (session) => {
+        const [created] = await AssistantBooking.create([
+          {
+            patientId: req.user._id,
+            assistantId: targetAssistantId,
+            hospital,
+            serviceCategories,
+            isUrgent,
+            targetAssistantOnly: Boolean(targetAssistantOnly),
+            intakeSource,
+            urgencyWindow,
+            onBehalfOf,
+            familyMemberId: familyMemberId || null,
+            otherPatient: otherPatient || {},
+            taskDescription: taskDescription || specialInstructions || '',
+            phone: phone || req.user.phone || '',
+            documents: documents || [],
+            scheduledDate: scheduledDate ? new Date(scheduledDate) : new Date(),
+            startTime: startTime || 'Now',
+            durationType,
+            specialInstructions: specialInstructions || taskDescription || '',
+            cost,
+            status: isUrgent && !targetAssistantId ? 'searching' : 'requested',
+            taskChecklist,
+            statusHistory: [{ status: isUrgent && !targetAssistantId ? 'searching' : 'requested', at: new Date(), note: 'Booking created' }],
+          },
+        ], { session });
+        return created;
+      },
+      [
+        {
+          aggregateType: 'AssistantBooking',
+          aggregateId: req.user._id,
+          eventType: 'AssistantBookingCreated.v1',
+          destinationTopic: 'findmedi.dispatch.booking-events.v1',
+          payload: {
+            patientId: req.user._id,
+            hospital,
+            serviceCategories,
+            isUrgent,
+            cost,
+          },
+        },
+      ]
+    );
 
     // Populate patient info for broadcast & notification
     await booking.populate('patientId', 'name phone avatar');

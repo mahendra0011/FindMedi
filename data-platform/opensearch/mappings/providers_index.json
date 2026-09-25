@@ -1,0 +1,29 @@
+{
+  "settings": {
+    "index": {
+      "number_of_shards": 2,
+      "number_of_replicas": 1,
+      "refresh_interval": "1s"
+    }
+  },
+  "mappings": {
+    "properties": {
+      "providerId": { "type": "keyword" },
+      "fullName": { "type": "text", "analyzer": "standard" },
+      "vertical": { "type": "keyword" },
+      "specialization": { "type": "keyword" },
+      "experienceYears": { "type": "integer" },
+      "rating": { "type": "float" },
+      "isOnline": { "type": "boolean" },
+      "isAvailable": { "type": "boolean" },
+      "h3IndexRes8": { "type": "keyword" },
+      "location": {
+        "type": "geo_point"
+      },
+      "activeRideCount": { "type": "integer" },
+      "verificationStatus": { "type": "keyword" },
+      "languages": { "type": "keyword" },
+      "updatedAt": { "type": "date" }
+    }
+  }
+}

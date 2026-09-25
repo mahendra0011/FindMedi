@@ -70,37 +70,59 @@ router.post('/book', protect, validate(bookLawyerSchema), async (req, res) => {
       }
     }
 
-    const booking = await LawyerBooking.create({
-      userId: req.user._id,
-      lawyerId: targetLawyerId,
-      caseThreadId: caseThreadId || undefined,
-      category,
-      caseDescription,
-      urgency: resolvedUrgency,
-      consultationMode: resolvedMode,
-      scheduledDate: scheduledDate ? new Date(scheduledDate) : new Date(),
-      scheduledTime: scheduledTime || (resolvedUrgency === 'urgent' ? 'Immediate' : '10:00 AM'),
-      budgetRange: budgetRange || { min: 0, max: 5000 },
-      documents,
-      fee,
-      isFollowUp: Boolean(isFollowUp),
-      targetLawyerOnly: Boolean(targetLawyerOnly),
-      intakeSource: intakeSource || (resolvedUrgency === 'urgent' ? 'quick_urgent_card' : 'scheduled_profile_form'),
-      bookingFor,
-      familyMemberId: familyMemberId || null,
-      otherPatient: otherPatient || undefined,
-      phone: phone || req.user.phone || '',
-      acknowledgeUrgent: Boolean(acknowledgeUrgent),
-      location: req.body.location ? {
-        address: req.body.location.address || '',
-        lat: req.body.location.lat,
-        lng: req.body.location.lng,
-        landmarkName: req.body.location.landmarkName || '',
-        city: req.body.location.city || '',
-      } : undefined,
-      status: resolvedUrgency === 'urgent' && !isTargeted ? 'searching' : 'requested',
-      statusHistory: [{ status: resolvedUrgency === 'urgent' && !isTargeted ? 'searching' : 'requested', at: new Date(), note: 'Booking requested by client' }],
-    });
+    const { executeWithOutbox } = await import('../lib/transactionalOutbox.js');
+    const booking = await executeWithOutbox(
+      async (session) => {
+        const [created] = await LawyerBooking.create([
+          {
+            userId: req.user._id,
+            lawyerId: targetLawyerId,
+            caseThreadId: caseThreadId || undefined,
+            category,
+            caseDescription,
+            urgency: resolvedUrgency,
+            consultationMode: resolvedMode,
+            scheduledDate: scheduledDate ? new Date(scheduledDate) : new Date(),
+            scheduledTime: scheduledTime || (resolvedUrgency === 'urgent' ? 'Immediate' : '10:00 AM'),
+            budgetRange: budgetRange || { min: 0, max: 5000 },
+            documents,
+            fee,
+            isFollowUp: Boolean(isFollowUp),
+            targetLawyerOnly: Boolean(targetLawyerOnly),
+            intakeSource: intakeSource || (resolvedUrgency === 'urgent' ? 'quick_urgent_card' : 'scheduled_profile_form'),
+            bookingFor,
+            familyMemberId: familyMemberId || null,
+            otherPatient: otherPatient || undefined,
+            phone: phone || req.user.phone || '',
+            acknowledgeUrgent: Boolean(acknowledgeUrgent),
+            location: req.body.location ? {
+              address: req.body.location.address || '',
+              lat: req.body.location.lat,
+              lng: req.body.location.lng,
+              landmarkName: req.body.location.landmarkName || '',
+              city: req.body.location.city || '',
+            } : undefined,
+            status: resolvedUrgency === 'urgent' && !isTargeted ? 'searching' : 'requested',
+            statusHistory: [{ status: resolvedUrgency === 'urgent' && !isTargeted ? 'searching' : 'requested', at: new Date(), note: 'Booking requested by client' }],
+          },
+        ], { session });
+        return created;
+      },
+      [
+        {
+          aggregateType: 'LawyerBooking',
+          aggregateId: req.user._id,
+          eventType: 'LawyerBookingCreated.v1',
+          destinationTopic: 'findmedi.dispatch.booking-events.v1',
+          payload: {
+            userId: req.user._id,
+            category,
+            urgency: resolvedUrgency,
+            fee,
+          },
+        },
+      ]
+    );
 
     if (resolvedUrgency === 'urgent' && !isTargeted) {
       startLawyerDispatch(booking._id).catch((err) => logger.error(`Lawyer wave dispatch error: ${err.message}`));

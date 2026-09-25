@@ -18,6 +18,9 @@ import {
 } from '../services/rideService.js';
 import { generateRideReceiptPdf } from '../services/rideReceiptService.js';
 import { getIO } from '../services/socketService.js';
+import { recordServiceSettlement } from '../services/ledgerService.js';
+import { loyaltyService } from '../services/loyaltyService.js';
+import { executeWithOutbox } from '../lib/transactionalOutbox.js';
 import logger from '../config/logger.js';
 
 const router = express.Router();
@@ -69,18 +72,42 @@ router.post('/book', protect, validate(bookRideSchema), async (req, res) => {
     const fare = calculateFare(vehicleType, distanceKm, isEmergency);
     const durationMin = estimateDurationMin(distanceKm, vehicleType);
 
-    const ride = await RideBooking.create({
-      userId: req.user._id,
-      vehicleType,
-      isEmergency,
-      pickup,
-      drop,
-      distanceKm,
-      durationMin,
-      fare,
-      status: 'searching',
-      statusHistory: [{ status: 'searching', at: new Date(), note: 'Booking initiated' }],
-    });
+    const ride = await executeWithOutbox(
+      async (session) => {
+        const [created] = await RideBooking.create([
+          {
+            userId: req.user._id,
+            vehicleType,
+            isEmergency,
+            pickup,
+            drop,
+            distanceKm,
+            durationMin,
+            fare,
+            status: 'searching',
+            statusHistory: [{ status: 'searching', at: new Date(), note: 'Booking initiated' }],
+          },
+        ], { session });
+        return created;
+      },
+      [
+        {
+          aggregateType: 'RideBooking',
+          aggregateId: req.user._id,
+          eventType: 'RideBookingCreated.v1',
+          destinationTopic: 'findmedi.dispatch.booking-events.v1',
+          payload: {
+            userId: req.user._id,
+            vehicleType,
+            isEmergency: !!isEmergency,
+            pickup,
+            drop,
+            distanceKm,
+            estimatedFare: fare?.total || 0,
+          },
+        },
+      ]
+    );
 
     // Dispatch to eligible riders nearest-first with tiered escalation
     dispatchSequentially(ride._id).catch(err => {
@@ -329,9 +356,30 @@ router.post('/:id/accept', protect, async (req, res) => {
 });
 
 // ─── POST /api/ride/:id/arrived ─────────────────────────────────────────────
-// Rider marks arrived at pickup location
+// Rider marks arrived at pickup location (with geofence validation)
 router.post('/:id/arrived', protect, async (req, res) => {
   try {
+    const { lat, lng } = req.body;
+    const existingRide = await RideBooking.findOne({
+      _id: req.params.id,
+      riderId: req.user._id,
+      status: { $in: ['accepted', 'rider_arriving'] },
+    });
+
+    if (!existingRide) {
+      return res.status(400).json({ message: 'Unable to update status to arrived or unauthorized' });
+    }
+
+    // Spec 05: Strict 150m geofence validation before driver can mark arrived
+    if (lat != null && lng != null && existingRide.pickup?.lat != null) {
+      const distanceToPickup = calculateDistanceKm(lat, lng, existingRide.pickup.lat, existingRide.pickup.lng);
+      if (distanceToPickup > 0.15) { // 150 meters strict limit (Spec 05)
+        return res.status(400).json({
+          message: `You are too far from the pickup location (${Math.round(distanceToPickup * 1000)}m away). You must be within 150m to mark arrived.`,
+        });
+      }
+    }
+
     const ride = await RideBooking.findOneAndUpdate(
       { _id: req.params.id, riderId: req.user._id, status: { $in: ['accepted', 'rider_arriving'] } },
       {
@@ -342,16 +390,12 @@ router.post('/:id/arrived', protect, async (req, res) => {
       { new: true }
     ).populate('userId', 'name phone avatar');
 
-    if (!ride) {
-      return res.status(400).json({ message: 'Unable to update status to arrived' });
-    }
-
     notifyRideUpdate(ride, 'ride_status_update');
 
     await Notification.create({
       userId: String(ride.userId._id || ride.userId),
       title: '📍 Driver Arrived!',
-      message: 'Your driver has arrived at the pickup location.',
+      message: `Your driver has arrived! Share your 4-digit OTP [${ride.pickupOtp || '----'}] with the driver to start the ride.`,
       type: 'ride',
     }).catch(() => {});
 
@@ -362,22 +406,36 @@ router.post('/:id/arrived', protect, async (req, res) => {
 });
 
 // ─── POST /api/ride/:id/start ───────────────────────────────────────────────
-// Rider starts the ride
+// Rider starts the ride (requires 4-digit pickup OTP verification)
 router.post('/:id/start', protect, async (req, res) => {
   try {
+    const { otp } = req.body;
+    const existingRide = await RideBooking.findOne({
+      _id: req.params.id,
+      riderId: req.user._id,
+      status: { $in: ['accepted', 'arrived'] },
+    });
+
+    if (!existingRide) {
+      return res.status(400).json({ message: 'Ride not found or already started' });
+    }
+
+    // Enforce 4-digit pickup OTP verification
+    if (existingRide.pickupOtp && String(existingRide.pickupOtp) !== String(otp).trim()) {
+      return res.status(400).json({
+        message: 'Invalid 4-digit pickup OTP. Please ask the passenger for the correct code displayed on their screen.',
+      });
+    }
+
     const ride = await RideBooking.findOneAndUpdate(
       { _id: req.params.id, riderId: req.user._id, status: { $in: ['accepted', 'arrived'] } },
       {
         status: 'in_progress',
         startedAt: new Date(),
-        $push: { statusHistory: { status: 'in_progress', at: new Date(), note: 'Trip started' } },
+        $push: { statusHistory: { status: 'in_progress', at: new Date(), note: 'Trip started after OTP verification' } },
       },
       { new: true }
     );
-
-    if (!ride) {
-      return res.status(400).json({ message: 'Unable to start ride' });
-    }
 
     notifyRideUpdate(ride, 'ride_status_update');
 
@@ -405,17 +463,41 @@ router.post('/:id/complete', protect, async (req, res) => {
       return res.status(400).json({ message: 'Unable to complete ride' });
     }
 
-    // Credit earnings to rider (90% after 10% platform commission)
-    const netEarning = Math.round((ride.fare?.total || 0) * 0.9);
-    await RiderProfile.findOneAndUpdate(
-      { userId: req.user._id },
-      {
-        $inc: {
-          totalEarnings: netEarning,
-          walletBalance: netEarning,
-        },
-      }
-    ).catch(e => logger.warn(`Rider earnings credit warning: ${e.message}`));
+    // Record double-entry financial settlement & credit net earnings to driver wallet
+    await recordServiceSettlement({
+      source: 'ride',
+      sourceId: ride._id,
+      bookingNumber: ride.bookingNumber,
+      userId: ride.userId?._id || ride.userId,
+      providerId: req.user._id,
+      patientName: ride.userId?.name || 'Passenger',
+      totalAmount: ride.fare?.total || 0,
+      customCommissionPercent: 10,
+    }).catch(e => logger.warn(`Ride ledger settlement warning: ${e.message}`));
+
+    // Award passenger loyalty points for completed trip
+    const passengerId = ride.userId?._id || ride.userId;
+    if (passengerId) {
+      loyaltyService.earnPoints(passengerId, 'ride_completed', ride._id)
+        .catch(e => logger.warn(`Ride loyalty points award warning: ${e.message}`));
+    }
+
+    // Persist RideCompleted event to Outbox for asynchronous downstream processing
+    const OutboxEvent = (await import('../models/OutboxEvent.js')).default;
+    await OutboxEvent.create({
+      aggregateType: 'RideBooking',
+      aggregateId: ride._id.toString(),
+      eventType: 'RideCompleted.v1',
+      destinationTopic: 'findmedi.dispatch.booking-events.v1',
+      payload: {
+        bookingNumber: ride.bookingNumber,
+        rideId: ride._id,
+        userId: passengerId,
+        riderId: req.user._id,
+        fare: ride.fare?.total || 0,
+        completedAt: ride.completedAt,
+      },
+    }).catch(e => logger.warn(`Ride completed outbox write warning: ${e.message}`));
 
     notifyRideUpdate(ride, 'ride_status_update');
 
@@ -545,6 +627,29 @@ router.get('/:id/receipt', protect, async (req, res) => {
   } catch (err) {
     logger.error(`Receipt generation error: ${err.message}`);
     res.status(500).json({ message: 'Failed to generate PDF receipt', error: err.message });
+  }
+});
+
+// ─── GET /api/ride/:id/thermal-receipt ──────────────────────────────────────
+// Stream raw ESC/POS bytes for 80mm Bluetooth mobile thermal printers
+router.get('/:id/thermal-receipt', protect, async (req, res) => {
+  try {
+    const { generateEscPosReceiptBytes } = await import('../services/rideReceiptService.js');
+    const ride = await RideBooking.findById(req.params.id)
+      .populate('userId', 'name phone email')
+      .populate('riderId', 'name phone')
+      .populate('vehicleId');
+
+    if (!ride) return res.status(404).json({ message: 'Ride not found' });
+
+    const rawBytes = generateEscPosReceiptBytes(ride, ride.userId, ride.riderId, ride.vehicleId);
+
+    res.setHeader('Content-Type', 'application/octet-stream');
+    res.setHeader('Content-Disposition', `attachment; filename="thermal-receipt-${ride.bookingNumber || ride._id}.bin"`);
+    res.send(rawBytes);
+  } catch (err) {
+    logger.error(`Thermal receipt generation error: ${err.message}`);
+    res.status(500).json({ message: 'Failed to generate thermal receipt', error: err.message });
   }
 });
 

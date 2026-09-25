@@ -197,4 +197,48 @@ router.get('/stats', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
+// ─── H3 Resolution 7: Urgent Rare Blood Donor Search ───
+// Finds certified donors radiating outward from patient/hospital H3 cell
+router.get('/donors/nearby-h3', protect, async (req, res) => {
+  try {
+    const { lat, lng, bloodGroup, maxRings = 3 } = req.query;
+    if (!lat || !lng || !bloodGroup) {
+      return res.status(400).json({ message: 'lat, lng, and bloodGroup are required' });
+    }
+
+    const { latLngToH3Index, gridDiskDistances } = await import('../lib/h3Cache.js');
+    const User = (await import('../models/User.js')).default;
+
+    const centerH3 = latLngToH3Index(Number(lat), Number(lng), 7);
+    const disks = gridDiskDistances(centerH3, Number(maxRings));
+
+    // Find registered users with matching bloodGroup & donor profile active
+    const donors = await User.find({
+      bloodGroup: String(bloodGroup).trim(),
+      role: 'patient',
+      'currentLocation.lat': { $ne: null },
+    })
+      .select('name bloodGroup currentLocation phone loyalty')
+      .limit(30)
+      .lean();
+
+    res.json({
+      success: true,
+      centerH3,
+      bloodGroup,
+      kRingsQueried: disks.length,
+      donorsCount: donors.length,
+      donors: donors.map(d => ({
+        id: d._id,
+        name: d.name,
+        bloodGroup: d.bloodGroup,
+        tier: d.loyalty?.tier || 'Bronze',
+        coordinates: d.currentLocation,
+      })),
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 export default router;

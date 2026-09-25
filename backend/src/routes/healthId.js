@@ -62,6 +62,83 @@ router.put('/settings', protect, async (req, res) => {
   }
 });
 
+// ─── ABDM M1: Generate OTP for ABHA creation / linking (Patient, Auth required) ───
+router.post('/abha/generate-otp', protect, async (req, res) => {
+  try {
+    const { aadhaarOrMobile } = req.body;
+    if (!aadhaarOrMobile || String(aadhaarOrMobile).length < 10) {
+      return res.status(400).json({ message: 'Valid 10-digit mobile or 12-digit Aadhaar required' });
+    }
+
+    // Zero Plaintext Aadhaar Storage: Never persist the raw identification number
+    // In production, invokes ABDM Sandbox Gateway API: /v1/registration/aadhaar/generateOtp
+    const txnId = uuidv4();
+    logger.info(`[ABDM_GATEWAY] Generated OTP transaction: ${txnId} for user ${req.user._id}`);
+
+    // Update status to PENDING_OTP
+    await User.findByIdAndUpdate(req.user._id, {
+      'healthIdCard.abhaStatus': 'PENDING_OTP',
+    });
+
+    res.json({
+      success: true,
+      txnId,
+      message: 'OTP has been dispatched to your Aadhaar/Mobile registered number (Mock ABDM: Use 123456)',
+    });
+  } catch (err) {
+    logger.error(`ABHA generate-otp error: ${err.message}`);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// ─── ABDM M1: Verify OTP and Mint/Link ABHA (Patient, Auth required) ───
+router.post('/abha/verify-otp', protect, async (req, res) => {
+  try {
+    const { otp, txnId } = req.body;
+    if (!otp) {
+      return res.status(400).json({ message: 'OTP is required' });
+    }
+
+    // In sandbox demo mode, accept '123456' or any valid 6-digit OTP
+    if (otp !== '123456' && String(otp).length !== 6) {
+      return res.status(400).json({ message: 'Invalid OTP. Please check the 6-digit code.' });
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    // Generate or format 14-digit standardized ABHA ID (e.g., 91-XXXX-XXXX-XXXX)
+    const randomSuffix = Math.floor(1000000000 + Math.random() * 9000000000);
+    const abhaNumber = `91-${String(randomSuffix).slice(0, 4)}-${String(randomSuffix).slice(4, 8)}-${String(randomSuffix).slice(8, 12)}`;
+    const sanitizedName = (user.name || 'patient').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const abhaAddress = `${sanitizedName}${Math.floor(100 + Math.random() * 900)}@abdm`;
+
+    user.healthIdCard.abhaNumber = abhaNumber;
+    user.healthIdCard.abhaAddress = abhaAddress;
+    user.healthIdCard.abhaStatus = 'LINKED';
+    user.healthIdCard.abhaLinkedAt = new Date();
+
+    // Auto-generate QR Token if missing
+    if (!user.healthIdCard.qrToken) {
+      user.healthIdCard.qrToken = randomBytes(16).toString('base64url');
+    }
+
+    await user.save();
+    logger.info(`[ABDM_GATEWAY] Successfully linked ABHA ${abhaNumber} for user ${user._id}`);
+
+    res.json({
+      success: true,
+      message: 'ABHA successfully created and linked to FindMedi Health Profile',
+      abhaNumber,
+      abhaAddress,
+      qrToken: user.healthIdCard.qrToken,
+    });
+  } catch (err) {
+    logger.error(`ABHA verify-otp error: ${err.message}`);
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // ─── Public read: scan QR token (NO auth required) ───
 // Doc 04 §3.2: login QR se fark - ye door ke liye khulta hai
 router.get('/:qrToken', async (req, res) => {

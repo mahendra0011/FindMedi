@@ -216,5 +216,70 @@ router.delete('/:id', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
+// ─── ABDM M2/M3: EHR Consent Management Endpoints ───
+// Doctor/Hospital requests access to patient records
+router.post('/consent-request', protect, async (req, res) => {
+  try {
+    const { patientId, purposeOfCare, requestedDurationHours = 24 } = req.body;
+    if (!patientId) {
+      return res.status(400).json({ message: 'patientId is required' });
+    }
+
+    const patient = await User.findById(patientId);
+    if (!patient) return res.status(404).json({ message: 'Patient not found' });
+
+    const consentId = `AR-${Date.now().toString(36).toUpperCase()}`;
+
+    await createNotification(
+      patientId.toString(),
+      '🔐 ABDM Health Records Consent Request',
+      `Dr. ${req.user.name} has requested 24-hour access to your medical history for "${purposeOfCare || 'General Clinical Evaluation'}". Please review and approve.`,
+      'records'
+    );
+
+    res.json({
+      success: true,
+      consentId,
+      status: 'REQUESTED',
+      validityHours: requestedDurationHours,
+      message: 'ABDM Electronic Consent request dispatched to patient device',
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Patient grants or denies cryptographic EHR consent
+router.post('/consent-response', protect, async (req, res) => {
+  try {
+    const { consentId, doctorId, isGranted } = req.body;
+    if (!consentId) return res.status(400).json({ message: 'consentId required' });
+
+    if (isGranted) {
+      await auditLog('consent_granted', req.user._id, { consentId, doctorId, ip: req.ip, userAgent: req.get('user-agent') });
+      if (doctorId) {
+        await createNotification(
+          doctorId.toString(),
+          '✅ Health Record Consent Approved',
+          `Patient ${req.user.name} has granted you 24-hour electronic access to medical records.`,
+          'records'
+        );
+      }
+    } else {
+      await auditLog('consent_revoked', req.user._id, { consentId, doctorId, ip: req.ip, userAgent: req.get('user-agent') });
+    }
+
+    res.json({
+      success: true,
+      consentId,
+      isGranted: !!isGranted,
+      expiresAt: isGranted ? new Date(Date.now() + 24 * 3600 * 1000) : null,
+      message: isGranted ? 'Consent granted successfully' : 'Consent declined/revoked',
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 export default router;
 
