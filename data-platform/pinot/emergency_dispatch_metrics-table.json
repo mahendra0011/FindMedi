@@ -1,0 +1,26 @@
+{
+  "tableName": "emergency_dispatch_metrics",
+  "tableType": "REALTIME",
+  "segmentsConfig": {
+    "timeColumnName": "timestamp_epoch_ms",
+    "timeType": "MILLISECONDS",
+    "replication": "1",
+    "retentionTimeUnit": "DAYS",
+    "retentionTimeValue": "30"
+  },
+  "tableIndexConfig": {
+    "invertedIndexColumns": ["vertical", "severityLevel", "status", "h3_res6"],
+    "bloomFilterColumns": ["bookingId", "providerId"],
+    "loadMode": "MMAP",
+    "nullHandlingEnabled": true
+  },
+  "tenants": {
+    "broker": "DefaultTenant",
+    "server": "DefaultTenant"
+  },
+  "metadata": {
+    "customConfigs": {
+      "description": "FindMedi emergency dispatch metrics (spec 14)"
+    }
+  }
+}
