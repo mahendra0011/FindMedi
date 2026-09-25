@@ -64,6 +64,7 @@ services:
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
     container_name: findmedi-zookeeper
+    restart: unless-stopped
     ports:
       - "2181:2181"
     environment:
@@ -73,6 +74,7 @@ services:
   kafka:
     image: confluentinc/cp-kafka:7.5.0
     container_name: findmedi-kafka
+    restart: unless-stopped
     depends_on:
       - zookeeper
     ports:
@@ -95,6 +97,7 @@ services:
   opensearch:
     image: opensearchproject/opensearch:2.12.0
     container_name: findmedi-opensearch
+    restart: unless-stopped
     environment:
       - cluster.name=findmedi-cluster
       - node.name=findmedi-node1
@@ -120,6 +123,7 @@ services:
   pinot-controller:
     image: apachepinot/pinot:1.0.0
     container_name: findmedi-pinot-controller
+    restart: unless-stopped
     command: "QuickStart -type batch"
     ports:
       - "9000:9000"
@@ -136,6 +140,7 @@ services:
   flink-jobmanager:
     image: flink:1.18-scala_2.12-java11
     container_name: findmedi-flink-jobmanager
+    restart: unless-stopped
     ports:
       - "8081:8081"
     command: jobmanager
@@ -147,6 +152,7 @@ services:
   flink-taskmanager:
     image: flink:1.18-scala_2.12-java11
     container_name: findmedi-flink-taskmanager
+    restart: unless-stopped
     depends_on:
       - flink-jobmanager
     command: taskmanager
