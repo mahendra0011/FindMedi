@@ -5,6 +5,8 @@ import Vehicle from '../models/Vehicle.js';
 import User from '../models/User.js';
 import Notification from '../models/Notification.js';
 import { protect, optionalProtect } from '../middleware/auth.js';
+import { bookingLimiter } from '../middleware/rateLimit.js';
+import { idempotencyGuard } from '../middleware/idempotency.js';
 import { validate, estimateRideSchema, bookRideSchema, rateRideSchema } from '../utils/validate.js';
 import {
   getEstimatesForRoute,
@@ -51,7 +53,7 @@ router.post('/estimate', validate(estimateRideSchema), async (req, res) => {
 
 // ─── POST /api/ride/book ────────────────────────────────────────────────────
 // Book a new vehicle
-router.post('/book', protect, validate(bookRideSchema), async (req, res) => {
+router.post('/book', protect, validate(bookRideSchema), bookingLimiter, async (req, res) => {
   try {
     const { pickup, drop, vehicleType, isEmergency = false } = req.body;
 
@@ -296,7 +298,7 @@ router.get('/:id', protect, async (req, res) => {
 
 // ─── POST /api/ride/:id/accept ──────────────────────────────────────────────
 // Rider accepts a ride booking (Atomic update)
-router.post('/:id/accept', protect, async (req, res) => {
+router.post('/:id/accept', protect, idempotencyGuard(), async (req, res) => {
   try {
     if (req.user.role !== 'rider') {
       return res.status(403).json({ message: 'Only registered riders can accept rides' });
@@ -516,7 +518,7 @@ router.post('/:id/complete', protect, async (req, res) => {
 
 // ─── POST /api/ride/:id/cancel ──────────────────────────────────────────────
 // Cancel a ride (User or Rider)
-router.post('/:id/cancel', protect, async (req, res) => {
+router.post('/:id/cancel', protect, idempotencyGuard(), async (req, res) => {
   try {
     const { reason = '' } = req.body;
     const isRider = req.user.role === 'rider';

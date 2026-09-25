@@ -1,5 +1,6 @@
 import PDFDocument from 'pdfkit';
 import { LEGAL_CATEGORIES_INFO } from './lawyerService.js';
+import { signTxnRef } from '../lib/receiptSecurity.js';
 
 const C = {
   primary: '#1e3a8a',
@@ -95,6 +96,7 @@ export async function generateLawyerReceiptPdf(booking, client, lawyer, profile)
     const txnRef = booking.payment?.transactionRef || `DEMO-TXN-${Math.floor(100000 + Math.random() * 900000)}`;
     doc.rect(40, y, doc.page.width - 80, 36).fillAndStroke('#ecfdf5', '#a7f3d0');
     doc.fillColor(C.success).fontSize(10).font('Helvetica-Bold').text(`Payment Verified (Demo Mode) · Ref: ${txnRef}`, 55, y + 12);
+    doc.fillColor(C.muted).fontSize(8).font('Helvetica').text(`Authenticity Hash: ${signTxnRef(txnRef)}`, 55, y + 24);
 
     y += 55;
 

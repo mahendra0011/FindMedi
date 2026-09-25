@@ -91,6 +91,11 @@ export default function LawyerUrgentIntakeModal({
 
   const [category, setCategory] = useState<string>('');
   const [caseDescription, setCaseDescription] = useState('');
+  // Spec 06: optional police-detention context shown on the lawyer alert.
+  const [firNumber, setFirNumber] = useState('');
+  const [policeStationName, setPoliceStationName] = useState('');
+  // Spec 06: opposing party for conflict-of-interest screening (optional).
+  const [opposingPartyName, setOpposingPartyName] = useState('');
   const [phone, setPhone] = useState('');
   const [documents, setDocuments] = useState<string[]>([]);
   const [uploadingDoc, setUploadingDoc] = useState(false);
@@ -166,6 +171,9 @@ export default function LawyerUrgentIntakeModal({
       setSelectedFamilyMember(null);
       setOtherPatient({ name: '', phone: '', age: '' });
       setCaseDescription('');
+      setFirNumber('');
+      setPoliceStationName('');
+      setOpposingPartyName('');
       setDocuments([]);
       setAcknowledgeUrgent(false);
       setSubmitting(false);
@@ -271,6 +279,9 @@ export default function LawyerUrgentIntakeModal({
         otherPatient: bookingFor === 'other' ? otherPatient : undefined,
         category,
         caseDescription: caseDescription.trim(),
+        firNumber: firNumber.trim() || undefined,
+        policeStationName: policeStationName.trim() || undefined,
+        opposingPartyName: opposingPartyName.trim() || undefined,
         contactMode,
         phone: phone.trim(),
         documents,
@@ -598,6 +609,45 @@ export default function LawyerUrgentIntakeModal({
               value={caseDescription}
               onChange={(e) => setCaseDescription(e.target.value)}
               className="text-xs rounded-xl resize-none focus:ring-2 focus:ring-slate-900/20"
+            />
+          </div>
+
+          {/* 4b. Police detention context (optional) */}
+          <div className="grid grid-cols-2 gap-2.5">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-foreground">
+                FIR Number <span className="font-normal text-muted-foreground">(optional)</span>
+              </label>
+              <Input
+                placeholder="e.g. 123/2026"
+                value={firNumber}
+                onChange={(e) => setFirNumber(e.target.value)}
+                className="text-xs rounded-xl h-10"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-foreground">
+                Police Station <span className="font-normal text-muted-foreground">(optional)</span>
+              </label>
+              <Input
+                placeholder="e.g. Civil Lines PS"
+                value={policeStationName}
+                onChange={(e) => setPoliceStationName(e.target.value)}
+                className="text-xs rounded-xl h-10"
+              />
+            </div>
+          </div>
+
+          {/* 4c. Opposing party for conflict check (optional) */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-foreground">
+              Opposing party name <span className="font-normal text-muted-foreground">(optional, conflict screen)</span>
+            </label>
+            <Input
+              placeholder="e.g. Name of the other side, if known"
+              value={opposingPartyName}
+              onChange={(e) => setOpposingPartyName(e.target.value)}
+              className="text-xs rounded-xl h-10"
             />
           </div>
 

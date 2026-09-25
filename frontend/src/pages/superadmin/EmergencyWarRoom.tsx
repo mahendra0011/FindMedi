@@ -44,21 +44,52 @@ export default function EmergencyWarRoom() {
   }, [load]);
 
   // Socket: new SOS pushes refresh the board instantly.
+  // Spec expansion-09: clinical alerts (code blue / lab panic / MTP) raise
+  // matching tones + toasts on the war-room board.
   useEffect(() => {
     let socket;
+    let ringStop = null;
     (async () => {
       try {
         const { getSocket } = await import('@/lib/socket');
+        const { startEmergencyRing, stopEmergencyRing } = await import('@/utils/emergencyRing');
         socket = getSocket();
         if (!socket) return;
         const bump = () => load(true);
+        const clinical = (kind) => (payload) => {
+          try {
+            startEmergencyRing(payload?.toneType === 'lab_panic' ? 'lab_panic' : payload?.toneType === 'code_blue' ? 'code_blue' : 'siren');
+            if (ringStop) clearTimeout(ringStop);
+            ringStop = setTimeout(() => stopEmergencyRing(), 12000);
+          } catch { /* audio unavailable */ }
+          toast.error(`Clinical alert: ${kind}`, {
+            description: payload?.patientName || payload?.testName || payload?.bloodGroup || payload?.alertId || '',
+          });
+          load(true);
+        };
         socket.on('emergency_alert_critical', bump);
         socket.on('emergency_created', bump);
+        socket.on('clinical:code_blue', clinical('CODE BLUE'));
+        socket.on('clinical:lab_panic', clinical('LAB PANIC'));
+        socket.on('clinical:mtp', clinical('MTP activated'));
+        socket._clinicalCleanup = () => {
+          socket.off('emergency_alert_critical');
+          socket.off('emergency_created');
+          socket.off('clinical:code_blue');
+          socket.off('clinical:lab_panic');
+          socket.off('clinical:mtp');
+        };
       } catch { /* manual refresh remains */ }
     })();
     return () => {
-      socket?.off('emergency_alert_critical');
-      socket?.off('emergency_created');
+      try {
+        if (socket?._clinicalCleanup) socket._clinicalCleanup();
+        else {
+          socket?.off('emergency_alert_critical');
+          socket?.off('emergency_created');
+        }
+      } catch { /* noop */ }
+      if (ringStop) clearTimeout(ringStop);
     };
   }, [load]);
 

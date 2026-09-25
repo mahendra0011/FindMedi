@@ -9,8 +9,7 @@ const DEFAULT_INTEGRATIONS = [
   { provider: 'razorpay', label: 'Razorpay', category: 'payment', config: { keyId: '', keySecret: '', webhookSecret: '' } },
   { provider: 'stripe', label: 'Stripe', category: 'payment', config: { publishableKey: '', secretKey: '', webhookSecret: '' } },
   { provider: 'paytm', label: 'Paytm', category: 'payment', config: { merchantId: '', merchantKey: '', merchantWebsite: '' } },
-  { provider: 'twilio_sms', label: 'Twilio SMS', category: 'sms', config: { accountSid: '', authToken: '', fromNumber: '' } },
-  { provider: 'msg91', label: 'MSG91', category: 'sms', config: { authKey: '', senderId: '', route: '' } },
+  // NOTE: SMS gateways (Twilio/MSG91) intentionally removed — notifications are email-only (Brevo).
   { provider: 'sendgrid', label: 'SendGrid Email', category: 'email', config: { apiKey: '', fromEmail: '', fromName: '' } },
   { provider: 'smtp', label: 'SMTP Server', category: 'email', config: { host: '', port: '', username: '', password: '', fromEmail: '' } },
   { provider: 'aws_s3', label: 'AWS S3 Storage', category: 'storage', config: { bucket: '', region: '', accessKeyId: '', secretAccessKey: '' } },
@@ -26,6 +25,12 @@ router.get('/', protect, superadminOnly, async (req, res) => {
         const created = await IntegrationConfig.create(def);
         integrations.push(created);
       }
+    }
+    // Purge retired SMS-gateway docs (Twilio/MSG91 removed — email-only policy).
+    const retired = await IntegrationConfig.deleteMany({ category: 'sms' });
+    if (retired.deletedCount > 0) {
+      await auditLog('remove_integration', req.user._id, { provider: 'sms-retired', deletedCount: retired.deletedCount, ip: req.ip, userAgent: req.get('user-agent') });
+      integrations = integrations.filter(i => i.category !== 'sms');
     }
     integrations.sort((a, b) => a.category.localeCompare(b.category) || a.provider.localeCompare(b.provider));
     res.json({ integrations });

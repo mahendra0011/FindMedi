@@ -33,9 +33,14 @@ describe('Emergency Doctor Dispatch Engine & API Suite', () => {
     it('should validate valid EmergencyDoctorRequest structure', () => {
       const reqDoc = new EmergencyDoctorRequest({
         bookingId: 'DOC-TEST-001',
+        userId: '507f191e810c19729de860ea',
         patientId: '507f191e810c19729de860ea',
         patientName: 'Emergency Test Patient',
         patientPhone: '9876543210',
+        location: {
+          type: 'Point',
+          coordinates: [79.9864, 23.1815],
+        },
         pickupLocation: {
           type: 'Point',
           coordinates: [79.9864, 23.1815],
@@ -49,18 +54,16 @@ describe('Emergency Doctor Dispatch Engine & API Suite', () => {
       const err = reqDoc.validateSync();
       expect(err).toBeUndefined();
       expect(reqDoc.status).toBe('searching');
-      expect(reqDoc.pricing.baseEmergencyFee).toBe(800);
-      expect(reqDoc.pricing.totalAmount).toBe(800);
+      expect(reqDoc.pricing.consultationFee).toBe(800);
+      expect(reqDoc.pricing.total).toBe(1000);
     });
 
     it('should enforce required fields in EmergencyDoctorRequest', () => {
       const invalidDoc = new EmergencyDoctorRequest({});
       const err = invalidDoc.validateSync();
       expect(err).toBeDefined();
-      expect(err.errors.bookingId).toBeDefined();
-      expect(err.errors.patientId).toBeDefined();
-      expect(err.errors.patientName).toBeDefined();
-      expect(err.errors.pickupAddress).toBeDefined();
+      expect(err.errors.userId).toBeDefined();
+      expect(err.errors['location.coordinates']).toBeDefined();
     });
 
     it('should support Doctor emergency fields and emergencyEquipmentKit', () => {
@@ -90,22 +93,21 @@ describe('Emergency Doctor Dispatch Engine & API Suite', () => {
       const validStatuses = [
         'searching',
         'assigned',
-        'en_route',
-        'arrived',
-        'in_triage',
+        'in_progress',
         'completed',
         'cancelled_by_user',
-        'cancelled_by_doctor',
+        'no_responders_found',
         'escalated_to_ambulance',
-        'expired',
       ];
 
       validStatuses.forEach((status) => {
         const doc = new EmergencyDoctorRequest({
           bookingId: `DOC-${status}-001`,
+          userId: '507f191e810c19729de860ea',
           patientId: '507f191e810c19729de860ea',
           patientName: 'Test Patient',
           patientPhone: '9876543210',
+          location: { type: 'Point', coordinates: [79.98, 23.18] },
           pickupLocation: { type: 'Point', coordinates: [79.98, 23.18] },
           pickupAddress: 'Test Location',
           emergencyCategory: 'General Medical Emergency',

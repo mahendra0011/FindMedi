@@ -1298,10 +1298,13 @@ export default function AssistantDashboard() {
             hospitalName: activeIncomingCall.hospital,
             category: activeIncomingCall.durationType || 'Shift Request',
             title: `Hospital Shift: ${activeIncomingCall.hospital}`,
-            subtitle: `Patient requested hospital assistance (${activeIncomingCall.durationType?.toUpperCase()}). Review details and respond within 2 minutes.`,
+            subtitle: `Patient requested hospital assistance (${activeIncomingCall.durationType?.toUpperCase()}).${activeIncomingCall.taskDescription ? ` Task: ${activeIncomingCall.taskDescription}` : ''} Review details and respond within 2 minutes.`,
             patient: {
               name: activeIncomingCall.patientId?.name || 'Verified Patient',
               phone: activeIncomingCall.patientId?.phone || activeIncomingCall.emergencyPhone || 'Via FindMedi App',
+              knownAllergies: Array.isArray(activeIncomingCall.patientAllergies)
+                ? activeIncomingCall.patientAllergies.join(', ')
+                : undefined,
             },
             location: {
               address: activeIncomingCall.hospital,

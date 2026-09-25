@@ -843,7 +843,7 @@ export default function LawyerDashboard() {
             providerType: 'lawyer',
             category: activeIncomingCall.category || 'medical_negligence',
             title: `Legal Consultation: ${activeIncomingCall.category?.replace(/_/g, ' ') || 'Healthcare Issue'}`,
-            subtitle: `Client requesting consultation (${activeIncomingCall.consultationMode?.replace('_', ' ') || 'Direct Session'}). Respond within 2 minutes.`,
+            subtitle: `Client requesting consultation (${activeIncomingCall.consultationMode?.replace('_', ' ') || 'Direct Session'}). Respond within 2 minutes.${activeIncomingCall.firNumber ? ` FIR: ${activeIncomingCall.firNumber}` : ''}${activeIncomingCall.policeStationName ? ` @ ${activeIncomingCall.policeStationName}` : ''}`,
             patient: {
               name: activeIncomingCall.userId?.name || 'Client',
               phone: activeIncomingCall.userId?.phone || 'Direct App Connect',

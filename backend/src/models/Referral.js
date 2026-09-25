@@ -17,6 +17,9 @@ const referralSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  // Spec 25 §4: self-referral ring detection signals.
+  ipHash: { type: String, default: '', index: true },
+  deviceHash: { type: String, default: '' },
   status: {
     type: String,
     enum: ['pending', 'qualified', 'rewarded', 'expired', 'fraud_flagged'],

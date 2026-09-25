@@ -1,8 +1,9 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Map, MapControls, MapMarker, MapRoute, MarkerContent, MarkerTooltip } from '@/components/ui/map';
 import { Navigation, MapPin, Car, Ambulance, Bike, Zap, Crosshair } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { MarkerSmoother } from '@/utils/markerInterpolation';
 
 export interface LatLng {
   lat: number;
@@ -28,10 +29,33 @@ export default function RideMap({
   className = 'h-full min-h-[400px]',
   zoom = 13,
 }: RideMapProps) {
+  // Spec 05 §4: 60fps LERP smoothing for the live driver marker.
+  // Raw socket GPS (1-3s cadence) feeds MarkerSmoother; the marker renders
+  // the interpolated position so it glides instead of jumping.
+  const smootherRef = useRef<MarkerSmoother | null>(null);
+  const [smoothRider, setSmoothRider] = useState<LatLng | null>(null);
+
+  useEffect(() => {
+    if (!riderLocation?.lat || !riderLocation?.lng) return;
+    if (!smootherRef.current) {
+      smootherRef.current = new MarkerSmoother(
+        { lat: riderLocation.lat, lng: riderLocation.lng },
+        ([lat, lng]) => setSmoothRider({ lat, lng })
+      );
+      setSmoothRider({ lat: riderLocation.lat, lng: riderLocation.lng });
+    } else {
+      smootherRef.current.setNextTarget({ lat: riderLocation.lat, lng: riderLocation.lng }, 1500);
+    }
+  }, [riderLocation?.lat, riderLocation?.lng]);
+
+  useEffect(() => () => smootherRef.current?.destroy(), []);
+
+  const liveRider = smoothRider || riderLocation;
+
   // Determine center of map: rider position > pickup > drop > default Jabalpur coordinates
   const center: [number, number] = useMemo(() => {
-    if (riderLocation?.lng && riderLocation?.lat) {
-      return [riderLocation.lng, riderLocation.lat];
+    if (liveRider?.lng && liveRider?.lat) {
+      return [liveRider.lng, liveRider.lat];
     }
     if (pickup?.lng && pickup?.lat) {
       return [pickup.lng, pickup.lat];
@@ -40,13 +64,13 @@ export default function RideMap({
       return [drop.lng, drop.lat];
     }
     return [79.9864, 23.1815]; // Default center
-  }, [pickup, drop, riderLocation]);
+  }, [pickup, drop, liveRider]);
 
   // Build a route line between pickup and drop, or rider and pickup
   const routeCoordinates = useMemo(() => {
     const coords: [number, number][] = [];
-    if (riderLocation?.lng && riderLocation?.lat) {
-      coords.push([riderLocation.lng, riderLocation.lat]);
+    if (liveRider?.lng && liveRider?.lat) {
+      coords.push([liveRider.lng, liveRider.lat]);
     }
     if (pickup?.lng && pickup?.lat) {
       coords.push([pickup.lng, pickup.lat]);
@@ -109,9 +133,9 @@ export default function RideMap({
           </MapMarker>
         )}
 
-        {/* Live Rider Marker */}
-        {riderLocation?.lat && riderLocation?.lng && (
-          <MapMarker longitude={riderLocation.lng} latitude={riderLocation.lat}>
+        {/* Live Rider Marker (LERP-smoothed) */}
+        {liveRider?.lat && liveRider?.lng && (
+          <MapMarker longitude={liveRider.lng} latitude={liveRider.lat}>
             <MarkerContent>
               <div className="relative flex items-center justify-center">
                 {/* Pulsing ring animation */}

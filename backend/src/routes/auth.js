@@ -413,7 +413,10 @@ router.post('/register', validate(registerSchema), async (req, res) => {
     // Apply referral code AFTER user exists, with the real new _id
     if (referralCode) {
       try {
-        await referralService.applyReferralCode(user._id, referralCode);
+        await referralService.applyReferralCode(user._id, referralCode, {
+          ip: req.ip,
+          userAgent: req.get('user-agent'),
+        });
       } catch (refErr) {
         logger.warn(`applyReferralCode failed for new user ${user._id}: ${refErr.message}`);
         // don't fail signup just because referral code was invalid

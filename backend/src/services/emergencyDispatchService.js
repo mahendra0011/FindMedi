@@ -13,6 +13,7 @@ export { calculateDistanceKm, estimateETA };
 import logger from '../config/logger.js';
 import { findCandidatesByHex } from '../lib/h3Cache.js';
 import { rankCandidatesByRoadETA } from '../lib/valhallaRouting.js';
+import { writeOutboxEvent } from '../lib/transactionalOutbox.js';
 
 // Doc 01 §3 — no hardcodes
 const AMBULANCE_RADII = (process.env.SOS_AMBULANCE_RADII || '5,10,15').split(',').map(Number);
@@ -549,6 +550,55 @@ export async function assignWinner(request, winner, losers = []) {
       userId: String(winner.userId),
     });
   } catch {}
+  // Spec 08: trauma-desk pre-alert + green-corridor route (best-effort).
+  try {
+    if (assignedHospitalId) {
+      const deskUsers = await User.find(
+        { hospitalId: assignedHospitalId, role: 'hospital_admin' },
+        { _id: 1 }
+      ).lean();
+      for (const u of deskUsers) {
+        await Notification.create({
+          title: 'Incoming Emergency (Pre-Alert)',
+          message: `Ambulance en route — ${request.category || 'Emergency'} patient inbound.`,
+          type: 'emergency',
+          userId: String(u._id),
+        }).catch(() => {});
+      }
+      if (io) {
+        io.to(`hospital:${assignedHospitalId}`).emit('emergency_prealert', {
+          requestId: String(request._id),
+          category: request.category,
+          providerType: winner.providerType,
+        });
+      }
+    }
+    if (winner.providerType === 'ambulance' && io) {
+      const ambLoc = await getProviderLocation(winner.providerId, 'ambulance');
+      const pickup = request.location?.coordinates;
+      if (ambLoc && pickup?.length === 2) {
+        const { getValhallaRoute } = await import('../lib/valhallaRouting.js');
+        const corridor = await getValhallaRoute([ambLoc.lng, ambLoc.lat], pickup, 'emergency');
+        io.to(`emergency:${request._id}`).emit('emergency_green_corridor', {
+          requestId: String(request._id),
+          route: corridor,
+        });
+      }
+    }
+  } catch (corridorErr) {
+    logger.warn(`Pre-alert/corridor skipped: ${corridorErr.message}`);
+  }
+  // Spec 11: SOS assignment recorded for the event backbone.
+  writeOutboxEvent({
+    aggregateType: 'emergency_sos',
+    aggregateId: String(request._id),
+    eventType: 'emergency_sos.assigned',
+    payload: {
+      providerId: winner.providerId,
+      providerType: winner.providerType,
+      distanceKm: winner.distanceKm,
+    },
+  }).catch(() => {});
   return true;
 }
 
@@ -559,6 +609,14 @@ export async function startEmergencyDispatch(requestId) {
   try {
     const request = await EmergencyRequest.findById(requestId);
     if (!request || request.status !== 'searching') return;
+
+    // Spec 11: SOS dispatch recorded for the event backbone.
+    writeOutboxEvent({
+      aggregateType: 'emergency_sos',
+      aggregateId: String(requestId),
+      eventType: 'emergency_sos.dispatch_started',
+      payload: { category: request.category, severityLevel: request.severityLevel },
+    }).catch(() => {});
 
     const io = getIO();
     const [lng, lat] = request.location.coordinates;
@@ -623,6 +681,24 @@ export async function startEmergencyDispatch(requestId) {
           message: 'No emergency responders could be dispatched in your area right now. Please call emergency services directly (108 / 112).',
         });
       }
+      // Email-only fallback (no SMS gateway): notify the caller by email + in-app.
+      try {
+        const caller = await User.findById(finalCheck.userId).select('email name').lean();
+        if (caller?.email) {
+          const { sendEmail } = await import('./notificationService.js');
+          await sendEmail({
+            to: caller.email,
+            subject: 'FindMedi SOS: no responders nearby — call 108/112',
+            text: `Hi ${caller.name || ''}, no ambulance or emergency vehicle accepted request ${requestId} in your area. Please call 108/112 directly. Your SOS remains logged for follow-up.`,
+          });
+        }
+        await Notification.create({
+          title: 'SOS: No Responders Found',
+          message: 'Koi responder nahi mila. Turant 108/112 par call karein.',
+          type: 'emergency',
+          userId: String(finalCheck.userId),
+        });
+      } catch {}
       logger.warn(`Emergency SOS ${requestId} timed out: no responders found.`);
     }
   } catch (err) {

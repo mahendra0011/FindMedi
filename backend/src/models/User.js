@@ -133,6 +133,12 @@ emergencyContact: {
     tier: { type: String, enum: ['Bronze', 'Silver', 'Gold', 'Platinum'], default: 'Bronze' },
   },
 
+  // Spec 21: demo sandbox wallet (₹10,000 sandbox credit, no real currency).
+  demoWallet: {
+    balance: { type: Number, default: 10000, min: 0 },
+    currency: { type: String, default: 'INR' },
+  },
+
   healthIdCard: {
     isEnabled: { type: Boolean, default: true },
     qrToken: { type: String, unique: true, sparse: true, index: true },

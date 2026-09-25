@@ -6,6 +6,7 @@ import User from '../models/User.js';
 import Notification from '../models/Notification.js';
 import { getIO } from './socketService.js';
 import logger from '../config/logger.js';
+import { writeOutboxEvent } from '../lib/transactionalOutbox.js';
 
 export const VEHICLE_RATES = {
   bike: {
@@ -324,6 +325,14 @@ export async function dispatchSequentially(rideId) {
   try {
     const ride = await RideBooking.findById(rideId);
     if (!ride || ride.status !== 'searching') return;
+
+    // Spec 11: legacy sequential dispatch also records an outbox event.
+    writeOutboxEvent({
+      aggregateType: 'ride',
+      aggregateId: String(rideId),
+      eventType: 'ride.dispatch_started',
+      payload: { vehicleType: ride.vehicleType, isEmergency: ride.isEmergency },
+    }).catch(() => {});
 
     const radiusSteps = ride.isEmergency ? EMERGENCY_RADIUS_STEPS : STANDARD_RADIUS_STEPS;
     const batchSize = ride.isEmergency ? 3 : 1;

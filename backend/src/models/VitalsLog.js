@@ -20,7 +20,7 @@ const vitalsLogSchema = new mongoose.Schema({
   },
   vitalType: {
     type: String,
-    enum: ['bp', 'blood_sugar', 'weight', 'temperature'],
+    enum: ['bp', 'blood_sugar', 'weight', 'temperature', 'pulse', 'spo2'],
     required: true,
     index: true,
   },
@@ -40,7 +40,14 @@ const vitalsLogSchema = new mongoose.Schema({
     // Temperature
     tempValue: { type: Number, default: null },
     tempUnit: { type: String, enum: ['F', 'C'], default: 'F' },
+    // Pulse (bpm) & SpO2 (%) — bedside logging
+    pulse: { type: Number, default: null },
+    spo2: { type: Number, default: null },
   },
+  // Spec 07: link to the originating care booking + who recorded it.
+  bookingKind: { type: String, enum: ['assistant', 'appointment', 'ipd', null], default: null },
+  bookingId: { type: mongoose.Schema.Types.ObjectId, default: null, index: true },
+  recordedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   note: {
     type: String,
     trim: true,

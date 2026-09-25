@@ -10,7 +10,7 @@ const config = {
   Model: LawyerBooking,
   providerType: 'lawyer',
   radiiKm: RADII,
-  async findEligibleProvidersFallback(lng, lat, radiusKm, excludeIds) {
+  async findEligibleProvidersFallback(lng, lat, radiusKm, excludeIds, request) {
     // Pass 1: lawyers explicitly online for urgent. Pass 2 (legacy): any
     // available urgent-accepting lawyer — so the toggle matters when used
     // but dispatch never dead-ends while nobody toggled it on yet.
@@ -31,6 +31,21 @@ const config = {
       lawyers = await LawyerProfile.find(base).select('userId currentLocation').lean();
     }
 
+    // Spec 06: conflict-of-interest screen — drop advocates who already
+    // represent the named opposing party for a different client.
+    const opposing = String(request?.opposingPartyName || '').trim();
+    if (opposing && lawyers.length) {
+      try {
+        const conflicted = await LawyerBooking.distinct('lawyerId', {
+          opposingPartyName: opposing,
+          userId: { $ne: request?.userId },
+          lawyerId: { $ne: null },
+        });
+        const conflictSet = new Set(conflicted.map(String));
+        lawyers = lawyers.filter((l) => !conflictSet.has(String(l.userId)));
+      } catch {}
+    }
+
     return lawyers.map((l) => {
       const c = l.currentLocation?.coordinates || [lng, lat];
       return {
@@ -46,6 +61,8 @@ const config = {
     requestId: String(request._id),
     category: request.category,
     caseDescription: request.caseDescription,
+    firNumber: request.firNumber || '',
+    policeStationName: request.policeStationName || '',
     consultationMode: request.consultationMode,
     fee: request.fee || request.budgetRange?.max || 1000,
     distanceKm: candidate.distanceKm,

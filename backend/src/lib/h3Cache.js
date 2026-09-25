@@ -33,6 +33,9 @@ export async function upsertProviderLocationCache({
 
     const res = getResolutionForVertical(providerType);
     const h3Cell = latLngToCell(lat, lng, res);
+    // Canonical res-8/res-9 cells (Mongo model fields + backfill consistency).
+    const h3Index8 = res === 8 ? h3Cell : latLngToCell(lat, lng, 8);
+    const h3Index9 = res === 9 ? h3Cell : latLngToCell(lat, lng, 9);
     const key = memberKey(providerId, providerType);
     const locKey = `provider:location:${key}`;
 
@@ -70,6 +73,8 @@ export async function upsertProviderLocationCache({
         accuracy,
         resolution: res,
         h3Cell,
+        h3Index8,
+        h3Index9,
         providerType,
         providerId,
         updatedAt: Date.now(),
@@ -77,7 +82,7 @@ export async function upsertProviderLocationCache({
       { EX: H3_PROVIDER_TTL_SECONDS }
     );
 
-    return { resolution: res, h3Cell };
+    return { resolution: res, h3Cell, h3Index8, h3Index9 };
   } catch (err) {
     logger.error(`upsertProviderLocationCache error: ${err.message}`);
     return null; // Fail-soft: callers fallback to MongoDB $geoNear

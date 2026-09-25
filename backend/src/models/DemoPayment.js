@@ -51,7 +51,8 @@ const demoPaymentSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['pending', 'paid'],
+    // Spec 21 mock escrow lifecycle: held → paid(released) | refunded | failed.
+    enum: ['pending', 'held_in_escrow', 'paid', 'refunded', 'failed'],
     default: 'pending',
     index: true,
   },

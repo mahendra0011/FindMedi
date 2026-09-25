@@ -69,6 +69,8 @@ export default function DoctorDashboard() {
   const [patientCarePlans, setPatientCarePlans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeIncomingCall, setActiveIncomingCall] = useState<any | null>(null);
+  // Spec 09: active emergency consultation (post-accept) with 1-tap ALS escalation.
+  const [activeEmergencyConsultId, setActiveEmergencyConsultId] = useState<string | null>(null);
   const mounted = useRef(true);
   const appointmentsSectionRef = useRef(null);
   const handleStatClick = (tab) => {
@@ -1110,6 +1112,7 @@ export default function DoctorDashboard() {
               // Wave dispatch accept: POST /api/instant/emergency_doctor/:id/accept
               await api.post(`/instant/emergency_doctor/${requestId}/accept`, {});
               toast.success('Emergency consultation accepted — patient will be notified!');
+              setActiveEmergencyConsultId(requestId);
               load(true);
             } catch (err: any) {
               toast.error(err?.response?.data?.message || 'Could not accept emergency');
@@ -1124,6 +1127,39 @@ export default function DoctorDashboard() {
             setActiveIncomingCall(null);
           }}
         />
+      )}
+
+      {/* Spec 09: active emergency consultation — escalate to ALS ambulance */}
+      {activeEmergencyConsultId && (
+        <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:w-96 z-[9990] rounded-2xl border-2 border-rose-500/50 bg-slate-950/95 backdrop-blur-xl p-4 text-white shadow-2xl">
+          <p className="text-xs font-black uppercase tracking-wider text-rose-400">
+            🩺 Active Emergency Consult
+          </p>
+          <p className="text-[11px] text-slate-300 mt-1 font-mono">#{activeEmergencyConsultId.slice(-6)}</p>
+          <div className="grid grid-cols-2 gap-2 mt-3">
+            <button
+              onClick={async () => {
+                try {
+                  const res = await api.post(`/emergency-doctor/${activeEmergencyConsultId}/escalate`, {});
+                  toast.success(`Ambulance dispatched (SOS ${String(res.sosRequestId || '').slice(-6)})`);
+                  setActiveEmergencyConsultId(null);
+                  load(true);
+                } catch (err: any) {
+                  toast.error(err?.response?.data?.message || err?.message || 'Escalation failed');
+                }
+              }}
+              className="h-10 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold"
+            >
+              🚑 Escalate to ALS
+            </button>
+            <button
+              onClick={() => setActiveEmergencyConsultId(null)}
+              className="h-10 rounded-xl border border-white/20 text-slate-300 text-xs font-bold hover:bg-white/10"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

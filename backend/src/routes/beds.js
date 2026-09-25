@@ -33,6 +33,36 @@ router.get('/stats', protect, scopeToHospital, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
+// ─── GET /api/beds/heatmap?res=6 ────────────────────────────────────────────
+// Spec expansion-01B: live ICU/bed availability rolled up to H3 parent hexagons
+// so dispatchers see capacity heat without polygonal geo-queries.
+router.get('/heatmap', protect, async (req, res) => {
+  try {
+    const res8 = Math.min(8, Math.max(5, Number(req.query.res) || 6));
+    const { latLngToCell } = await import('h3-js');
+    const { default: Hospital } = await import('../models/Hospital.js');
+    const perHospital = await Bed.aggregate([
+      { $match: { status: 'Available' } },
+      { $group: { _id: '$hospitalId', available: { $sum: 1 } } },
+    ]);
+    const ids = perHospital.map((r) => r._id).filter(Boolean);
+    const hospitals = await Hospital.find({ _id: { $in: ids } })
+      .select('name location').lean();
+    const locById = new Map(hospitals.map((h) => [String(h._id), h]));
+    const cells = {};
+    for (const row of perHospital) {
+      const hosp = locById.get(String(row._id));
+      const coords = hosp?.location?.coordinates;
+      if (!coords || coords.length < 2) continue;
+      const cell = latLngToCell(coords[1], coords[0], res8);
+      if (!cells[cell]) cells[cell] = { h3Cell: cell, resolution: res8, availableBeds: 0, hospitals: 0 };
+      cells[cell].availableBeds += row.available;
+      cells[cell].hospitals += 1;
+    }
+    res.json({ success: true, resolution: res8, cells: Object.values(cells) });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
 router.post('/', protect, scopeToHospital, validate(createBedSchema), async (req, res) => {
   try {
     if (req.user.role !== 'superadmin' && req.user.role !== 'hospital_admin') {

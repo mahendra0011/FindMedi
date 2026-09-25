@@ -46,3 +46,28 @@ export async function executeWithOutbox(operationFn, eventsToEmit = []) {
     session.endSession();
   }
 }
+
+/**
+ * Fail-soft outbox writer for hot dispatch paths.
+ * Records a PENDING OutboxEvent for the poller → Kafka pipeline.
+ * NEVER throws: dispatch must not break when Mongo is slow/down.
+ * For replica-set environments needing atomicity, use executeWithOutbox instead.
+ */
+export async function writeOutboxEvent({ aggregateType, aggregateId, eventType, payload = {}, destinationTopic } = {}) {
+  try {
+    if (!aggregateType || !aggregateId || !eventType) return null;
+    const doc = await OutboxEvent.create({
+      aggregateType,
+      aggregateId: String(aggregateId),
+      eventType,
+      payload,
+      destinationTopic: destinationTopic || 'findmedi.dispatch.booking-events.v1',
+      status: 'PENDING',
+      retryCount: 0,
+    });
+    return doc;
+  } catch (err) {
+    logger.warn(`writeOutboxEvent skipped (${eventType}): ${err.message}`);
+    return null;
+  }
+}
