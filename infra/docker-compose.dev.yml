@@ -1,0 +1,38 @@
+# FindMedi LOCAL dev stack (laptop testing).
+# Sirf Mongo (replica set = transactions work) + Redis.
+# Kafka/OpenSearch/Pinot/Flink CLOUD me chalao — app bina unke bhi
+# gracefully chalta hai (in-memory fallback), isliye laptop halka rehta hai.
+#
+# Usage:
+#   docker compose -f infra/docker-compose.dev.yml up -d
+#   docker exec findmedi-mongo1 mongosh --quiet --eval "rs.initiate({_id:'rs0',members:[{_id:0,host:'mongo1:27017'}]})"
+#
+# backend/.env (LOCAL testing ke liye):
+#   MONGO_URI=mongodb://127.0.0.1:27018/findmedi?directConnection=true
+#   REDIS_URL=redis://localhost:6380
+#   (bina KAFKA_*/VALHALLA_*/OPENSEARCH_* vars ke — app auto-fallback karega)
+
+services:
+  mongo1:
+    image: mongo:7.0
+    container_name: findmedi-mongo1
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongo_data:/data/db
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+    restart: unless-stopped
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: findmedi-redis
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "512mb", "--maxmemory-policy", "allkeys-lru"]
+    restart: unless-stopped
+
+volumes:
+  redis_data:
+  mongo_data:
