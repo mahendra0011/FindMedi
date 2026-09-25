@@ -163,16 +163,75 @@ export default function StaffDashboard() {
       {loading ? (
         <div className="flex justify-center py-16"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {conf.calls.map((c) => (
-            <Link key={c.key} to={c.link} className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
-              <p className="text-2xl font-bold text-foreground">{valueFor(c.key, stats[c.key])}</p>
-              <p className="text-xs text-muted-foreground mt-1">{c.label} →</p>
-            </Link>
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {conf.calls.map((c) => (
+              <Link key={c.key} to={c.link} className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
+                <p className="text-2xl font-bold text-foreground">{valueFor(c.key, stats[c.key])}</p>
+                <p className="text-xs text-muted-foreground mt-1">{c.label} →</p>
+              </Link>
+            ))}
+          </div>
+
+          {/* ── STAFF ACTION & OPERATIONS HUB (Audit Fixes) ── */}
+          <div className="mt-8">
+            <h2 className="text-lg font-bold text-foreground mb-4">Operations Hub</h2>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-card rounded-2xl border p-4 hover:border-blue-500/40 hover:shadow-sm transition-all flex flex-col justify-between cursor-pointer">
+                <div className="flex justify-between items-center mb-2">
+                  <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                    <span className="text-blue-500 font-bold text-lg">⏱️</span>
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600">Active Shift</span>
+                </div>
+                <div>
+                  <p className="text-xl font-bold text-foreground">Clock In/Out</p>
+                  <p className="text-[10px] text-muted-foreground uppercase font-semibold">Shift Handover & Timesheet</p>
+                </div>
+              </div>
+
+              <div className="bg-card rounded-2xl border p-4 hover:border-teal-500/40 hover:shadow-sm transition-all flex flex-col justify-between cursor-pointer">
+                <div className="flex justify-between items-center mb-2">
+                  <div className="w-8 h-8 rounded-lg bg-teal-500/10 flex items-center justify-center">
+                    <span className="text-teal-500 font-bold text-lg">📋</span>
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-500/10 text-teal-600">5 Tasks</span>
+                </div>
+                <div>
+                  <p className="text-xl font-bold text-foreground">Assignments</p>
+                  <p className="text-[10px] text-muted-foreground uppercase font-semibold">My Patients & Tasks</p>
+                </div>
+              </div>
+
+              <div className="bg-card rounded-2xl border p-4 hover:border-amber-500/40 hover:shadow-sm transition-all flex flex-col justify-between cursor-pointer">
+                <div className="flex justify-between items-center mb-2">
+                  <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                    <span className="text-amber-500 font-bold text-lg">💊</span>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xl font-bold text-foreground">MAR & Vitals</p>
+                  <p className="text-[10px] text-muted-foreground uppercase font-semibold">Medication & Charting</p>
+                </div>
+              </div>
+
+              <div className="bg-card rounded-2xl border p-4 hover:border-red-500/40 hover:shadow-sm transition-all flex flex-col justify-between cursor-pointer border-red-200 bg-red-50/50">
+                <div className="flex justify-between items-center mb-2">
+                  <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center">
+                    <span className="text-red-500 font-bold text-lg">🚨</span>
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-500 text-white animate-pulse">Code Blue</span>
+                </div>
+                <div>
+                  <p className="text-xl font-bold text-red-600">Emergency</p>
+                  <p className="text-[10px] text-red-500/70 uppercase font-semibold">Urgent Alerts & Codes</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
       )}
-      <p className="text-xs text-muted-foreground">Full clinical tools are in the sidebar (IPD, Triage, Nursing, Diet, BloodBank, Physio, OPD Token, Lab, Pharmacy, Radiology).</p>
+      <p className="text-xs text-muted-foreground mt-6">Full clinical tools are in the sidebar (IPD, Triage, Nursing, Diet, BloodBank, Physio, OPD Token, Lab, Pharmacy, Radiology).</p>
     </div>
   );
 }

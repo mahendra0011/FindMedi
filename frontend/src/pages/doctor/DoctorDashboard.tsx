@@ -5,7 +5,7 @@ import {
   CalendarDays, Clock, User, CheckCircle, CheckCircle2, AlertCircle, Star, DollarSign,
   Stethoscope, Activity, Users, FlaskConical, RotateCcw,
   MapPin, Phone, Video, MessageCircle, ChevronRight, Car, Sparkles,
-  Building2, Check, X, CalendarClock, Heart, RefreshCw
+  Building2, Check, X, CalendarClock, Heart, RefreshCw, Download
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -214,9 +214,93 @@ export default function DoctorDashboard() {
             <h1 className="font-heading text-2xl font-bold">Welcome, Dr. {user?.name}</h1>
             <p className="opacity-90">Here's your practice overview</p>
           </div>
-          <Button variant="secondary" size="sm" onClick={() => load(true)} className="gap-1.5 rounded-xl">
-            <RefreshCw className="w-3.5 h-3.5" /> Refresh
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                if (!appointments.length) {
+                  toast.error('No appointments to export');
+                  return;
+                }
+                const headers = ['ID', 'Patient Name', 'Date', 'Time', 'Mode', 'Status', 'Fee'];
+                const rows = appointments.map((a: any) => [
+                  a._id || '',
+                  `"${a.patientName || a.userId?.name || 'Patient'}"`,
+                  a.date || '',
+                  a.time || a.timeSlot || '',
+                  a.appointmentMode || a.type || 'In-Person',
+                  a.status || '',
+                  a.fee || a.amount || 0,
+                ]);
+                const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement('a');
+                link.setAttribute('href', encodedUri);
+                link.setAttribute('download', `doctor_appointments_${new Date().toISOString().slice(0, 10)}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                toast.success('Appointments CSV exported successfully');
+              }}
+              className="gap-1.5 rounded-xl bg-white/20 hover:bg-white/30 text-white border-0"
+            >
+              <Download className="w-3.5 h-3.5" /> Export CSV
+            </Button>
+            <Button variant="secondary" size="sm" onClick={() => load(true)} className="gap-1.5 rounded-xl">
+              <RefreshCw className="w-3.5 h-3.5" /> Refresh
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Doctor Operational Alerts & Quick Actions (Audit fixes) */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div 
+          onClick={() => navigate('/doctor/emergency')}
+          className="bg-card rounded-2xl border p-3 border-red-200 dark:border-red-900/50 hover:bg-red-50/50 dark:hover:bg-red-950/20 cursor-pointer transition-all flex flex-col items-center justify-center text-center group"
+        >
+          <div className="relative mb-2">
+            <AlertCircle className="w-6 h-6 text-red-600 dark:text-red-400 group-hover:scale-110 transition-transform" />
+            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full animate-ping" />
+          </div>
+          <p className="text-xs font-bold text-red-600 dark:text-red-400 uppercase tracking-wider">Emergency SOS</p>
+        </div>
+
+        <div 
+          onClick={() => navigate('/doctor/test-results')}
+          className="bg-card rounded-2xl border p-3 hover:border-primary/40 hover:shadow-sm cursor-pointer transition-all flex flex-col items-center justify-center text-center group"
+        >
+          <FlaskConical className="w-6 h-6 text-blue-500 mb-2 group-hover:scale-110 transition-transform" />
+          <p className="text-xl font-bold text-foreground leading-none mb-1">{labReports.length}</p>
+          <p className="text-[10px] text-muted-foreground uppercase font-semibold">New Lab Results</p>
+        </div>
+
+        <div 
+          onClick={() => navigate('/doctor/leave-requests')}
+          className="bg-card rounded-2xl border p-3 hover:border-primary/40 hover:shadow-sm cursor-pointer transition-all flex flex-col items-center justify-center text-center group"
+        >
+          <CalendarDays className="w-6 h-6 text-amber-500 mb-2 group-hover:scale-110 transition-transform" />
+          <p className="text-xs font-bold text-foreground uppercase tracking-wider mb-0.5">My Leaves</p>
+          <p className="text-[10px] text-muted-foreground">Manage Schedule</p>
+        </div>
+
+        <div 
+          onClick={() => navigate('/doctor/video-calls')}
+          className="bg-card rounded-2xl border p-3 border-cyan-200 dark:border-cyan-900/50 hover:bg-cyan-50/50 dark:hover:bg-cyan-950/20 cursor-pointer transition-all flex flex-col items-center justify-center text-center group"
+        >
+          <Video className="w-6 h-6 text-cyan-600 dark:text-cyan-400 mb-2 group-hover:scale-110 transition-transform" />
+          <p className="text-xs font-bold text-cyan-700 dark:text-cyan-400 uppercase tracking-wider mb-0.5">Quick Video</p>
+          <p className="text-[10px] text-muted-foreground">Start Call</p>
+        </div>
+
+        <div 
+          onClick={() => navigate('/doctor/calls')}
+          className="bg-card rounded-2xl border p-3 border-emerald-200 dark:border-emerald-900/50 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/20 cursor-pointer transition-all flex flex-col items-center justify-center text-center group"
+        >
+          <Phone className="w-6 h-6 text-emerald-600 dark:text-emerald-400 mb-2 group-hover:scale-110 transition-transform" />
+          <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider mb-0.5">Quick Audio</p>
+          <p className="text-[10px] text-muted-foreground">Start Call</p>
         </div>
       </div>
 

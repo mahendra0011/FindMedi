@@ -15,22 +15,27 @@ export default function DoctorPrescriptions() {
     setLoading(true);
     try {
       const docName = user?.name?.toLowerCase();
+      const docId = user?.id || user?._id;
 
       // 1. Prescriptions (records)
       const recData = await api.getRecords();
       const recArr = recData?.data || recData?.records || recData || [];
-      const prescriptions = recArr.filter(r =>
-        r.doctor?.toLowerCase().includes(docName) &&
-        r.type?.toLowerCase() === 'prescription'
-      );
+      const prescriptions = recArr.filter(r => {
+        const matchesId = docId && (r.doctorId === docId || r.doctor_id === docId || r.createdBy === docId);
+        const matchesName = docName && (r.doctor?.toLowerCase().includes(docName) || r.doctorName?.toLowerCase().includes(docName));
+        const isPrescription = r.type?.toLowerCase() === 'prescription';
+        return (matchesId || matchesName) && isPrescription;
+      });
       setRecords(prescriptions);
 
       // 2. Bills & Invoices (billing)
       const billData = await api.getBilling();
       const billArr = billData?.data || billData?.bills || billData || [];
-      const myBills = billArr.filter(b =>
-        b.doctor?.toLowerCase().includes(docName)
-      );
+      const myBills = billArr.filter(b => {
+        const matchesId = docId && (b.doctorId === docId || b.doctor_id === docId || b.createdBy === docId);
+        const matchesName = docName && (b.doctor?.toLowerCase().includes(docName) || b.doctorName?.toLowerCase().includes(docName));
+        return matchesId || matchesName;
+      });
 
       // Split bills vs invoices by billType / data.type
       const billList = [];

@@ -8,7 +8,7 @@ import {
   X, Download, Syringe, CreditCard,
   Smartphone, Landmark, Wallet, RotateCcw, Sparkles, CheckCircle2,
   RefreshCw, Video, MapPin, Building2, CalendarClock,
-  Siren
+  Siren, Stethoscope, Activity, Users, Leaf
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -587,6 +587,87 @@ export default function PatientDashboard() {
               <span className="text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1">
                 Open Chat <ChevronRight className="w-3 h-3" />
               </span>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* ── COMPREHENSIVE CARE TOOLKIT (Audit Fixes) ── */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="mb-6"
+      >
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-blue-500/10 flex items-center justify-center">
+              <Activity className="w-4 h-4 text-blue-500" />
+            </div>
+            <div>
+              <h3 className="font-heading font-black text-lg text-foreground">Health & Family Management</h3>
+              <p className="text-xs text-muted-foreground font-medium">Tools to manage your medical profile</p>
+            </div>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+          <div onClick={() => navigate('/patient/family')} className="bg-card rounded-2xl border p-3 hover:border-blue-500/40 hover:shadow-sm transition-all flex flex-col justify-between cursor-pointer">
+            <div className="flex justify-between items-center mb-2">
+              <div className="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                <Users className="w-3.5 h-3.5 text-blue-500" />
+              </div>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-foreground">Family</p>
+              <p className="text-[9px] text-muted-foreground uppercase font-semibold">Health Dashboard</p>
+            </div>
+          </div>
+
+          <div onClick={() => navigate('/patient/prescriptions')} className="bg-card rounded-2xl border p-3 hover:border-rose-500/40 hover:shadow-sm transition-all flex flex-col justify-between cursor-pointer">
+            <div className="flex justify-between items-center mb-2">
+              <div className="w-7 h-7 rounded-lg bg-rose-500/10 flex items-center justify-center">
+                <Pill className="w-3.5 h-3.5 text-rose-500" />
+              </div>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-foreground">Rx Safety</p>
+              <p className="text-[9px] text-muted-foreground uppercase font-semibold">Interaction Check</p>
+            </div>
+          </div>
+
+          <div onClick={() => navigate('/patient/appointments')} className="bg-card rounded-2xl border p-3 hover:border-amber-500/40 hover:shadow-sm transition-all flex flex-col justify-between cursor-pointer">
+            <div className="flex justify-between items-center mb-2">
+              <div className="w-7 h-7 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                <CalendarDays className="w-3.5 h-3.5 text-amber-500" />
+              </div>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-foreground">Schedules</p>
+              <p className="text-[9px] text-muted-foreground uppercase font-semibold">Reschedule & Waits</p>
+            </div>
+          </div>
+
+          <div onClick={() => navigate('/patient/care-plans')} className="bg-card rounded-2xl border p-3 hover:border-emerald-500/40 hover:shadow-sm transition-all flex flex-col justify-between cursor-pointer">
+            <div className="flex justify-between items-center mb-2">
+              <div className="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                <Leaf className="w-3.5 h-3.5 text-emerald-500" />
+              </div>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-foreground">Diet & Rehab</p>
+              <p className="text-[9px] text-muted-foreground uppercase font-semibold">Physio Logs & Meals</p>
+            </div>
+          </div>
+
+          <div onClick={() => navigate('/patient/records')} className="bg-card rounded-2xl border p-3 hover:border-violet-500/40 hover:shadow-sm transition-all flex flex-col justify-between cursor-pointer">
+            <div className="flex justify-between items-center mb-2">
+              <div className="w-7 h-7 rounded-lg bg-violet-500/10 flex items-center justify-center">
+                <FileText className="w-3.5 h-3.5 text-violet-500" />
+              </div>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-foreground">Insurance</p>
+              <p className="text-[9px] text-muted-foreground uppercase font-semibold">Claims Tracker</p>
             </div>
           </div>
         </div>
