@@ -1,0 +1,43 @@
+{
+    "schemaName":  "emergency_dispatch_metrics",
+    "dimensionFieldSpecs":  [
+                                {
+                                    "name":  "vertical",
+                                    "dataType":  "STRING"
+                                },
+                                {
+                                    "name":  "severityLevel",
+                                    "dataType":  "STRING"
+                                },
+                                {
+                                    "name":  "status",
+                                    "dataType":  "STRING"
+                                },
+                                {
+                                    "name":  "h3_res6",
+                                    "dataType":  "STRING"
+                                },
+                                {
+                                    "name":  "bookingId",
+                                    "dataType":  "STRING"
+                                },
+                                {
+                                    "name":  "providerId",
+                                    "dataType":  "STRING"
+                                }
+                            ],
+    "metricFieldSpecs":  [
+                             {
+                                 "name":  "response_time_seconds",
+                                 "dataType":  "DOUBLE"
+                             }
+                         ],
+    "dateTimeFieldSpecs":  [
+                               {
+                                   "name":  "timestamp_epoch_ms",
+                                   "dataType":  "LONG",
+                                   "format":  "1:MILLISECONDS:EPOCH",
+                                   "granularity":  "1:MILLISECONDS"
+                               }
+                           ]
+}
