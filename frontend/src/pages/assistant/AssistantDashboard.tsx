@@ -180,6 +180,28 @@ export default function AssistantDashboard() {
   const [declining, setDeclining] = useState(false);
 
   const [historyDetailBooking, setHistoryDetailBooking] = useState<any | null>(null);
+  // Spec 07: vitals chart for the open booking detail.
+  const [detailVitals, setDetailVitals] = useState<any[]>([]);
+
+  useEffect(() => {
+    const id = historyDetailBooking?._id;
+    if (!id) {
+      setDetailVitals([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await api.get(`/assistant-bookings/${id}/vitals`);
+        if (!cancelled) setDetailVitals(res?.vitals || []);
+      } catch {
+        if (!cancelled) setDetailVitals([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [historyDetailBooking?._id]);
   const [downloadingPdfId, setDownloadingPdfId] = useState<string | null>(null);
   const [showSosModal, setShowSosModal] = useState(false);
   const [showIncidentModal, setShowIncidentModal] = useState(false);
@@ -1035,6 +1057,36 @@ export default function AssistantDashboard() {
                   ))}
                 </div>
               </div>
+
+              {/* Vitals chart (logged bedside) */}
+              {detailVitals.length > 0 && (
+                <div>
+                  <h4 className="font-bold text-slate-700 dark:text-slate-300 mb-2">Vitals Logged During Shift:</h4>
+                  <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                    {detailVitals.map((v: any) => (
+                      <div
+                        key={v._id || `${v.vitalType}-${v.recordedAt}`}
+                        className="p-2 rounded-xl border bg-rose-50/50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900/50 text-xs flex items-center justify-between"
+                      >
+                        <span className="font-bold text-rose-700 dark:text-rose-300 uppercase">
+                          {String(v.vitalType).replace('_', ' ')}
+                        </span>
+                        <span className="text-slate-600 dark:text-slate-300 font-mono">
+                          {v.values?.systolic ? `${v.values.systolic}/${v.values.diastolic ?? '-'} ` : ''}
+                          {v.values?.pulse ? `♥ ${v.values.pulse} ` : ''}
+                          {v.values?.spo2 ? `O₂ ${v.values.spo2}% ` : ''}
+                          {v.values?.tempValue ? `${v.values.tempValue}°${v.values.tempUnit || 'F'} ` : ''}
+                          {v.values?.sugarValue ? `Sugar ${v.values.sugarValue} ` : ''}
+                          {v.values?.weightKg ? `${v.values.weightKg}kg` : ''}
+                        </span>
+                        <span className="text-[10px] text-slate-400">
+                          {v.recordedAt ? new Date(v.recordedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
