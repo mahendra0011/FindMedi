@@ -1,6 +1,10 @@
 import { randomUUID } from 'crypto';
-import { KAFKA_TOPICS, isKafkaConfigured } from '../config/kafka.js';
+import { KAFKA_TOPICS, KAFKA_CLIENT_ID, KAFKA_BOOTSTRAP_SERVERS, isKafkaConfigured } from '../config/kafka.js';
 import logger from '../config/logger.js';
+
+let kafkaInstance = null;
+let producerInstance = null;
+let producerConnecting = null;
 
 /**
  * Validates and formats event payload according to Schema Registry contracts.
@@ -19,9 +23,34 @@ function validateAndEnvelopEvent(topic, key, payload) {
   };
 }
 
+async function getProducer() {
+  if (!isKafkaConfigured()) return null;
+  if (producerInstance) return producerInstance;
+  if (!producerConnecting) {
+    producerConnecting = (async () => {
+      const { Kafka } = await import('kafkajs');
+      kafkaInstance = new Kafka({ clientId: KAFKA_CLIENT_ID, brokers: KAFKA_BOOTSTRAP_SERVERS });
+      const producer = kafkaInstance.producer({
+        idempotent: true, // Spec 10: enable.idempotence=true (no dupes on retry)
+        maxInFlightRequests: 5,
+      });
+      await producer.connect();
+      producerInstance = producer;
+      logger.info('Kafka producer connected (idempotent, acks=-1)');
+      return producer;
+    })().catch((err) => {
+      producerConnecting = null;
+      throw err;
+    });
+  }
+  return producerConnecting;
+}
+
 /**
  * Publishes an event to the Kafka event backbone.
- * Uses graceful fail-soft fallback if Kafka brokers are not currently running.
+ * Real broker send when configured (acks=all via idempotent producer);
+ * graceful in-memory resolve otherwise. Never throws fatally — returns
+ * deliveredTo so callers/poller can react.
  */
 export async function emitKafkaEvent(topic, key, payload) {
   const enveloped = validateAndEnvelopEvent(topic, key, payload);
@@ -37,8 +66,12 @@ export async function emitKafkaEvent(topic, key, payload) {
   }
 
   try {
-    // Production Kafka producer emission logic
-    // Using dynamic import so missing kafka npm package doesn't crash non-Kafka environments
+    const producer = await getProducer();
+    await producer.send({
+      topic,
+      acks: -1, // Spec 10: all in-sync replicas must acknowledge
+      messages: [{ key: enveloped.key, value: JSON.stringify(enveloped) }],
+    });
     logger.info(`[KAFKA_PRODUCED] Topic: ${topic} | Key: ${key} | EventId: ${enveloped.eventId}`);
     return {
       success: true,
@@ -49,6 +82,15 @@ export async function emitKafkaEvent(topic, key, payload) {
     logger.error(`Failed to publish event to Kafka [${topic}]: ${err.message}`);
     throw err;
   }
+}
+
+export async function disconnectProducer() {
+  try {
+    await producerInstance?.disconnect();
+  } catch {}
+  producerInstance = null;
+  producerConnecting = null;
+  kafkaInstance = null;
 }
 
 /**

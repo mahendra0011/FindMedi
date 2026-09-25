@@ -1,9 +1,10 @@
-import { KAFKA_TOPICS, isKafkaConfigured } from '../config/kafka.js';
+import { KAFKA_TOPICS, KAFKA_CLIENT_ID, KAFKA_BOOTSTRAP_SERVERS, isKafkaConfigured } from '../config/kafka.js';
 import { redisClient, isRedisReady } from '../config/redis.js';
 import { upsertProviderLocationCache, removeProviderFromCache } from '../lib/h3Cache.js';
 import logger from '../config/logger.js';
 
 let isListening = false;
+let consumerInstance = null;
 
 async function bumpDemandCounter(h3Cell, vertical) {
   try {
@@ -100,22 +101,57 @@ export async function handleIncomingEvent(topic, eventPayload) {
 
 /**
  * Starts the resilient event subscriber daemon.
- * Without a live Kafka cluster it serves the in-process backbone
- * (poller → handleIncomingEvent); with brokers configured the same
- * handler set attaches to consumer groups.
+ * With brokers configured: real KafkaJS consumer group
+ * (findmedi-core-consumers) on booking + SOS topics, dispatching every
+ * message into handleIncomingEvent. Without: in-process backbone
+ * (poller → handleIncomingEvent) as before.
  */
-export function startKafkaConsumer() {
+export async function startKafkaConsumer() {
   if (isListening) return;
   isListening = true;
 
-  if (isKafkaConfigured()) {
-    logger.info('Starting Production Kafka Consumer Group (findmedi-core-consumers)');
-  } else {
+  if (!isKafkaConfigured()) {
     logger.info('Starting In-Memory Event Backbone Consumer (Development Mode)');
+    return;
+  }
+
+  try {
+    const { Kafka } = await import('kafkajs');
+    const kafka = new Kafka({ clientId: KAFKA_CLIENT_ID, brokers: KAFKA_BOOTSTRAP_SERVERS });
+    const consumer = kafka.consumer({ groupId: 'findmedi-core-consumers' });
+    await consumer.connect();
+    await consumer.subscribe({
+      topics: [KAFKA_TOPICS.BOOKING_EVENTS, KAFKA_TOPICS.SOS_ALERTS, KAFKA_TOPICS.PROVIDER_PRESENCE],
+      fromBeginning: false,
+    });
+    await consumer.run({
+      eachMessage: async ({ topic, message }) => {
+        try {
+          const enveloped = JSON.parse(message.value.toString());
+          const inner = enveloped.payload || {};
+          await handleIncomingEvent(topic, {
+            eventType: inner.eventType,
+            aggregateId: inner.aggregateId,
+            payload: inner,
+          });
+        } catch (err) {
+          logger.warn(`Consumer message skipped (${topic}): ${err.message}`);
+        }
+      },
+    });
+    consumerInstance = consumer;
+    logger.info('Started Production Kafka Consumer Group (findmedi-core-consumers)');
+  } catch (err) {
+    isListening = false;
+    logger.error(`Kafka consumer start failed, in-memory backbone continues: ${err.message}`);
   }
 }
 
-export function stopKafkaConsumer() {
+export async function stopKafkaConsumer() {
   isListening = false;
+  try {
+    await consumerInstance?.disconnect();
+  } catch {}
+  consumerInstance = null;
   logger.info('Stopped Kafka Consumer Daemon');
 }
