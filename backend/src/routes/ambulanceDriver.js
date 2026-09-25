@@ -4,6 +4,7 @@ import Ambulance from '../models/Ambulance.js';
 import EmergencyRequest from '../models/EmergencyRequest.js';
 import { getIO } from '../services/socketService.js';
 import { syncHospitalAmbulanceFlag } from '../services/emergencyDispatchService.js';
+import { upsertProviderLocationCache, removeProviderFromCache } from '../lib/h3Cache.js';
 
 const router = express.Router();
 router.use(protect, restrictTo('ambulance'));
@@ -54,8 +55,17 @@ router.put('/me/online', async (req, res) => {
     if (amb.hospitalId?.status !== 'approved') return res.status(403).json({ message: 'Hospital approved nahi hai' });
     amb.currentLocation = { type: 'Point', coordinates: [Number(lng), Number(lat)], accuracy: accuracy != null ? Number(accuracy) : null, updatedAt: new Date() };
     amb.lastPingAt = new Date();
+    // File 02 — keep Redis H3 hex cache in sync (SOS fast-path reads it first)
+    upsertProviderLocationCache({
+      providerId: req.user._id,
+      providerType: 'ambulance',
+      lat: Number(lat),
+      lng: Number(lng),
+    }).catch(() => {});
   } else if (amb.isOnDuty) {
     return res.status(409).json({ message: 'Active job ke dauran offline nahi ho sakte' });
+  } else {
+    removeProviderFromCache({ providerId: req.user._id, providerType: 'ambulance' }).catch(() => {});
   }
   amb.isOnline = !!online;
   await amb.save();
@@ -74,6 +84,13 @@ router.put('/me/location', async (req, res) => {
   };
   if (accuracy != null) locUpdate['currentLocation.accuracy'] = Number(accuracy);
   await Ambulance.updateOne({ _id: req.ambulance._id }, locUpdate);
+  // File 02 — heartbeat keeps H3 hex cache fresh (TTL 5 min)
+  upsertProviderLocationCache({
+    providerId: req.user._id,
+    providerType: 'ambulance',
+    lat: Number(lat),
+    lng: Number(lng),
+  }).catch(() => {});
   if (req.ambulance.currentEmergencyId || req.ambulance.isOnDuty) {
     const job = await EmergencyRequest.findOne({
       assignedProviderId: req.ambulance._id, status: { $in: ['assigned', 'en_route'] },

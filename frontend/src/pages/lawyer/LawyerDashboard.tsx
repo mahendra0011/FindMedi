@@ -314,10 +314,37 @@ export default function LawyerDashboard() {
       }
     };
 
+    // Wave-based instant dispatch alert (H3 radius expand engine)
+    const handleInstantLawyerAlert = (payload: any) => {
+      if (!payload?.requestId && !payload?.bookingId) return;
+      const booking = {
+        _id: payload.requestId || payload.bookingId,
+        bookingNumber: payload.bookingNumber,
+        category: payload.category,
+        caseCategory: payload.caseCategory,
+        consultationMode: payload.consultationMode || 'video',
+        fee: payload.amount || 0,
+        scheduledDate: payload.scheduledTime,
+        specialInstructions: payload.specialInstructions,
+        windowSeconds: payload.windowSeconds || 30,
+        status: 'requested',
+        isInstantWave: true,
+      };
+      setIncomingRequests((prev) =>
+        prev.some((r) => String(r._id) === String(booking._id))
+          ? prev
+          : [{ ...booking, _receivedAt: Date.now() }, ...prev]
+      );
+      setAcceptedWaiting(false);
+      setActiveIncomingCall(booking);
+    };
+
     socket.on('new_booking_request', handleNewRequest);
+    socket.on('lawyer:alert', handleInstantLawyerAlert);
 
     return () => {
       socket.off('new_booking_request', handleNewRequest);
+      socket.off('lawyer:alert', handleInstantLawyerAlert);
     };
   }, []);
 
@@ -836,10 +863,23 @@ export default function LawyerDashboard() {
           }}
           acceptedWaiting={acceptedWaiting || String(acceptingId) === String(activeIncomingCall._id)}
           onAccept={async (bookingId) => {
+            // Wave-based bookings (lawyer:alert) vote via instant dispatch;
+            // traditional new_booking_request accepts use the lawyer booking API.
+            if (activeIncomingCall?.isInstantWave) {
+              try {
+                await api.post(`/instant/lawyer/${bookingId}/accept`, {});
+                toast.success('Vote cast — waiting for dispatch confirmation…');
+                setAcceptedWaiting(true);
+                setTimeout(() => {
+                  setActiveIncomingCall(null);
+                  setAcceptedWaiting(false);
+                }, 1100);
+              } catch (err: any) {
+                toast.error(err?.response?.data?.message || 'Could not accept request');
+              }
+              return;
+            }
             const accepted = await handleAcceptRequest(bookingId);
-            // Success → show "Booking accepted" on the call screen briefly, then close it.
-            // Failure → keep the call screen open so the advocate can retry. (Earlier it
-            // always closed silently, so it looked like the accept did nothing at all.)
             if (accepted) {
               setAcceptedWaiting(true);
               setTimeout(() => {

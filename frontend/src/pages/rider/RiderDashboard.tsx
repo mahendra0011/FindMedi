@@ -221,11 +221,36 @@ export default function RiderDashboard() {
       }
     };
 
+    // Wave-based instant dispatch alert (H3 radius expand engine)
+    const handleInstantRideAlert = (payload: any) => {
+      const normalized = {
+        rideId: payload.requestId || payload.rideId,
+        bookingNumber: payload.bookingNumber,
+        vehicleType: payload.vehicleType || payload.type,
+        isEmergency: payload.isEmergency,
+        pickup: payload.pickup || payload.location,
+        drop: payload.drop,
+        distanceKm: payload.distanceKm,
+        estimatedFare: payload.amount || payload.estimatedFare || 0,
+        durationMin: payload.durationMin,
+        countdown: payload.windowSeconds || 30,
+        priorityRank: payload.priorityRank,
+        userName: payload.userName,
+        userPhone: payload.userPhone,
+        isInstantWave: true,
+      };
+      setIncomingRequests((prev) => {
+        if (prev.some((r) => r.rideId === normalized.rideId)) return prev;
+        return [normalized, ...prev];
+      });
+    };
+
     if (activeRide?._id) {
       socket.emit('join_ride_room', { rideId: activeRide._id });
     }
 
     socket.on('new_ride_request', handleNewRequest);
+    socket.on('ride:alert', handleInstantRideAlert);
     socket.on('ride_taken', handleRideTaken);
     socket.on('ride_status_update', handleRideStatusUpdate);
     socket.on('ride_cancelled', handleRideCancelled);
@@ -236,6 +261,7 @@ export default function RiderDashboard() {
         socket.emit('leave_ride_room', { rideId: activeRide._id });
       }
       socket.off('new_ride_request', handleNewRequest);
+      socket.off('ride:alert', handleInstantRideAlert);
       socket.off('ride_taken', handleRideTaken);
       socket.off('ride_status_update', handleRideStatusUpdate);
       socket.off('ride_cancelled', handleRideCancelled);

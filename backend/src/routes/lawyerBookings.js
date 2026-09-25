@@ -19,6 +19,7 @@ import {
   CATEGORY_MAP_TO_DISPLAY,
 } from '../services/lawyerService.js';
 import { generateLawyerReceiptPdf } from '../services/lawyerReceiptService.js';
+import { startLawyerDispatch, acceptLawyerRequest, rejectLawyerRequest } from '../services/lawyerDispatchService.js';
 import { getIO } from '../services/socketService.js';
 import logger from '../config/logger.js';
 
@@ -97,17 +98,20 @@ router.post('/book', protect, validate(bookLawyerSchema), async (req, res) => {
         landmarkName: req.body.location.landmarkName || '',
         city: req.body.location.city || '',
       } : undefined,
-      status: 'requested',
-      statusHistory: [{ status: 'requested', at: new Date(), note: 'Booking requested by client' }],
+      status: resolvedUrgency === 'urgent' && !isTargeted ? 'searching' : 'requested',
+      statusHistory: [{ status: resolvedUrgency === 'urgent' && !isTargeted ? 'searching' : 'requested', at: new Date(), note: 'Booking requested by client' }],
     });
 
-    // If no caseThreadId was passed, the pre-save hook set it to booking._id
-    await broadcastLawyerBooking(booking, req.user);
+    if (resolvedUrgency === 'urgent' && !isTargeted) {
+      startLawyerDispatch(booking._id).catch((err) => logger.error(`Lawyer wave dispatch error: ${err.message}`));
+    } else {
+      await broadcastLawyerBooking(booking, req.user);
+    }
 
     res.status(201).json({
       success: true,
       message: resolvedUrgency === 'urgent'
-        ? (targetLawyerOnly ? 'Urgent request sent to advocate' : 'Urgent request broadcasted to available advocates')
+        ? (targetLawyerOnly ? 'Urgent request sent to advocate' : 'Urgent request dispatched via wave alert engine')
         : 'Consultation request sent successfully',
       booking,
     });

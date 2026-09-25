@@ -11,6 +11,7 @@ import Notification from '../models/Notification.js';
 import { calculateDistanceKm, estimateETA } from './rideService.js';
 export { calculateDistanceKm, estimateETA };
 import logger from '../config/logger.js';
+import { findCandidatesByHex } from '../lib/h3Cache.js';
 
 // Doc 01 §3 — no hardcodes
 const AMBULANCE_RADII = (process.env.SOS_AMBULANCE_RADII || '5,10,15').split(',').map(Number);
@@ -47,6 +48,101 @@ export async function syncHospitalAmbulanceFlag(hospitalId) {
 
 const freshnessCutoff = () => new Date(Date.now() - LOC_MAX_AGE_MS);
 
+function toObjectIds(ids) {
+  return (ids || [])
+    .filter((id) => id && mongoose.Types.ObjectId.isValid(id))
+    .map((id) => new mongoose.Types.ObjectId(id));
+}
+
+/**
+ * File 02 §5 — H3 fast-path (Redis hex-ring → hydrate + exact distance).
+ * Returns [] when H3 yields nothing usable — caller MUST fall through to $geoNear.
+ * Mongo $geoNear stays source of truth; H3 is pure speed layer.
+ */
+async function hydrateAmbulanceCandidates(pickupLng, pickupLat, radiusKm, excludeIds) {
+  try {
+    const { candidates } = await findCandidatesByHex({
+      lat: Number(pickupLat),
+      lng: Number(pickupLng),
+      providerType: 'ambulance',
+      excludeIds,
+    });
+    if (!candidates.length) return [];
+    const userIds = toObjectIds(candidates);
+    if (!userIds.length) return [];
+    const docs = await Ambulance.find({
+      userId: { $in: userIds },
+      _id: { $nin: toObjectIds(excludeIds) },
+      isOnline: true,
+      isOnDuty: false,
+      emergencySupport: true,
+      'currentLocation.updatedAt': { $gte: freshnessCutoff() },
+    }).populate('hospitalId', 'name emergencySupport status').lean();
+    const out = [];
+    for (const d of docs) {
+      const hosp = d.hospitalId;
+      if (!hosp || hosp.emergencySupport !== true || hosp.status !== 'approved') continue;
+      const coords = d.currentLocation?.coordinates;
+      if (!coords || coords.length < 2) continue;
+      const distanceKm = Math.round(calculateDistanceKm(Number(pickupLat), Number(pickupLng), coords[1], coords[0]) * 10) / 10;
+      if (distanceKm > radiusKm) continue;
+      out.push({ ...d, hospital: hosp, distanceKm, userId: d.userId ? String(d.userId) : null });
+    }
+    out.sort((a, b) => a.distanceKm - b.distanceKm);
+    return out.slice(0, Number(process.env.SOS_MAX_CANDIDATES_PER_WAVE || 30));
+  } catch (err) {
+    logger.error(`hydrateAmbulanceCandidates H3 error: ${err.message}`);
+    return [];
+  }
+}
+
+async function hydrateVehicleRiderCandidates(pickupLng, pickupLat, radiusKm, excludeIds) {
+  try {
+    const { candidates } = await findCandidatesByHex({
+      lat: Number(pickupLat),
+      lng: Number(pickupLng),
+      providerType: 'rider',
+      excludeIds,
+    });
+    if (!candidates.length) return [];
+    const userIds = toObjectIds(candidates);
+    if (!userIds.length) return [];
+    const matchingVehicles = await Vehicle.find({
+      type: { $in: ['auto', 'car', 'van', 'e_rickshaw'] },
+    }).select('_id');
+    const vehicleIds = matchingVehicles.map((v) => v._id);
+    if (!vehicleIds.length) return [];
+    const ACTIVE_RIDE_STATUSES = ['accepted', 'rider_arriving', 'arrived', 'in_progress'];
+    const busyOnRide = await RideBooking.distinct('riderId', { status: { $in: ACTIVE_RIDE_STATUSES } });
+    const busyOnSOS = await EmergencyRequest.distinct('assignedProviderId', {
+      assignedProviderType: 'rider',
+      status: { $in: ['assigned', 'en_route'] },
+    });
+    const skipUsers = toObjectIds([...(excludeIds || []), ...busyOnRide.map(String), ...busyOnSOS.map(String)]);
+    const profiles = await RiderProfile.find({
+      userId: { $in: userIds, $nin: skipUsers },
+      isOnline: true,
+      riderStatus: 'active',
+      emergencySupport: true,
+      vehicleId: { $in: vehicleIds },
+      'currentLocation.updatedAt': { $gte: freshnessCutoff() },
+    }).populate('userId', 'name phone').populate('vehicleId').lean();
+    const out = [];
+    for (const p of profiles) {
+      const coords = p.currentLocation?.coordinates;
+      if (!coords || coords.length < 2) continue;
+      const distanceKm = Math.round(calculateDistanceKm(Number(pickupLat), Number(pickupLng), coords[1], coords[0]) * 10) / 10;
+      if (distanceKm > radiusKm) continue;
+      out.push({ ...p, user: p.userId, vehicle: p.vehicleId, distanceKm });
+    }
+    out.sort((a, b) => a.distanceKm - b.distanceKm);
+    return out.slice(0, Number(process.env.SOS_MAX_CANDIDATES_PER_WAVE || 30));
+  } catch (err) {
+    logger.error(`hydrateVehicleRiderCandidates H3 error: ${err.message}`);
+    return [];
+  }
+}
+
 /**
  * Find nearby hospital-owned ambulances eligible for emergency dispatch
  * Doc 01 §5: GPS must be fresh (≤2min), Doc 02: userId direct (no Staff lookup)
@@ -63,6 +159,11 @@ export async function findEligibleAmbulances(pickupLng, pickupLat, radiusKm = 10
     const ex = excludeIds
       .filter(id => id && mongoose.Types.ObjectId.isValid(id))
       .map(id => new mongoose.Types.ObjectId(id));
+
+    // File 02 §5 — H3 fast-path first; empty → $geoNear fallback below.
+    const h3Ambulances = await hydrateAmbulanceCandidates(pickupLng, pickupLat, radiusKm, excludeIds);
+    if (h3Ambulances.length) return h3Ambulances;
+
     const ambulances = await Ambulance.aggregate([
       {
         $geoNear: {
@@ -124,6 +225,10 @@ export async function findEligibleEmergencyVehicles(pickupLng, pickupLat, radius
       return [];
     }
     const radiusMeters = radiusKm * 1000;
+
+    // File 02 §5 — H3 fast-path first; empty → $geoNear fallback below.
+    const h3Riders = await hydrateVehicleRiderCandidates(pickupLng, pickupLat, radiusKm, excludeIds);
+    if (h3Riders.length) return h3Riders;
 
     const matchingVehicles = await Vehicle.find({
       type: { $in: ['auto', 'car', 'van', 'e_rickshaw'] },

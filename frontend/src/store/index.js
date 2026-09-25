@@ -6,6 +6,7 @@ import uiReducer from './slices/uiSlice';
 import notificationsReducer from './slices/notificationsSlice';
 import cartReducer from './slices/cartSlice';
 import mapReducer from './slices/mapSlice';
+import instantDispatchReducer from './slices/instantDispatchSlice';
 
 const rootReducer = combineReducers({
   auth: authReducer,
@@ -14,6 +15,7 @@ const rootReducer = combineReducers({
   notifications: notificationsReducer,
   cart: cartReducer,
   map: mapReducer,
+  instantDispatch: instantDispatchReducer,
 });
 
 export const store = configureStore({

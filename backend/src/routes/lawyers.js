@@ -9,6 +9,7 @@ import {
   CATEGORY_MAP_TO_DISPLAY,
   CATEGORY_MAP_TO_SLUG,
 } from '../services/lawyerService.js';
+import { upsertProviderLocationCache, removeProviderFromCache } from '../lib/h3Cache.js';
 import logger from '../config/logger.js';
 
 const router = express.Router();
@@ -256,6 +257,20 @@ router.put('/status', protect, validate(lawyerStatusSchema), async (req, res) =>
     profile.isAvailable = req.body.isAvailable;
     await profile.save();
 
+    if (Boolean(profile.isAvailable) && profile.currentLocation?.lat && profile.currentLocation?.lng) {
+      upsertProviderLocationCache({
+        providerId: req.user._id,
+        providerType: 'lawyer',
+        lat: profile.currentLocation.lat,
+        lng: profile.currentLocation.lng,
+      }).catch(() => {});
+    } else if (!profile.isAvailable) {
+      removeProviderFromCache({
+        providerId: req.user._id,
+        providerType: 'lawyer',
+      }).catch(() => {});
+    }
+
     res.json({
       success: true,
       message: `Status set to ${profile.isAvailable ? 'Available' : 'Unavailable'}`,
@@ -264,6 +279,45 @@ router.put('/status', protect, validate(lawyerStatusSchema), async (req, res) =>
   } catch (err) {
     logger.error(`Error updating lawyer status: ${err.message}`);
     res.status(500).json({ message: 'Failed to update availability' });
+  }
+});
+
+// ─── PUT /api/lawyer/location ─────────────────────────────────────────────
+// Update current location with H3 cache sync
+router.put('/location', protect, async (req, res) => {
+  try {
+    const { lat, lng } = req.body;
+    if (lat == null || lng == null) {
+      return res.status(400).json({ message: 'lat and lng are required' });
+    }
+
+    const h3Result = await upsertProviderLocationCache({
+      providerId: req.user._id,
+      providerType: 'lawyer',
+      lat: Number(lat),
+      lng: Number(lng),
+    });
+
+    const updated = await LawyerProfile.findOneAndUpdate(
+      { userId: req.user._id },
+      {
+        $set: {
+          'currentLocation.type': 'Point',
+          'currentLocation.coordinates': [Number(lng), Number(lat)],
+          'currentLocation.lat': Number(lat),
+          'currentLocation.lng': Number(lng),
+          'currentLocation.h3Index8': h3Result?.h3Index8 || null,
+          'currentLocation.h3Index9': h3Result?.h3Index9 || null,
+          'currentLocation.updatedAt': new Date(),
+        },
+      },
+      { new: true }
+    );
+
+    res.json({ success: true, currentLocation: updated?.currentLocation });
+  } catch (err) {
+    logger.error(`Update lawyer location error: ${err.message}`);
+    res.status(500).json({ message: 'Failed to update location', error: err.message });
   }
 });
 

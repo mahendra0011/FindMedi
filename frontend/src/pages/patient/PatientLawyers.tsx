@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
+import { InstantSearchingScreen, InstantNoRespondersScreen, InstantAssignedScreen } from '../../components/instant';
 import { api } from '../../lib/api';
 
 export default function PatientLawyers() {
@@ -68,6 +69,70 @@ export default function PatientLawyers() {
   useEffect(() => {
     fetchData();
   }, [statusFilter, categoryFilter]);
+
+  // Real-time Socket listener for lawyer booking updates & instant wave
+  useEffect(() => {
+    if (!activeBooking?._id) return;
+    const bookingId = String(activeBooking._id);
+    let socket: any;
+
+    (async () => {
+      try {
+        const { getSocket, joinLawyerBookingRoom } = await import('../../lib/socket');
+        socket = getSocket();
+        const cleanupRoom = joinLawyerBookingRoom(bookingId);
+
+        const handleSearchUpdate = (data: any) => {
+          if (String(data.bookingId || data.requestId) === bookingId) {
+            setActiveBooking((prev: any) => ({
+              ...prev,
+              currentSearchRadiusKm: data.radiusKm,
+            }));
+          }
+        };
+
+        const handleAssigned = (data: any) => {
+          if (String(data.bookingId || data.requestId) === bookingId) {
+            setActiveBooking((prev: any) => ({
+              ...prev,
+              status: 'confirmed',
+              lawyerId: data.providerId || data.lawyerId,
+              assignedDetails: data,
+            }));
+            fetchData();
+          }
+        };
+
+        const handleNoResponders = (data: any) => {
+          if (String(data.bookingId || data.requestId) === bookingId) {
+            setActiveBooking((prev: any) => ({
+              ...prev,
+              status: 'no_responders_found',
+            }));
+          }
+        };
+
+        const handleGeneralUpdate = () => {
+          fetchData();
+        };
+
+        socket.on('lawyer:search_update', handleSearchUpdate);
+        socket.on('lawyer:assigned', handleAssigned);
+        socket.on('lawyer:no_responders_found', handleNoResponders);
+        socket.on('lawyer_booking_updated', handleGeneralUpdate);
+
+        return () => {
+          cleanupRoom?.();
+          socket.off('lawyer:search_update', handleSearchUpdate);
+          socket.off('lawyer:assigned', handleAssigned);
+          socket.off('lawyer:no_responders_found', handleNoResponders);
+          socket.off('lawyer_booking_updated', handleGeneralUpdate);
+        };
+      } catch (err) {
+        console.warn('Socket connection error in PatientLawyers:', err);
+      }
+    })();
+  }, [activeBooking?._id]);
 
   const totalSpent = bookings
     .filter((b) => b.payment?.status === 'paid')
@@ -606,6 +671,61 @@ export default function PatientLawyers() {
           </div>
         )}
       </div>
+
+      {/* FULL-SCREEN Instant Searching Overlay for searching lawyer consultations */}
+      {activeBooking?.status === 'searching' && (
+        <InstantSearchingScreen
+          type="lawyer"
+          radiusKm={activeBooking.currentSearchRadiusKm || 5}
+          onCancel={async () => {
+            try {
+              await api.put(`/lawyer-bookings/${activeBooking._id}/cancel`, { cancellationReason: 'Cancelled during search' });
+              setActiveBooking(null);
+            } catch (err: any) {
+              console.warn('Cancel lawyer booking error:', err);
+            }
+          }}
+          requestDetails={activeBooking}
+        />
+      )}
+
+      {/* FULL-SCREEN No Responders Found Overlay */}
+      {activeBooking?.status === 'no_responders_found' && (
+        <InstantNoRespondersScreen
+          type="lawyer"
+          onRetry={() => {
+            navigate('/find-lawyer');
+            setActiveBooking(null);
+          }}
+          onSchedule={() => {
+            navigate('/find-lawyer');
+            setActiveBooking(null);
+          }}
+          onDismiss={() => {
+            setActiveBooking(null);
+          }}
+          message="No advocates in your practice area accepted the urgent consultation within the wave. You can retry with a broader query or schedule a standard consultation."
+        />
+      )}
+      {/* FULL-SCREEN Instant Assigned Overlay — wave winner confirmed */}
+      {activeBooking?.status === 'confirmed' && activeBooking?.lawyerId && (
+        <InstantAssignedScreen
+          type="lawyer"
+          assignedDetails={{
+            distanceKm: activeBooking.distanceKm,
+            providerDetails: {
+              name: activeBooking.lawyerId?.name || 'Verified Advocate',
+              specialization: activeBooking.lawyerId?.specialization || activeBooking.category,
+              phone: activeBooking.lawyerId?.phone,
+            },
+          }}
+          requestDetails={activeBooking}
+          onViewDetails={() => navigate(`/my-appointments`)}
+          onDismiss={() => {
+            setActiveBooking(null);
+          }}
+        />
+      )}
     </div>
   );
 }

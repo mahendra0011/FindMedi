@@ -128,7 +128,19 @@ const lawyerProfileSchema = new mongoose.Schema({
   awards: [{ type: String }],
   isPoliceVerified: { type: Boolean, default: false },
   policeVerificationDocUrl: { type: String, default: '' },
+  currentLocation: {
+    type: { type: String, enum: ['Point'], default: 'Point' },
+    coordinates: { type: [Number], default: [79.9864, 23.1815] },
+    lat: { type: Number, default: 23.1815 },
+    lng: { type: Number, default: 79.9864 },
+    h3Index8: { type: String, index: true, default: null },
+    h3Index9: { type: String, index: true, default: null },
+    updatedAt: { type: Date, default: Date.now },
+  },
+  isOnlineForUrgent: { type: Boolean, default: false, index: true },
   createdAt: { type: Date, default: Date.now },
 });
+
+lawyerProfileSchema.index({ currentLocation: '2dsphere' });
 
 export default mongoose.model('LawyerProfile', lawyerProfileSchema);

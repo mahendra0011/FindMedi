@@ -98,6 +98,7 @@ const assistantProfileSchema = new mongoose.Schema({
   },
   rejectionReason: { type: String, default: '' },
   isAvailable: { type: Boolean, default: false, index: true },
+  isOnlineForUrgent: { type: Boolean, default: false, index: true },
   isDocumentVerified: { type: Boolean, default: false },
   rating: {
     avg: { type: Number, default: 5.0, min: 1, max: 5 },
@@ -106,9 +107,20 @@ const assistantProfileSchema = new mongoose.Schema({
   totalEarnings: { type: Number, default: 0 },
   walletBalance: { type: Number, default: 0 },
   favoritedByCount: { type: Number, default: 0 },
+  currentLocation: {
+    type: { type: String, enum: ['Point'], default: 'Point' },
+    coordinates: { type: [Number], default: [79.9864, 23.1815] },
+    lat: { type: Number, default: 23.1815 },
+    lng: { type: Number, default: 79.9864 },
+    h3Index8: { type: String, index: true, default: null },
+    h3Index9: { type: String, index: true, default: null },
+    updatedAt: { type: Date, default: Date.now },
+  },
   createdAt: { type: Date, default: Date.now, index: true },
   updatedAt: { type: Date, default: Date.now },
 });
+
+assistantProfileSchema.index({ currentLocation: '2dsphere' });
 
 assistantProfileSchema.pre('save', function (next) {
   this.updatedAt = new Date();

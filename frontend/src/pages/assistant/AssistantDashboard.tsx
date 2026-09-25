@@ -319,11 +319,34 @@ export default function AssistantDashboard() {
       fetchDashboardData(true);
     };
 
+    // Wave-based instant dispatch alert (H3 radius expand engine)
+    const handleInstantAssistantAlert = (payload: any) => {
+      const booking = {
+        _id: payload.requestId || payload.bookingId,
+        bookingNumber: payload.bookingNumber,
+        hospital: payload.location?.address || payload.hospital || 'Hospital',
+        durationType: payload.durationType || 'hourly',
+        scheduledDate: payload.scheduledTime,
+        serviceCategories: payload.serviceCategories || ['paperwork'],
+        cost: { total: payload.amount || 0 },
+        specialInstructions: payload.specialInstructions,
+        windowSeconds: payload.windowSeconds || 30,
+        isInstantWave: true,
+      };
+      setIncomingRequests((prev) => {
+        if (prev.some((r) => String(r._id) === String(booking._id))) return prev;
+        return [{ ...booking, _receivedAt: Date.now() }, ...prev];
+      });
+      setActiveIncomingCall(booking);
+    };
+
     socket.on('new_booking_request', handleNewRequest);
+    socket.on('assistant:alert', handleInstantAssistantAlert);
     socket.on('assistant_booking_updated', handleBookingUpdate);
 
     return () => {
       socket.off('new_booking_request', handleNewRequest);
+      socket.off('assistant:alert', handleInstantAssistantAlert);
       socket.off('assistant_booking_updated', handleBookingUpdate);
     };
   }, []);
@@ -1292,6 +1315,18 @@ export default function AssistantDashboard() {
             serviceBadges: activeIncomingCall.serviceCategories || ['Hospital Assistance'],
           }}
           onAccept={async (bookingId) => {
+            // Wave-based bookings (assistant:alert) vote via instant dispatch;
+            // traditional new_booking_request accepts use the assistant booking API.
+            if (activeIncomingCall?.isInstantWave) {
+              try {
+                await api.post(`/instant/assistant/${bookingId}/accept`, {});
+                toast.success('Vote cast — waiting for dispatch confirmation…');
+              } catch (err: any) {
+                toast.error(err?.response?.data?.message || 'Could not accept booking');
+              }
+              setActiveIncomingCall(null);
+              return;
+            }
             await handleAcceptRequest(bookingId);
             setActiveIncomingCall(null);
           }}

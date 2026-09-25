@@ -50,7 +50,7 @@ export interface IncomingEmergencyData {
   hospitalName?: string;
   ambulanceId?: string;
   amount?: number | string;
-  providerType?: 'ambulance' | 'rider' | 'assistant' | 'lawyer';
+  providerType?: 'ambulance' | 'rider' | 'assistant' | 'lawyer' | 'emergency_doctor';
   specialInstructions?: string;
   scheduledTime?: string;
   serviceBadges?: string[];
@@ -119,6 +119,8 @@ export default function ProviderIncomingCall({
         ? '🩺 NEW ATTENDANT REQUEST'
         : providerType === 'lawyer'
         ? '⚖️ NEW LEGAL CONSULTATION'
+        : providerType === 'emergency_doctor'
+        ? '👨‍⚕️ EMERGENCY DOCTOR ALERT'
         : providerType === 'ambulance'
         ? '🚨 EMERGENCY SOS'
         : '🚖 NEW RIDE REQUEST';
@@ -248,6 +250,18 @@ export default function ProviderIncomingCall({
       pingColor: 'bg-red-400',
       title: data.title || CATEGORY_LABELS[data.category || ''] || 'Urgent Medical Emergency',
     },
+    emergency_doctor: {
+      bg: 'radial-gradient(120% 80% at 50% 0%, #831843 0%, #500724 45%, #0b0b10 100%)',
+      ringColor: '#fb7185',
+      ringBg: 'from-rose-500 to-rose-800',
+      borderRing: 'border-rose-300/40',
+      badgeBg: 'bg-rose-500/20 text-rose-200 border-rose-400/30',
+      badgeLabel: 'Emergency Doctor Flying Squad',
+      HeroIcon: Stethoscope,
+      subtitle: data.subtitle || 'Immediate physician required on scene! Review details and accept dispatch.',
+      pingColor: 'bg-rose-400',
+      title: data.title || 'Emergency Flying Squad Dispatch',
+    },
   }[providerType];
 
   const HeroIcon = themeConfig.HeroIcon;
@@ -336,6 +350,10 @@ export default function ProviderIncomingCall({
           </div>
           <span className="absolute bottom-2 right-4 min-w-[3.25rem] text-center rounded-full bg-black/75 border border-white/20 px-2 py-0.5 text-xs font-mono font-black text-amber-300">
             {formattedTime}
+          </span>
+          {/* File 05 §6 — screen-reader countdown announcements */}
+          <span aria-live="polite" role="status" className="sr-only">
+            {acceptedWaiting ? 'Request accepted, waiting for confirmation' : `${timeLeft} seconds remaining to respond`}
           </span>
         </div>
 

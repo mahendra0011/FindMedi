@@ -11,6 +11,7 @@ import VehicleTypeSelector from '@/components/vehicle/VehicleTypeSelector';
 import FareEstimateCard from '@/components/vehicle/FareEstimateCard';
 import RideMap from '@/components/vehicle/RideMap';
 import RideStatusPanel from '@/components/vehicle/RideStatusPanel';
+import { InstantSearchingScreen, InstantNoRespondersScreen, InstantAssignedScreen } from '@/components/instant';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { getSocket, joinRideRoom } from '@/lib/socket';
@@ -39,6 +40,12 @@ export default function FindVehicle() {
   const [activeRide, setActiveRide] = useState<any>(null);
   const [riderLocation, setRiderLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [fetchingActive, setFetchingActive] = useState<boolean>(true);
+  // File 04 — full-screen Assigned overlay dismissal (reset per ride)
+  const [assignedDismissed, setAssignedDismissed] = useState<boolean>(false);
+
+  useEffect(() => {
+    setAssignedDismissed(false);
+  }, [activeRide?._id]);
 
   // Global City Synchronization (from Navbar)
   const [selectedCity, setSelectedCity] = useState<string>(
@@ -141,12 +148,49 @@ export default function FindVehicle() {
       }
     };
 
+    const handleRideSearchUpdate = (payload: any) => {
+      if (String(payload.rideId || payload.requestId) === String(activeRide._id)) {
+        setActiveRide((prev: any) => ({
+          ...prev,
+          currentDispatchRadius: payload.radiusKm,
+        }));
+      }
+    };
+
+    const handleNoResponders = (payload: any) => {
+      if (String(payload.rideId || payload.requestId) === String(activeRide._id)) {
+        setActiveRide((prev: any) => ({
+          ...prev,
+          status: 'no_riders_found',
+        }));
+      }
+    };
+
+    // File 03/04 — generic instant wave engine resolves via ride:assigned
+    // (legacy sequential path resolves via ride_status_update accepted).
+    const handleInstantAssigned = (payload: any) => {
+      if (String(payload.rideId || payload.requestId) === String(activeRide._id)) {
+        setActiveRide((prev: any) => ({
+          ...prev,
+          status: 'accepted',
+          riderId: payload.providerId || payload.riderId || prev?.riderId,
+          riderDetails: payload.providerDetails || prev?.riderDetails,
+        }));
+      }
+    };
+
     socket.on('ride_status_update', handleRideStatusUpdate);
+    socket.on('ride:search_update', handleRideSearchUpdate);
+    socket.on('ride:assigned', handleInstantAssigned);
+    socket.on('ride:no_responders_found', handleNoResponders);
     socket.on('ride_location_update', handleLocationUpdate);
     socket.on('payment_received', handlePaymentReceived);
 
     return () => {
       socket.off('ride_status_update', handleRideStatusUpdate);
+      socket.off('ride:search_update', handleRideSearchUpdate);
+      socket.off('ride:assigned', handleInstantAssigned);
+      socket.off('ride:no_responders_found', handleNoResponders);
       socket.off('ride_location_update', handleLocationUpdate);
       socket.off('payment_received', handlePaymentReceived);
       cleanupRoom();
@@ -418,6 +462,44 @@ export default function FindVehicle() {
           </div>
         </div>
       </div>
+
+      {/* FULL-SCREEN Instant Searching Overlay for searching rides */}
+      {activeRide?.status === 'searching' && (
+        <InstantSearchingScreen
+          type={activeRide.vehicleType === 'ambulance' ? 'ambulance' : 'ride'}
+          radiusKm={activeRide.currentDispatchRadius || 5}
+          onCancel={() => handleCancelRide('Cancelled by user during search')}
+          requestDetails={activeRide}
+        />
+      )}
+
+      {/* FULL-SCREEN No Responders Found Overlay */}
+      {activeRide?.status === 'no_riders_found' && (
+        <InstantNoRespondersScreen
+          type={activeRide.vehicleType === 'ambulance' ? 'ambulance' : 'ride'}
+          onRetry={handleBookNow}
+          onDismiss={() => {
+            setActiveRide(null);
+            setPickup(null);
+            setDrop(null);
+          }}
+          message="All nearby drivers and emergency ambulances are currently committed. You can retry with a wider search or request 108 emergency services."
+        />
+      )}
+
+      {/* FULL-SCREEN Assigned Overlay (File 04) — trip panel stays underneath */}
+      {activeRide?.status === 'accepted' && !assignedDismissed && (
+        <InstantAssignedScreen
+          type={activeRide.vehicleType === 'ambulance' ? 'ambulance' : 'ride'}
+          assignedDetails={{
+            providerDetails: activeRide.riderDetails,
+            distanceKm: activeRide.riderDetails?.distanceKm,
+          }}
+          requestDetails={activeRide}
+          onViewDetails={() => setAssignedDismissed(true)}
+          onDismiss={() => setAssignedDismissed(true)}
+        />
+      )}
     </div>
   );
 }

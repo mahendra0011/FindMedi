@@ -17,6 +17,7 @@ import {
   notifyBookingUpdate,
 } from '../services/assistantService.js';
 import { generateAssistantReceiptPdf } from '../services/assistantReceiptService.js';
+import { startAssistantDispatch, acceptAssistantRequest, rejectAssistantRequest } from '../services/assistantDispatchService.js';
 import logger from '../config/logger.js';
 
 const router = express.Router();
@@ -94,9 +95,9 @@ router.post('/book', protect, validate(bookAssistantSchema), async (req, res) =>
       durationType,
       specialInstructions: specialInstructions || taskDescription || '',
       cost,
-      status: 'requested',
+      status: isUrgent && !targetAssistantId ? 'searching' : 'requested',
       taskChecklist,
-      statusHistory: [{ status: 'requested', at: new Date(), note: 'Booking created' }],
+      statusHistory: [{ status: isUrgent && !targetAssistantId ? 'searching' : 'requested', at: new Date(), note: 'Booking created' }],
     });
 
     // Populate patient info for broadcast & notification
@@ -111,17 +112,19 @@ router.post('/book', protect, validate(bookAssistantSchema), async (req, res) =>
         type: 'assistant',
         referenceId: String(booking._id),
       }).catch(() => {});
+      broadcastAssistantBooking(booking).catch(() => {});
+    } else if (isUrgent) {
+      startAssistantDispatch(booking._id).catch(err => {
+        logger.warn(`Assistant wave dispatch warning: ${err.message}`);
+      });
+    } else {
+      broadcastAssistantBooking(booking).catch(() => {});
     }
-
-    // Broadcast through socket layer (urgent to all available, or direct to selected assistant)
-    broadcastAssistantBooking(booking).catch(err => {
-      logger.warn(`Assistant broadcast warning: ${err.message}`);
-    });
 
     res.status(201).json({
       success: true,
       message: isUrgent
-        ? 'Broadcasting urgent assistant request to available attendants nearby...'
+        ? 'Dispatched urgent assistant request via wave alert engine...'
         : 'Booking request sent to assistant. Awaiting confirmation.',
       booking,
     });

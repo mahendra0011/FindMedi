@@ -3,6 +3,8 @@ import EmergencyDoctorRequest from '../models/EmergencyDoctorRequest.js';
 import Doctor from '../models/Doctor.js';
 import { protect } from '../middleware/auth.js';
 import { getIO } from '../services/socketService.js';
+import { startEmergencyDoctorDispatch, acceptEmergencyDoctorRequest, rejectEmergencyDoctorRequest } from '../services/emergencyDoctorDispatchService.js';
+import { upsertProviderLocationCache, removeProviderFromCache } from '../lib/h3Cache.js';
 import logger from '../config/logger.js';
 
 const router = express.Router();
@@ -74,61 +76,17 @@ router.post('/dispatch', protect, async (req, res) => {
       ],
     });
 
-    // Cascading search for available Clinic Doctors with emergencySupport: true & isEmergencyDutyActive: true
-    const searchRadiusKm = 10;
-    const eligibleDoctors = await Doctor.find({
-      emergencySupport: true,
-      isEmergencyDutyActive: true,
-      available: true,
-      emergencyDoctorLocation: {
-        $nearSphere: {
-          $geometry: {
-            type: 'Point',
-            coordinates: pickupLocation.coordinates,
-          },
-          $maxDistance: searchRadiusKm * 1000,
-        },
-      },
-    }).limit(5);
-
-    // Fallback: if nearSphere fails or no docs in exact sphere, look for any on-duty doctor
-    let targetDoctors = eligibleDoctors;
-    if (!targetDoctors.length) {
-      targetDoctors = await Doctor.find({
-        emergencySupport: true,
-        isEmergencyDutyActive: true,
-        available: true,
-      }).limit(5);
-    }
-
-    // Broadcast Socket event to target doctors
-    try {
-      const io = getIO();
-      if (io) {
-        targetDoctors.forEach((doc) => {
-          if (doc.user_id) {
-            io.to(`user_${doc.user_id}`).emit('emergency_doctor:incoming_alert', {
-              requestId: emergencyDoc._id,
-              bookingId: emergencyDoc.bookingId,
-              patientName: emergencyDoc.patientName,
-              emergencyCategory: emergencyDoc.emergencyCategory,
-              pickupAddress: emergencyDoc.pickupAddress,
-              coordinates: emergencyDoc.pickupLocation.coordinates,
-              severity: emergencyDoc.severity,
-              pricing: emergencyDoc.pricing,
-            });
-          }
-        });
-      }
-    } catch (socketErr) {
-      logger.warn(`Emergency doctor socket broadcast notice: ${socketErr.message}`);
-    }
+    // Trigger unified wave dispatch with H3 pre-filter and Mongo fallback
+    startEmergencyDoctorDispatch(emergencyDoc._id).catch((err) => {
+      logger.error(`startEmergencyDoctorDispatch error: ${err.message}`);
+    });
 
     res.status(201).json({
       success: true,
-      message: 'Emergency doctor search initiated',
-      request: emergencyDoc,
-      candidateDoctorsCount: targetDoctors.length,
+      message: 'Emergency doctor flying squad requested. Dispatched via wave engine.',
+      booking: emergencyDoc,
+      requestId: emergencyDoc._id,
+      bookingId: emergencyDoc.bookingId,
     });
   } catch (err) {
     logger.error(`Emergency doctor dispatch error: ${err.message}`);
@@ -149,26 +107,41 @@ router.put('/toggle-duty', protect, async (req, res) => {
     };
 
     if (coordinates && coordinates.length === 2) {
+      const lat = Number(coordinates[1]);
+      const lng = Number(coordinates[0]);
+      const h3Result = await upsertProviderLocationCache({
+        providerId: userId,
+        providerType: 'doctor',
+        lat,
+        lng,
+      });
+
       updateFields.emergencyDoctorLocation = {
         type: 'Point',
-        coordinates: [Number(coordinates[0]), Number(coordinates[1])],
+        coordinates: [lng, lat],
+        lat,
+        lng,
+        h3Index8: h3Result?.h3Index8 || null,
+        h3Index9: h3Result?.h3Index9 || null,
         lastUpdatedAt: new Date(),
       };
     }
 
-    const doctor = await Doctor.findOneAndUpdate(
+    if (isEmergencyDutyActive === false) {
+      removeProviderFromCache({ providerId: userId, providerType: 'doctor' }).catch(() => {});
+    }
+
+    let doctor = await Doctor.findOneAndUpdate(
       { user_id: userId },
       { $set: updateFields },
       { new: true }
     );
 
     if (!doctor) {
-      // Fallback: check if id matches _id directly
-      const doctorById = await Doctor.findByIdAndUpdate(userId, { $set: updateFields }, { new: true });
-      if (!doctorById) {
+      doctor = await Doctor.findByIdAndUpdate(userId, { $set: updateFields }, { new: true });
+      if (!doctor) {
         return res.status(404).json({ success: false, message: 'Doctor profile not found for this account' });
       }
-      return res.json({ success: true, doctor: doctorById });
     }
 
     res.json({ success: true, doctor });

@@ -88,9 +88,11 @@ const lawyerBookingSchema = new mongoose.Schema({
     type: Date,
   },
   location: {
+    type: { type: String, enum: ['Point'], default: 'Point' },
+    coordinates: { type: [Number], default: [79.9864, 23.1815] },
+    lat: { type: Number, default: 23.1815 },
+    lng: { type: Number, default: 79.9864 },
     address: { type: String, default: '' },
-    lat: { type: Number },
-    lng: { type: Number },
     landmarkName: { type: String, default: '' },
     city: { type: String, default: '' },
   },
@@ -125,6 +127,7 @@ const lawyerBookingSchema = new mongoose.Schema({
   status: {
     type: String,
     enum: [
+      'searching',
       'requested',
       'confirmed',
       'in_progress',
@@ -133,10 +136,23 @@ const lawyerBookingSchema = new mongoose.Schema({
       'cancelled_by_user',
       'cancelled_by_lawyer',
       'reschedule_proposed',
+      'no_responders_found',
     ],
     default: 'requested',
     index: true,
   },
+  notified: [{ providerId: String, userId: String, _id: false }],
+  everNotified: [{ providerId: String, _id: false }],
+  acceptances: [{ providerId: String, distanceKm: Number, acceptedAt: { type: Date, default: Date.now }, _id: false }],
+  rejections: [{ type: String }],
+  windowEndsAt: { type: Date, default: null },
+  currentSearchRadiusKm: { type: Number, default: 5 },
+  dispatchLog: [{
+    radiusKm: Number,
+    candidateCount: Number,
+    outcome: { type: String, enum: ['assigned', 'no_response', 'no_acceptance', 'escalated'] },
+    timestamp: { type: Date, default: Date.now },
+  }],
   proposedNewTime: {
     date: { type: Date },
     time: { type: String },
@@ -201,5 +217,7 @@ lawyerBookingSchema.pre('save', function (next) {
   }
   next();
 });
+
+lawyerBookingSchema.index({ location: '2dsphere' });
 
 export default mongoose.model('LawyerBooking', lawyerBookingSchema);

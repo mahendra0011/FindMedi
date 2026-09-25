@@ -86,6 +86,21 @@ const rideBookingSchema = new mongoose.Schema({
     },
   ],
   currentDispatchRadius: { type: Number, default: 5 },
+  // File 03 §2 — generic instant-dispatch wave fields (mirrors LawyerBooking/
+  // AssistantBooking). Used when a ride is driven via instantDispatchService;
+  // the legacy sequential path (dispatchAttempts) keeps working as-is.
+  notified: [{ providerId: String, userId: String, _id: false }],
+  everNotified: [{ providerId: String, _id: false }],
+  acceptances: [{ providerId: String, distanceKm: Number, acceptedAt: { type: Date, default: Date.now }, _id: false }],
+  rejections: [{ type: String }],
+  windowEndsAt: { type: Date, default: null },
+  currentSearchRadiusKm: { type: Number, default: 5 },
+  dispatchLog: [{
+    radiusKm: Number,
+    candidateCount: Number,
+    outcome: { type: String, enum: ['assigned', 'no_response', 'no_acceptance', 'escalated'] },
+    timestamp: { type: Date, default: Date.now },
+  }],
   payment: {
     method: { type: String, enum: ['demo_wallet', 'cash', 'pending', ''], default: 'pending' },
     status: { type: String, enum: ['pending', 'paid', 'failed'], default: 'pending' },
