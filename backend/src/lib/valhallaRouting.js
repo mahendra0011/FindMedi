@@ -145,15 +145,40 @@ export async function getValhallaRoute(originCoords, destCoords, costing = 'auto
 export async function rankCandidatesByRoadETA(pickupCoords, candidates, costing = 'auto') {
   if (!candidates || candidates.length <= 1) return candidates;
 
-  const targetCoords = candidates.map((c) => c.coordinates); // array of [lng, lat]
-  const matrix = await getValhallaMatrix(pickupCoords, targetCoords, costing);
+  // Resolve [lng, lat] across candidate shapes (profiles, aggregates, test doubles).
+  const withCoords = candidates.map((c) => {
+    const coords =
+      (Array.isArray(c.coordinates) && c.coordinates.length >= 2 && c.coordinates) ||
+      (c.lat != null && c.lng != null && [Number(c.lng), Number(c.lat)]) ||
+      (Array.isArray(c.currentLocation?.coordinates) && c.currentLocation.coordinates) ||
+      (Array.isArray(c.location?.coordinates) && c.location.coordinates) ||
+      null;
+    const valid =
+      coords &&
+      Number.isFinite(Number(coords[0])) &&
+      Number.isFinite(Number(coords[1]));
+    return { candidate: c, coords: valid ? [Number(coords[0]), Number(coords[1])] : null };
+  });
 
-  const ranked = candidates.map((candidate, idx) => {
-    const m = matrix[idx];
+  const routableIdx = [];
+  const targetCoords = [];
+  withCoords.forEach((w, i) => {
+    if (w.coords) {
+      routableIdx.push(i);
+      targetCoords.push(w.coords);
+    }
+  });
+  if (!targetCoords.length) return candidates;
+
+  const matrix = await getValhallaMatrix(pickupCoords, targetCoords, costing);
+  const byIdx = new Map(matrix.map((m) => [m.index, m]));
+
+  const ranked = withCoords.map((w, i) => {
+    const m = routableIdx.includes(i) ? byIdx.get(routableIdx.indexOf(i)) : null;
     return {
-      ...candidate,
+      ...w.candidate,
       roadEtaSeconds: m?.durationSeconds ?? 9999,
-      roadDistanceKm: m?.distanceKm ?? candidate.distanceKm,
+      roadDistanceKm: m?.distanceKm ?? w.candidate.distanceKm,
       isRoadCalculated: m?.fromValhalla ?? false,
     };
   });
