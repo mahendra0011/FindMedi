@@ -1,6 +1,7 @@
 import OutboxEvent from '../models/OutboxEvent.js';
 import logger from '../config/logger.js';
 import { emitKafkaEvent } from '../lib/kafkaProducer.js';
+import { KAFKA_TOPICS } from '../config/kafka.js';
 import { redisClient, isRedisReady } from '../config/redis.js';
 import { handleIncomingEvent } from './kafkaConsumerService.js';
 
@@ -67,16 +68,20 @@ export async function pollAndProcessOutbox() {
           );
           continue;
         }
-        await dispatchOutboxEvent(evt);
-        // In-process backbone delivery: poller → consumer handlers (real projections).
-        try {
-          await handleIncomingEvent(evt.destinationTopic, {
-            eventType: evt.eventType,
-            aggregateId: evt.aggregateId,
-            payload: evt.payload || {},
-          });
-        } catch (consumerErr) {
-          logger.warn(`Consumer handler failed for ${evt._id}: ${consumerErr.message}`);
+        const delivery = await dispatchOutboxEvent(evt);
+        // Single-processing rule: when the broker accepted the event, the
+        // consumer group owns processing. Direct call only for in-memory mode.
+        if (!delivery || delivery.deliveredTo !== 'kafka_broker') {
+          // In-process backbone delivery: poller → consumer handlers (real projections).
+          try {
+            await handleIncomingEvent(evt.destinationTopic, {
+              eventType: evt.eventType,
+              aggregateId: evt.aggregateId,
+              payload: evt.payload || {},
+            });
+          } catch (consumerErr) {
+            logger.warn(`Consumer handler failed for ${evt._id}: ${consumerErr.message}`);
+          }
         }
         await OutboxEvent.updateOne(
           { _id: evt._id },
@@ -92,6 +97,27 @@ export async function pollAndProcessOutbox() {
         logger.error(`Failed to publish OutboxEvent [${evt._id}]: ${err.message}`);
         const nextRetry = (evt.retryCount || 0) + 1;
         const exhausted = nextRetry >= MAX_RETRIES;
+        // Spec 11 retry tiers: republish the ORIGINAL event to the retry
+        // topics (5s → 30s) so any consumer (not just this poller) retries it;
+        // terminal failures go to the DLQ topic + ops alert log.
+        try {
+          const retryEnvelope = {
+            eventType: evt.eventType,
+            aggregateType: evt.aggregateType,
+            aggregateId: evt.aggregateId,
+            retryCount: nextRetry,
+            outboxId: String(evt._id),
+            ...(evt.payload || {}),
+          };
+          if (exhausted) {
+            await emitKafkaEvent(KAFKA_TOPICS.DLQ, evt.aggregateId, retryEnvelope);
+          } else {
+            const retryTopic = nextRetry <= 2 ? KAFKA_TOPICS.RETRY_5S : KAFKA_TOPICS.RETRY_30S;
+            await emitKafkaEvent(retryTopic, evt.aggregateId, retryEnvelope);
+          }
+        } catch (retryErr) {
+          logger.warn(`Retry-topic publish skipped for ${evt._id}: ${retryErr.message}`);
+        }
         if (exhausted) {
           // Dead-letter: no broker DLQ topic without Kafka; terminal FAILED state + ops alert log.
           logger.error(`[DLQ] OutboxEvent [${evt._id}] exhausted retries (type=${evt.eventType}). Manual triage required.`);

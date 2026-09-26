@@ -21,8 +21,19 @@ async function bumpDemandCounter(h3Cell, vertical) {
  * (the poller wraps this call in try/catch as a second guard).
  */
 export async function handleIncomingEvent(topic, eventPayload) {
-  const { eventType, aggregateId, payload = {} } = eventPayload || {};
+  const { eventType, aggregateId, payload = {}, outboxId } = eventPayload || {};
   logger.debug(`[KAFKA_CONSUMER_RECV] Topic: ${topic} | Type: ${eventType} | ID: ${aggregateId}`);
+
+  // Idempotent reprocessing: retry/DLQ redeliveries of an already-handled
+  // outbox event are skipped via the processed-marker (24h).
+  if (outboxId) {
+    try {
+      if (isRedisReady() && redisClient.isOpen) {
+        const done = await redisClient.get(`event:done:${outboxId}`);
+        if (done) return true;
+      }
+    } catch {}
+  }
 
   try {
     switch (eventType) {
@@ -96,6 +107,14 @@ export async function handleIncomingEvent(topic, eventPayload) {
     logger.warn(`handleIncomingEvent(${eventType}) failed: ${err.message}`);
   }
 
+  if (outboxId) {
+    try {
+      if (isRedisReady() && redisClient.isOpen) {
+        await redisClient.set(`event:done:${outboxId}`, '1', { EX: 86400 });
+      }
+    } catch {}
+  }
+
   return true;
 }
 
@@ -121,7 +140,14 @@ export async function startKafkaConsumer() {
     const consumer = kafka.consumer({ groupId: 'findmedi-core-consumers' });
     await consumer.connect();
     await consumer.subscribe({
-      topics: [KAFKA_TOPICS.BOOKING_EVENTS, KAFKA_TOPICS.SOS_ALERTS, KAFKA_TOPICS.PROVIDER_PRESENCE],
+      topics: [
+        KAFKA_TOPICS.BOOKING_EVENTS,
+        KAFKA_TOPICS.SOS_ALERTS,
+        KAFKA_TOPICS.PROVIDER_PRESENCE,
+        KAFKA_TOPICS.RETRY_5S,
+        KAFKA_TOPICS.RETRY_30S,
+        KAFKA_TOPICS.DLQ,
+      ],
       fromBeginning: false,
     });
     await consumer.run({

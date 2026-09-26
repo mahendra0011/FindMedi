@@ -1061,6 +1061,34 @@ export default function AssistantDashboard() {
               {/* Vitals chart (logged bedside) */}
               {detailVitals.length > 0 && (
                 <div>
+                  <h4 className="font-bold text-slate-700 dark:text-slate-300 mb-2">Vitals Chart:</h4>
+                  {(() => {
+                    const points = [...detailVitals]
+                      .filter((v: any) => v?.values && (v.values.pulse != null || v.values.spo2 != null || v.values.systolic != null))
+                      .sort((a: any, b: any) => new Date(a.recordedAt).getTime() - new Date(b.recordedAt).getTime())
+                      .map((v: any) => ({
+                        t: v.recordedAt ? new Date(v.recordedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+                        pulse: v.values?.pulse ?? null,
+                        spo2: v.values?.spo2 ?? null,
+                        sys: v.values?.systolic ?? null,
+                      }));
+                    if (points.length < 2) return null;
+                    return (
+                      <div className="h-44 rounded-2xl border border-rose-200 dark:border-rose-900/50 bg-white/60 dark:bg-slate-900/40 p-2 mb-2">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart data={points} margin={{ top: 4, right: 8, bottom: 0, left: -18 }}>
+                            <CartesianGrid strokeDasharray="3 3" opacity={0.4} />
+                            <XAxis dataKey="t" tick={{ fontSize: 10 }} />
+                            <YAxis tick={{ fontSize: 10 }} domain={['auto', 'auto']} />
+                            <Tooltip />
+                            <Area type="monotone" dataKey="pulse" name="Pulse (bpm)" stroke="#f43f5e" fill="#f43f5e" fillOpacity={0.15} connectNulls />
+                            <Area type="monotone" dataKey="spo2" name="SpO2 (%)" stroke="#0ea5e9" fill="#0ea5e9" fillOpacity={0.15} connectNulls />
+                            <Area type="monotone" dataKey="sys" name="Sys BP" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.1} connectNulls />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
+                    );
+                  })()}
                   <h4 className="font-bold text-slate-700 dark:text-slate-300 mb-2">Vitals Logged During Shift:</h4>
                   <div className="space-y-1.5 max-h-40 overflow-y-auto">
                     {detailVitals.map((v: any) => (
