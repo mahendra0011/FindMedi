@@ -17,7 +17,7 @@ services:
 
   # ==========================================
   # VALHALLA: Self-Hosted Routing Engine
-  # (Requires planet/monaco OSM tiles mounted at /custom_files; see runbook)
+  # Tiles built via runbook into ./valhalla/valhalla_tiles
   # ==========================================
   valhalla:
     image: valhalla/valhalla:run-latest
@@ -37,7 +37,6 @@ services:
   livekit:
     image: livekit/livekit-server:v1.8.4
     container_name: findmedi-livekit
-    restart: unless-stopped
     command: ["--config", "/etc/livekit.yaml"]
     ports:
       - "7880:7880"
@@ -138,6 +137,8 @@ services:
 
   # ==========================================
   # APACHE PINOT: Real-Time OLAP Analytics
+  # NOTE: the QuickStart controller embeds broker (8000) +
+  # server (7050) + ZK. All Pinot APIs go via :9000.
   # ==========================================
   pinot-controller:
     image: apachepinot/pinot:1.0.0
@@ -148,10 +149,6 @@ services:
       - "9000:9000"
     environment:
       JAVA_OPTS: "-Dplugins.dir=/opt/pinot/plugins -Xms256m -Xmx512m"
-
-  # NOTE: the QuickStart controller above already embeds broker (8000) +
-  # server (7050) + ZK. External server/broker services were removed —
-  # they joined the wrong ensemble. All Pinot APIs go via :9000.
 
   # ==========================================
   # APACHE FLINK: Stateful Stream Processing
