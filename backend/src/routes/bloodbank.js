@@ -206,35 +206,55 @@ router.get('/donors/nearby-h3', protect, async (req, res) => {
       return res.status(400).json({ message: 'lat, lng, and bloodGroup are required' });
     }
 
-    const { latLngToH3Index, gridDiskDistances } = await import('../lib/h3Cache.js');
+    const { latLngToCell, gridDisk } = await import('h3-js');
+    const { calculateDistanceKm } = await import('../lib/geoUtils.js');
     const User = (await import('../models/User.js')).default;
 
-    const centerH3 = latLngToH3Index(Number(lat), Number(lng), 7);
-    const disks = gridDiskDistances(centerH3, Number(maxRings));
+    // Spec expansion-01A: real H3 k-ring filter (res 7, ~1.2km cells).
+    const centerH3 = latLngToCell(Number(lat), Number(lng), 7);
+    const k = Math.min(10, Math.max(0, Number(maxRings) || 3));
+    const ringCells = new Set(k === 0 ? [centerH3] : gridDisk(centerH3, k));
 
-    // Find registered users with matching bloodGroup & donor profile active
-    const donors = await User.find({
+    // Candidate donors: matching group, known live location (bounded scan).
+    const candidates = await User.find({
       bloodGroup: String(bloodGroup).trim(),
-      role: 'patient',
       'currentLocation.lat': { $ne: null },
+      'currentLocation.lng': { $ne: null },
     })
       .select('name bloodGroup currentLocation phone loyalty')
-      .limit(30)
+      .limit(200)
       .lean();
+
+    const donors = [];
+    for (const d of candidates) {
+      const dLat = Number(d.currentLocation?.lat);
+      const dLng = Number(d.currentLocation?.lng);
+      if (!Number.isFinite(dLat) || !Number.isFinite(dLng)) continue;
+      let cell = null;
+      try {
+        cell = latLngToCell(dLat, dLng, 7);
+      } catch { continue; }
+      if (!ringCells.has(cell)) continue;
+      donors.push({
+        id: d._id,
+        name: d.name,
+        bloodGroup: d.bloodGroup,
+        tier: d.loyalty?.tier || 'Bronze',
+        coordinates: { lat: dLat, lng: dLng },
+        h3Index7: cell,
+        distanceKm: Math.round(calculateDistanceKm(Number(lat), Number(lng), dLat, dLng) * 10) / 10,
+      });
+      if (donors.length >= 30) break;
+    }
+    donors.sort((a, b) => a.distanceKm - b.distanceKm);
 
     res.json({
       success: true,
       centerH3,
       bloodGroup,
-      kRingsQueried: disks.length,
+      kRingsQueried: ringCells.size,
       donorsCount: donors.length,
-      donors: donors.map(d => ({
-        id: d._id,
-        name: d.name,
-        bloodGroup: d.bloodGroup,
-        tier: d.loyalty?.tier || 'Bronze',
-        coordinates: d.currentLocation,
-      })),
+      donors,
     });
   } catch (err) {
     res.status(500).json({ message: err.message });

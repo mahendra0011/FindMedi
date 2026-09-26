@@ -11,8 +11,53 @@ import License from '../models/License.js';
 import { paginatedResults } from '../utils/pagination.js';
 import logger from '../config/logger.js';
 import { sendEmail } from '../services/notificationService.js';
+import { latLngToCell } from 'h3-js';
+import { calculateDistanceKm } from '../lib/geoUtils.js';
 
 const router = express.Router();
+
+// ─── GET /api/facilities/nearby?type=clinic&lat=&lng=&radiusKm= ─────────────
+// Spec expansion-01 (clinic discovery): approved facilities near a point with
+// distance + H3 res-7 cell. Public — powers "clinics near me" discovery.
+router.get('/nearby', async (req, res) => {
+  try {
+    const type = String(req.query.type || 'clinic');
+    const lat = Number(req.query.lat);
+    const lng = Number(req.query.lng);
+    const radiusKm = Math.min(50, Math.max(1, Number(req.query.radiusKm) || 7));
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      return res.status(400).json({ message: 'lat and lng required' });
+    }
+    const facilities = await Facility.find({
+      type,
+      status: 'approved',
+      location: { $geoWithin: { $centerSphere: [[lng, lat], radiusKm / 6371] } },
+    }).select('name address city phone rating specialties emergencySupport location').lean();
+
+    const out = [];
+    for (const f of facilities) {
+      const coords = f.location?.coordinates;
+      if (!coords || coords.length < 2) continue;
+      const distanceKm = Math.round(calculateDistanceKm(lat, lng, coords[1], coords[0]) * 10) / 10;
+      if (distanceKm > radiusKm) continue;
+      out.push({
+        facilityId: f._id,
+        name: f.name,
+        type: f.type,
+        address: f.address,
+        city: f.city,
+        phone: f.phone,
+        rating: f.rating,
+        specialties: f.specialties || [],
+        emergencySupport: Boolean(f.emergencySupport),
+        distanceKm,
+        h3Index7: latLngToCell(coords[1], coords[0], 7),
+      });
+    }
+    out.sort((a, b) => a.distanceKm - b.distanceKm);
+    res.json({ success: true, type, radiusKm, facilities: out });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
 
 router.get('/', async (req, res) => {
   try {
