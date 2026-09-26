@@ -14,6 +14,10 @@ export const KAFKA_TOPICS = {
   VITALS_TELEMETRY: 'findmedi.clinical.vitals-telemetry.v1',
   HOSPITAL_ADMISSIONS: 'findmedi.hospital.admission-events.v1',
   PHARMACY_INVENTORY: 'findmedi.pharmacy.inventory-delta.v1',
+  // Spec 11: cascading retry queues + dead-letter queue.
+  RETRY_5S: 'findmedi.retry.5s',
+  RETRY_30S: 'findmedi.retry.30s',
+  DLQ: 'findmedi.dlq',
 };
 
 export function isKafkaConfigured() {
