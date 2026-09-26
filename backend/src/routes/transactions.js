@@ -17,6 +17,7 @@ import { protect } from '../middleware/auth.js';
 import logger from '../config/logger.js';
 import { validate, createPaymentSchema } from '../utils/validate.js';
 import { auditLog } from '../middleware/audit.js';
+import { paymentLimiter } from '../middleware/rateLimit.js';
 import { paginatedResults } from '../utils/pagination.js';
 import { generateTransactionId, generateInvoiceId, generateBillId, generateTokenNumber } from '../utils/idGenerator.js';
 import { getISTDateString } from '../utils/dateUtils.js';
@@ -148,7 +149,7 @@ router.get('/', protect, async (req, res, next) => {
 // POST /api/transactions/withdraw — instant provider wallet withdrawal (Spec 22 §4).
 // Resolves the caller profile by role, enforces ₹100 minimum reserve, writes a
 // balanced DEBIT/CREDIT pair into TransactionLedger.
-router.post('/withdraw', protect, async (req, res, next) => {
+router.post('/withdraw', protect, paymentLimiter, async (req, res, next) => {
   try {
     const amount = Math.round(Number(req.body.amount) || 0);
     if (!(amount > 0)) return res.status(400).json({ message: 'Valid amount required' });
@@ -184,7 +185,7 @@ router.post('/withdraw', protect, async (req, res, next) => {
 
 // POST /api/transactions/pay — unified payment + confirm (idempotent)
 // Can also accept appointment data to create appointment + payment atomically
-router.post('/pay', protect, async (req, res, next) => {
+router.post('/pay', protect, paymentLimiter, async (req, res, next) => {
   let createdAppointment = null;
   try {
     let { serviceType, referenceId, amount, method, description, provider, lineItems, appointment: apptData } = req.body;

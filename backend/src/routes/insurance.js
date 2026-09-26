@@ -5,6 +5,7 @@ import Notification from '../models/Notification.js';
 import { protect, adminOnly } from '../middleware/auth.js';
 import { validate, createInsuranceSchema } from '../utils/validate.js';
 import { generateTimestampedId } from '../utils/idGenerator.js';
+import { paymentLimiter } from '../middleware/rateLimit.js';
 
 const updateInsuranceSchema = z.object({}).passthrough();
 const preAuthSchema = z.object({ preAuthStatus: z.string().optional(), preAuthAmount: z.number().optional(), preAuthExpiry: z.string().optional() });
@@ -16,7 +17,7 @@ const router = express.Router();
 const generateClaimId = () => generateTimestampedId('CLM');
 
 // ─── Create Insurance Claim ────────────────────────────────────────────────
-router.post('/', protect, validate(createInsuranceSchema), async (req, res) => {
+router.post('/', protect, paymentLimiter, validate(createInsuranceSchema), async (req, res) => {
   try {
     const { patientId, patientName, insuranceProvider, policyNumber, insuranceId, tpaName, tpaContact, coverageType, diagnosis, treatmentPlan, estimatedCost, admissionId } = req.body;
     if (!patientId || !insuranceProvider || !policyNumber) {
@@ -76,7 +77,7 @@ router.get('/:id', protect, async (req, res) => {
 });
 
 // ─── Update Claim ──────────────────────────────────────────────────────────
-router.put('/:id', protect, validate(updateInsuranceSchema), async (req, res) => {
+router.put('/:id', protect, paymentLimiter, validate(updateInsuranceSchema), async (req, res) => {
   try {
     const claim = await Insurance.findById(req.params.id);
     if (!claim) return res.status(404).json({ message: 'Claim not found' });
@@ -93,7 +94,7 @@ router.put('/:id', protect, validate(updateInsuranceSchema), async (req, res) =>
 });
 
 // ─── Pre-Authorization ─────────────────────────────────────────────────────
-router.put('/:id/pre-auth', protect, adminOnly, validate(preAuthSchema), async (req, res) => {
+router.put('/:id/pre-auth', protect, paymentLimiter, adminOnly, validate(preAuthSchema), async (req, res) => {
   try {
     const { preAuthStatus, preAuthAmount, preAuthExpiry } = req.body;
     const claim = await Insurance.findById(req.params.id);
@@ -117,7 +118,7 @@ router.put('/:id/pre-auth', protect, adminOnly, validate(preAuthSchema), async (
 });
 
 // ─── File Claim ────────────────────────────────────────────────────────────
-router.put('/:id/file-claim', protect, adminOnly, validate(fileClaimSchema), async (req, res) => {
+router.put('/:id/file-claim', protect, paymentLimiter, adminOnly, validate(fileClaimSchema), async (req, res) => {
   try {
     const { claimAmount } = req.body;
     const claim = await Insurance.findById(req.params.id);
@@ -134,7 +135,7 @@ router.put('/:id/file-claim', protect, adminOnly, validate(fileClaimSchema), asy
 });
 
 // ─── Settle Claim ──────────────────────────────────────────────────────────
-router.put('/:id/settle', protect, adminOnly, validate(settleClaimSchema), async (req, res) => {
+router.put('/:id/settle', protect, paymentLimiter, adminOnly, validate(settleClaimSchema), async (req, res) => {
   try {
     const { approvedAmount } = req.body;
     const claim = await Insurance.findById(req.params.id);

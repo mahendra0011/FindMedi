@@ -15,7 +15,8 @@ import mongoose from 'mongoose';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import mongoSanitize from 'express-mongo-sanitize';
-import morgan from 'morgan';
+import pinoHttp from 'pino-http';
+import * as Sentry from '@sentry/node';
 import sanitizeHtml from 'sanitize-html';
 import logger from './config/logger.js';
 import { configureMongoDns } from './config/mongoDns.js';
@@ -26,6 +27,15 @@ import { initSocket } from './services/socketService.js';
 
 const app = express();
 configureMongoDns();
+
+// Sentry error tracking (env-gated: no SENTRY_DSN = no-op, zero overhead)
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.NODE_ENV || 'development',
+    tracesSampleRate: Number(process.env.SENTRY_TRACES_SAMPLE_RATE || 0.1),
+  });
+}
 // Database target: medicore
 
 // Security middleware
@@ -74,12 +84,8 @@ app.use((req, res, next) => {
   next();
 });
 
-// HTTP request logging
-if (process.env.NODE_ENV === 'production') {
-  app.use(morgan('combined', { stream: { write: message => logger.info(message.trim()) } }));
-} else {
-  app.use(morgan('dev', { stream: { write: message => logger.info(message.trim()) } }));
-}
+// HTTP request logging (structured JSON via Pino)
+app.use(pinoHttp({ logger }));
 
 // Rate limiting
 const apiLimiter = rateLimit({
@@ -524,6 +530,11 @@ if (process.env.NODE_ENV === 'production') {
  
 // 404 handler for unknown routes
 app.use(notFound);
+
+// Sentry captures unhandled route errors before our responder formats them
+if (process.env.SENTRY_DSN) {
+  Sentry.setupExpressErrorHandler(app);
+}
 
 // Centralized error handler (must be last)
 app.use(errorHandler);

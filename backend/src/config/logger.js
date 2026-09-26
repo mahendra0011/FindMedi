@@ -1,4 +1,4 @@
-import winston from 'winston';
+import pino from 'pino';
 import fs from 'fs';
 import path from 'path';
 
@@ -9,32 +9,21 @@ if (isProd && !fs.existsSync(logDir)) {
   fs.mkdirSync(logDir, { recursive: true });
 }
 
-const transports = [];
-if (isProd) {
-  transports.push(
-    new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
-    new winston.transports.File({ filename: 'logs/combined.log' })
-  );
-}
+// Prod: JSON to rotating files. Dev: JSON to stdout (structured, Sentry/Datadog-ready).
+const targets = isProd
+  ? [
+      { target: 'pino/file', options: { destination: 'logs/combined.log' }, level: 'info' },
+      { target: 'pino/file', options: { destination: 'logs/error.log' }, level: 'error' },
+    ]
+  : [{ target: 'pino/file', options: { destination: 1 }, level: process.env.LOG_LEVEL || 'info' }];
 
-const logger = winston.createLogger({
-  level: process.env.LOG_LEVEL || 'info',
-  format: winston.format.combine(
-    winston.format.timestamp(),
-    winston.format.errors({ stack: true }),
-    winston.format.json()
-  ),
-  defaultMeta: { service: 'findmedi-api' },
-  transports,
-});
-
-if (!isProd) {
-  logger.add(new winston.transports.Console({
-    format: winston.format.combine(
-      winston.format.colorize(),
-      winston.format.simple()
-    )
-  }));
-}
+const logger = pino(
+  {
+    level: process.env.LOG_LEVEL || 'info',
+    base: { service: 'findmedi-api' },
+    timestamp: pino.stdTimeFunctions.isoTime,
+  },
+  pino.transport({ targets })
+);
 
 export default logger;
