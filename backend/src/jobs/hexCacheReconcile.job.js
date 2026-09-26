@@ -71,23 +71,26 @@ async function reconcileModel(target) {
 }
 
 async function pruneStaleMembers() {
-  // SCAN hex keys (never KEYS on prod) and drop members whose location key expired.
-  let cursor = 0;
+  // SCAN both key schemes (never KEYS on prod) and drop members whose
+  // location key expired. Covers geo:h3:<res>:<cell>:<type> + legacy hex:providers.
   let pruned = 0;
-  do {
-    const reply = await redisClient.scan(cursor, { MATCH: 'hex:providers:*', COUNT: 200 });
-    cursor = Number(reply.cursor);
-    for (const key of reply.keys) {
-      const members = await redisClient.sMembers(key);
-      for (const m of members) {
-        const alive = await redisClient.exists(`provider:location:${m}`);
-        if (!alive) {
-          await redisClient.sRem(key, m);
-          pruned += 1;
+  for (const pattern of ['geo:h3:*', 'hex:providers:*']) {
+    let cursor = 0;
+    do {
+      const reply = await redisClient.scan(cursor, { MATCH: pattern, COUNT: 200 });
+      cursor = Number(reply.cursor);
+      for (const key of reply.keys) {
+        const members = await redisClient.sMembers(key);
+        for (const m of members) {
+          const alive = await redisClient.exists(`provider:location:${m}`);
+          if (!alive) {
+            await redisClient.sRem(key, m);
+            pruned += 1;
+          }
         }
       }
-    }
-  } while (cursor !== 0);
+    } while (cursor !== 0);
+  }
   return pruned;
 }
 

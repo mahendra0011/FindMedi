@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Clock,
   Phone,
@@ -7,11 +7,15 @@ import {
   Navigation,
   MapPin,
   CheckCircle2,
+  HeartPulse,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { TaskChecklistView } from '@/components/assistant/TaskChecklistView';
 import { AssistantChatPanel } from '@/components/assistant/AssistantChatPanel';
+import { api } from '@/lib/api';
+import { toast } from 'sonner';
 
 interface AssistantActiveShiftTabProps {
   activeBooking: any;
@@ -42,6 +46,59 @@ export const AssistantActiveShiftTab: React.FC<AssistantActiveShiftTabProps> = (
   handleToggleTask,
   handleAddCustomTask,
 }) => {
+  // Spec 07: bedside vitals logging form (POST /assistant-bookings/:id/vitals).
+  const [showVitalsForm, setShowVitalsForm] = useState(false);
+  const [vitalType, setVitalType] = useState('bp');
+  const [vitals, setVitals] = useState({ systolic: '', diastolic: '', pulse: '', spo2: '', tempValue: '' });
+  const [vitalsNote, setVitalsNote] = useState('');
+  const [vitalsSaving, setVitalsSaving] = useState(false);
+  const [vitalsSavedAt, setVitalsSavedAt] = useState<string | null>(null);
+
+  const submitVitals = async () => {
+    const num = (v: string) => (v.trim() === '' ? null : Number(v));
+    const values: Record<string, number | null | string> = {
+      systolic: num(vitals.systolic),
+      diastolic: num(vitals.diastolic),
+      pulse: num(vitals.pulse),
+      spo2: num(vitals.spo2),
+      tempValue: num(vitals.tempValue),
+      tempUnit: 'F',
+    };
+    if (vitalType === 'bp' && (values.systolic == null || values.diastolic == null)) {
+      toast.error('Enter both systolic and diastolic for BP');
+      return;
+    }
+    if (vitalType === 'pulse' && values.pulse == null) {
+      toast.error('Enter pulse rate');
+      return;
+    }
+    if (vitalType === 'spo2' && values.spo2 == null) {
+      toast.error('Enter SpO2 value');
+      return;
+    }
+    if (vitalType === 'temperature' && values.tempValue == null) {
+      toast.error('Enter temperature');
+      return;
+    }
+    setVitalsSaving(true);
+    try {
+      await api.post(`/assistant-bookings/${activeBooking._id}/vitals`, {
+        vitalType,
+        values,
+        note: vitalsNote.trim(),
+      });
+      toast.success('Vitals logged to patient chart');
+      setVitalsSavedAt(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+      setVitals({ systolic: '', diastolic: '', pulse: '', spo2: '', tempValue: '' });
+      setVitalsNote('');
+      setShowVitalsForm(false);
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to log vitals');
+    } finally {
+      setVitalsSaving(false);
+    }
+  };
+
   if (!activeBooking) {
     return (
       <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-12 text-center space-y-4 shadow-sm">
@@ -220,6 +277,80 @@ export const AssistantActiveShiftTab: React.FC<AssistantActiveShiftTabProps> = (
           onAddCustomTask={handleAddCustomTask}
         />
       </div>
+
+      {/* Bedside Vitals Logging */}
+      {activeBooking.status === 'in_progress' && (
+        <div className="p-4 rounded-2xl bg-rose-50/60 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/50 space-y-3">
+          <div className="flex items-center justify-between">
+            <h4 className="font-bold text-sm text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+              <HeartPulse className="w-4 h-4 text-rose-500" />
+              Log Bedside Vitals
+              {vitalsSavedAt && (
+                <span className="text-[10px] font-normal text-emerald-600">· last logged {vitalsSavedAt}</span>
+              )}
+            </h4>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => setShowVitalsForm(!showVitalsForm)}
+              className="text-xs font-bold h-8 rounded-xl"
+            >
+              {showVitalsForm ? 'Hide' : 'Log Vitals'}
+            </Button>
+          </div>
+
+          {showVitalsForm && (
+            <div className="space-y-2.5">
+              <div className="flex flex-wrap gap-1.5">
+                {['bp', 'pulse', 'spo2', 'temperature'].map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setVitalType(t)}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase transition-colors ${
+                      vitalType === t
+                        ? 'bg-rose-600 text-white'
+                        : 'bg-white dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700'
+                    }`}
+                  >
+                    {t === 'spo2' ? 'SpO2' : t}
+                  </button>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {vitalType === 'bp' && (
+                  <>
+                    <Input placeholder="Systolic" inputMode="numeric" value={vitals.systolic} onChange={(e) => setVitals({ ...vitals, systolic: e.target.value })} className="text-xs h-9 rounded-xl" />
+                    <Input placeholder="Diastolic" inputMode="numeric" value={vitals.diastolic} onChange={(e) => setVitals({ ...vitals, diastolic: e.target.value })} className="text-xs h-9 rounded-xl" />
+                  </>
+                )}
+                {vitalType === 'pulse' && (
+                  <Input placeholder="Pulse (bpm)" inputMode="numeric" value={vitals.pulse} onChange={(e) => setVitals({ ...vitals, pulse: e.target.value })} className="text-xs h-9 rounded-xl" />
+                )}
+                {vitalType === 'spo2' && (
+                  <Input placeholder="SpO2 (%)" inputMode="numeric" value={vitals.spo2} onChange={(e) => setVitals({ ...vitals, spo2: e.target.value })} className="text-xs h-9 rounded-xl" />
+                )}
+                {vitalType === 'temperature' && (
+                  <Input placeholder="Temp (°F)" inputMode="decimal" value={vitals.tempValue} onChange={(e) => setVitals({ ...vitals, tempValue: e.target.value })} className="text-xs h-9 rounded-xl" />
+                )}
+                <Input placeholder="Note (optional)" value={vitalsNote} onChange={(e) => setVitalsNote(e.target.value)} className="text-xs h-9 rounded-xl col-span-2" />
+              </div>
+
+              <Button
+                type="button"
+                size="sm"
+                disabled={vitalsSaving}
+                onClick={submitVitals}
+                className="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs h-9 px-5 rounded-xl"
+              >
+                {vitalsSaving ? 'Saving…' : 'Save to Patient Chart'}
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Complete Assistance Shift Action */}
       {activeBooking.status === 'in_progress' && (
