@@ -6,7 +6,8 @@ CREATE TABLE booking_requests_stream (
     bookingId STRING,
     vertical STRING,
     h3_cell STRING,
-    event_time TIMESTAMP(3),
+    event_time_str STRING,
+    event_time AS TO_TIMESTAMP(event_time_str, 'yyyy-MM-dd HH:mm:ss.SSS'),
     WATERMARK FOR event_time AS event_time - INTERVAL '5' SECOND
 ) WITH (
     'connector' = 'kafka',
@@ -15,8 +16,7 @@ CREATE TABLE booking_requests_stream (
     'properties.group.id' = 'flink-surge-job',
     'scan.startup.mode' = 'latest-offset',
     'format' = 'json',
-    'json.ignore-parse-errors' = 'true',
-    'json.timestamp-format.standard' = 'SQL'
+    'json.ignore-parse-errors' = 'true'
 );
 
 CREATE TABLE print_surge_sink (
