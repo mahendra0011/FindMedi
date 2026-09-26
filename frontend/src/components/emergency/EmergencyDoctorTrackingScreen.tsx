@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Stethoscope, Phone, ShieldCheck, MapPin, Clock, Star, Navigation, X, CheckCircle2, Siren, Scale } from 'lucide-react';
+import { Stethoscope, Phone, ShieldCheck, MapPin, Clock, Star, Navigation, X, CheckCircle2, Siren, Scale, Video } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getSocket } from '@/lib/socket';
 import { Link } from 'react-router-dom';
+import EmergencyVideoRoom from '@/components/emergency/EmergencyVideoRoom';
 
 interface TrackingScreenProps {
   request: any;
@@ -16,6 +17,8 @@ export default function EmergencyDoctorTrackingScreen({ request, onCancel, onClo
   const [doctor, setDoctor] = useState<any>(request.assignedDoctor || request.doctor || null);
   const [etaMinutes, setEtaMinutes] = useState<number>(request.estimatedArrivalMinutes || 10);
   const [distanceKm, setDistanceKm] = useState<number>(request.transitDistanceKm || 3.2);
+  // Spec 09: video triage room (LiveKit when configured, graceful fallback inside).
+  const [showVideo, setShowVideo] = useState(false);
 
   const requestId = request._id || request.id || request.requestId;
 
@@ -160,6 +163,14 @@ export default function EmergencyDoctorTrackingScreen({ request, onCancel, onClo
 
             {/* Direct Calling & Emergency Actions */}
             <div className="space-y-2 pt-1">
+              {(status === 'assigned' || status === 'in_progress') && (
+                <Button
+                  onClick={() => setShowVideo(true)}
+                  className="w-full h-12 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white font-bold text-xs flex items-center justify-center gap-2 transition-colors shadow-lg"
+                >
+                  <Video className="w-4 h-4" /> Start Video Triage
+                </Button>
+              )}
               {doctor?.phone ? (
                 <a
                   href={`tel:${doctor.phone}`}
@@ -191,6 +202,13 @@ export default function EmergencyDoctorTrackingScreen({ request, onCancel, onClo
               <Button onClick={onClose} className="w-full rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white h-11">
                 Close Tracking Screen
               </Button>
+            )}
+
+            {showVideo && (
+              <EmergencyVideoRoom
+                room={String(requestId)}
+                onClose={() => setShowVideo(false)}
+              />
             )}
           </div>
         )}

@@ -17,6 +17,7 @@ import EarningsAnalytics from '@/components/EarningsAnalytics';
 import { getISTDateString, formatDisplayDate } from '@/lib/dateUtils';
 import { getSocket } from '@/lib/socket';
 import ProviderIncomingCall from '@/components/emergency/ProviderIncomingCall';
+import EmergencyVideoRoom from '@/components/emergency/EmergencyVideoRoom';
 
 function isInPersonAppointment(appt) {
   if (!appt) return false;
@@ -71,6 +72,7 @@ export default function DoctorDashboard() {
   const [activeIncomingCall, setActiveIncomingCall] = useState<any | null>(null);
   // Spec 09: active emergency consultation (post-accept) with 1-tap ALS escalation.
   const [activeEmergencyConsultId, setActiveEmergencyConsultId] = useState<string | null>(null);
+  const [consultVideoOpen, setConsultVideoOpen] = useState(false);
   const mounted = useRef(true);
   const appointmentsSectionRef = useRef(null);
   const handleStatClick = (tab) => {
@@ -1138,6 +1140,12 @@ export default function DoctorDashboard() {
           <p className="text-[11px] text-slate-300 mt-1 font-mono">#{activeEmergencyConsultId.slice(-6)}</p>
           <div className="grid grid-cols-2 gap-2 mt-3">
             <button
+              onClick={() => setConsultVideoOpen(true)}
+              className="h-10 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-bold col-span-2"
+            >
+              🎥 Join Video Triage
+            </button>
+            <button
               onClick={async () => {
                 try {
                   const res = await api.post(`/emergency-doctor/${activeEmergencyConsultId}/escalate`, {});
@@ -1160,6 +1168,12 @@ export default function DoctorDashboard() {
             </button>
           </div>
         </div>
+      )}
+      {consultVideoOpen && activeEmergencyConsultId && (
+        <EmergencyVideoRoom
+          room={activeEmergencyConsultId}
+          onClose={() => setConsultVideoOpen(false)}
+        />
       )}
     </div>
   );

@@ -1,0 +1,5 @@
+# OSM extracts + built tiles + intermediates are GBs — regenerated via runbook.
+tiles/
+valhalla_tiles/
+*.pbf
+*.tar
