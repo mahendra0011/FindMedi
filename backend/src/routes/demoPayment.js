@@ -10,6 +10,7 @@ import Doctor from '../models/Doctor.js';
 import Notification from '../models/Notification.js';
 import { protect } from '../middleware/auth.js';
 import { idempotencyGuard } from '../middleware/idempotency.js';
+import { paymentLimiter } from '../middleware/rateLimit.js';
 import { validate, demoPaySchema } from '../utils/validate.js';
 import { getIO } from '../services/socketService.js';
 import logger from '../config/logger.js';
@@ -68,7 +69,7 @@ async function releaseEscrowToPaid(payment) {
 
 // ─── POST /api/payment/demo/pay ─────────────────────────────────────────────
 // Simulate payment (Demo for rides, assistant, lawyer, emergency doctor)
-router.post('/pay', protect, validate(demoPaySchema), idempotencyGuard(), async (req, res) => {
+router.post('/pay', protect, paymentLimiter, validate(demoPaySchema), idempotencyGuard(), async (req, res) => {
   try {
     const { rideId, bookingId, lawyerBookingId, doctorRequestId, bookingType = 'ride', method = 'demo_wallet' } = req.body;
     const isLawyer = bookingType === 'lawyer' || Boolean(lawyerBookingId);
@@ -374,7 +375,7 @@ router.get('/:id', protect, async (req, res) => {
 // ─── POST /api/payment/demo/hold ────────────────────────────────────────────
 // Spec 21: lock funds in mock escrow (DEMO_ESCROW_HELD). Body accepts any one of
 // { rideId, bookingId, lawyerBookingId, doctorRequestId } + optional amount.
-router.post('/hold', protect, async (req, res) => {
+router.post('/hold', protect, paymentLimiter, async (req, res) => {
   try {
     const { rideId, bookingId, lawyerBookingId, doctorRequestId, amount } = req.body;
     const ref = {};
@@ -402,7 +403,7 @@ router.post('/hold', protect, async (req, res) => {
 
 // ─── POST /api/payment/demo/confirm/:id ────────────────────────────────────
 // Spec 21: 1-click demo success — held/pending → paid (escrow released).
-router.post('/confirm/:id', protect, async (req, res) => {
+router.post('/confirm/:id', protect, paymentLimiter, async (req, res) => {
   try {
     const payment = await DemoPayment.findById(req.params.id);
     if (!payment) return res.status(404).json({ message: 'Payment not found' });
@@ -418,7 +419,7 @@ router.post('/confirm/:id', protect, async (req, res) => {
 
 // ─── POST /api/payment/demo/fail/:id ───────────────────────────────────────
 // Spec 21: 1-click demo failure — tests frontend decline handling.
-router.post('/fail/:id', protect, async (req, res) => {
+router.post('/fail/:id', protect, paymentLimiter, async (req, res) => {
   try {
     const payment = await DemoPayment.findById(req.params.id);
     if (!payment) return res.status(404).json({ message: 'Payment not found' });
@@ -436,7 +437,7 @@ router.post('/fail/:id', protect, async (req, res) => {
 
 // ─── POST /api/payment/demo/refund/:id ─────────────────────────────────────
 // Spec 21: instant demo refund on cancellation.
-router.post('/refund/:id', protect, async (req, res) => {
+router.post('/refund/:id', protect, paymentLimiter, async (req, res) => {
   try {
     const payment = await DemoPayment.findById(req.params.id);
     if (!payment) return res.status(404).json({ message: 'Payment not found' });

@@ -87,6 +87,12 @@ export const bookingLimiter = createGrlRateLimiter({
   keyPrefix: 'rl:booking',
 });
 
+export const paymentLimiter = createGrlRateLimiter({
+  windowMs: 60 * 1000,
+  max: 30,
+  keyPrefix: 'rl:payment',
+});
+
 export const generalLimiter = createGrlRateLimiter({
   windowMs: 60 * 1000,
   max: 120,

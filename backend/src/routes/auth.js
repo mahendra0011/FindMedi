@@ -45,6 +45,7 @@ import { auditLog } from '../middleware/audit.js';
 import logger from '../config/logger.js';
 import { notifyUsers } from '../services/socketService.js';
 import { validateFileContent } from '../middleware/upload.js';
+import { authLimiter } from '../middleware/rateLimit.js';
 import { referralService } from '../services/referralService.js';
 
 const router = express.Router();
@@ -301,7 +302,7 @@ const sendVerificationOtp = (user) => createAndSendOTP({
 });
 
 // POST /api/auth/register
-router.post('/register', validate(registerSchema), async (req, res) => {
+router.post('/register', authLimiter, validate(registerSchema), async (req, res) => {
   try {
     const {
       name,
@@ -655,7 +656,7 @@ router.post('/register', validate(registerSchema), async (req, res) => {
 });
 
 // POST /api/auth/verify-otp
-router.post('/verify-otp', validate(verifyOtpSchema), async (req, res) => {
+router.post('/verify-otp', authLimiter, validate(verifyOtpSchema), async (req, res) => {
   try {
     const { email, otp } = req.body;
 
@@ -721,7 +722,7 @@ router.post('/verify-otp', validate(verifyOtpSchema), async (req, res) => {
 });
 
 // POST /api/auth/resend-otp
-router.post('/resend-otp', validate(resendOtpSchema), async (req, res) => {
+router.post('/resend-otp', authLimiter, validate(resendOtpSchema), async (req, res) => {
   try {
     const { email } = req.body;
 
@@ -770,7 +771,7 @@ router.post('/resend-otp', validate(resendOtpSchema), async (req, res) => {
 });
 
 // POST /api/auth/login
-router.post('/login', validate(loginSchema), async (req, res) => {
+router.post('/login', authLimiter, validate(loginSchema), async (req, res) => {
   try {
     const { email, password, role } = req.body;
 
@@ -916,7 +917,7 @@ router.post('/login', validate(loginSchema), async (req, res) => {
 });
 
 // POST /api/auth/google — authenticate or verify Google OAuth user
-router.post('/google', validate(googleAuthSchema), async (req, res) => {
+router.post('/google', authLimiter, validate(googleAuthSchema), async (req, res) => {
   try {
     const { idToken, accessToken, role = 'patient' } = req.body;
 
@@ -1035,7 +1036,7 @@ router.post('/google', validate(googleAuthSchema), async (req, res) => {
 });
 
 // POST /api/auth/google-register — Step 2 of Google Signup: Complete Profile & Register
-router.post('/google-register', validate(googleRegisterSchema), async (req, res) => {
+router.post('/google-register', authLimiter, validate(googleRegisterSchema), async (req, res) => {
   try {
     const {
       name,
@@ -1108,7 +1109,7 @@ router.post('/google-register', validate(googleRegisterSchema), async (req, res)
 });
 
 // POST /api/auth/forgot-password
-router.post('/forgot-password', validate(forgotPasswordSchema), async (req, res) => {
+router.post('/forgot-password', authLimiter, validate(forgotPasswordSchema), async (req, res) => {
   try {
     const { email } = req.body;
 
@@ -1142,7 +1143,7 @@ router.post('/forgot-password', validate(forgotPasswordSchema), async (req, res)
 });
 
 // POST /api/auth/reset-password
-router.post('/reset-password', validate(resetPasswordSchema), async (req, res) => {
+router.post('/reset-password', authLimiter, validate(resetPasswordSchema), async (req, res) => {
   try {
     const { email, otp, password } = req.body;
 
@@ -1187,7 +1188,7 @@ router.post('/reset-password', validate(resetPasswordSchema), async (req, res) =
 });
 
 // POST /api/auth/doctor-setup
-router.post('/doctor-setup', validate(doctorSetupSchema), async (req, res) => {
+router.post('/doctor-setup', authLimiter, validate(doctorSetupSchema), async (req, res) => {
   try {
     const { token, password } = req.body;
     if (!token || !password) {
@@ -1222,7 +1223,7 @@ router.post('/doctor-setup', validate(doctorSetupSchema), async (req, res) => {
 });
 
 // POST /api/auth/ambulance-setup (Doc 02 §3.2 — copy of doctor-setup)
-router.post('/ambulance-setup', validate(doctorSetupSchema), async (req, res) => {
+router.post('/ambulance-setup', authLimiter, validate(doctorSetupSchema), async (req, res) => {
   try {
     const { token, password } = req.body;
     if (!token || !password) {
@@ -1255,7 +1256,7 @@ router.post('/ambulance-setup', validate(doctorSetupSchema), async (req, res) =>
 });
 
 // POST /api/auth/google (duplicate - last defined route is the active one)
-router.post('/google', validate(googleAuthSchema), async (req, res) => {
+router.post('/google', authLimiter, validate(googleAuthSchema), async (req, res) => {
   try {
     const { idToken } = req.body;
     if (!idToken) {
@@ -1509,7 +1510,7 @@ router.post('/logout', async (req, res) => {
 });
 
 // POST /api/auth/refresh
-router.post('/refresh', validate(refreshTokenSchema), async (req, res) => {
+router.post('/refresh', authLimiter, validate(refreshTokenSchema), async (req, res) => {
   let newRefreshTokenDoc = null;
   try {
     const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;

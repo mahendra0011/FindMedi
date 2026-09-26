@@ -4,6 +4,7 @@ import Notification from '../models/Notification.js';
 import { protect, adminOnly } from '../middleware/auth.js';
 import { validate, createPaymentSchema, updatePaymentSchema, refundPaymentSchema } from '../utils/validate.js';
 import { auditLog } from '../middleware/audit.js';
+import { paymentLimiter } from '../middleware/rateLimit.js';
 import { generateTransactionId } from '../utils/idGenerator.js';
 import { getISTDateString } from '../utils/dateUtils.js';
 
@@ -23,7 +24,7 @@ router.get('/', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/', protect, validate(createPaymentSchema), async (req, res) => {
+router.post('/', protect, paymentLimiter, validate(createPaymentSchema), async (req, res) => {
   try {
     const transaction_id = generateTransactionId();
     const patient_id = req.user.role === 'patient' ? req.user._id.toString() : req.body.patient_id;
@@ -45,7 +46,7 @@ router.post('/', protect, validate(createPaymentSchema), async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/:id', protect, adminOnly, validate(updatePaymentSchema), async (req, res) => {
+router.put('/:id', protect, paymentLimiter, adminOnly, validate(updatePaymentSchema), async (req, res) => {
   try {
     const payment = await Payment.findById(req.params.id);
     if (!payment) return res.status(404).json({ message: 'Payment not found' });
@@ -59,7 +60,7 @@ router.put('/:id', protect, adminOnly, validate(updatePaymentSchema), async (req
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-router.put('/:id/refund', protect, adminOnly, validate(refundPaymentSchema), async (req, res) => {
+router.put('/:id/refund', protect, paymentLimiter, adminOnly, validate(refundPaymentSchema), async (req, res) => {
   try {
     const refund_amount = req.body.refund_amount || 0;
     const payment = await Payment.findById(req.params.id);

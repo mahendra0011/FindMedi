@@ -7,6 +7,7 @@ import Hospital from '../models/Hospital.js';
 import { protect, superadminOnly } from '../middleware/auth.js';
 import { auditLog } from '../middleware/audit.js';
 import { validate } from '../utils/validate.js';
+import { paymentLimiter } from '../middleware/rateLimit.js';
 import logger from '../config/logger.js';
 
 const commissionConfigSchema = z.object({ commissionPercent: z.number().optional(), commissionCap: z.number().optional(), payoutSchedule: z.string().optional(), status: z.string().optional() });
@@ -48,7 +49,7 @@ router.get('/config', protect, superadminOnly, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.put('/config/:id', protect, superadminOnly, validate(commissionConfigSchema), async (req, res) => {
+router.put('/config/:id', protect, paymentLimiter, superadminOnly, validate(commissionConfigSchema), async (req, res) => {
   try {
     const allowedFields = ['commissionPercent', 'commissionCap', 'payoutSchedule', 'status'];
     const update = {};
@@ -171,7 +172,7 @@ router.get('/payouts', protect, superadminOnly, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.post('/payouts', protect, superadminOnly, validate(payoutCreateSchema), async (req, res) => {
+router.post('/payouts', protect, paymentLimiter, superadminOnly, validate(payoutCreateSchema), async (req, res) => {
   try {
     const { facilityId, periodStart, periodEnd } = req.body;
     if (!facilityId) return res.status(400).json({ message: 'facilityId is required' });
@@ -226,7 +227,7 @@ router.post('/payouts', protect, superadminOnly, validate(payoutCreateSchema), a
 });
 
 // SA-M5: record a four-eyes approval (idempotent per admin).
-router.put('/payouts/:id/approve', protect, superadminOnly, async (req, res) => {
+router.put('/payouts/:id/approve', protect, paymentLimiter, superadminOnly, async (req, res) => {
   try {
     const payout = await Payout.findById(req.params.id);
     if (!payout) return res.status(404).json({ message: 'Payout not found' });
@@ -247,7 +248,7 @@ router.put('/payouts/:id/approve', protect, superadminOnly, async (req, res) => 
 
 const FOUR_EYES_THRESHOLD = 100000;
 
-router.put('/payouts/:id/pay', protect, superadminOnly, validate(payoutPaySchema), async (req, res) => {
+router.put('/payouts/:id/pay', protect, paymentLimiter, superadminOnly, validate(payoutPaySchema), async (req, res) => {
   try {
     const payout = await Payout.findById(req.params.id);
     if (!payout) return res.status(404).json({ message: 'Payout not found' });

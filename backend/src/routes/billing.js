@@ -17,6 +17,7 @@ import { protect } from '../middleware/auth.js';
 import logger from '../config/logger.js';
 import { validate, createPaymentSchema } from '../utils/validate.js';
 import { auditLog } from '../middleware/audit.js';
+import { paymentLimiter } from '../middleware/rateLimit.js';
 import { paginatedResults } from '../utils/pagination.js';
 import { generateTransactionId, generateInvoiceId, generateBillId, generateTokenNumber } from '../utils/idGenerator.js';
 import { getISTDateString } from '../utils/dateUtils.js';
@@ -93,7 +94,7 @@ router.get('/', protect, async (req, res, next) => {
 });
 
 // POST /api/billing — create a new bill
-router.post('/', protect, async (req, res, next) => {
+router.post('/', protect, paymentLimiter, async (req, res, next) => {
   try {
     const invoiceId = req.body.invoiceId || generateInvoiceId();
     const date = req.body.date || getISTDateString();
@@ -121,7 +122,7 @@ router.get('/:id', protect, async (req, res, next) => {
 });
 
 // PUT /api/billing/:id
-router.put('/:id', protect, async (req, res, next) => {
+router.put('/:id', protect, paymentLimiter, async (req, res, next) => {
   try {
     const bill = mongoose.Types.ObjectId.isValid(req.params.id)
       ? await Billing.findById(req.params.id)
@@ -135,7 +136,7 @@ router.put('/:id', protect, async (req, res, next) => {
 });
 
 // DELETE /api/billing/:id
-router.delete('/:id', protect, async (req, res, next) => {
+router.delete('/:id', protect, paymentLimiter, async (req, res, next) => {
   try {
     const bill = await Billing.findByIdAndDelete(req.params.id);
     if (!bill) return res.status(404).json({ message: 'Bill not found' });
@@ -146,7 +147,7 @@ router.delete('/:id', protect, async (req, res, next) => {
 
 // POST /api/transactions/pay — unified payment + confirm (idempotent)
 // Can also accept appointment data to create appointment + payment atomically
-router.post('/pay', protect, async (req, res, next) => {
+router.post('/pay', protect, paymentLimiter, async (req, res, next) => {
   let createdAppointment = null;
   try {
     let { serviceType, referenceId, amount, method, description, provider, lineItems, appointment: apptData } = req.body;
