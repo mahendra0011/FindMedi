@@ -77,7 +77,7 @@ The GitHub Actions workflow (`.github/workflows/ci.yml`) includes a `build-rust`
 
 ```bash
 cd backend/rust-helper
-node tests/test.js    # ffi-napi based test
+node tests/test.js    # napi-rs based test (ffi-napi removed)
 node -e "require('./index.js')"  # napi-rs wrapper test
 ```
 

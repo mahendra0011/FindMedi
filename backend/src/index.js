@@ -16,7 +16,7 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import mongoSanitize from 'express-mongo-sanitize';
 import morgan from 'morgan';
-import xss from 'xss';
+import sanitizeHtml from 'sanitize-html';
 import logger from './config/logger.js';
 import { configureMongoDns } from './config/mongoDns.js';
 import { validateEnv, printEnvStatus } from './config/envValidator.js';
@@ -47,9 +47,9 @@ app.use(helmet({
 // MongoDB injection protection
 app.use(mongoSanitize());
 
-// XSS protection - recursive sanitization for nested objects
+// XSS protection - recursive sanitization for nested objects (strips all HTML tags/attrs)
 function sanitizeValue(value) {
-  if (typeof value === 'string') return xss(value);
+  if (typeof value === 'string') return sanitizeHtml(value, { allowedTags: [], allowedAttributes: {} });
   if (Array.isArray(value)) return value.map(sanitizeValue);
   if (value && typeof value === 'object') {
     const sanitized = {};
