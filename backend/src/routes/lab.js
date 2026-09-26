@@ -268,6 +268,39 @@ router.get('/stats', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
+// ─── GET /api/lab/outbreak?test=dengue&days=30&res=8 ────────────────────────
+// Spec expansion-01D: abnormal lab results binned into H3 hexagons for
+// outbreak surveillance (hospital location → res-8 cell → counts).
+router.get('/outbreak', protect, async (req, res) => {
+  try {
+    const test = String(req.query.test || 'dengue');
+    const days = Math.min(90, Math.max(1, Number(req.query.days) || 30));
+    const res8 = Math.min(9, Math.max(6, Number(req.query.res) || 8));
+    const since = new Date(Date.now() - days * 24 * 3600 * 1000);
+    const { latLngToCell } = await import('h3-js');
+    const { default: Hospital } = await import('../models/Hospital.js');
+    const orders = await LabOrder.find({
+      createdAt: { $gte: since },
+      tests: { $elemMatch: { testName: new RegExp(test, 'i'), isAbnormal: true } },
+    }).select('hospitalId createdAt').lean();
+    const hospIds = [...new Set(orders.map((o) => String(o.hospitalId)).filter(Boolean))];
+    const hospitals = await Hospital.find({ _id: { $in: hospIds } }).select('location').lean();
+    const locById = new Map(hospitals.map((h) => [String(h._id), h.location?.coordinates]));
+    const cells = {};
+    for (const o of orders) {
+      const coords = locById.get(String(o.hospitalId));
+      if (!coords || coords.length < 2) continue;
+      const cell = latLngToCell(coords[1], coords[0], res8);
+      if (!cells[cell]) cells[cell] = { h3Cell: cell, resolution: res8, abnormalCount: 0, hospitals: 0, _hosp: new Set() };
+      cells[cell].abnormalCount += 1;
+      cells[cell]._hosp.add(String(o.hospitalId));
+    }
+    const out = Object.values(cells).map(({ _hosp, ...c }) => ({ ...c, hospitals: _hosp.size }));
+    out.sort((a, b) => b.abnormalCount - a.abnormalCount);
+    res.json({ success: true, test, days, resolution: res8, totalAbnormal: orders.length, cells: out });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
 // ─── Get Available Lab Tests (public, supports filtering) ─────────────────
 router.get('/tests', async (req, res) => {
   try {
