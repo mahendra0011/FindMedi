@@ -16,6 +16,7 @@
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --forceExit"
   },
   "dependencies": {
+    "@json2csv/plainjs": "^7.0.8",
     "@socket.io/redis-adapter": "^8.3.0",
     "bcryptjs": "^2.4.3",
     "cloudinary": "^2.5.1",
@@ -26,11 +27,9 @@
     "express": "^4.21.2",
     "express-mongo-sanitize": "^2.2.0",
     "express-rate-limit": "^8.5.2",
-    "express-validator": "^7.3.2",
     "google-auth-library": "^10.9.0",
     "h3-js": "^4.5.0",
     "helmet": "^8.2.0",
-    "json2csv": "^6.0.0-alpha.2",
     "jsonwebtoken": "^9.0.2",
     "kafkajs": "^2.2.4",
     "livekit-server-sdk": "^2.19.1",
@@ -39,10 +38,10 @@
     "multer": "^2.1.1",
     "pdfkit": "^0.18.0",
     "redis": "^6.1.0",
+    "sanitize-html": "^2.12.1",
     "sharp": "^0.35.3",
     "socket.io": "^4.8.3",
     "winston": "^3.19.0",
-    "xss": "^1.0.15",
     "zod": "^4.4.3"
   },
   "devDependencies": {

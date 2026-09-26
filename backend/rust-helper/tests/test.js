@@ -1,22 +1,16 @@
-const ffi = require('ffi-napi');
 const path = require('path');
+// napi-rs is the only bridge (ffi-napi removed — see package.json)
+const napiEarly = require('../index.js');
 
-const libPath = path.join(__dirname, '..', 'medi_core_napi.dll');
-const lib = ffi.Library(libPath, {
-  hello: ['int', []],
-  add: ['int', ['int', 'int']],
-  benchmark_hello: ['double', ['uint32']],
-});
+console.log('=== medi-core-napi Hello World Test (napi-rs) ===\n');
 
-console.log('=== medi-core-napi Hello World Test ===\n');
+console.log('hello():', napiEarly.hello());
 
-console.log('hello():', lib.hello());
-
-console.log('add(17, 25):', lib.add(17, 25));
-console.log('add(1000, 9999):', lib.add(1000, 9999));
+console.log('add(17, 25):', napiEarly.add(17, 25));
+console.log('add(1000, 9999):', napiEarly.add(1000, 9999));
 
 const iterations = 1_000_000;
-const avgNs = lib.benchmark_hello(iterations);
+const avgNs = napiEarly.benchmarkHello(iterations);
 console.log(`\nbenchmark_hello(${iterations.toLocaleString()}): ${avgNs.toFixed(1)} ns/op`);
 console.log(`  throughput: ${(1_000_000_000 / avgNs).toFixed(0)} ops/sec`);
 

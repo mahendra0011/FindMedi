@@ -1,5 +1,5 @@
 import ExcelJS from 'exceljs';
-import { Parser } from 'json2csv';
+import { Parser } from '@json2csv/plainjs';
 
 import { getISTDateString } from './dateUtils.js';
 import { toCsvNative, toCsvFallback, parseCsvNative, parseCsvFallback, NATIVE_CSV_AVAILABLE } from '../services/napiCsvService.js';
