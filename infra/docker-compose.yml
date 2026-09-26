@@ -20,14 +20,32 @@ services:
   # (Requires planet/monaco OSM tiles mounted at /custom_files; see runbook)
   # ==========================================
   valhalla:
-    image: ghcr.io/nilsnolde/valhalla-valhalla:3.5.0
+    image: valhalla/valhalla:run-latest
     container_name: findmedi-valhalla
+    command: ["valhalla_service", "/custom_files/valhalla.json"]
     ports:
       - "8002:8002"
     volumes:
-      - valhalla_tiles:/custom_files
+      - ./valhalla:/custom_files
     restart: unless-stopped
     profiles: ["routing"]
+
+  # ==========================================
+  # LIVEKIT: Self-Hosted WebRTC Media (video triage)
+  # App media goes here when LIVEKIT_URL is set; telephony fallback otherwise.
+  # ==========================================
+  livekit:
+    image: livekit/livekit-server:v1.8.4
+    container_name: findmedi-livekit
+    command: ["--config", "/etc/livekit.yaml"]
+    ports:
+      - "7880:7880"
+      - "7881:7881"
+      - "7882:7882/udp"
+    volumes:
+      - ./livekit/livekit.yaml:/etc/livekit.yaml:ro
+    restart: unless-stopped
+    profiles: ["media"]
 
   # ==========================================
   # NGINX: Edge Reverse Proxy + TLS + Static Cache
@@ -167,4 +185,3 @@ volumes:
   redis_data:
   opensearch_data:
   mongo_data:
-  valhalla_tiles:

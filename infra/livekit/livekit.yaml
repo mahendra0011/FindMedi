@@ -1,0 +1,14 @@
+# FindMedi LOCAL LiveKit config (dev only — rotate keys for prod).
+# App connects via LIVEKIT_URL=http://localhost:7880 (see backend/.env.example).
+port: 7880
+bind_addresses:
+  - "0.0.0.0"
+rtc:
+  tcp_port: 7881
+  udp_port: 7882
+  use_external_ip: false
+keys:
+  # devkey : dev secret (local testing only)
+  devkey: YIbmMGFMMYLFaubIETGWVyH0cjp3R3JfIGVDIyJc8C0=
+turn:
+  enabled: false
