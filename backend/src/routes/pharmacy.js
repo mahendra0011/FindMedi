@@ -8,6 +8,9 @@ import PharmacyDelivery from '../models/PharmacyDelivery.js';
 import PharmacyOffer from '../models/PharmacyOffer.js';
 import PharmacyReturn from '../models/PharmacyReturn.js';
 import PharmacyStaff from '../models/PharmacyStaff.js';
+import Facility from '../models/Facility.js';
+import { latLngToCell } from 'h3-js';
+import { calculateDistanceKm } from '../lib/geoUtils.js';
 import Notification from '../models/Notification.js';
 import User from '../models/User.js';
 import { protect, adminOnly } from '../middleware/auth.js';
@@ -39,6 +42,95 @@ router.get('/medicines/store/:storeId', async (req, res) => {
     if (category && category !== 'All') filter.category = category;
     const medicines = await Medicine.find(filter).sort({ name: 1 });
     res.json({ medicines });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// ─── Nearby Pharmacy Stores (H3 discovery, spec expansion-01C) ─────────────
+// Approved pharmacy facilities within radiusKm, each with live in-stock
+// medicine count + H3 res-8 cell (no new model: Facility + Medicine already link).
+router.get('/stores/near', async (req, res) => {
+  try {
+    const lat = Number(req.query.lat);
+    const lng = Number(req.query.lng);
+    const radiusKm = Math.min(50, Math.max(1, Number(req.query.radiusKm) || 5));
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      return res.status(400).json({ message: 'lat and lng required' });
+    }
+    const stores = await Facility.find({
+      type: 'pharmacy',
+      status: 'approved',
+      location: { $geoWithin: { $centerSphere: [[lng, lat], radiusKm / 6371] } },
+    }).select('name address city phone rating location').lean();
+
+    const out = [];
+    for (const s of stores) {
+      const coords = s.location?.coordinates;
+      if (!coords || coords.length < 2) continue;
+      const distanceKm = Math.round(calculateDistanceKm(lat, lng, coords[1], coords[0]) * 10) / 10;
+      if (distanceKm > radiusKm) continue;
+      const inStock = await Medicine.countDocuments({ facilityId: s._id, isActive: true, currentStock: { $gt: 0 } });
+      out.push({
+        storeId: s._id,
+        name: s.name,
+        address: s.address,
+        city: s.city,
+        phone: s.phone,
+        rating: s.rating,
+        distanceKm,
+        h3Index8: latLngToCell(coords[1], coords[0], 8),
+        inStockMedicines: inStock,
+      });
+    }
+    out.sort((a, b) => a.distanceKm - b.distanceKm);
+    res.json({ success: true, radiusKm, stores: out });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// ─── Medicine search across nearby stores (15-min delivery discovery) ──────
+// Finds which nearby pharmacies stock the named medicine right now.
+router.get('/search-medicine', async (req, res) => {
+  try {
+    const q = String(req.query.name || '').trim();
+    const lat = Number(req.query.lat);
+    const lng = Number(req.query.lng);
+    const radiusKm = Math.min(50, Math.max(1, Number(req.query.radiusKm) || 8));
+    if (!q) return res.status(400).json({ message: 'name query required' });
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      return res.status(400).json({ message: 'lat and lng required' });
+    }
+    const rx = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+    const stores = await Facility.find({
+      type: 'pharmacy',
+      status: 'approved',
+      location: { $geoWithin: { $centerSphere: [[lng, lat], radiusKm / 6371] } },
+    }).select('name address city phone rating location').lean();
+
+    const out = [];
+    for (const s of stores) {
+      const coords = s.location?.coordinates;
+      if (!coords || coords.length < 2) continue;
+      const distanceKm = Math.round(calculateDistanceKm(lat, lng, coords[1], coords[0]) * 10) / 10;
+      if (distanceKm > radiusKm) continue;
+      const medicines = await Medicine.find({
+        facilityId: s._id,
+        isActive: true,
+        currentStock: { $gt: 0 },
+        $or: [{ name: rx }, { genericName: rx }],
+      }).select('name genericName form sellingPrice currentStock manufacturer prescriptionReq').limit(10).lean();
+      if (!medicines.length) continue;
+      out.push({
+        storeId: s._id,
+        name: s.name,
+        address: s.address,
+        city: s.city,
+        phone: s.phone,
+        distanceKm,
+        h3Index8: latLngToCell(coords[1], coords[0], 8),
+        medicines,
+      });
+    }
+    out.sort((a, b) => a.distanceKm - b.distanceKm);
+    res.json({ success: true, query: q, radiusKm, stores: out });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
