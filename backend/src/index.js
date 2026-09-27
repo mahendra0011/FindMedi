@@ -22,6 +22,7 @@ import logger from './config/logger.js';
 import { configureMongoDns } from './config/mongoDns.js';
 import { validateEnv, printEnvStatus } from './config/envValidator.js';
 import { errorHandler, notFound } from './middleware/errorHandler.js';
+import { protect, superadminOnly } from './middleware/auth.js';
 import { csrfProtection, setCsrfToken } from './middleware/csrf.js';
 import { initSocket } from './services/socketService.js';
 
@@ -417,6 +418,40 @@ app.use('/api/reviews/moderation', reviewModerationRoutes);
 app.use('/api/system-settings', systemSettingRoutes);
 app.use('/api/commission', commissionRoutes);
 app.use('/api/admin/security', adminSecurityRoutes);
+
+// BullMQ Bull Board (job-queue visibility) — superadmin only, no-op without REDIS_URL.
+// Top-level await (not fire-and-forget): routes must register BEFORE the 404
+// handler below, otherwise they 404 despite being in the stack.
+try {
+  const { getBoardRouter } = await import('./lib/queueBoard.js');
+  const boardRouter = await getBoardRouter();
+  if (boardRouter) {
+    app.use('/admin/queues', protect, superadminOnly, boardRouter);
+    logger.info('📋 Bull Board mounted at /admin/queues');
+  }
+} catch (err) {
+  logger.warn(`Bull Board mount skipped: ${err.message}`);
+}
+
+// OpenAPI docs (Phase 4) — /api/docs.json always served; Swagger UI needs
+// swagger-ui-express installed. Open in non-production, auth-gated in prod.
+try {
+  const { buildOpenApiDocument } = await import('./lib/openapi.js');
+  const openapiDoc = buildOpenApiDocument();
+  const docsGate = process.env.NODE_ENV === 'production' ? [protect] : [];
+  app.get('/api/docs.json', ...docsGate, (_, res) => res.json(openapiDoc));
+  logger.info('📖 OpenAPI JSON served at /api/docs.json');
+  try {
+    const swaggerUi = await import('swagger-ui-express');
+    const handler = swaggerUi.default ?? swaggerUi;
+    app.use('/api/docs', ...docsGate, handler.serve, handler.setup(openapiDoc, { customSiteTitle: 'FindMedi API Docs' }));
+    logger.info('📖 Swagger UI mounted at /api/docs');
+  } catch {
+    logger.warn('Swagger UI unavailable (run npm install) — /api/docs.json still served.');
+  }
+} catch (err) {
+  logger.warn(`OpenAPI docs skipped: ${err.message}`);
+}
 app.use('/api/disputes', disputeRoutes);
 app.use('/api/support-tickets', supportTicketRoutes);
 app.use('/api/leave-requests', leaveRequestRoutes);
@@ -489,6 +524,13 @@ app.get(['/api/health', '/health', '/api/v1/health'], async (_, res) => {
     kafkaStatus = isKafkaConfigured() ? 'ready' : 'in_memory_spine';
   } catch (_) {}
 
+  let queuesStatus = 'disabled';
+  try {
+    const { queueStatus } = await import('./lib/queues.js');
+    const qs = await queueStatus();
+    queuesStatus = qs.enabled ? 'ready' : `disabled (${qs.reason || 'no redis'})`;
+  } catch (_) {}
+
   res.json({
     status: 'ok',
     service: 'FindMedi Core Platform',
@@ -498,6 +540,7 @@ app.get(['/api/health', '/health', '/api/v1/health'], async (_, res) => {
       mongodb: mongoStatus,
       redis: redisStatus,
       kafka: kafkaStatus,
+      queues: queuesStatus,
       valhallaRouting: !!process.env.VALHALLA_URL ? 'external_engine' : 'haversine_fallback',
       paymentMode: 'DEMO_SANDBOX_ESCROW',
     },
@@ -651,6 +694,14 @@ if (process.env.NODE_ENV !== 'test') {
       // Start Event Consumer Subscriber Daemon (processes outbox / kafka pipeline)
       const { startKafkaConsumer } = await import('./services/kafkaConsumerService.js');
       startKafkaConsumer();
+
+      // Phase 3 — BullMQ workers (notifications; no-op without REDIS_URL)
+      try {
+        const { startWorkers } = await import('./workers/index.js');
+        await startWorkers();
+      } catch (e) {
+        logger.warn('job workers failed to start (non-fatal): ' + e.message);
+      }
     } catch (e) {
       logger.error('⚠️ Failed to sync indexes, seed demo users, or start outbox poller: ' + e.message);
     }
@@ -669,6 +720,12 @@ if (process.env.NODE_ENV !== 'test') {
     try {
       const { stopOutboxPoller } = await import('./services/outboxPollerService.js');
       stopOutboxPoller();
+    } catch {}
+    try {
+      const { stopWorkers } = await import('./workers/index.js');
+      await stopWorkers();
+      const { closeQueues } = await import('./lib/queues.js');
+      await closeQueues();
     } catch {}
     await mongoose.connection.close();
     logger.info('📦 MongoDB connection closed');

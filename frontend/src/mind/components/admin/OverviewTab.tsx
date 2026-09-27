@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/mind/components/ui/card";
 import { Badge } from "@/mind/components/ui/badge";
 import { Button } from "@/mind/components/ui/button";
-import { Activity, AlertTriangle, BarChart3, CalendarDays, CheckCircle2, CreditCard, Download, FileText, Package, Shield, ShieldAlert, Star, Users } from "lucide-react";
+import { Activity, AlertTriangle, BarChart3, CalendarDays, CheckCircle2, CreditCard, Download, FileText, Lightbulb, Package, Shield, ShieldAlert, Star, TrendingUp, UserCog, Users } from "lucide-react";
 import GlowPanel from "@/mind/components/reactbits/GlowPanel";
 
 function Metric({ title, value, icon: Icon }) {

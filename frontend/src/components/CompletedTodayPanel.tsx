@@ -131,8 +131,8 @@ export default function CompletedTodayPanel({
         if (!a.time) return false;
         const match = a.time.match(/(\d+):\d+\s*(AM|PM)?/i);
         if (!match) return false;
-        let hourRaw = parseInt(match[1], 10);
-        let period = match[2] ? match[2].toUpperCase() : '';
+        const hourRaw = parseInt(match[1], 10);
+        const period = match[2] ? match[2].toUpperCase() : '';
         const hourLabel = `${String(hourRaw).padStart(2, '0')}:00 ${period}`.trim();
         return hourLabel === selectedHour;
       });

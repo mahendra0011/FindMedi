@@ -1,4 +1,5 @@
 import { defineConfig } from "vite";
+import { configDefaults } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -42,6 +43,8 @@ export default defineConfig({
     test: {
         environment: "jsdom",
         setupFiles: ["./src/setupTests.js"],
-        globals: true
+        globals: true,
+        // Playwright specs (e2e/) vitest se exclude — warna vitest unhe apna test samajh ke chalata hai.
+        exclude: [...configDefaults.exclude, "e2e/**"],
     }
 });

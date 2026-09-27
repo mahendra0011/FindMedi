@@ -1,0 +1,303 @@
+// FindMedi polyglot persistence — PostgreSQL side (money + medical-legal records).
+// Chat / notifications / profiles / catalog stay on MongoDB (Mongoose).
+// Money uses Decimal(12,2) — never float. Dates are real DateTime (fixes
+// Billing.date-as-string and unchecked patient_id-string from Mongoose side).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Payment {
+  id            String        @id @default(uuid())
+  transactionId String        @unique
+  patientId     String
+  patientName   String
+  amount        Decimal       @db.Decimal(12, 2)
+  method        PaymentMethod @default(CARD)
+  status        PaymentStatus @default(COMPLETED)
+  invoiceId     String?
+  serviceType   ServiceType   @default(APPOINTMENT)
+  referenceId   String?
+  description   String?
+  provider      String?
+  refundAmount  Decimal       @default(0) @db.Decimal(12, 2)
+  hospitalId    String?
+  lineItems     Json?
+  createdAt     DateTime      @default(now())
+
+  ledgerEntries TransactionLedger[]
+  billing       Billing?
+
+  @@index([hospitalId])
+  @@index([referenceId, status])
+}
+
+model Billing {
+  id                   String             @id @default(uuid())
+  invoiceId            String             @unique
+  patientId            String
+  patientName          String
+  doctorId             String?
+  doctorName           String?
+  appointmentId        String?
+  admissionId          String?
+  services             Json
+  source               BillingSource      @default(MANUAL)
+  amount               Decimal            @db.Decimal(12, 2)
+  subTotal             Decimal            @default(0) @db.Decimal(12, 2)
+  discount             Decimal            @default(0) @db.Decimal(12, 2)
+  tax                  Decimal            @default(0) @db.Decimal(12, 2)
+  taxRate              Decimal            @default(0) @db.Decimal(5, 2)
+  paid                 Decimal            @default(0) @db.Decimal(12, 2)
+  balance              Decimal            @default(0) @db.Decimal(12, 2)
+  status               BillingStatus      @default(PENDING)
+  dueDate              DateTime?
+  paymentMethod        String?
+  paymentId            String?            @unique
+  payment              Payment?           @relation(fields: [paymentId], references: [id])
+  insuranceClaimId     String?
+  insurance            Insurance?         @relation(fields: [insuranceClaimId], references: [claimId])
+  insuranceApprovedAmt Decimal            @default(0) @db.Decimal(12, 2)
+  insuranceStatus      InsuranceLinkStatus @default(NOT_SUBMITTED)
+  hospitalId           String?
+  facilityId           String?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  @@index([hospitalId])
+  @@index([facilityId])
+}
+
+model Insurance {
+  id                String        @id @default(uuid())
+  claimId           String        @unique
+  patientId         String
+  patientName       String
+  admissionId       String?
+  insuranceProvider String
+  policyNumber      String
+  tpaName           String?
+  tpaContact        String?
+  coverageType      CoverageType  @default(CASHLESS)
+  preAuthAmount     Decimal?      @db.Decimal(12, 2)
+  preAuthStatus     PreAuthStatus @default(NOT_REQUIRED)
+  preAuthDate       DateTime?
+  preAuthExpiry     DateTime?
+  claimAmount       Decimal?      @db.Decimal(12, 2)
+  approvedAmount    Decimal?      @db.Decimal(12, 2)
+  claimStatus       ClaimStatus   @default(NOT_FILED)
+  claimDate         DateTime?
+  settlementDate    DateTime?
+  documents         Json?
+  diagnosis         String?
+  treatmentPlan     String?
+  estimatedCost     Decimal?      @db.Decimal(12, 2)
+  remarks           String?
+  hospitalId        String?
+  createdBy         String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  billing Billing[]
+
+  @@index([hospitalId])
+}
+
+model CommissionConfig {
+  id                String         @id @default(uuid())
+  facilityId        String         @unique
+  facilityName      String?
+  facilityType      FacilityType   @default(HOSPITAL)
+  commissionPercent Decimal        @default(10) @db.Decimal(5, 2)
+  commissionCap     Decimal        @default(0) @db.Decimal(12, 2)
+  payoutSchedule    PayoutSchedule @default(MONTHLY)
+  totalEarnings     Decimal        @default(0) @db.Decimal(12, 2)
+  pendingPayout     Decimal        @default(0) @db.Decimal(12, 2)
+  lastPayoutDate    DateTime?
+  status            ConfigStatus   @default(ACTIVE)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+}
+
+model TransactionLedger {
+  id                String       @id @default(uuid())
+  mongoId           String?      @unique
+  facilityId        String?
+  facilityName      String?
+  facilityType      String       @default("hospital")
+  providerId        String?
+  userId            String?
+  source            LedgerSource @default(RIDE)
+  sourceId          String?
+  bookingNumber     String?
+  patientName       String?
+  amount            Decimal      @default(0) @db.Decimal(12, 2)
+  commissionPercent Decimal      @default(10) @db.Decimal(5, 2)
+  commissionAmount  Decimal      @default(0) @db.Decimal(12, 2)
+  taxAmount         Decimal      @default(0) @db.Decimal(12, 2)
+  netAmount         Decimal      @default(0) @db.Decimal(12, 2)
+  entryType         EntryType    @default(CREDIT)
+  status            LedgerStatus @default(COMPLETED)
+  paymentId         String?
+  payment           Payment?     @relation(fields: [paymentId], references: [id])
+  payoutId          String?
+  payout            Payout?      @relation(fields: [payoutId], references: [id])
+  createdAt         DateTime     @default(now())
+
+  @@index([createdAt])
+  @@index([providerId, createdAt])
+  @@index([facilityId, createdAt])
+}
+
+model Payout {
+  id               String       @id @default(uuid())
+  mongoId          String?      @unique
+  facilityId       String
+  facilityName     String?
+  facilityType     String       @default("hospital")
+  periodStart      DateTime
+  periodEnd        DateTime
+  grossRevenue     Decimal      @default(0) @db.Decimal(12, 2)
+  commissionAmount Decimal      @default(0) @db.Decimal(12, 2)
+  netPayout        Decimal      @default(0) @db.Decimal(12, 2)
+  transactionCount Int          @default(0)
+  status           PayoutStatus @default(PENDING)
+  paidAt           DateTime?
+  transactionRef   String?
+  notes            String?
+  approvals        Json?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  ledgerEntries TransactionLedger[]
+
+  @@index([facilityId])
+}
+
+enum PaymentMethod {
+  CARD
+  UPI
+  NETBANKING
+  CASH
+  WALLET
+}
+
+enum PaymentStatus {
+  COMPLETED
+  PENDING
+  FAILED
+  REFUNDED
+}
+
+enum ServiceType {
+  APPOINTMENT
+  TEST
+  MEDICINE
+}
+
+enum BillingSource {
+  MANUAL
+  APPOINTMENT
+  LAB
+  PHARMACY
+  IPD
+  OT
+  RADIOLOGY
+  PHYSIO
+  DIET
+}
+
+enum BillingStatus {
+  PAID
+  PENDING
+  OVERDUE
+  PARTIAL
+  CANCELLED
+  REFUNDED
+}
+
+enum InsuranceLinkStatus {
+  NOT_SUBMITTED
+  SUBMITTED
+  APPROVED
+  REJECTED
+  PARTIAL
+}
+
+enum CoverageType {
+  CASHLESS
+  REIMBURSEMENT
+}
+
+enum PreAuthStatus {
+  NOT_REQUIRED
+  PENDING
+  APPROVED
+  PARTIALLY_APPROVED
+  REJECTED
+}
+
+enum ClaimStatus {
+  NOT_FILED
+  FILED
+  PROCESSING
+  SETTLED
+  REJECTED
+}
+
+enum FacilityType {
+  HOSPITAL
+  CLINIC
+  LAB
+  PHARMACY
+}
+
+enum PayoutSchedule {
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+}
+
+enum ConfigStatus {
+  ACTIVE
+  PAUSED
+}
+
+enum LedgerSource {
+  RIDE
+  LAWYER
+  ASSISTANT
+  EMERGENCY_DOCTOR
+  AMBULANCE
+  APPOINTMENT
+  LAB
+  PHARMACY
+  IPD
+  RADIOLOGY
+  OT
+  PHYSIO
+  OTHER
+}
+
+enum EntryType {
+  CREDIT
+  DEBIT
+}
+
+enum LedgerStatus {
+  COMPLETED
+  HELD_IN_ESCROW
+  REFUNDED
+  CANCELLED
+}
+
+enum PayoutStatus {
+  PENDING
+  PAID
+  CANCELLED
+}

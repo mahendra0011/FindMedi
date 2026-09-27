@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Switch } from '@/components/ui/switch';
-import { CalendarDays, Clock, User, AlertCircle, TrendingUp, DollarSign, Beaker, FileText, Microscope, RotateCcw, Globe, Save, Building2, Users, CheckCircle, CalendarClock, ChevronRight } from 'lucide-react';
+import { Activity, CalendarDays, Clock, MapPin, User, AlertCircle, TrendingUp, DollarSign, Beaker, FileText, Microscope, RotateCcw, Globe, Save, Building2, Users, CheckCircle, CalendarClock, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
 import LicenseExpiryReminder from '@/components/LicenseExpiryReminder';
@@ -17,6 +17,7 @@ const statusColors = {
 };
 
 export default function LabCenterDashboard() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [stats, setStats] = useState(null);
   const [bookings, setBookings] = useState([]);

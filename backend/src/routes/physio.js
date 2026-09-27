@@ -118,6 +118,8 @@ router.post('/referrals/:id/create-billing', protect, adminOnly, validate(physio
       physioReferralId: referral._id,
     });
     
+    void import('../lib/pgDualWrite.js').then((m) => m.mirrorBilling(billing)).catch(() => {});
+
     // Notify billing department
     await Notification.create({
       title: 'New Physiotherapy Bill',

@@ -13,7 +13,7 @@ import { fileURLToPath } from 'url';
 import path from 'path';
 import sharp from 'sharp';
 import PDFDocument from 'pdfkit';
-import { Parser } from 'json2csv';
+import { Parser } from '@json2csv/plainjs';
 import ExcelJS from 'exceljs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));

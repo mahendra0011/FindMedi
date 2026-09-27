@@ -22,6 +22,34 @@ const toCSV = (data, fields) => {
 
 const router = express.Router();
 
+// ──────────────────────────────────────────────
+// Async export jobs (BullMQ) — POST returns 202 + jobId, poll GET for result.
+// Sync GET routes below stay untouched (backward compatible).
+// ──────────────────────────────────────────────
+const EXPORT_JOB_TYPES = ['users', 'revenue', 'bookings', 'facilities', 'audit'];
+
+router.post('/jobs', protect, superadminOnly, async (req, res) => {
+  try {
+    const { type, from, to } = req.body || {};
+    if (!EXPORT_JOB_TYPES.includes(type)) {
+      return res.status(400).json({ message: `type must be one of: ${EXPORT_JOB_TYPES.join(', ')}` });
+    }
+    const { enqueueExport } = await import('../lib/queues.js');
+    const r = await enqueueExport({ type, from, to });
+    if (r.queued) return res.status(202).json({ jobId: r.jobId, state: 'queued', type });
+    return res.status(503).json({ message: 'Export queue unavailable (REDIS_URL unset) — use the sync GET endpoints instead.' });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+router.get('/jobs/:id', protect, superadminOnly, async (req, res) => {
+  try {
+    const { getJobState, QUEUE_NAMES } = await import('../lib/queues.js');
+    const s = await getJobState(QUEUE_NAMES.exports, req.params.id);
+    if (!s) return res.status(503).json({ message: 'Queue unavailable' });
+    res.json(s);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
 router.get('/users', protect, superadminOnly, async (req, res) => {
   try {
     const users = await User.find({}).select('-password').lean();

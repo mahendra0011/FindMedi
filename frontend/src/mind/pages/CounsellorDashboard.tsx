@@ -26,6 +26,7 @@ import {
   Link as LinkIcon,
   Lock,
   MessageCircle,
+  MessageSquare,
   MessageSquareText,
   NotebookPen,
   Package,

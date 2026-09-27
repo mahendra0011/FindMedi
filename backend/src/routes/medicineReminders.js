@@ -5,7 +5,6 @@ import Notification from '../models/Notification.js';
 import ChronicCarePlan from '../models/ChronicCarePlan.js';
 import Doctor from '../models/Doctor.js';
 import { protect } from '../middleware/auth.js';
-import { sendEmail } from '../services/notificationService.js';
 import logger from '../config/logger.js';
 
 const router = express.Router();
@@ -484,11 +483,13 @@ router.post('/:id/dose/respond', protect, async (req, res) => {
           if (plan && plan.shareWithDoctor && plan.linkedDoctorId) {
             const doctor = await Doctor.findById(plan.linkedDoctorId);
             if (doctor && doctor.email) {
-              await sendEmail({
-                to: doctor.email,
-                subject: `Patient Alert: Missed Doses for ${reminder.medicineName}`,
-                text: `Patient ${req.user.name || 'Patient'} has missed ${recentMisses} doses of ${reminder.medicineName} in the last 7 days under their ${plan.planName}.`,
-              }).catch(e => logger.warn('Failed to send doctor adherence alert email:', e.message));
+              void import('../lib/queues.js')
+                .then((m) => m.queueEmailOrSend({
+                  to: doctor.email,
+                  subject: `Patient Alert: Missed Doses for ${reminder.medicineName}`,
+                  text: `Patient ${req.user.name || 'Patient'} has missed ${recentMisses} doses of ${reminder.medicineName} in the last 7 days under their ${plan.planName}.`,
+                }))
+                .catch(e => logger.warn('Failed to send doctor adherence alert email:', e.message));
             }
           }
         }

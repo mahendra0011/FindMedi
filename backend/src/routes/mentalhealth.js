@@ -159,6 +159,8 @@ router.post('/referrals/:id/create-billing', protect, adminOnly, validate(mhBill
       date: getISTDateString(),
     });
     
+    void import('../lib/pgDualWrite.js').then((m) => m.mirrorBilling(billing)).catch(() => {});
+
     await Notification.create({
       title: 'New Mental Health Bill',
       message: `Mental health billing created for ${referral.patientName}`,

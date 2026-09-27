@@ -646,7 +646,7 @@ const UserDashboard = () => {
   };
   useEffect(() => {
     refreshConsentStatus();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   // U-5: intake status is fetched once per package id (not on every

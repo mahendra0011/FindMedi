@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Star, MapPin, CalendarDays, IndianRupee, Award, Users, Phone, Mail, Building2, Languages, GraduationCap, BrainCircuit, BadgeCheck, Heart, Video, MessageCircle, Home, Share2, Pill, Quote, FlaskConical, HeartPulse, Car, Accessibility, Wind, Image, ChevronRight, ChevronDown, ChevronUp, FileText, Briefcase, Shield, Trophy, Store, CircleDot, Check, CheckCircle, Plus, Minus, Ambulance, Zap, Sparkles, DoorOpen, Clock, Bookmark, BookMarked, ArrowRight, Stethoscope } from 'lucide-react';
+import { ArrowLeft, Star, MapPin, CalendarDays, IndianRupee, Award, Users, Phone, Mail, Building2, Languages, GraduationCap, BrainCircuit, BadgeCheck, Heart, Video, MessageCircle, Home, Share2, Pill, Quote, FlaskConical, HeartPulse, Car, Accessibility, Wind, Image, ChevronRight, ChevronDown, ChevronUp, FileText, Briefcase, Shield, Trophy, Store, CircleDot, Check, CheckCircle, CheckCircle2, Plus, Minus, Ambulance, Zap, Sparkles, DoorOpen, Clock, Bookmark, BookMarked, ArrowRight, Stethoscope } from 'lucide-react';
 import { Button } from '@/mind/components/ui/button';
 import { Textarea } from '@/mind/components/ui/textarea';
 import { Badge } from '@/mind/components/ui/badge';
@@ -163,7 +163,7 @@ export default function PsychiatristDetail() {
       setLoading(false);
     };
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [id]);
 
   const toggleSaved = async () => {

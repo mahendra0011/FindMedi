@@ -7,7 +7,6 @@ import Facility from '../models/Facility.js';
 import Doctor from '../models/Doctor.js';
 import { validate } from '../utils/validate.js';
 import { createAndSendOTP } from '../services/otpService.js';
-import { sendEmail } from '../services/notificationService.js';
 
 const platformRegisterSchema = z.object({
   type: z.enum(['hospital', 'clinic', 'diagnostic', 'pharmacy']),
@@ -308,11 +307,13 @@ router.post('/register', validate(platformRegisterSchema), async (req, res) => {
           approved: true,
         });
 
-        sendEmail({
-          to: docEmail.toLowerCase(),
-          subject: 'Your FindMedi Doctor Account Credentials',
-          text: `Hi ${doc.name},\n\nYou have been registered on FindMedi by ${account.name}.\n\nLogin: ${docEmail.toLowerCase()}\nTemporary Password: ${tempPassword}\n\nPlease login and change your password.\n\nRegards,\nFindMedi Team`,
-        }).catch(() => {});
+        void import('../lib/queues.js')
+          .then((m) => m.queueEmailOrSend({
+            to: docEmail.toLowerCase(),
+            subject: 'Your FindMedi Doctor Account Credentials',
+            text: `Hi ${doc.name},\n\nYou have been registered on FindMedi by ${account.name}.\n\nLogin: ${docEmail.toLowerCase()}\nTemporary Password: ${tempPassword}\n\nPlease login and change your password.\n\nRegards,\nFindMedi Team`,
+          }))
+          .catch(() => {});
       }
     }
 

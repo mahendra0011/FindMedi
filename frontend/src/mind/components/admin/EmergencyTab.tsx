@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/mind/components/ui/card";
 import { Badge } from "@/mind/components/ui/badge";
-import { MessageCircle, Phone, ShieldAlert, ShieldCheck } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Activity, MessageCircle, Phone, ShieldAlert, ShieldCheck } from "lucide-react";
 
 export default function EmergencyTab({ data, users }) {
   return (

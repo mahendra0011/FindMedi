@@ -228,7 +228,7 @@ export default function ChatDashboard() {
     let sent = 0;
     for (const item of queue) {
       try {
-        // eslint-disable-next-line no-await-in-loop
+         
         const { data } = await api.post('/chat/messages', item.payload);
         setMessages((prev) => prev.map((m) => (m._id === item.clientGeneratedId ? data : m)));
         dequeueMessage(meId, item.clientGeneratedId);
@@ -450,7 +450,7 @@ export default function ChatDashboard() {
           fr.readAsDataURL(file);
         });
         setUploading(0.5);
-        // eslint-disable-next-line no-await-in-loop
+         
         const meta = await uploadDataUrl(dataUrl, file.name);
         uploaded.push(meta);
       }

@@ -77,7 +77,7 @@ export default function DiagnosticCenters() {
     };
   };
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   useEffect(() => {
     const load = async () => {
       setLoading(true);

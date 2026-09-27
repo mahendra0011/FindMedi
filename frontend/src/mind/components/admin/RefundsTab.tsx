@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/mind/components/ui/card";
 import { Button } from "@/mind/components/ui/button";
-import { AlertTriangle, CheckCircle2, CreditCard, Download, FileText, RotateCcw, ShieldAlert } from "lucide-react";
+import { AlertTriangle, CheckCircle2, CreditCard, Download, FileText, RotateCcw, ShieldAlert, X } from "lucide-react";
 import { api } from "@/mind/lib/api";
 
 export default function RefundsTab({ data, users, packages }) {

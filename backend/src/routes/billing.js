@@ -106,6 +106,7 @@ router.post('/', protect, paymentLimiter, async (req, res, next) => {
       facilityId: req.user.facilityId || req.body.facilityId,
     });
     await auditLog('create_billing', req.user._id, { billId: bill._id, invoiceId, amount: bill.amount });
+    void import('../lib/pgDualWrite.js').then((m) => m.mirrorBilling(bill)).catch(() => {});
     res.status(201).json(bill);
   } catch (err) { next(err); }
 });
