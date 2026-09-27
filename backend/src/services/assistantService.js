@@ -81,6 +81,7 @@ export function buildChecklistForBooking(serviceCategories = []) {
 
 export function calculateBookingCost(pricePerHour = 150, pricePerFullDay = 1000, durationType = '4hr') {
   const hours = DURATION_HOURS[durationType] || 4;
+  // eslint-disable-next-line no-useless-assignment -- total is conditionally reassigned and used in return object
   let total = 0;
 
   if (durationType === 'full_day' && pricePerFullDay) {

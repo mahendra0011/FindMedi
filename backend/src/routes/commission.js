@@ -18,7 +18,7 @@ const router = express.Router();
 
 router.get('/config', protect, superadminOnly, async (req, res) => {
   try {
-    let configs = await CommissionConfig.find().sort({ facilityName: 1 }).lean();
+    const configs = await CommissionConfig.find().sort({ facilityName: 1 }).lean();
 
     const hospitals = await Hospital.find({ status: 'approved' }).select('name').lean();
     const existingIds = new Set(configs.map(c => c.facilityId?.toString()).filter(Boolean));

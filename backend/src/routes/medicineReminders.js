@@ -70,7 +70,7 @@ router.get('/adherence', protect, async (req, res) => {
     // Sirf responded logs gino — unanswered snooze "taken" gin jata tha, score jhootha banta tha
     const logs = allLogs.filter(l => l.respondedAt);
 
-    let totalScheduled = logs.length;
+    const totalScheduled = logs.length;
     let takenCount = 0;
     let missedCount = 0;
     let skippedCount = 0;

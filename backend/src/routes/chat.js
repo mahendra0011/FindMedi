@@ -432,7 +432,7 @@ router.get('/conversations', protect, async (req, res) => {
       .lean();
 
     const out = [];
-    for (let conv of convs) {
+    for (const conv of convs) {
       const id = uid(userId);
       if (conv.deletedFor?.some((d) => uid(d) === id)) continue;
       if (filter === 'archived' && !conv.archivedBy?.some((a) => uid(a) === id)) continue;
@@ -907,7 +907,7 @@ router.post('/messages', protect, async (req, res) => {
     conversation.drafts = (conversation.drafts || []).filter((d) => uid(d.userId) !== uid(senderId));
     // recipient ka unread count badhao
     if (recipientId) {
-      let entry = conversation.unreadCounts.find((u) => uid(u.userId) === recipientId);
+      const entry = conversation.unreadCounts.find((u) => uid(u.userId) === recipientId);
       if (entry) entry.count += 1;
       else conversation.unreadCounts.push({ userId: recipientId, count: 1 });
     }

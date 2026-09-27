@@ -371,7 +371,7 @@ router.post('/walk-in', protect, requireRole(['doctor', 'clinic_doctor', 'clinic
     }
 
     // 2. Doctor resolve (doctor role ke liye khud ka profile, warna body wala)
-    let targetDoctorId = doctorId || req.user.doctorProfileId || null;
+    const targetDoctorId = doctorId || req.user.doctorProfileId || null;
     let targetDoctorName = doctor || req.user.name || '';
     let hospitalId = req.user.hospitalId || undefined;
     if (targetDoctorId) {
@@ -445,8 +445,8 @@ router.post('/', protect, requireRole(['hospital_admin', 'superadmin']), validat
   try {
     const { doctorId, doctor, department, date, time, type, symptoms, priority, appointmentMode } = req.body;
     
-    let patientName = req.user.name;
-    let patientId = req.user._id;
+    const patientName = req.user.name;
+    const patientId = req.user._id;
     
     let hospitalId = null;
     if (doctorId) {
@@ -497,7 +497,7 @@ router.post('/', protect, requireRole(['hospital_admin', 'superadmin']), validat
     const estimatedWaitTime = await calculateEstimatedWaitTime(department, priority);
     const appointment = await Appointment.create({
         tokenNumber,
-        uhid: !!hospitalId ? (patientUser?.uhid || '') : undefined,
+        uhid: hospitalId ? (patientUser?.uhid || '') : undefined,
         patient: patientName,
         patientId,
         doctor: doctor || '',

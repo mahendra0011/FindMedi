@@ -115,7 +115,7 @@ router.get('/settings', protect, async (req, res) => {
   try {
     const facilityId = req.user.facilityId;
     const hospitalId = req.user.hospitalId;
-    let settings = { autoConfirmAppointment: true };
+    const settings = { autoConfirmAppointment: true };
     if (facilityId) {
       const facility = await Facility.findById(facilityId).select('settings');
       if (facility) return res.json(facility.settings || settings);

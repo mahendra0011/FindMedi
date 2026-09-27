@@ -541,7 +541,7 @@ app.get(['/api/health', '/health', '/api/v1/health'], async (_, res) => {
       redis: redisStatus,
       kafka: kafkaStatus,
       queues: queuesStatus,
-      valhallaRouting: !!process.env.VALHALLA_URL ? 'external_engine' : 'haversine_fallback',
+      valhallaRouting: process.env.VALHALLA_URL ? 'external_engine' : 'haversine_fallback',
       paymentMode: 'DEMO_SANDBOX_ESCROW',
     },
     h3Resolutions: {

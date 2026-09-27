@@ -74,7 +74,7 @@ export function getImageInfo(inputBuffer) {
 export function resizeToFit(inputBuffer, maxWidth, maxHeight, quality = 80) {
   const napi = getNapi();
   const info = JSON.parse(napi.getImageInfo(inputBuffer));
-  let { width, height } = info;
+  const { width, height } = info;
 
   const maxW = Math.min(maxWidth || 4096, MAX_IMAGE_DIMENSION);
   const maxH = Math.min(maxHeight || 4096, MAX_IMAGE_DIMENSION);

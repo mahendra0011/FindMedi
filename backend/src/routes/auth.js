@@ -292,7 +292,7 @@ const notifyAdmins = async ({ title, message }) => {
     type: 'system',
     userId: admin._id.toString(),
   })));
-  notifs.forEach(n => notifyUser(n.userId, n));
+  notifs.forEach(n => notifyUsers(n.userId, n));
 };
 
 const sendVerificationOtp = (user) => createAndSendOTP({
@@ -978,7 +978,7 @@ router.post('/google', authLimiter, validate(googleAuthSchema), async (req, res)
     }
 
     // Check if user already exists
-    let user = await User.findOne({ email: googleUser.email });
+    const user = await User.findOne({ email: googleUser.email });
 
     if (user) {
       if (user.status === 'blocked') {

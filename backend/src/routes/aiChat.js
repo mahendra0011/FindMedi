@@ -40,6 +40,10 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ reply: 'Please ask a health-related question or provide an image.' });
     }
 
+    // SA-M4: red-flag detection on user prompt
+    const promptText = (message || '').trim();
+    const hit = RED_FLAG_PATTERNS.find(p => p.re.test(promptText)) || null;
+
     // SA-M4 & SPEC 23: red-flag screen on user prompt.
     // If life-threatening red-flag detected, lock chat and surface immediate Emergency SOS guidance.
     if (hit) {
