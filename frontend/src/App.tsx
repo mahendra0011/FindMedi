@@ -17,7 +17,7 @@ import { initializeAuth } from '@/store/slices/authSlice';
 import { applyUserSettings, readStoredSettings } from '@/lib/settings';
 import { loadUserSettings } from '@/store/slices/settingsSlice';
 import { NotificationProvider } from '@/context/NotificationContext';
-import { AuthProvider } from '@/context/AuthContext';
+import { AuthProvider, AuthUser } from '@/context/AuthContext';
 import { CartProvider } from '@/context/CartContext';
 import { PreferredPharmacyProvider } from '@/context/PreferredPharmacyContext';
 import { AudioCallProvider } from '@/context/AudioCallContext';
@@ -393,23 +393,23 @@ function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode;
   );
   if (!user) return <Navigate to="/login" replace />;
   if (user.status === 'blocked') return <BlockedAccountRedirect />;
-  if (!user.isVerified) return <Navigate to={`/verify-otp?email=${encodeURIComponent(user.email)}`} replace />;
+  if (!user.isVerified) return <Navigate to={`/verify-otp?email=${encodeURIComponent(user.email ?? '')}`} replace />;
   if ((user.role === 'doctor' || user.role === 'clinic_doctor') && !user.doctorApproved) {
-    return <Navigate to={`/pending-approval?email=${encodeURIComponent(user.email)}&status=${user.approvalStatus === 'rejected' ? 'rejected' : 'pending'}`} replace />;
+    return <Navigate to={`/pending-approval?email=${encodeURIComponent(user.email ?? '')}&status=${user.approvalStatus === 'rejected' ? 'rejected' : 'pending'}`} replace />;
   }
   if (user.role === 'rider' && user.approvalStatus !== 'approved') {
-    return <Navigate to={`/pending-approval?email=${encodeURIComponent(user.email)}&status=${user.approvalStatus === 'rejected' ? 'rejected' : 'pending'}`} replace />;
+    return <Navigate to={`/pending-approval?email=${encodeURIComponent(user.email ?? '')}&status=${user.approvalStatus === 'rejected' ? 'rejected' : 'pending'}`} replace />;
   }
   if (user.role === 'assistant' && user.approvalStatus !== 'approved') {
-    return <Navigate to={`/pending-approval?email=${encodeURIComponent(user.email)}&status=${user.approvalStatus === 'rejected' ? 'rejected' : 'pending'}`} replace />;
+    return <Navigate to={`/pending-approval?email=${encodeURIComponent(user.email ?? '')}&status=${user.approvalStatus === 'rejected' ? 'rejected' : 'pending'}`} replace />;
   }
   if (user.role === 'lawyer' && user.approvalStatus !== 'approved') {
-    return <Navigate to={`/pending-approval?email=${encodeURIComponent(user.email)}&status=${user.approvalStatus === 'rejected' ? 'rejected' : 'pending'}`} replace />;
+    return <Navigate to={`/pending-approval?email=${encodeURIComponent(user.email ?? '')}&status=${user.approvalStatus === 'rejected' ? 'rejected' : 'pending'}`} replace />;
   }
   if (user.role === 'delivery_boy' && user.approvalStatus !== 'approved') {
     return <Navigate to="/delivery/documents" replace />;
   }
-  if (allowedRoles && !allowedRoles.includes(user.role)) return <Navigate to="/dashboard" replace />;
+  if (allowedRoles && !allowedRoles.includes(user.role ?? '')) return <Navigate to="/dashboard" replace />;
   return <>{children}</>;
 }
 
@@ -425,7 +425,7 @@ function DashboardShell() {
 
 function RoleRoute({ children, allowedRoles }: { children: React.ReactNode; allowedRoles?: string[] }) {
   const { user } = useAuth();
-  if (allowedRoles && !allowedRoles.includes(user?.role)) return <Navigate to="/dashboard" replace />;
+  if (allowedRoles && !allowedRoles.includes(user?.role ?? '')) return <Navigate to="/dashboard" replace />;
   return <>{children}</>;
 }
 
@@ -437,11 +437,11 @@ function MindUserOnlyRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-function getDefaultDashboardPath(user) {
+function getDefaultDashboardPath(user: AuthUser | null) {
   const value = user?.settings?.defaultDashboard || 'overview';
   if (value === 'overview') return '';
 
-  const paths = {
+  const paths: Record<string, Record<string, string> | undefined> = {
     hospital_admin: {
       reports: '/reports',
       billing: '/billing',
@@ -485,7 +485,7 @@ function getDefaultDashboardPath(user) {
     },
   };
 
-  return paths[user?.role]?.[value] || '';
+  return paths[user?.role ?? '']?.[value] || '';
 }
 
 function StaffDashboard() {
@@ -510,7 +510,7 @@ function RoleDashboard() {
   if (user?.role === 'lawyer') return <Navigate to="/lawyer/dashboard" replace />;
   if (user?.role === 'lab_owner') return <Navigate to="/lab-business/dashboard" replace />;
   if (user?.role === 'pharmacy_owner') return <Navigate to="/pharmacy-business/dashboard" replace />;
-  if (['nurse','pharmacist','lab_receptionist','lab_technician','pathologist','radiologist','dietitian','physiotherapist','counselor','accountant','security','technician','helper'].includes(user?.role)) return <StaffDashboard />;
+  if (['nurse','pharmacist','lab_receptionist','lab_technician','pathologist','radiologist','dietitian','physiotherapist','counselor','accountant','security','technician','helper'].includes(user?.role ?? '')) return <StaffDashboard />;
   return <PatientDashboard />;
 }
 

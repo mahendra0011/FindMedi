@@ -130,9 +130,11 @@ const signRefreshToken = (user) => jwt.sign(
 const sign = (user) => {
   const accessToken = signAccessToken(user);
   const refreshToken = signRefreshToken(user);
+  const tokenKey = RefreshToken.getTokenKey(refreshToken);
   RefreshToken.create({
     userId: user._id,
-    token: refreshToken,
+    tokenKey,
+    tokenHash: refreshToken, // will be hashed by pre-save hook
     expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
   }).catch(err => logger.error('Failed to save refresh token:', err.message));
   return { accessToken, refreshToken };
@@ -1499,7 +1501,8 @@ router.post('/logout', async (req, res) => {
   try {
     const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
     if (refreshToken) {
-      await RefreshToken.deleteOne({ token: refreshToken });
+      const tokenKey = RefreshToken.getTokenKey(refreshToken);
+      await RefreshToken.deleteOne({ tokenKey });
     }
     clearAuthCookies(res);
     res.json({ message: 'Logged out successfully' });
@@ -1518,7 +1521,8 @@ router.post('/refresh', authLimiter, validate(refreshTokenSchema), async (req, r
       return res.status(400).json({ message: 'Refresh token is required' });
     }
 
-    const stored = await RefreshToken.findOne({ token: refreshToken });
+    const tokenKey = RefreshToken.getTokenKey(refreshToken);
+    const stored = await RefreshToken.findOne({ tokenKey });
     if (!stored) {
       return res.status(401).json({ message: 'Invalid refresh token' });
     }
@@ -1528,10 +1532,13 @@ router.post('/refresh', authLimiter, validate(refreshTokenSchema), async (req, r
       return res.status(401).json({ message: 'Refresh token expired. Please login again.' });
     }
 
-    // jwt.verify ka callback async tha → uske andar jo errors throw hote the
-    // (User.findById fail, etc.) wo swallow ho jaate the aur response kabhi
-    // hang kar deta tha → client timeout → logout. Isliye verifySync use karke
-    // await-safe flow banate hain.
+    // Verify the token hash
+    const isValid = await stored.compareToken(refreshToken);
+    if (!isValid) {
+      return res.status(401).json({ message: 'Invalid refresh token' });
+    }
+
+    // jwt.verify to validate JWT signature and get user ID
     let decoded;
     try {
       decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
@@ -1554,10 +1561,12 @@ router.post('/refresh', authLimiter, validate(refreshTokenSchema), async (req, r
 
     const newAccessToken = signAccessToken(user);
     const newRefreshToken = signRefreshToken(user);
+    const newTokenKey = RefreshToken.getTokenKey(newRefreshToken);
 
     newRefreshTokenDoc = await RefreshToken.create({
       userId: user._id,
-      token: newRefreshToken,
+      tokenKey: newTokenKey,
+      tokenHash: newRefreshToken, // will be hashed by pre-save hook
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     });
 
