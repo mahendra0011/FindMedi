@@ -238,7 +238,7 @@ export default function HospitalTestBooking() {
     toast.success('Prescription removed');
   };
 
-  let filtered = tests.filter(t => {
+  const filtered = tests.filter(t => {
     if (deptFilter !== 'all' && t.dept !== deptFilter) return false;
     if (testSearch && !t.name.toLowerCase().includes(testSearch.toLowerCase())) return false;
     if (priceFilter !== 'all') {

@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/mind/components/ui/card";
 import { Badge } from "@/mind/components/ui/badge";
 import { Button } from "@/mind/components/ui/button";
-import { AlertTriangle, ShieldCheck } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Shield, ShieldAlert, ShieldCheck } from "lucide-react";
 
 export default function ReportsTab({ data, users, updateReportStatus }) {
   return (

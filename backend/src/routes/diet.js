@@ -191,6 +191,7 @@ router.post('/orders/:id/create-billing', protect, adminOnly, validate(dietBilli
       dietOrderId: order._id,
     });
     await auditLog('create_diet_billing', req.user._id, { recordId: billing._id, ip: req.ip, userAgent: req.get('user-agent') });
+    void import('../lib/pgDualWrite.js').then((m) => m.mirrorBilling(billing)).catch(() => {});
     
     res.status(201).json(billing);
   } catch (err) { res.status(400).json({ message: err.message }); }

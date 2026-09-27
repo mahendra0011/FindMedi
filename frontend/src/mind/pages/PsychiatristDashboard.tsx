@@ -33,6 +33,7 @@ import {
   Paperclip,
   Pencil,
   PieChart,
+  Pill,
   Plus,
   PlusCircle,
   Power,

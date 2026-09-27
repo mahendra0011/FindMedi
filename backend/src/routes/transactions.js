@@ -175,10 +175,14 @@ router.post('/withdraw', protect, paymentLimiter, async (req, res, next) => {
     profile.walletBalance -= amount;
     await profile.save();
     const ref = `WDL-${Date.now().toString(36).toUpperCase()}`;
-    await TransactionLedger.create([
+    const [debitEntry, creditEntry] = await TransactionLedger.create([
       { providerId: req.user._id, source: entry[1], sourceId: ref, amount, netAmount: -amount, entryType: 'DEBIT', status: 'completed', bookingNumber: ref },
       { providerId: req.user._id, source: entry[1], sourceId: ref, amount, netAmount: amount, entryType: 'CREDIT', status: 'completed', bookingNumber: ref },
     ]);
+    void import('../lib/pgDualWrite.js').then(({ mirrorLedgerEntry }) => {
+      void mirrorLedgerEntry(debitEntry);
+      void mirrorLedgerEntry(creditEntry);
+    }).catch(() => {});
     res.json({ success: true, message: `₹${amount} withdrawal recorded`, walletBalance: profile.walletBalance, transactionRef: ref });
   } catch (err) { next(err); }
 });
@@ -391,6 +395,7 @@ router.post('/pay', protect, paymentLimiter, async (req, res, next) => {
         lineItems: lineItems || [],
       }]);
       payment = p;
+      void import('../lib/pgDualWrite.js').then((m) => m.mirrorPayment(payment)).catch(() => {});
 
       // Auto-confirm the referenced booking (check facility setting)
       if (referenceId) {
@@ -462,7 +467,7 @@ router.post('/pay', protect, paymentLimiter, async (req, res, next) => {
 
     // ── Payment successfully committed — these steps must NOT roll back the appointment ──
     try {
-      await Billing.create([{
+      const [payBill] = await Billing.create([{
         invoiceId: bill_id,
         patient: req.user.name || 'Patient',
         patientId: req.user._id,
@@ -475,6 +480,7 @@ router.post('/pay', protect, paymentLimiter, async (req, res, next) => {
         paymentMethod: methodMap[method] || 'Online',
         transactionId: transaction_id,
       }]);
+      void import('../lib/pgDualWrite.js').then((m) => m.mirrorBilling(payBill)).catch(() => {});
     } catch (billErr) {
       logger.error('[transactions/pay] Billing.create failed post-payment', billErr);
     }

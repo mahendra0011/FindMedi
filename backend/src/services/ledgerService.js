@@ -1,4 +1,5 @@
 import TransactionLedger from '../models/TransactionLedger.js';
+import { mirrorLedgerEntry } from '../lib/pgDualWrite.js';
 import RiderProfile from '../models/RiderProfile.js';
 import LawyerProfile from '../models/LawyerProfile.js';
 import AssistantProfile from '../models/AssistantProfile.js';
@@ -63,6 +64,9 @@ export async function recordServiceSettlement({
     } else {
       await ledgerRecord.save();
     }
+
+    // PG dual-write (fire-and-forget; never fails the request)
+    void mirrorLedgerEntry(ledgerRecord);
 
     // 2. Credit Net Earnings to Provider Virtual Payout Wallet
     if (providerId) {

@@ -19,7 +19,7 @@ import { parseExcelFile, parseFile, exportToExcel, exportToCSV, validatePatientD
 import { getConfig } from '../utils/configLoader.js';
 import { generatePrescriptionPDF, generateLabReportPDF, generateDischargeSummaryPDF } from '../services/pdfService.js';
 import { generateReportId, generateInvoiceId } from '../utils/idGenerator.js';
-import { sendEmail, attachmentFromPdf } from '../services/notificationService.js';
+import { attachmentFromPdf } from '../services/notificationService.js';
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
@@ -300,6 +300,44 @@ router.post('/generate', protect, validate(reportGenerateSchema), async (req, re
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
+// ──────────────────────────────────────────────
+// Async PDF jobs (BullMQ) — POST returns 202 + jobId, poll GET for result.
+// Sync /generate-* routes below stay untouched (backward compatible).
+// ──────────────────────────────────────────────
+const PDF_JOB_KINDS = ['prescription', 'lab-report', 'discharge-summary', 'invoice'];
+
+router.post('/jobs', protect, adminOnly, async (req, res) => {
+  try {
+    const { kind, data } = req.body || {};
+    if (!PDF_JOB_KINDS.includes(kind)) {
+      return res.status(400).json({ message: `kind must be one of: ${PDF_JOB_KINDS.join(', ')}` });
+    }
+    const { enqueuePdf } = await import('../lib/queues.js');
+    const r = await enqueuePdf({ kind, data: data || {} });
+    if (r.queued) return res.status(202).json({ jobId: r.jobId, state: 'queued', kind });
+    // Fallback when queues are down: generate inline, return completed payload
+    const pdf = await import('../services/pdfService.js');
+    const gen = {
+      prescription: pdf.generatePrescriptionPDF,
+      'lab-report': pdf.generateLabReportPDF,
+      'discharge-summary': pdf.generateDischargeSummaryPDF,
+      invoice: pdf.generateInvoicePDF,
+    }[kind];
+    const buffer = await gen(data || {});
+    res.json({ state: 'completed', inline: true, result: { filename: `${kind}-${Date.now()}.pdf`, base64: Buffer.from(buffer).toString('base64') } });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// NOTE: registered before '/:id' so 'jobs' isn't swallowed as an id.
+router.get('/jobs/:id', protect, adminOnly, async (req, res) => {
+  try {
+    const { getJobState, QUEUE_NAMES } = await import('../lib/queues.js');
+    const s = await getJobState(QUEUE_NAMES.pdf, req.params.id);
+    if (!s) return res.status(503).json({ message: 'Queue unavailable' });
+    res.json(s);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
 router.get('/', protect, async (req, res) => {
   try {
     const { reportType, category, dateFrom, dateTo } = req.query;
@@ -430,6 +468,7 @@ router.post('/import/:type', protect, adminOnly, upload.single('file'), async (r
             balance: record.status === 'Paid' ? 0 : record.amount,
             ...hospFilter,
           });
+          void import('../lib/pgDualWrite.js').then((m) => m.mirrorBilling(bill)).catch(() => {});
           imported.push(bill);
         }
         result = { success: true, imported: imported.length, errors };
@@ -484,7 +523,8 @@ router.post('/email/prescription', protect, adminOnly, async (req, res) => {
     if (!patient?.email) return res.status(400).json({ message: 'Patient email is required' });
 
     const pdfBuffer = await generatePrescriptionPDF(data || req.body);
-    const emailRes = await sendEmail({
+    const { queueEmailOrSend } = await import('../lib/queues.js');
+    const emailRes = await queueEmailOrSend({
       to: patient.email,
       subject: 'Your Prescription - FindMedi Hospital',
       text: `Dear ${patient.name}, please find your prescription attached.`,
@@ -493,7 +533,7 @@ router.post('/email/prescription', protect, adminOnly, async (req, res) => {
     });
 
     if (!emailRes.success && emailRes.error) throw new Error(emailRes.error);
-    res.json({ success: true, message: 'Prescription emailed successfully' });
+    res.json({ success: true, message: emailRes.queued ? 'Prescription queued for email' : 'Prescription emailed successfully' });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 });
 
@@ -503,7 +543,8 @@ router.post('/email/lab-result', protect, adminOnly, async (req, res) => {
     if (!patient?.email) return res.status(400).json({ message: 'Patient email is required' });
 
     const pdfBuffer = await generateLabReportPDF(data || req.body);
-    const emailRes = await sendEmail({
+    const { queueEmailOrSend } = await import('../lib/queues.js');
+    const emailRes = await queueEmailOrSend({
       to: patient.email,
       subject: 'Your Lab Report - FindMedi Hospital',
       text: `Dear ${patient.name}, please find your lab report attached.`,
@@ -512,7 +553,7 @@ router.post('/email/lab-result', protect, adminOnly, async (req, res) => {
     });
 
     if (!emailRes.success && emailRes.error) throw new Error(emailRes.error);
-    res.json({ success: true, message: 'Lab report emailed successfully' });
+    res.json({ success: true, message: emailRes.queued ? 'Lab report queued for email' : 'Lab report emailed successfully' });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 });
 
@@ -522,7 +563,8 @@ router.post('/email/discharge-summary', protect, adminOnly, async (req, res) => 
     if (!patient?.email) return res.status(400).json({ message: 'Patient email is required' });
 
     const pdfBuffer = await generateDischargeSummaryPDF(data || req.body);
-    const emailRes = await sendEmail({
+    const { queueEmailOrSend } = await import('../lib/queues.js');
+    const emailRes = await queueEmailOrSend({
       to: patient.email,
       subject: 'Your Discharge Summary - FindMedi Hospital',
       text: `Dear ${patient.name}, please find your discharge summary attached.`,

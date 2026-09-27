@@ -16,6 +16,24 @@ services:
     restart: unless-stopped
 
   # ==========================================
+  # POSTGRESQL 16: Money & Medical-Legal Records
+  # (Payments/Billing/Insurance/Refunds/Commission/Payouts via Prisma.
+  #  Chat/notifications/profiles/catalog stay on MongoDB.)
+  # ==========================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: findmedi-postgres
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: findmedi
+      POSTGRES_USER: findmedi
+      POSTGRES_PASSWORD: findmedi_dev_only
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  # ==========================================
   # VALHALLA: Self-Hosted Routing Engine
   # Tiles built via runbook into ./valhalla/valhalla_tiles
   # ==========================================
@@ -183,3 +201,4 @@ volumes:
   redis_data:
   opensearch_data:
   mongo_data:
+  postgres_data:

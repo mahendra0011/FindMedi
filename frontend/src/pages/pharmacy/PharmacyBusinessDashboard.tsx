@@ -3,9 +3,9 @@ import { motion } from 'framer-motion';
 import {
   Pill, ShoppingCart, DollarSign, AlertTriangle,
   Package, RotateCcw, Globe, Save, Building2, Users, CheckCircle, AlertCircle,
-  Clock, CalendarClock, CalendarDays, ChevronRight
+  Clock, CalendarClock, CalendarDays, ChevronRight, Truck, Shield
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
@@ -21,6 +21,7 @@ const statusColors = {
 };
 
 export default function PharmacyBusinessDashboard() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [stats, setStats] = useState(null);
   const [orders, setOrders] = useState([]);

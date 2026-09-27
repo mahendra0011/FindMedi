@@ -101,7 +101,7 @@ export default function WalkInPatientForm({ timeSlots, onPatientCreated }) {
   };
 
   const minutesToSlot = (mins) => {
-    let h = Math.floor(mins / 60) % 24;
+    const h = Math.floor(mins / 60) % 24;
     const mm = mins % 60;
     const ampm = h >= 12 ? 'PM' : 'AM';
     let h12 = h % 12; if (h12 === 0) h12 = 12;
@@ -109,7 +109,7 @@ export default function WalkInPatientForm({ timeSlots, onPatientCreated }) {
   };
 
   const minutesToShort = (mins) => {
-    let h = Math.floor(mins / 60) % 24;
+    const h = Math.floor(mins / 60) % 24;
     const mm = mins % 60;
     let h12 = h % 12; if (h12 === 0) h12 = 12;
     return `${h12}:${String(mm).padStart(2, '0')}`;

@@ -5,7 +5,7 @@ import { Button } from "@/mind/components/ui/button";
 import { Input } from "@/mind/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/mind/components/ui/select";
 import { Textarea } from "@/mind/components/ui/textarea";
-import { BookOpen, Upload, Pencil, Trash2, Video, FileText, Headphones, Volume2, File } from "lucide-react";
+import { BookOpen, Upload, Pencil, Plus, Trash2, Video, FileText, Headphones, Volume2, File } from "lucide-react";
 import { api } from "@/mind/lib/api";
 
 export function CounsellorResources() {

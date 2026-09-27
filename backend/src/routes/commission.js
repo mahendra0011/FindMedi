@@ -32,6 +32,7 @@ router.get('/config', protect, superadminOnly, async (req, res) => {
           commissionPercent: 10,
           payoutSchedule: 'monthly',
         });
+        void import('../lib/pgDualWrite.js').then((m) => m.mirrorCommissionConfig(created)).catch(() => {});
         configs.push(created.toObject());
       }
     }
@@ -63,7 +64,9 @@ router.put('/config/:id', protect, paymentLimiter, superadminOnly, validate(comm
     } catch (err) {
       logger.error('Audit error:', err);
     }
-    
+
+    void import('../lib/pgDualWrite.js').then((m) => m.mirrorCommissionConfig(config)).catch(() => {});
+
     res.json(config);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
@@ -212,6 +215,8 @@ router.post('/payouts', protect, paymentLimiter, superadminOnly, validate(payout
       { _id: { $in: transactions.map(t => t._id) } },
       { payoutId: payout._id }
     );
+
+    void import('../lib/pgDualWrite.js').then((m) => m.mirrorPayout(payout)).catch(() => {});
 
     config.pendingPayout = (config.pendingPayout || 0) + netPayout;
     await config.save();

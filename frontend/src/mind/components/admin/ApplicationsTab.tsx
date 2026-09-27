@@ -1,6 +1,6 @@
 import { Badge } from "@/mind/components/ui/badge";
 import { Button } from "@/mind/components/ui/button";
-import { AlertTriangle, Briefcase, CheckCircle2, CreditCard, ExternalLink, FileText, Globe, Search, Shield, ShieldCheck, UserCog } from "lucide-react";
+import { AlertTriangle, Briefcase, CheckCircle2, CreditCard, ExternalLink, FileText, Globe, Search, Shield, ShieldCheck, UserCog, X } from "lucide-react";
 
 export default function ApplicationsTab({ data, users, reviewApplication }) {
   return (

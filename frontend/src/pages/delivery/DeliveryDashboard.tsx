@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
+  Banknote,
   Package,
   FlaskConical,
   IndianRupee,
@@ -39,7 +40,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { getSocket, joinRoom } from '@/lib/socket';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import ProviderIncomingCall from '@/components/emergency/ProviderIncomingCall';
 
 const LAB_TYPES = ['lab_report', 'lab_sample'];
@@ -50,6 +51,7 @@ const taskContact = (d) => d?.patientPhone || d?.orderRef?.phone || '';
 const taskBadges = (d) => (isLabTask(d) ? ['Lab Report', 'Diagnostic Parcel'] : ['Express Delivery', 'Prescription Parcel']);
 
 export default function DeliveryDashboard() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [deliveries, setDeliveries] = useState<{ active: any[]; history: any[] }>({ active: [], history: [] });

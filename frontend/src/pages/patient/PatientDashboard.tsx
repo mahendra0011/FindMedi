@@ -259,6 +259,7 @@ export default function PatientDashboard() {
       (String(p.patient_id || p.patientId || '') === uid && p.amount === bill.amount)
     );
   };
+  const pendingBills = bills.filter(b => !isBillPaid(b));
 
   const activeRxCount = prescriptions.filter(r => r.status === 'Active').length;
   const activeOrders = medOrders.filter(o => o.status !== 'Delivered').length;

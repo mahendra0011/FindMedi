@@ -32,6 +32,7 @@ router.post('/', protect, paymentLimiter, validate(createInsuranceSchema), async
       diagnosis: diagnosis || '', treatmentPlan: treatmentPlan || '',
       estimatedCost: estimatedCost || 0, hospitalId: req.user.hospitalId || undefined, createdBy: req.user._id,
     });
+    void import('../lib/pgDualWrite.js').then((m) => m.mirrorInsurance(claim)).catch(() => {});
     res.status(201).json(claim);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });

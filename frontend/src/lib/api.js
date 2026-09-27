@@ -819,7 +819,6 @@ export const api = {
   // ── Lawyer Directory & Booking ──
   getLawyers:                (p={})    => request('/lawyer?' + new URLSearchParams(Object.fromEntries(Object.entries(p).filter(([_, v]) => v !== undefined && v !== null && v !== '')))),
   getLawyer:                 (id)      => request(`/lawyer/${id}`),
-  getLawyerById:             (id)      => request(`/lawyer/${id}`),
   createLawyerBooking:       (body)    => request('/lawyer-booking/book', { method: 'POST', body: JSON.stringify(body) }),
   bookLawyer:                (body)    => request('/lawyer-booking/book', { method: 'POST', body: JSON.stringify(body) }),
   fallbackBroadcastLawyerBooking: (id) => request(`/lawyer-booking/${id}/broadcast-fallback`, { method: 'POST' }),

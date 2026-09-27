@@ -7,6 +7,7 @@ import { auditLog } from '../middleware/audit.js';
 import { paymentLimiter } from '../middleware/rateLimit.js';
 import { generateTransactionId } from '../utils/idGenerator.js';
 import { getISTDateString } from '../utils/dateUtils.js';
+import { mirrorPayment } from '../lib/pgDualWrite.js';
 
 const router = express.Router();
 
@@ -42,6 +43,7 @@ router.post('/', protect, paymentLimiter, validate(createPaymentSchema), async (
       date: getISTDateString(),
     });
     await auditLog('create_payment', req.user._id, { paymentId: payment._id, amount: payment.amount, transaction_id });
+    void mirrorPayment(payment);
     res.status(201).json(payment);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -56,6 +58,7 @@ router.put('/:id', protect, paymentLimiter, adminOnly, validate(updatePaymentSch
     Object.assign(payment, req.body);
     await payment.save();
     await auditLog('update_payment', req.user._id, { paymentId: payment._id, changes: req.body });
+    void mirrorPayment(payment);
     res.json(payment);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -75,6 +78,7 @@ router.put('/:id/refund', protect, paymentLimiter, adminOnly, validate(refundPay
     payment.refund_amount = refund_amount;
     await payment.save();
     await auditLog('refund_payment', req.user._id, { paymentId: payment._id, refund_amount, original_amount: payment.amount });
+    void mirrorPayment(payment);
     res.json({ message: `Refund of ${refund_amount} processed`, payment });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });

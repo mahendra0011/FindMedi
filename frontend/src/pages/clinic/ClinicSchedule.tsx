@@ -197,8 +197,8 @@ export default function ClinicSchedule() {
     let h = parseInt(m[1], 10) % 12; if (/PM/i.test(m[3])) h += 12;
     const mm = parseInt(m[2], 10);
     const endMins = h * 60 + mm + parseInt(slotDuration || 15);
-    let eh = Math.floor(endMins / 60) % 24;
-    let eMin = endMins % 60;
+    const eh = Math.floor(endMins / 60) % 24;
+    const eMin = endMins % 60;
     let e12 = eh % 12; if (e12 === 0) e12 = 12;
     return `${m[1]}:${m[2]}–${e12}:${String(eMin).padStart(2, '0')}`;
   };

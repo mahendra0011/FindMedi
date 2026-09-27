@@ -3,7 +3,7 @@ import { Badge } from "@/mind/components/ui/badge";
 import { Button } from "@/mind/components/ui/button";
 import { Input } from "@/mind/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/mind/components/ui/select";
-import { CheckCircle2, Mail, Plus, ShieldAlert, ShieldCheck, UserCog, Users } from "lucide-react";
+import { CheckCircle2, Mail, Plus, ShieldAlert, ShieldCheck, UserCog, Users, X } from "lucide-react";
 import { Label } from "@/mind/components/ui/label";
 
 export default function UsersTab({ users, newUser, setNewUser, createUser, updateUserStatus, updateUserDetails, deleteUser }) {

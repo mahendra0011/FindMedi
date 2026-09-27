@@ -263,7 +263,7 @@ export default function AIChatPage() {
       setMessages(finalMessages);
 
       let session_id = currentSessionId;
-      let newSessions = [...chatSessions];
+      const newSessions = [...chatSessions];
       
       if (!session_id) {
         session_id = Date.now().toString();
