@@ -18,7 +18,7 @@ export const referralService = {
    * Generate and save a referral code for a user (called on first access to Referral page)
    */
   async generateReferralCode(userId) {
-    let user = await User.findById(userId);
+    const user = await User.findById(userId);
     if (!user.referral.code) {
       let code = generateReferralCode(6);
       // Unique check loop

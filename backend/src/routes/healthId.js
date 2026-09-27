@@ -20,7 +20,7 @@ const publicScanLimiter = rateLimit({
 // ─── Generate / Rotate QR Token (Patient, Auth required) ───
 router.post('/generate', protect, async (req, res) => {
   try {
-    let user = await User.findById(req.user._id);
+    const user = await User.findById(req.user._id);
 
     // If user wants to regenerate (already has token and confirms)
     if (user.healthIdCard.qrToken && req.body.regenerate) {

@@ -58,7 +58,7 @@ router.post('/', protect, validate(createLeaveRequestSchema), async (req, res) =
     });
 
     const dates = [];
-    let d = new Date(req.body.startDate);
+    const d = new Date(req.body.startDate);
     const end = new Date(req.body.endDate);
     while (d <= end) {
       dates.push(d.toISOString().split('T')[0]);
@@ -86,7 +86,7 @@ router.put('/:id/status', protect, adminOnly, validate(updateLeaveStatusSchema),
       const doctor = await Doctor.findById(leave.doctorId);
       if (doctor) {
         const dates = [];
-        let d = new Date(leave.startDate);
+        const d = new Date(leave.startDate);
         const end = new Date(leave.endDate);
         while (d <= end) {
           dates.push(d.toISOString().split('T')[0]);

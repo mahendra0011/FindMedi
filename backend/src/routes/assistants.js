@@ -444,7 +444,7 @@ router.get('/:id', async (req, res) => {
     const { id } = req.params;
 
     // Search by assistantId or profile._id
-    let profile = await AssistantProfile.findOne({
+    const profile = await AssistantProfile.findOne({
       $or: [{ userId: id }, { _id: id }],
     })
       .populate('userId', 'name avatar phone gender email')

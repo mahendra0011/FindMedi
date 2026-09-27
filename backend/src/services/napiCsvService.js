@@ -97,7 +97,7 @@ export function toCsvFallback(data, fields) {
  */
 export function parseCsvFallback(input) {
   const rows = [];
-  let cur = '';
+  const cur = '';
   let field = '';
   let inQuotes = false;
   let row = [];

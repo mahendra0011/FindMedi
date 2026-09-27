@@ -253,7 +253,6 @@ router.post('/', protect, async (req, res) => {
       patientId: req.user.patientId || null,
       carePlanId: resolvedPlanId,
       vitalType,
-      vitalType,
       values,
       note: (note || '').trim(),
       recordedAt: recordDate,

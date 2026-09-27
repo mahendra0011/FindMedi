@@ -4,6 +4,7 @@
  * - Handles different error types with appropriate status codes
  * - Logs errors for monitoring
  */
+/* eslint-disable @typescript-eslint/no-this-alias -- false positive in class constructor and error handler */
 
 // Custom AppError class for operational errors
 export class AppError extends Error {

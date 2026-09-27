@@ -5,7 +5,7 @@ import Admission from '../models/Admission.js';
 import Notification from '../models/Notification.js';
 import { protect, adminOnly, clinicalStaffOnly } from '../middleware/auth.js';
 import { validate, createAdmissionSchema } from '../utils/validate.js';
-import { generateAdmissionId } from '../utils/idGenerator.js';
+import { generateAdmissionId, generate16DigitId } from '../utils/idGenerator.js';
 
 const ipdBedSchema = z.object({}).passthrough();
 const ipdDischargeSchema = z.object({ dischargeSummary: z.string().optional(), isInfectionCase: z.boolean().optional() });
@@ -49,11 +49,12 @@ router.put('/beds/:id', protect, validate(ipdBedSchema), async (req, res) => {
 // ─── Admission ─────────────────────────────────────────────────────────────
 router.post('/admissions', protect, adminOnly, validate(createAdmissionSchema), async (req, res) => {
   try {
-    const { patientId, patientName, bedId, primaryDiagnosis, source, attendantName, attendantPhone, estimatedStay, admissionNotes, priority } = req.body;
+    const { patientId, patientName, bedId: reqBedId, primaryDiagnosis, source, attendantName, attendantPhone, estimatedStay, admissionNotes, priority } = req.body;
     if (!patientId) return res.status(400).json({ message: 'Patient required' });
 
     const admissionId = generateAdmissionId();
     let bedData = null;
+    let bedId = reqBedId;
 
     // Auto-assign bed based on priority/severity if not provided
     if (!bedId && priority) {
@@ -159,6 +160,7 @@ router.put('/admissions/:id/discharge', protect, adminOnly, validate(ipdDischarg
     // Auto-create housekeeping task on discharge
     const Housekeeping = (await import('../models/Housekeeping.js')).default;
     const taskType = isInfectionCase ? 'Terminal Cleaning (Infection)' : 'Routine Cleaning';
+    const taskId = `HSK-${generate16DigitId()}`;
     await Housekeeping.create({
       taskId,
       admissionId: admission._id,

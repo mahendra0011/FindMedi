@@ -9,7 +9,7 @@ const REMOVE_TABS = ['overview', 'schedule', 'earnings', 'history', 'reviews'];
 const KEEP_TABS = ['sessions', 'patients', 'notes', 'resources', 'settings'];
 
 function rebuildDashboard(path) {
-  let text = getHead(path);
+  const text = getHead(path);
   if (text.includes('\r')) throw new Error(path + ': unexpected CR bytes in HEAD version');
   let lines = text.split('\n');
   console.log(path, 'pristine lines:', lines.length);
@@ -64,9 +64,9 @@ function rebuildDashboard(path) {
 }
 
 function rebuildWellness(path) {
-  let text = getHead(path);
+  const text = getHead(path);
   if (text.includes('\r')) throw new Error(path + ': unexpected CR bytes in HEAD version');
-  let lines = text.split('\n');
+  const lines = text.split('\n');
   console.log(path, 'pristine lines:', lines.length);
 
   // 1. Remove assignments panel (PanelHeader title anchor .. its closing WellnessPanel)
@@ -86,7 +86,7 @@ function rebuildWellness(path) {
   // 2. Remove AssignmentsSection function (up to export default line)
   start = lines.findIndex((l) => l.includes('function AssignmentsSection()'));
   if (start === -1) throw new Error('AssignmentsSection anchor missing');
-  let exp = lines.findIndex((l) => l.includes('export default MyWellness;'));
+  const exp = lines.findIndex((l) => l.includes('export default MyWellness;'));
   if (exp === -1 || exp <= start) throw new Error('export anchor missing');
   let fnEnd = exp - 1;
   while (fnEnd > start && lines[fnEnd].trim() === '') fnEnd--;

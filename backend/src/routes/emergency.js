@@ -219,7 +219,7 @@ router.post('/:id/transfer-to-ipd', protect, adminOnly, async (req, res) => {
     const admissionId = generateAdmissionId();
 
     // Find appropriate bed based on severity
-    let bed = await Bed.findOne({
+    const bed = await Bed.findOne({
       ward: ward || (emergency.severity === 'Critical' ? 'ICU' : 'General'),
       status: 'Available'
     }).sort({ bedNumber: 1 });

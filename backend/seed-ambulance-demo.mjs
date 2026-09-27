@@ -73,7 +73,7 @@ try {
   console.log('PASSWORD CHECK:', ok ? 'OK' : 'FAILED');
   console.log('ROLE:', check.role, '| STATUS:', check.status, '| VERIFIED:', check.isVerified);
 
-  let amb = await Ambulance.findOne({ registrationNumber: 'MP20AB1234' });
+  const amb = await Ambulance.findOne({ registrationNumber: 'MP20AB1234' });
   if (!amb) {
     await Ambulance.create({
       hospitalId: hospital._id,

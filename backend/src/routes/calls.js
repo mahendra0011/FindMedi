@@ -176,7 +176,7 @@ router.get('/contacts', protect, async (req, res) => {
     if (userRole === 'doctor' || userRole === 'clinic_doctor' || userRole === 'counsellor' || userRole === 'psychiatrist') {
       // Find doctor record
       const doctor = await Doctor.findOne({ user_id: userId }).lean();
-      let patientIds = new Set();
+      const patientIds = new Set();
 
       if (doctor) {
         const appointments = await Appointment.find({ doctorId: doctor._id })
@@ -225,7 +225,7 @@ router.get('/contacts', protect, async (req, res) => {
       return res.json({ success: true, contacts: patients });
     } else {
       // Patient querying available doctors
-      let doctorUserIds = new Set();
+      const doctorUserIds = new Set();
 
       const patientAppointments = await Appointment.find({ patientId: userId })
         .populate('doctorId', 'user_id specialization')

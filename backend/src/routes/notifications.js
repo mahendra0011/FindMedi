@@ -24,7 +24,7 @@ const getNotificationUserId = async (req) => {
 router.get('/', protect, async (req, res, next) => {
   try {
     const { page, limit } = req.query;
-    let filter = {};
+    const filter = {};
     const effectiveUserId = await getNotificationUserId(req);
     if (effectiveUserId) filter.userId = effectiveUserId;
     const result = await paginatedResults(Notification, filter, { page, limit });
@@ -36,7 +36,7 @@ router.get('/', protect, async (req, res, next) => {
 
 router.get('/unread-count', protect, async (req, res) => {
   try {
-    let filter = { read: false };
+    const filter = { read: false };
     const effectiveUserId = await getNotificationUserId(req);
     if (effectiveUserId) filter.userId = effectiveUserId;
     const count = await Notification.countDocuments(filter);
@@ -46,7 +46,7 @@ router.get('/unread-count', protect, async (req, res) => {
 
 router.put('/mark-all-read', protect, async (req, res) => {
   try {
-    let filter = { read: false };
+    const filter = { read: false };
     const effectiveUserId = await getNotificationUserId(req);
     if (effectiveUserId) filter.userId = effectiveUserId;
     await Notification.updateMany(filter, { read: true });
@@ -80,7 +80,7 @@ router.put('/:id/read', protect, async (req, res) => {
 
 router.delete('/clear-all', protect, async (req, res) => {
   try {
-    let filter = {};
+    const filter = {};
     const effectiveUserId = await getNotificationUserId(req);
     if (effectiveUserId) filter.userId = effectiveUserId;
     await Notification.deleteMany(filter);

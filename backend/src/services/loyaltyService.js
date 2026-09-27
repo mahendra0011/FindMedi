@@ -197,7 +197,7 @@ export const loyaltyService = {
     // Calculate discount
     let discount = 0;
     let discountType = 'fixed';
-    let capAmount = catalogItem.maxCapAmount || 0;
+    const capAmount = catalogItem.maxCapAmount || 0;
 
     if (catalogItem.rewardType === 'percentage') {
       // percentage discount - will be calculated at checkout based on order total

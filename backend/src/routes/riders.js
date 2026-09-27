@@ -83,7 +83,7 @@ router.put('/emergency-toggle', protect, async (req, res) => {
     const { emergencySupport } = req.body;
     const rider = await RiderProfile.findOne({ userId: req.user._id }).populate('vehicleId');
     if (!rider) return res.status(404).json({ message: 'Rider profile not found' });
-    if (Boolean(emergencySupport)) {
+    if (emergencySupport) {
       if (rider.riderStatus !== 'active') {
         return res.status(403).json({ message: 'Account active hone par hi Emergency Support ON kar sakte ho.' });
       }

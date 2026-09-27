@@ -12,7 +12,7 @@ const router = express.Router();
 router.get('/doctor', protect, async (req, res) => {
   try {
     const { doctorId, name } = req.query;
-    let query = {};
+    const query = {};
     
     // Scope by hospital if user has one (hospital doctors)
     if (req.user?.hospitalId) {
@@ -36,7 +36,7 @@ router.get('/doctor', protect, async (req, res) => {
     const appointments = await Appointment.find(query).select('date time status type').lean();
     
     // Fetch Patients
-    let patientQuery = {};
+    const patientQuery = {};
     if (req.user?.hospitalId) patientQuery.hospitalId = req.user.hospitalId.toString();
     if (query.doctor) patientQuery.doctor = query.doctor;
     if (query.doctorId) patientQuery.doctorId = query.doctorId;
@@ -46,7 +46,7 @@ router.get('/doctor', protect, async (req, res) => {
     const bills = await Billing.find(query).select('date amount paid type service').lean();
 
     // Fetch Lab Bookings (tests)
-    let labQuery = {};
+    const labQuery = {};
     if (req.user?.hospitalId) labQuery.hospitalId = req.user.hospitalId.toString();
     if (req.user?._id) labQuery.createdBy = req.user._id;
     const labBookings = await LabBooking.find(labQuery).select('bookingDate status totalAmount paymentStatus').lean();
