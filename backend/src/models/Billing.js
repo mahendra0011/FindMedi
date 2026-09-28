@@ -1,5 +1,14 @@
 import mongoose from 'mongoose';
 
+// Normalize any Date/string input to YYYY-MM-DD so stored strings stay
+// lexically sortable and range-queryable.
+function normalizeIsoDate(v) {
+  if (v == null || v === '') return v;
+  if (v instanceof Date) return isNaN(v.getTime()) ? v : v.toISOString().slice(0, 10);
+  const d = new Date(v);
+  return isNaN(d.getTime()) ? v : d.toISOString().slice(0, 10);
+}
+
 const billingSchema = new mongoose.Schema({
   invoiceId: { type: String, required: true, unique: true },
   patient: { type: String, required: true },
@@ -28,8 +37,12 @@ const billingSchema = new mongoose.Schema({
   paid: { type: Number, default: 0 },
   balance: { type: Number, default: 0 },
   status: { type: String, enum: ['Paid', 'Pending', 'Overdue', 'Partial', 'Cancelled', 'Refunded'], default: 'Pending' },
-  date: { type: String, required: true },
-  dueDate: { type: String },
+  // NOTE: kept as String (not Date) deliberately — frontend writes/reads
+  // YYYY-MM-DD strings and renders them directly. The setter below enforces
+  // that invariant so lexical sort/range still works. Real DateTime typing
+  // lands with the Postgres migration (Prisma DateTime).
+  date: { type: String, required: true, set: normalizeIsoDate },
+  dueDate: { type: String, set: normalizeIsoDate },
   paymentMethod: { type: String, enum: ['Cash', 'Card', 'UPI', 'Cheque', 'Insurance', 'Online', 'Other'] },
   transactionId: { type: String },
   insuranceClaimId: { type: String },
