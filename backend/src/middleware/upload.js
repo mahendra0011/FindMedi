@@ -84,6 +84,40 @@ const MAGIC_BYTES = {
 
 const isZipType = (mimetype) => mimetype.includes('officedocument');
 
+// ClamAV malware scan — env-gated and fail-open by design:
+// - CLAMAV_HOST unset → scan skipped (dev/test default).
+// - Any scanner/connection error → treated as clean (upload never blocked).
+// Set CLAMAV_HOST (+ CLAMAV_PORT, default 3310) where a clamd sidecar runs.
+let _clamavClient = null;
+let _clamavFailed = false;
+
+async function scanBufferForMalware(buffer) {
+  if (!process.env.CLAMAV_HOST || _clamavFailed) return { clean: true, skipped: true };
+  try {
+    if (!_clamavClient) {
+      const { default: ClamAV } = await import('clamav.js');
+      _clamavClient = new ClamAV({
+        host: process.env.CLAMAV_HOST,
+        port: Number(process.env.CLAMAV_PORT) || 3310,
+      });
+    }
+    const malware = await new Promise((resolve, reject) => {
+      _clamavClient.scanBuffer(buffer, (err, _obj, found) => {
+        if (err) reject(err);
+        else resolve(found);
+      });
+    });
+    return { clean: !malware, malware };
+  } catch (err) {
+    _clamavFailed = true;
+    try {
+      const logger = (await import('../config/logger.js')).default;
+      logger.warn(`ClamAV scan skipped (fail-open): ${err.message}`);
+    } catch {}
+    return { clean: true, skipped: true };
+  }
+}
+
 export function validateFileContent(buffer, mimetype) {
   // Use native Rust validation when the napi module is available
   if (NATIVE_AVAILABLE) {
@@ -110,7 +144,7 @@ export function validateFileContent(buffer, mimetype) {
 }
 
 export function requireValidatedFile(allowedTypes, maxFileSize) {
-  return (req, res, next) => {
+  return async (req, res, next) => {
     if (!req.file) {
       return res.status(400).json({ message: 'No file uploaded' });
     }
@@ -123,6 +157,16 @@ export function requireValidatedFile(allowedTypes, maxFileSize) {
       return res.status(400).json({
         message: `File content does not match its MIME type. The file may be corrupted or malicious.`,
       });
+    }
+    // ClamAV malware scan — env-gated (CLAMAV_HOST unset = skip) and
+    // fail-open: scanner errors never block uploads.
+    try {
+      const { clean, malware } = await scanBufferForMalware(req.file.buffer);
+      if (!clean) {
+        return res.status(400).json({ message: `File rejected: malware detected (${malware || 'unknown'})` });
+      }
+    } catch {
+      // fail-open
     }
     next();
   };
