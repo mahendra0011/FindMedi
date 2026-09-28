@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { mockApiBaseline, mockLogin, mockMe, loginViaUi, patientUser } from './helpers';
+import { mockApiBaseline, mockLogin, mockMe, loginViaUi, patientUser } from '@test-utils/helpers';
 
 test.describe('auth flow (mocked API)', () => {
   test('unauthenticated /dashboard redirects to /login', async ({ page }) => {

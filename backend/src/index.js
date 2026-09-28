@@ -7,6 +7,7 @@ const __dirname = path.dirname(__filename);
 
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
+import { initFeatureFlags, initPostHog } from './services/featureFlags.js';
 import express from 'express';
 import http from 'http';
 import cors from 'cors';
@@ -604,6 +605,11 @@ if (process.env.NODE_ENV !== 'test') {
   mongoose.connect(MONGO_URI, mongooseOptions)
     .then(async () => {
       logger.info('✅ MongoDB connected successfully');
+      
+      // Initialize feature flags and PostHog
+      initFeatureFlags();
+      initPostHog();
+      
       try {
         const { recoverStuckRequests } = await import('./services/emergencyDispatchService.js');
         await recoverStuckRequests();
