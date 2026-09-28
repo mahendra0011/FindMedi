@@ -4,16 +4,56 @@ import { constantTimeCompare, OTP_HASH_ALGO, ACTIVE_OTP_HASH_ALGO } from './napi
 const BACKUP_CODE_COUNT = 10;
 const BACKUP_CODE_LENGTH = 10;
 
+// RFC 4648 base32 alphabet — the encoding authenticator apps actually speak.
+// (This file previously generated base32-SHAPED secrets but decoded them as
+// base64 when computing the HMAC, so every authenticator-app code failed.
+// See verifyToken/generateTOTP below for the fix.)
+const BASE32_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+
+/** RFC 4648 base32 encode (no padding — otpauth secrets omit it). */
+function base32Encode(buffer) {
+  let bits = 0;
+  let value = 0;
+  let output = '';
+  for (const byte of buffer) {
+    value = (value << 8) | byte;
+    bits += 8;
+    while (bits >= 5) {
+      output += BASE32_ALPHABET[(value >>> (bits - 5)) & 31];
+      bits -= 5;
+    }
+  }
+  if (bits > 0) output += BASE32_ALPHABET[(value << (5 - bits)) & 31];
+  return output;
+}
+
+/** RFC 4648 base32 decode. Throws on characters outside the alphabet. */
+export function base32Decode(secret) {
+  const clean = String(secret || '').toUpperCase().replace(/[\s=]+/g, '');
+  if (!clean) throw new Error('Empty TOTP secret');
+  let bits = 0;
+  let value = 0;
+  const bytes = [];
+  for (const char of clean) {
+    const index = BASE32_ALPHABET.indexOf(char);
+    if (index === -1) throw new Error('Invalid base32 character in TOTP secret');
+    value = (value << 5) | index;
+    bits += 5;
+    if (bits >= 8) {
+      bytes.push((value >>> (bits - 8)) & 0xff);
+      bits -= 8;
+    }
+  }
+  return Buffer.from(bytes);
+}
+
 /**
- * Generate a TOTP-compatible secret for authenticator apps
- * Returns a base32 encoded secret
+ * Generate a TOTP-compatible secret for authenticator apps.
+ * 20 random bytes (160-bit key, RFC 4226 recommendation) base32-encoded —
+ * ready to drop straight into an otpauth:// URL.
  */
 export function generateSecret() {
-  const secret = crypto.randomBytes(20).toString('base64')
-    .replace(/[^A-Za-z2-7]/g, '')
-    .slice(0, 32)
-    .toUpperCase();
-  return secret;
+  return base32Encode(crypto.randomBytes(20));
 }
 
 /**
@@ -41,22 +81,32 @@ export function verifyToken(token, secret) {
   const currentTime = Math.floor(Date.now() / 1000);
   const currentCounter = Math.floor(currentTime / timeStep);
 
-  // Check current, previous, and next counter (3 windows)
-  for (let offset = -1; offset <= 1; offset++) {
-    const counter = currentCounter + offset;
-    const expected = generateTOTP(secret, counter);
-    if (expected === token) return true;
+  try {
+    // Check current, previous, and next counter (3 windows) with a
+    // constant-time comparison so a timing side-channel can't narrow guesses.
+    for (let offset = -1; offset <= 1; offset++) {
+      const counter = currentCounter + offset;
+      const expected = generateTOTP(secret, counter);
+      if (constantTimeCompare(expected, token)) return true;
+    }
+  } catch {
+    // Malformed stored secret (not valid base32) → treat as not verified
+    // instead of throwing a 500 out of the login path.
+    return false;
   }
   return false;
 }
 
 /**
- * Generate TOTP code for a given counter
- * Implements RFC 6238 / RFC 4226
+ * Generate TOTP code for a given counter.
+ * Implements RFC 6238 / RFC 4226 (exported for tests).
  */
-function generateTOTP(secret, counter) {
-  // Use HMAC-SHA1 as per TOTP standard
-  const decodedSecret = Buffer.from(secret, 'base64');
+export function generateTOTP(secret, counter) {
+  // HMAC-SHA1 as per the TOTP standard. The secret from
+  // generateSecret/generateOtpAuthUrl is BASE32 — decoding it as base64 here
+  // (the previous behaviour) produced a different key than every authenticator
+  // app derives, so no code ever matched.
+  const decodedSecret = base32Decode(secret);
   const counterBuffer = Buffer.alloc(8);
   for (let i = 7; i >= 0; i--) {
     counterBuffer[i] = counter & 0xff;

@@ -24,4 +24,8 @@ const referralSettingsSchema = new mongoose.Schema({
   },
 }, { timestamps: true });
 
+// NOTE (index audit): intentionally index-free. Every read is
+// `ReferralSettings.findOne()` with NO filter (routes/referral.js,
+// services/referralService.js) — this is a singleton config document, so no
+// index could ever be matched; one would be pure write overhead.
 export default mongoose.model('ReferralSettings', referralSettingsSchema);

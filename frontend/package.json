@@ -83,7 +83,8 @@
     "tailwindcss-animate": "^1.0.7",
     "unleash-proxy-client": "^3.8.2",
     "vaul": "^0.9.9",
-    "zod": "^4.4.3"
+    "zod": "^4.4.3",
+    "zustand": "^5.0.15"
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",

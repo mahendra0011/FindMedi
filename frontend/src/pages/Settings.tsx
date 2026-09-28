@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { useDispatch, useSelector } from 'react-redux';
 import {
   AlertCircle,
   Bell,
@@ -36,7 +35,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { applyUserSettings, t } from '@/lib/settings';
-import { updateSetting, loadUserSettings, selectSetting } from '@/store/slices/settingsSlice';
+import { useSettings, useUpdateSetting, useLoadUserSettings } from '@/store/useSettingsStore';
 import PreferredPharmacySettings from '@/components/PreferredPharmacySettings';
 
 const roleBadge = {
@@ -298,8 +297,9 @@ export default function Settings() {
   const fileInputRef = useRef(null);
   const [tab, setTab] = useState('profile');
   const [profile, setProfile] = useState(() => buildProfile(user));
-  const dispatch = useDispatch();
-  const reduxSettings = useSelector(selectSetting) || {};
+  const updateSetting = useUpdateSetting();
+  const loadUserSettings = useLoadUserSettings();
+  const reduxSettings = useSettings();
   const authSettings = user?.settings || {};
   const settings = reduxSettings;
   const [password, setPassword] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
@@ -314,10 +314,10 @@ export default function Settings() {
   // Sync auth user settings into Redux when user changes
   useEffect(() => {
     if (authSettings && Object.keys(authSettings).length > 0) {
-      dispatch(loadUserSettings(authSettings));
+      loadUserSettings(authSettings);
       applyUserSettings(authSettings);
     }
-  }, [user, dispatch, authSettings]);
+  }, [user, loadUserSettings, authSettings]);
 
   useEffect(() => {
     applyUserSettings(settings);
@@ -330,7 +330,7 @@ export default function Settings() {
     onSuccess: (data) => {
       updateUser(data);
       if (data?.settings) {
-        dispatch(loadUserSettings(data.settings));
+        loadUserSettings(data.settings);
         applyUserSettings(data.settings);
       }
       setNotice({ type: 'success', text: t('settings.saved', data.settings?.language || language) });
@@ -360,7 +360,7 @@ export default function Settings() {
   });
 
   const updateProfile = (key, value) => setProfile((current) => ({ ...current, [key]: value }));
-  const saveSetting = (key, value) => dispatch(updateSetting({ key, value }));
+  const saveSetting = (key, value) => updateSetting({ key, value });
 
   const handleAvatarSelect = (event) => {
     const file = event.target.files?.[0];
