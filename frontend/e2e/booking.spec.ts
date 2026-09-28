@@ -15,7 +15,7 @@ import {
   patientUser,
   doctorUser,
   adminUser,
-} from './helpers';
+} from '@test-utils/helpers';
 
 test.describe('Hospital Test Booking Flow (mocked API)', () => {
   test.beforeEach(async ({ page }) => {

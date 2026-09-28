@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { mockApiBaseline } from './helpers';
+import { mockApiBaseline } from '@test-utils/helpers';
 
 test.describe('public pages', () => {
   test('home renders FindMedi hero', async ({ page }) => {

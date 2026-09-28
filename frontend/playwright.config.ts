@@ -17,6 +17,12 @@ export default defineConfig({
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
+  // Only run files matching *.spec.ts as tests, ignore helpers.ts
+  testMatch: '**/*.spec.ts',
+  testIgnore: '**/helpers.ts',
+  env: {
+    VITE_TEST_MODE: 'true',
+  },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   // E2E runs frontend-only with API mocks — no backend / Atlas needed.
   webServer: process.env.E2E_BASE_URL

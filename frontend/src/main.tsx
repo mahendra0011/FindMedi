@@ -2,6 +2,7 @@ import { createRoot } from "react-dom/client";
 import * as Sentry from "@sentry/react";
 import App from "./App";
 import "./index.css";
+import { initFeatureFlags, initPostHog } from "./services/featureFlags";
 
 // Sentry error tracking + performance (env-gated: no VITE_SENTRY_DSN = no-op)
 if ((import.meta as any).env?.VITE_SENTRY_DSN) {
@@ -9,6 +10,13 @@ if ((import.meta as any).env?.VITE_SENTRY_DSN) {
     dsn: (import.meta as any).env.VITE_SENTRY_DSN,
     tracesSampleRate: 0.1,
   });
+}
+
+// Initialize feature flags and PostHog (env-gated)
+// Initialize feature flags and PostHog (env-gated, skip during tests)
+if (!(import.meta as any).env?.VITE_TEST_MODE) {
+  initFeatureFlags();
+  initPostHog();
 }
 
 // ─── HashRouter migration helper ──────────────────────────────────────────

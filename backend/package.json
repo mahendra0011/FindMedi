@@ -13,7 +13,8 @@
     "seed": "node seed-demo.mjs",
     "seed:all": "node seed-demo.mjs",
     "seed:psychiatrists": "node seed-psychiatrists.mjs",
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --forceExit"
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --forceExit",
+    "lint": "eslint ."
   },
   "dependencies": {
     "@bull-board/api": "^6.11.0",
@@ -22,6 +23,7 @@
     "@prisma/client": "^5.22.0",
     "@sentry/node": "^11.0.0",
     "@socket.io/redis-adapter": "^8.3.0",
+    "@unleash/proxy": "^1.4.19",
     "bcryptjs": "^2.4.3",
     "bullmq": "^5.4.0",
     "cloudinary": "^2.5.1",
@@ -44,11 +46,13 @@
     "pdfkit": "^0.18.0",
     "pino": "^10.3.1",
     "pino-http": "^11.0.0",
+    "posthog-node": "^5.54.1",
     "redis": "^6.1.0",
     "sanitize-html": "^2.12.1",
     "sharp": "^0.35.3",
     "socket.io": "^4.8.3",
     "swagger-ui-express": "^5.0.1",
+    "unleash-client": "^6.12.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {
