@@ -69,6 +69,7 @@ export async function ensureIndices() {
     await osReq('PUT', `/${AUDIT_INDEX}`, { mappings: { properties: {
       logId: { type: 'keyword' }, actorId: { type: 'keyword' }, action: { type: 'keyword' },
       resourceType: { type: 'keyword' }, resourceId: { type: 'keyword' },
+      ip: { type: 'ip', ignore_malformed: true },
       details: { type: 'text' }, timestamp: { type: 'date' },
     } } });
     return { ok: true };
