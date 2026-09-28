@@ -2,6 +2,20 @@ import { useCallback, useRef, useState } from 'react';
 import { usePreferredPharmacies } from '@/context/PreferredPharmacyContext';
 import { toast } from 'sonner';
 
+/**
+ * @typedef {import('@/context/PreferredPharmacyContext').Pharmacy} Pharmacy
+ * @typedef {{ id: string, label: string }} RejectionReason
+ * @typedef {{ store: Pharmacy, result: 'pending' | 'accepted' | 'rejected', reason: RejectionReason | null }} TriedStore
+ * @typedef {{
+ *   status: string,
+ *   currentPriorityIndex: number,
+ *   currentStore: Pharmacy | null,
+ *   triedStores: TriedStore[],
+ *   lastRejection: RejectionReason | null,
+ *   isPaused: boolean,
+ * }} AutoRetryState
+ */
+
 export const REJECTION_REASONS = [
   { id: 'blurry', label: 'Unclear/blurry prescription image' },
   { id: 'expired', label: 'Prescription has expired' },
@@ -23,14 +37,16 @@ export const AUTO_RETRY_STATUS = {
 
 export function useAutoRetry() {
   const { pharmacies, autoRetryEnabled } = usePreferredPharmacies();
-  const [state, setState] = useState({
-    status: AUTO_RETRY_STATUS.IDLE,
-    currentPriorityIndex: -1,
-    currentStore: null,
-    triedStores: [],
-    lastRejection: null,
-    isPaused: false,
-  });
+  const [state, setState] = useState(
+    /** @type {AutoRetryState} */ ({
+      status: AUTO_RETRY_STATUS.IDLE,
+      currentPriorityIndex: -1,
+      currentStore: null,
+      triedStores: [],
+      lastRejection: null,
+      isPaused: false,
+    })
+  );
   const timeoutRef = useRef(null);
   const isRunningRef = useRef(false);
   const forwardRef = useRef(null);
@@ -158,14 +174,16 @@ export function useAutoRetry() {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     isRunningRef.current = false;
     toast.info('Auto-retry reset — ready to try again');
-    setState({
-      status: AUTO_RETRY_STATUS.IDLE,
-      currentPriorityIndex: -1,
-      currentStore: null,
-      triedStores: [],
-      lastRejection: null,
-      isPaused: false,
-    });
+    setState(
+      /** @type {AutoRetryState} */ ({
+        status: AUTO_RETRY_STATUS.IDLE,
+        currentPriorityIndex: -1,
+        currentStore: null,
+        triedStores: [],
+        lastRejection: null,
+        isPaused: false,
+      })
+    );
   }, []);
 
   return {

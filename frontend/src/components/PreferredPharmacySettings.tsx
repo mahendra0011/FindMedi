@@ -16,7 +16,7 @@ const ALL_AVAILABLE_STORES = [
   { id: 's6', name: 'Generic Medicos' },
 ];
 
-export default function PreferredPharmacySettings({ onSave: _onSave }) {
+export default function PreferredPharmacySettings({ onSave: _onSave }: { onSave?: () => void }) {
   const { pharmacies, autoRetryEnabled, addPharmacy, removePharmacy, reorderPharmacies, setAutoRetry, setPharmacies: _setPharmacies } = usePreferredPharmacies();
   const [showAdd, setShowAdd] = useState(false);
 
@@ -24,12 +24,12 @@ export default function PreferredPharmacySettings({ onSave: _onSave }) {
     s => !pharmacies.find(p => p.id === s.id)
   );
 
-  const handleAdd = (store) => {
+  const handleAdd = (store: { id: string; name: string }) => {
     addPharmacy(store);
     setShowAdd(false);
   };
 
-  const handleReorder = (index, direction) => {
+  const handleReorder = (index: number, direction: 'up' | 'down') => {
     const toIndex = direction === 'up' ? index - 1 : index + 1;
     if (toIndex < 0 || toIndex >= pharmacies.length) return;
     reorderPharmacies(index, toIndex);

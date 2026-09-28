@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
+import type { ComponentType, ReactNode } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import type { Variants } from 'framer-motion';
 import {
   Building2, MapPin, Star, Phone, Stethoscope, CalendarDays,
   IndianRupee, ArrowLeft, Search, Shield, Award, Clock, Users,
@@ -27,10 +29,26 @@ import ClinicCard from '@/components/ClinicCard';
 import BookingModal from '@/components/BookingModal';
 import ReviewDialog from '@/components/ReviewDialog';
 
-const stagger = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.06 } } };
-const fadeUp = { hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 200, damping: 22 } } };
+const stagger: Variants = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.06 } } };
+const fadeUp: Variants = { hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 200, damping: 22 } } };
 
-const SectionTitle = ({ icon:Icon, label }) => (
+/**
+ * Clinic / doctor payloads from the plain-JS api client. Fields are read through
+ * the display helpers below, so one permissive alias beats ~40 unchecked property
+ * reads (repo-wide typing of the api layer is the separate typecheck burn-down —
+ * same convention as components/maps/ServiceLocationMap.tsx).
+ */
+type ApiRecord = { [key: string]: any };
+
+type IconComponent = ComponentType<{ className?: string }>;
+
+interface SectionTitleProps { icon: IconComponent; label: ReactNode; }
+interface ServiceItemProps { name: string; price: number | string; index: number; }
+interface FacilityItemProps { label: string; icon: IconComponent; color: string; bg: string; }
+interface DayRowProps { day: string; time: string; }
+interface FaqInput { q?: string; question?: string; a?: string; answer?: string; }
+
+const SectionTitle = ({ icon: Icon, label }: SectionTitleProps) => (
   <h2 className="font-heading text-lg font-bold text-foreground mb-5 flex items-center gap-2">
     <span className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
       <Icon className="w-3.5 h-3.5 text-primary" />
@@ -39,7 +57,7 @@ const SectionTitle = ({ icon:Icon, label }) => (
   </h2>
 );
 
-const ServiceItem = ({ name, price, index }) => {
+const ServiceItem = ({ name, price, index }: ServiceItemProps) => {
   const icons = [Sparkles, Syringe, Droplets, Zap, Scissors, Pill, Microscope, FlaskConical];
   const colors = ['text-blue-500','text-purple-500','text-emerald-500','text-rose-500','text-amber-500','text-cyan-500','text-indigo-500','text-pink-500'];
   const Icon = icons[index % icons.length];
@@ -57,7 +75,7 @@ const ServiceItem = ({ name, price, index }) => {
   );
 };
 
-const FacilityItem = ({ label, icon:Icon, color, bg }) => (
+const FacilityItem = ({ label, icon: Icon, color, bg }: FacilityItemProps) => (
   <div className="flex items-center gap-3 p-3 rounded-xl border border-border/40 bg-card hover:border-primary/30 hover:shadow-sm transition-all group cursor-default">
     <div className={cn('w-9 h-9 rounded-lg bg-gradient-to-br flex items-center justify-center shrink-0', bg)}>
       <Icon className={cn('w-4 h-4', color)} />
@@ -66,7 +84,7 @@ const FacilityItem = ({ label, icon:Icon, color, bg }) => (
   </div>
 );
 
-const DayRow = ({ day, time }) => {
+const DayRow = ({ day, time }: DayRowProps) => {
   const isToday = new Date().toLocaleDateString('en', { weekday:'long' }).toLowerCase().slice(0,3) === day;
   return (
     <div className={cn('flex items-center justify-between py-2.5 border-b border-border/20 last:border-0 px-3 rounded-xl transition-colors', isToday && 'bg-primary/5 -mx-3 px-6')}>
@@ -84,7 +102,7 @@ const DayRow = ({ day, time }) => {
 
 const DEFAULT_CLINIC_PHOTO = 'https://placehold.co/800x400/2563eb/ffffff?text=Clinic+Photo';
 
-function normalizeFaqs(faqs = []) {
+function normalizeFaqs(faqs: FaqInput[] = []): Array<{ q: string; a: string }> {
   return faqs.map(faq => ({
     q: faq.q || faq.question || '',
     a: faq.a || faq.answer || '',
@@ -101,25 +119,25 @@ export default function ClinicDetail() {
   const [showReviewDialog, setShowReviewDialog] = useState(false);
   const { clinicId } = useParams();
   const navigate = useNavigate();
-  const [doctor, setDoctor] = useState(null);
-  const [selectedDoctor, setSelectedDoctor] = useState(null);
-  const [facility, setFacility] = useState(null);
-  const [clinicDoctors, setClinicDoctors] = useState([]);
-  const [reviews, setReviews] = useState([]);
+  const [doctor, setDoctor] = useState<ApiRecord | null>(null);
+  const [selectedDoctor, setSelectedDoctor] = useState<ApiRecord | null>(null);
+  const [facility, setFacility] = useState<ApiRecord | null>(null);
+  const [clinicDoctors, setClinicDoctors] = useState<ApiRecord[]>([]);
+  const [reviews, setReviews] = useState<ApiRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [activePhoto, setActivePhoto] = useState(0);
   const [showFullDesc, setShowFullDesc] = useState(false);
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [doctorSectionTab, setDoctorSectionTab] = useState('doctors');
-  const [tests, setTests] = useState([]);
+  const [tests, setTests] = useState<ApiRecord[]>([]);
   const [testDeptFilter, setTestDeptFilter] = useState('All');
   const [testSearch, setTestSearch] = useState('');
   const [testRxFilter, setTestRxFilter] = useState('all');
   const [testHomeFilter, setTestHomeFilter] = useState('all');
 const [testSort, setTestSort] = useState('popularity');
   const [showBooking, setShowBooking] = useState(false);
-  const [expandedFaq, setExpandedFaq] = useState(null);
-  const [testCart, setTestCart] = useState({});
+  const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
+  const [testCart, setTestCart] = useState<Record<string, number>>({});
   const [isFavorited, setIsFavorited] = useState(() => localStorage.getItem(`fav_clinic_${clinicId}`) === 'true');
   const toggleFavorite = async () => {
     const next = !isFavorited;
@@ -220,7 +238,7 @@ const [testSort, setTestSort] = useState('popularity');
         setDoctor(loadedDoctors[0] || null);
         try {
           const t = await api.getTests({ hospitalId: clinicId });
-          const mapped = (Array.isArray(t) ? t : t?.tests || []).map(t => ({
+          const mapped = (Array.isArray(t) ? t : t?.tests || []).map((t: ApiRecord) => ({
             id: t._id,
             _id: t._id,
             name: t.name,
@@ -259,7 +277,7 @@ const [testSort, setTestSort] = useState('popularity');
             const docFacilityId = doc?.facilityId?._id || doc?.facilityId;
             const docTestScope = docFacilityId || doc?.hospitalId || doc?._id;
             const t = await api.getTests(docTestScope ? { hospitalId: docTestScope } : {});
-            const mapped = (Array.isArray(t) ? t : t?.tests || []).map(t => ({
+            const mapped = (Array.isArray(t) ? t : t?.tests || []).map((t: ApiRecord) => ({
               id: t._id,
               _id: t._id,
               name: t.name,
@@ -290,12 +308,15 @@ const [testSort, setTestSort] = useState('popularity');
   }, [clinicId]);
 
   useEffect(() => { window.scrollTo(0, 0); }, [clinicId]);
+  // Captured outside the timer callback: `clinic` is a fresh object each render,
+  // and the narrowing from the guard below does not survive into the interval.
+  const photoCount = clinic?.photos?.length ?? 0;
   useEffect(() => {
-    if (clinic?.photos?.length > 0) {
-      const timer = setInterval(() => setActivePhoto(p => (p + 1) % clinic.photos.length), 4000);
+    if (photoCount > 0) {
+      const timer = setInterval(() => setActivePhoto(p => (p + 1) % photoCount), 4000);
       return () => clearInterval(timer);
     }
-  }, [clinic?.photos?.length]);
+  }, [photoCount]);
 
   const testDepts = [...new Set(tests.map(t => t.dept))];
   const filteredTests = tests.filter(t => {
@@ -358,13 +379,13 @@ const [testSort, setTestSort] = useState('popularity');
 
             {/* Gallery */}
             <div className="lg:col-span-3 relative rounded-2xl overflow-hidden bg-card border border-border/50 h-[300px] sm:h-[420px] group">
-              {clinic.photos?.map((p, i) => (
+              {clinic.photos?.map((p: string, i: number) => (
                 <div key={i} className={cn('absolute inset-0 transition-all duration-700', i === activePhoto ? 'opacity-100 scale-100' : 'opacity-0 scale-105')}>
                   <img src={p} alt={`${clinic.name} photo ${i+1}`} className="w-full h-full object-cover" />
                 </div>
               ))}
               <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
-                {clinic.photos?.map((_, i) => (
+                {clinic.photos?.map((_: string, i: number) => (
                   <button key={i} onClick={() => setActivePhoto(i)}
                     className={cn('h-1.5 rounded-full transition-all duration-300', i === activePhoto ? 'bg-white w-8' : 'bg-white/40 w-1.5 hover:bg-white/70')} />
                 ))}
@@ -509,7 +530,7 @@ const [testSort, setTestSort] = useState('popularity');
                     </Button>
                   )}
                   <div className="flex flex-wrap gap-2 mt-5 pt-4 border-t border-border/30">
-                    {clinic.specialties?.map(s => (
+                    {clinic.specialties?.map((s: string) => (
                       <Badge key={s} variant="secondary" className="text-[11px] px-3 py-1 rounded-full bg-primary/5 text-primary border-primary/20 hover:bg-primary/10 transition-colors">{s}</Badge>
                     ))}
                   </div>
@@ -544,7 +565,7 @@ const [testSort, setTestSort] = useState('popularity');
                   <div className={doctorSectionTab !== 'doctors' ? 'hidden' : ''}>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {doctors.map((doc, idx) => {
-                        const initials = doc.name.split(' ').map(n=>n[0]).join('').slice(0,2);
+                        const initials = String(doc.name || '').split(' ').map((n: string) => n[0]).join('').slice(0,2);
                         const gradColors = ['from-primary/20','from-blue-500/20','from-purple-500/20','from-emerald-500/20'];
                         return (
                           <div key={doc._id} className="group bg-card rounded-xl border border-border/40 p-4 hover:shadow-md hover:border-primary/30 transition-all duration-300">
@@ -566,7 +587,7 @@ const [testSort, setTestSort] = useState('popularity');
                             </div>
                             {doc.qualifications && (
                               <div className="flex flex-wrap gap-1 mb-3">
-                                {doc.qualifications.split(',').map(q => q.trim()).map(q => (
+                                {String(doc.qualifications).split(',').map((q: string) => q.trim()).map((q: string) => (
                                   <span key={q} className="text-[9px] text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full border border-border/30">{q}</span>
                                 ))}
                               </div>
@@ -686,7 +707,7 @@ const [testSort, setTestSort] = useState('popularity');
                     <Badge variant="secondary" className="text-[10px] px-2.5 py-1 rounded-full">{clinic.treatments?.length} Treatments</Badge>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {clinic.treatments?.map((t, i) => (
+                    {clinic.treatments?.map((t: string, i: number) => (
                       <ServiceItem key={t} name={t} price={500 + i * 300} index={i} />
                     ))}
                   </div>
@@ -762,7 +783,7 @@ const [testSort, setTestSort] = useState('popularity');
                     </Badge>
                   </div>
                   <div className="max-w-md">
-                    {Object.entries(clinic.timing || {}).map(([day, time]) => (
+                    {Object.entries((clinic.timing || {}) as Record<string, string>).map(([day, time]) => (
                       <DayRow key={day} day={day} time={time} />
                     ))}
                   </div>
@@ -914,7 +935,7 @@ const [testSort, setTestSort] = useState('popularity');
                     <div className="mb-5 p-4 rounded-xl bg-blue-50/50 dark:bg-blue-500/5 border border-blue-200 dark:border-blue-500/20">
                       <p className="text-xs font-medium text-foreground mb-2 flex items-center gap-1.5"><Shield className="w-3.5 h-3.5 text-primary" /> Insurance Accepted</p>
                       <div className="flex flex-wrap gap-2">
-                        {clinic.insurance.map(i => (
+                        {clinic.insurance.map((i: string) => (
                           <Badge key={i} variant="secondary" className="text-[10px] px-2.5 py-1 rounded-lg border border-border/40 bg-white dark:bg-background">{i}</Badge>
                         ))}
                       </div>
@@ -995,7 +1016,7 @@ const [testSort, setTestSort] = useState('popularity');
                           <Shield className="w-3.5 h-3.5 text-primary" /> Insurance Accepted
                         </p>
                         <div className="flex flex-wrap gap-1.5">
-                          {clinic.insurance.map(i => (
+                          {clinic.insurance.map((i: string) => (
                             <span key={i} className="text-[10px] font-medium text-primary bg-primary/5 px-2 py-0.5 rounded-full border border-primary/20">{i}</span>
                           ))}
                         </div>
@@ -1092,7 +1113,7 @@ const [testSort, setTestSort] = useState('popularity');
                   <Badge variant="secondary" className="text-[10px] px-2.5 py-1 rounded-full">{clinic.branches.length} Branches</Badge>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {clinic.branches?.slice(0, 3).map((b, idx) => {
+                  {clinic.branches?.slice(0, 3).map((b: ApiRecord, idx: number) => {
                     const colors = ['from-primary/10 border-primary/20','from-blue-500/10 border-blue-500/20','from-purple-500/10 border-purple-500/20'];
                     return (
                       <div key={b.name} className={cn('bg-gradient-to-br rounded-xl p-4 border cursor-pointer hover:shadow-md transition-all group', colors[idx % colors.length])}>
@@ -1144,7 +1165,7 @@ const [testSort, setTestSort] = useState('popularity');
         entityType="clinic"
         entityId={clinicId}
         entityName={clinic?.name}
-        onReviewSubmitted={(review) => {
+        onReviewSubmitted={(review: ApiRecord) => {
           setReviews(prev => [review, ...(Array.isArray(prev) ? prev : [])]);
         }}
       />

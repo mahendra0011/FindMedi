@@ -23,12 +23,13 @@
     "allowJs": true,
     "checkJs": false,
 
-    /* Paths */
-    "baseUrl": ".",
-"paths": {
-    "@/*": ["./src/*"],
-    "@test-utils/*": ["./test-utils/*"]
-  }
+    /* Paths — resolved relative to this tsconfig. `baseUrl` is intentionally
+       omitted: it is deprecated in TS 6+/7 and unnecessary here since `paths`
+       entries already start with "./". */
+    "paths": {
+      "@/*": ["./src/*"],
+      "@test-utils/*": ["./test-utils/*"]
+    }
   },
   "include": ["src"],
   "references": [{ "path": "./tsconfig.node.json" }]

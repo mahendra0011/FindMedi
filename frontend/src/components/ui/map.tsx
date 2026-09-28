@@ -8,6 +8,7 @@
  */
 import * as React from 'react';
 import { createRoot } from 'react-dom/client';
+import type { Feature, LineString } from 'geojson';
 import * as maplibregl from 'maplibre-gl';
 import { Compass, LocateFixed, Maximize2, Minimize2, Minus, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -619,7 +620,7 @@ export function MapRoute({
   React.useEffect(() => {
     if (!map || !isLoaded || safeCoordinates.length < 2) return undefined;
 
-    const data: GeoJSON.Feature = {
+    const data: Feature<LineString> = {
       type: 'Feature',
       properties: {},
       geometry: { type: 'LineString', coordinates: safeCoordinates },

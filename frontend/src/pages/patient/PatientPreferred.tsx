@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { usePreferredPharmacies } from '@/context/PreferredPharmacyContext';
 
 export default function PatientPreferred() {
-  const { pharmacies, addPharmacy, removePharmacy, reorderPharmacies, autoRetryEnabled, setAutoRetryEnabled } = usePreferredPharmacies();
+  const { pharmacies, addPharmacy, removePharmacy, reorderPharmacies, autoRetryEnabled, setAutoRetry } = usePreferredPharmacies();
   const [showAdd, setShowAdd] = useState(false);
   const [newName, setNewName] = useState('');
 
@@ -19,12 +19,12 @@ export default function PatientPreferred() {
     toast.success('Added to priority list');
   };
 
-  const handleMoveUp = (index) => {
+  const handleMoveUp = (index: number) => {
     if (index === 0) return;
     reorderPharmacies(index, index - 1);
   };
 
-  const handleMoveDown = (index) => {
+  const handleMoveDown = (index: number) => {
     if (index === pharmacies.length - 1) return;
     reorderPharmacies(index, index + 1);
   };
@@ -57,7 +57,7 @@ export default function PatientPreferred() {
           <h3 className="font-semibold flex items-center gap-2">
             <HeartHandshake className="w-5 h-5 text-primary" /> Your Priority List
           </h3>
-          <button onClick={() => { setAutoRetryEnabled(!autoRetryEnabled); toast.success(autoRetryEnabled ? 'Auto-retry disabled' : 'Auto-retry enabled'); }}
+          <button onClick={() => { setAutoRetry(!autoRetryEnabled); toast.success(autoRetryEnabled ? 'Auto-retry disabled' : 'Auto-retry enabled'); }}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${autoRetryEnabled ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground'}`}>
             {autoRetryEnabled ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
             Auto-Retry
