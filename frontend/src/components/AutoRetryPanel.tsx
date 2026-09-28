@@ -7,26 +7,38 @@ import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
-import { usePreferredPharmacies } from '@/context/PreferredPharmacyContext';
+import { usePreferredPharmacies, type Pharmacy } from '@/context/PreferredPharmacyContext';
 import { useAutoRetry, AUTO_RETRY_STATUS, REJECTION_REASONS } from '@/hooks/useAutoRetry';
 
-export default function AutoRetryPanel({ orderContext, onPriceConfirm, onStoreSelect }) {
+interface AutoRetryPanelProps {
+  orderContext?: Record<string, any> | null;
+  onPriceConfirm?: (accepted: boolean) => void;
+  onStoreSelect?: () => void;
+}
+
+interface RejectParams {
+  storeIndex: number;
+  store: Pharmacy;
+  reason: { id: string; label: string };
+}
+
+export default function AutoRetryPanel({ orderContext, onPriceConfirm, onStoreSelect }: AutoRetryPanelProps) {
   const navigate = useNavigate();
   const { pharmacies, autoRetryEnabled } = usePreferredPharmacies();
   const autoRetry = useAutoRetry();
   const [showPriceConfirm, setShowPriceConfirm] = useState(false);
   const [priceDiff, setPriceDiff] = useState(0);
-  const [pendingRejectParams, setPendingRejectParams] = useState(null);
+  const [pendingRejectParams, setPendingRejectParams] = useState<RejectParams | null>(null);
   const [slaCountdown, setSlaCountdown] = useState(30);
 
   // Register real forward function so the hook calls it on timeout/reject
   useEffect(() => {
-    autoRetry.setForwardFn(async (orderId, storeId) => {
+    autoRetry.setForwardFn(async (orderId: string, storeId: string) => {
       try {
         await api.forwardPharmacyOrder(orderId, { facilityId: storeId });
         return true;
       } catch (e) {
-        toast.error('Auto-forward failed: ' + (e.message || 'Unknown error'));
+        toast.error('Auto-forward failed: ' + ((e as Error).message || 'Unknown error'));
         return false;
       }
     });

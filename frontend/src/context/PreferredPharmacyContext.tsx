@@ -1,5 +1,25 @@
-import { createContext, useCallback, useContext, useEffect, useReducer, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useReducer, useState, type ReactNode } from 'react';
 import { api } from '@/lib/api';
+
+export interface Pharmacy {
+  id?: string;
+  _id?: string;
+  name?: string;
+  priority?: number;
+  facilityId?: string;
+}
+
+export interface PreferredPharmacyValue {
+  pharmacies: Pharmacy[];
+  autoRetryEnabled: boolean;
+  initialized: boolean;
+  error: string | null;
+  addPharmacy: (pharmacy: Pharmacy) => Promise<void>;
+  removePharmacy: (id: string | undefined) => Promise<void>;
+  reorderPharmacies: (fromIndex: number, toIndex: number) => Promise<void>;
+  setAutoRetry: (enabled: boolean) => void;
+  setPharmacies: (list: Pharmacy[]) => void;
+}
 
 const STORAGE_KEY = 'findmedi_preferred_pharmacies';
 const LEGACY_STORAGE_KEY = 'mediCore_preferred_pharmacies';
@@ -10,21 +30,35 @@ const DEFAULT_PHARMACIES = [
 ];
 
 function loadPrefs() {
-  try { return JSON.parse((localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY))); } catch { return null; }
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
 }
 
-const initialState = {
+interface PrefsState {
+  pharmacies: Pharmacy[];
+  autoRetryEnabled: boolean;
+  initialized: boolean;
+}
+
+interface PrefsAction {
+  type: string;
+  payload?: any;
+}
+
+const initialState: PrefsState = {
   pharmacies: [],
   autoRetryEnabled: false,
   initialized: false,
 };
 
-function prefsReducer(state, action) {
+function prefsReducer(state: PrefsState, action: PrefsAction): PrefsState {
   switch (action.type) {
     case 'INIT':
       return { ...state, ...action.payload, initialized: true };
     case 'SET_PHARMACIES': {
-      const updated = action.payload.map((p, i) => ({ ...p, priority: i + 1 }));
+      const updated: Pharmacy[] = action.payload.map((p: any, i: number) => ({ ...p, priority: i + 1 }));
       return { ...state, pharmacies: updated };
     }
     case 'ADD_PHARMACY':
@@ -33,7 +67,7 @@ function prefsReducer(state, action) {
     case 'REMOVE_PHARMACY':
       return { ...state, pharmacies: state.pharmacies.filter(p => p._id !== action.payload && p.id !== action.payload).map((p, i) => ({ ...p, priority: i + 1 })) };
     case 'REORDER': {
-      const { fromIndex, toIndex } = action;
+      const { fromIndex, toIndex } = action.payload;
       const list = [...state.pharmacies];
       const [moved] = list.splice(fromIndex, 1);
       list.splice(toIndex, 0, moved);
@@ -46,19 +80,19 @@ function prefsReducer(state, action) {
   }
 }
 
-const PreferredPharmacyContext = createContext(null);
+const PreferredPharmacyContext = createContext<PreferredPharmacyValue | null>(null);
 
-export function PreferredPharmacyProvider({ children }) {
+export function PreferredPharmacyProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(prefsReducer, initialState);
 
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   const loadFromBackend = useCallback(async () => {
     try {
       setError(null);
       const res = await api.getPreferredPharmacies();
       if (res?.pharmacies?.length) {
-        const mapped = res.pharmacies.map(p => ({ id: p._id, _id: p._id, name: p.name, priority: p.priority, facilityId: p.pharmacyId }));
+        const mapped = res.pharmacies.map((p: any) => ({ id: p._id, _id: p._id, name: p.name, priority: p.priority, facilityId: p.pharmacyId }));
         dispatch({ type: 'INIT', payload: { pharmacies: mapped, autoRetryEnabled: false } });
         localStorage.setItem(STORAGE_KEY, JSON.stringify({ pharmacies: mapped, autoRetryEnabled: false }));
         return true;
@@ -95,7 +129,7 @@ export function PreferredPharmacyProvider({ children }) {
     }
   }, [state.pharmacies, state.autoRetryEnabled, state.initialized]);
 
-  const addPharmacy = useCallback(async (pharmacy) => {
+  const addPharmacy = useCallback(async (pharmacy: Pharmacy) => {
     try {
       const res = await api.addPreferredPharmacy({ pharmacyId: pharmacy.facilityId || pharmacy.id, name: pharmacy.name });
       if (res?._id) {
@@ -104,7 +138,7 @@ export function PreferredPharmacyProvider({ children }) {
     } catch { dispatch({ type: 'ADD_PHARMACY', payload: pharmacy }); }
   }, []);
 
-  const removePharmacy = useCallback(async (id) => {
+  const removePharmacy = useCallback(async (id: string | undefined) => {
     const idToRemove = id;
     try {
       await api.deletePreferredPharmacy(idToRemove);
@@ -112,7 +146,7 @@ export function PreferredPharmacyProvider({ children }) {
     dispatch({ type: 'REMOVE_PHARMACY', payload: idToRemove });
   }, []);
 
-  const reorderPharmacies = useCallback(async (fromIndex, toIndex) => {
+  const reorderPharmacies = useCallback(async (fromIndex: number, toIndex: number) => {
     dispatch({ type: 'REORDER', payload: { fromIndex, toIndex } });
     try {
       const ids = state.pharmacies.map(p => p._id || p.id);
@@ -123,9 +157,9 @@ export function PreferredPharmacyProvider({ children }) {
     } catch { /* best effort */ }
   }, [state.pharmacies]);
 
-  const setAutoRetry = useCallback((enabled) => dispatch({ type: 'SET_AUTO_RETRY', payload: enabled }), []);
+  const setAutoRetry = useCallback((enabled: boolean) => dispatch({ type: 'SET_AUTO_RETRY', payload: enabled }), []);
 
-  const setPharmacies = useCallback((list) => dispatch({ type: 'SET_PHARMACIES', payload: list }), []);
+  const setPharmacies = useCallback((list: Pharmacy[]) => dispatch({ type: 'SET_PHARMACIES', payload: list }), []);
 
   return (
     <PreferredPharmacyContext.Provider value={{

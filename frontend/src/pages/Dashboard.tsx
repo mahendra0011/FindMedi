@@ -21,7 +21,84 @@ import { getISTDateString } from '@/lib/dateUtils';
 
 const COLORS = ['hsl(174,62%,38%)','hsl(210,80%,55%)','hsl(38,92%,50%)','hsl(152,60%,42%)','hsl(210,12%,50%)'];
 
-const EMPTY_DASHBOARD = {
+/**
+ * Local shapes for the plain-JS API layer. `src/lib/api.js` has no types, so the
+ * dashboard declares exactly the fields it reads instead of indexing `any`
+ * (repo-wide typing of the api client is the separate typecheck burn-down).
+ */
+interface DashboardStats {
+  totalPatients?: number;
+  totalDoctors?: number;
+  todayAppointments?: number;
+  revenue?: number;
+  revenueMTD?: number;
+}
+
+interface DepartmentDatum {
+  name?: string;
+  value?: number;
+}
+
+interface AppointmentRow {
+  _id?: string;
+  status?: string;
+  patient?: string;
+  patientName?: string;
+  doctor?: string;
+  doctorName?: string;
+  time?: string;
+  timeSlot?: string;
+  date?: string;
+  bookingDate?: string;
+}
+
+interface RefundRow {
+  _id?: string;
+  status?: string;
+  patient?: string;
+  patientName?: string;
+  reason?: string;
+  description?: string;
+  refund_amount?: number;
+  amount?: number;
+  date?: string;
+  createdAt?: string;
+}
+
+interface DashboardPayload {
+  stats?: DashboardStats;
+  weeklyAppointments?: Array<{ day?: string; count?: number }>;
+  revenueData?: Array<{ month?: string; revenue?: number }>;
+  departmentData?: DepartmentDatum[];
+  recentAppointments?: AppointmentRow[];
+  refunds?: RefundRow[];
+}
+
+interface AppointmentListResponse {
+  data?: AppointmentRow[];
+  appointments?: AppointmentRow[];
+}
+
+interface RefundListResponse {
+  payments?: RefundRow[];
+  data?: RefundRow[];
+}
+
+/** Live OPD/ER/OT/IPD counters shown in the operations strip. */
+interface OperationsSnapshot {
+  bedsFree: number | null;
+  bedsTotal: number | null;
+  erActive: number | null;
+  pendingVerif: number | null;
+  staffOnLeave: number | null;
+  pendingLab: number | null;
+  activeOT: number | null;
+  activeAmbulance: number | null;
+  ipdCount: number | null;
+}
+
+/** Zeroed fallback so the render path never has to null-check the payload. */
+const EMPTY_DASHBOARD: DashboardPayload = {
   stats: { totalPatients: 0, totalDoctors: 0, todayAppointments: 0, revenue: 0 },
   weeklyAppointments: [],
   revenueData: [],
@@ -30,12 +107,21 @@ const EMPTY_DASHBOARD = {
   refunds: [],
 };
 
-const statusCls = { Confirmed:'bg-success/10 text-success', Pending:'bg-warning/10 text-warning', Cancelled:'bg-destructive/10 text-destructive', Completed:'bg-info/10 text-info' };
+const statusCls: Record<string, string> = { Confirmed:'bg-success/10 text-success', Pending:'bg-warning/10 text-warning', Cancelled:'bg-destructive/10 text-destructive', Completed:'bg-info/10 text-info' };
 const tooltipStyle = { borderRadius:'0.75rem', border:'1px solid hsl(200,20%,90%)', fontSize:12 };
+
+/** Axios errors carry the server message under `response.data.message`. */
+type ApiError = Error & { response?: { data?: { message?: string } } };
+
+/** Best-effort human message from a react-query error (unknown by default). */
+function apiErrorMessage(error: unknown): string {
+  const apiError = error as ApiError | null | undefined;
+  return apiError?.response?.data?.message || apiError?.message || '';
+}
 
 function OperationsStrip() {
   const navigate = useNavigate();
-  const [ops, setOps] = useState({ 
+  const [ops, setOps] = useState<OperationsSnapshot>({
     bedsFree: null, bedsTotal: null, erActive: null, pendingVerif: null, staffOnLeave: null,
     pendingLab: null, activeOT: null, activeAmbulance: null, ipdCount: null
   });
@@ -78,11 +164,11 @@ function OperationsStrip() {
 
   const items = [
     { label: 'Beds Free/Total', value: ops.bedsFree != null && ops.bedsTotal != null ? `${ops.bedsFree}/${ops.bedsTotal}` : '—', path: '/admin/beds' },
-    { label: 'ER Active', value: ops.erActive ?? '—', path: '/admin/emergency', highlight: ops.erActive > 0 },
+    { label: 'ER Active', value: ops.erActive ?? '—', path: '/admin/emergency', highlight: (ops.erActive ?? 0) > 0 },
     { label: 'OT Surgeries Today', value: ops.activeOT ?? '—', path: '/ot' },
     { label: 'Active IPD Patients', value: ops.ipdCount ?? '—', path: '/ipd' },
-    { label: 'Pending Lab Tests', value: ops.pendingLab ?? '—', path: '/lab', highlight: ops.pendingLab > 0 },
-    { label: 'Pending Rx Verification', value: ops.pendingVerif ?? '—', path: '/admin/prescription-verification', highlight: ops.pendingVerif > 0 },
+    { label: 'Pending Lab Tests', value: ops.pendingLab ?? '—', path: '/lab', highlight: (ops.pendingLab ?? 0) > 0 },
+    { label: 'Pending Rx Verification', value: ops.pendingVerif ?? '—', path: '/admin/prescription-verification', highlight: (ops.pendingVerif ?? 0) > 0 },
     { label: 'Ambulances on Mission', value: ops.activeAmbulance ?? '—', path: '/admin/ambulances' },
     { label: 'Staff On Leave', value: ops.staffOnLeave ?? '—', path: '/admin/leave-requests' },
   ];
@@ -147,7 +233,7 @@ export default function Dashboard() {
       </div>
     );
   }
-  const isNoHospital = error?.message?.includes('No hospital linked') || error?.response?.data?.message?.includes('No hospital linked');
+  const isNoHospital = apiErrorMessage(error).includes('No hospital linked');
   if (isError || !data) {
     return (
       <div className="rounded-2xl border p-8 text-center space-y-3">
@@ -157,38 +243,52 @@ export default function Dashboard() {
             <p className="text-sm text-muted-foreground">Aapke admin account se abhi koi hospital juda nahi hai. Onboarding team se hospital link karwao, phir dashboard yahin dikhega.</p>
           </>
         ) : (
-          <p className="font-semibold">Dashboard load nahi hua{error?.message ? `: ${error.message}` : ""}</p>
+          <p className="font-semibold">Dashboard load nahi hua{apiErrorMessage(error) ? `: ${apiErrorMessage(error)}` : ""}</p>
         )}
         <Button onClick={() => refetch()}>Retry</Button>
       </div>
     );
   }
 
-  const { stats, weeklyAppointments = [], revenueData = [], departmentData = [], recentAppointments: fallbackRecent = [] } = { ...EMPTY_DASHBOARD, ...data };
-  const rawAppts = apptsData?.data || apptsData?.appointments || apptsData || fallbackRecent;
-  const appointmentsList = Array.isArray(rawAppts) ? rawAppts : [];
+  const payload = { ...EMPTY_DASHBOARD, ...(data as DashboardPayload) };
+  const {
+    stats,
+    weeklyAppointments = [],
+    revenueData = [],
+    departmentData = [],
+    recentAppointments: fallbackRecent = [],
+  } = payload;
+  const appointmentPayload = apptsData as AppointmentListResponse | AppointmentRow[] | null | undefined;
+  const rawAppts = (Array.isArray(appointmentPayload)
+    ? appointmentPayload
+    : appointmentPayload?.data || appointmentPayload?.appointments || fallbackRecent) as AppointmentRow[];
+  const appointmentsList: AppointmentRow[] = Array.isArray(rawAppts) ? rawAppts : [];
 
   const todayStr = getISTDateString();
-  const pendingAppts = appointmentsList.filter(a => (a.status || '').toLowerCase() === 'pending');
-  const upcomingAppts = appointmentsList.filter(a => {
-    const s = (a.status || '').toLowerCase();
+  const statusOf = (row: AppointmentRow) => String(row.status || '').toLowerCase();
+  const pendingAppts = appointmentsList.filter((a) => statusOf(a) === 'pending');
+  const upcomingAppts = appointmentsList.filter((a) => {
+    const s = statusOf(a);
     return s === 'confirmed' || s === 'approved' || s === 'upcoming';
   });
-  const todayAppts = appointmentsList.filter(a => {
-    const s = (a.status || '').toLowerCase();
+  const todayAppts = appointmentsList.filter((a) => {
+    const s = statusOf(a);
     if (['cancelled', 'completed'].includes(s)) return false;
     const d = a.date || a.bookingDate || '';
     return !d || d.startsWith(todayStr);
   });
-  const completedAppts = appointmentsList.filter(a => (a.status || '').toLowerCase() === 'completed');
+  const completedAppts = appointmentsList.filter((a) => statusOf(a) === 'completed');
 
   const displayedAppts = apptTab === 'pending' ? pendingAppts
     : apptTab === 'upcoming' ? upcomingAppts
     : apptTab === 'today' ? todayAppts
     : completedAppts;
 
-  const refunds = refundsData?.payments || refundsData?.data || refundsData || [];
-  const totalRefundAmount = refunds.reduce((s, r) => s + (r.refund_amount || r.amount || 0), 0);
+  const refundPayload = refundsData as RefundListResponse | RefundRow[] | null | undefined;
+  const refunds: RefundRow[] = Array.isArray(refundPayload)
+    ? refundPayload
+    : refundPayload?.payments || refundPayload?.data || [];
+  const totalRefundAmount = refunds.reduce((sum, r) => sum + (r.refund_amount || r.amount || 0), 0);
 
   // Apply appearance settings when dashboard mounts or settings change
   useEffect(() => {
@@ -408,8 +508,8 @@ export default function Dashboard() {
             <LineChart data={revenueData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(200,20%,90%)" />
               <XAxis dataKey="month" stroke="hsl(210,12%,50%)" fontSize={12} />
-              <YAxis stroke="hsl(210,12%,50%)" fontSize={12} tickFormatter={v => `₹${(v/1000).toFixed(0)}k`} />
-              <Tooltip contentStyle={tooltipStyle} formatter={v => [`₹${v.toLocaleString()}`, 'Revenue']} />
+              <YAxis stroke="hsl(210,12%,50%)" fontSize={12} tickFormatter={(v) => `₹${(Number(v ?? 0)/1000).toFixed(0)}k`} />
+              <Tooltip contentStyle={tooltipStyle} formatter={(v) => [`₹${Number(v ?? 0).toLocaleString()}`, 'Revenue']} />
               <Line type="monotone" dataKey="revenue" stroke="hsl(174,62%,38%)" strokeWidth={3} dot={{ fill:'hsl(174,62%,38%)',r:5 }} />
             </LineChart>
           </ResponsiveContainer>
@@ -529,7 +629,7 @@ export default function Dashboard() {
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Clock className="w-3 h-3" />{apt.time || apt.timeSlot || 'Scheduled'}
                   </div>
-                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusCls[apt.status] ?? 'bg-muted text-muted-foreground'}`}>
+                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusCls[apt.status ?? ''] ?? 'bg-muted text-muted-foreground'}`}>
                     {apt.status || 'Pending'}
                   </span>
                 </div>
@@ -566,7 +666,7 @@ export default function Dashboard() {
             {departmentData?.map((d, i) => (
               <div key={d.name} className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-2">
-                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS[i] }} />
+                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
                   <span className="text-muted-foreground text-xs">{d.name}</span>
                 </div>
                 <span className="font-medium text-xs text-card-foreground">{d.value} appts</span>
@@ -588,7 +688,7 @@ export default function Dashboard() {
             <p className="text-xs text-muted-foreground">Total Refunded</p>
           </div>
           <div className="bg-warning/5 rounded-lg border border-warning/20 p-4">
-            <p className="text-2xl font-bold text-warning">{refunds.filter(r => { const d = new Date(r.date || r.createdAt || 0); const n = new Date(); return d.getMonth() === n.getMonth() && d.getFullYear() === n.getFullYear(); }).length}</p>
+            <p className="text-2xl font-bold text-warning">{refunds.filter((r) => { const d = new Date(r.date || r.createdAt || 0); const n = new Date(); return d.getMonth() === n.getMonth() && d.getFullYear() === n.getFullYear(); }).length}</p>
             <p className="text-xs text-muted-foreground">This Month</p>
           </div>
           <div className="bg-info/5 rounded-lg border border-info/20 p-4">

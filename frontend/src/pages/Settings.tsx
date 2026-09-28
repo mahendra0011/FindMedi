@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback, type ChangeEvent, type ReactNode } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import {
   AlertCircle,
@@ -38,6 +38,11 @@ import { applyUserSettings, t } from '@/lib/settings';
 import { useSettings, useUpdateSetting, useLoadUserSettings } from '@/store/useSettingsStore';
 import PreferredPharmacySettings from '@/components/PreferredPharmacySettings';
 
+interface NoticeState {
+  type: 'error' | 'success';
+  text: string;
+}
+
 const roleBadge = {
   admin: 'bg-primary/15 text-primary',
   doctor: 'bg-info/15 text-info',
@@ -54,13 +59,13 @@ const tabs = [
   { key: 'privacy', labelKey: 'settings.privacyData', icon: Shield },
 ];
 
-const toInputDate = (value) => {
+const toInputDate = (value: any): string => {
   if (!value) return '';
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? String(value).slice(0, 10) : date.toISOString().slice(0, 10);
 };
 
-const buildProfile = (user) => ({
+const buildProfile = (user: any) => ({
   name: user?.name || '',
   phone: user?.phone || '',
   address: user?.address || '',
@@ -81,7 +86,13 @@ const buildProfile = (user) => ({
   refundOnMissedOrCancelled: user?.refundOnMissedOrCancelled !== false,
 });
 
-function Field({ label, children, note }) {
+interface FieldProps {
+  label: ReactNode;
+  children: ReactNode;
+  note?: ReactNode;
+}
+
+function Field({ label, children, note }: FieldProps) {
   return (
     <div>
       <label className="text-sm font-medium text-foreground mb-1.5 block">{label}</label>
@@ -91,7 +102,14 @@ function Field({ label, children, note }) {
   );
 }
 
-function SelectField({ label, value, onChange, options }) {
+interface SelectFieldProps {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: Array<{ value: string; label: string }>;
+}
+
+function SelectField({ label, value, onChange, options }: SelectFieldProps) {
   return (
     <Field label={label}>
       <select
@@ -107,7 +125,14 @@ function SelectField({ label, value, onChange, options }) {
   );
 }
 
-function ToggleRow({ title, description, checked, onChange }) {
+interface ToggleRowProps {
+  title: string;
+  description: string;
+  checked?: boolean;
+  onChange: (checked: boolean) => void;
+}
+
+function ToggleRow({ title, description, checked, onChange }: ToggleRowProps) {
   return (
     <div className="flex items-center justify-between gap-4 py-3 border-b border-border last:border-0">
       <div>
@@ -119,7 +144,7 @@ function ToggleRow({ title, description, checked, onChange }) {
   );
 }
 
-function Notice({ notice }) {
+function Notice({ notice }: { notice: NoticeState | null }) {
   if (!notice) return null;
   const Icon = notice.type === 'error' ? AlertCircle : CheckCircle;
   const cls = notice.type === 'error'
@@ -294,7 +319,7 @@ function TwoFactorSection() {
 
 export default function Settings() {
   const { user, updateUser } = useAuth();
-  const fileInputRef = useRef(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [tab, setTab] = useState('profile');
   const [profile, setProfile] = useState(() => buildProfile(user));
   const updateSetting = useUpdateSetting();
@@ -303,9 +328,9 @@ export default function Settings() {
   const authSettings = user?.settings || {};
   const settings = reduxSettings;
   const [password, setPassword] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
-  const [notice, setNotice] = useState(null);
+  const [notice, setNotice] = useState<NoticeState | null>(null);
   const language = settings.language || 'en';
-  const tr = (key) => t(key, language);
+  const tr = (key: string) => t(key, language);
 
   useEffect(() => {
     setProfile(buildProfile(user));
@@ -326,7 +351,7 @@ export default function Settings() {
   const initials = useMemo(() => (user?.name || 'U').split(' ').filter(Boolean).map(part => part[0]).join('').slice(0, 2).toUpperCase(), [user?.name]);
 
   const saveMut = useMutation({
-    mutationFn: (payload) => api.updateProfile(payload),
+    mutationFn: (payload: any) => api.updateProfile(payload),
     onSuccess: (data) => {
       updateUser(data);
       if (data?.settings) {
@@ -339,7 +364,7 @@ export default function Settings() {
   });
 
   const passwordMut = useMutation({
-    mutationFn: (payload) => api.changePassword(payload),
+    mutationFn: (payload: { currentPassword: string; newPassword: string }) => api.changePassword(payload),
     onSuccess: () => {
       setPassword({ currentPassword: '', newPassword: '', confirmPassword: '' });
       setNotice({ type: 'success', text: tr('settings.passwordSaved') });
@@ -348,7 +373,7 @@ export default function Settings() {
   });
 
   const avatarMut = useMutation({
-    mutationFn: (file) => api.uploadAvatar(file),
+    mutationFn: (file: File) => api.uploadAvatar(file),
     onSuccess: (data) => {
       const avatar = data?.user?.avatar || data?.avatar || '';
       if (data?.user) updateUser(data.user);
@@ -359,10 +384,10 @@ export default function Settings() {
     onError: (error) => setNotice({ type: 'error', text: error.message || tr('settings.photoUploadError') }),
   });
 
-  const updateProfile = (key, value) => setProfile((current) => ({ ...current, [key]: value }));
-  const saveSetting = (key, value) => updateSetting({ key, value });
+  const updateProfile = (key: string, value: any) => setProfile((current) => ({ ...current, [key]: value }));
+  const saveSetting = (key: string, value: any) => updateSetting({ key, value });
 
-  const handleAvatarSelect = (event) => {
+  const handleAvatarSelect = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.target.value = '';
     if (!file) return;
@@ -466,7 +491,7 @@ export default function Settings() {
                   <div>
                     <p className="font-semibold text-card-foreground">{user?.name}</p>
                     <p className="text-sm text-muted-foreground">{user?.email}</p>
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full mt-1 inline-block capitalize ${roleBadge[user?.role] || 'bg-muted text-muted-foreground'}`}>
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full mt-1 inline-block capitalize ${roleBadge[user?.role as keyof typeof roleBadge] || 'bg-muted text-muted-foreground'}`}>
                       {t(`role.${user?.role}`, language)}
                     </span>
                     <div className="flex flex-wrap items-center gap-2 mt-3">
@@ -585,7 +610,7 @@ export default function Settings() {
                                   toast.warning('At least one mode must remain active');
                                   return;
                                 }
-                                updateProfile('appointmentModes', current.filter(m => m !== key));
+                                updateProfile('appointmentModes', current.filter((m: string) => m !== key));
                               } else {
                                 updateProfile('appointmentModes', [...current, key]);
                               }

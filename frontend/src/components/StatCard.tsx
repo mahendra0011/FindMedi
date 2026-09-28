@@ -1,3 +1,13 @@
+import type { ComponentType, ReactNode } from "react";
+
+type ChangeType = "positive" | "negative" | "neutral";
+
+const changeColors: Record<ChangeType, string> = {
+  positive: "text-success",
+  negative: "text-destructive",
+  neutral: "text-muted-foreground"
+};
+
 const StatCard = ({
   title,
   value,
@@ -6,12 +16,15 @@ const StatCard = ({
   icon: Icon,
   iconColor = "text-primary",
   iconBg = "bg-accent"
+}: {
+  title: ReactNode;
+  value: ReactNode;
+  change?: ReactNode;
+  changeType?: ChangeType;
+  icon: ComponentType<{ className?: string }>;
+  iconColor?: string;
+  iconBg?: string;
 }) => {
-  const changeColors = {
-    positive: "text-success",
-    negative: "text-destructive",
-    neutral: "text-muted-foreground"
-  };
   return <div data-motion-reveal className="stat-card group">
       <div className="flex items-start justify-between">
         <div>

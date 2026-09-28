@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate, Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import type { Variants } from 'framer-motion';
 import {
   ArrowLeft, Star, CalendarDays, MapPin, Phone, Mail, IndianRupee, Award, Users,
   CheckCircle, Clock, Stethoscope, Building2, UserRound, BadgeCheck, Bookmark,
@@ -26,43 +27,51 @@ import { toast } from 'sonner';
 import ReviewDialog from '@/components/ReviewDialog';
 import { getISTDateString } from '@/lib/dateUtils';
 
-const fadeUp = {
+const fadeUp: Variants = {
   hidden: { opacity: 0, y: 30 },
   show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 200, damping: 22 } }
 };
 
-function renderStars(rating, size = 'w-4 h-4') {
+/**
+ * Clinic-doctor payload from the plain-JS api client. Every read goes through
+ * the display helpers below, so one permissive alias beats ~40 unchecked
+ * property reads (repo-wide typing of the api layer is the separate typecheck
+ * burn-down — same convention as components/maps/ServiceLocationMap.tsx).
+ */
+type ApiRecord = { [key: string]: any };
+
+function renderStars(rating: number, size = 'w-4 h-4') {
   return [1, 2, 3, 4, 5].map(s => (
     <Star key={s} className={cn(size, s <= Math.round(rating) ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground/20 fill-muted-foreground/20')} />
   ));
 }
 
-function getInitials(name) {
-  return name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'DR';
+function getInitials(name: string | null | undefined) {
+  return name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() || 'DR';
 }
 
-function getClinicPath(doctor) {
+function getClinicPath(doctor: ApiRecord | null | undefined) {
   const facilityId = getFacilityId(doctor);
   return facilityId ? `/clinic/${facilityId}` : `/clinic-doctors/${doctor?._id}`;
 }
 
-function getFacilityId(doctor) {
+function getFacilityId(doctor: ApiRecord | null | undefined): string {
   return doctor?.facilityId?._id || doctor?.facilityId || '';
 }
 
-function getClinicName(doctor) {
+function getClinicName(doctor: ApiRecord | null | undefined): string {
   return doctor?.clinicProfile?.clinic_name || doctor?.facilityId?.name || '';
 }
 
-function getClinicAddress(doctor) {
+function getClinicAddress(doctor: ApiRecord | null | undefined): string {
   return doctor?.clinicProfile?.clinic_address || doctor?.facilityId?.address || doctor?.location || '';
 }
 
-function getFaqQuestion(faq) {
+function getFaqQuestion(faq: ApiRecord | null | undefined): string {
   return faq?.q || faq?.question || '';
 }
 
-function getFaqAnswer(faq) {
+function getFaqAnswer(faq: ApiRecord | null | undefined): string {
   return faq?.a || faq?.answer || '';
 }
 
@@ -75,12 +84,12 @@ export default function ClinicDoctor() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [doctor, setDoctor] = useState(null);
-  const [relatedDoctors, setRelatedDoctors] = useState([]);
-  const [departmentDoctors, setDepartmentDoctors] = useState([]);
+  const [doctor, setDoctor] = useState<ApiRecord | null>(null);
+  const [relatedDoctors, setRelatedDoctors] = useState<ApiRecord[]>([]);
+  const [departmentDoctors, setDepartmentDoctors] = useState<ApiRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const [reviews, setReviews] = useState([]);
+  const [reviews, setReviews] = useState<ApiRecord[]>([]);
 
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [showAllReviews, setShowAllReviews] = useState(false);
@@ -105,7 +114,7 @@ export default function ClinicDoctor() {
     }
   };
   const [showFullBio, setShowFullBio] = useState(false);
-  const [expandedFaq, setExpandedFaq] = useState(null);
+  const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -173,7 +182,10 @@ export default function ClinicDoctor() {
 
   const ratingBreakdown = () => {
     const counts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
-    (Array.isArray(reviews) ? reviews : []).forEach(r => { if (r.rating >= 1 && r.rating <= 5) counts[r.rating]++; });
+    (Array.isArray(reviews) ? reviews : []).forEach(r => {
+      const star = r.rating;
+      if (star >= 1 && star <= 5) counts[star as 1 | 2 | 3 | 4 | 5]++;
+    });
     const max = Math.max(...Object.values(counts), 1);
     return Object.entries(counts).reverse().map(([star, count]) => (
       <div key={star} className="flex items-center gap-2 text-sm">
@@ -303,7 +315,7 @@ export default function ClinicDoctor() {
                         {doctor.consultantType === 'fulltime' ? 'Full-Time Consultant' : 'Visiting Consultant'}
                       </Badge>
                     )}
-                    {doctor.languages?.map(lang => (
+                    {doctor.languages?.map((lang: string) => (
                       <Badge key={lang} variant="outline" className="text-xs bg-muted/50">
                         <Languages className="w-3 h-3 mr-1" />{lang}
                       </Badge>
@@ -396,7 +408,7 @@ export default function ClinicDoctor() {
                     <div className="mb-5">
                       <p className="text-sm font-semibold text-foreground mb-3">Areas of Expertise</p>
                       <div className="flex flex-wrap gap-2">
-                        {doctor.areas_of_expertise.map(area => (
+                        {doctor.areas_of_expertise.map((area: string) => (
                           <Badge key={area} variant="outline" className="text-xs bg-primary/5 border-primary/20 text-primary font-medium px-3 py-1">
                             {area}
                           </Badge>
@@ -410,7 +422,7 @@ export default function ClinicDoctor() {
                     <div className="mb-5">
                       <p className="text-sm font-semibold text-foreground mb-3">Services Offered</p>
                       <div className="flex flex-wrap gap-2">
-                        {doctor.services_offered.map(service => (
+                        {doctor.services_offered.map((service: string) => (
                           <Badge key={service} variant="secondary" className="text-xs px-3 py-1">
                             <Plus className="w-3 h-3 mr-1" />{service}
                           </Badge>
@@ -424,7 +436,7 @@ export default function ClinicDoctor() {
                     <div>
                       <p className="text-sm font-semibold text-foreground mb-3">Surgeries & Procedures</p>
                       <div className="flex flex-wrap gap-2">
-                        {doctor.surgeries_procedures.map(surgery => (
+                        {doctor.surgeries_procedures.map((surgery: string) => (
                           <Badge key={surgery} variant="outline" className="text-xs bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-800 px-3 py-1">
                             <Syringe className="w-3 h-3 mr-1" />{surgery}
                           </Badge>
@@ -456,7 +468,7 @@ export default function ClinicDoctor() {
                       </p>
                       {doctor.education?.length > 0 ? (
                         <div className="space-y-4">
-                          {doctor.education.map((edu, i) => (
+                          {doctor.education.map((edu: ApiRecord, i: number) => (
                             <div key={i} className="relative pl-6 border-l-2 border-primary/20">
                               <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center">
                                 <div className="w-1.5 h-1.5 rounded-full bg-primary" />
@@ -480,7 +492,7 @@ export default function ClinicDoctor() {
                       </p>
                       {doctor.work_experience?.length > 0 ? (
                         <div className="space-y-4">
-                          {doctor.work_experience.map((exp, i) => (
+                          {doctor.work_experience.map((exp: ApiRecord, i: number) => (
                             <div key={i} className="relative pl-6 border-l-2 border-muted-foreground/20">
                               <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-muted border-2 border-muted-foreground/40 flex items-center justify-center">
                                 <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60" />
@@ -517,7 +529,7 @@ export default function ClinicDoctor() {
                       <div>
                         <p className="text-sm font-semibold text-foreground mb-3">Memberships</p>
                         <div className="flex flex-wrap gap-2">
-                          {doctor.memberships.map(m => (
+                          {doctor.memberships.map((m: string) => (
                             <Badge key={m} variant="outline" className="text-xs bg-muted/50 px-3 py-1">
                               {m}
                             </Badge>
@@ -535,7 +547,7 @@ export default function ClinicDoctor() {
                         Awards & Achievements
                       </p>
                       <div className="space-y-2">
-                        {doctor.awards.map((award, i) => (
+                        {doctor.awards.map((award: string, i: number) => (
                           <div key={i} className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-amber-50/50 dark:bg-amber-500/5 border border-amber-200/50 dark:border-amber-800/50">
                             <Trophy className="w-4 h-4 text-amber-500 shrink-0" />
                             <span className="text-sm text-foreground font-medium">{award}</span>
@@ -591,7 +603,7 @@ export default function ClinicDoctor() {
                         Clinic Gallery
                       </p>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                        {doctor.clinicProfile.clinic_photos.map((photo, i) => (
+                        {doctor.clinicProfile.clinic_photos.map((photo: string, i: number) => (
                           <div key={i} className="aspect-[3/2] rounded-xl overflow-hidden border border-border/40 bg-muted">
                             <img src={photo} alt={`Clinic photo ${i + 1}`} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
                           </div>
@@ -640,7 +652,7 @@ export default function ClinicDoctor() {
                     <div className="mb-6">
                       <p className="text-sm font-semibold text-foreground mb-3">Facilities</p>
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                        {doctor.clinicProfile.clinic_facilities.map((fac, i) => (
+                        {doctor.clinicProfile.clinic_facilities.map((fac: string, i: number) => (
                           <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/30 border border-border/60 text-sm text-muted-foreground">
                             {fac.toLowerCase().includes('parking') && <Car className="w-3.5 h-3.5 text-primary shrink-0" />}
                             {fac.toLowerCase().includes('wheelchair') && <Accessibility className="w-3.5 h-3.5 text-primary shrink-0" />}
@@ -661,7 +673,7 @@ export default function ClinicDoctor() {
                         Insurance / Cashless Accepted
                       </p>
                       <div className="flex flex-wrap gap-2">
-                        {doctor.clinicProfile.clinic_insurance.map(ins => (
+                        {doctor.clinicProfile.clinic_insurance.map((ins: string) => (
                           <Badge key={ins} variant="outline" className="text-xs bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-800 px-3 py-1">
                             <CheckCircle className="w-3 h-3 mr-1" />{ins}
                           </Badge>
@@ -697,7 +709,7 @@ export default function ClinicDoctor() {
                       <tbody>
                         {DAY_ORDER.map(day => {
                           const active = doctor.weekly_schedule?.[day];
-                          const label = DAY_LABELS[day];
+                          const label = DAY_LABELS[day as keyof typeof DAY_LABELS];
                           const isToday = new Date().toLocaleDateString('en', { weekday: 'long' }).toLowerCase() === day;
                           return (
                             <tr key={day} className={cn(
@@ -888,7 +900,7 @@ export default function ClinicDoctor() {
                       <div className="px-4 py-3 rounded-xl bg-muted/30 border border-border/60">
                         <span className="text-sm text-muted-foreground block mb-2">Insurance Accepted</span>
                         <div className="flex flex-wrap gap-1.5">
-                        {doctor.clinicProfile.clinic_insurance.map(ins => (
+                        {doctor.clinicProfile.clinic_insurance.map((ins: string) => (
                             <Badge key={ins} variant="secondary" className="text-xs">{ins}</Badge>
                           ))}
                         </div>
@@ -901,7 +913,7 @@ export default function ClinicDoctor() {
                           Payment Modes Accepted
                         </span>
                         <div className="flex flex-wrap gap-1.5">
-                          {doctor.payment_modes.map(mode => (
+                          {doctor.payment_modes.map((mode: string) => (
                             <Badge key={mode} variant="secondary" className="text-xs">{mode}</Badge>
                           ))}
                         </div>
@@ -917,7 +929,7 @@ export default function ClinicDoctor() {
                         Frequently Asked Questions
                       </p>
                       <div className="space-y-2">
-                        {(doctor.clinicProfile?.clinic_faqs || []).map((faq, i) => (
+                        {(doctor.clinicProfile?.clinic_faqs || []).map((faq: ApiRecord, i: number) => (
                           <div key={i} className="rounded-xl border border-border/60 overflow-hidden">
                             <button
                               onClick={() => setExpandedFaq(expandedFaq === i ? null : i)}
@@ -1139,7 +1151,7 @@ export default function ClinicDoctor() {
         entityType="doctor"
         entityId={id}
         entityName={doctor?.name}
-        onReviewSubmitted={(review) => {
+        onReviewSubmitted={(review: ApiRecord) => {
           setReviews(prev => [review, ...(Array.isArray(prev) ? prev : [])]);
         }}
       />

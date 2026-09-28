@@ -48,23 +48,33 @@ const EXPERIENCE_RANGES = [
   { label: '10+ years', min: 10, max: 999 },
 ];
 
-function getExpYears(exp) {
+/**
+ * Clinic-doctor payload from the plain-JS api client. Every read goes through
+ * the display helpers below, so one permissive alias beats ~40 unchecked
+ * property reads (repo-wide typing of the api layer is the separate typecheck
+ * burn-down — same convention as components/maps/ServiceLocationMap.tsx).
+ */
+type ClinicDoctor = { [key: string]: any };
+
+function getExpYears(exp: unknown): number {
   if (!exp) return 0;
-  const m = exp.match(/(\d+)/);
+  const m = String(exp).match(/(\d+)/);
   return m ? parseInt(m[1]) : 0;
 }
 
-function getClinicName(doc) {
+function getClinicName(doc: ClinicDoctor | null | undefined): string {
   if (!doc) return '';
   return doc.clinicProfile?.clinic_name || doc.facilityId?.name || doc.location?.split(',')?.[0] || 'Clinic';
 }
 
-function getClinicAddress(doc) {
+function getClinicAddress(doc: ClinicDoctor | null | undefined): string {
+  if (!doc) return '';
   return doc.clinicProfile?.clinic_address || doc.facilityId?.address || doc.location || doc.area || doc.address || doc.city || '';
 }
 
-function matchesSpecialty(doc, specialty) {
+function matchesSpecialty(doc: ClinicDoctor | null | undefined, specialty: string): boolean {
   if (specialty === 'All') return true;
+  if (!doc) return false;
   const normalized = specialty.toLowerCase();
   const docSpec = (doc.specialization || '').toLowerCase();
   if (normalized === 'general physician/ internal medicine') return ['general medicine', 'internal medicine'].includes(docSpec);
@@ -76,17 +86,17 @@ function matchesSpecialty(doc, specialty) {
 export default function ClinicDoctors() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [doctors, setDoctors] = useState([]);
-  const [allDoctors, setAllDoctors] = useState([]);
+  const [doctors, setDoctors] = useState<ClinicDoctor[]>([]);
+  const [allDoctors, setAllDoctors] = useState<ClinicDoctor[]>([]);
   const [search, setSearch] = useState(searchParams.get('search') || '');
   const [loading, setLoading] = useState(true);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showBooking, setShowBooking] = useState(false);
-  const [selectedDoctor, setSelectedDoctor] = useState(null);
-  const [savedIds, setSavedIds] = useState(() => {
+  const [selectedDoctor, setSelectedDoctor] = useState<ClinicDoctor | null>(null);
+  const [savedIds, setSavedIds] = useState<string[]>(() => {
     try { return JSON.parse(localStorage.getItem('fav_doctor_ids') || '[]'); } catch { return []; }
   });
-  const toggleSavedDoctor = async (docId, e) => {
+  const toggleSavedDoctor = async (docId: string, e?: { stopPropagation: () => void }) => {
     if (e) e.stopPropagation();
     const nowSaved = !savedIds.includes(docId);
     const next = nowSaved ? [...savedIds, docId] : savedIds.filter(id => id !== docId);
@@ -117,8 +127,8 @@ export default function ClinicDoctors() {
   const [consultantType, setConsultantType] = useState('');
   const [loadError, setLoadError] = useState('');
 
-  const [qualificationFilter, setQualificationFilter] = useState([]);
-  const [languageFilter, setLanguageFilter] = useState([]);
+  const [qualificationFilter, setQualificationFilter] = useState<string[]>([]);
+  const [languageFilter, setLanguageFilter] = useState<string[]>([]);
   const [surgeryFilter, setSurgeryFilter] = useState('');
   const [admissionFilter, setAdmissionFilter] = useState('');
   const [insuranceFilter, setInsuranceFilter] = useState('');
@@ -128,12 +138,12 @@ const loadDoctors = async () => {
     setLoading(true);
     setLoadError('');
     try {
-      const params = { doctor_type: 'clinic' };
+      const params: Record<string, string> = { doctor_type: 'clinic' };
       if (search) params.search = search;
       const data = await api.getDoctors(params).catch(() => { throw new Error('Failed to load doctors'); });
       const docList = Array.isArray(data) ? data : (data?.doctors || data?.data || []);
       setAllDoctors(Array.isArray(docList) ? docList : []);
-    } catch (e) { setLoadError(e.message || 'Failed to load doctors'); setAllDoctors([]); }
+    } catch (e) { setLoadError(e instanceof Error ? e.message : 'Failed to load doctors'); setAllDoctors([]); }
     setLoading(false);
   };
 
@@ -141,11 +151,11 @@ const loadDoctors = async () => {
   useEffect(() => { loadDoctors(); }, [search, specFilter]);
 
   const insuranceProviders = useMemo(() => {
-    const providers = new Set();
-    (Array.isArray(allDoctors) ? allDoctors : []).forEach(d => {
-      (d.clinicProfile?.clinic_insurance || d.insurance_accepted || []).forEach(i => {
+    const providers = new Set<string>();
+    (Array.isArray(allDoctors) ? allDoctors : []).forEach((d: ClinicDoctor) => {
+      (d.clinicProfile?.clinic_insurance || d.insurance_accepted || []).forEach((i: unknown) => {
         if (typeof i === 'string') providers.add(i);
-        else if (i?.provider) providers.add(i.provider);
+        else if ((i as { provider?: string })?.provider) providers.add((i as { provider: string }).provider);
       });
     });
     return [...providers].sort();
@@ -187,7 +197,7 @@ const loadDoctors = async () => {
     else if (admissionFilter === 'no') filtered = filtered.filter(d => d.admission_available !== true);
     if (insuranceFilter) filtered = filtered.filter(d => {
       const ins = d.clinicProfile?.clinic_insurance || d.insurance_accepted || [];
-      return ins.some(i => (typeof i === 'string' ? i : i.provider || i) === insuranceFilter);
+      return (ins as unknown[]).some(i => (typeof i === 'string' ? i : (i as { provider?: string })?.provider || i) === insuranceFilter);
     });
     if (emergencyFilter === 'yes') filtered = filtered.filter(d => d.emergency_consultation === true);
     else if (emergencyFilter === 'no') filtered = filtered.filter(d => d.emergency_consultation !== true);
@@ -199,7 +209,7 @@ const loadDoctors = async () => {
     setDoctors(filtered);
   }, [allDoctors, specFilter, clinicFilter, locationFilter, availabilityFilter, genderFilter, expFilter, feeRange, ratingFilter, consultantType, qualificationFilter, languageFilter, surgeryFilter, admissionFilter, insuranceFilter, emergencyFilter, sortBy]);
 
-  const renderStars = (rating) => (
+  const renderStars = (rating: number) => (
     <div className="flex items-center gap-0.5">
       {[1, 2, 3, 4, 5].map(s => (
         <Star key={s} className={`w-3.5 h-3.5 ${s <= Math.round(rating) ? 'text-warning fill-warning' : 'text-muted-foreground/30'}`} />
@@ -578,7 +588,7 @@ const loadDoctors = async () => {
 
                     {doc.qualifications && (
                       <div className="flex flex-wrap gap-1.5 mb-3">
-                        {doc.qualifications.split(',').map(q => q.trim()).filter(Boolean).map(q => (
+                        {String(doc.qualifications).split(',').map((q: string) => q.trim()).filter(Boolean).map(q => (
                           <Badge key={q} variant="secondary" className="text-[10px] bg-muted/50">{q}</Badge>
                         ))}
                       </div>

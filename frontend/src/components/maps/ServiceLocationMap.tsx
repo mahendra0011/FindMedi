@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { createRoot } from 'react-dom/client';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import type { ThunkDispatch, UnknownAction } from '@reduxjs/toolkit';
+import type { Dispatch, UnknownAction } from '@reduxjs/toolkit';
 import maplibregl from 'maplibre-gl';
 import { AlertCircle, Clock, Loader2, LocateFixed, MapPin, Navigation, Phone, Route, Star } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -162,12 +162,56 @@ interface MapSliceState {
   locateError: string;
 }
 
+/** Root-state shape for the untyped JS store (only `map` is read here). */
+interface RootState {
+  map: MapSliceState;
+  [key: string]: unknown;
+}
+
+/** Props accepted from the detail screens (hospital/clinic/lab/pharmacy). */
+export interface ServiceLocationMapProps {
+  entityType: ServiceType | string;
+  entity: MaybeEntity;
+  className?: string;
+}
+
+/** Plain map actions (upsert/select/locate) — dispatch accepts any action shape. */
+type MapBoundDispatch = (action: unknown) => unknown;
+
+/** A redux-thunk action created by the plain-JS map slice. */
+type MapThunkAction = (dispatch: MapBoundDispatch) => unknown;
+
 /**
- * src/store/index.js is plain JS, so react-redux cannot infer a thunk-aware
- * dispatch here; this alias restores it for geocodePlace()/fetchRoute() and the
- * plain reducers alike.
+ * Dispatch for the map screen: plain map actions plus the two async thunks.
+ * The `Dispatch<UnknownAction>` arm exists solely to satisfy react-redux's
+ * `useDispatch<T extends Dispatch>()` constraint.
  */
-type MapDispatch = ThunkDispatch<{ map: MapSliceState }, unknown, UnknownAction>;
+type MapDispatch = Dispatch<UnknownAction> & ((thunk: MapThunkAction) => unknown);
+
+/** Payload accepted by the map slice's geocode thunk (store/slices/mapSlice.js). */
+interface GeocodePlacePayload {
+  placeId: string;
+  address: string;
+  fallbackCoordinates: Coordinate;
+}
+
+/** Payload accepted by the map slice's route thunk (store/slices/mapSlice.js). */
+interface FetchRoutePayload {
+  placeId: string;
+  from: Coordinate;
+  to: Coordinate;
+}
+
+/**
+ * src/store/index.js is plain JS, so `noImplicitAny` makes the thunk creators
+ * exported from mapSlice.js come back with `undefined` parameters. These aliases
+ * restate the two payloads this component builds — once, at the JS boundary —
+ * instead of an `any` cast at every dispatch site.
+ */
+const createGeocodePlace =
+  geocodePlace as unknown as (payload: GeocodePlacePayload) => MapThunkAction;
+const createFetchRoute =
+  fetchRoute as unknown as (payload: FetchRoutePayload) => MapThunkAction;
 
 interface MarkerElements {
   button: HTMLButtonElement;
@@ -234,6 +278,7 @@ function coordinatePair(value: unknown): Coordinate | null {
   const record = (typeof value === 'object' ? value : {}) as Record<string, unknown>;
   const lng = Number(record.longitude ?? record.lng);
   const lat = Number(record.latitude ?? record.lat);
+  // CurrentLocation shape { longitude, latitude } redux se aata hai — wahi use hota hai.
   return Number.isFinite(lng) && Number.isFinite(lat) ? [lng, lat] : null;
 }
 
@@ -868,73 +913,6 @@ function MapBoundsController({ places, fitToPlaces }: { places: MapPlace[]; fitT
   return null;
 }
 
-function RouteLine({ coordinates }: { coordinates: Coordinate[] }) {
-  const { map, isLoaded } = useMap();
-
-  useEffect(() => {
-    if (!map || !isLoaded || coordinates.length < 2) return undefined;
-
-    const mapInstance = map;
-    const sourceId = "route-line-source";
-    const haloLayerId = "route-line-halo-layer";
-    const layerId = "route-line-layer";
-    const routeData: GeoJSON.Feature = {
-      type: "Feature",
-      geometry: { type: "LineString", coordinates },
-      properties: {},
-    };
-
-    if (mapInstance.getSource(sourceId)) {
-      (mapInstance.getSource(sourceId) as maplibregl.GeoJSONSource).setData(routeData);
-    } else {
-      mapInstance.addSource(sourceId, { type: "geojson", lineMetrics: true, data: routeData });
-      mapInstance.addLayer({
-        id: haloLayerId,
-        type: "line",
-        source: sourceId,
-        layout: { "line-cap": "round", "line-join": "round" },
-        paint: { "line-color": "#ffffff", "line-width": 10, "line-opacity": 0.92 },
-      });
-      mapInstance.addLayer({
-        id: layerId,
-        type: "line",
-        source: sourceId,
-        layout: { "line-cap": "round", "line-join": "round" },
-        paint: {
-          "line-gradient": [
-            "interpolate", ["linear"], ["line-progress"],
-            0, "#2563eb",
-            0.55, "#7c3aed",
-            1, "#f97316",
-          ],
-          "line-width": 5.5,
-          "line-opacity": 0.95,
-        },
-      });
-    }
-
-    const bounds = coordinates.reduce(
-      (b, coord) => b.extend(coord),
-      new maplibregl.LngLatBounds(coordinates[0], coordinates[0]),
-    );
-    mapInstance.fitBounds(bounds, {
-      padding: { top: 92, bottom: 168, left: 72, right: 72 },
-      maxZoom: 15,
-      duration: 650,
-    });
-
-    return () => {
-      try {
-        if (mapInstance.getLayer(layerId)) mapInstance.removeLayer(layerId);
-        if (mapInstance.getLayer(haloLayerId)) mapInstance.removeLayer(haloLayerId);
-        if (mapInstance.getSource(sourceId)) mapInstance.removeSource(sourceId);
-      } catch { /* map layer already removed */ }
-    };
-  }, [coordinates, isLoaded, map]);
-
-  return null;
-}
-
 function CurrentLocationMarker({ location }: { location: CurrentLocation | null }) {
   const coordinates = coordinatePair(location);
   if (!location || !coordinates) return null;
@@ -960,12 +938,14 @@ function CurrentLocationMarker({ location }: { location: CurrentLocation | null 
   );
 }
 
-export default function ServiceLocationMap({ entityType, entity, className }) {
-  const dispatch = useDispatch();
+export default function ServiceLocationMap({ entityType, entity, className }: ServiceLocationMapProps) {
+  const dispatch = useDispatch<MapDispatch>();
   const navigate = useNavigate();
-  const config = TYPE_CONFIG[entityType] || TYPE_CONFIG.hospital;
-  const [mapZoom] = useState(12.5);
-  const [nearbyPlaces, setNearbyPlaces] = useState([]);
+  // Callers pass string literals ("hospital" | "clinic" | ...); unknown values
+  // fall back to hospital so downstream helpers always get a valid vertical.
+  const vertical: ServiceType = (TYPE_CONFIG[entityType as ServiceType] ? entityType : 'hospital') as ServiceType;
+  const [mapZoom] = useState<number>(12.5);
+  const [nearbyPlaces, setNearbyPlaces] = useState<MapPlace[]>([]);
   // Guided turn-by-turn session (Phase 7). Off by default; Start button below.
   const [navigating, setNavigating] = useState(false);
 
@@ -973,7 +953,7 @@ export default function ServiceLocationMap({ entityType, entity, className }) {
     () => buildAddress(entity),
     [entity?.address, entity?.city, entity?.state, entity?.pincode]
   );
-  const id = useMemo(() => getEntityId(entity, entityType), [entity, entityType]);
+  const id = useMemo(() => getEntityId(entity, vertical), [entity, vertical]);
   const fallbackCoordinates = useMemo(
     () => getFallbackCoordinates(entity, address),
     [entity?.city, entity?.state, address]
@@ -992,50 +972,54 @@ export default function ServiceLocationMap({ entityType, entity, className }) {
   );
 
   const place = useMemo(
-    () => buildMapPlace(entity, entityType, 0, id),
+    () => buildMapPlace(entity, vertical, 0, id),
     [
       entity,
       entity?.name,
-      entityType,
+      vertical,
       id,
     ]
   );
   const placeSignature = useMemo(() => JSON.stringify(place), [place]);
 
-  const storedPlace = useSelector((state) => state.map.placesById[id]);
-  const selectedPlaceId = useSelector((state) => state.map.selectedPlaceId);
-  const hoveredPlaceId = useSelector((state) => state.map.hoveredPlaceId);
-  const currentLocation = useSelector((state) => state.map.currentLocation);
-  const selectedStoredPlace = useSelector((state) => state.map.placesById[selectedPlaceId]);
-  const route = useSelector((state) => state.map.routesByPlaceId[selectedPlaceId || id]);
-  const geocodeStatus = useSelector((state) => state.map.geocodingStatusByPlaceId[id]);
-  const routeStatus = useSelector((state) => state.map.routeStatusByPlaceId[selectedPlaceId || id]);
-  const locateError = useSelector((state) => state.map.locateError);
+  const storedPlace = useSelector((state: RootState) => state.map.placesById[id]);
+  const selectedPlaceId = useSelector((state: RootState) => state.map.selectedPlaceId);
+  const hoveredPlaceId = useSelector((state: RootState) => state.map.hoveredPlaceId);
+  const currentLocation = useSelector((state: RootState) => state.map.currentLocation);
+  const selectedStoredPlace = useSelector((state: RootState) =>
+    selectedPlaceId ? state.map.placesById[selectedPlaceId] : undefined,
+  );
+  const route = useSelector((state: RootState) => state.map.routesByPlaceId[selectedPlaceId || id]);
+  const geocodeStatus = useSelector((state: RootState) => state.map.geocodingStatusByPlaceId[id]);
+  const routeStatus = useSelector((state: RootState) => state.map.routeStatusByPlaceId[selectedPlaceId || id]);
+  const locateError = useSelector((state: RootState) => state.map.locateError);
   const routeSummary = useMemo(() => {
     if (!route?.distance) return '';
     return `${formatDistance(route.distance)} • ${formatDuration(route.duration)}`;
   }, [route]);
   const routeError = routeStatus?.error || '';
-  const hasRoute = route?.coordinates?.length > 1;
+  const hasRoute = (route?.coordinates?.length ?? 0) > 1;
+  const routeCoordinates = route?.coordinates ?? [];
 
   const activePlace = storedPlace || place;
   const mapPlaces = useMemo(() => {
-    const byId = new globalThis.Map();
-    [place, ...nearbyPlaces].forEach((item) => {
+    const byId = new globalThis.Map<string, MapPlace>();
+    const items: MapPlace[] = [place, ...nearbyPlaces];
+    items.forEach((item) => {
       if (item?.id) byId.set(item.id, item);
     });
     if (activePlace?.id) byId.set(activePlace.id, activePlace);
     return Array.from(byId.values()).filter((item) => coordinatePair(item.coordinates));
   }, [activePlace, nearbyPlaces, place]);
   const selectedPlace = mapPlaces.find((item) => item.id === selectedPlaceId) || selectedStoredPlace || activePlace;
-  const selectedConfig = TYPE_CONFIG[selectedPlace?.type] || config;
+  const selectedConfig = configFor(selectedPlace?.type);
   const selectedCoordinates = coordinatePair(selectedPlace?.coordinates) || coordinatePair(fallbackCoordinates) || DEFAULT_COORDINATES;
   useEffect(() => {
     dispatch(upsertMapPlace(place));
     dispatch(selectMapPlace(id));
   }, [dispatch, id, placeSignature]);
 
-  const placesLoadedRef = useRef(new Set());
+  const placesLoadedRef = useRef<Set<string>>(new Set());
   useEffect(() => {
     if (placesLoadedRef.current.has(id)) return;
     placesLoadedRef.current.add(id);
@@ -1049,11 +1033,11 @@ export default function ServiceLocationMap({ entityType, entity, className }) {
           api.getFacilities({ type: 'pharmacy' }).catch(() => []),
         ]);
         if (cancelled) return;
-        const list = [
-          ...(Array.isArray(hospitals) ? hospitals : []).map((item, index) => buildMapPlace(item, 'hospital', index, id)),
-          ...(Array.isArray(clinics) ? clinics : []).map((item, index) => buildMapPlace(item, 'clinic', index + 3, id)),
-          ...(Array.isArray(labs) ? labs : []).map((item, index) => buildMapPlace(item, 'lab', index + 6, id)),
-          ...(Array.isArray(pharmacies) ? pharmacies : []).map((item, index) => buildMapPlace(item, 'pharmacy', index + 9, id)),
+        const list: MapPlace[] = [
+          ...(Array.isArray(hospitals) ? hospitals : []).map((item: MaybeEntity, index: number) => buildMapPlace(item, 'hospital', index, id)),
+          ...(Array.isArray(clinics) ? clinics : []).map((item: MaybeEntity, index: number) => buildMapPlace(item, 'clinic', index + 3, id)),
+          ...(Array.isArray(labs) ? labs : []).map((item: MaybeEntity, index: number) => buildMapPlace(item, 'lab', index + 6, id)),
+          ...(Array.isArray(pharmacies) ? pharmacies : []).map((item: MaybeEntity, index: number) => buildMapPlace(item, 'pharmacy', index + 9, id)),
         ];
         setNearbyPlaces(list);
         list.forEach((item) => dispatch(upsertMapPlace(item)));
@@ -1070,7 +1054,7 @@ export default function ServiceLocationMap({ entityType, entity, className }) {
   useEffect(() => {
     if (!explicitCoordinates) {
       dispatch(
-        geocodePlace({
+        createGeocodePlace({
           placeId: id,
           address,
           fallbackCoordinates,
@@ -1079,13 +1063,13 @@ export default function ServiceLocationMap({ entityType, entity, className }) {
     }
   }, [address, dispatch, explicitCoordinates, fallbackCoordinates, id]);
 
-  const dispatchRoute = (origin, targetPlace = selectedPlace) => {
+  const dispatchRoute = (origin: CurrentLocation | Coordinate | null | undefined, targetPlace: MapPlace = selectedPlace) => {
     const current = origin || currentLocation;
     const originCoordinates = coordinatePair(current);
     const destinationCoordinates = coordinatePair(targetPlace?.coordinates) || selectedCoordinates;
     if (!originCoordinates || !destinationCoordinates) return;
     dispatch(
-      fetchRoute({
+      createFetchRoute({
         placeId: targetPlace?.id || id,
         from: originCoordinates,
         to: destinationCoordinates,
@@ -1093,7 +1077,7 @@ export default function ServiceLocationMap({ entityType, entity, className }) {
     );
   };
 
-  const requestLocationAndRoute = (targetPlace = selectedPlace) => {
+  const requestLocationAndRoute = (targetPlace: MapPlace = selectedPlace) => {
     if (currentLocation) {
       dispatchRoute(currentLocation, targetPlace);
       return;
@@ -1104,7 +1088,7 @@ export default function ServiceLocationMap({ entityType, entity, className }) {
     }
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const location = {
+        const location: CurrentLocation = {
           longitude: position.coords.longitude,
           latitude: position.coords.latitude,
           accuracy: position.coords.accuracy,
@@ -1116,18 +1100,18 @@ export default function ServiceLocationMap({ entityType, entity, className }) {
     );
   };
 
-  const handleLocate = (location) => {
+  const handleLocate = (location: CurrentLocation) => {
     dispatch(setCurrentLocation(location));
     dispatchRoute(location);
   };
 
   const handleMapSelect = useCallback(
-    (placeId) => dispatch(selectMapPlace(placeId)),
+    (placeId: string) => dispatch(selectMapPlace(placeId)),
     [dispatch]
   );
 
   const handleViewDetails = useCallback(
-    (item) => navigate(getDetailsPath(item)),
+    (item: MapPlace) => navigate(getDetailsPath(item)),
     [navigate]
   );
 
@@ -1139,12 +1123,12 @@ export default function ServiceLocationMap({ entityType, entity, className }) {
             <>
               <MapRoute
                 id={`route-${id}`}
-                coordinates={route.coordinates}
+                coordinates={routeCoordinates}
                 color={selectedConfig.routeColor}
                 width={5}
                 opacity={0.85}
               />
-              <RouteViewport coordinates={route.coordinates} />
+              <RouteViewport coordinates={routeCoordinates} />
             </>
           ) : null}
 
@@ -1155,12 +1139,12 @@ export default function ServiceLocationMap({ entityType, entity, className }) {
               key={`nav-${id}-${selectedCoordinates.join(',')}`}
               origin={
                 coordinatePair(currentLocation) ||
-                route.coordinates[0] ||
+                routeCoordinates[0] ||
                 selectedCoordinates
               }
               destination={selectedCoordinates}
               destinationLabel={displayValue(selectedPlace?.name) || activePlace.name}
-              fallbackRoute={route.coordinates}
+              fallbackRoute={routeCoordinates}
               onExit={() => setNavigating(false)}
             />
           ) : null}
@@ -1171,7 +1155,7 @@ export default function ServiceLocationMap({ entityType, entity, className }) {
             places={mapPlaces}
             selectedPlace={selectedPlace}
             hoveredPlaceId={hoveredPlaceId}
-            route={route}
+            route={route ?? null}
             onSelect={handleMapSelect}
             onViewDetails={handleViewDetails}
           />
