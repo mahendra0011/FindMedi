@@ -395,7 +395,6 @@ router.post('/pay', protect, paymentLimiter, async (req, res, next) => {
         lineItems: lineItems || [],
       }]);
       payment = p;
-      void import('../lib/pgDualWrite.js').then((m) => m.mirrorPayment(payment)).catch(() => {});
 
       // Auto-confirm the referenced booking (check facility setting)
       if (referenceId) {
@@ -466,8 +465,9 @@ router.post('/pay', protect, paymentLimiter, async (req, res, next) => {
     }
 
     // ── Payment successfully committed — these steps must NOT roll back the appointment ──
+    let payBill = null;
     try {
-      const [payBill] = await Billing.create([{
+      const [bill] = await Billing.create([{
         invoiceId: bill_id,
         patient: req.user.name || 'Patient',
         patientId: req.user._id,
@@ -480,10 +480,20 @@ router.post('/pay', protect, paymentLimiter, async (req, res, next) => {
         paymentMethod: methodMap[method] || 'Online',
         transactionId: transaction_id,
       }]);
-      void import('../lib/pgDualWrite.js').then((m) => m.mirrorBilling(payBill)).catch(() => {});
+      payBill = bill;
     } catch (billErr) {
       logger.error('[transactions/pay] Billing.create failed post-payment', billErr);
     }
+
+    // Mirror the payment and its bill in ONE PG transaction. These were two
+    // separate fire-and-forget writes, so a crash between them could leave PG
+    // showing a completed payment with no matching billing row.
+    void import('../lib/pgDualWrite.js')
+      .then((m) => m.mirrorAtomic([
+        { model: 'payment', data: m.paymentRow(payment), where: { transactionId: payment.transactionId } },
+        ...(payBill ? [{ model: 'billing', data: m.billingRow(payBill), where: { invoiceId: payBill.invoiceId } }] : []),
+      ]))
+      .catch(() => {});
 
     // ── Payment confirmed — ab hi doctor ko notify karo ──
     if (serviceType === 'appointment' && createdAppointment?.doctorId) {

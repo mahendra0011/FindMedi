@@ -216,7 +216,13 @@ router.post('/payouts', protect, paymentLimiter, superadminOnly, validate(payout
       { payoutId: payout._id }
     );
 
-    void import('../lib/pgDualWrite.js').then((m) => m.mirrorPayout(payout)).catch(() => {});
+    // Payout row + the ledger rows it claims are mirrored in ONE PG transaction.
+    // Previously this was a lone mirrorPayout() call, so a crash after the
+    // payout row landed but before the ledger rows were stamped left facility
+    // payouts under-counted with no way to detect it in PG.
+    void import('../lib/pgDualWrite.js')
+      .then((m) => m.mirrorPayoutWithLedger({ payoutDoc: payout, ledgerDocs: transactions }))
+      .catch(() => {});
 
     config.pendingPayout = (config.pendingPayout || 0) + netPayout;
     await config.save();

@@ -1,5 +1,5 @@
 import TransactionLedger from '../models/TransactionLedger.js';
-import { mirrorLedgerEntry } from '../lib/pgDualWrite.js';
+import { mirrorLedgerEntry, mirrorPaymentWithLedger } from '../lib/pgDualWrite.js';
 import RiderProfile from '../models/RiderProfile.js';
 import LawyerProfile from '../models/LawyerProfile.js';
 import AssistantProfile from '../models/AssistantProfile.js';
@@ -28,6 +28,7 @@ export async function recordServiceSettlement({
   totalAmount,
   customCommissionPercent,
   session = null,
+  payment = null,
 }) {
   try {
     const gross = Number(totalAmount) || 0;
@@ -65,8 +66,15 @@ export async function recordServiceSettlement({
       await ledgerRecord.save();
     }
 
-    // PG dual-write (fire-and-forget; never fails the request)
-    void mirrorLedgerEntry(ledgerRecord);
+    // PG dual-write (fire-and-forget; never fails the request).
+    // When the caller supplies the originating Payment, both rows are mirrored
+    // in ONE PG transaction so a COMPLETED payment can never exist without its
+    // ledger entry (the drift that silently under-counts facility payouts).
+    if (payment) {
+      void mirrorPaymentWithLedger({ paymentDoc: payment, ledgerDoc: ledgerRecord });
+    } else {
+      void mirrorLedgerEntry(ledgerRecord);
+    }
 
     // 2. Credit Net Earnings to Provider Virtual Payout Wallet
     if (providerId) {
