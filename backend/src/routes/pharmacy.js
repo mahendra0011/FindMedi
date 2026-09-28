@@ -150,10 +150,15 @@ router.get('/medicines', protect, async (req, res) => {
     ];
     if (category && category !== 'All') filter.category = category;
     if (lowStock === 'true') {
-      const medicines = await Medicine.find(filter).sort({ name: 1 });
-
-      const lowStockMedicines = medicines.filter(m => m.currentStock <= m.reorderLevel);
-      return res.json({ medicines: lowStockMedicines });
+      // Filter in the QUERY (not in memory) and cap the result: the previous
+      // version fetched the entire catalog and filtered in JS, which grows
+      // unbounded with the medicine catalog (audit: pagination gap).
+      const cap = Math.min(parseInt(req.query.limit, 10) || 200, 500);
+      const medicines = await Medicine.find({
+        ...filter,
+        $expr: { $lte: ['$currentStock', '$reorderLevel'] },
+      }).sort({ name: 1 }).limit(cap);
+      return res.json({ medicines });
     }
     const { page = 1, limit = 50 } = req.query;
     const { data: medicines, total, totalPages, page: p, limit: l } = await paginatedResults(Medicine, filter, { page, limit, sort: { name: 1 } });
@@ -175,7 +180,11 @@ router.get('/medicines/export-alerts', protect, async (req, res) => {
         { $expr: { $lte: ['$currentStock', '$reorderLevel'] } },
         { expiryDate: { $lte: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000) } }
       ]
-    }).sort({ name: 1 });
+    })
+      .sort({ name: 1 })
+      // Export payload — bounded so a single request can never stream an
+      // unbounded catalog (audit: pagination gap). Override via ?limit= up to 5000.
+      .limit(Math.min(parseInt(req.query.limit, 10) || 2000, 5000));
     res.json({ medicines });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });

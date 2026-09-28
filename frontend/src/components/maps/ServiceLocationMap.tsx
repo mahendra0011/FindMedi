@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
+import type { ThunkDispatch, UnknownAction } from '@reduxjs/toolkit';
 import maplibregl from 'maplibre-gl';
 import { AlertCircle, Clock, Loader2, LocateFixed, MapPin, Navigation, Phone, Route, Star } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -75,7 +76,7 @@ const TYPE_FALLBACK_PHOTO = {
   imaging: 'https://images.unsplash.com/photo-1587854692152-cbe660dbde88?auto=format&fit=crop&w=640&q=80',
 };
 
-const CITY_COORDINATES = {
+const CITY_COORDINATES: Record<string, Coordinate> = {
   jabalpur: [79.9864, 23.1815],
   bhopal: [77.4126, 23.2599],
   indore: [75.8577, 22.7196],
@@ -93,13 +94,108 @@ const CITY_COORDINATES = {
 };
 const DEFAULT_COORDINATES = CITY_COORDINATES.jabalpur;
 
-function formatDistance(meters) {
+// ─── Local types ─────────────────────────────────────────────────────────────
+// The API + store layers are plain JS, so this component declares the shapes it
+// actually relies on (tightening them repo-wide is the separate typecheck
+// burn-down).
+type Coordinate = [number, number];
+type ServiceType = keyof typeof TYPE_CONFIG;
+type PlaceConfig = (typeof TYPE_CONFIG)[ServiceType];
+
+/**
+ * Vertical payloads (hospital/clinic/lab/pharmacy/imaging) are heterogeneous and
+ * only ever read through displayValue()/isTruthy()/coordinatePair(), which narrow
+ * at runtime — hence one loose alias instead of ~40 unchecked property reads.
+ */
+type EntityPayload = { [key: string]: any };
+
+/** Entities can be absent while a parent screen is still fetching. */
+type MaybeEntity = EntityPayload | null | undefined;
+
+/** Normalised marker/POI shape built by buildMapPlace(). */
+interface MapPlace {
+  id: string;
+  type: ServiceType;
+  name: string;
+  address: string;
+  phone: string;
+  rating: string | number;
+  reviewsCount: number;
+  photo: string;
+  workingHours: string;
+  coordinates: Coordinate;
+  coordinateSource: string;
+  raw: EntityPayload;
+}
+
+/** Route record — mirrors store/slices/mapSlice.js fetchRoute.fulfilled. */
+interface RouteSummary {
+  coordinates: Coordinate[];
+  distance: number;
+  duration: number;
+  source?: string;
+  warning?: string;
+}
+
+/** Async status record written by the geocode/route thunks. */
+interface StatusRecord {
+  loading?: boolean;
+  error?: string;
+  warning?: string;
+}
+
+interface CurrentLocation {
+  longitude: number;
+  latitude: number;
+  accuracy?: number;
+}
+
+/** The parts of `state.map` this component reads. */
+interface MapSliceState {
+  placesById: Record<string, MapPlace | undefined>;
+  selectedPlaceId: string | null;
+  hoveredPlaceId: string | null;
+  currentLocation: CurrentLocation | null;
+  routesByPlaceId: Record<string, RouteSummary | undefined>;
+  geocodingStatusByPlaceId: Record<string, StatusRecord | undefined>;
+  routeStatusByPlaceId: Record<string, StatusRecord | undefined>;
+  locateError: string;
+}
+
+/**
+ * src/store/index.js is plain JS, so react-redux cannot infer a thunk-aware
+ * dispatch here; this alias restores it for geocodePlace()/fetchRoute() and the
+ * plain reducers alike.
+ */
+type MapDispatch = ThunkDispatch<{ map: MapSliceState }, unknown, UnknownAction>;
+
+interface MarkerElements {
+  button: HTMLButtonElement;
+  element: HTMLDivElement;
+}
+
+interface MarkerRecord {
+  handleClick: (event: MouseEvent) => void;
+  handleEnter: () => void;
+  handleLeave: () => void;
+  marker: maplibregl.Marker;
+  markerElements: MarkerElements;
+  place: MapPlace;
+  showPopup: (options?: { centerInMap?: boolean }) => void;
+}
+
+/** Safe config lookup — unknown/absent verticals fall back to hospital. */
+function configFor(type: unknown): PlaceConfig {
+  return TYPE_CONFIG[type as ServiceType] || TYPE_CONFIG.hospital;
+}
+
+function formatDistance(meters: number | null | undefined): string {
   if (!meters) return '';
   if (meters < 1000) return `${Math.round(meters)} m`;
   return `${(meters / 1000).toFixed(1)} km`;
 }
 
-function formatDuration(seconds) {
+function formatDuration(seconds: number | null | undefined): string {
   if (!seconds) return '';
   const mins = Math.max(1, Math.round(seconds / 60));
   if (mins < 60) return `${mins} min`;
@@ -108,42 +204,46 @@ function formatDuration(seconds) {
   return rest ? `${hours} hr ${rest} min` : `${hours} hr`;
 }
 
-function displayValue(value) {
+function displayValue(value: unknown): string {
   if (value == null || value === '') return '';
   if (typeof value === 'string' || typeof value === 'number') return String(value);
   if (typeof value === 'boolean') return value ? 'Yes' : '';
   if (Array.isArray(value)) return value.map(displayValue).filter(Boolean).join(', ');
   if (typeof value === 'object') {
+    const record = value as Record<string, unknown>;
     return (
-      displayValue(value.label) ||
-      displayValue(value.value) ||
-      displayValue(value.text) ||
-      displayValue(value.name) ||
-      displayValue(value.openingHours) ||
-      displayValue(value.hours) ||
+      displayValue(record.label) ||
+      displayValue(record.value) ||
+      displayValue(record.text) ||
+      displayValue(record.name) ||
+      displayValue(record.openingHours) ||
+      displayValue(record.hours) ||
       ''
     );
   }
   return '';
 }
 
-function coordinatePair(value) {
+function coordinatePair(value: unknown): Coordinate | null {
   if (!value) return null;
   if (Array.isArray(value) && value.length >= 2) {
     const lng = Number(value[0]);
     const lat = Number(value[1]);
     return Number.isFinite(lng) && Number.isFinite(lat) ? [lng, lat] : null;
   }
-  const lng = Number(value.longitude ?? value.lng);
-  const lat = Number(value.latitude ?? value.lat);
+  const record = (typeof value === 'object' ? value : {}) as Record<string, unknown>;
+  const lng = Number(record.longitude ?? record.lng);
+  const lat = Number(record.latitude ?? record.lat);
   return Number.isFinite(lng) && Number.isFinite(lat) ? [lng, lat] : null;
 }
 
-function safeRouteCoordinates(coordinates = []) {
-  return coordinates.map((point) => coordinatePair(point)).filter(Boolean);
+function safeRouteCoordinates(coordinates: unknown[] = []): Coordinate[] {
+  return coordinates
+    .map((point) => coordinatePair(point))
+    .filter((pair): pair is Coordinate => pair !== null);
 }
 
-function extractCoordinates(entity) {
+function extractCoordinates(entity: MaybeEntity): Coordinate | null {
   return (
     coordinatePair(entity?.coordinates) ||
     coordinatePair(entity?.coordinates?.coordinates) ||
@@ -155,7 +255,7 @@ function extractCoordinates(entity) {
   );
 }
 
-function buildAddress(entity) {
+function buildAddress(entity: MaybeEntity): string {
   return [entity?.address, entity?.city, entity?.state, entity?.pincode]
     .filter(Boolean)
     .map((part) => String(part).trim())
@@ -163,17 +263,17 @@ function buildAddress(entity) {
     .join(', ');
 }
 
-function getFallbackCoordinates(entity, address) {
+function getFallbackCoordinates(entity: MaybeEntity, address: string): Coordinate {
   const text = `${entity?.city || ''} ${entity?.state || ''} ${address || ''}`.toLowerCase();
   const city = Object.keys(CITY_COORDINATES).find((name) => text.includes(name));
   return city ? CITY_COORDINATES[city] : DEFAULT_COORDINATES;
 }
 
-function getEntityId(entity, entityType) {
+function getEntityId(entity: MaybeEntity, entityType: ServiceType): string {
   return String(entity?.id || entity?._id || `${entityType}-${entity?.name || 'detail'}`);
 }
 
-function getPrimaryPhoto(entity, entityType = 'hospital') {
+function getPrimaryPhoto(entity: MaybeEntity, entityType: ServiceType = 'hospital'): string {
   if (entity?.photo) return entity.photo;
   if (entity?.cover) return entity.cover;
   if (entity?.image) return entity.image;
@@ -183,29 +283,29 @@ function getPrimaryPhoto(entity, entityType = 'hospital') {
   return TYPE_FALLBACK_PHOTO[entityType] || TYPE_FALLBACK_PHOTO.hospital;
 }
 
-function getWorkingHours(entity) {
+function getWorkingHours(entity: MaybeEntity): string {
   if (!entity?.workingHours) return entity?.timing || entity?.closingTime || '';
   if (typeof entity.workingHours === 'string') return entity.workingHours;
   const values = Object.values(entity.workingHours).filter(Boolean);
-  return values[0] || '';
+  return displayValue(values[0]) || '';
 }
 
-function isTruthy(value) {
+function isTruthy(value: unknown): boolean {
   return value === true || value === 'true' || value === 'yes' || value === 'Yes' || value === 1;
 }
 
-function listValues(value) {
+function listValues(value: unknown): string[] {
   if (!value) return [];
   if (Array.isArray(value)) return value.map(displayValue).filter(Boolean);
   if (typeof value === 'object') {
-    return Object.entries(value)
+    return Object.entries(value as Record<string, unknown>)
       .filter(([, enabled]) => isTruthy(enabled))
       .map(([key]) => key.replace(/([A-Z])/g, ' $1').replace(/^./, (char) => char.toUpperCase()));
   }
   return [displayValue(value)].filter(Boolean);
 }
 
-function getOpenStatus(hours, alwaysOpen = false) {
+function getOpenStatus(hours: unknown, alwaysOpen = false): { open: boolean | null; label: string } {
   if (alwaysOpen || /24\s*\/?\s*7|24\s*hour/i.test(displayValue(hours))) {
     return { open: true, label: 'Open Now' };
   }
@@ -214,7 +314,7 @@ function getOpenStatus(hours, alwaysOpen = false) {
   const match = text.match(/(\d{1,2})(?::(\d{2}))?\s*(AM|PM)\s*-\s*(\d{1,2})(?::(\d{2}))?\s*(AM|PM)/i);
   if (!match) return { open: null, label: text || 'Hours unavailable' };
 
-  const toMinutes = (hour, minute, meridiem) => {
+  const toMinutes = (hour: string, minute: string, meridiem: string) => {
     let h = Number(hour) % 12;
     if (/pm/i.test(meridiem)) h += 12;
     return h * 60 + Number(minute || 0);
@@ -227,8 +327,13 @@ function getOpenStatus(hours, alwaysOpen = false) {
   return { open, label: open ? 'Open Now' : 'Closed Now' };
 }
 
-function buildMapPlace(entity, entityType, index = 0, primaryId = '') {
-  const config = TYPE_CONFIG[entityType] || TYPE_CONFIG.hospital;
+function buildMapPlace(
+  entity: MaybeEntity,
+  entityType: ServiceType,
+  index = 0,
+  primaryId = '',
+): MapPlace {
+  const config = configFor(entityType);
   const id = getEntityId(entity, entityType);
   const address = buildAddress(entity);
   const explicitCoordinates = extractCoordinates(entity);
@@ -236,6 +341,11 @@ function buildMapPlace(entity, entityType, index = 0, primaryId = '') {
   const coordinates = explicitCoordinates || fallbackCoordinates || DEFAULT_COORDINATES;
   const isPrimary = id === primaryId;
   const offset = isPrimary || explicitCoordinates ? 0 : index * 0.006;
+  // Small deterministic offsets keep same-city fallback pins from stacking.
+  const placedCoordinates: Coordinate = [
+    coordinates[0] + offset,
+    coordinates[1] + offset * 0.6,
+  ];
 
   return {
     id,
@@ -247,13 +357,13 @@ function buildMapPlace(entity, entityType, index = 0, primaryId = '') {
     reviewsCount: entity?.reviewsCount || entity?.reviews || 0,
     photo: getPrimaryPhoto(entity, entityType),
     workingHours: getWorkingHours(entity),
-    coordinates: [coordinates[0] + offset, coordinates[1] + offset * 0.6],
+    coordinates: placedCoordinates,
     coordinateSource: explicitCoordinates ? 'model' : 'fallback',
     raw: entity || {},
   };
 }
 
-function RouteViewport({ coordinates }) {
+function RouteViewport({ coordinates }: { coordinates: unknown[] }) {
   const { map, isLoaded } = useMap();
   const routeCoordinates = useMemo(() => safeRouteCoordinates(coordinates), [coordinates]);
 
@@ -273,7 +383,7 @@ function RouteViewport({ coordinates }) {
   return null;
 }
 
-function SelectedPlaceViewport({ coordinates }) {
+function SelectedPlaceViewport({ coordinates }: { coordinates: unknown }) {
   const { map, isLoaded } = useMap();
   const selectedCoordinates = useMemo(() => coordinatePair(coordinates), [coordinates]);
 
@@ -291,7 +401,7 @@ function SelectedPlaceViewport({ coordinates }) {
   return null;
 }
 
-function getDetailsPath(place) {
+function getDetailsPath(place: MapPlace): string {
   const id = place?.id;
   if (!id) return '#';
   if (place.type === 'hospital') return `/hospitals/${id}`;
@@ -302,22 +412,25 @@ function getDetailsPath(place) {
   return '#';
 }
 
-function InfoBadge({ children, tone = 'muted' }) {
-  const tones = {
-    muted: 'border-border/70 bg-muted/60 text-muted-foreground',
-    green: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-    blue: 'border-blue-200 bg-blue-50 text-blue-700',
-    amber: 'border-amber-200 bg-amber-50 text-amber-700',
-    red: 'border-red-200 bg-red-50 text-red-700',
-  };
+const INFO_TONES = {
+  muted: 'border-border/70 bg-muted/60 text-muted-foreground',
+  green: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  blue: 'border-blue-200 bg-blue-50 text-blue-700',
+  amber: 'border-amber-200 bg-amber-50 text-amber-700',
+  red: 'border-red-200 bg-red-50 text-red-700',
+} as const;
+
+type InfoTone = keyof typeof INFO_TONES;
+
+function InfoBadge({ children, tone = 'muted' }: { children?: ReactNode; tone?: InfoTone }) {
   return (
-    <span className={cn('inline-flex min-h-5 items-center rounded-full border px-1.5 py-0.5 text-[9px] font-bold leading-none', tones[tone])}>
+    <span className={cn('inline-flex min-h-5 items-center rounded-full border px-1.5 py-0.5 text-[9px] font-bold leading-none', INFO_TONES[tone])}>
       {children}
     </span>
   );
 }
 
-function TypeDetails({ place, route }) {
+function TypeDetails({ place, route }: { place: MapPlace; route: RouteSummary | null }) {
   const raw = place.raw || {};
   const amenities = raw.amenities || {};
   const specialties = listValues(raw.specialties).slice(0, 2);
@@ -414,7 +527,19 @@ function TypeDetails({ place, route }) {
   );
 }
 
-function PlaceInfoCard({ place, config, route, onViewDetails, compact = false }) {
+function PlaceInfoCard({
+  place,
+  config,
+  route,
+  onViewDetails,
+  compact = false,
+}: {
+  place: MapPlace;
+  config: PlaceConfig;
+  route: RouteSummary | null;
+  onViewDetails: () => void;
+  compact?: boolean;
+}) {
   const name = displayValue(place.name) || config.label;
   const rating = displayValue(place.rating);
   const workingHours = displayValue(place.workingHours);
@@ -478,12 +603,12 @@ function PlaceInfoCard({ place, config, route, onViewDetails, compact = false })
   );
 }
 
-function getServicePopupMapOffset(map) {
+function getServicePopupMapOffset(map: maplibregl.Map | null): Coordinate {
   const width = map?.getContainer()?.clientWidth || 0;
   return [0, width <= 520 ? 228 : 210];
 }
 
-function createServiceMarkerElement(place, config) {
+function createServiceMarkerElement(place: MapPlace, config: PlaceConfig): MarkerElements {
   const element = document.createElement('div');
   const button = document.createElement('button');
   element.className = 'mapcn-marker';
@@ -524,19 +649,33 @@ function createServiceMarkerElement(place, config) {
   return { button, element };
 }
 
-function setServiceMarkerStyle(button, selected) {
+function setServiceMarkerStyle(button: HTMLButtonElement, selected: boolean): void {
   button.dataset.selected = selected ? 'true' : 'false';
   button.style.transform = selected ? 'scale(1.2)' : '';
   button.style.filter = selected ? 'drop-shadow(0 18px 22px rgba(15,23,42,.35))' : '';
 }
 
-function ServiceDomMarkers({ places, selectedPlace, hoveredPlaceId, route, onSelect, onViewDetails }) {
+function ServiceDomMarkers({
+  places,
+  selectedPlace,
+  hoveredPlaceId,
+  route,
+  onSelect,
+  onViewDetails,
+}: {
+  places: MapPlace[];
+  selectedPlace?: MapPlace | null;
+  hoveredPlaceId?: string | null;
+  route: RouteSummary | null;
+  onSelect: (placeId: string) => void;
+  onViewDetails: (place: MapPlace) => void;
+}) {
   const { map, isLoaded } = useMap();
-  const popupRef = useRef(null);
-  const popupRootRef = useRef(null);
+  const popupRef = useRef<maplibregl.Popup | null>(null);
+  const popupRootRef = useRef<ReturnType<typeof createRoot> | null>(null);
   const popupOwnerKeyRef = useRef('');
-  const routeRef = useRef(route);
-  const markersRef = useRef(new globalThis.Map());
+  const routeRef = useRef<RouteSummary | null>(route);
+  const markersRef = useRef<globalThis.Map<string, MarkerRecord>>(new globalThis.Map());
   const selectedKeyRef = useRef('');
   const externalHoverRef = useRef('');
   const renderKey = useMemo(
@@ -551,6 +690,9 @@ function ServiceDomMarkers({ places, selectedPlace, hoveredPlaceId, route, onSel
   useEffect(() => {
     if (!map || !isLoaded) return undefined;
 
+    // Captured once: TypeScript drops the null-narrowing above inside the
+    // nested marker callbacks below, and these run long after the guard.
+    const mapInstance = map;
     const markerRecords = markersRef.current;
     markerRecords.clear();
 
@@ -566,16 +708,17 @@ function ServiceDomMarkers({ places, selectedPlace, hoveredPlaceId, route, onSel
     const markers = places.map((place) => {
       const coordinates = coordinatePair(place.coordinates);
       if (!coordinates) return null;
-      const config = TYPE_CONFIG[place.type] || TYPE_CONFIG.hospital;
+      const lngLat: Coordinate = coordinates;
+      const config = configFor(place.type);
       const markerElements = createServiceMarkerElement(place, config);
       const marker = new maplibregl.Marker({
         anchor: 'center',
         element: markerElements.element,
       })
-        .setLngLat(coordinates)
-        .addTo(map);
+        .setLngLat(lngLat)
+        .addTo(mapInstance);
 
-      function showPopup({ centerInMap = false } = {}) {
+      function showPopup({ centerInMap = false }: { centerInMap?: boolean } = {}) {
         closePopup();
         const content = document.createElement('div');
         popupRootRef.current = createRoot(content);
@@ -597,9 +740,9 @@ function ServiceDomMarkers({ places, selectedPlace, hoveredPlaceId, route, onSel
           offset: 22,
           className: 'findmedi-map-popup',
         })
-          .setLngLat(coordinates)
+          .setLngLat(lngLat)
           .setDOMContent(content)
-          .addTo(map);
+          .addTo(mapInstance);
 
         if (centerInMap) focusOnMap();
       }
@@ -614,15 +757,15 @@ function ServiceDomMarkers({ places, selectedPlace, hoveredPlaceId, route, onSel
       }
 
       function focusOnMap() {
-        map.flyTo({
-          center: coordinates,
-          zoom: Math.max(map.getZoom(), 14),
-          offset: getServicePopupMapOffset(map),
+        mapInstance.flyTo({
+          center: lngLat,
+          zoom: Math.max(mapInstance.getZoom(), 14),
+          offset: getServicePopupMapOffset(mapInstance),
           duration: 520,
         });
       }
 
-      function handleClick(event) {
+      function handleClick(event: MouseEvent) {
         event.preventDefault();
         event.stopPropagation();
         selectedKeyRef.current = place.id;
@@ -643,10 +786,10 @@ function ServiceDomMarkers({ places, selectedPlace, hoveredPlaceId, route, onSel
       markerElements.button.addEventListener('mouseenter', handleEnter);
       markerElements.button.addEventListener('mouseleave', handleLeave);
 
-      const record = { handleClick, handleEnter, handleLeave, marker, markerElements, place, showPopup };
+      const record: MarkerRecord = { handleClick, handleEnter, handleLeave, marker, markerElements, place, showPopup };
       markerRecords.set(place.id, record);
       return record;
-    }).filter(Boolean);
+    }).filter((record): record is MarkerRecord => Boolean(record));
 
     return () => {
       closePopup();
@@ -664,7 +807,7 @@ function ServiceDomMarkers({ places, selectedPlace, hoveredPlaceId, route, onSel
     if (!map || !isLoaded) return;
     const selectedKey = selectedPlace?.id || '';
     selectedKeyRef.current = selectedKey;
-    let selectedRecord = null;
+    let selectedRecord: MarkerRecord | null = null;
     markersRef.current.forEach((record, key) => {
       const selected = key === selectedKey;
       if (selected) selectedRecord = record;
@@ -696,7 +839,7 @@ function ServiceDomMarkers({ places, selectedPlace, hoveredPlaceId, route, onSel
   return null;
 }
 
-function MapBoundsController({ places, fitToPlaces }) {
+function MapBoundsController({ places, fitToPlaces }: { places: MapPlace[]; fitToPlaces: boolean }) {
   const { map, isLoaded } = useMap();
   const boundsKey = useMemo(
     () =>
@@ -710,7 +853,9 @@ function MapBoundsController({ places, fitToPlaces }) {
   useEffect(() => {
     if (!map || !isLoaded || !fitToPlaces || !boundsKey) return;
 
-    const coordinates = places.map((place) => coordinatePair(place.coordinates)).filter(Boolean);
+    const coordinates = places
+      .map((place) => coordinatePair(place.coordinates))
+      .filter((pair): pair is Coordinate => pair !== null);
     if (coordinates.length > 1) {
       const bounds = coordinates.reduce(
         (b, coord) => b.extend(coord),
@@ -723,33 +868,34 @@ function MapBoundsController({ places, fitToPlaces }) {
   return null;
 }
 
-function RouteLine({ coordinates }) {
+function RouteLine({ coordinates }: { coordinates: Coordinate[] }) {
   const { map, isLoaded } = useMap();
 
   useEffect(() => {
     if (!map || !isLoaded || coordinates.length < 2) return undefined;
 
+    const mapInstance = map;
     const sourceId = "route-line-source";
     const haloLayerId = "route-line-halo-layer";
     const layerId = "route-line-layer";
-    const routeData = {
+    const routeData: GeoJSON.Feature = {
       type: "Feature",
       geometry: { type: "LineString", coordinates },
       properties: {},
     };
 
-    if (map.getSource(sourceId)) {
-      map.getSource(sourceId).setData(routeData);
+    if (mapInstance.getSource(sourceId)) {
+      (mapInstance.getSource(sourceId) as maplibregl.GeoJSONSource).setData(routeData);
     } else {
-      map.addSource(sourceId, { type: "geojson", lineMetrics: true, data: routeData });
-      map.addLayer({
+      mapInstance.addSource(sourceId, { type: "geojson", lineMetrics: true, data: routeData });
+      mapInstance.addLayer({
         id: haloLayerId,
         type: "line",
         source: sourceId,
         layout: { "line-cap": "round", "line-join": "round" },
         paint: { "line-color": "#ffffff", "line-width": 10, "line-opacity": 0.92 },
       });
-      map.addLayer({
+      mapInstance.addLayer({
         id: layerId,
         type: "line",
         source: sourceId,
@@ -771,7 +917,7 @@ function RouteLine({ coordinates }) {
       (b, coord) => b.extend(coord),
       new maplibregl.LngLatBounds(coordinates[0], coordinates[0]),
     );
-    map.fitBounds(bounds, {
+    mapInstance.fitBounds(bounds, {
       padding: { top: 92, bottom: 168, left: 72, right: 72 },
       maxZoom: 15,
       duration: 650,
@@ -779,9 +925,9 @@ function RouteLine({ coordinates }) {
 
     return () => {
       try {
-        if (map.getLayer(layerId)) map.removeLayer(layerId);
-        if (map.getLayer(haloLayerId)) map.removeLayer(haloLayerId);
-        if (map.getSource(sourceId)) map.removeSource(sourceId);
+        if (mapInstance.getLayer(layerId)) mapInstance.removeLayer(layerId);
+        if (mapInstance.getLayer(haloLayerId)) mapInstance.removeLayer(haloLayerId);
+        if (mapInstance.getSource(sourceId)) mapInstance.removeSource(sourceId);
       } catch { /* map layer already removed */ }
     };
   }, [coordinates, isLoaded, map]);
@@ -789,12 +935,14 @@ function RouteLine({ coordinates }) {
   return null;
 }
 
-function CurrentLocationMarker({ location }) {
+function CurrentLocationMarker({ location }: { location: CurrentLocation | null }) {
   const coordinates = coordinatePair(location);
-  if (!coordinates) return null;
+  if (!location || !coordinates) return null;
 
   return (
-    <MapMarker longitude={coordinates[0]} latitude={coordinates[1]} anchor="center">
+    // `anchor` is omitted: MapMarker only forwards known props and MapLibre's
+    // default anchor is already 'center'.
+    <MapMarker longitude={coordinates[0]} latitude={coordinates[1]}>
       <MarkerContent>
         <div className="relative flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 shadow-lg ring-4 ring-blue-500/20">
           <span className="h-2 w-2 rounded-full bg-white" />

@@ -19,7 +19,10 @@
     "typecheck": "npm run typecheck --prefix frontend",
     "seed": "npm run seed --prefix backend",
     "seed:admin": "npm run seed:admin --prefix backend",
-    "seed:cluster": "npm run seed:cluster --prefix backend"
+    "seed:cluster": "npm run seed:cluster --prefix backend",
+    "infra:up": "node scripts/infra.mjs up",
+    "infra:status": "node scripts/infra.mjs status",
+    "infra:down": "node scripts/infra.mjs down"
   },
   "devDependencies": {
     "concurrently": "^9.2.4"

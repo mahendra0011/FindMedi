@@ -15,8 +15,7 @@ import { toast } from 'sonner';
 import { api } from '@/lib/api';
 import { getSocket } from '@/lib/socket';
 import { useAuth } from '@/context/AuthContext';
-import { useSelector } from 'react-redux';
-import { selectSetting } from '@/store/slices/settingsSlice';
+import { useSettings } from '@/store/useSettingsStore';
 import { applyUserSettings } from '@/lib/settings';
 import { getISTDateString } from '@/lib/dateUtils';
 
@@ -107,7 +106,7 @@ function OperationsStrip() {
 export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const settings = useSelector(selectSetting) || {};
+  const settings = useSettings();
   const [apptTab, setApptTab] = useState('pending');
   const queryClient = useQueryClient();
   const { data, isLoading, isError, error, refetch } = useQuery({ queryKey:['dashboard'], queryFn: api.dashboardStats, refetchInterval: 60000 });

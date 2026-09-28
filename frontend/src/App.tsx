@@ -15,7 +15,7 @@ import { Toaster as MindToaster } from './mind/components/ui/toaster';
 import { Toaster as MindSonner } from './mind/components/ui/sonner';
 import { initializeAuth } from '@/store/slices/authSlice';
 import { applyUserSettings, readStoredSettings } from '@/lib/settings';
-import { loadUserSettings } from '@/store/slices/settingsSlice';
+import { useSettings, useLoadUserSettings } from '@/store/useSettingsStore';
 import { NotificationProvider } from '@/context/NotificationContext';
 import { AuthProvider, AuthUser } from '@/context/AuthContext';
 import { CartProvider } from '@/context/CartContext';
@@ -28,7 +28,7 @@ import { VideoCallProvider } from '@/context/VideoCallContext';
 import VideoCallOverlay from '@/components/videocalls/VideoCallOverlay';
 import IncomingVideoCallDialog from '@/components/videocalls/IncomingVideoCallDialog';
 import VideoCallMinimized from '@/components/videocalls/VideoCallMinimized';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import { useAuth } from '@/context/AuthContext';
 import DashboardLayout from './components/DashboardLayout';
 import PublicLayout from './components/PublicLayout';
@@ -339,30 +339,30 @@ function AuthInitializer({ children }: { children?: React.ReactNode }) {
 }
 
 function SettingsInitializer() {
-  const dispatch = useDispatch();
   const { user } = useAuth();
-  const reduxSettings = useSelector((state: any) => state.settings);
+  const settings = useSettings();
+  const loadUserSettings = useLoadUserSettings();
 
   // Apply settings from localStorage on first mount
   useEffect(() => {
     const stored = readStoredSettings();
     if (stored && Object.keys(stored).length > 0) {
-      dispatch(loadUserSettings(stored));
+      loadUserSettings(stored);
     }
-  }, []);
+  }, [loadUserSettings]);
 
-  // Load user settings into Redux when user logs in and apply to DOM
+  // Load user settings into the store when user logs in and apply to DOM
   useEffect(() => {
     if (user?.settings) {
-      dispatch(loadUserSettings(user.settings));
+      loadUserSettings(user.settings);
       applyUserSettings(user.settings);
     }
-  }, [user?.settings, dispatch]);
+  }, [user?.settings, loadUserSettings]);
 
-  // Apply settings whenever Redux settings change (after initial mount)
+  // Apply settings whenever the store values change (after initial mount)
   useEffect(() => {
-    applyUserSettings(reduxSettings);
-  }, [reduxSettings]);
+    applyUserSettings(settings);
+  }, [settings]);
 
   return null;
 }

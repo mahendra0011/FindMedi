@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # ==========================================
   # MONGODB REPLICA SET: System of Record
@@ -45,6 +43,12 @@ services:
       - "8002:8002"
     volumes:
       - ./valhalla:/custom_files
+    # Memory sizing (audit): size against the OSM extract in ./valhalla/valhalla_tiles.
+    # City-level ~1-2GB RSS; state/region-level 4-8GB+. Dev compose deliberately
+    # sets no limit — production should add, e.g.:
+    #   deploy:
+    #     resources:
+    #       limits: { memory: 4g }
     restart: unless-stopped
     profiles: ["routing"]
 

@@ -8,4 +8,8 @@ const sosVehicleSettingsSchema = new mongoose.Schema({
   includeAmbulanceInAutoVehicleMode: { type: Boolean, default: false },
 }, { timestamps: true });
 
+// NOTE (index audit): intentionally index-free. Every read is
+// `SOSVehicleSettings.findOne()` with NO filter (routes/adminSosSettings.js,
+// routes/emergencySOS.js, services/sosVehicleService.js) — singleton config
+// document, nothing for an index to serve.
 export default mongoose.model('SOSVehicleSettings', sosVehicleSettingsSchema);

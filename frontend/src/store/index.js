@@ -1,7 +1,6 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { combineReducers } from '@reduxjs/toolkit';
 import authReducer from './slices/authSlice';
-import settingsReducer from './slices/settingsSlice';
 import notificationsReducer from './slices/notificationsSlice';
 import cartReducer from './slices/cartSlice';
 import mapReducer from './slices/mapSlice';
@@ -9,10 +8,11 @@ import instantDispatchReducer from './slices/instantDispatchSlice';
 
 // NOTE: slices/uiSlice (sidebar/modal/toast) was removed — it had zero
 // consumers (all UI state lives in local useState or shadcn's useSidebar).
+// NOTE: settingsSlice was migrated to Zustand (store/useSettingsStore.js) —
+// pure-UI preferences no longer belong in Redux (tech-stack audit, Phase 6).
 
 const rootReducer = combineReducers({
   auth: authReducer,
-  settings: settingsReducer,
   notifications: notificationsReducer,
   cart: cartReducer,
   map: mapReducer,

@@ -81,6 +81,19 @@ router.get('/patient/:patientId', protect, async (req, res) => {
     const records = await Record.find(filter)
       .populate('doctorId', 'name specialization')
       .sort({ createdAt: -1 });
+
+    // Compliance (Phase 8): every medical-record READ is audited — "who
+    // accessed which record, when". auditLog() writes Mongo (system of
+    // record) and mirrors to OpenSearch, so legal/Bar-Council style lookbacks
+    // can query by actor/patient/time.
+    await auditLog('view_patient_records', req.user._id, {
+      resourceType: 'Record',
+      resourceId: req.params.patientId,
+      count: records.length,
+      ip: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+
     res.json({ records });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
@@ -194,6 +207,16 @@ router.get('/:id/prescription-pdf', protect, async (req, res) => {
       followUp: record.data?.followUp || '',
     };
     const pdfBuffer = await generatePrescriptionPDF(pdfData);
+
+    // Compliance (Phase 8): downloading a prescription is a record access —
+    // audit it alongside the in-app views.
+    await auditLog('download_prescription', req.user._id, {
+      resourceType: 'Record',
+      resourceId: record._id,
+      ip: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="prescription-${record._id}.pdf"`);
     res.send(pdfBuffer);

@@ -52,4 +52,12 @@ const deliveryPartnerSchema = new mongoose.Schema({
   },
 }, { timestamps: true });
 
+// ── Query-pattern indexes (index-audit follow-up) ───────────────────────────
+// Dispatch candidate scan (routes/deliveryPartners.js):
+//   find({ _id: { $in: ids }, status: 'approved', isAvailable: true })
+deliveryPartnerSchema.index({ status: 1, isAvailable: 1 });
+// Presence/availability toggles (services/socketService.js) and
+// online-partner lookups.
+deliveryPartnerSchema.index({ isOnline: 1, isAvailable: 1 });
+
 export default mongoose.model('DeliveryPartner', deliveryPartnerSchema);
