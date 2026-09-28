@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, useCallback, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import { getSocket } from '@/lib/socket';
 import { useAuth } from '@/context/AuthContext';
@@ -12,7 +12,74 @@ import {
   stopVibration,
 } from '@/lib/audioCallSounds';
 
-const VideoCallContext = createContext(null);
+export interface VideoPeer {
+  id?: string;
+  name?: string;
+  avatar?: string;
+  role?: string;
+  phone?: string;
+  appointmentId?: string;
+}
+
+/**
+ * Shape of the value exposed by `VideoCallProvider`. Declared here (rather than
+ * inferring it from `createContext(null)`) so `useVideoCall()` returns a real
+ * object type instead of `never`, which was cascading "Property does not exist
+ * on type 'never'" errors into every consuming component.
+ *
+ * Media objects and imperative callbacks stay deliberately permissive (`any`)
+ * — the underlying state in this legacy context is largely untyped and typing
+ * it fully is a separate, larger effort.
+ */
+export interface VideoCallValue {
+  callState: string;
+  activePeer: VideoPeer | null;
+  isCaller: boolean;
+  isAudioMuted: boolean;
+  isVideoMuted: boolean;
+  isRemoteVideoMuted: boolean;
+  isRemoteAudioMuted: boolean;
+  isSpeakerOn: boolean;
+  isLowLightEnhanced: boolean;
+  isScreenSharing: boolean;
+  inCallMessages: any[];
+  clinicalNotes: string;
+  availableCameras: any[];
+  selectedCameraId: string;
+  facingMode: string;
+  audioOutputDevices: any[];
+  selectedOutputId: string;
+  callDuration: number;
+  networkQuality: string;
+  resolutionLabel: string;
+  isMinimized: boolean;
+  isFullScreen: boolean;
+  localStream: MediaStream | null;
+  remoteStream: MediaStream | null;
+  remoteVideoElemRef: any;
+  localVideoElemRef: any;
+  initiateVideoCall: (...args: any[]) => any;
+  acceptVideoCall: (...args: any[]) => any;
+  rejectVideoCall: (...args: any[]) => any;
+  endVideoCall: (...args: any[]) => any;
+  toggleAudioMute: (...args: any[]) => any;
+  toggleVideoMute: (...args: any[]) => any;
+  switchCamera: (...args: any[]) => any;
+  flipFacingMode: (...args: any[]) => any;
+  toggleSpeaker: (...args: any[]) => any;
+  setAudioOutput: (...args: any[]) => any;
+  toggleLowLightEnhancer: (...args: any[]) => any;
+  toggleScreenShare: (...args: any[]) => any;
+  sendInCallMessage: (...args: any[]) => any;
+  setClinicalNotes: (...args: any[]) => any;
+  saveClinicalNotes: (...args: any[]) => any;
+  captureSnapshot: (...args: any[]) => any;
+  togglePiP: (...args: any[]) => any;
+  toggleMinimize: (...args: any[]) => any;
+  toggleFullScreen: (...args: any[]) => any;
+}
+
+const VideoCallContext = createContext<VideoCallValue | null>(null);
 
 const ICE_SERVERS = {
   iceServers: [
@@ -25,7 +92,7 @@ const ICE_SERVERS = {
 
 const CALL_TIMEOUT_SECONDS = 35;
 
-export function VideoCallProvider({ children }) {
+export function VideoCallProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
 
   // Call States: 'idle' | 'calling' | 'ringing' | 'connecting' | 'connected' | 'ended' | 'busy' | 'timeout'

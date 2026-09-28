@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, type MouseEvent as ReactMouseEvent } from 'react';
 import { motion } from 'framer-motion';
 import { Maximize2, PhoneOff, Mic, MicOff, Video, VideoOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useVideoCall } from '@/context/VideoCallContext';
 
-function formatDuration(secs) {
+function formatDuration(secs: number) {
   const m = Math.floor(secs / 60);
   const s = secs % 60;
   return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
@@ -24,7 +24,7 @@ export default function VideoCallMinimized() {
     toggleAudioMute,
   } = useVideoCall();
 
-  const miniVideoRef = useRef(null);
+  const miniVideoRef = useRef<HTMLVideoElement | null>(null);
 
   // Position coordinates for draggable floating widget
   const [pos, setPos] = useState({ x: 24, y: 24 });
@@ -37,7 +37,7 @@ export default function VideoCallMinimized() {
     }
   }, [remoteStream]);
 
-  const handleMouseDown = (e) => {
+  const handleMouseDown = (e: ReactMouseEvent<HTMLDivElement>) => {
     setIsDragging(true);
     dragRef.current = {
       mouseX: e.clientX,
@@ -48,7 +48,7 @@ export default function VideoCallMinimized() {
   };
 
   useEffect(() => {
-    const handleMouseMove = (e) => {
+    const handleMouseMove = (e: MouseEvent) => {
       if (!isDragging) return;
       const dx = dragRef.current.mouseX - e.clientX;
       const dy = dragRef.current.mouseY - e.clientY;
