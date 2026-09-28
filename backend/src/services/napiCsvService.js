@@ -25,8 +25,14 @@ function getNapi() {
   try {
     _napi = require('../../rust-helper/index.js');
   } catch (e) {
+    // MUST throw, not return null — see napiImageService.js for the full
+    // reasoning. NATIVE_CSV_AVAILABLE is computed as
+    // `try { getNapi(); return true } catch { return false }`, so a null return
+    // on first failure would report the native module as present when it is not.
     _loadError = e;
+    throw Object.assign(new Error(e.message), { code: NATIVE_NOT_AVAILABLE });
   }
+  if (_napi === null) throw Object.assign(new Error('native module resolved to null'), { code: NATIVE_NOT_AVAILABLE });
   return _napi;
 }
 

@@ -82,6 +82,30 @@ services:
     profiles: ["edge"]
 
   # ==========================================
+  # CLAMAV: malware scanning for medical-document uploads
+  # Backend scans via CLAMAV_HOST=clamav, CLAMAV_PORT=3310 (see upload.js).
+  # Scanning is fail-open: if this container is down, uploads are NOT blocked.
+  # ==========================================
+  clamav:
+    image: clamav/clamav:1.4
+    container_name: findmedi-clamav
+    ports:
+      - "3310:3310"
+    volumes:
+      - clamav_data:/var/lib/clamav
+    restart: unless-stopped
+    healthcheck:
+      # clamdcheck.sh ships in the image (/usr/local/bin) and is what the
+      # image's own HEALTHCHECK uses — `clamdscan --ping` is not the
+      # maintained path. start_period matches the image's --start-period=6m:
+      # the first freshclam database download legitimately takes minutes.
+      test: ["CMD", "clamdcheck.sh"]
+      interval: 60s
+      timeout: 10s
+      retries: 5
+      start_period: 360s
+
+  # ==========================================
   # REDIS: Distributed Locks & Spatial Cache
   # ==========================================
   redis:
@@ -202,3 +226,4 @@ volumes:
   opensearch_data:
   mongo_data:
   postgres_data:
+  clamav_data:

@@ -2,6 +2,7 @@ import express from 'express';
 import { z } from 'zod';
 import User from '../models/User.js';
 import { protect } from '../middleware/auth.js';
+import { totpLimiter } from '../middleware/rateLimit.js';
 import { validate } from '../utils/validate.js';
 
 const twoFactorVerifySchema = z.object({ token: z.string().regex(/^\d{6}$/, 'Valid 6-digit code is required') });
@@ -22,7 +23,7 @@ const router = express.Router();
  * POST /api/auth/2fa/setup
  * Generate 2FA secret and QR code URL (step 1)
  */
-router.post('/setup', protect, async (req, res) => {
+router.post('/setup', protect, totpLimiter, async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ message: 'User not found' });
@@ -50,7 +51,7 @@ router.post('/setup', protect, async (req, res) => {
  * POST /api/auth/2fa/verify
  * Verify TOTP token and enable 2FA (step 2)
  */
-router.post('/verify', protect, validate(twoFactorVerifySchema), async (req, res) => {
+router.post('/verify', protect, totpLimiter, validate(twoFactorVerifySchema), async (req, res) => {
   try {
     const { token } = req.body;
 
@@ -88,7 +89,7 @@ router.post('/verify', protect, validate(twoFactorVerifySchema), async (req, res
  * POST /api/auth/2fa/disable
  * Disable 2FA (requires current password)
  */
-router.post('/disable', protect, validate(twoFactorDisableSchema), async (req, res) => {
+router.post('/disable', protect, totpLimiter, validate(twoFactorDisableSchema), async (req, res) => {
   try {
     const { password } = req.body;
 
@@ -116,8 +117,11 @@ router.post('/disable', protect, validate(twoFactorDisableSchema), async (req, r
 /**
  * POST /api/auth/2fa/validate
  * Validate 2FA during login (called after password verification)
+ *
+ * UNAUTHENTICATED by design (login flow), which is exactly why the limiter
+ * matters most here: without it the 6-digit TOTP code could be brute-forced.
  */
-router.post('/validate', validate(twoFactorValidateSchema), async (req, res) => {
+router.post('/validate', totpLimiter, validate(twoFactorValidateSchema), async (req, res) => {
   try {
     const { email, token, backupCode } = req.body;
 
@@ -157,7 +161,7 @@ router.post('/validate', validate(twoFactorValidateSchema), async (req, res) => 
  * GET /api/auth/2fa/status
  * Check 2FA status for current user
  */
-router.get('/status', protect, async (req, res) => {
+router.get('/status', protect, totpLimiter, async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('twoFactorEnabled');
     res.json({ enabled: user?.twoFactorEnabled || false });

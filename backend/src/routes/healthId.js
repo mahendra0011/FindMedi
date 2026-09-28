@@ -7,10 +7,13 @@ import User from '../models/User.js';
 import { protect } from '../middleware/auth.js';
 import logger from '../config/logger.js';
 import { rateLimit } from 'express-rate-limit';
+import { totpLimiter } from '../middleware/rateLimit.js';
 
 const router = express.Router();
 
-// Rate limiter for public QR scans (very strict, per-token)
+// Rate limiter for public QR scans (very strict, per-token).
+// NOTE: was defined here but never attached to a route — now applied to
+// GET /:qrToken below, which is the unauthenticated scan endpoint.
 const publicScanLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
   max: 10, // max 10 scans per minute per token
@@ -63,7 +66,7 @@ router.put('/settings', protect, async (req, res) => {
 });
 
 // ─── ABDM M1: Generate OTP for ABHA creation / linking (Patient, Auth required) ───
-router.post('/abha/generate-otp', protect, async (req, res) => {
+router.post('/abha/generate-otp', protect, totpLimiter, async (req, res) => {
   try {
     const { aadhaarOrMobile } = req.body;
     if (!aadhaarOrMobile || String(aadhaarOrMobile).length < 10) {
@@ -92,7 +95,7 @@ router.post('/abha/generate-otp', protect, async (req, res) => {
 });
 
 // ─── ABDM M1: Verify OTP and Mint/Link ABHA (Patient, Auth required) ───
-router.post('/abha/verify-otp', protect, async (req, res) => {
+router.post('/abha/verify-otp', protect, totpLimiter, async (req, res) => {
   try {
     const { otp, txnId } = req.body;
     if (!otp) {
@@ -141,7 +144,9 @@ router.post('/abha/verify-otp', protect, async (req, res) => {
 
 // ─── Public read: scan QR token (NO auth required) ───
 // Doc 04 §3.2: login QR se fark - ye door ke liye khulta hai
-router.get('/:qrToken', async (req, res) => {
+// Public QR scan — no auth, so this is where the strict per-token limiter
+// belongs (previously defined but never wired up).
+router.get('/:qrToken', publicScanLimiter, async (req, res) => {
   try {
     const user = await User.findOne({ 'healthIdCard.qrToken': req.params.qrToken });
 

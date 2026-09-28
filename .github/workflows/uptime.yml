@@ -1,0 +1,35 @@
+name: Uptime Monitor
+
+# GitHub-native uptime checks (no third-party account needed).
+# Set repository variable UPTIME_HEALTH_URL to the deployed backend
+# /health endpoint (e.g. https://findmedi.onrender.com/health).
+# A failed check fails the job → GitHub emails the repo owner, which is
+# the alerting channel until a dedicated service (Better Stack etc.) is chosen.
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'   # every 15 min
+  workflow_dispatch:          # manual "is it up?" button
+
+jobs:
+  healthcheck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Probe /health
+        env:
+          HEALTH_URL: ${{ vars.UPTIME_HEALTH_URL }}
+        run: |
+          if [ -z "$HEALTH_URL" ]; then
+            echo "::notice::UPTIME_HEALTH_URL repo variable not set — skipping probe."
+            exit 0
+          fi
+          echo "Probing $HEALTH_URL"
+          code=$(curl -sS -o /tmp/health-body.txt -w '%{http_code}' \
+                --connect-timeout 10 --max-time 30 "$HEALTH_URL" || echo "000")
+          echo "HTTP $code"
+          cat /tmp/health-body.txt || true
+          if [ "$code" != "200" ]; then
+            echo "::error::Health check failed with HTTP $code"
+            exit 1
+          fi

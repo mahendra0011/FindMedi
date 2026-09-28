@@ -143,6 +143,40 @@ export function distanceToRouteMeters(
   return { meters: best, segmentIndex: bestIndex };
 }
 
+/**
+ * Distance travelled *along* the segment `a`–`b` up to the projection of
+ * `p`, clamped to `[0, segmentLength]`.
+ *
+ * Without this, `useNavigation` could only sum whole segments before the
+ * current one — on a 2-point polyline (the common straight-line fallback)
+ * `segmentIndex` is always 0, so "travelled" stayed 0 and maneuver progress
+ * never advanced no matter how far the driver went.
+ */
+export function travelledOnSegmentMeters(
+  p: RouteCoordinate,
+  a: RouteCoordinate,
+  b: RouteCoordinate,
+): number {
+  const metersPerDegLat = 111_132.92;
+  const metersPerDegLng = 111_412.84 * Math.cos(toRadians(p[1]));
+
+  const toXY = (c: RouteCoordinate) => ({
+    x: (c[0] - p[0]) * metersPerDegLng,
+    y: (c[1] - p[1]) * metersPerDegLat,
+  });
+
+  const pa = toXY(a);
+  const pb = toXY(b);
+  const dx = pb.x - pa.x;
+  const dy = pb.y - pa.y;
+  const lenSq = dx * dx + dy * dy;
+  if (lenSq === 0) return 0;
+
+  // Projection parameter of p onto a→b, clamped so we never run past an end.
+  const t = Math.max(0, Math.min(1, -(pa.x * dx + pa.y * dy) / lenSq));
+  return t * Math.hypot(dx, dy);
+}
+
 /** Initial bearing in degrees (0–360, 0 = north) from `a` to `b`. */
 export function bearingBetween(a: RouteCoordinate, b: RouteCoordinate): number {
   const [lng1, lat1] = a;

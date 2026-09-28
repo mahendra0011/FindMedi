@@ -71,6 +71,11 @@ export interface NavigationOverlayProps {
   onExit?: () => void;
   /** Hide the mute control when the browser has no speechSynthesis. */
   voiceSupported?: boolean;
+  /**
+   * Transient status line (Locating… / recalculating / GPS unavailable).
+   * Rendered under the turn banner only while set.
+   */
+  statusMessage?: string;
   className?: string;
 }
 
@@ -94,6 +99,7 @@ export default function NavigationOverlay({
   onToggleMute,
   onExit,
   voiceSupported = true,
+  statusMessage,
   className,
 }: NavigationOverlayProps) {
   const iconKey = useMemo(() => maneuverIconKey(maneuver?.instruction), [maneuver?.instruction]);
@@ -188,6 +194,14 @@ export default function NavigationOverlay({
           <div className="mt-2 flex items-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/95 px-3 py-2 text-xs font-semibold text-amber-950 shadow-md">
             <AlertTriangle className="h-4 w-4 shrink-0" />
             <span>Off route by {formatDistanceMeters(offRouteMeters)} — recalculating…</span>
+          </div>
+        )}
+
+        {/* ── GPS / route status (Locating…, denied permission, etc.) ── */}
+        {statusMessage && (
+          <div className="mt-2 flex items-center gap-2 rounded-xl border border-border bg-background/95 px-3 py-2 text-xs font-medium text-muted-foreground shadow-md">
+            <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500" />
+            <span>{statusMessage}</span>
           </div>
         )}
       </div>

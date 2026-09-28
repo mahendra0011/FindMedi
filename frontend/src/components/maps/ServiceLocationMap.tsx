@@ -17,6 +17,7 @@ import {
   useMap,
 } from '@/components/ui/map';
 import { cn } from '@/lib/utils';
+import NavigationController from '@/components/maps/NavigationController';
 import {
   fetchRoute,
   geocodePlace,
@@ -817,6 +818,8 @@ export default function ServiceLocationMap({ entityType, entity, className }) {
   const config = TYPE_CONFIG[entityType] || TYPE_CONFIG.hospital;
   const [mapZoom] = useState(12.5);
   const [nearbyPlaces, setNearbyPlaces] = useState([]);
+  // Guided turn-by-turn session (Phase 7). Off by default; Start button below.
+  const [navigating, setNavigating] = useState(false);
 
   const address = useMemo(
     () => buildAddress(entity),
@@ -997,6 +1000,23 @@ export default function ServiceLocationMap({ entityType, entity, className }) {
             </>
           ) : null}
 
+          {/* Phase 7 — guided turn-by-turn session. Keyed on destination so
+              picking a different place restarts navigation cleanly. */}
+          {navigating && hasRoute ? (
+            <NavigationController
+              key={`nav-${id}-${selectedCoordinates.join(',')}`}
+              origin={
+                coordinatePair(currentLocation) ||
+                route.coordinates[0] ||
+                selectedCoordinates
+              }
+              destination={selectedCoordinates}
+              destinationLabel={displayValue(selectedPlace?.name) || activePlace.name}
+              fallbackRoute={route.coordinates}
+              onExit={() => setNavigating(false)}
+            />
+          ) : null}
+
           <MapBoundsController places={mapPlaces} fitToPlaces={mapPlaces.length > 1} />
 
           <ServiceDomMarkers
@@ -1036,7 +1056,27 @@ export default function ServiceLocationMap({ entityType, entity, className }) {
                   <Route className="h-3.5 w-3.5 text-primary" />
                   {formatDistance(route.distance)}
                 </span>
-                <span className="text-muted-foreground">{formatDuration(route.duration)}</span>
+                <span className="flex items-center gap-2">
+                  <span className="text-muted-foreground">{formatDuration(route.duration)}</span>
+                  {/* Start guided navigation — hidden while a session runs
+                      (the overlay owns the screen, incl. its Exit control). */}
+                  {!navigating && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="h-7 gap-1 px-2 text-[11px]"
+                      onClick={() => {
+                        // Needs a live position first; same helper the Route
+                        // button uses, so a denied prompt surfaces its error.
+                        if (!currentLocation) requestLocationAndRoute(selectedPlace);
+                        setNavigating(true);
+                      }}
+                    >
+                      <Navigation className="h-3.5 w-3.5" />
+                      Start
+                    </Button>
+                  )}
+                </span>
               </div>
             ) : null}
             {(geocodeStatus?.loading || geocodeStatus?.error || routeStatus?.error || locateError) && (

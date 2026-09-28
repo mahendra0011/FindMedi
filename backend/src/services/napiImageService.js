@@ -22,8 +22,15 @@ function getNapi() {
   try {
     _napi = require('../../rust-helper/index.js');
   } catch (e) {
+    // MUST throw, not return null: NATIVE_AVAILABLE below is computed as
+    // `try { getNapi(); return true } catch { return false }`. Returning null
+    // here would make that report `true` when the native module is missing,
+    // sending callers into the native branch where they hit a *second*,
+    // uncaught NATIVE_NOT_AVAILABLE instead of the JavaScript fallback.
     _loadError = e;
+    throw Object.assign(new Error(e.message), { code: NATIVE_NOT_AVAILABLE });
   }
+  if (_napi === null) throw Object.assign(new Error('native module resolved to null'), { code: NATIVE_NOT_AVAILABLE });
   return _napi;
 }
 

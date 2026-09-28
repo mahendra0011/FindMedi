@@ -1497,7 +1497,9 @@ router.put('/profile', protect, validate(profileUpdateSchema), async (req, res) 
 });
 
 // POST /api/auth/logout
-router.post('/logout', async (req, res) => {
+// Rate-limited like every other auth mutation — without this a caller can
+// hammer the endpoint to force repeated RefreshToken.deleteOne() writes.
+router.post('/logout', authLimiter, async (req, res) => {
   try {
     const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
     if (refreshToken) {

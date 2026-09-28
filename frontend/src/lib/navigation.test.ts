@@ -13,7 +13,9 @@ import {
   maneuverIconKey,
   findManeuverProgress,
   estimateRemainingSeconds,
+  travelledOnSegmentMeters,
 } from './navigation';
+import type { RouteCoordinate } from './navigation';
 
 describe('decodePolyline6', () => {
   it('returns [] for an empty shape (Valhalla fallback response)', () => {
@@ -258,6 +260,34 @@ describe('estimateRemainingSeconds', () => {
 
   it('returns the full duration when route length is unknown', () => {
     expect(estimateRemainingSeconds(600, 0, 100)).toBe(600);
+  });
+});
+
+describe('travelledOnSegmentMeters', () => {
+  const a: RouteCoordinate = [79.9864, 23.1815];
+  const b: RouteCoordinate = [79.9974, 23.1815]; // ~1 km east
+
+  it('is 0 at the segment start', () => {
+    expect(travelledOnSegmentMeters(a, a, b)).toBeLessThan(1);
+  });
+
+  it('is ~half the segment at the midpoint', () => {
+    const mid: RouteCoordinate = [(a[0] + b[0]) / 2, 23.1815];
+    const full = travelledOnSegmentMeters(b, a, b);
+    // Projection is linear, so the midpoint is exactly half — no hardcoded
+    // metre bounds that break if the reference coordinates ever change.
+    expect(travelledOnSegmentMeters(mid, a, b)).toBeCloseTo(full / 2, 3);
+  });
+
+  it('clamps to the full segment at/beyond the end', () => {
+    expect(travelledOnSegmentMeters(b, a, b)).toBeCloseTo(
+      travelledOnSegmentMeters([b[0] + 0.01, b[1]], a, b),
+      3,
+    );
+  });
+
+  it('returns 0 for a degenerate segment', () => {
+    expect(travelledOnSegmentMeters(a, a, a)).toBe(0);
   });
 });
 

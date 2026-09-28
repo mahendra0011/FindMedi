@@ -5,23 +5,42 @@ import { protect, adminOnly } from '../middleware/auth.js';
 import { validate, createPaymentSchema, updatePaymentSchema, refundPaymentSchema } from '../utils/validate.js';
 import { auditLog } from '../middleware/audit.js';
 import { paymentLimiter } from '../middleware/rateLimit.js';
+import { paginatedResults } from '../utils/pagination.js';
 import { generateTransactionId } from '../utils/idGenerator.js';
 import { getISTDateString } from '../utils/dateUtils.js';
 import { mirrorPayment } from '../lib/pgDualWrite.js';
 
 const router = express.Router();
 
+// GET /api/payments — paginated list.
+// Previously returned EVERY matching document (`Payment.find(filter).sort()`
+// with no limit), so a hospital with years of history loaded it all. Uses the
+// same `paginatedResults` helper as /transactions so list endpoints behave
+// consistently (helper clamps limit to 1..100).
 router.get('/', protect, async (req, res) => {
   try {
-    const { status, patient_id } = req.query;
+    const { status, patient_id, page, limit } = req.query;
     const filter = {};
     if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
     if (status && status !== 'All') filter.status = status;
     if (patient_id) filter.patient_id = patient_id;
     if (req.user.role === 'patient') filter.patient_id = req.user._id.toString();
-    const payments = await Payment.find(filter).sort({ createdAt: -1 });
-    const total = await Payment.aggregate([{ $match: filter }, { $group: { _id: null, total: { $sum: '$amount' } } }]);
-    res.json({ payments, total_amount: total[0]?.total || 0 });
+
+    const [result, amountAgg] = await Promise.all([
+      paginatedResults(Payment, filter, { page, limit, sort: { createdAt: -1 } }),
+      // Summed across the WHOLE filter, not just the page — consumers treat
+      // `total_amount` as the cohort total, never as a page subtotal.
+      Payment.aggregate([{ $match: filter }, { $group: { _id: null, total: { $sum: '$amount' } } }]),
+    ]);
+
+    res.json({
+      payments: result.data,
+      total_amount: amountAgg[0]?.total || 0,
+      page: result.page,
+      limit: result.limit,
+      total: result.total,
+      totalPages: result.totalPages,
+    });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 

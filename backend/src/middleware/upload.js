@@ -88,23 +88,30 @@ const isZipType = (mimetype) => mimetype.includes('officedocument');
 // - CLAMAV_HOST unset → scan skipped (dev/test default).
 // - Any scanner/connection error → treated as clean (upload never blocked).
 // Set CLAMAV_HOST (+ CLAMAV_PORT, default 3310) where a clamd sidecar runs.
-let _clamavClient = null;
+let _clamavScanner = null;
 let _clamavFailed = false;
 
 async function scanBufferForMalware(buffer) {
   if (!process.env.CLAMAV_HOST || _clamavFailed) return { clean: true, skipped: true };
   try {
-    if (!_clamavClient) {
-      const { default: ClamAV } = await import('clamav.js');
-      _clamavClient = new ClamAV({
-        host: process.env.CLAMAV_HOST,
-        port: Number(process.env.CLAMAV_PORT) || 3310,
-      });
+    if (!_clamavScanner) {
+      // clamav.js@0.12 exports an *instance*: `createScanner(port, host)`.
+      // (There is no `new ClamAV()` / `scanBuffer()` API — that call shape
+      // threw on every scan and tripped the fail-open path below, which is
+      // what previously made this scanner silently never scan.)
+      const clamav = (await import('clamav.js')).default;
+      _clamavScanner = clamav.createScanner(
+        Number(process.env.CLAMAV_PORT) || 3310,
+        process.env.CLAMAV_HOST,
+      );
     }
+    const { Readable } = await import('stream');
     const malware = await new Promise((resolve, reject) => {
-      _clamavClient.scanBuffer(buffer, (err, _obj, found) => {
+      // scanner.scan() takes a stream (or path), not a Buffer.
+      const stream = Readable.from(buffer);
+      _clamavScanner.scan(stream, (err, _obj, found) => {
         if (err) reject(err);
-        else resolve(found);
+        else resolve(Boolean(found));
       });
     });
     return { clean: !malware, malware };
