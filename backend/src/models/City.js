@@ -8,7 +8,7 @@ const citySchema = new mongoose.Schema({
   onboardingDate: { type: Date },
   displayOrder: { type: Number, default: 0 },
   createdAt: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 
 citySchema.index({ isActive: 1, displayOrder: 1 });
 export default mongoose.model('City', citySchema);

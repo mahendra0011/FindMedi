@@ -27,7 +27,7 @@ const purchaseOrderSchema = new mongoose.Schema({
   notes: { type: String },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 
 purchaseOrderSchema.pre('save', async function (next) {
   this.updatedAt = new Date();

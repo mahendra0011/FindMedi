@@ -14,6 +14,6 @@ const housekeepingSchema = new mongoose.Schema({
   verifiedAt: { type: Date },
   hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
   createdAt: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 
 export default mongoose.model('Housekeeping', housekeepingSchema);

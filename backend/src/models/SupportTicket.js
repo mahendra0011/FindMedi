@@ -24,7 +24,9 @@ const supportTicketSchema = new mongoose.Schema({
   messages: [ticketMessageSchema],
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 
+supportTicketSchema.index({ raisedBy: 1, createdAt: -1 });
+supportTicketSchema.index({ status: 1, createdAt: -1 });
 supportTicketSchema.pre('save', function (next) { this.updatedAt = new Date(); next(); });
 export default mongoose.model('SupportTicket', supportTicketSchema);

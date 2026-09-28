@@ -8,6 +8,6 @@ const announcementSchema = new mongoose.Schema({
   targetRoles: [{ type: String, enum: ['doctor', 'nurse', 'hospital_admin', 'staff', 'all'] }],
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   createdAt: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 
 export default mongoose.model('Announcement', announcementSchema);

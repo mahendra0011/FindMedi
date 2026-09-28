@@ -43,6 +43,6 @@ const nursingChartSchema = new mongoose.Schema({
   // General notes
   notes: { type: String },
   createdAt: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 
 export default mongoose.model('NursingChart', nursingChartSchema);

@@ -37,7 +37,7 @@ const scheduleChangeRequestSchema = new mongoose.Schema({
   reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   reviewedAt: { type: Date },
   createdAt: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 
 scheduleChangeRequestSchema.pre('save', function (next) {
   if (this.status !== 'Pending' && !this.reviewedAt) {

@@ -23,7 +23,7 @@ const bloodUnitSchema = new mongoose.Schema({
   requestId: { type: mongoose.Schema.Types.ObjectId, ref: 'BloodRequest' },
   hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
   createdAt: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 
 const bloodRequestSchema = new mongoose.Schema({
   hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
@@ -57,7 +57,7 @@ const bloodRequestSchema = new mongoose.Schema({
   reactionNotes: { type: String },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   createdAt: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 
 bloodUnitSchema.pre('save', function (next) {
   if (this.expiryDate && this.expiryDate < new Date() && this.status === 'Available') {

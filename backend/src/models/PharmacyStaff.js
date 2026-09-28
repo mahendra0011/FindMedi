@@ -11,6 +11,6 @@ const pharmacyStaffSchema = new mongoose.Schema({
   isActive: { type: Boolean, default: true },
   joinedAt: { type: Date, default: Date.now },
   hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
-});
+}, { timestamps: true });
 
 export default mongoose.model('PharmacyStaff', pharmacyStaffSchema);

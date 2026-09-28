@@ -8,6 +8,6 @@ const departmentSchema = new mongoose.Schema({
   active: { type: Boolean, default: true },
   fees_structure: { type: Number, default: 0 },
   createdAt: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 
 export default mongoose.model('Department', departmentSchema);

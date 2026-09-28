@@ -23,6 +23,6 @@ const emergencySchema = new mongoose.Schema({
   hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
   createdAt: { type: Date, default: Date.now },
   responseTime: { type: Number }, // in minutes
-});
+}, { timestamps: true });
 
 export default mongoose.model('Emergency', emergencySchema);

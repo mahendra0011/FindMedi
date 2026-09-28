@@ -175,7 +175,7 @@ const assistantBookingSchema = new mongoose.Schema({
   cancelledBy: { type: String, enum: ['patient', 'assistant', 'system', ''], default: '' },
   createdAt: { type: Date, default: Date.now, index: true },
   updatedAt: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 
 assistantBookingSchema.pre('save', function (next) {
   this.updatedAt = new Date();

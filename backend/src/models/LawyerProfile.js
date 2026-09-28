@@ -139,7 +139,7 @@ const lawyerProfileSchema = new mongoose.Schema({
   },
   isOnlineForUrgent: { type: Boolean, default: false, index: true },
   createdAt: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 
 lawyerProfileSchema.index({ currentLocation: '2dsphere' });
 

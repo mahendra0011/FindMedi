@@ -11,4 +11,7 @@ const featuredListingSchema = new mongoose.Schema({
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 }, { timestamps: true });
 
+featuredListingSchema.index({ placement: 1, isActive: 1 });
+featuredListingSchema.index({ isActive: 1, endDate: 1 });
+
 export default mongoose.model('FeaturedListing', featuredListingSchema);

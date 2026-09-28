@@ -104,7 +104,7 @@ const facilitySchema = new mongoose.Schema({
     type: Object,
     default: {},
   },
-});
+}, { timestamps: true });
 
 facilitySchema.pre('save', async function (next) {
   if (!this.facilityId) {

@@ -41,6 +41,6 @@ const testSchema = new mongoose.Schema({
   scanType: { type: String, default: '' },
 
   createdAt: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 
 export default mongoose.model('Test', testSchema);

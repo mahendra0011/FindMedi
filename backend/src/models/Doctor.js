@@ -145,7 +145,7 @@ const doctorSchema = new mongoose.Schema({
     value: { type: Number, default: 2, min: 0 },
   },
   createdAt: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 
 doctorSchema.pre('save', async function (next) {
   if (!this.doctorId) {

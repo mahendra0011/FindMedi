@@ -23,7 +23,7 @@ const otpSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
   // For rate limiting: track last OTP request time per user/email
   lastRequestAt: { type: Date, index: true }
-});
+}, { timestamps: true });
 
 // Index for efficient query of valid, unused OTPs
 otpSchema.index({ email: 1, used: 1, expiresAt: 1 });

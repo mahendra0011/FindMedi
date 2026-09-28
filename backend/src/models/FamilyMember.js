@@ -12,6 +12,6 @@ const familyMemberSchema = new mongoose.Schema({
   medicalNotes: { type: String },
   isActive: { type: Boolean, default: true },
   createdAt: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 
 export default mongoose.model('FamilyMember', familyMemberSchema);
