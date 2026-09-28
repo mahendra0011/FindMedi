@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { SplitText as GSAPSplitText } from "gsap/SplitText";
@@ -7,6 +7,38 @@ import { useGSAP } from "@gsap/react";
 import "./SplitText.css";
 
 gsap.registerPlugin(ScrollTrigger, GSAPSplitText, useGSAP);
+
+/** Elements `<SplitText>` may render as (drives the dynamic `<Tag>` below). */
+type SplitTag = "p" | "span" | "div" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
+
+/**
+ * Host element we render as. Typed as `HTMLDivElement` (rather than plain
+ * `HTMLElement`) so the ref stays assignable for every `<SplitTag>` option —
+ * `p`/`div`/`hN` each require `align`, which `HTMLElement` alone lacks. The live
+ * instance is parked on it as `_rbsplitInstance` so a re-run can revert the
+ * previous split first.
+ */
+interface SplitHostElement extends HTMLDivElement {
+  _rbsplitInstance?: { revert: () => void } | null;
+}
+
+interface SplitTextProps {
+  text: string;
+  className?: string;
+  delay?: number;
+  duration?: number;
+  ease?: string;
+  splitType?: string;
+  /** gsap "from" vars bag, e.g. `{ opacity: 0, y: 40 }`. */
+  from?: object;
+  /** gsap "to" vars bag, e.g. `{ opacity: 1, y: 0 }`. */
+  to?: object;
+  threshold?: number;
+  rootMargin?: string;
+  textAlign?: CSSProperties["textAlign"];
+  tag?: SplitTag;
+  onLetterAnimationComplete?: () => void;
+}
 
 const SplitText = ({
   text,
@@ -22,8 +54,8 @@ const SplitText = ({
   textAlign = "center",
   tag = "p",
   onLetterAnimationComplete
-}) => {
-  const ref = useRef(null);
+}: SplitTextProps) => {
+  const ref = useRef<SplitHostElement | null>(null);
   const animationCompletedRef = useRef(false);
   const onCompleteRef = useRef(onLetterAnimationComplete);
   const [fontsLoaded, setFontsLoaded] = useState(false);
@@ -70,12 +102,11 @@ const SplitText = ({
           : `+=${marginValue}${marginUnit}`;
       const start = `top ${startPct}%${sign}`;
 
-      let targets;
-      const assignTargets = (self) => {
-        if (splitType.includes("chars") && self.chars.length) targets = self.chars;
-        if (!targets && splitType.includes("words") && self.words.length) targets = self.words;
-        if (!targets && splitType.includes("lines") && self.lines.length) targets = self.lines;
-        if (!targets) targets = self.chars || self.words || self.lines;
+      const pickTargets = (self: GSAPSplitText): Element[] => {
+        if (splitType.includes("chars") && self.chars.length) return self.chars;
+        if (splitType.includes("words") && self.words.length) return self.words;
+        if (splitType.includes("lines") && self.lines.length) return self.lines;
+        return self.chars || self.words || self.lines;
       };
 
       const splitInstance = new GSAPSplitText(el, {
@@ -87,7 +118,7 @@ const SplitText = ({
         charsClass: "split-char",
         reduceWhiteSpace: false,
         onSplit: (self) => {
-          assignTargets(self);
+          const targets = pickTargets(self);
           return gsap.fromTo(
             targets,
             { ...from },
