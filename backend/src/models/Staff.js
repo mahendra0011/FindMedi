@@ -30,6 +30,6 @@ const staffSchema = new mongoose.Schema({
   hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   createdAt: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 
 export default mongoose.model('Staff', staffSchema);

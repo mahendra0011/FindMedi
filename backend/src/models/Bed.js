@@ -14,6 +14,6 @@ const bedSchema = new mongoose.Schema({
   isAC: { type: Boolean, default: false },
   hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
   createdAt: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 
 export default mongoose.model('Bed', bedSchema);

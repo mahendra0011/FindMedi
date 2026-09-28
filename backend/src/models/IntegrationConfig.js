@@ -19,4 +19,6 @@ const integrationConfigSchema = new mongoose.Schema({
   updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 }, { timestamps: true });
 
+integrationConfigSchema.index({ category: 1, provider: 1 });
+
 export default mongoose.model('IntegrationConfig', integrationConfigSchema);

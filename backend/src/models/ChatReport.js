@@ -20,7 +20,7 @@ const chatReportSchema = new mongoose.Schema({
   reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   reviewedAt: { type: Date },
   createdAt: { type: Date, default: Date.now, index: true },
-});
+}, { timestamps: true });
 
 chatReportSchema.index({ reportedUserId: 1, createdAt: -1 });
 chatReportSchema.index({ status: 1, createdAt: -1 });

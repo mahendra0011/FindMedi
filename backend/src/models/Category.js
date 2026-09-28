@@ -9,7 +9,7 @@ const categorySchema = new mongoose.Schema({
   isActive: { type: Boolean, default: true },
   displayOrder: { type: Number, default: 0 },
   createdAt: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 
 categorySchema.index({ name: 1, type: 1 }, { unique: true });
 export default mongoose.model('Category', categorySchema);

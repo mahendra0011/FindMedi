@@ -118,7 +118,7 @@ const assistantProfileSchema = new mongoose.Schema({
   },
   createdAt: { type: Date, default: Date.now, index: true },
   updatedAt: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 
 assistantProfileSchema.index({ currentLocation: '2dsphere' });
 

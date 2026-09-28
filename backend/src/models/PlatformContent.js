@@ -10,4 +10,6 @@ const platformContentSchema = new mongoose.Schema({
   changeNotes: { type: String, default: '' },
 }, { timestamps: true });
 
+platformContentSchema.index({ updatedAt: -1 });
+
 export default mongoose.model('PlatformContent', platformContentSchema);

@@ -10,6 +10,6 @@ const patientAddressSchema = new mongoose.Schema({
   phone: { type: String },
   isDefault: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 
 export default mongoose.model('PatientAddress', patientAddressSchema);

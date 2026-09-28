@@ -111,7 +111,7 @@ const emergencyDoctorRequestSchema = new mongoose.Schema({
   completedAt: { type: Date, default: null },
   createdAt: { type: Date, default: Date.now, index: true },
   updatedAt: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 
 emergencyDoctorRequestSchema.index({ location: '2dsphere' });
 emergencyDoctorRequestSchema.pre('save', function (next) {

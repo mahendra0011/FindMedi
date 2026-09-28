@@ -13,6 +13,6 @@ const pharmacyOfferSchema = new mongoose.Schema({
   isActive: { type: Boolean, default: true },
   hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
   createdAt: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 
 export default mongoose.model('PharmacyOffer', pharmacyOfferSchema);

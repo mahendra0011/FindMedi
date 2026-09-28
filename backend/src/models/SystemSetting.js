@@ -6,6 +6,6 @@ const systemSettingSchema = new mongoose.Schema({
   description: { type: String, default: '' },
   updatedBy: { type: String, default: '' },
   updatedAt: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 
 export default mongoose.model('SystemSetting', systemSettingSchema);

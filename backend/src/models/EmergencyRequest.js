@@ -162,7 +162,7 @@ const emergencyRequestSchema = new mongoose.Schema({
   completedAt: { type: Date, default: null },
   createdAt: { type: Date, default: Date.now, index: true },
   updatedAt: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 
 emergencyRequestSchema.index({ location: '2dsphere' });
 

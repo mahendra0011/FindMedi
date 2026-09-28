@@ -17,6 +17,6 @@ const rideTrackingSchema = new mongoose.Schema({
   speed: { type: Number, default: 0 },
   heading: { type: Number, default: 0 },
   timestamp: { type: Date, default: Date.now, index: true },
-});
+}, { timestamps: true });
 
 export default mongoose.model('RideTracking', rideTrackingSchema);

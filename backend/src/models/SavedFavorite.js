@@ -7,7 +7,7 @@ const savedFavoriteSchema = new mongoose.Schema({
   refName: { type: String },
   notes: { type: String },
   createdAt: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 
 savedFavoriteSchema.index({ patientId: 1, refType: 1, refId: 1 }, { unique: true });
 

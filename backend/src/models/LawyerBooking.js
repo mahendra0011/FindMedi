@@ -198,7 +198,7 @@ const lawyerBookingSchema = new mongoose.Schema({
     default: Date.now,
     index: true,
   },
-});
+}, { timestamps: true });
 
 const CATEGORY_MAP_TO_SLUG = {
   'Medical Negligence': 'medical_negligence',

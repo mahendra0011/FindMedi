@@ -15,7 +15,7 @@ const licenseSchema = new mongoose.Schema({
   reminders: [{ daysBefore: Number, sentAt: Date }],
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 
 licenseSchema.pre('save', function (next) {
   this.updatedAt = new Date();
@@ -25,5 +25,8 @@ licenseSchema.pre('save', function (next) {
   else this.status = 'Active';
   next();
 });
+
+licenseSchema.index({ status: 1, expiryDate: 1 });
+licenseSchema.index({ facilityId: 1, status: 1 });
 
 export default mongoose.model('License', licenseSchema);

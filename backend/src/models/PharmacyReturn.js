@@ -16,6 +16,6 @@ const pharmacyReturnSchema = new mongoose.Schema({
   initiatedAt: { type: Date, default: Date.now },
   completedAt: { type: Date },
   hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
-});
+}, { timestamps: true });
 
 export default mongoose.model('PharmacyReturn', pharmacyReturnSchema);

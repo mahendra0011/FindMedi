@@ -20,7 +20,7 @@ const medicineSchema = new mongoose.Schema({
   facilityId: { type: mongoose.Schema.Types.ObjectId, ref: 'Facility', index: true },
   isActive: { type: Boolean, default: true },
   createdAt: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 
 // Auto update isActive based on stock level
 medicineSchema.pre('save', function (next) {

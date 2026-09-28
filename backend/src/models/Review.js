@@ -23,6 +23,6 @@ const reviewSchema = new mongoose.Schema({
   reply: { type: String, default: '' },
   repliedAt: { type: Date },
   createdAt: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 
 export default mongoose.model('Review', reviewSchema);

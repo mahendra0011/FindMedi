@@ -69,7 +69,7 @@ const hospitalSchema = new mongoose.Schema({
     saturday: { type: String, default: '9:00 AM - 2:00 PM' },
     sunday: { type: String, default: 'Closed' },
   },
-});
+}, { timestamps: true });
 
 hospitalSchema.index({ location: '2dsphere' });
 

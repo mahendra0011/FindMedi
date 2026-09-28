@@ -74,7 +74,7 @@ const ambulanceSchema = new mongoose.Schema({
 
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 
 ambulanceSchema.index({ 'currentLocation.coordinates': '2dsphere' });
 

@@ -23,7 +23,7 @@ const tokenSchema = new mongoose.Schema({
   notes: { type: String },
   hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
   createdAt: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 
 import { generateTokenNumber } from '../utils/idGenerator.js';
 

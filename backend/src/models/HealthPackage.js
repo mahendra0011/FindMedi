@@ -17,7 +17,7 @@ const healthPackageSchema = new mongoose.Schema({
   facilityId: { type: mongoose.Schema.Types.ObjectId, ref: 'Facility', index: true },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 
 healthPackageSchema.pre('save', function (next) {
   this.updatedAt = new Date();

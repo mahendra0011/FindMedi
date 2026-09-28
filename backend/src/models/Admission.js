@@ -122,7 +122,7 @@ const admissionSchema = new mongoose.Schema({
   hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 
 admissionSchema.pre('save', function (next) {
   this.updatedAt = new Date();

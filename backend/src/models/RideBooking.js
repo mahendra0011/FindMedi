@@ -129,7 +129,7 @@ const rideBookingSchema = new mongoose.Schema({
   completedAt: { type: Date },
   createdAt: { type: Date, default: Date.now, index: true },
   updatedAt: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 
 rideBookingSchema.pre('save', function (next) {
   this.updatedAt = new Date();

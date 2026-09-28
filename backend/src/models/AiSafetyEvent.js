@@ -14,6 +14,6 @@ const aiSafetyEventSchema = new mongoose.Schema({
   promptTokensEst: { type: Number, default: 0 },
   replyTokensEst: { type: Number, default: 0 },
   createdAt: { type: Date, default: Date.now, index: true },
-});
+}, { timestamps: true });
 
 export default mongoose.model('AiSafetyEvent', aiSafetyEventSchema);

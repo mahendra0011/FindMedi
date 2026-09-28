@@ -14,7 +14,7 @@ const leaveRequestSchema = new mongoose.Schema({
   reviewedAt: { type: Date },
   hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
   createdAt: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 
 leaveRequestSchema.pre('save', function (next) {
   if (this.status !== 'Pending' && !this.reviewedAt) {

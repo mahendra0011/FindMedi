@@ -39,6 +39,6 @@ const pharmacyOrderSchema = new mongoose.Schema({
  refundAmount: { type: Number, default: 0 },
  refundReason: { type: String, default: '' },
  refundDate: { type: Date },
-});
+}, { timestamps: true });
 
 export default mongoose.model('PharmacyOrder', pharmacyOrderSchema);

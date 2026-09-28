@@ -18,7 +18,7 @@ const supplierSchema = new mongoose.Schema({
   hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
   notes: { type: String },
   createdAt: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 
 supplierSchema.pre('save', async function (next) {
   if (!this.supplierId) {

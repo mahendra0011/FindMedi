@@ -17,7 +17,9 @@ const disputeSchema = new mongoose.Schema({
   resolvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 
+disputeSchema.index({ status: 1, createdAt: -1 });
+disputeSchema.index({ raisedBy: 1, createdAt: -1 });
 disputeSchema.pre('save', function (next) { this.updatedAt = new Date(); next(); });
 export default mongoose.model('Dispute', disputeSchema);

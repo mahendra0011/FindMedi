@@ -44,7 +44,7 @@ const mhSchema = new mongoose.Schema({
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 
 mhSchema.pre('save', function (next) { this.updatedAt = new Date(); next(); });
 export default mongoose.model('MentalHealth', mhSchema);

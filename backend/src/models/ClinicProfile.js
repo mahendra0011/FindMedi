@@ -16,7 +16,7 @@ const clinicProfileSchema = new mongoose.Schema({
   clinic_license: { type: String, default: '' },
   established_year: { type: Number, default: null },
   social: { type: Object, default: {} },
-});
+}, { timestamps: true });
 
 clinicProfileSchema.pre('save', async function (next) {
   if (!this.clinicId) {

@@ -17,7 +17,7 @@ const notificationSchema = new mongoose.Schema({
   userId: { type: String, required: true },
   date: { type: String, default: () => getISTDateString() },
   createdAt: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 
 notificationSchema.index({ userId: 1, read: 1 });
 

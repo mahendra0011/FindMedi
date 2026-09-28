@@ -45,7 +45,7 @@ const patientSchema = new mongoose.Schema({
   admitted: { type: Date, default: Date.now },
   status: { type: String, enum: ['Active', 'Discharged', 'Critical'], default: 'Active' },
   createdAt: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 
 import { generateUHID } from '../utils/idGenerator.js';
 
