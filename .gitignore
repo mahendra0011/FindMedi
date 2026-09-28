@@ -13,3 +13,10 @@ response.txt
 .env.local
 logs/
 .zcode/
+
+# Stray test / verification logs — never commit these.
+test-out.txt
+test-err.txt
+*-out.txt
+*-err.txt
+navtest.txt
