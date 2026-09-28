@@ -50,6 +50,22 @@ describe('OpenAPI contract', () => {
     }
   });
 
+  it('guided-navigation routing endpoint must stay documented', async () => {
+    // The navigation HUD (NavigationController) POSTs here when the user hits
+    // Start, so an undocumented/renamed path silently breaks turn-by-turn.
+    const response = await request(app).get('/api/docs.json');
+    const nav = response.body.paths['/routing/navigation'];
+    expect(nav).toBeDefined();
+    expect(nav.post).toBeDefined();
+    // Maneuvers are what makes the screen "guided" rather than a drawn line:
+    // the response schema must keep advertising them.
+    const schema = nav.post.responses['200'].content['application/json'].schema;
+    expect(Object.keys(schema.properties)).toEqual(
+      expect.arrayContaining(['shape', 'maneuvers', 'distanceKm', 'durationSeconds']),
+    );
+    expect(schema.properties.maneuvers.type).toBe('array');
+  });
+
   it('auth contract: CSRF enforced (403), bad login shape is 400, no-token is 401', async () => {
     // No CSRF token at all → 403 (real csrfProtection contract)
     const noCsrf = await request(app).post('/api/auth/login').send({});

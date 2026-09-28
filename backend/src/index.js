@@ -5,7 +5,36 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Snapshot the operator-supplied environment BEFORE .env is merged in, so the
+// secrets-file step below can tell "injected by the platform" apart from
+// "left over in a developer's .env" (precedence: platform > secrets file > .env).
+const platformEnvKeys = new Set(Object.keys(process.env));
+
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
+
+// Optional external secrets injection (Phase 8): if SECRETS_FILE points at a
+// KEY=VALUE file rendered by Doppler / Vault Agent / AWS Secrets Manager
+// (`doppler secrets render --format env > secrets.env`), its values are
+// overlaid on top of .env — real secrets win over local dev defaults without
+// any provider-specific SDK in the codebase. Parsing rules live in
+// utils/secretsFile.js (unit-tested in test/secretsFile.test.js).
+if (process.env.SECRETS_FILE) {
+  try {
+    const { applySecretsFile } = await import('./utils/secretsFile.js');
+    const { applied, skipped } = applySecretsFile(
+      process.env.SECRETS_FILE,
+      platformEnvKeys,
+    );
+    // Lazy import to avoid a cycle with config/logger at boot time.
+    (await import('./config/logger.js')).default.info(
+      `Loaded ${applied} secrets from SECRETS_FILE (${skipped} left to the platform environment)`,
+    );
+  } catch (err) {
+    // A broken secrets file must not silently boot with missing config:
+    // envValidator below is the second line of defence, but say what happened.
+    console.error(`SECRETS_FILE load failed: ${err.message}`);
+  }
+}
 
 import { initFeatureFlags, initPostHog } from './services/featureFlags.js';
 import express from 'express';
@@ -361,6 +390,7 @@ import referralRoutes from './routes/referral.js';
 import adminSosSettingsRoutes from './routes/adminSosSettings.js';
 import instantDispatchRoutes from './routes/instantDispatch.js';
 import mindsupportRoutes, { attachMindRealtime } from './routes/mindsupport.js';
+import routingRoutes from './routes/routing.js';
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -503,6 +533,7 @@ app.use('/api/vitals-reminders', (req, res, next) => {
   vitalsRoutes(req, res, next);
 });
 app.use('/api/care-plans', carePlanRoutes);
+app.use('/api/routing', routingRoutes);
 
 // 2FA routes
 app.use('/api/auth/2fa', twoFactorRoutes);

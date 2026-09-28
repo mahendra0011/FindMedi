@@ -8,8 +8,8 @@ import {
   estimateRemainingSeconds,
   findManeuverProgress,
   formatDistanceMeters,
-  remainingMeters,
   routeLengthMeters,
+  travelledOnSegmentMeters,
   type Maneuver,
   type RouteCoordinate,
 } from '@/lib/navigation';
@@ -86,7 +86,10 @@ export function useNavigation({
   voiceEnabled = true,
   onReroute,
 }: UseNavigationOptions): UseNavigationResult {
-  const isSupported = typeof navigator !== 'undefined' && 'geolocation' in navigator;
+  // `!!navigator.geolocation`, not `'geolocation' in navigator`: the property
+  // key can exist with an undefined value (some embedded webviews), and
+  // `watchPosition` would then throw on undefined.
+  const isSupported = typeof navigator !== 'undefined' && !!navigator.geolocation;
 
   const [fix, setFix] = useState<NavigationFix | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -147,6 +150,10 @@ export function useNavigation({
     for (let i = 0; i < Math.max(0, idx); i += 1) {
       travelled += routeLengthMeters([route[i], route[i + 1]]);
     }
+    // Plus progress *within* the current segment. Summing whole segments only
+    // would freeze progress on 2-point polylines (idx always 0 — the straight-
+    // line fallback route) and make maneuvers never advance.
+    travelled += travelledOnSegmentMeters(fix.coordinate, route[idx], route[idx + 1]);
     return {
       travelledMeters: travelled,
       distanceFromRoute: meters,
@@ -184,11 +191,13 @@ export function useNavigation({
 
   const activeManeuver = progress.index >= 0 ? maneuvers[progress.index] ?? null : null;
 
-  // Distance left on the route, measured from the segment the driver is on.
+  // Distance left on the route: total minus where the driver actually is.
+  // (`remainingMeters(route, segmentIndex)` only knew whole segments, so on a
+  // 2-point route this never decreased — the ETA/remaining HUD froze.)
   const remainingRouteMeters = useMemo(() => {
     if (route.length < 2) return 0;
-    return remainingMeters(route, segmentIndex);
-  }, [route, segmentIndex]);
+    return Math.max(0, routeMeters - travelledMeters);
+  }, [route.length, routeMeters, travelledMeters]);
 
   const remainingSeconds = useMemo(
     () => estimateRemainingSeconds(durationSeconds, routeMeters, remainingRouteMeters),

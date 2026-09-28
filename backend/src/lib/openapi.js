@@ -145,6 +145,52 @@ export function buildOpenApiDocument() {
           responses: { 200: json({ type: 'object' }, 'ok + component statuses') },
         },
       },
+      // ── Routing / Navigation (Valhalla) ──
+      '/routing/navigation': {
+        post: {
+          tags: ['Ops'], summary: 'Turn-by-turn route (Valhalla maneuvers) for guided navigation',
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    origin: { type: 'array', items: { type: 'number' }, description: '[lng, lat]', minItems: 2, maxItems: 2 },
+                    destination: { type: 'array', items: { type: 'number' }, description: '[lng, lat]', minItems: 2, maxItems: 2 },
+                    costing: { type: 'string', enum: ['auto', 'bicycle', 'pedestrian', 'motorcycle', 'emergency'], default: 'auto' },
+                  },
+                  required: ['origin', 'destination'],
+                },
+              },
+            },
+          },
+          responses: {
+            200: json({
+              type: 'object',
+              properties: {
+                shape: { type: 'string', description: 'Precision-6 encoded polyline (decode client-side)' },
+                distanceKm: { type: 'number' },
+                durationSeconds: { type: 'number' },
+                maneuvers: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      instruction: { type: 'string' },
+                      lengthKm: { type: 'number' },
+                      timeSeconds: { type: 'number' },
+                      streetNames: { type: 'array', items: { type: 'string' } },
+                    },
+                  },
+                },
+                source: { type: 'string', enum: ['valhalla', 'haversine_fallback'] },
+              },
+            }),
+            400: err(), 429: err('Rate limited'),
+          },
+        },
+      },
       // ── Auth ──
       '/auth/register': {
         post: {

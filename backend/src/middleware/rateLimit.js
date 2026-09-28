@@ -98,3 +98,13 @@ export const generalLimiter = createGrlRateLimiter({
   max: 120,
   keyPrefix: 'rl:general',
 });
+
+// TOTP / OTP verification and other short-code endpoints.
+// Deliberately tight: a 6-digit code has only 1e6 combinations, so for
+// 2FA/ABHA flows this limiter IS the brute-force defence — without it a
+// script can attempt ~1000 codes/sec against an unauthenticated endpoint.
+export const totpLimiter = createGrlRateLimiter({
+  windowMs: 60 * 1000,
+  max: 10,
+  keyPrefix: 'rl:totp',
+});

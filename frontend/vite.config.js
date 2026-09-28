@@ -1,10 +1,11 @@
 import { defineConfig } from "vite";
 import { configDefaults } from "vitest/config";
 import react from "@vitejs/plugin-react";
+import { visualizer } from "rollup-plugin-visualizer";
 import path from "path";
 import { fileURLToPath } from "url";
 var __dirname = path.dirname(fileURLToPath(import.meta.url));
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
     base: "./",
     server: {
         host: "::",
@@ -16,7 +17,14 @@ export default defineConfig({
     define: {
         'process.env': {},
     },
-    plugins: [react()],
+    plugins: [
+        react(),
+        // Bundle-size report, only on `npm run analyze` (mode "analyze") so
+        // normal builds never pay for it and no stale report is committed.
+        ...(mode === "analyze"
+            ? [visualizer({ filename: "bundle-analysis.html", gzipSize: true, brotliSize: true })]
+            : []),
+    ],
     resolve: {
         alias: {
             "@": path.resolve(__dirname, "./src"),
@@ -46,5 +54,5 @@ export default defineConfig({
         globals: true,
         // Playwright specs (e2e/) vitest se exclude — warna vitest unhe apna test samajh ke chalata hai.
         exclude: [...configDefaults.exclude, "e2e/**"],
-    }
-});
+    },
+}));
