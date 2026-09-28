@@ -17,6 +17,7 @@ import { protect, adminOnly } from '../middleware/auth.js';
 import { validate, createMedicineSchema } from '../utils/validate.js';
 import { auditLog } from '../middleware/audit.js';
 import { generatePrescriptionId, generateTimestampedId } from '../utils/idGenerator.js';
+import { paginatedResults } from '../utils/pagination.js';
 
 const medicineUpdateSchema = z.object({}).passthrough();
 const pharmacyStockSchema = z.object({ quantity: z.number(), type: z.enum(['add', 'deduct']) });
@@ -40,8 +41,9 @@ router.get('/medicines/store/:storeId', async (req, res) => {
       { genericName: new RegExp(search, 'i') },
     ];
     if (category && category !== 'All') filter.category = category;
-    const medicines = await Medicine.find(filter).sort({ name: 1 });
-    res.json({ medicines });
+    const { page = 1, limit = 100 } = req.query;
+    const { data: medicines, total, totalPages, page: p, limit: l } = await paginatedResults(Medicine, filter, { page, limit, sort: { name: 1 } });
+    res.json({ medicines, page: p, limit: l, total, totalPages });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
@@ -153,8 +155,9 @@ router.get('/medicines', protect, async (req, res) => {
       const lowStockMedicines = medicines.filter(m => m.currentStock <= m.reorderLevel);
       return res.json({ medicines: lowStockMedicines });
     }
-    const medicines = await Medicine.find(filter).sort({ name: 1 });
-    res.json({ medicines });
+    const { page = 1, limit = 50 } = req.query;
+    const { data: medicines, total, totalPages, page: p, limit: l } = await paginatedResults(Medicine, filter, { page, limit, sort: { name: 1 } });
+    res.json({ medicines, page: p, limit: l, total, totalPages });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
@@ -289,11 +292,14 @@ router.get('/prescriptions', protect, async (req, res) => {
         { doctorName: new RegExp(search, 'i') },
       ];
     }
-    const prescriptions = await Prescription.find(filter)
-      .populate('patientId', 'name email phone')
-      .populate('doctorId', 'name email')
-      .sort({ createdAt: -1 });
-    res.json({ prescriptions });
+    const { page = 1, limit = 50 } = req.query;
+    const { data: prescriptions, total, totalPages, page: p, limit: l } = await paginatedResults(Prescription, filter, {
+      page,
+      limit,
+      sort: { createdAt: -1 },
+      populate: [{ path: 'patientId', select: 'name email phone' }, { path: 'doctorId', select: 'name email' }],
+    });
+    res.json({ prescriptions, page: p, limit: l, total, totalPages });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
@@ -484,10 +490,11 @@ router.get('/orders', protect, async (req, res) => {
         filter.$or = searchOr;
       }
     }
-    let query = PharmacyOrder.find(filter).sort({ orderDate: -1 });
-    if (orderId) query = query.populate('items.medicineId', 'name form');
-    const orders = await query;
-    res.json({ orders });
+    let populate;
+    if (orderId) populate = { path: 'items.medicineId', select: 'name form' };
+    const { page = 1, limit = 50 } = req.query;
+    const { data: orders, total, totalPages, page: p, limit: l } = await paginatedResults(PharmacyOrder, filter, { page, limit, sort: { orderDate: -1 }, populate });
+    res.json({ orders, page: p, limit: l, total, totalPages });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
@@ -574,8 +581,9 @@ router.get('/deliveries', protect, async (req, res) => {
     const filter = {};
     if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
     if ((req.user.facilityId || req.user.hospitalId) && req.user.role !== 'superadmin') filter.facilityId = req.user.facilityId || req.user.hospitalId;
-    const deliveries = await PharmacyDelivery.find(filter).sort({ assignedAt: -1 });
-    res.json({ deliveries });
+    const { page = 1, limit = 50 } = req.query;
+    const { data: deliveries, total, totalPages, page: p, limit: l } = await paginatedResults(PharmacyDelivery, filter, { page, limit, sort: { assignedAt: -1 } });
+    res.json({ deliveries, page: p, limit: l, total, totalPages });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
@@ -604,8 +612,9 @@ router.get('/offers', protect, async (req, res) => {
     const filter = {};
     if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
     if ((req.user.facilityId || req.user.hospitalId) && req.user.role !== 'superadmin') filter.facilityId = req.user.facilityId || req.user.hospitalId;
-    const offers = await PharmacyOffer.find(filter).sort({ createdAt: -1 });
-    res.json({ offers });
+    const { page = 1, limit = 50 } = req.query;
+    const { data: offers, total, totalPages, page: p, limit: l } = await paginatedResults(PharmacyOffer, filter, { page, limit, sort: { createdAt: -1 } });
+    res.json({ offers, page: p, limit: l, total, totalPages });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
@@ -639,8 +648,9 @@ router.get('/returns', protect, async (req, res) => {
     const filter = {};
     if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
     if ((req.user.facilityId || req.user.hospitalId) && req.user.role !== 'superadmin') filter.facilityId = req.user.facilityId || req.user.hospitalId;
-    const returns = await PharmacyReturn.find(filter).sort({ initiatedAt: -1 });
-    res.json({ returns });
+    const { page = 1, limit = 50 } = req.query;
+    const { data: returns, total, totalPages, page: p, limit: l } = await paginatedResults(PharmacyReturn, filter, { page, limit, sort: { initiatedAt: -1 } });
+    res.json({ returns, page: p, limit: l, total, totalPages });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
@@ -671,8 +681,9 @@ router.get('/staff', protect, async (req, res) => {
     const filter = {};
     if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
     if ((req.user.facilityId || req.user.hospitalId) && req.user.role !== 'superadmin') filter.facilityId = req.user.facilityId || req.user.hospitalId;
-    const staff = await PharmacyStaff.find(filter).sort({ joinedAt: -1 });
-    res.json({ staff });
+    const { page = 1, limit = 50 } = req.query;
+    const { data: staff, total, totalPages, page: p, limit: l } = await paginatedResults(PharmacyStaff, filter, { page, limit, sort: { joinedAt: -1 } });
+    res.json({ staff, page: p, limit: l, total, totalPages });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 

@@ -213,10 +213,15 @@ router.get('/my-appointments', protect, async (req, res) => {
     
     if (status && status !== 'All') filter.status = status;
     
+    const { page = 1, limit = 100 } = req.query;
+    const p = Math.max(1, parseInt(page) || 1);
+    const l = Math.min(200, Math.max(1, parseInt(limit) || 100));
     const appointments = await Appointment.find(filter)
       .populate('patientId', 'name email phone gender address dateOfBirth bloodGroup')
       .populate('doctorId', 'name specialization')
       .sort({ date: -1, createdAt: 1 })
+      .skip((p - 1) * l)
+      .limit(l)
       .lean();
 
     // Batch payment lookup — N+1 fix (same as GET / above). 50 appts = 1 query,
@@ -324,7 +329,12 @@ router.get('/history-with-payments', protect, async (req, res) => {
       a => !(a.status === 'Pending' && !a.transaction_id)
     );
 
-    res.json({ data: visibleAppointments, total: visibleAppointments.length });
+    const { page = 1, limit = 50 } = req.query;
+    const p = Math.max(1, parseInt(page) || 1);
+    const l = Math.min(200, Math.max(1, parseInt(limit) || 50));
+    const total = visibleAppointments.length;
+    const data = visibleAppointments.slice((p - 1) * l, (p - 1) * l + l);
+    res.json({ data, total, page: p, limit: l, totalPages: Math.ceil(total / l) });
   } catch (err) {
     console.error('[appointments/history-with-payments] ERROR:', err);
     res.status(500).json({ message: err.message });
@@ -574,8 +584,9 @@ router.get('/queue/:department', protect, async (req, res) => {
     } else if (req.query.hospitalId) {
       filter.hospitalId = req.query.hospitalId;
     }
-    const queue = await Appointment.find(filter).sort({ queuePosition: 1 });
-    res.json({ queue });
+    const { page = 1, limit = 50 } = req.query;
+    const { data: queue, total, totalPages, page: p, limit: l } = await paginatedResults(Appointment, filter, { page, limit, sort: { queuePosition: 1 } });
+    res.json({ queue, page: p, limit: l, total, totalPages });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 router.put('/:id/transit', protect, async (req, res) => {
