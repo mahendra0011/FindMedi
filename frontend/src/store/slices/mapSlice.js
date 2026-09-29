@@ -1,10 +1,9 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
+import { apiClient } from '@/lib/api';
+import { decodePolyline6 } from '@/lib/navigation';
 
 const MAPTILER_KEY = import.meta.env.VITE_MAPTILER_API_KEY;
 const USE_MAPTILER_GEOCODING = import.meta.env.VITE_USE_MAPTILER_GEOCODING === 'true';
-const OPENROUTE_KEY =
-  import.meta.env.VITE_OPENROUTESERVICE_API_KEY ||
-  import.meta.env.VITE_OPENROUTE_API_KEY;
 
 function toCoordinatePair(coords) {
   if (!coords) return null;
@@ -91,6 +90,9 @@ export const fetchRoute = createAsyncThunk(
     const originObject = { longitude: origin[0], latitude: origin[1] };
     const destinationObject = { longitude: destination[0], latitude: destination[1] };
 
+    // Last-resort only: fires when the routing service itself is unreachable
+    // (Valhalla container down). NOT a routine path — the backend is
+    // self-hosted, so there is no third-party quota to exhaust here.
     const fallbackRoute = (warning = '') => {
       const distance = haversineMeters(originObject, destinationObject);
       return {
@@ -103,27 +105,37 @@ export const fetchRoute = createAsyncThunk(
       };
     };
 
-    if (!OPENROUTE_KEY) return fallbackRoute('OpenRouteService API key missing');
-
     try {
-      const response = await fetch('https://api.openrouteservice.org/v2/directions/driving-car/geojson', {
-        method: 'POST',
-        headers: {
-          Authorization: OPENROUTE_KEY,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ coordinates: [origin, destination] }),
+      // Same endpoint NavigationController already uses, so the route preview
+      // and the guided-navigation route always come from one source of truth.
+      // Uses apiClient (not bare fetch) so the configured base URL, the CSRF
+      // header and the 401-refresh interceptor all apply — a relative
+      // '/api/...' fetch would hit the frontend origin in production.
+      const { data } = await apiClient.post('/routing/navigation', {
+        origin,
+        destination,
+        costing: 'auto',
       });
-      if (!response.ok) throw new Error('Unable to fetch route');
-      const data = await response.json();
-      const feature = data?.features?.[0];
-      const coordinates = feature?.geometry?.coordinates || [];
+
+      // Valhalla returns a precision-6 encoded polyline, not GeoJSON coords.
+      const coordinates = decodePolyline6(data?.shape || '');
+      if (coordinates.length < 2) {
+        // The backend swallows a Valhalla outage and returns HTTP 200 with an
+        // empty shape, so an empty decode is the "engine is down" signal.
+        const degraded = data?.source === 'haversine_fallback';
+        throw new Error(
+          degraded
+            ? 'Routing service unavailable — showing direct line'
+            : 'Routing service returned no route',
+        );
+      }
+
       return {
         placeId,
         coordinates,
-        distance: feature?.properties?.summary?.distance || 0,
-        duration: feature?.properties?.summary?.duration || 0,
-        source: 'openrouteservice',
+        distance: (Number(data?.distanceKm) || 0) * 1000, // metres — formatDistance() expects metres
+        duration: Number(data?.durationSeconds) || 0,
+        source: 'valhalla',
       };
     } catch (error) {
       return fallbackRoute(error.message || 'Unable to fetch route');

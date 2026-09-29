@@ -31,26 +31,31 @@ export const csrfProtection = (req, res, next) => {
       'http://localhost:3000',
     ].map(o => o.trim().replace(/\/$/, '')).filter(Boolean);
 
-    const isAllowed = allowedList.some(allowed => source.startsWith(allowed));
+    const isAllowed = allowedList.includes(source);
     if (!isAllowed && process.env.NODE_ENV === 'production') {
       return res.status(403).json({ message: 'CSRF validation failed: invalid origin' });
     }
   }
 
+  // The token check is MANDATORY for every state-changing request.
+  //
+  // This used to fall through to an unconditional `next()` at the end of the
+  // function. Because the `origin || referer` branch above does not return on
+  // success, any request carrying an allow-listed Origin skipped the token
+  // comparison entirely — CSRF protection was only ever applied to clients
+  // that sent no Origin/Referer at all.
+  //
+  // Requiring the double-submit token unconditionally is what actually protects
+  // the API: a cross-site attacker can cause the cookie to be sent
+  // (SameSite=None) but cannot read it to populate the `x-csrf-token` header,
+  // so they can never assemble a request that passes this check.
   const tokenFromCookie = req.cookies?.['csrf-token'];
   const tokenFromHeader = req.headers['x-csrf-token'];
-  if (tokenFromCookie && tokenFromHeader && tokenFromCookie === tokenFromHeader) {
-    return next();
-  }
-
-  if (!origin && !referer) {
-    if (tokenFromCookie && tokenFromHeader && tokenFromCookie === tokenFromHeader) {
-      return next();
-    }
+  if (!tokenFromCookie || !tokenFromHeader || tokenFromCookie !== tokenFromHeader) {
     return res.status(403).json({ message: 'CSRF validation failed: missing token' });
   }
 
-  next();
+  return next();
 };
 
 export const setCsrfToken = (req, res) => {

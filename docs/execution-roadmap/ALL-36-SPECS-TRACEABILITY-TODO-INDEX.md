@@ -393,8 +393,16 @@ This document maps **every single one of the 36 architectural and technical spec
 - **Core Components**: Bed Reservation Redlocks, Rare Blood Unit Atomic Reservations, Video Queues.
 - **Actionable Developer Tasks**:
   - [x] Implement 5-minute atomic bed holding lock: `lock:hospital:bed:<bedId>` (`/api/beds/:id/hold-lock`).
-  - [x] Atomic decrement of rare blood units using Redis `DECRBY`.
-  - [x] Synchronize telemedicine patient waiting lobby via Redis Sorted Sets (`ZADD`).
+  - [ ] Atomic decrement of rare blood units using Redis `DECRBY`.
+        **NOT IMPLEMENTED (verified 2026-09-29):** `backend/src/routes/bloodbank.js`
+        (13 KB, 11 routes) contains zero Redis references, and `decrby`/`DECRBY` has
+        0 hits across `backend/`. Reservation needs a real atomic path — a Lua
+        script or `DECRBY` inside `MULTI` — otherwise two concurrent requests can
+        oversell the same unit.
+  - [ ] Synchronize telemedicine patient waiting lobby via Redis Sorted Sets (`ZADD`).
+        **NOT IMPLEMENTED (verified 2026-09-29):** no `lobby` / `waiting-room`
+        code exists under `backend/src/`. The only `zAdd` in the backend is in
+        `middleware/rateLimit.js` — an unrelated sliding-window rate limiter.
 
 ---
 
@@ -403,9 +411,20 @@ This document maps **every single one of the 36 architectural and technical spec
 - **Priority**: **P2 (Medium)** | **Phase**: **Phase 4**
 - **Core Components**: Early Sepsis MEWS Score Windows, Smartwatch Fall Detection, Cold-Chain Alerts.
 - **Actionable Developer Tasks**:
-  - [x] Stream patient vitals through Flink tumbling/sliding windows calculating MEWS scores (`findmedi.clinical.vitals-telemetry.v1`).
-  - [x] Alert Rapid Response Team if MEWS score spikes $\ge 3$ points within 90 minutes.
-  - [x] Detect pharmacy refrigerator thermal drift exceeding $8^\circ\text{C}$ for $> 15\text{ minutes}$.
+  - [ ] Stream patient vitals through Flink tumbling/sliding windows calculating MEWS scores (`findmedi.clinical.vitals-telemetry.v1`).
+        **NOT IMPLEMENTED (verified 2026-09-29):** `infra/flink-lib/` holds only
+        `.gitignore`, a Kafka SQL connector JAR and a README. There is no `.sql`
+        job, no job submission in `infra/docker-compose.yml`, and `MEWS` has 0
+        hits in `backend/src/`. The Kafka topic itself IS emitted
+        (`lib/kafkaProducer.js` → `VITALS_TELEMETRY`), but nothing consumes it.
+  - [ ] Alert Rapid Response Team if MEWS score spikes $\ge 3$ points within 90 minutes.
+        **NOT IMPLEMENTED (verified 2026-09-29):** depends on the MEWS score
+        above, which does not exist. No RRT escalation path in `backend/src/`.
+  - [ ] Detect pharmacy refrigerator thermal drift exceeding $8^\circ\text{C}$ for $> 15\text{ minutes}$.
+        **NOT IMPLEMENTED (verified 2026-09-29):** `refrigerator`/`cold-chain`
+        have 0 hits in `backend/src/`. The only `thermal` matches are in
+        `rides.js` / `rideReceiptService.js` (Bluetooth receipt printing), which
+        is an unrelated feature.
 
 ---
 
@@ -458,11 +477,46 @@ This document maps **every single one of the 36 architectural and technical spec
 - **Priority**: **P2 (Medium)** | **Phase**: **Phase 5**
 - **Core Components**: Field-Level Envelope Encryption (AES-256-GCM), IoT UDP Daemon, Fast DICOM Stripping.
 - **Actionable Developer Tasks**:
-  - [x] Build Rust native worker for hardware-accelerated field-level encryption of sensitive health data (`infra/rust-telemetry`).
-  - [x] Deploy lightweight Tokio UDP daemon for ICU IoT monitor vitals streaming ($< 5\text{ MB}$ RAM).
-  - [x] Parse and strip Protected Health Information (PHI) metadata tags from binary telemetry.
+  - [ ] Build Rust native worker for hardware-accelerated field-level encryption of sensitive health data (`infra/rust-telemetry`).
+        **NOT IMPLEMENTED (verified 2026-09-29):** the crate exists
+        (`Cargo.toml` + `src/main.rs`, 1.9 KB) but `Cargo.toml` declares no
+        crypto dependency (no aes/ring/chacha) and there is no encryption code
+        anywhere in `src/`.
+  - [ ] Deploy lightweight Tokio UDP daemon for ICU IoT monitor vitals streaming ($< 5\text{ MB}$ RAM).
+        **PARTIAL (verified 2026-09-29):** the Tokio UDP loop in
+        `infra/rust-telemetry/src/main.rs` is real, but `process_telemetry()`
+        only calls `tracing::debug!` — the H3 indexing, Redis write and Kafka
+        emit described in its own comments are NOT implemented. Also note the
+        packet shape is `lat/lng/bearing/speed_kmh` (GPS location), not the
+        clinical vitals (HR/RR/temp/SpO2) this task describes, so the
+        `TelemetryPacket` struct itself needs widening before it fits.
+  - [ ] Parse and strip Protected Health Information (PHI) metadata tags from binary telemetry.
+        **NOT IMPLEMENTED (verified 2026-09-29):** no `phi`/`strip`/`redact`
+        code in `src/main.rs`; the parser is plain `serde_json`, so binary DICOM
+        metadata is neither read nor removed.
 
 ---
 
 ## 🏁 Summary: 100% Coverage Verification
+> **Read this before trusting any `[x]` in this file.**
+>
+> The heading above originally read "100% Coverage Verification", which reads as
+> "everything is built". It is not. It meant *"every concept has been catalogued
+> with a priority, a phase and a task"* — the paperwork is complete, the
+> implementation is not. State as of the 2026-09-29 audit:
+>
+> | Metric | Value |
+> |---|---|
+> | `[x]` claimed done | 37 |
+> | `[ ]` genuinely open | 79 |
+> | **Completion** | **32%** |
+>
+> A `[x]` also only means "the named artifact exists somewhere" — nobody has
+> reviewed whether the implementation is correct or complete. Seven `[x]` marks
+> turned out to have **no implementation behind them at all** and were demoted
+> to `[ ]` with evidence recorded inline: TECH EXP 04 (2), TECH EXP 05 (3),
+> TECH EXP 10 (2 full + 1 partial). See those entries for the grep evidence.
+>
+> `INFRA-OPERATIONS-CHECKLIST.md` sits at **0%** — all 14 items are still open.
+
 Every single concept, technology, and architectural responsibility from the master blueprint and tech expansion suite is now accounted for with a clear Priority (P0, P1, P2), execution Phase (1 through 6), and concrete engineering tasks.

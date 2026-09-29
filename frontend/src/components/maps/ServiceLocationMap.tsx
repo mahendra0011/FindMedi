@@ -998,6 +998,10 @@ export default function ServiceLocationMap({ entityType, entity, className }: Se
     return `${formatDistance(route.distance)} • ${formatDuration(route.duration)}`;
   }, [route]);
   const routeError = routeStatus?.error || '';
+  // A missing/failed route provider falls back to a straight line between the
+  // two points. That looks like a rendering bug, so surface the reason rather
+  // than silently drawing a line that doesn't follow any road.
+  const routeNotice = route?.warning || '';
   const hasRoute = (route?.coordinates?.length ?? 0) > 1;
   const routeCoordinates = route?.coordinates ?? [];
 
@@ -1211,7 +1215,7 @@ export default function ServiceLocationMap({ entityType, entity, className }: Se
                 </span>
               </div>
             ) : null}
-            {(geocodeStatus?.loading || geocodeStatus?.error || routeStatus?.error || locateError) && (
+            {(geocodeStatus?.loading || geocodeStatus?.error || routeStatus?.error || routeError || routeNotice || locateError) && (
               <div className="flex items-start gap-2 rounded-xl border border-border/60 bg-card/95 px-3 py-2 text-xs shadow-lg backdrop-blur">
                 {geocodeStatus?.loading ? (
                   <Loader2 className="mt-0.5 h-3.5 w-3.5 animate-spin text-primary" />
@@ -1221,7 +1225,9 @@ export default function ServiceLocationMap({ entityType, entity, className }: Se
                 <span className="text-muted-foreground">
                   {geocodeStatus?.loading
                     ? 'Finding map location...'
-                    : routeStatus?.error || locateError || geocodeStatus?.error}
+                    : routeNotice
+                      ? `Approximate route — ${routeNotice}`
+                      : routeError || locateError || geocodeStatus?.error}
                 </span>
               </div>
             )}

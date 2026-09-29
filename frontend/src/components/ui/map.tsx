@@ -56,7 +56,29 @@ export function useMap(): MapContextValue {
   return context;
 }
 
-const osmRasterStyle: maplibregl.StyleSpecification = {
+// Base map style.
+//
+// OpenFreeMap "liberty" — a vector (not raster) style derived from the
+// Mapbox-Streets look, which is why its road hierarchy reads the way
+// ride/navigation apps expect: motorways thick and orange, arterials
+// white and medium, residential thin but visible. No API key, no quota.
+//
+// Previously this was a hand-rolled raster style pointing at
+// tile.openstreetmap.org, which is a low-contrast raster that makes the
+// route line hard to pick out against the basemap.
+//
+// A remote style URL is a deliberate trade-off: MapLibre fetches this JSON
+// (plus vector tiles + glyphs) from tiles.openfreemap.org at runtime, so
+// that origin must be allowed by the backend CSP `connect-src` — see
+// backend/src/index.js. The old inline style needed no such allowance.
+const OPENFREEMAP_STYLE = 'https://tiles.openfreemap.org/styles/liberty';
+
+// Last-resort style, used only when the primary style fails to load (network
+// blocked, OpenFreeMap down, bad style JSON). It is a plain inline object with
+// no remote style fetch, so the map still renders *something* instead of a
+// blank canvas. Keep this independent of OPENFREEMAP_STYLE — pointing the
+// recovery path at the same failing remote URL would defeat its purpose.
+const FALLBACK_RASTER_STYLE: maplibregl.StyleSpecification = {
   version: 8,
   glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
   sources: {
@@ -78,7 +100,7 @@ const osmRasterStyle: maplibregl.StyleSpecification = {
 // is undefined and `vite.config.js` defines `process.env` as `{}`, so that branch
 // always evaluated to `undefined`. Dropped in favour of the single Vite-idiomatic
 // read; `MAPTILER_KEY` stays optional so `maptilerBasicStyle` is null without a key
-// and `getActiveStyle` falls back to the free OpenStreetMap raster style.
+// and `getActiveStyle` falls back to the free OpenFreeMap Liberty vector style.
 const MAPTILER_KEY: string | undefined = import.meta.env.VITE_MAPTILER_API_KEY;
 const maptilerBasicStyle = MAPTILER_KEY
   ? {
@@ -89,15 +111,21 @@ const maptilerBasicStyle = MAPTILER_KEY
 
 type MapStyle = string | { light: string; dark: string };
 
+function isStyleSpec(value: unknown): value is maplibregl.StyleSpecification {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'version' in value &&
+    'layers' in value
+  );
+}
+
 function getActiveStyle(styles?: MapStyle | null): string | maplibregl.StyleSpecification {
-  const activeStyles = styles ?? maptilerBasicStyle ?? osmRasterStyle;
+  const activeStyles = styles ?? maptilerBasicStyle ?? OPENFREEMAP_STYLE;
   if (typeof activeStyles === 'string') return activeStyles;
-  if ('version' in activeStyles) return activeStyles;
+  if (isStyleSpec(activeStyles)) return activeStyles;
   const theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
-  return (activeStyles as { light?: string; dark?: string })[theme] ??
-    (activeStyles as { light?: string })?.light ??
-    (activeStyles as { dark?: string })?.dark ??
-    osmRasterStyle;
+  return activeStyles[theme] ?? activeStyles.light ?? activeStyles.dark ?? FALLBACK_RASTER_STYLE;
 }
 
 export function Map({
@@ -151,7 +179,7 @@ export function Map({
     function handleError() {
       if (!isLoaded && !didFallback && typeof activeStyle === 'string') {
         didFallback = true;
-        map.setStyle(osmRasterStyle as maplibregl.StyleSpecification);
+        map.setStyle(FALLBACK_RASTER_STYLE);
       }
       if (!isLoaded) setLoadError('Map is having trouble loading.');
     }

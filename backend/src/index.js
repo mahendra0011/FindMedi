@@ -77,8 +77,16 @@ app.use(helmet({
       scriptSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
       fontSrc: ["'self'", "data:"],
-      imgSrc: ["'self'", "data:", "https://res.cloudinary.com", "https://basemaps.cartocdn.com", "https://api.maptiler.com", "https://*.tile.openstreetmap.org"],
-      connectSrc: ["'self'", "https://api.maptiler.com", "https://api.openrouteservice.org", "https://api.open-elevation.com"],
+      // OpenFreeMap serves the basemap style JSON, the vector tiles and the
+      // glyph (label) PBF — all fetched by the browser, so it must be in
+      // connect-src or MapLibre silently renders a blank canvas. Its
+      // `ne2_shaded` layer is a raster .png, which is why it is also in
+      // img-src below.
+      imgSrc: ["'self'", "data:", "https://res.cloudinary.com", "https://basemaps.cartocdn.com", "https://api.maptiler.com", "https://*.tile.openstreetmap.org", "https://tiles.openfreemap.org"],
+      // OpenRouteService was removed from the frontend routing path (mapSlice
+      // now calls /api/routing/navigation → self-hosted Valhalla), so it is no
+      // longer an origin the browser needs to reach.
+      connectSrc: ["'self'", "https://api.maptiler.com", "https://api.open-elevation.com", "https://tiles.openfreemap.org"],
     },
   },
   hsts: { maxAge: 31536000, includeSubDomains: true },
