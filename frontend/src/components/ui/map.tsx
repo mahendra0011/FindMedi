@@ -11,6 +11,7 @@ import { createRoot } from 'react-dom/client';
 import type { Feature, LineString } from 'geojson';
 import * as maplibregl from 'maplibre-gl';
 import { Compass, LocateFixed, Maximize2, Minimize2, Minus, Plus } from 'lucide-react';
+import type { MarkerSmoother } from '../../utils/markerInterpolation';
 import { cn } from '@/lib/utils';
 
 const MapContext = React.createContext<MapContextValue | null>(null);
@@ -71,7 +72,14 @@ const osmRasterStyle: maplibregl.StyleSpecification = {
   layers: [{ id: 'osm-raster-layer', type: 'raster', source: 'osm-raster' }],
 } as const;
 
-const MAPTILER_KEY = (import.meta as any)?.env?.VITE_MAPTILER_API_KEY || (typeof process !== 'undefined' && process?.env ? process.env.NEXT_PUBLIC_MAPTILER_API_KEY : undefined);
+// Vite inlines `import.meta.env.VITE_*` at build time (typed via src/vite-env.d.ts).
+// The old fallback also read `process.env.NEXT_PUBLIC_MAPTILER_API_KEY`, a leftover
+// from the Next.js client this file was ported from: in the browser bundle `process`
+// is undefined and `vite.config.js` defines `process.env` as `{}`, so that branch
+// always evaluated to `undefined`. Dropped in favour of the single Vite-idiomatic
+// read; `MAPTILER_KEY` stays optional so `maptilerBasicStyle` is null without a key
+// and `getActiveStyle` falls back to the free OpenStreetMap raster style.
+const MAPTILER_KEY: string | undefined = import.meta.env.VITE_MAPTILER_API_KEY;
 const maptilerBasicStyle = MAPTILER_KEY
   ? {
       light: `https://api.maptiler.com/maps/streets-v2/style.json?key=${MAPTILER_KEY}`,
@@ -378,7 +386,7 @@ export function MapMarker({
   const { map, isLoaded } = useMap();
   const elementRef = React.useRef<HTMLDivElement | null>(null);
   const markerRef = React.useRef<maplibregl.Marker | null>(null);
-  const smootherRef = React.useRef<any>(null);
+  const smootherRef = React.useRef<MarkerSmoother | null>(null);
   const rootRef = React.useRef<ReturnType<typeof createRoot> | null>(null);
   const markerPosition = normalizeLngLat([longitude, latitude], null);
 
@@ -439,7 +447,7 @@ export function MapMarker({
     } else {
       markerRef.current.setLngLat(markerPosition);
     }
-  }, [markerPosition?.[0], markerPosition?.[1], bearing, smoothGlide]);
+  }, [markerPosition?.[0], markerPosition?.[1], bearing, smoothGlide]); // eslint-disable-line react-hooks/exhaustive-deps -- glide effect intentionally depends on the derived markerPosition coordinates (not the array identity) so an equal-but-new array from the parent does not restart the smoother; latitude/longitude are the same values markerPosition is derived from
 
   React.useEffect(() => {
     if (!elementRef.current) return undefined;
