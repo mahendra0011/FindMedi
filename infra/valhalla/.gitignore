@@ -3,3 +3,10 @@ tiles/
 valhalla_tiles/
 *.pbf
 *.tar
+
+# admin.sqlite is produced by `valhalla_build_admins` (~7 MB binary). It must
+# live at this path because mjolnir.admin in valhalla.json resolves to
+# /data/valhalla/admin.sqlite, and the compose service mounts this directory at
+# both /data/valhalla and /custom_files. Rebuilt from the same PBF as the tiles.
+admin.sqlite
+tz_world.sqlite

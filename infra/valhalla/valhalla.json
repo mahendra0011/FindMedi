@@ -136,7 +136,6 @@
     "reclassify_links": true,
     "shortcuts": true,
     "tile_dir": "/custom_files/valhalla_tiles",
-    "tile_extract": "/custom_files/valhalla_tiles.tar",
     "timezone": "/data/valhalla/tz_world.sqlite",
     "traffic_extract": "/data/valhalla/traffic.tar",
     "transit_dir": "/data/valhalla/transit",

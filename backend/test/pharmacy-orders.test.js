@@ -1,5 +1,12 @@
 import request from 'supertest';
 import app from '../src/index.js';
+import { beforeAll } from '@jest/globals';
+import { post, put, del, setupCsrf } from './helpers/csrf.js';
+
+beforeAll(async () => {
+  await setupCsrf();
+});
+
 
 describe('Pharmacy Order Endpoints', () => {
   it('should reject listing orders without authentication', async () => {
@@ -13,9 +20,7 @@ describe('Pharmacy Order Endpoints', () => {
   });
 
   it('should reject creating an order without authentication', async () => {
-    const res = await request(app)
-      .post('/api/pharmacy/orders')
-      .set('Origin', 'http://localhost:3000')
+    const res = await post('/api/pharmacy/orders')
       .send({
         patientId: '64d9f8c2e1b2c3d4e5f6a7b8',
         patientName: 'Test Patient',
@@ -27,48 +32,36 @@ describe('Pharmacy Order Endpoints', () => {
   });
 
   it('should reject updating an order without authentication', async () => {
-    const res = await request(app)
-      .put('/api/pharmacy/orders/64d9f8c2e1b2c3d4e5f6a7b8')
-      .set('Origin', 'http://localhost:3000')
+    const res = await put('/api/pharmacy/orders/64d9f8c2e1b2c3d4e5f6a7b8')
       .send({ status: 'Confirmed' });
     expect(res.status).toBe(401);
   });
 
   it('should reject deleting an order without authentication', async () => {
-    const res = await request(app)
-      .delete('/api/pharmacy/orders/64d9f8c2e1b2c3d4e5f6a7b8')
-      .set('Origin', 'http://localhost:3000');
+    const res = await del('/api/pharmacy/orders/64d9f8c2e1b2c3d4e5f6a7b8');
     expect(res.status).toBe(401);
   });
 
   it('should reject forwarding an order without authentication', async () => {
-    const res = await request(app)
-      .post('/api/pharmacy/orders/64d9f8c2e1b2c3d4e5f6a7b8/forward')
-      .set('Origin', 'http://localhost:3000')
+    const res = await post('/api/pharmacy/orders/64d9f8c2e1b2c3d4e5f6a7b8/forward')
       .send({ facilityId: '64d9f8c2e1b2c3d4e5f6a7b8' });
     expect(res.status).toBe(401);
   });
 
   it('should reject rejecting an order without authentication', async () => {
-    const res = await request(app)
-      .put('/api/pharmacy/orders/64d9f8c2e1b2c3d4e5f6a7b8/reject')
-      .set('Origin', 'http://localhost:3000')
+    const res = await put('/api/pharmacy/orders/64d9f8c2e1b2c3d4e5f6a7b8/reject')
       .send({ reason: 'Not in stock' });
     expect(res.status).toBe(401);
   });
 
   it('should reject refunding an order without authentication', async () => {
-    const res = await request(app)
-      .post('/api/pharmacy/orders/64d9f8c2e1b2c3d4e5f6a7b8/refund')
-      .set('Origin', 'http://localhost:3000')
+    const res = await post('/api/pharmacy/orders/64d9f8c2e1b2c3d4e5f6a7b8/refund')
       .send({ amount: 50, reason: 'Cancelled by patient' });
     expect(res.status).toBe(401);
   });
 
   it('should reject order verification endpoint without authentication', async () => {
-    const res = await request(app)
-      .post('/api/pharmacy/orders/verify-prescriptions')
-      .set('Origin', 'http://localhost:3000')
+    const res = await post('/api/pharmacy/orders/verify-prescriptions')
       .send({ order: { items: [] } });
     expect(res.status).toBe(401);
   });

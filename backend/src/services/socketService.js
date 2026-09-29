@@ -1,5 +1,6 @@
 import { Server } from 'socket.io';
 import { createAdapter } from '@socket.io/redis-adapter';
+import jwt from 'jsonwebtoken';
 import logger from '../config/logger.js';
 import {
   redisPub,
@@ -262,6 +263,67 @@ const getAllowedSocketOrigins = () => {
     .filter(Boolean);
 };
 
+/**
+ * Socket.IO handshake authentication (audit CHAT-001).
+ *
+ * Before this existed there was no `io.use()` anywhere in the backend, so the
+ * `join` handler trusted the `userId`/`role` in the client payload. Any
+ * anonymous socket could therefore claim to be any user, join that user's
+ * `user:<id>` room and receive their notifications and chat, and forge events
+ * that carried a client-supplied `riderId` / `senderId`.
+ *
+ * Identity is now derived ONLY from a verified JWT, and the token is taken
+ * from the handshake (auth token first, then the httpOnly cookie) so this
+ * reuses exactly the credentials the REST layer already validates.
+ */
+function readHandshakeToken(socket) {
+  const authToken = socket.handshake?.auth?.token;
+  if (authToken) return String(authToken).replace(/^Bearer\s+/i, '');
+
+  const header = socket.handshake?.headers?.authorization;
+  if (header && header.startsWith('Bearer ')) return header.slice(7);
+
+  // Cookie header fallback: the REST layer accepts `cookies.token` too, so a
+  // same-origin socket connects without the client having to duplicate the
+  // token into the handshake payload.
+  const cookieHeader = socket.handshake?.headers?.cookie || '';
+  const match = cookieHeader.match(/(?:^|;\s*)token=([^;]+)/);
+  if (match) return decodeURIComponent(match[1]);
+
+  return null;
+}
+
+async function verifySocketAuth(socket, next) {
+  const token = readHandshakeToken(socket);
+  if (!token) {
+    return next(new Error('unauthorized: no token'));
+  }
+
+  let decoded;
+  try {
+    decoded = jwt.verify(token, process.env.JWT_SECRET);
+  } catch {
+    return next(new Error('unauthorized: invalid token'));
+  }
+
+  try {
+    const user = await User.findById(decoded.id).select('role status isVerified');
+    if (!user) return next(new Error('unauthorized: user not found'));
+    if (user.status === 'blocked') return next(new Error('unauthorized: blocked'));
+
+    socket.data.userId = String(user._id);
+    socket.data.role = user.role;
+    // Handlers predate `socket.data` and read these directly.
+    socket.userId = String(user._id);
+    socket.userRole = user.role;
+    return next();
+  } catch (err) {
+    // A DB error must not silently become "authenticated".
+    logger.error(`Socket auth lookup failed: ${err.message}`);
+    return next(new Error('unauthorized: auth lookup failed'));
+  }
+}
+
 export async function initSocket(server) {
   io = new Server(server, {
     cors: {
@@ -297,15 +359,25 @@ export async function initSocket(server) {
     logger.info('Socket.IO initialized (in-memory adapter — single instance mode)');
   }
 
+  // Every connection must present a valid token. Applied on the parent so the
+  // default namespace is covered; each `io.of(...)` namespace gets it explicitly
+  // below because namespaces do NOT inherit middleware from the parent.
+  io.use(verifySocketAuth);
+
   io.on('connection', (socket) => {
     logger.info(`Socket connected: ${socket.id}`);
 
     socket.on('join', async (payload) => {
-      const userId = typeof payload === 'object' ? payload?.userId : payload;
-      const role = typeof payload === 'object' ? payload?.role : undefined;
+      // The client used to supply `userId`/`role` here and the server trusted
+      // both, so any socket could join an arbitrary `user:<id>` room and read
+      // that user's notifications and chat (audit CHAT-001). Identity now comes
+      // exclusively from the token verified in verifySocketAuth; the payload is
+      // retained only for the non-identity fields older clients still send.
+      const userId = socket.data?.userId;
+      const role = socket.data?.role;
 
       if (userId) {
-        socket.userId = String(userId);
+        socket.userId = userId;
         socket.userRole = role;
         socket.join(`user:${userId}`);
 
@@ -488,16 +560,19 @@ export async function initSocket(server) {
   });
 
   const rideNsp = io.of('/ride');
+  rideNsp.use(verifySocketAuth);
   rideNsp.on('connection', (socket) => {
     attachRideSocketHandlers(socket, rideNsp);
   });
 
   const assistantNsp = io.of('/assistant');
+  assistantNsp.use(verifySocketAuth);
   assistantNsp.on('connection', (socket) => {
     attachAssistantSocketHandlers(socket, assistantNsp);
   });
 
   const lawyerNsp = io.of('/lawyer');
+  lawyerNsp.use(verifySocketAuth);
   lawyerNsp.on('connection', (socket) => {
     attachLawyerSocketHandlers(socket, lawyerNsp);
   });

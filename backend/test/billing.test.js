@@ -1,5 +1,11 @@
 import request from 'supertest';
 import app from '../src/index.js';
+import { beforeAll } from '@jest/globals';
+import { post, setupCsrf } from './helpers/csrf.js';
+
+beforeAll(async () => {
+  await setupCsrf();
+});
 
 describe('Billing Endpoints', () => {
   it('should reject fetching bills without authentication', async () => {
@@ -8,14 +14,11 @@ describe('Billing Endpoints', () => {
   });
 
   it('should reject creating a bill without authentication', async () => {
-    const res = await request(app)
-      .post('/api/billing')
-      .set('Origin', 'http://localhost:3000')
-      .send({
-        patient: 'Test Patient',
-        amount: 500,
-        service: 'Consultation',
-      });
+    const res = await post('/api/billing').send({
+      patient: 'Test Patient',
+      amount: 500,
+      service: 'Consultation',
+    });
     expect(res.status).toBe(401);
   });
 
