@@ -18,7 +18,7 @@ export interface VideoPeer {
   avatar?: string;
   role?: string;
   phone?: string;
-  appointmentId?: string;
+  appointmentId?: string | null;
 }
 
 /**
@@ -79,6 +79,42 @@ export interface VideoCallValue {
   toggleFullScreen: (...args: any[]) => any;
 }
 
+/** In-call chat payload — also used for messages arriving over the socket. */
+export interface InCallMessage {
+  senderId?: string;
+  senderName?: string;
+  text?: string;
+  timestamp?: number;
+  [key: string]: unknown;
+}
+
+/** Loose shape of the `videocall:*` socket payloads this context listens to. */
+interface VideoCallSignalEvent {
+  caller?: { id?: string; name?: string; avatar?: string; role?: string; phone?: string };
+  from?: string;
+  to?: string;
+  callLogId?: string;
+  appointmentId?: string;
+  offer?: RTCSessionDescriptionInit;
+  answer?: RTCSessionDescriptionInit;
+  candidate?: RTCIceCandidateInit;
+  kind?: string;
+  enabled?: boolean;
+  message?: InCallMessage;
+  [key: string]: unknown;
+}
+
+/** `catch` variables are `unknown` under `useUnknownInCatchVariables`; these unwrap them. */
+function errName(e: unknown): string {
+  return typeof e === 'object' && e !== null && 'name' in e
+    ? String((e as { name: unknown }).name)
+    : '';
+}
+
+function errMessage(e: unknown): string {
+  return e instanceof Error ? e.message : String(e);
+}
+
 const VideoCallContext = createContext<VideoCallValue | null>(null);
 
 const ICE_SERVERS = {
@@ -96,10 +132,10 @@ export function VideoCallProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
 
   // Call States: 'idle' | 'calling' | 'ringing' | 'connecting' | 'connected' | 'ended' | 'busy' | 'timeout'
-  const [callState, setCallState] = useState('idle');
-  const [activePeer, setActivePeer] = useState(null); // { id, name, avatar, role, phone, appointmentId }
+  const [callState, setCallState] = useState<string>('idle');
+  const [activePeer, setActivePeer] = useState<VideoPeer | null>(null); // { id, name, avatar, role, phone, appointmentId }
   const [isCaller, setIsCaller] = useState(false);
-  const [currentCallLogId, setCurrentCallLogId] = useState(null);
+  const [currentCallLogId, setCurrentCallLogId] = useState<string | null>(null);
 
   // Audio/Video Hardware States
   const [isAudioMuted, setIsAudioMuted] = useState(false);
@@ -110,34 +146,34 @@ export function VideoCallProvider({ children }: { children: ReactNode }) {
   const [isLowLightEnhanced, setIsLowLightEnhanced] = useState(false);
 
   // Hardware Devices
-  const [availableCameras, setAvailableCameras] = useState([]);
+  const [availableCameras, setAvailableCameras] = useState<MediaDeviceInfo[]>([]);
   const [selectedCameraId, setSelectedCameraId] = useState('');
-  const [facingMode, setFacingMode] = useState('user'); // 'user' | 'environment'
-  const [audioOutputDevices, setAudioOutputDevices] = useState([]);
+  const [facingMode, setFacingMode] = useState<string>('user'); // 'user' | 'environment'
+  const [audioOutputDevices, setAudioOutputDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedOutputId, setSelectedOutputId] = useState('default');
 
   // Telemedicine & Medical Features
   const [isScreenSharing, setIsScreenSharing] = useState(false);
-  const [inCallMessages, setInCallMessages] = useState([]);
+  const [inCallMessages, setInCallMessages] = useState<InCallMessage[]>([]);
   const [clinicalNotes, setClinicalNotes] = useState('');
 
   // Stats & Display
   const [callDuration, setCallDuration] = useState(0);
-  const [networkQuality, setNetworkQuality] = useState('1080p-fullhd'); // '1080p-fullhd' | 'good' | 'fair' | 'poor' | 'reconnecting'
-  const [resolutionLabel, setResolutionLabel] = useState('1080p Full HD');
+  const [networkQuality, setNetworkQuality] = useState<string>('1080p-fullhd'); // '1080p-fullhd' | 'good' | 'fair' | 'poor' | 'reconnecting'
+  const [resolutionLabel, setResolutionLabel] = useState<string>('1080p Full HD');
   const [isMinimized, setIsMinimized] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
 
   // References
-  const peerConnectionRef = useRef(null);
-  const localStreamRef = useRef(null);
-  const remoteStreamRef = useRef(null);
-  const remoteVideoElemRef = useRef(null);
-  const localVideoElemRef = useRef(null);
-  const callTimerRef = useRef(null);
-  const timeoutTimerRef = useRef(null);
-  const qualityIntervalRef = useRef(null);
-  const stopToneRef = useRef(null);
+  const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
+  const localStreamRef = useRef<MediaStream | null>(null);
+  const remoteStreamRef = useRef<MediaStream | null>(null);
+  const remoteVideoElemRef = useRef<HTMLVideoElement | null>(null);
+  const localVideoElemRef = useRef<HTMLVideoElement | null>(null);
+  const callTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timeoutTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const qualityIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const stopToneRef = useRef<(() => void) | null>(null);
 
   // Enumerate cameras and audio outputs
   const refreshMediaDevices = useCallback(async () => {
@@ -214,12 +250,15 @@ export function VideoCallProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // ── Acquire Full HD 1080p Video + High-Quality Audio Stream ──
-  const getCameraAndMicStream = async (customCameraId = null, customFacingMode = null) => {
+  const getCameraAndMicStream = async (
+    customCameraId: string | null = null,
+    customFacingMode: string | null = null,
+  ): Promise<MediaStream> => {
     const targetFacing = customFacingMode || facingMode;
     const targetCameraId = customCameraId || selectedCameraId;
 
     // Full HD 1080p Constraints
-    const constraints1080p = {
+    const constraints1080p: MediaStreamConstraints = {
       video: targetCameraId
         ? {
             deviceId: { exact: targetCameraId },
@@ -277,12 +316,13 @@ export function VideoCallProvider({ children }: { children: ReactNode }) {
         }
         return fallbackStream;
       } catch (fallbackErr) {
-        if (fallbackErr.name === 'NotAllowedError' || fallbackErr.name === 'PermissionDeniedError') {
+        const name = errName(fallbackErr);
+        if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
           toast.error('Camera & Microphone permission denied. Please allow access.');
-        } else if (fallbackErr.name === 'NotFoundError') {
+        } else if (name === 'NotFoundError') {
           toast.error('No camera or microphone found on your device.');
         } else {
-          toast.error(`Media access failed: ${fallbackErr.message}`);
+          toast.error(`Media access failed: ${errMessage(fallbackErr)}`);
         }
         throw fallbackErr;
       }
@@ -290,9 +330,10 @@ export function VideoCallProvider({ children }: { children: ReactNode }) {
   };
 
   // ── Switch Camera (Front/Rear or Specific Device) ──
-  const switchCamera = useCallback(async (deviceId) => {
+  const switchCamera = useCallback(async (deviceId: string) => {
     setSelectedCameraId(deviceId);
-    if (!localStreamRef.current) return;
+    const localStream = localStreamRef.current;
+    if (!localStream) return;
 
     try {
       // Acquire new video track
@@ -314,15 +355,17 @@ export function VideoCallProvider({ children }: { children: ReactNode }) {
       }
 
       // Stop old video track
-      const oldVideoTrack = localStreamRef.current.getVideoTracks()[0];
-      if (oldVideoTrack) oldVideoTrack.stop();
+      const oldVideoTrack = localStream.getVideoTracks()[0];
+      if (oldVideoTrack) {
+        oldVideoTrack.stop();
+        localStream.removeTrack(oldVideoTrack);
+      }
 
       // Replace in local stream
-      localStreamRef.current.removeTrack(oldVideoTrack);
-      localStreamRef.current.addTrack(newVideoTrack);
+      localStream.addTrack(newVideoTrack);
 
       if (localVideoElemRef.current) {
-        localVideoElemRef.current.srcObject = localStreamRef.current;
+        localVideoElemRef.current.srcObject = localStream;
       }
       toast.success('Camera switched');
     } catch (e) {
@@ -336,7 +379,8 @@ export function VideoCallProvider({ children }: { children: ReactNode }) {
     const nextFacing = facingMode === 'user' ? 'environment' : 'user';
     setFacingMode(nextFacing);
 
-    if (!localStreamRef.current) return;
+    const localStream = localStreamRef.current;
+    if (!localStream) return;
     try {
       const newStream = await navigator.mediaDevices.getUserMedia({
         video: {
@@ -354,14 +398,16 @@ export function VideoCallProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      const oldVideoTrack = localStreamRef.current.getVideoTracks()[0];
-      if (oldVideoTrack) oldVideoTrack.stop();
+      const oldVideoTrack = localStream.getVideoTracks()[0];
+      if (oldVideoTrack) {
+        oldVideoTrack.stop();
+        localStream.removeTrack(oldVideoTrack);
+      }
 
-      localStreamRef.current.removeTrack(oldVideoTrack);
-      localStreamRef.current.addTrack(newVideoTrack);
+      localStream.addTrack(newVideoTrack);
 
       if (localVideoElemRef.current) {
-        localVideoElemRef.current.srcObject = localStreamRef.current;
+        localVideoElemRef.current.srcObject = localStream;
       }
       toast.info(`Camera flipped to ${nextFacing === 'user' ? 'Front' : 'Rear'}`);
     } catch (e) {
@@ -427,7 +473,7 @@ export function VideoCallProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const setAudioOutput = useCallback(async (deviceId) => {
+  const setAudioOutput = useCallback(async (deviceId: string) => {
     setSelectedOutputId(deviceId);
     if (remoteVideoElemRef.current && typeof remoteVideoElemRef.current.setSinkId === 'function') {
       try {
@@ -474,7 +520,8 @@ export function VideoCallProvider({ children }: { children: ReactNode }) {
 
   // ── Screen Sharing (Display Media) ──
   const toggleScreenShare = useCallback(async () => {
-    if (!localStreamRef.current) return;
+    const localStream = localStreamRef.current;
+    if (!localStream) return;
 
     if (isScreenSharing) {
       // Revert back to webcam
@@ -492,14 +539,16 @@ export function VideoCallProvider({ children }: { children: ReactNode }) {
           if (sender) await sender.replaceTrack(camVideoTrack);
         }
 
-        const oldTrack = localStreamRef.current.getVideoTracks()[0];
-        if (oldTrack) oldTrack.stop();
+        const oldTrack = localStream.getVideoTracks()[0];
+        if (oldTrack) {
+          oldTrack.stop();
+          localStream.removeTrack(oldTrack);
+        }
 
-        localStreamRef.current.removeTrack(oldTrack);
-        localStreamRef.current.addTrack(camVideoTrack);
+        localStream.addTrack(camVideoTrack);
 
         if (localVideoElemRef.current) {
-          localVideoElemRef.current.srcObject = localStreamRef.current;
+          localVideoElemRef.current.srcObject = localStream;
         }
 
         setIsScreenSharing(false);
@@ -513,7 +562,7 @@ export function VideoCallProvider({ children }: { children: ReactNode }) {
       // Start Screen Share
       try {
         const displayStream = await navigator.mediaDevices.getDisplayMedia({
-          video: { cursor: 'always' },
+          video: { cursor: 'always' } as MediaTrackConstraints,
           audio: false,
         });
         const screenTrack = displayStream.getVideoTracks()[0];
@@ -523,13 +572,16 @@ export function VideoCallProvider({ children }: { children: ReactNode }) {
           if (sender) await sender.replaceTrack(screenTrack);
         }
 
-        const oldTrack = localStreamRef.current.getVideoTracks()[0];
+        const oldTrack = localStream.getVideoTracks()[0];
 
-        localStreamRef.current.removeTrack(oldTrack);
-        localStreamRef.current.addTrack(screenTrack);
+        if (oldTrack) {
+          oldTrack.stop();
+          localStream.removeTrack(oldTrack);
+        }
+        localStream.addTrack(screenTrack);
 
         if (localVideoElemRef.current) {
-          localVideoElemRef.current.srcObject = localStreamRef.current;
+          localVideoElemRef.current.srcObject = localStream;
         }
 
         setIsScreenSharing(true);
@@ -550,11 +602,11 @@ export function VideoCallProvider({ children }: { children: ReactNode }) {
               if (sender) await sender.replaceTrack(camVideoTrack);
             }
 
-            localStreamRef.current.removeTrack(screenTrack);
-            localStreamRef.current.addTrack(camVideoTrack);
+            localStream.removeTrack(screenTrack);
+            localStream.addTrack(camVideoTrack);
 
             if (localVideoElemRef.current) {
-              localVideoElemRef.current.srcObject = localStreamRef.current;
+              localVideoElemRef.current.srcObject = localStream;
             }
             setIsScreenSharing(false);
             if (activePeer?.id) s.emit('videocall:screen_share', { to: activePeer.id, isSharing: false });
@@ -562,7 +614,7 @@ export function VideoCallProvider({ children }: { children: ReactNode }) {
           } catch (err) {}
         };
       } catch (err) {
-        if (err.name !== 'NotAllowedError') {
+        if (errName(err) !== 'NotAllowedError') {
           toast.error('Screen sharing could not be started');
         }
       }
@@ -570,7 +622,7 @@ export function VideoCallProvider({ children }: { children: ReactNode }) {
   }, [isScreenSharing, activePeer]);
 
   // ── In-Call Chat Messaging ──
-  const sendInCallMessage = useCallback((text) => {
+  const sendInCallMessage = useCallback((text: string) => {
     if (!text || !text.trim() || !activePeer?.id) return;
     const msg = {
       senderId: String(user?._id),
@@ -589,7 +641,7 @@ export function VideoCallProvider({ children }: { children: ReactNode }) {
   }, [activePeer, user]);
 
   // ── Save Clinical Consultation Notes ──
-  const saveClinicalNotes = useCallback(async (notesText) => {
+  const saveClinicalNotes = useCallback(async (notesText?: string) => {
     const textToSave = notesText != null ? notesText : clinicalNotes;
     if (!currentCallLogId) {
       toast.error('No active call record found');
@@ -616,6 +668,7 @@ export function VideoCallProvider({ children }: { children: ReactNode }) {
       canvas.width = videoElem.videoWidth;
       canvas.height = videoElem.videoHeight;
       const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('2D canvas context unavailable');
       ctx.drawImage(videoElem, 0, 0, canvas.width, canvas.height);
 
       const dataUrl = canvas.toDataURL('image/png');
@@ -633,7 +686,7 @@ export function VideoCallProvider({ children }: { children: ReactNode }) {
   }, [activePeer]);
 
   // ── Backend Call Log Helpers ──
-  const logInitiate = async (receiverId, appointmentId) => {
+  const logInitiate = async (receiverId: string, appointmentId: string | null) => {
     try {
       const res = await fetch('/api/calls/initiate', {
         method: 'POST',
@@ -652,7 +705,12 @@ export function VideoCallProvider({ children }: { children: ReactNode }) {
     return null;
   };
 
-  const updateCallStatus = async (callId, status, duration = 0, notes = '') => {
+  const updateCallStatus = async (
+    callId: string | null,
+    status: string,
+    duration = 0,
+    notes = '',
+  ) => {
     if (!callId) return;
     try {
       await fetch(`/api/calls/${callId}/status`, {
@@ -667,7 +725,8 @@ export function VideoCallProvider({ children }: { children: ReactNode }) {
   };
 
   // ── WebRTC PeerConnection Setup ──
-  const createPeerConnection = useCallback((peerUserId, isOriginator) => {
+  const createPeerConnection = useCallback(
+    (peerUserId: string | undefined, isOriginator: boolean): RTCPeerConnection => {
     const pc = new RTCPeerConnection(ICE_SERVERS);
     peerConnectionRef.current = pc;
 
@@ -715,8 +774,13 @@ export function VideoCallProvider({ children }: { children: ReactNode }) {
         try {
           const stats = await pc.getStats();
           stats.forEach((report) => {
-            if (report.type === 'candidate-pair' && report.state === 'succeeded') {
-              const rtt = report.currentRoundTripTime;
+            // `RTCStats` is a minimal base type; candidate-pair fields are not on it.
+            const pair = report as RTCStats & {
+              state?: string;
+              currentRoundTripTime?: number;
+            };
+            if (report.type === 'candidate-pair' && pair.state === 'succeeded') {
+              const rtt = pair.currentRoundTripTime;
               if (rtt != null) {
                 if (rtt < 0.12) {
                   setNetworkQuality('1080p-fullhd');
@@ -739,10 +803,13 @@ export function VideoCallProvider({ children }: { children: ReactNode }) {
     }, 3500);
 
     return pc;
-  }, []);
+    },
+    [],
+  );
 
   // ── INITIATE OUTGOING VIDEO CALL ──
-  const initiateVideoCall = useCallback(async (recipient, appointmentId = null) => {
+  const initiateVideoCall = useCallback(
+    async (recipient: Partial<VideoPeer> & { _id?: string }, appointmentId: string | null = null) => {
     if (!recipient || (!recipient.id && !recipient._id)) {
       toast.error('Recipient information missing');
       return;
@@ -812,7 +879,9 @@ export function VideoCallProvider({ children }: { children: ReactNode }) {
       setCallState('idle');
       setActivePeer(null);
     }
-  }, [callState, user, cleanupMediaAndPeer]);
+    },
+    [callState, user, cleanupMediaAndPeer],
+  );
 
   // ── ACCEPT INCOMING VIDEO CALL ──
   const acceptVideoCall = useCallback(async () => {
@@ -915,7 +984,7 @@ export function VideoCallProvider({ children }: { children: ReactNode }) {
     if (!s) return;
 
     // Incoming Video Call Invite
-    const handleVideoInvite = (data) => {
+    const handleVideoInvite = (data: VideoCallSignalEvent) => {
       const callerId = String(data.caller?.id || data.from);
 
       // If user is already on a call, emit busy
@@ -973,8 +1042,9 @@ export function VideoCallProvider({ children }: { children: ReactNode }) {
       try {
         const pc = createPeerConnection(activePeer?.id, true);
 
-        if (localStreamRef.current) {
-          localStreamRef.current.getTracks().forEach((track) => pc.addTrack(track, localStreamRef.current));
+        const ls = localStreamRef.current;
+        if (ls) {
+          ls.getTracks().forEach((track) => pc.addTrack(track, ls));
         }
 
         const offer = await pc.createOffer({
@@ -993,17 +1063,18 @@ export function VideoCallProvider({ children }: { children: ReactNode }) {
     };
 
     // Recipient receives video offer -> responds with video answer
-    const handleVideoOffer = async (data) => {
+    const handleVideoOffer = async (data: VideoCallSignalEvent) => {
       try {
         let pc = peerConnectionRef.current;
         if (!pc) {
           pc = createPeerConnection(activePeer?.id, false);
-          if (localStreamRef.current) {
-            localStreamRef.current.getTracks().forEach((track) => pc.addTrack(track, localStreamRef.current));
+          const ls = localStreamRef.current;
+          if (ls) {
+            ls.getTracks().forEach((track) => pc!.addTrack(track, ls));
           }
         }
 
-        await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
+        await pc.setRemoteDescription(new RTCSessionDescription(data.offer!));
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
 
@@ -1025,11 +1096,11 @@ export function VideoCallProvider({ children }: { children: ReactNode }) {
     };
 
     // Caller receives video answer -> media flowing
-    const handleVideoAnswer = async (data) => {
+    const handleVideoAnswer = async (data: VideoCallSignalEvent) => {
       try {
         const pc = peerConnectionRef.current;
         if (pc) {
-          await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+          await pc.setRemoteDescription(new RTCSessionDescription(data.answer!));
 
           playConnectSound();
           setCallState('connected');
@@ -1044,7 +1115,7 @@ export function VideoCallProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    const handleVideoIce = async (data) => {
+    const handleVideoIce = async (data: VideoCallSignalEvent) => {
       try {
         const pc = peerConnectionRef.current;
         if (pc && data.candidate) {
@@ -1055,7 +1126,7 @@ export function VideoCallProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    const handleTrackState = (data) => {
+    const handleTrackState = (data: VideoCallSignalEvent) => {
       if (data.kind === 'video') {
         setIsRemoteVideoMuted(!data.enabled);
       } else if (data.kind === 'audio') {
@@ -1120,10 +1191,12 @@ export function VideoCallProvider({ children }: { children: ReactNode }) {
       }, 2000);
     };
 
-    const handleIncomingMessage = (data) => {
+    const handleIncomingMessage = (data: VideoCallSignalEvent) => {
       if (data?.message) {
-        setInCallMessages((prev) => [...prev, data.message]);
-        toast.info(`Message from ${data.message.senderName || 'Patient'}: ${data.message.text.slice(0, 30)}...`);
+        setInCallMessages((prev) => [...prev, data.message!]);
+        toast.info(
+          `Message from ${data.message.senderName || 'Patient'}: ${data.message.text?.slice(0, 30) ?? ''}...`,
+        );
       }
     };
 
