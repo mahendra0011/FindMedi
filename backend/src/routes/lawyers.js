@@ -11,6 +11,7 @@ import {
 } from '../services/lawyerService.js';
 import { upsertProviderLocationCache, removeProviderFromCache } from '../lib/h3Cache.js';
 import logger from '../config/logger.js';
+import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
 
 const router = express.Router();
 
@@ -105,7 +106,7 @@ router.get('/', async (req, res) => {
     }
 
     if (language) {
-      query.languages = new RegExp(language, 'i');
+      query.languages = new RegExp(escapeRegex(capSearch(language)), 'i');
     }
 
     let profiles = await LawyerProfile.find(query)
@@ -404,12 +405,24 @@ router.post('/withdraw-demo', protect, async (req, res) => {
       return res.status(404).json({ message: 'Lawyer profile not found' });
     }
 
+    // LAW-B-01: this was a read-modify-write:
+    //   balance = profile.walletBalance   (read)
+    //   profile.walletBalance = balance - requested; await profile.save()  (write)
+    // Two concurrent requests both read the same balance and both write, so the
+    // wallet is debited once while two payout references are issued - a
+    // double-spend that costs the platform real money.
+    //
+    // It is now a single atomic compare-and-set: the filter carries the balance
+    // we validated against, so the loser of a race matches zero documents and is
+    // reported as a conflict instead of quietly overdrawing.
     const balance = profile.walletBalance || 0;
     if (balance <= 0) {
       return res.status(400).json({ message: 'No withdrawable balance available' });
     }
 
-    // Amount optional hai — na bhejne par pura balance withdraw hota hai (backwards compatible)
+    // Amount optional: omitting it withdraws the whole balance (backwards compatible).
+    // LAW-B-02: the amount is still client-supplied, so it is validated and bounded
+    // here - never trusted because it arrived in a body.
     const requested =
       req.body?.amount !== undefined && req.body?.amount !== null && req.body?.amount !== ''
         ? Number(req.body.amount)
@@ -419,21 +432,49 @@ router.post('/withdraw-demo', protect, async (req, res) => {
       return res.status(400).json({ message: 'Enter a valid withdrawal amount' });
     }
     if (requested > balance) {
-      return res.status(400).json({
-        message: `Insufficient balance. Available: Rs. ${balance.toLocaleString('en-IN')}`,
-      });
+      // DLB-16: the exact available balance must not be echoed back. This body is
+      // a 4xx, so it is far more likely to be logged verbatim by a gateway or an
+      // APM agent than the 200 path, and a precise "available: Rs. 84,310" tells
+      // an attacker calibrating a double-spend exactly how much one request is short.
+      logger.warn(
+        `LAW-B-01/DLB-16: withdrawal above available balance by user=${req.user.id} `
+        + `delta=${Math.round((requested - balance) * 100) / 100}`
+      );
+      return res.status(400).json({ message: 'Requested amount exceeds your available balance' });
     }
 
-    profile.walletBalance = balance - requested;
-    await profile.save();
+    // Atomic debit. `$gte` in the filter is the whole guarantee: the update only
+    // lands if the balance still covers the request at the moment the write is
+    // applied, so two simultaneous withdrawals cannot both succeed.
+    //
+    // Rounding to 2dp first keeps the comparison exact against stored rupees
+    // (the ledger itself is integer paise).
+    const debit = Math.round(requested * 100) / 100;
+    const debited = await LawyerProfile.findOneAndUpdate(
+      {
+        _id: profile._id,
+        walletBalance: { $gte: debit },
+      },
+      {
+        $inc: { walletBalance: -debit },
+        $set: { lastWithdrawalAt: new Date() },
+      },
+      { new: true }
+    );
 
-    const reference = `DEMO-WDR-${Date.now().toString().slice(-6)}`;
+    if (!debited) {
+      // The race was lost: somebody else debited between our read and our write.
+      logger.warn(`LAW-B-01: concurrent withdrawal rejected for profile=${profile._id}`);
+      return res.status(409).json({ message: 'Balance changed while withdrawing - please retry' });
+    }
+
+    const reference = `DEMO-WDR-${Date.now().toString().slice(-6)}-${profile._id.toString().slice(-4)}`;
 
     res.json({
       success: true,
       message: `Demo withdrawal of Rs. ${requested.toLocaleString('en-IN')} requested to bank account ending in ${(profile.bankDetails?.accountNumber || 'XXXX').slice(-4)}`,
-      withdrawnAmount: requested,
-      newBalance: profile.walletBalance,
+      withdrawnAmount: debit,
+      newBalance: debited.walletBalance,
       reference,
       transactionRef: reference,
     });

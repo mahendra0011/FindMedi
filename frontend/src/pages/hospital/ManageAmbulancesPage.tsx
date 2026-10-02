@@ -44,6 +44,7 @@ import {
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import { EmergencyToggleConfirm } from '@/components/emergency/EmergencyToggleConfirm';
+import { userFacingError } from '@/lib/errorCopy';
 
 interface StaffMember {
   _id: string;
@@ -169,7 +170,7 @@ export default function ManageAmbulancesPage() {
       setMasterEmergency(checked);
       toast.success(checked ? 'Hospital Emergency SOS acceptance is now ACTIVE.' : 'Hospital Emergency SOS acceptance PAUSED.');
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to toggle master Emergency SOS.');
+      toast.error(userFacingError(err, { fallback: 'Failed to toggle master Emergency SOS.' }));
     } finally {
       setMasterToggling(false);
     }
@@ -270,7 +271,7 @@ export default function ManageAmbulancesPage() {
       setIsModalOpen(false);
       fetchData();
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to save ambulance.');
+      toast.error(userFacingError(err, { fallback: 'Failed to save ambulance.' }));
     } finally {
       setSaving(false);
     }
@@ -286,7 +287,7 @@ export default function ManageAmbulancesPage() {
       setDeleteConfirmId(null);
       setAmbulances(prev => prev.filter(a => a._id !== deleteConfirmId));
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to delete ambulance.');
+      toast.error(userFacingError(err, { fallback: 'Failed to delete ambulance.' }));
     } finally {
       setDeleting(false);
     }
@@ -543,7 +544,7 @@ export default function ManageAmbulancesPage() {
                     Login: {amb.loginStatus === 'active' ? 'Active' : amb.loginStatus === 'invited' ? 'Invited' : 'None'}
                   </Badge>
                   {amb.loginStatus !== 'active' && amb.loginEmail && (
-                    <button onClick={async () => { try { await api.post(`/hospitals/ambulances/${amb._id}/resend-invite`, {}); toast.success('Invite bhej diya'); } catch (e: any) { toast.error(e.response?.data?.message || 'Invite failed'); } }}
+                    <button onClick={async () => { try { await api.post(`/hospitals/ambulances/${amb._id}/resend-invite`, {}); toast.success('Invite bhej diya'); } catch (e: any) { toast.error(userFacingError(e, { fallback: 'Invite failed' })); } }}
                       className="text-sky-300 underline">Resend invite</button>
                   )}
                   {(() => {

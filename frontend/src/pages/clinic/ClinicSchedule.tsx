@@ -7,6 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { getISTDateString } from '@/lib/dateUtils';
 import { toast } from 'sonner';
+import { userFacingError } from '@/lib/errorCopy';
 
 const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
@@ -183,7 +184,7 @@ export default function ClinicSchedule() {
       setTimeout(() => setSaved(false), 2500);
     } catch (e) {
       console.error(e);
-      toast.error(e.response?.data?.message || 'Failed to save schedule');
+      toast.error(userFacingError(e, { fallback: 'Failed to save schedule' }));
     }
     setSaving(false);
   };

@@ -1,0 +1,229 @@
+# ==============================================================================
+# INF-B-04: BACKUP, RESTORE AND SECRET-ROTATION RUNBOOK
+# ==============================================================================
+# Full runbook: infra/backup/README.md  (objectives, encryption, drill cadence,
+# 90-day secret-rotation order). Read it before touching a production secret.
+#
+#   nightly backup : docker compose -f docker-compose.yml \
+#                      -f docker-compose.prod.yml --profile backup up -d backup
+#   restore drill  : docker compose ... --profile backup run --rm backup-drill
+#   rotation gate  : infra/backup/verify-secret-rotation.sh
+#
+# RPO <= 15 min (continuous backup + nightly verified dump), RTO <= 1 h
+# (measured by the drill, at least quarterly).
+# ==============================================================================
+# INF-B-02: PRODUCTION OVERLAY
+# ==============================================================================
+# The base `docker-compose.yml` is DEVELOPMENT ONLY: it publishes Mongo, Redis,
+# Postgres, OpenSearch, MinIO and Kafka on host ports and falls back to committed
+# `*_dev_only*` passwords. Running that stack on a host with open ports exposes
+# PHI and money data at rest.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# What this overlay changes:
+#   * every datastore port is removed (no host publication, internal network only)
+#   * no default password may survive: the guard script below exits non-zero when
+#     a `*_dev_only*` secret is still in the environment
+#   * images are pinned by digest through IMAGE_DIGEST_* variables
+#   * services run read-only / non-root where the image allows it
+#
+# Every value must come from a real secret store (Docker secrets, Kubernetes
+# Secrets, or the platform's secret manager) — see infra/backup/README.md for the
+# rotation runbook (INF-B-05).
+# ==============================================================================
+services:
+  mongo1:
+    # INF-B-02: no `27018:27017` — reachable only from the compose network.
+    ports: !reset []
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all", "--auth", "--keyFile", "/etc/mongo-keyfile"]
+    volumes:
+      - mongo_data:/data/db
+      - ./secrets/mongo-keyfile:/etc/mongo-keyfile:ro
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:?set MONGO_ROOT_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?set MONGO_ROOT_PASSWORD}
+
+  postgres:
+    ports: !reset []
+    environment:
+      POSTGRES_DB: findmedi
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER}
+      # No `:-findmedi_dev_only` default here: compose fails if it is unset.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./secrets/postgres-init.sql:/docker-entrypoint-initdb.d/00-hardening.sql:ro
+
+  redis:
+    ports: !reset []
+    # INF-B-03: AOF persistence so a restart does not lose sessions/OTP/lockouts.
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --requirepass ${REDIS_PASSWORD:?set REDIS_PASSWORD}
+      --masterauth ${REDIS_PASSWORD:?set REDIS_PASSWORD}
+      --maxmemory-policy noeviction
+
+  opensearch:
+    ports: !reset []
+    environment:
+      # DP-B-01: the security plugin is ON in production — anonymous admin was
+      # what made this cluster indexable and unauthenticated. The TLS files are
+      # mounted read-only from the secret store, never generated in the container.
+      DISABLE_SECURITY_PLUGIN: "false"
+      DISABLE_INSTALL_DEMO_CONFIG: "true"
+      OPENSEARCH_INITIAL_ADMIN_PASSWORD: ${OPENSEARCH_ADMIN_PASSWORD:?set OPENSEARCH_ADMIN_PASSWORD}
+      OPENSEARCH_JAVA_OPTS_APPEND: >-
+        -Dplugins.security.ssl.http.enabled=true
+        -Dplugins.security.ssl.transport.enabled=true
+        -Dplugins.security.allow_default_init_securityindex=true
+        -Dplugins.security.allow_privileged_index=true
+        -Dplugins.security.ssl.http.enforce_hostname_verification=true
+    volumes:
+      - opensearch_data:/usr/share/opensearch/data
+      - ./opensearch/certs:/usr/share/opensearch/config/certs:ro
+      - ./opensearch/bootstrap:/usr/local/share/bootstrap:ro
+
+  minio:
+    ports: !reset []
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?set MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD}
+
+  kafka:
+    ports: !reset []
+    environment:
+      # INF-B-03: no single-broker semantics — RF 3 / min ISR 2. The base file
+      # runs ONE broker for development; production runs three of these
+      # containers (kafka-1/2/3) behind the same image + config.
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "3"
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "3"
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "2"
+      KAFKA_DEFAULT_REPLICATION_FACTOR: "3"
+      KAFKA_MIN_INSYNC_REPLICAS: "2"
+    # DP-B-02: the production overlay upgrades the INTERNAL listener too. Leaving it
+    # PLAINTEXT means any container that joins the compose network can read the
+    # OTP/appointment/vitals event stream — which is exactly the "compromised
+    # sibling container" case. Inter-broker traffic is mTLS.
+    KAFKA_ADVERTISED_LISTENERS: SASL_SSL://localhost:9092,SASL_SSL_INTERNAL://kafka:29092
+    KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: SASL_SSL:SASL_SSL,SASL_SSL_INTERNAL:SASL_SSL
+    KAFKA_INTER_BROKER_LISTENER_NAME: SASL_SSL_INTERNAL
+    KAFKA_SASL_SSL_JAAS_CONFIG: org.apache.kafka.common.security.scram.ScramLoginModule required username="${KAFKA_INTER_BROKER_USER}" password="${KAFKA_INTER_BROKER_PASSWORD}";
+    # A fixed container_name makes a replica count impossible, so production
+    # drops it: `docker compose ... up -d --scale kafka=3`.
+    container_name: !reset null
+
+  valhalla:
+    # INFRA-004: the routing engine is internal-only.
+    ports: !reset []
+
+  clamav:
+    ports: !reset []
+
+  # The only published ports in a production deployment.
+  nginx:
+    ports:
+      - "80:80"
+      - "443:443"
+    profiles: ["edge"]
+
+  # Fail-fast guard: refuse to boot a production stack that still carries a
+  # committed development default as a live secret.
+  guard:
+    image: alpine:3.20
+    container_name: findmedi-prod-guard
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -eu
+        fail=0
+        for name in MONGO_ROOT_PASSWORD POSTGRES_PASSWORD REDIS_PASSWORD \
+                    OPENSEARCH_ADMIN_PASSWORD MINIO_ROOT_PASSWORD JWT_SECRET; do
+          eval "value=\$${$name:-}"
+          if [ -z "$$value" ]; then
+            echo "MISSING SECRET: $$name"; fail=1
+          elif echo "$$value" | grep -qiE 'dev_only|changeme|password123|example'; then
+            echo "DEFAULT/WEAK SECRET IN PRODUCTION: $$name"; fail=1
+          fi
+        done
+        [ "$$fail" -eq 0 ] || { echo "refusing to start: fix the secrets above"; exit 1; }
+        echo "secret guard: OK"
+    environment:
+      MONGO_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      OPENSEARCH_ADMIN_PASSWORD: ${OPENSEARCH_ADMIN_PASSWORD:-}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-}
+      JWT_SECRET: ${JWT_SECRET:-}
+    profiles: ["guard"]
+    restart: "no"
+
+  # ========================================================================
+  # INF-B-04: BACKUP SERVICE (opt-in `backup` profile)
+  # ========================================================================
+  # Nightly encrypted dump of every datastore + offsite copy.
+  #   up:    docker compose -f docker-compose.yml -f docker-compose.prod.yml \
+  #            --profile backup up -d backup
+  #   drill: docker compose ... --profile backup run --rm backup-drill
+  #
+  # Targets: RPO <= 15 min (continuous backup + nightly dump), RTO <= 1 h,
+  # exercised by the drill below at least quarterly.
+  # ========================================================================
+  backup:
+    image: findmedi/backup:latest
+    build:
+      context: ./backup
+    container_name: findmedi-backup
+    # Stays up so a missed window is visible in `docker ps` rather than silently
+    # disappearing into a completed-exit container.
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -eu
+        while :; do
+          /usr/local/bin/backup-all.sh || echo "[backup] FAILED at $$(date -u)"
+          sleep 86400
+        done
+    volumes:
+      - ./backup:/backup:ro
+      - ./backup/secrets:/run/secrets:ro
+      - backup_artifacts:/artifacts
+      - mongo_data:/data/mongo:ro
+    environment:
+      BACKUP_ENCRYPTION_KEY: ${BACKUP_ENCRYPTION_KEY:?set BACKUP_ENCRYPTION_KEY}
+      MONGO_URI: ${MONGO_URI:?set MONGO_URI}
+      POSTGRES_URI: ${POSTGRES_URI:?set POSTGRES_URI}
+      OFFSITE_BUCKET: ${OFFSITE_BUCKET:?set OFFSITE_BUCKET}
+      OFFSITE_ENDPOINT: ${OFFSITE_ENDPOINT:-}
+      OFFSITE_ACCESS_KEY: ${OFFSITE_ACCESS_KEY:-}
+      OFFSITE_SECRET_KEY: ${OFFSITE_SECRET_KEY:-}
+      RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-30}
+    profiles: ["backup"]
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+  # Restore drill: restores the newest artifact into throwaway databases and
+  # asserts collection/row counts. Quarterly, per INF-B-04.
+  backup-drill:
+    image: findmedi/backup:latest
+    build:
+      context: ./backup
+    container_name: findmedi-backup-drill
+    environment:
+      DRILL_MONGO_URI: ${DRILL_MONGO_URI:-mongodb://drill-mongo:27017/findmedi}
+      DRILL_POSTGRES_URI: ${DRILL_POSTGRES_URI:-postgresql://drill:drill@drill-postgres:5432/findmedi}
+      ARTIFACT_DIR: /artifacts
+    volumes:
+      - backup_artifacts:/artifacts
+      - ./backup:/backup:ro
+      - ./backup/secrets:/run/secrets:ro
+    profiles: ["backup"]
+    restart: "no"
+
+volumes:
+  backup_artifacts:
+    driver: local

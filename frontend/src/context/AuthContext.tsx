@@ -1,6 +1,6 @@
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { loginUser, registerUser, logoutUser, updateUser as updateUserAction, setUser, selectCurrentUser, selectAuthLoading, selectIsAuthenticated } from '@/store/slices/authSlice';
+import { loginUser, registerUser, logoutUser, updateUser as updateUserAction, setUser, selectCurrentUser, selectAuthLoading, selectIsAuthenticated, completeTwoFactorLogin as completeTwoFactorLoginThunk } from '@/store/slices/authSlice';
 import { mergeSettings, readStoredSettings } from '@/lib/settings';
 
 export interface AuthUser {
@@ -47,6 +47,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return result.payload;
   };
 
+  // AUTH-B-03: second leg of a 2FA login (ticket + TOTP / backup code -> session).
+  const completeTwoFactorLogin = async (payload: { twoFactorTicket: string; token?: string; backupCode?: string }) => {
+    const result = await dispatch(completeTwoFactorLoginThunk(payload));
+    return result.payload;
+  };
+
   const logout = () => {
     dispatch(logoutUser());
   };
@@ -70,7 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, loading, updateUser, isAuthenticated, completeOtpLogin, completeGoogleLogin }}>
+    <AuthContext.Provider value={{ user, login, register, logout, loading, updateUser, isAuthenticated, completeOtpLogin, completeGoogleLogin, completeTwoFactorLogin }}>
       {children}
     </AuthContext.Provider>
   );

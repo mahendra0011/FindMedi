@@ -60,5 +60,21 @@ patientSchema.index({ hospitalId: 1, status: 1 });
 patientSchema.index({ phone: 1 });
 patientSchema.index({ createdAt: -1 });
 
+// APPT-B-03: uniqueness for the walk-in de-dup path.
+//
+// The lookup was `Patient.findOne({ phone })` with no uniqueness behind it, so two
+// concurrent walk-ins both missed and both created a record for the same person.
+// The partial filter keeps uniqueness INSIDE a hospital: the same phone may
+// legitimately exist at two different facilities (a patient treated at both),
+// which is exactly why the lookup is now tenant-scoped.
+patientSchema.index(
+  { hospitalId: 1, phone: 1 },
+  { unique: true, partialFilterExpression: { phone: { $type: 'string', $ne: '' } } }
+);
+patientSchema.index(
+  { hospitalId: 1, email: 1 },
+  { unique: true, partialFilterExpression: { email: { $type: 'string', $ne: '' } } }
+);
+
 export default mongoose.model('Patient', patientSchema);
 

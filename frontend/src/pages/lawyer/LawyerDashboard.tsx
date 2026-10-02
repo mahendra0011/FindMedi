@@ -65,6 +65,7 @@ import { api } from '../../lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { getSocket, joinLawyerBookingRoom } from '../../lib/socket';
 import ProviderIncomingCall from '@/components/emergency/ProviderIncomingCall';
+import { userFacingError } from '@/lib/errorCopy';
 
 export default function LawyerDashboard() {
   const { user } = useAuth();
@@ -875,7 +876,7 @@ export default function LawyerDashboard() {
                   setAcceptedWaiting(false);
                 }, 1100);
               } catch (err: any) {
-                toast.error(err?.response?.data?.message || 'Could not accept request');
+                toast.error(userFacingError(err, { fallback: 'Could not accept request' }));
               }
               return;
             }

@@ -1,0 +1,10 @@
+{
+  "eventType": "emergency_doctor.dispatch_started",
+  "aggregateType": "EmergencyRequest",
+  "aggregateId": "652f00000000000000000004",
+  "status": "searching",
+  "radiiKm": [
+    5,
+    10
+  ]
+}

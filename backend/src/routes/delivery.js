@@ -3,18 +3,38 @@ import mongoose from 'mongoose';
 import DeliveryPartner from '../models/DeliveryPartner.js';
 import PharmacyDelivery from '../models/PharmacyDelivery.js';
 import User from '../models/User.js';
-import { protect } from '../middleware/auth.js';
+import { protect, requireRole } from '../middleware/auth.js';
+
+/**
+ * AUTHZ gap (was UNCLASSIFIED): this route called the Valhalla routing engine
+ * with attacker-chosen coordinates and an arbitrary number of stops. That is two
+ * problems at once — a free routing oracle usable by any account, and a
+ * resource-exhaustion lever, since each call is an upstream request whose cost
+ * scales with the stop count. There is no `maxStops` cap in the handler either.
+ * Gated to the roles that actually dispatch a delivery.
+ */
+const DELIVERY_DISPATCH_ROLES = ['delivery_boy', 'rider', 'pharmacy_owner', 'hospital_admin', 'superadmin'];
 
 const router = express.Router();
 
-// Validate userId query presence before auth so callers get a clear 400
-// even without a token; authenticated callers still go through `protect`.
-const requireUserId = (req, res, next) => {
-  const userId = req.query?.userId || req.query?.user_id;
-  if (!userId) {
-    return res.status(400).json({ message: 'userId is required' });
+// DLB-29: the partner whose data is served is ALWAYS derived from the session.
+// Previously every endpoint trusted `?userId=` / `?user_id=`, so ANY logged-in
+// user could read another partner's home addresses, delivery OTPs, ID-document
+// URLs and earnings just by changing the query string.
+const resolvePartner = async (req, res, next) => {
+  try {
+    const requested = req.query?.userId || req.query?.user_id;
+    const isSuperadmin = req.user?.role === 'superadmin';
+    if (requested && String(requested) !== String(req.user._id) && !isSuperadmin) {
+      return res.status(403).json({ message: 'Forbidden: you can only access your own delivery data' });
+    }
+    const targetUserId = isSuperadmin && requested ? requested : req.user._id;
+    req.targetUserId = targetUserId;
+    req.partner = await findPartnerByUserId(targetUserId);
+    next();
+  } catch (err) {
+    res.status(500).json({ message: 'Unable to resolve delivery partner' });
   }
-  next();
 };
 
 async function findPartnerByUserId(userId) {
@@ -31,10 +51,9 @@ async function findPartnerByUserId(userId) {
 }
 
 // GET /delivery/history?userId= -> {tasks:[{_id,orderId,status,pickupAddress,dropAddress,deliveryOtp,createdAt}]}
-router.get('/history', requireUserId, protect, async (req, res) => {
+router.get('/history', protect, resolvePartner, async (req, res) => {
   try {
-    const { userId } = req.query;
-    const partner = await findPartnerByUserId(userId);
+    const partner = req.partner;
     if (!partner) return res.json({ tasks: [] });
     let deliveries = [];
     try {
@@ -66,10 +85,9 @@ router.get('/history', requireUserId, protect, async (req, res) => {
 });
 
 // GET /delivery/orders?userId= -> {orders:[{_id,orderId,customerName,total,status,createdAt,items}]}
-router.get('/orders', requireUserId, protect, async (req, res) => {
+router.get('/orders', protect, resolvePartner, async (req, res) => {
   try {
-    const { userId } = req.query;
-    const partner = await findPartnerByUserId(userId);
+    const partner = req.partner;
     if (!partner) return res.json({ orders: [] });
     let deliveries = [];
     try {
@@ -126,12 +144,11 @@ router.get('/orders', requireUserId, protect, async (req, res) => {
 });
 
 // GET /delivery/zones?userId= -> {zones:[{_id,name,area,pinCode,isActive}]}
-router.get('/zones', requireUserId, protect, async (req, res) => {
+router.get('/zones', protect, resolvePartner, async (req, res) => {
   try {
-    const { userId } = req.query;
-    const partner = await findPartnerByUserId(userId);
+    const partner = req.partner;
     let zoneNames = [];
-    let baseId = userId;
+    let baseId = req.targetUserId;
     if (partner) {
       baseId = String(partner._id);
       if (Array.isArray(partner.workZone)) zoneNames = partner.workZone;
@@ -139,8 +156,8 @@ router.get('/zones', requireUserId, protect, async (req, res) => {
     // Fallback to User.deliveryZone when partner has no workZone.
     if (zoneNames.length === 0) {
       try {
-        if (mongoose.Types.ObjectId.isValid(userId)) {
-          const user = await User.findById(userId).select('deliveryZone').lean();
+        if (mongoose.Types.ObjectId.isValid(req.targetUserId)) {
+          const user = await User.findById(req.targetUserId).select('deliveryZone').lean();
           if (user && Array.isArray(user.deliveryZone)) zoneNames = user.deliveryZone;
         }
       } catch {
@@ -165,10 +182,9 @@ router.get('/zones', requireUserId, protect, async (req, res) => {
 });
 
 // GET /delivery/earnings?userId= -> {earnings:[{_id,amount,type,description,referenceId,createdAt}]}
-router.get('/earnings', requireUserId, protect, async (req, res) => {
+router.get('/earnings', protect, resolvePartner, async (req, res) => {
   try {
-    const { userId } = req.query;
-    const partner = await findPartnerByUserId(userId);
+    const partner = req.partner;
     if (!partner) return res.json({ earnings: [] });
     let deliveries = [];
     try {
@@ -206,10 +222,9 @@ router.get('/earnings', requireUserId, protect, async (req, res) => {
 });
 
 // GET /delivery/documents?userId= -> {documents:[{_id,name,type,url,status,uploadedAt}]}
-router.get('/documents', requireUserId, protect, async (req, res) => {
+router.get('/documents', protect, resolvePartner, async (req, res) => {
   try {
-    const { userId } = req.query;
-    const partner = await findPartnerByUserId(userId);
+    const partner = req.partner;
     if (!partner) return res.json({ documents: [] });
     const fields = [
       'aadharDoc',
@@ -242,10 +257,9 @@ router.get('/documents', requireUserId, protect, async (req, res) => {
 });
 
 // GET /delivery/reviews?userId= -> {reviews:[{_id,rating,comment,patientName,createdAt}]}
-router.get('/reviews', requireUserId, protect, async (req, res) => {
+router.get('/reviews', protect, resolvePartner, async (req, res) => {
   try {
-    const { userId } = req.query;
-    const partner = await findPartnerByUserId(userId);
+    const partner = req.partner;
     if (!partner) return res.json({ reviews: [] });
     const tasks = await PharmacyDelivery.find({
       deliveryPartnerId: partner._id,
@@ -266,14 +280,22 @@ router.get('/reviews', requireUserId, protect, async (req, res) => {
 
 // ─── Tech Exp 02: Multi-Stop Medicine Delivery Optimization (TSP) ───
 // Optimizes stops order to minimize cold-chain transit time and fuel
-router.post('/optimize-route', protect, async (req, res) => {
+// authz: role
+router.post('/optimize-route', protect, requireRole(DELIVERY_DISPATCH_ROLES), async (req, res) => {
   try {
     const { pharmacyLocation, deliveryStops } = req.body;
     if (!pharmacyLocation || !Array.isArray(deliveryStops) || deliveryStops.length === 0) {
       return res.status(400).json({ message: 'pharmacyLocation and deliveryStops array are required' });
     }
+    // Bound the upstream work. Routing cost scales with stop count, and without a
+    // cap an authorised caller could still use this as a denial-of-service lever
+    // against the routing service.
+    if (deliveryStops.length > 50) {
+      return res.status(400).json({ message: 'At most 50 delivery stops can be optimised at once' });
+    }
 
     const { getOptimizedRoute } = await import('../lib/valhallaRouting.js');
+    const { coldChainCheck } = await import('../lib/valhallaRouting.js');
 
     // Build locations array: origin pharmacy + delivery drop points
     const locations = [
@@ -282,6 +304,7 @@ router.post('/optimize-route', protect, async (req, res) => {
     ];
 
     const routeResult = await getOptimizedRoute(locations, 'auto');
+    const coldChain = coldChainCheck(routeResult.durationSeconds);
 
     res.json({
       success: true,
@@ -291,6 +314,7 @@ router.post('/optimize-route', protect, async (req, res) => {
       estimatedTotalDistanceKm: Number((routeResult.distanceMeters / 1000).toFixed(2)),
       polyline: routeResult.polyline,
       maneuvers: routeResult.maneuvers,
+      coldChain,
     });
   } catch (err) {
     res.status(500).json({ message: err.message });

@@ -51,4 +51,30 @@ router.post('/navigation', generalLimiter, validate(navigationRouteSchema), asyn
   }
 });
 
+const isochroneSchema = z.object({
+  lat: z.coerce.number().min(-90).max(90),
+  lng: z.coerce.number().min(-180).max(180),
+  minutes: z.array(z.coerce.number().min(1).max(120)).max(4).optional().default([10, 15, 20]),
+});
+
+// GET /api/routing/isochrone?lat=&lng=&minutes=10,15,20 — trauma reachability
+// contours for mobile-unit placement (Tech 02). Returns Valhalla GeoJSON.
+router.get('/isochrone', generalLimiter, async (req, res) => {
+  try {
+    const parsed = isochroneSchema.safeParse({
+      lat: req.query.lat,
+      lng: req.query.lng,
+      minutes: req.query.minutes
+        ? String(req.query.minutes).split(',').map(Number)
+        : undefined,
+    });
+    if (!parsed.success) return res.status(400).json({ message: 'lat, lng required; minutes csv optional' });
+    const { getIsochrone } = await import('../lib/valhallaRouting.js');
+    const geo = await getIsochrone(parsed.data.lat, parsed.data.lng, parsed.data.minutes);
+    res.json({ success: true, contoursMinutes: parsed.data.minutes, geojson: geo });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 export default router;

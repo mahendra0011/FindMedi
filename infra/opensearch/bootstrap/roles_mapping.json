@@ -1,0 +1,41 @@
+{
+  "all_access": {
+    "reserved": false,
+    "hidden": false,
+    "users": [],
+    "backend_roles": [],
+    "description": "Intentionally empty: DP-B-01 — no credential is mapped to all_access, so a leaked API key cannot read every index on the cluster."
+  },
+  "findmedi_api": {
+    "reserved": false,
+    "hidden": false,
+    "users": ["findmedi_api"],
+    "backend_roles": [],
+    "description": "Application read/write on the five app indices only."
+  },
+  "findmedi_search": {
+    "reserved": false,
+    "hidden": false,
+    "users": ["findmedi_search"],
+    "backend_roles": []
+  },
+  "findmedi_analytics": {
+    "reserved": false,
+    "hidden": false,
+    "users": ["findmedi_analytics"],
+    "backend_roles": []
+  },
+  "findmedi_breakglass": {
+    "reserved": false,
+    "hidden": false,
+    "users": [],
+    "backend_roles": ["findmedi_breakglass"],
+    "description": "DP-B-01: bound to a backend role, never a shared service user, so raw EHR access is attributable to a named human and appears in the audit log."
+  },
+  "findmedi_audit": {
+    "reserved": false,
+    "hidden": false,
+    "users": ["findmedi_audit"],
+    "backend_roles": []
+  }
+}

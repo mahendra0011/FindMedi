@@ -31,7 +31,12 @@ export const registerSchema = z.object({
   name: z.string().trim().min(2, 'Name is required'),
   email: emailSchema,
   password: passwordSchema,
-  role: z.enum(['patient', 'doctor', 'hospital_admin', 'technician', 'rider', 'assistant', 'lawyer', 'counselor', 'counsellor', 'psychiatrist']).optional().default('patient'),
+  // AUTH-B-02: public self-registration may NOT pick a tenant/platform role
+  // (hospital_admin / clinic_doctor / superadmin). Those are only created by an
+  // admin invite flow (e.g. /api/platform/hospitals/register) after an email OTP.
+  // `superadmin` was already reachable through this endpoint because the route
+  // whitelist accepted it even though the schema rejected it.
+  role: z.enum(['patient', 'doctor', 'technician', 'rider', 'assistant', 'lawyer', 'counselor', 'counsellor', 'psychiatrist']).optional().default('patient'),
   phone: phoneSchema,
   gender: z.enum(['Male', 'Female', 'Other', '']).optional().default(''),
   dateOfBirth: z.string().optional(),
@@ -143,6 +148,33 @@ export const createDoctorSchema = z.object({
   location: z.string().optional(),
 });
 
+// DOC-B-01: `updateDoctorSchema` was `.passthrough()`, and the handler wrote
+// `req.body` straight onto the Doctor document. `authorize()` is a role check, so
+// any doctor who passed the `isSelf` test could send:
+//   { approved: true }            → self-approve out of the admin review queue
+//   { hospitalId: <other> }       → re-parent the profile into another tenant
+//   { rating: { avg: 5, count: 1 } } → fabricate their own public reputation
+//   { user_id: <someone else> }    → hijack the profile->account link
+//   { reviewsCount, doctor_type, autoConfirmAppointment, fees, signatureUrl }
+// The server-owned fields are declared here so a schema violation is a 400 with a
+// clear message, rather than a silent privilege grant. Admin-only changes belong
+// on the admin endpoints that already exist and are superadmin-gated.
+export const DOCTOR_SERVER_OWNED_FIELDS = Object.freeze([
+  // approval + verification
+  'approved', 'approvedAt', 'approvedBy', 'status', 'verificationStatus',
+  // tenancy + identity linkage
+  'hospitalId', 'facilityId', 'user_id', 'userId', 'email',
+  // reputation — derived from real ratings only
+  'rating', 'reviewsCount', 'totalReviews', 'averageRating',
+  // commercial terms an admin negotiates, not a doctor self-declares
+  'fees', 'consultation_fees', 'consultationFee', 'settlementPayout',
+  'commissionPercent',
+  // payouts
+  'payoutAccount', 'payoutIfsc', 'payoutUpi',
+  // trust markers
+  'signatureUrl', 'doctor_type', 'verified',
+]);
+
 export const updateDoctorSchema = z.object({
   name: z.string().trim().min(2).optional(),
   specialization: z.string().trim().min(2).optional(),
@@ -169,7 +201,21 @@ export const updateDoctorSchema = z.object({
   emergency_fee: positiveNumber.optional(),
   emergencySupport: z.boolean().optional(),
   refundOnMissedOrCancelled: z.boolean().optional(),
-}).passthrough();
+})
+  // DOC-B-01: still `.passthrough()` so the ~40 legacy flat settings keys above
+  // keep working, but every server-owned field is rejected explicitly.
+  .passthrough()
+  .superRefine((data, ctx) => {
+    for (const field of DOCTOR_SERVER_OWNED_FIELDS) {
+      if (data[field] !== undefined) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [field],
+          message: `${field} is server-managed and cannot be changed through this endpoint`,
+        });
+      }
+    }
+  });
 
 // ─── Patient Schemas ───────────────────────────────────────────────────────
 export const createPatientSchema = z.object({
@@ -195,13 +241,38 @@ export const updatePatientSchema = z.object({
 });
 
 // ─── Appointment Schemas ───────────────────────────────────────────────────
+/**
+ * APPT-B-06: a slot is a real calendar value, not a free string.
+ *
+ * `date` and `time` were `z.string().min(1)`, so `"next tuesday"`, `"2026-13-45"`
+ * or `"99:99"` were accepted and stored verbatim. Downstream that meant slot
+ * comparisons, the unique slot index, the doctor's `dateDisabledSlots` lookup and
+ * the capacity reservation all silently failed to match — a booking that the UI
+ * showed as "confirmed" while no slot logic could see it.
+ */
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const HHMM = /^([01]\d|2[0-3]):([0-5]\d)$/;
+
+const slotDate = z.string()
+  .trim()
+  .regex(ISO_DATE, 'Date must be YYYY-MM-DD')
+  .refine((v) => {
+    const d = new Date(`${v}T00:00:00Z`);
+    return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === v;
+  }, 'Date is not a real calendar date');
+
+const slotTime = z.string()
+  .trim()
+  .regex(HHMM, 'Time must be HH:MM in 24-hour format');
+
 export const createAppointmentSchema = z.object({
   patient: z.string().min(1, 'Patient is required'),
   doctor: z.string().min(1, 'Doctor is required'),
   doctorId: z.string().optional(),
   department: z.string().optional(),
-  date: z.string().min(1, 'Date is required'),
-  time: z.string().min(1, 'Time is required'),
+  // APPT-B-06: real calendar values.
+  date: slotDate,
+  time: slotTime,
   type: z.string().optional(),
   notes: z.string().optional(),
   symptoms: z.string().optional(),
@@ -222,8 +293,10 @@ export const walkInSchema = z.object({
   doctorId: z.string().optional(),
   doctor: z.string().optional(),
   department: z.string().optional(),
-  date: z.string().min(1, 'Date is required'),
-  time: z.string().min(1, 'Time is required'),
+  // APPT-B-06: the same calendar rules as the self-booking path — a walk-in slot
+  // that no slot logic can match is worse than a rejected one.
+  date: slotDate,
+  time: slotTime,
   type: z.string().optional(),
   symptoms: z.string().optional(),
   priority: z.string().optional(),
@@ -233,8 +306,11 @@ export const walkInSchema = z.object({
 
 export const updateAppointmentSchema = z.object({
   status: z.enum(['Pending', 'Confirmed', 'Completed', 'Cancelled', 'Rescheduled', 'In Queue', 'Serving', 'Missed']).optional(),
-  date: z.string().optional(),
-  time: z.string().optional(),
+  // APPT-B-06 (partial): reschedule via PUT /:id used bare strings, so 2026-13-45
+  // / 99:99 bypassed the calendar check that both booking paths enforce. Same
+  // slotDate/slotTime rules here — a rescheduled slot must be matchable too.
+  date: slotDate.optional(),
+  time: slotTime.optional(),
   notes: z.string().optional(),
 });
 
@@ -554,14 +630,21 @@ export const createDietOrderSchema = z.object({
 
 // ─── Insurance Schemas ──────────────────────────────────────────────────────
 export const createInsuranceSchema = z.object({
-  patientId: z.string().min(1, 'Patient is required'),
+  // INS-M-02: patientId is optional here because the handler decides it (a
+  // patient is always forced to their OWN id - LAW-006; staff must supply one
+  // and get a 400 from the handler if they don't). Requiring it in zod made
+  // every patient-side create fail validation before the owner override ran.
+  patientId: z.string().min(1, 'Patient is required').optional(),
   patientName: z.string().optional(),
   insuranceProvider: z.string().min(1, 'Insurance provider is required'),
   policyNumber: z.string().min(1, 'Policy number is required'),
   insuranceId: z.string().optional(),
   tpaName: z.string().optional(),
   tpaContact: z.string().optional(),
-  coverageType: z.string().optional(),
+  // INS-M-02: the coverage type drives the workflow branch (cashless needs
+  // empanelment + pre-auth; reimbursement does not), so it is validated as the
+  // closed enum it already was in the schema, not free text.
+  coverageType: z.enum(['Cashless', 'Reimbursement']).optional(),
   diagnosis: z.string().optional(),
   treatmentPlan: z.string().optional(),
   estimatedCost: z.number().optional(),
@@ -806,7 +889,10 @@ export const createStaffSchema = z.object({
   email: z.string().email().optional(),
   phone: z.string().optional(),
   salary: z.number().optional(),
-  hospitalId: z.string().optional(),
+  // ADM-B-07: `hospitalId` is no longer accepted from the body — the tenant is
+  // always derived from the session (superadmin may target one explicitly via
+  // ?hospitalId=). Otherwise any hospital admin could file a staff row inside a
+  // competitor's tenant.
 });
 
 export const updateStaffSchema = z.object({
@@ -833,18 +919,30 @@ export const updateClinicProfileSchema = z.object({
   details: z.any().optional(),
 });
 
+// AUTH-B-19: facility staff endpoints may only mint facility-scoped roles.
+// Tenant/platform roles (superadmin, hospital_admin, clinic_doctor, ...) are
+// invite-only. A free-form `role: z.string()` here let ANY hospital_admin —
+// including a self-registered one with no hospital — create a fully verified
+// `superadmin` account, which bypasses every authorize() check.
+export const CLINIC_STAFF_ROLES = ['nurse', 'technician', 'helper', 'accountant', 'lab_receptionist', 'pharmacist'];
+const clinicStaffRole = (optional = false) => (optional
+  ? z.enum(CLINIC_STAFF_ROLES).optional()
+  : z.enum(CLINIC_STAFF_ROLES, {
+    errorMap: () => ({ message: `Role must be one of: ${CLINIC_STAFF_ROLES.join(', ')}` }),
+  }));
+
 export const createClinicStaffSchema = z.object({
   name: z.string().trim().min(2, 'Name is required'),
   email: emailSchema,
   phone: z.string().optional(),
-  role: z.string().min(1, 'Role is required'),
+  role: clinicStaffRole(false),
 });
 
 export const updateClinicStaffSchema = z.object({
   name: z.string().optional(),
   email: emailSchema.optional(),
   phone: z.string().optional(),
-  role: z.string().optional(),
+  role: clinicStaffRole(true),
 });
 
 // ─── Notification Schema ────────────────────────────────────────────────
@@ -857,6 +955,49 @@ export const createNotificationSchema = z.object({
   date: z.string().optional(),
 });
 
+// ─── Billing Schemas ───────────────────────────────────────────────────────
+// DLB-26: `POST /api/billing` used to spread the raw request body into
+// `Billing.create({ ...req.body })` with NO validation, so a caller could set
+// `hospitalId` / `facilityId` (move the revenue to another tenant), `paid`,
+// `status`, `balance`, `_id`, `createdAt` — i.e. forge a settled invoice.
+export const createBillingSchema = z.object({
+  patient: z.string().trim().min(1, 'Patient is required'),
+  patientId: z.string().optional(),
+  doctor: z.string().optional(),
+  doctorId: z.string().optional(),
+  appointmentId: z.string().optional(),
+  admissionId: z.string().optional(),
+  service: z.string().trim().min(1, 'Service is required'),
+  services: z.array(z.object({
+    id: z.string().optional(),
+    name: z.string().min(1),
+    description: z.string().optional(),
+    price: positiveNumber,
+    quantity: z.number().int().positive().optional(),
+    category: z.string().optional(),
+    discount: nonNegativeNumber.optional(),
+  })).optional(),
+  source: z.enum(['manual', 'appointment', 'lab', 'pharmacy', 'ipd', 'ot', 'radiology', 'physio', 'diet']).optional(),
+  amount: z.number().nonnegative('Amount must be non-negative'),
+  subTotal: nonNegativeNumber.optional(),
+  discount: nonNegativeNumber.optional(),
+  tax: nonNegativeNumber.optional(),
+  taxRate: nonNegativeNumber.optional(),
+  taxableAmount: nonNegativeNumber.optional(),
+  // Payment state is accepted here only because this endpoint is the "record a
+  // bill" flow; the tenant and balance are ALWAYS server-derived below.
+  paid: nonNegativeNumber.optional(),
+  status: z.enum(['Paid', 'Pending', 'Overdue', 'Partial', 'Cancelled', 'Refunded']).optional(),
+  date: z.string().optional(),
+  dueDate: z.string().optional(),
+  paymentMethod: z.enum(['Cash', 'Card', 'UPI', 'Cheque', 'Insurance', 'Online', 'Other']).optional(),
+  transactionId: z.string().optional(),
+  insuranceClaimId: z.string().optional(),
+  insuranceApprovedAmount: nonNegativeNumber.optional(),
+  insuranceStatus: z.enum(['Not Submitted', 'Submitted', 'Approved', 'Rejected', 'Partial']).optional(),
+  invoiceId: z.string().optional(),
+}).strip(); // drop unknown keys (_id, hospitalId, balance, createdAt, ...)
+
 // ─── Additional Auth Schemas ───────────────────────────────────────────────
 export const resendOtpSchema = z.object({
   email: emailSchema,
@@ -868,17 +1009,17 @@ export const googleAuthSchema = z.object({
   role: z.enum(['patient', 'doctor', 'hospital_admin', 'technician']).optional().default('patient'),
 });
 
+// AUTH-B-01 / AUTH-B-02: the account is identified by a VERIFIED Google
+// id_token (never by a body email), and self-service can only create a patient.
 export const googleRegisterSchema = z.object({
+  // Optional at the schema layer on purpose: a MISSING Google proof must be
+  // answered with 401 (unauthenticated) by the handler, not 400 (bad request).
+  // A malformed body (e.g. missing name/phone) is still rejected with 400.
+  googleIdToken: z.string().optional(),
   name: z.string().trim().min(2, 'Name is required'),
-  email: emailSchema,
   phone: phoneSchema,
   gender: z.enum(['Male', 'Female', 'Other']).optional().default(''),
   dateOfBirth: z.string().optional(),
-  role: z.enum(['patient', 'doctor', 'hospital_admin', 'technician']).optional().default('patient'),
-  specialization: z.string().optional().default(''),
-  licenseNumber: z.string().optional().default(''),
-  qualification: z.string().optional().default(''),
-  consultationFee: z.union([z.string(), z.number()]).optional().default(0),
   avatar: z.string().optional(),
 });
 
@@ -957,9 +1098,19 @@ export const bookRideSchema = z.object({
   }),
   vehicleType: z.enum(['bike', 'auto', 'e_rickshaw', 'car', 'van', 'ambulance']),
   isEmergency: z.boolean().optional().default(false),
+  // RIDE-B-07: an emergency booking must name the SOS it belongs to. The server
+  // resolves that record and verifies the caller is its subject before granting
+  // emergency pricing or ambulance-grade dispatch priority. Without this, ANY
+  // client could set `isEmergency: true` and buy the emergency tariff (and jump
+  // the dispatch queue) with no incident behind it.
+  sosId: z.string().optional(),
+  // RIDE-B-04: `distanceKm` and `durationMin` are ACCEPTED so an existing client
+  // that still sends them does not 400, but they are STRIPPED by the parser and
+  // the server always recomputes them from the haversine distance. A client value
+  // that reached the fare/receipt maths would be fare manipulation.
   distanceKm: z.number().optional(),
   durationMin: z.number().optional(),
-});
+}).strip();
 
 export const rateRideSchema = z.object({
   stars: z.number().min(1).max(5),

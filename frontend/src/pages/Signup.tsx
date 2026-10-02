@@ -35,6 +35,8 @@ export default function Signup() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  // AUTH-B-01: verified Google id_token kept across the two-step signup.
+  const [googleIdToken, setGoogleIdToken] = useState('');
 
   const passwordStrength = (() => {
     if (!password) return { score: 0, label: '', color: 'bg-border' };
@@ -67,6 +69,7 @@ export default function Signup() {
       if (data.email) setEmail(data.email);
       if (data.avatar) setGoogleAvatar(data.avatar);
       if (data.role) setRole(data.role);
+      if (data.googleIdToken) setGoogleIdToken(data.googleIdToken);
     }
 
     // Referral code auto-detect (?ref=CODE) — HashRouter puts query in location.hash
@@ -102,6 +105,7 @@ export default function Signup() {
       setName(g.name || '');
       setEmail(g.email || '');
       setGoogleAvatar(g.picture || '');
+      setGoogleIdToken(idToken || '');
       setRole('patient');
 
       const signupData = {
@@ -110,6 +114,10 @@ export default function Signup() {
         email: g.email || '',
         avatar: g.picture || '',
         isGoogle: true,
+        // AUTH-B-01: step 2 (google-register) now REQUIRES a verified Google
+        // id_token — without it the server refuses to look up / create the
+        // account. Keep it alive for the duration of the two-step signup.
+        googleIdToken: idToken || '',
       };
       localStorage.setItem('google_signup', JSON.stringify(signupData));
     } catch (err) {
@@ -132,7 +140,9 @@ export default function Signup() {
           scope: 'email profile openid',
           callback: (tokenResponse) => {
             if (tokenResponse?.access_token) {
-              handleGoogleCredential(null, tokenResponse.access_token);
+              // AUTH-B-01: the OAuth2 code path returns an id_token as well when
+              // the `openid` scope is requested — keep it for the signup step 2.
+              handleGoogleCredential(tokenResponse.id_token || null, tokenResponse.access_token);
             }
           },
           error_callback: (err) => {
@@ -161,6 +171,7 @@ export default function Signup() {
   const handleResetGoogle = () => {
     setIsGoogle(false);
     setGoogleAvatar('');
+    setGoogleIdToken('');
     localStorage.removeItem('google_signup');
   };
 
@@ -194,14 +205,18 @@ export default function Signup() {
     try {
       // Step 2 for Google Users: Direct account completion without password
       if (isGoogle) {
+        if (!googleIdToken) {
+          setError('Your Google session expired. Please sign in with Google again to continue.');
+          setLoading(false);
+          return;
+        }
         const data = await api.googleRegister({
           name: name.trim(),
-          email: email.trim(),
           phone: phone.trim(),
           gender,
           dateOfBirth,
-          role: 'patient',
           avatar: googleAvatar,
+          googleIdToken,
         });
 
         localStorage.removeItem('google_signup');

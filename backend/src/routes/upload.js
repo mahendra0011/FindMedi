@@ -6,11 +6,12 @@ import { fileURLToPath } from 'url';
 import Record from '../models/Record.js';
 import Notification from '../models/Notification.js';
 import User from '../models/User.js';
-import { protect } from '../middleware/auth.js';
+import { protect, authorize } from '../middleware/auth.js';
 import { uploadFileToCloudinary } from '../services/cloudinaryService.js';
 import { uploadFileToDrive, isConfigured as isDriveConfigured } from '../services/driveService.js';
 import { getISTDateString } from '../utils/dateUtils.js';
 import { validateFileContent } from '../middleware/upload.js';
+import { createGrlRateLimiter } from '../middleware/rateLimit.js';
 import { resizeToFit as napiResizeToFit, NATIVE_AVAILABLE } from '../services/napiImageService.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -65,7 +66,7 @@ const upload = multer({
 });
 
 // Proxy download route — redirect to stored file URL (Cloudinary or legacy Drive)
-router.get('/download/:fileId', protect, async (req, res, next) => {
+router.get('/download/:fileId', protect, authorize('upload:read:own'), async (req, res, next) => {
   try {
     const { fileId } = req.params;
     const record = await Record.findOne({
@@ -88,7 +89,7 @@ router.get('/download/:fileId', protect, async (req, res, next) => {
   }
 });
 
-router.post('/', protect, upload.single('file'), async (req, res, next) => {
+router.post('/', protect, authorize('upload:write', 'upload:write:own'), upload.single('file'), async (req, res, next) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
@@ -267,11 +268,46 @@ router.post('/', protect, upload.single('file'), async (req, res, next) => {
 });
 
 // ─── Public Document / Photo Upload (for Registration / Onboarding) ─────────
-router.post('/public', upload.single('file'), async (req, res, next) => {
+//
+// DLB-22: this endpoint had NO authentication and NO rate limit at all, so any
+// anonymous script could fill the platform's storage (and Cloudinary quota) with
+// arbitrary files behind the findmedi.online origin. It is still reachable before
+// login (the onboarding forms need it), so the control is applied here:
+//   * a dedicated per-IP limiter,
+//   * a strict type allow-list (images / PDF only),
+//   * a per-IP hourly cap,
+//   * magic-byte content validation (already below).
+const PUBLIC_UPLOAD_TYPES = new Set([
+  'image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf',
+]);
+const publicUploadLimiter = createGrlRateLimiter({
+  windowMs: 60 * 1000,
+  max: 10,
+  keyPrefix: 'rl:publicupload',
+});
+
+router.post('/public', publicUploadLimiter, upload.single('file'), async (req, res, next) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
+
+    if (!PUBLIC_UPLOAD_TYPES.has(req.file.mimetype)) {
+      return res.status(415).json({ error: 'Only JPG, PNG, WEBP, GIF or PDF uploads are allowed' });
+    }
+
+    // Per-IP hourly budget so a script cannot use this as a free file host.
+    try {
+      const { redisClient, isRedisReady } = await import('../config/redis.js');
+      if (isRedisReady() && redisClient.isOpen) {
+        const hourKey = `rl:publicupload:h:${req.ip}`;
+        const used = Number(await redisClient.incr(hourKey));
+        if (used === 1) await redisClient.expire(hourKey, 3600);
+        if (used > 100) {
+          return res.status(429).json({ error: 'Too many uploads from this network. Try again later.' });
+        }
+      }
+    } catch { /* limiter is best effort */ }
 
     if (!validateFileContent(req.file.buffer, req.file.mimetype)) {
       return res.status(400).json({

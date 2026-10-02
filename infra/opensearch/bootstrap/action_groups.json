@@ -1,0 +1,35 @@
+{
+  "findmedi_app_indices": {
+    "reserved": false,
+    "hidden": false,
+    "allowed_actions": [
+      "read",
+      "write",
+      "create_index",
+      "indices:admin/mappings/put",
+      "indices:admin/settings/update"
+    ],
+    "indices": [
+      "findmedi_providers_v1",
+      "findmedi_drugs_v1",
+      "findmedi_icd_v1",
+      "findmedi_ehr_docs_v1",
+      "findmedi_audit_logs_v1"
+    ]
+  },
+
+  "findmedi_catalogue_indices": {
+    "reserved": false,
+    "hidden": false,
+    "allowed_actions": ["read"],
+    "indices": ["findmedi_providers_v1", "findmedi_drugs_v1", "findmedi_icd_v1"]
+  },
+
+  "findmedi_audit_indices": {
+    "reserved": false,
+    "hidden": false,
+    "allowed_actions": ["read"],
+    "indices": ["findmedi_audit_logs_v1"]
+  }
+}
+

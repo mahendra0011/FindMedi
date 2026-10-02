@@ -2,7 +2,7 @@ import express from 'express';
 import EmergencyRequest from '../models/EmergencyRequest.js';
 import Hospital from '../models/Hospital.js';
 import Ambulance from '../models/Ambulance.js';
-import { protect } from '../middleware/auth.js';
+import { protect, authorize } from '../middleware/auth.js';
 import { bookingLimiter } from '../middleware/rateLimit.js';
 import {
   handleProviderAccept,
@@ -23,8 +23,61 @@ import logger from '../config/logger.js';
 
 const router = express.Router();
 
+// Ownership helper for a single SOS request (RIDE-B-11/12/15).
+// Allowed: the patient who raised it, the provider it is assigned to, a
+// superadmin. Everything else (any other logged-in account) is refused.
+const isSosOwner = (req, r) => Boolean(r) && String(r.userId) === String(req.user._id || req.user.id);
+
+const isAssignedProvider = async (req, r) => {
+  if (!r?.assignedProviderId) return false;
+  if (String(r.assignedProviderId) === String(req.user._id || req.user.id)) return true;
+  if (r.assignedProviderType === 'ambulance') {
+    const amb = await Ambulance.findById(r.assignedProviderId).select('userId').lean().catch(() => null);
+    return Boolean(amb?.userId && String(amb.userId) === String(req.user._id || req.user.id));
+  }
+  return false;
+};
+
+const canAccessSos = async (req, r) => {
+  if (!r) return false;
+  if (req.user.role === 'superadmin') return true;
+  if (isSosOwner(req, r)) return true;
+  return isAssignedProvider(req, r);
+};
+
+/**
+ * RIDE-B-01: middleware form of `canAccessSos` for every `/:id/*` route.
+ *
+ * The finding was that `/:id/status`, `/:id/book/:providerId`, `/:id/cancel` and
+ * `/:id/progress` were `protect`-only. With any valid token an attacker could
+ * poll a victim's LIVE LOCATION and emergency category, cancel a real dispatch
+ * (a safety-of-life action), or push providers onto someone else's incident.
+ *
+ * This loads the session once, then answers **404** — not 403 — for anyone who
+ * is not the requester, the assigned provider or a superadmin, so an id cannot
+ * even be probed for existence.
+ */
+const requireSosAccess = async (req, res, next) => {
+  try {
+    const r = await EmergencyRequest.findById(req.params.id).select(
+      'userId assignedProviderId assignedProviderType status'
+    );
+    if (!r) return res.status(404).json({ message: 'Request not found' });
+    if (!(await canAccessSos(req, r))) {
+      logger.warn(
+        `RIDE-B-01: SOS access denied user=${req.user?._id} role=${req.user?.role} sos=${req.params.id} path=${req.originalUrl}`
+      );
+      return res.status(404).json({ message: 'Request not found' });
+    }
+    req.sosRequest = r;
+    return next();
+  } catch (err) {
+    return next(err);
+  }
+};
+
 // ─── POST /api/emergency-sos — legacy create (auto tiered dispatch) ───
-router.post('/', protect, bookingLimiter, async (req, res) => {
+router.post('/', protect, authorize('emergency:write'), bookingLimiter, async (req, res) => {
   try {
     const { reporterMode = 'self', patientDetails = {}, reporterOwnDetailsShared, reporterDetails, category = '', lat, lng, accuracy, address = '' } = req.body;
     if (lat === undefined || lng === undefined) return res.status(400).json({ message: 'lat/lng required' });
@@ -58,7 +111,11 @@ router.post('/', protect, bookingLimiter, async (req, res) => {
 });
 
 // ─── POST /api/emergency-sos/start — new 3-mode entry ───
-router.post('/start', protect, async (req, res) => {
+// RIDE-B-13: `/start` was `protect`-only — no bookingLimiter, no permission and
+// no "one active SOS" check, so a single account could script thousands of
+// alerts, each fanning out notifications to every nearby provider (alert fatigue
+// for real responders + dispatch/socket storms).
+router.post('/start', protect, authorize('emergency:write', 'emergency:write:own'), bookingLimiter, async (req, res) => {
   try {
     const {
       requestMode = 'auto_select_ambulance',
@@ -74,6 +131,27 @@ router.post('/start', protect, async (req, res) => {
       lat, lng, accuracy, address = '',
     } = req.body;
     if (lat === undefined || lng === undefined) return res.status(400).json({ message: 'lat/lng required' });
+    // Reject non-finite coordinates before they reach the geo queries.
+    if (!Number.isFinite(Number(lat)) || !Number.isFinite(Number(lng))
+      || Math.abs(Number(lat)) > 90 || Math.abs(Number(lng)) > 180) {
+      return res.status(400).json({ message: 'Invalid lat/lng' });
+    }
+    // One ACTIVE SOS per user — a second concurrent alert is almost always a
+    // double-tap or a script, not a second emergency.
+    try {
+      const active = await EmergencyRequest.findOne({
+        userId: req.user._id || req.user.id,
+        status: { $in: ['searching', 'assigned', 'en_route', 'picked_up'] },
+      }).select('_id status');
+      if (active) {
+        return res.status(409).json({
+          success: false,
+          message: 'You already have an active emergency request',
+          requestId: active._id,
+          status: active.status,
+        });
+      }
+    } catch { /* guard is best effort */ }
     if (requestMode === 'manual_select' && (!selectedVehicleTypes || !selectedVehicleTypes.length)) {
       return res.status(400).json({ message: 'Kam se kam ek vehicle type chuno' });
     }
@@ -131,7 +209,7 @@ router.post('/start', protect, async (req, res) => {
 });
 
 // ─── POST /api/emergency-sos/:id/book/:providerId ───
-router.post('/:id/book/:providerId', protect, async (req, res) => {
+router.post('/:id/book/:providerId', protect, requireSosAccess, async (req, res) => {
   try {
     const result = await bookChosenProvider(req.params.id, req.params.providerId);
     if (result.error) return res.status(400).json({ message: result.error });
@@ -143,7 +221,7 @@ router.post('/:id/book/:providerId', protect, async (req, res) => {
 });
 
 // ─── POST /api/emergency-sos/:id/search-again — same radius retry ───
-router.post('/:id/search-again', protect, async (req, res) => {
+router.post('/:id/search-again', protect, requireSosAccess, async (req, res) => {
   try {
     const cur = await EmergencyRequest.findById(req.params.id).select('currentSearchRadiusKm status');
     if (!cur) return res.status(404).json({ message: 'Request not found' });
@@ -163,7 +241,11 @@ router.post('/:id/search-radius/:km', protect, async (req, res) => {
   try {
     const km = parseInt(req.params.km, 10);
     if (!km || km < 1 || km > 50) return res.status(400).json({ message: 'Invalid radius' });
-    const cur = await EmergencyRequest.findById(req.params.id).select('status');
+    // RIDE-B-12: only the patient who raised the SOS (or a superadmin) may drive
+    // the search radius — anyone could otherwise re-dispatch other patients'
+    // emergencies and read the accepted-candidate list.
+    const scope = req.user.role === 'superadmin' ? { _id: req.params.id } : { _id: req.params.id, userId: req.user._id };
+    const cur = await EmergencyRequest.findOne(scope).select('status');
     if (!cur) return res.status(404).json({ message: 'Request not found' });
     if (cur.status !== 'searching') return res.status(400).json({ message: 'Request not searching' });
     startManualModeSearch(req.params.id, km).catch((e) => logger.error(`search-radius fail: ${e.message}`));
@@ -175,9 +257,12 @@ router.post('/:id/search-radius/:km', protect, async (req, res) => {
 });
 
 // ─── GET /api/emergency-sos/:id/accepted-candidates ───
-router.get('/:id/accepted-candidates', protect, async (req, res) => {
+router.get('/:id/accepted-candidates', protect, requireSosAccess, async (req, res) => {
   try {
-    const r = await EmergencyRequest.findById(req.params.id).select('acceptances windowEndsAt userId');
+    // RIDE-B-15: same ownership rule — the candidate list reveals which doctors
+    // /riders responded to a specific patient's SOS.
+    const scope = req.user.role === 'superadmin' ? { _id: req.params.id } : { _id: req.params.id, userId: req.user._id };
+    const r = await EmergencyRequest.findOne(scope).select('acceptances windowEndsAt userId');
     if (!r) return res.status(404).json({ message: 'Request not found' });
     const accepted = (r.acceptances || [])
       .filter((a) => !r.windowEndsAt || new Date(a.acceptedAt) <= new Date(r.windowEndsAt))
@@ -189,13 +274,19 @@ router.get('/:id/accepted-candidates', protect, async (req, res) => {
   }
 });
 
+
 // ─── GET /api/emergency-sos/:id/status ───
-router.get('/:id/status', protect, async (req, res) => {
+router.get('/:id/status', protect, requireSosAccess, async (req, res) => {
   try {
     const request = await EmergencyRequest.findById(req.params.id).select(
-      'status requestMode selectedVehicleTypes autoBookEnabled autoFindEnabled startingRadiusKm currentSearchRadiusKm currentSearchPhase dispatchLog notified acceptances windowEndsAt assignedProviderId assignedProviderType assignedVehicleType assignedHospitalId assignedAt selectedHospitalId'
+      'status requestMode selectedVehicleTypes autoBookEnabled autoFindEnabled startingRadiusKm currentSearchRadiusKm currentSearchPhase dispatchLog notified acceptances windowEndsAt assignedProviderId assignedProviderType assignedVehicleType assignedHospitalId assignedAt selectedHospitalId userId'
     );
     if (!request) return res.status(404).json({ message: 'Request not found' });
+    // RIDE-B-12: live dispatch state (who is assigned, the dispatch log, the
+    // accepted candidates) is per-patient — do not serve it to any account.
+    if (!(await canAccessSos(req, request))) {
+      return res.status(403).json({ message: 'Not authorized to view this emergency request' });
+    }
     res.json({
       status: request.status,
       requestMode: request.requestMode,
@@ -221,7 +312,7 @@ router.get('/:id/status', protect, async (req, res) => {
 });
 
 // ─── Legacy provider + patient endpoints (restored) ───
-router.post('/:id/accept', protect, async (req, res) => {
+router.post('/:id/accept', protect, authorize('emergency:write'), async (req, res) => {
   try {
     const { providerType, providerId } = req.body;
     const out = await handleProviderAccept(req.params.id, providerId, providerType, req.user);
@@ -235,12 +326,14 @@ router.post('/:id/accept', protect, async (req, res) => {
   }
 });
 
-router.post('/:id/reject', protect, async (req, res) => {
+router.post('/:id/reject', protect, authorize('emergency:write'), async (req, res) => {
   try {
-    const { providerId } = req.body;
+    // RIDE-B-12: a provider may only reject on its OWN behalf. The identity
+    // comes from the session — a body `providerId` let any provider blacklist
+    // its competitors out of a patient's dispatch pool.
     await EmergencyRequest.updateOne(
       { _id: req.params.id, status: 'searching' },
-      { $addToSet: { rejections: String(providerId || req.user._id || req.user.id) } }
+      { $addToSet: { rejections: String(req.user._id || req.user.id) } }
     );
     res.json({ success: true });
   } catch (err) {
@@ -249,7 +342,7 @@ router.post('/:id/reject', protect, async (req, res) => {
   }
 });
 
-router.post('/:id/cancel', protect, async (req, res) => {
+router.post('/:id/cancel', protect, requireSosAccess, async (req, res) => {
   try {
     const r = await EmergencyRequest.findById(req.params.id).select('userId status notified assignedProviderType assignedProviderId');
     if (!r) return res.status(404).json({ message: 'Request not found' });
@@ -281,10 +374,19 @@ router.post('/:id/cancel', protect, async (req, res) => {
   }
 });
 
-router.put('/:id/complete', protect, async (req, res) => {
+router.put('/:id/complete', protect, authorize('emergency:write'), async (req, res) => {
   try {
     const r = await EmergencyRequest.findById(req.params.id);
     if (!r) return res.status(404).json({ message: 'Request not found' });
+    // RIDE-B-11: closing a live SOS frees the assigned ambulance, so it must be
+    // the assigned provider, the patient, or a superadmin — `emergency:write` is
+    // held by many roles and was the only gate.
+    if (!(await canAccessSos(req, r))) {
+      return res.status(403).json({ message: 'Not authorized to complete this emergency request' });
+    }
+    if (['completed', 'cancelled_by_user'].includes(r.status)) {
+      return res.json({ success: true, already: r.status });
+    }
     r.status = 'completed';
     r.completedAt = new Date();
     await r.save();
@@ -314,7 +416,7 @@ router.put('/:id/complete', protect, async (req, res) => {
   }
 });
 
-router.get('/:id/nearby-hospitals', protect, async (req, res) => {
+router.get('/:id/nearby-hospitals', protect, requireSosAccess, async (req, res) => {
   try {
     const r = await EmergencyRequest.findById(req.params.id).select('location');
     if (!r) return res.status(404).json({ message: 'Request not found' });
@@ -331,7 +433,7 @@ router.get('/:id/nearby-hospitals', protect, async (req, res) => {
   }
 });
 
-router.put('/:id/select-hospital', protect, async (req, res) => {
+router.put('/:id/select-hospital', protect, authorize('emergency:write'), async (req, res) => {
   try {
     const out = await selectDestinationHospital(req.params.id, req.body.hospitalId);
     if (out.status !== 'success') return res.status(400).json({ message: 'Could not set hospital' });
@@ -343,7 +445,7 @@ router.put('/:id/select-hospital', protect, async (req, res) => {
 });
 
 // ─── PUT /api/emergency-sos/:id/progress — provider updates job stage ───
-router.put('/:id/progress', protect, async (req, res) => {
+router.put('/:id/progress', protect, requireSosAccess, async (req, res) => {
   try {
     const { stage } = req.body;
     const valid = ['reached_pickup', 'heading_to_hospital', 'reached_hospital'];
@@ -387,8 +489,12 @@ router.put('/:id/progress', protect, async (req, res) => {
         await Notification.create({
           title: 'Job Progress Updated',
           message: `Stage: ${stage.replace(/_/g, ' ')}`,
-          type: 'system',
+          type: 'sos',
           userId: String(noteUserId),
+          // NOTIF-B-05: SOS alerts are critical (never rate-capped/quiet-suppressed)
+          // and de-duplicated per SOS + stage.
+          priority: 'critical',
+          dedupKey: `sos_stage:${request._id}:${stage}`,
         });
       }
     } catch {}
@@ -400,8 +506,16 @@ router.put('/:id/progress', protect, async (req, res) => {
 });
 
 // ─── GET /api/emergency-sos/debug/eligible-providers (admin diagnostic) ───
-router.get('/debug/eligible-providers', protect, async (req, res) => {
+router.get('/debug/eligible-providers', protect, authorize('emergency:read'), async (req, res) => {
   try {
+    // RIDE-B-02: this enumerates every nearby provider's id and live location.
+    // In production it is not a diagnostic, it is a dispatch fingerprint: knowing
+    // which drivers are near a coordinate tells an attacker who is on duty and where.
+    // It now answers 404 in production so the route is not even discoverable.
+    if (process.env.NODE_ENV === 'production') {
+      logger.warn('RIDE-B-02: /debug/eligible-providers accessed in production by ' + req.user?.id);
+      return res.status(404).json({ message: 'Not found' });
+    }
     if (!['superadmin', 'hospital_admin'].includes(req.user.role)) {
       return res.status(403).json({ message: 'Access denied' });
     }
@@ -435,7 +549,7 @@ router.get('/debug/eligible-providers', protect, async (req, res) => {
 });
 
 // ─── GET /api/emergency-sos/:id/diagnostics (owner/admin snapshot) ───
-router.get('/:id/diagnostics', protect, async (req, res) => {
+router.get('/:id/diagnostics', protect, authorize('emergency:read'), async (req, res) => {
   try {
     const r = await EmergencyRequest.findById(req.params.id).lean();
     if (!r) return res.status(404).json({ message: 'Not found' });
@@ -460,10 +574,17 @@ router.get('/:id/diagnostics', protect, async (req, res) => {
 });
 
 // ─── GET /api/emergency-sos/:id (keep last — :id catch-all) ───
-router.get('/:id', protect, async (req, res) => {
+router.get('/:id', protect, authorize('emergency:read'), async (req, res) => {
   try {
     const em = await EmergencyRequest.findById(req.params.id).lean();
     if (!em) return res.status(404).json({ message: 'Request not found' });
+
+    const isAdmin = req.user.role === 'superadmin' || req.user.role === 'hospital_admin';
+    const isRequester = em.userId?.toString() === req.user._id.toString();
+    if (!isAdmin && !isRequester) {
+      return res.status(403).json({ message: 'Not authorized to view this emergency request' });
+    }
+
     res.json({ emergency: em });
   } catch (err) {
     logger.error(`SOS get error: ${err.message}`);

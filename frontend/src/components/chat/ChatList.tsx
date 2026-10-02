@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import {
-  Search, Pin, BellOff, Archive, Trash2, MailOpen, CheckCheck, UserPlus, X,
+  Search, Pin, Bell, BellOff, Archive, Trash2, MailOpen, CheckCheck, UserPlus, X,
   MessageCircle, User as UserIcon, ShieldAlert, Lock, ChevronDown, Plus, Stethoscope,
 } from 'lucide-react';
 import { messagePreview, saveDraft } from '@/lib/chatPrefs';
@@ -58,6 +58,8 @@ export default function ChatList({
   onAcceptRequest,
   onDeclineRequest,
   onOpenSettings,
+  onTogglePush = undefined as (() => void) | undefined,
+  pushState = 'off',
   hidePreviewsInLocked,
 }) {
   const [showContacts, setShowContacts] = useState(false);
@@ -106,6 +108,15 @@ export default function ChatList({
             >
               <UserPlus className="w-4.5 h-4.5" style={{ width: 18, height: 18 }} />
             </button>
+            {onTogglePush && pushState !== 'unsupported' && pushState !== 'server-off' && (
+              <button
+                onClick={onTogglePush}
+                className={`p-2 rounded-full hover:bg-muted transition-colors ${pushState === 'on' ? 'text-primary' : 'text-muted-foreground'}`}
+                title={pushState === 'on' ? 'Push notifications on — click to re-check' : 'Enable push notifications (offline bhi milegi)'}
+              >
+                {pushState === 'on' ? <Bell className="w-4.5 h-4.5" style={{ width: 18, height: 18 }} /> : <BellOff className="w-4.5 h-4.5" style={{ width: 18, height: 18 }} />}
+              </button>
+            )}
             <button onClick={onOpenSettings} className="p-2 rounded-full hover:bg-muted text-muted-foreground" title="Chat settings">
               <Lock className="w-4.5 h-4.5" style={{ width: 18, height: 18 }} />
             </button>

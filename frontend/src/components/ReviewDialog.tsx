@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { cn } from '@/lib/utils';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
+import { userFacingError } from '@/lib/errorCopy';
 
 /**
  * Reusable Review Submission Dialog.
@@ -56,7 +57,7 @@ export default function ReviewDialog({ open, onOpenChange, entityType, entityId,
       resetForm();
       onOpenChange(false);
     } catch (error) {
-      toast.error(error?.response?.data?.message || 'Failed to submit review. Please try again.');
+      toast.error(userFacingError(error, { fallback: 'Failed to submit review. Please try again.' }));
     } finally {
       setSubmitting(false);
     }

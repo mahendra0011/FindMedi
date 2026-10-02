@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { moneyRounding } from '../utils/money.js';
 
 const healthPackageSchema = new mongoose.Schema({
   name: { type: String, required: true },
@@ -26,5 +27,9 @@ healthPackageSchema.pre('save', function (next) {
   }
   next();
 });
+
+// PAY-M-06: list price, sale price and discount must round together or the
+// advertised saving stops matching what checkout charges.
+healthPackageSchema.plugin(moneyRounding(['originalPrice', 'packagePrice', 'discount']));
 
 export default mongoose.model('HealthPackage', healthPackageSchema);

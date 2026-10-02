@@ -3,6 +3,7 @@ import User from '../models/User.js';
 import { z } from 'zod';
 import { protect, adminOnly, superadminOnly } from '../middleware/auth.js';
 import { sendAccountBlockedEmail } from '../services/notificationService.js';
+import { executeDeletion } from '../services/deletionService.js';
 import { auditLog } from '../middleware/audit.js';
 import { validate } from '../utils/validate.js';
 import { paginatedResults } from '../utils/pagination.js';
@@ -104,9 +105,28 @@ router.delete('/:id', protect, adminOnly, async (req, res) => {
     if (req.user.hospitalId && req.user.role !== 'superadmin' && user.hospitalId?.toString() !== req.user.hospitalId.toString()) {
       return res.status(403).json({ message: 'Access denied' });
     }
+    // DP-M-04: a raw findByIdAndDelete used to end here - sessions kept
+    // working until JWT expiry, OpenSearch kept the user's docs, and nothing
+    // told the lake. The DLM-06 chain now runs BEFORE the row goes away
+    // (revokes sessions, purges search, anonymises), and its user.deleted
+    // tombstone (emitted inside executeDeletion) propagates to analytics
+    // copies. Chain failures are reported, not hidden - they must not
+    // resurrect the row either, so the hard delete still happens.
+    const { failed } = await executeDeletion(req.params.id, {
+      reason: 'admin_delete',
+      deletedBy: req.user.id,
+    });
     await User.findByIdAndDelete(req.params.id);
-    await auditLog('delete_user', req.user._id, { targetUserId: req.params.id, ip: req.ip, userAgent: req.get('user-agent') });
-    res.json({ message: 'Deleted' });
+    await auditLog('delete_user', req.user._id, {
+      targetUserId: req.params.id,
+      erasureFailures: failed,
+      ip: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+    res.json({
+      message: 'Deleted',
+      ...(failed.length ? { erasureWarnings: failed } : {}),
+    });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 

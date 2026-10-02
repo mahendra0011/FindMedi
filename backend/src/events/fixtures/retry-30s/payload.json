@@ -1,0 +1,9 @@
+{
+  "eventType": "ride.assigned",
+  "aggregateType": "RideBooking",
+  "aggregateId": "652f00000000000000000001",
+  "providerId": "652f000000000000000000aa",
+  "retryCount": 3,
+  "retryFrom": "findmedi.dispatch.booking-events.v1",
+  "lastError": "redis-unavailable"
+}

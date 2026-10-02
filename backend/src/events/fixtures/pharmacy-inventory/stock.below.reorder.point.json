@@ -1,0 +1,7 @@
+{
+  "eventType": "stock.below.reorder.point",
+  "pharmacyId": "652f000000000000000000c0",
+  "medicineId": "652f000000000000000000c1",
+  "currentStock": 4,
+  "reorderLevel": 10
+}

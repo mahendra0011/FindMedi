@@ -1,5 +1,122 @@
 import { renderEmailTemplate, renderPlainText } from './emailTemplates.js';
 import { v4 as uuidv4 } from 'uuid';
+import Notification from '../models/Notification.js';
+import { redisClient, isRedisReady } from '../config/redis.js';
+import { loadPreference, decide, record } from './notificationPreferences.js';
+import { deliver } from './notificationDelivery.js';
+
+/**
+ * NOTIF-B-05: the controlled notification writer.
+ *
+ * Every `Notification.create({ ... })` call site previously wrote straight to the
+ * collection, which meant (a) a retried job produced N identical rows (alert
+ * fatigue hides SOS alerts) and (b) nothing bounded how much a single noisy
+ * source could push at one user. This helper centralises:
+ *
+ *   1. de-duplication via `dedupKey` + the unique (userId, dedupKey) index
+ *   2. a per-user / per-type daily cap (Redis counter, Mongo fallback)
+ *   3. a `critical` priority that bypasses the cap (SOS, critical labs)
+ *
+ * Notification bodies may carry PHI; `pushTitle`/`pushBody` (filled by the model
+ * hook) are the only strings a push transport may use.
+ */
+export const NOTIFY_DAILY_CAP = 12;
+
+const istDayKey = () => {
+  const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+  const ist = new Date(Date.now() + IST_OFFSET_MS);
+  return `${ist.getUTCFullYear()}-${String(ist.getUTCMonth() + 1).padStart(2, '0')}-${String(ist.getUTCDate()).padStart(2, '0')}`;
+};
+
+const isDuplicateKeyError = (err) => err?.code === 11000 || err?.code === 11001;
+
+const bumpCap = async (userId, type, cap) => {
+  const key = `notif:cap:${userId}:${type}:${istDayKey()}`;
+  try {
+    if (isRedisReady() && redisClient.isOpen) {
+      const used = Number(await redisClient.incr(key));
+      if (used === 1) await redisClient.expire(key, 24 * 60 * 60 + 60);
+      return { used, capped: used > cap };
+    }
+  } catch { /* fall through to the Mongo count */ }
+
+  const dayStart = new Date();
+  dayStart.setHours(0, 0, 0, 0);
+  const count = await Notification.countDocuments({
+    userId: String(userId),
+    type,
+    createdAt: { $gte: dayStart },
+  });
+  return { used: count + 1, capped: count + 1 > cap };
+};
+
+/**
+ * Create a notification with de-duplication and rate control.
+ * @returns {Promise<{notification: object|null, reason?: string}>}
+ */
+export const createNotification = async ({
+  userId,
+  type = 'system',
+  priority = 'normal',
+  cap = NOTIFY_DAILY_CAP,
+  channel = 'inApp',
+  actor = 'system',
+  auditMetadata = null,
+  ...rest
+}) => {
+  if (!userId) return { notification: null, reason: 'no-recipient' };
+
+  // 0. NOTIF-M-02: consent, quiet hours and channel choice, evaluated BEFORE any
+  // write so a suppressed notification never exists to be read. NOTIF-M-06: the
+  // suppression is still recorded, because "we suppressed it" and "we never
+  // tried" must be distinguishable when someone asks whether a patient was told
+  // about a critical result.
+  const preference = await loadPreference(userId);
+  const { allow, reason: suppressReason } = decide({ type, priority, channel, preference });
+  if (!allow) {
+    await record({ userId, type, priority, outcome: 'suppressed', reason: suppressReason, dedupKey: rest.dedupKey || null, metadata: auditMetadata, actor });
+    return { notification: null, reason: suppressReason };
+  }
+
+  // 1. de-duplication (only when the caller supplied a key)
+  if (rest.dedupKey) {
+    const existing = await Notification.findOne({
+      userId: String(userId),
+      dedupKey: String(rest.dedupKey),
+    }).lean();
+    if (existing) {
+      await record({ userId, type, priority, outcome: 'duplicate', notificationId: existing._id, dedupKey: rest.dedupKey, metadata: auditMetadata, actor });
+      return { notification: existing, reason: 'duplicate' };
+    }
+  }
+
+  // 2. per-user / per-type daily cap — critical alerts are never suppressed
+  if (priority !== 'critical') {
+    const { capped } = await bumpCap(userId, type, cap);
+    if (capped) {
+      await record({ userId, type, priority, outcome: 'suppressed', reason: 'rate-capped', dedupKey: rest.dedupKey || null, metadata: auditMetadata, actor });
+      return { notification: null, reason: 'rate-capped' };
+    }
+  }
+
+  // 3. write
+  try {
+    const notification = await Notification.create({ userId: String(userId), type, priority, ...rest });
+    await record({ userId, type, priority, outcome: 'sent', notificationId: notification._id, dedupKey: rest.dedupKey || null, metadata: auditMetadata, actor });
+    return { notification };
+  } catch (err) {
+    // Lost the race against a concurrent identical write — not an error.
+    if (isDuplicateKeyError(err) && rest.dedupKey) {
+      const existing = await Notification.findOne({
+        userId: String(userId),
+        dedupKey: String(rest.dedupKey),
+      }).lean();
+      await record({ userId, type, priority, outcome: 'duplicate', notificationId: existing?._id, dedupKey: rest.dedupKey, metadata: auditMetadata, actor });
+      return { notification: existing, reason: 'duplicate' };
+    }
+    throw err;
+  }
+};
 
 const BREVO_API_KEY = process.env.BREVO_API_KEY;
 const BREVO_SENDER_EMAIL = process.env.BREVO_SENDER_EMAIL;
@@ -29,22 +146,12 @@ export const attachmentFromPdf = (filename, pdfBuffer) => ({
   contentType: 'application/pdf',
 });
 
-export const sendEmail = async ({ to, subject, text, html, attachments }) => {
-  if (!BREVO_API_KEY) {
-    const allowSimulation = process.env.ALLOW_EMAIL_SIMULATION === 'true' || process.env.EMAIL_SIMULATION === 'true';
-    if (allowSimulation) {
-      console.log(`Email simulated: ${to} - ${subject}`);
-      return { success: true, simulated: true, message: 'Email simulated (Brevo not configured)' };
-    }
-
-    return {
-      success: false,
-      error: 'Brevo API key is not configured. Set BREVO_API_KEY on the server to send real emails.',
-    };
-  }
-
-  try {
-    const safeText = text || subject || 'FindMedi Hospital notification';
+/**
+ * The raw transport attempt. THROWS on failure - it is the unit of retry, so it
+ * must not swallow. `sendEmail` below is the guarded entry point.
+ */
+const attemptSend = async ({ to, subject, text, html, attachments }) => {
+  const safeText = text || subject || 'FindMedi Hospital notification';
     const safeHtml = html || renderEmailTemplate({
       title: subject || 'FindMedi Hospital',
       badge: 'FindMedi Notification',
@@ -93,9 +200,51 @@ export const sendEmail = async ({ to, subject, text, html, attachments }) => {
 
     if (!response.ok) {
       const providerMessage = result?.message || result?.raw || responseText || 'Unknown Brevo error';
-      throw new Error(`Brevo API error: ${response.status} - ${providerMessage}`);
+      // `status` is what `isRetryable` reads. Without it every Brevo 4xx looks
+      // like a network error and gets retried until the dead-letter, which is
+      // exactly the wrong handling for a permanently bad address.
+      const err = new Error(`Brevo API error: ${response.status} - ${providerMessage}`);
+      err.status = response.status;
+      throw err;
     }
 
+    return { messageId: result.messageId };
+};
+
+/**
+ * NOTIF-M-04: send an email with a receipt, bounded retries, and a dead-letter.
+ *
+ * Pass `notificationId` + `userId` to get a delivery receipt. Without them the
+ * send still happens but nothing is recorded, which is the pre-existing
+ * behaviour kept for callers that have no notification row.
+ *
+ * Still returns `{ success }` rather than throwing: every existing caller
+ * ignores the rejection, and turning this into a throw would break the clinical
+ * operations that send email as a side effect.
+ */
+export const sendEmail = async ({ to, subject, text, html, attachments, notificationId, userId }) => {
+  if (!BREVO_API_KEY) {
+    const allowSimulation = process.env.ALLOW_EMAIL_SIMULATION === 'true' || process.env.EMAIL_SIMULATION === 'true';
+    if (allowSimulation) {
+      console.log(`Email simulated: ${to} - ${subject}`);
+      return { success: true, simulated: true, message: 'Email simulated (Brevo not configured)' };
+    }
+
+    return {
+      success: false,
+      error: 'Brevo API key is not configured. Set BREVO_API_KEY on the server to send real emails.',
+    };
+  }
+
+  const args = { to, subject, text, html, attachments };
+
+  if (notificationId && userId) {
+    const outcome = await deliver({ notificationId, userId, channel: 'email', send: () => attemptSend(args) });
+    return { success: outcome.status === 'sent', status: outcome.status, attempts: outcome.attempts, messageId: outcome.messageId, error: outcome.reason };
+  }
+
+  try {
+    const result = await attemptSend(args);
     console.log(`Email sent to ${to}: ${result.messageId}`);
     return { success: true, messageId: result.messageId };
   } catch (error) {

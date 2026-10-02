@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
+import { userFacingError } from '@/lib/errorCopy';
 
 // §8 rider ops master — controlled inputs persisted via PUT /rider/profile {settings}.
 export function RiderOpsSettings({ profile, onSaved }: { profile: any; onSaved: (s: any) => void }) {
@@ -47,7 +48,7 @@ export function RiderOpsSettings({ profile, onSaved }: { profile: any; onSaved: 
       toast.success('Rider settings saved');
       onSaved(res.rider?.settings || res.settings);
     } catch (e: any) {
-      toast.error(e.response?.data?.message || e.message || 'Save failed');
+      toast.error(userFacingError(e, { fallback: 'Save failed' }));
     } finally {
       setSaving(false);
     }

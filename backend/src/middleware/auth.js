@@ -4,6 +4,9 @@ import Doctor from '../models/Doctor.js';
 import Patient from '../models/Patient.js';
 import Record from '../models/Record.js';
 import { auditLog } from './audit.js';
+import { tenantQuotaGuard } from '../services/tenantQuotaService.js';
+
+export { authorize } from './authorize.js';
 
 export const protect = async (req, res, next) => {
   let token = req.cookies?.token;
@@ -29,13 +32,15 @@ export const protect = async (req, res, next) => {
     user = await User.findById(decoded.id).select('-password');
     // Counsellor/psychiatrist ko bhi doctor-jaisa Doctor-profile link (appointments,
     // /me/*, ownership checks sab doctorProfileId se chalte hain).
+    // AUTH-B-12: resolve the profile by the EXPLICIT user_id link first and only
+    // fall back to the email match for legacy rows that have no link at all.
+    // A bare `$or: [user_id, email]` let a colliding email bind one account to
+    // another account's doctor profile.
     if (user?.role === 'doctor' || user?.role === 'clinic_doctor' || user?.role === 'counsellor' || user?.role === 'psychiatrist') {
-      doctor = await Doctor.findOne({
-        $or: [
-          { user_id: user._id.toString() },
-          { email: user.email },
-        ],
-      });
+      doctor = await Doctor.findOne({ user_id: user._id.toString() });
+      if (!doctor && user.email) {
+        doctor = await Doctor.findOne({ email: user.email });
+      }
     }
   } catch {
     // DB hiccup (reconnect/restart) auth failure nahi hai — 503 bhejo taaki
@@ -44,7 +49,16 @@ export const protect = async (req, res, next) => {
   }
 
   if (!user) {
-    return res.status(401).json({ message: 'User not found' });
+    return res.status(401).json({ message: 'Token invalid or expired' });
+  }
+
+  // AUTH-012 / AUTH-B-11: token version — password change/reset/logout-all revoke
+  // every previously issued token. A token minted WITHOUT the claim (pre-AUTH-012
+  // legacy token) is treated as version 0, so the `?? 0` here also closes the
+  // "revocation silently skipped for old tokens" hole.
+  const tokenVersion = user.tokenVersion || 0;
+  if ((decoded.tv ?? 0) !== tokenVersion) {
+    return res.status(401).json({ message: 'Session revoked. Please login again.' });
   }
 
   if (user.status === 'blocked') {
@@ -87,13 +101,19 @@ export const protect = async (req, res, next) => {
     doctorProfileId: (user.role === 'doctor' || user.role === 'clinic_doctor' || user.role === 'counsellor' || user.role === 'psychiatrist') ? (doctor?._id || null) : null,
   };
   req.authUser = user;
-  next();
+  // ADM-M-06: last gate before the handler. Every authenticated request from a
+  // hospital account counts against that hospital's aggregate sliding window -
+  // the one dimension the per-user/IP limiters (rateLimit.js) cannot see.
+  // Fail-open by design; see services/tenantQuotaService.js for why.
+  return tenantQuotaGuard(req, res, next);
 };
 
 export const auditAction = async (req, action) => {
   await auditLog(action, req.user?.id, { ip: req.ip, userAgent: req.get('user-agent') });
 };
 
+// Tenant-admin gate. Kept separate from `superadminOnly` (ADM-B-03): tenant
+// admins may act inside their own hospital, never on platform-wide config.
 export const adminOnly = (req, res, next) => {
   if (req.user?.role !== 'hospital_admin' && req.user?.role !== 'superadmin') {
     return res.status(403).json({ message: 'Admin access required' });
@@ -177,21 +197,36 @@ export const canAccessRecord = async (req, res, next) => {
     }
 
     if (user.role === 'hospital_admin') {
-      if (user.hospitalId && record.hospitalId && record.hospitalId.toString() !== user.hospitalId.toString()) {
+      // AUTH-B-09: fail CLOSED. A hospital admin with no linked hospital (or a
+      // record with no hospitalId) must NOT be able to read it — the old
+      // `if (user.hospitalId && record.hospitalId && ...)` collapsed to "allow".
+      if (!user.hospitalId || !record.hospitalId) {
+        return res.status(403).json({ message: 'Forbidden: no hospital scope for this record' });
+      }
+      if (record.hospitalId.toString() !== user.hospitalId.toString()) {
         return res.status(403).json({ message: 'Forbidden: this record belongs to a different hospital' });
       }
       return next();
     }
 
-    if (user.role === 'doctor' && record.doctorId?.toString() !== (user.doctorProfileId?.toString() || user.id)) {
-      return res.status(403).json({ message: 'Forbidden: you can only access your assigned records' });
+    if (user.role === 'doctor' || user.role === 'clinic_doctor' || user.role === 'counsellor' || user.role === 'psychiatrist') {
+      const ownProfile = (user.doctorProfileId || user.id)?.toString();
+      if (!record.doctorId || record.doctorId.toString() !== ownProfile) {
+        return res.status(403).json({ message: 'Forbidden: you can only access your assigned records' });
+      }
+      return next();
     }
 
-    if (user.role === 'patient' && record.patientId?.toString() !== user.id) {
-      return res.status(403).json({ message: 'Forbidden: you can only access your own records' });
+    if (user.role === 'patient') {
+      if (!record.patientId || record.patientId.toString() !== user.id.toString()) {
+        return res.status(403).json({ message: 'Forbidden: you can only access your own records' });
+      }
+      return next();
     }
 
-    next();
+    // AUTH-B-09: default-deny. Every other role (nurse, pharmacist, lab staff,
+    // rider, assistant, ...) used to fall through to next() with NO check at all.
+    return res.status(403).json({ message: 'Forbidden: role not permitted to access medical records' });
   } catch (error) {
     res.status(500).json({ message: 'Authorization check failed' });
   }
@@ -210,21 +245,35 @@ export const canAccessPatient = async (req, res, next) => {
     }
 
     if (user.role === 'hospital_admin') {
-      if (user.hospitalId && patient.hospitalId && patient.hospitalId.toString() !== user.hospitalId.toString()) {
+      // AUTH-B-09: fail closed (see canAccessRecord).
+      if (!user.hospitalId || !patient.hospitalId) {
+        return res.status(403).json({ message: 'Forbidden: no hospital scope for this patient' });
+      }
+      if (patient.hospitalId.toString() !== user.hospitalId.toString()) {
         return res.status(403).json({ message: 'Forbidden: this patient belongs to a different hospital' });
       }
       return next();
     }
 
-    if (user.role === 'doctor' && patient.assignedDoctor !== (user.doctorProfileId?.toString() || user.id)) {
-      return res.status(403).json({ message: 'Forbidden: you can only access your assigned patients' });
+    if (user.role === 'doctor' || user.role === 'clinic_doctor' || user.role === 'counsellor' || user.role === 'psychiatrist') {
+      const ownProfile = (user.doctorProfileId || user.id)?.toString();
+      if (!patient.assignedDoctor || patient.assignedDoctor.toString() !== ownProfile) {
+        return res.status(403).json({ message: 'Forbidden: you can only access your assigned patients' });
+      }
+      return next();
     }
 
-    if (user.role === 'patient' && patient.userId?.toString() !== user.id) {
-      return res.status(403).json({ message: 'Forbidden: you can only access your own profile' });
+    if (user.role === 'patient') {
+      // The Patient document carries the owning User id in `userId` (its own
+      // `_id` is a separate Patient-collection id).
+      if (!patient.userId || patient.userId.toString() !== user.id.toString()) {
+        return res.status(403).json({ message: 'Forbidden: you can only access your own profile' });
+      }
+      return next();
     }
 
-    next();
+    // AUTH-B-09: default-deny for every unlisted role.
+    return res.status(403).json({ message: 'Forbidden: role not permitted to access patient profiles' });
   } catch (error) {
     res.status(500).json({ message: 'Authorization check failed' });
   }
@@ -247,7 +296,15 @@ export const optionalProtect = async (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(decoded.id).select('-password');
-    req.user = user || null;
+    // AUTH-B-10: optional auth must apply the SAME account-state rules as
+    // `protect`, otherwise a blocked / revoked / unverified account keeps acting
+    // on every optional-auth route.
+    req.user = null;
+    if (!user) return next();
+    if ((decoded.tv ?? 0) !== (user.tokenVersion || 0)) return next();
+    if (user.status === 'blocked') return next();
+    if (!user.isVerified) return next();
+    req.user = user;
   } catch {
     req.user = null;
   }

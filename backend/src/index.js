@@ -40,6 +40,7 @@ import { initFeatureFlags, initPostHog } from './services/featureFlags.js';
 import express from 'express';
 import http from 'http';
 import cors from 'cors';
+import { buildCorsOptions } from './config/cors.js';
 import cookieParser from 'cookie-parser';
 import mongoose from 'mongoose';
 import helmet from 'helmet';
@@ -50,11 +51,17 @@ import * as Sentry from '@sentry/node';
 import sanitizeHtml from 'sanitize-html';
 import logger from './config/logger.js';
 import { configureMongoDns } from './config/mongoDns.js';
+import { getPipelineHealth } from './services/dataPipelineHealth.js';
 import { validateEnv, printEnvStatus } from './config/envValidator.js';
 import { errorHandler, notFound } from './middleware/errorHandler.js';
 import { protect, superadminOnly } from './middleware/auth.js';
 import { csrfProtection, setCsrfToken } from './middleware/csrf.js';
 import { initSocket } from './services/socketService.js';
+// INF-M-02: Prometheus metrics (registry + HTTP instrumentation) and the
+// token-guarded scrape route mounted at the app root.
+import { metricsMiddleware, startProcessMetrics } from './lib/metrics.js';
+import { opsHealthMiddleware } from './services/opsHealthService.js';
+import metricsRoutes from './routes/metrics.js';
 
 const app = express();
 configureMongoDns();
@@ -93,38 +100,17 @@ app.use(helmet({
   referrerPolicy: { policy: 'no-referrer' },
 }));
 
-// MongoDB injection protection
-app.use(mongoSanitize());
-
-// XSS protection - recursive sanitization for nested objects (strips all HTML tags/attrs)
-function sanitizeValue(value) {
-  if (typeof value === 'string') return sanitizeHtml(value, { allowedTags: [], allowedAttributes: {} });
-  if (Array.isArray(value)) return value.map(sanitizeValue);
-  if (value && typeof value === 'object') {
-    const sanitized = {};
-    for (const [k, v] of Object.entries(value)) {
-      sanitized[k] = sanitizeValue(v);
-    }
-    return sanitized;
-  }
-  return value;
-}
-
-app.use((req, res, next) => {
-  if (req.body) {
-    req.body = sanitizeValue(req.body);
-  }
-  if (req.query) {
-    req.query = sanitizeValue(req.query);
-  }
-  if (req.params) {
-    req.params = sanitizeValue(req.params);
-  }
-  next();
-});
-
 // HTTP request logging (structured JSON via Pino)
 app.use(pinoHttp({ logger }));
+
+// INF-M-02: count every response once, after logging so /metrics itself and
+// rate-limited requests are all observed by the same instruments.
+app.use(metricsMiddleware);
+// ADM-M-05: separate response tracker feeding the ops-health error-rate window.
+// Deliberately NOT folded into metrics.js - the Prometheus counters are the
+// machine-facing time series, this is the 5-minute window the dashboard widget
+// reads, and neither should be able to break the other.
+app.use(opsHealthMiddleware);
 
 // Rate limiting
 const apiLimiter = rateLimit({
@@ -169,6 +155,34 @@ const tokenRefreshLimiter = rateLimit({
   message: { message: 'Too many token refresh requests, please try again later.' },
 });
 
+// AUTH-004: behind nginx/Render, req.ip is the proxy without this — every
+// IP-keyed limiter and audit row would collapse to one address.
+app.set('trust proxy', 1);
+
+// AUTH-005: normalize /auth/login → /api/auth/login BEFORE the limiters run,
+// otherwise prefix-less URLs skip every limiter and only get rewritten later.
+app.use((req, res, next) => {
+  if (!req.url.startsWith('/api') && !req.url.startsWith('/uploads') && req.url !== '/' && req.url !== '/favicon.ico') {
+    const knownApiPrefixes = [
+      '/auth', '/analytics', '/users', '/doctors', '/patients', '/appointments',
+      '/records', '/billing', '/dashboard', '/reviews', '/notifications', '/reports',
+      '/upload', '/emergency', '/departments', '/payments', '/transactions', '/lab',
+      '/pharmacy', '/ipd', '/triage', '/radiology', '/insurance', '/diet', '/ot',
+      '/bloodbank', '/physio', '/mentalhealth', '/staff', '/inventory', '/housekeeping',
+      '/tokens', '/nursing', '/beds', '/tests', '/hospitals', '/facilities', '/clinics',
+      '/platform', '/patient', '/audit-logs', '/system-settings', '/tenant-quotas', '/commission',
+      '/disputes', '/support-tickets', '/leave-requests', '/schedule-change-requests',
+      '/categories', '/licenses', '/announcements', '/broadcast', '/platform-coupons',
+      '/featured-listings', '/cities', '/platform-content', '/export', '/integrations',
+      '/delivery-partners', '/delivery-boy', '/delivery', '/ai-chat', '/drive', '/calls', '/health'
+    ];
+    if (knownApiPrefixes.some(p => req.url.startsWith(p))) {
+      req.url = `/api${req.url}`;
+    }
+  }
+  next();
+});
+
 app.use('/api/', apiLimiter);
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
@@ -191,7 +205,52 @@ if (process.env.NODE_ENV === 'production') {
 validateEnv();
 printEnvStatus();
 
-const redactMongoUri = (uri) => uri.replace(/\/\/([^:]+):([^@]+)@/, '//***:***@');
+// DP-B-01: `assertOpenSearchAuth()` was EXPORTED but never called, so the
+// guarantee it documents was theoretical. An anonymous `GET /_search` against a
+// security-plugin-enabled cluster returns full EHR documents and the audit
+// trail, and nothing in the boot path noticed.
+//
+// It runs here, beside `validateEnv()`, because it is the same class of check: a
+// configuration state that must fail BEFORE the process serves traffic, not a
+// warning logged later. In production it throws, which aborts boot — the correct
+// outcome, since an index of medical records must not be reachable anonymously.
+//
+// Deliberately not wrapped in a catch-and-ignore: swallowing it would restore the
+// exact defect being fixed.
+try {
+  const { assertOpenSearchAuth } = await import('./services/opensearchIndexer.js');
+  const verdict = assertOpenSearchAuth();
+  if (verdict.skipped === 'unconfigured') {
+    logger.info('OpenSearch not configured - search falls back to MongoDB queries.');
+  } else if (verdict.warning) {
+    logger.warn(`DP-B-01: ${verdict.warning}. Set OPENSEARCH_USERNAME/OPENSEARCH_PASSWORD.`);
+  } else {
+    logger.info('OpenSearch security plugin: authenticated access confirmed.');
+  }
+} catch (err) {
+  logger.error(`DP-B-01: OpenSearch auth assertion failed - refusing to start. ${err.message}`);
+  throw err;
+}
+
+// AUTH-B-06: never log the connection string itself. Only the *shape* is
+// operational information an on-call engineer needs; the host, cluster name and
+// database name are infrastructure details that must not land in log sinks.
+const mongoTargetSummary = (uri) => {
+  try {
+    const parsed = new URL(String(uri).replace(/^mongodb(\+srv)?:\/\//, 'http://'));
+    return {
+      scheme: uri.startsWith('mongodb+srv') ? 'mongodb+srv' : 'mongodb',
+      db: parsed.pathname?.replace(/^\//, '') || '(default)',
+    };
+  } catch {
+    return { scheme: 'mongodb', db: '(unparsed)' };
+  }
+};
+
+const redactMongoUri = (uri) => {
+  const { scheme, db } = mongoTargetSummary(uri);
+  return `${scheme}://<redacted-host>/${db}`;
+};
 
 // Load MONGO_URI with environment fallback
 let MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/findmedi';
@@ -214,95 +273,179 @@ if (MONGO_URI.startsWith('mongodb')) {
   }
 }
 
-// Middleware - Allowed Origins Helper
-const getAllowedOrigins = () => {
-  const envOrigins = [
-    ...(process.env.CLIENT_URL ? process.env.CLIENT_URL.split(',') : []),
-    ...(process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : []),
-  ];
-  const defaultOrigins = [
-    'https://findmedi.online',
-    'https://www.findmedi.online',
-    'http://localhost:5173',
-    'http://localhost:3000',
-    'http://localhost:5001',
-  ];
-  return Array.from(new Set([...envOrigins, ...defaultOrigins]))
-    .map(o => o.trim().replace(/\/+$/, ''))
-    .filter(Boolean);
-};
-
-const corsOptions = {
-  credentials: true,
-  allowedHeaders: [
-    'Authorization',
-    'Content-Type',
-    'X-Requested-With',
-    'X-CSRF-Token',
-    'x-csrf-token',
-    'Accept',
-    'Origin',
-  ],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  origin: (origin, callback) => {
-    // Allow non-browser requests (curl, server-to-server, mobile apps)
-    if (!origin) return callback(null, true);
-    if (process.env.NODE_ENV !== 'production') return callback(null, true);
-
-    const allowed = getAllowedOrigins();
-    const normalized = origin.trim().replace(/\/+$/, '');
-    if (allowed.includes(normalized) || allowed.some(a => normalized.endsWith(a.replace(/^https?:\/\//, '')))) {
-      return callback(null, true);
-    }
-    logger.warn(`CORS blocked request from origin: ${origin}`);
-    return callback(new Error(`CORS blocked for origin: ${origin}`));
-  },
-};
+// MIND-B-03: the CORS policy now lives in ONE place — `src/config/cors.js` —
+// which `mindsupport/src/app.js` also imports. The two copies had drifted, and
+// the drift was exploitable: this file matched origins exactly, while mindsupport
+// compared hostname+port and treated a configured `*` as "allow everything", so
+// `CORS_ORIGIN=*` opened one app to every origin while leaving the other closed.
+const corsOptions = buildCorsOptions({
+  onBlocked: (message, decision) => logger.warn(`${message} (${decision.reason})`),
+});
 
 app.use(cors(corsOptions));
 app.use(cookieParser());
-app.use(express.json({ limit: '1mb' }));
+// PAY-B-13: the webhook router is mounted BEFORE the global JSON body parser so
+// the RAW body survives for HMAC verification (express.json() would otherwise
+// consume it, making every signature check fail).
+app.use('/api/webhooks', express.raw({ type: 'application/json', limit: '1mb' }), webhookRoutes);
+
+// CHAT-M-02: /api/chat/upload receives base64-encoded files up to 25MB (~34MB
+// of base64 text), which the global 1mb JSON cap silently rejected with 413 —
+// the documented 25MB chat limit was unreachable in practice. Scope a larger
+// parser to that ONE path (method+path matched, so no other route grows its
+// body limit); every other JSON request keeps the 1mb abuse/DoS guard.
+const jsonBody = express.json({ limit: '1mb' });
+const jsonChatUploadBody = express.json({ limit: '40mb' });
+app.use((req, res, next) => {
+  if (req.method === 'POST' && req.path === '/api/chat/upload') {
+    return jsonChatUploadBody(req, res, next);
+  }
+  return jsonBody(req, res, next);
+});
 app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 
-// Route Normalization Middleware:
-// If a client or reverse-proxy calls an API route without the "/api" prefix (e.g. /auth/login, /users),
-// automatically rewrite req.url to /api/... so it matches registered Express routes.
-app.use((req, res, next) => {
-  if (!req.url.startsWith('/api') && !req.url.startsWith('/uploads') && req.url !== '/' && req.url !== '/favicon.ico') {
-    const knownApiPrefixes = [
-      '/auth', '/analytics', '/users', '/doctors', '/patients', '/appointments',
-      '/records', '/billing', '/dashboard', '/reviews', '/notifications', '/reports',
-      '/upload', '/emergency', '/departments', '/payments', '/transactions', '/lab',
-      '/pharmacy', '/ipd', '/triage', '/radiology', '/insurance', '/diet', '/ot',
-      '/bloodbank', '/physio', '/mentalhealth', '/staff', '/inventory', '/housekeeping',
-      '/tokens', '/nursing', '/beds', '/tests', '/hospitals', '/facilities', '/clinics',
-      '/platform', '/patient', '/audit-logs', '/system-settings', '/commission',
-      '/disputes', '/support-tickets', '/leave-requests', '/schedule-change-requests',
-      '/categories', '/licenses', '/announcements', '/broadcast', '/platform-coupons',
-      '/featured-listings', '/cities', '/platform-content', '/export', '/integrations',
-      '/delivery-partners', '/delivery-boy', '/delivery', '/ai-chat', '/drive', '/calls', '/health'
-    ];
-    if (knownApiPrefixes.some(p => req.url.startsWith(p))) {
-      req.url = `/api${req.url}`;
+// AUTH-B-14: body sanitizers MUST run AFTER the body parsers — mounted
+// earlier they saw `req.body === undefined` for JSON requests, so no JSON
+// body was ever sanitized (and the query/params sanitising still applies).
+// MongoDB injection protection
+app.use(mongoSanitize());
+
+// XSS protection - recursive sanitization for nested objects (strips all HTML tags/attrs)
+function sanitizeValue(value) {
+  if (typeof value === 'string') return sanitizeHtml(value, { allowedTags: [], allowedAttributes: {} });
+  if (Array.isArray(value)) return value.map(sanitizeValue);
+  if (value && typeof value === 'object') {
+    const sanitized = {};
+    for (const [k, v] of Object.entries(value)) {
+      sanitized[k] = sanitizeValue(v);
     }
+    return sanitized;
+  }
+  return value;
+}
+
+app.use((req, res, next) => {
+  // AUTH-022: multipart bodies are file buffers + text fields validated by
+  // multer/zod — running the HTML stripper over them corrupts uploads, so the
+  // sanitizer covers JSON/urlencoded bodies only.
+  const ct = req.headers['content-type'] || '';
+  if (ct.includes('multipart/form-data')) return next();
+  if (req.body) {
+    req.body = sanitizeValue(req.body);
+  }
+  if (req.query) {
+    req.query = sanitizeValue(req.query);
+  }
+  if (req.params) {
+    req.params = sanitizeValue(req.params);
   }
   next();
 });
+
+
+// (Prefix normalization runs above, before the rate limiters — AUTH-005.)
 
 // CSRF protection for state-changing requests (POST/PUT/DELETE)
 app.use('/api', csrfProtection);
 // CSRF token endpoint (must be before auth routes to allow anonymous access)
 app.get('/api/auth/csrf-token', setCsrfToken);
 app.get('/auth/csrf-token', setCsrfToken);
-// Serve uploaded files with filename-based access control
-app.use('/uploads', (req, res, next) => {
-  // Authenticated access only for medical files (check cookie or Authorization header)
-  const hasAuth = req.cookies?.token || req.headers.authorization;
-  if (req.path.match(/\.(pdf|dcm|dicom|jpg|jpeg|png|gif)$/i) && !hasAuth) {
-    return res.status(401).json({ message: 'Authentication required for medical file access' });
+// Serve uploaded files behind REAL access control (AUTH-029, DLB-12, DLB-21).
+//
+// Before: the gate only ran for a short extension allow-list
+// (pdf/dcm/jpg/...) and merely required *a* valid JWT. Any other file
+// (doc/docx/svg/txt/csv/xls/zip/...) was served to ANONYMOUS callers, and a
+// logged-in user of any role could read every patient's document/report/chat
+// file by guessing the path.
+//
+// Now: EVERY file needs a valid session, and the directory decides the
+// additional ownership rule — medical documents / reports / call recordings
+// need a Record or ChatConversation link plus ownership, chat attachments need
+// conversation membership, avatars/images may be read by any signed-in user.
+import User from './models/User.js';
+import Record from './models/Record.js';
+import ChatMessage from './models/ChatMessage.js';
+import ChatConversation from './models/ChatConversation.js';
+
+const SENSITIVE_UPLOAD_DIRS = new Set(['documents', 'reports', 'call-recordings']);
+const CHAT_UPLOAD_DIRS = new Set(['chat']);
+
+const userCanReadRecord = (user, record) => {
+  if (!record) return false;
+  if (user.role === 'superadmin') return true;
+  if (user.role === 'hospital_admin') {
+    return Boolean(user.hospitalId && record.hospitalId && record.hospitalId.toString() === user.hospitalId.toString());
   }
-  next();
-}, express.static(path.join(__dirname, '..', 'public/uploads')));
+  if (['doctor', 'clinic_doctor', 'counsellor', 'psychiatrist'].includes(user.role)) {
+    const own = (user.doctorProfileId || user._id)?.toString();
+    return Boolean(record.doctorId && own && record.doctorId.toString() === own);
+  }
+  if (user.role === 'patient') {
+    return Boolean(record.patientId && record.patientId.toString() === user._id.toString());
+  }
+  return false;
+};
+
+app.use('/uploads', async (req, res, next) => {
+  // 1. Always require a real session (no extension allow-list any more).
+  let user = null;
+  try {
+    const { default: jwt } = await import('jsonwebtoken');
+    const token = req.cookies?.token
+      || (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.slice(7) : null);
+    if (!token) return res.status(401).json({ message: 'Authentication required for file access' });
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    user = await User.findById(decoded.id).select('-password');
+    if (!user) return res.status(401).json({ message: 'Authentication required for file access' });
+    if ((decoded.tv ?? 0) !== (user.tokenVersion || 0) || user.status === 'blocked') {
+      return res.status(403).json({ message: 'Session is not valid for file access' });
+    }
+  } catch {
+    return res.status(401).json({ message: 'Authentication required for file access' });
+  }
+
+  const [dir, fileName] = req.path.split('/').filter(Boolean);
+  const fileId = fileName || '';
+
+  try {
+    // 2. Medical documents / generated reports / call recordings: the file must
+    //    be attached to a record the caller is allowed to read.
+    if (SENSITIVE_UPLOAD_DIRS.has(dir)) {
+      if (user.role === 'superadmin') return next();
+      const records = await Record.find({
+        $or: [
+          { 'data.uploadedFile.fileId': fileId },
+          { attachments: fileId },
+          { 'medicalHistory.fileId': fileId },
+        ],
+      }).select('patientId doctorId hospitalId').limit(5);
+      if (records.some((record) => userCanReadRecord(user, record))) return next();
+      return res.status(403).json({ message: 'You do not have access to this file' });
+    }
+
+    // 3. Chat attachments: only members of the conversation may fetch them.
+    if (CHAT_UPLOAD_DIRS.has(dir)) {
+      const message = await ChatMessage.findOne({ 'attachments.url': req.originalUrl })
+        .select('conversationId')
+        .lean();
+      if (!message) return res.status(404).json({ message: 'File not found' });
+      const conversation = await ChatConversation.findById(message.conversationId).select('participants').lean();
+      const isMember = conversation?.participants?.some((p) => String(p) === String(user._id));
+      if (!isMember) return res.status(403).json({ message: 'You do not have access to this file' });
+      return next();
+    }
+
+    // 4. Avatars / images / signatures / image derivatives: any signed-in user.
+    return next();
+  } catch (err) {
+    logger.error(`Upload access check failed for ${req.originalUrl}: ${err.message}`);
+    return res.status(403).json({ message: 'You do not have access to this file' });
+  }
+}, express.static(path.join(__dirname, '..', 'public/uploads'), {
+  dotfiles: 'deny',
+  index: false,
+  fallthrough: false,
+}));
 
 // Import routes
 import authRoutes from './routes/auth.js';
@@ -310,6 +453,8 @@ import userRoutes from './routes/users.js';
 import doctorRoutes from './routes/doctors.js';
 import patientRoutes from './routes/patients.js';
 import appointmentRoutes from './routes/appointments.js';
+import waitlistRoutes from './routes/waitlist.js';
+import appointmentSeriesRoutes from './routes/appointmentSeries.js';
 import recordRoutes from './routes/records.js';
 import billingRoutes from './routes/billing.js';
 import dashboardRoutes from './routes/dashboard.js';
@@ -321,6 +466,7 @@ import emergencyRoutes from './routes/emergency.js';
 import departmentRoutes from './routes/departments.js';
 import paymentRoutes from './routes/payments.js';
 import transactionRoutes from './routes/transactions.js';
+import walletGuardRoutes from './routes/walletGuards.js';
 import labRoutes from './routes/lab.js';
 import pharmacyRoutes from './routes/pharmacy.js';
 import ipdRoutes from './routes/ipd.js';
@@ -350,6 +496,8 @@ import platformRoutes from './routes/platform.js';
 import twoFactorRoutes from './routes/twoFactor.js';
 import patientPortalRoutes from './routes/patient.js';
 import auditLogRoutes from './routes/auditLogs.js';
+import opsHealthRoutes from './routes/opsHealth.js';
+import tenantQuotaRoutes from './routes/tenantQuotas.js';
 import reviewModerationRoutes from './routes/reviewModeration.js';
 import systemSettingRoutes from './routes/systemSettings.js';
 import commissionRoutes from './routes/commission.js';
@@ -367,6 +515,10 @@ import featuredListingRoutes from './routes/featuredListings.js';
 import cityRoutes from './routes/cities.js';
 import platformContentRoutes from './routes/platformContent.js';
 import exportRoutes from './routes/export.js';
+// ADM-M-07 / DLM-06: DPDP erasure workflow (request -> approve -> execute ->
+// certificate). Mounted separately from /api/admin so a user's own
+// self-service request does not need an admin mount to reach it.
+import deletionRequestRoutes from './routes/deletionRequests.js';
 import integrationRoutes from './routes/integrations.js';
 import deliveryPartnerRoutes from './routes/deliveryPartners.js';
 import deliveryRoutes from './routes/delivery.js';
@@ -399,6 +551,7 @@ import adminSosSettingsRoutes from './routes/adminSosSettings.js';
 import instantDispatchRoutes from './routes/instantDispatch.js';
 import mindsupportRoutes, { attachMindRealtime } from './routes/mindsupport.js';
 import routingRoutes from './routes/routing.js';
+import webhookRoutes from './routes/webhook.js';
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -406,6 +559,12 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/doctors', doctorRoutes);
 app.use('/api/patients', patientRoutes);
+// APPT-M-01: mounted BEFORE /api/appointments so the broader router's `GET /:id`
+// can never swallow '/waitlist/...' (a GET /api/appointments/waitlist would
+// otherwise resolve ':id = waitlist').
+app.use('/api/appointments/waitlist', waitlistRoutes);
+// APPT-M-02: must precede /api/appointments or GET /:id swallows /series/...
+app.use('/api/appointments/series', appointmentSeriesRoutes);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/records', recordRoutes);
 app.use('/api/billing', billingRoutes);
@@ -418,6 +577,7 @@ app.use('/api/emergency', emergencyRoutes);
 app.use('/api/departments', departmentRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/transactions', transactionRoutes);
+app.use('/api/wallet-guards', walletGuardRoutes);
 app.use('/api/lab', labRoutes);
 app.use('/api/pharmacy', pharmacyRoutes);
 app.use('/api/ipd', ipdRoutes);
@@ -453,10 +613,16 @@ app.use('/api/clinics', clinicRoutes);
 app.use('/api/platform', platformRoutes);
 app.use('/api/patient', patientPortalRoutes);
 app.use('/api/audit-logs', auditLogRoutes);
+app.use('/api/ops-health', opsHealthRoutes);
+app.use('/api/tenant-quotas', tenantQuotaRoutes);
 app.use('/api/reviews/moderation', reviewModerationRoutes);
 app.use('/api/system-settings', systemSettingRoutes);
 app.use('/api/commission', commissionRoutes);
 app.use('/api/admin/security', adminSecurityRoutes);
+// DLM-06: erasure requests. Order matters - mounted as its own resource so the
+// ownership checks inside it (self-service vs superadmin) are the only gate
+// between a user and someone else's deletion record.
+app.use('/api/deletion-requests', deletionRequestRoutes);
 
 // BullMQ Bull Board (job-queue visibility) — superadmin only, no-op without REDIS_URL.
 // Top-level await (not fire-and-forget): routes must register BEFORE the 404
@@ -546,9 +712,8 @@ app.use('/api/routing', routingRoutes);
 // 2FA routes
 app.use('/api/auth/2fa', twoFactorRoutes);
 
-// Fallback direct routes (in case requests bypass /api)
-app.use('/auth', authRoutes);
-app.use('/auth/2fa', twoFactorRoutes);
+// AUTH-005: bare /auth mounts removed — prefix normalization + limiters cover
+// /auth/* via /api/auth/*, so these duplicates only bypassed rate limiting.
 
 app.get(['/api/health', '/health', '/api/v1/health'], async (_, res) => {
   const mongoStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
@@ -592,13 +757,110 @@ app.get(['/api/health', '/health', '/api/v1/health'], async (_, res) => {
     },
   });
 });
+
+/**
+ * INF-B-07: orchestrator-friendly liveness/readiness split.
+ *
+ * `/api/health` above is a diagnostics endpoint: it always answers 200 so a
+ * dashboard can read the component map even while degraded. That is exactly
+ * wrong for a Kubernetes probe — a pod whose datastore is unreachable stays in
+ * the load-balancer rotation.
+ *
+ *   /healthz  liveness  — the process is up and the event loop turns. 200/500.
+ *                         Never touches a dependency (a slow DB must not cause
+ *                         a restart loop).
+ *   /readyz   readiness — a real ping of each required dependency with a short
+ *                         timeout. 503 while degraded so traffic is drained.
+ */
+const MONGO_READY_STATES = new Set([1]);
+
+const withTimeout = (promise, ms, fallback) =>
+  Promise.race([
+    Promise.resolve(promise).catch(() => fallback),
+    new Promise((resolve) => setTimeout(() => resolve(fallback), ms)),
+  ]);
+
+app.get('/healthz', (_req, res) => {
+  // Liveness only proves the process can serve a request — it touches NO
+  // dependency (INF-B-07 partial: the old form pinged mongo here, so a slow DB
+  // could restart the pod via the liveness probe). Dependency health lives in
+  // /readyz, which is allowed to 503.
+  res.status(200).json({ status: 'alive', uptimeSeconds: Math.floor(process.uptime()) });
+});
+
+// INF-M-02: /metrics next to the probes — same class of root-level, non-/api
+// endpoint (no CSRF, no API rate bucket), guarded by METRICS_TOKEN inside.
+app.use(metricsRoutes);
+
+app.get('/readyz', async (_req, res) => {
+  const mongoReady = MONGO_READY_STATES.has(mongoose.connection.readyState)
+    && await withTimeout(
+      mongoose.connection.db?.admin().command({ ping: 1 }).then(() => true).catch(() => false),
+      1500,
+      false
+    ) === true;
+
+  // no initial value: both the try and the catch below assign before the first
+  // read (line `mongoReady && redisReady`), so an initializer would be dead.
+  let redisReady;
+  try {
+    const { redisClient, isRedisReady } = await import('./config/redis.js');
+    // Redis is optional (the app degrades to in-memory), so it is reported but
+    // only fatal when the deployment actually configured it.
+    redisReady = !process.env.REDIS_URL
+      || (isRedisReady() && await withTimeout(redisClient.ping(), 1000, false) === 'PONG');
+  } catch { redisReady = false; }
+
+  const ready = mongoReady && redisReady;
+  res.status(ready ? 200 : 503).json({
+    status: ready ? 'ready' : 'not-ready',
+    checks: { mongodb: mongoReady, redis: redisReady },
+  });
+});
+/**
+ * DP-B-05: data-pipeline freshness, exposed separately from process liveness.
+ *
+ * `/healthz` says the process is up. It cannot say the Kafka consumer is keeping
+ * up — and those are independent facts. A pod that has been running for a week
+ * with a wedged consumer passes every liveness probe while every dashboard
+ * silently shows no data, which is precisely how this defect stayed invisible.
+ *
+ * Deliberately NOT part of `/readyz`: a stale analytics rollup must not take the
+ * API out of the load-balancer rotation. Taking appointments offline because a
+ * batch job is behind would turn a reporting problem into a clinical one. This
+ * returns 200 with `degraded: true` in the body, for monitoring to alert on — not
+ * a 503 that would drain traffic.
+ */
+app.get('/healthz/pipelines', async (_req, res) => {
+  const health = getPipelineHealth();
+  if (health.degraded) {
+    logger.warn(
+      'DP-B-05: data pipelines degraded - stale=' + health.stalePipelines.join(',')
+      + ' failing=' + health.failingPipelines.join(',')
+    );
+  }
+  res.status(200).json(health);
+});
+
 app.get('/', (_, res) => res.json({ status: 'ok', message: 'FindMedi API running', health: '/api/v1/health', docs: '/api/v1/health' }));
 
 // ── Serve frontend in production (only if client/dist exists - single-service deploy) ──
 import fs from 'fs';
 if (process.env.NODE_ENV === 'production') {
-  const clientDist = path.join(__dirname, '..', '..', 'client', 'dist');
-  if (fs.existsSync(clientDist)) {
+  // INF-B-08: the repo ships `frontend/dist`, NOT `client/dist`. The old path
+  // never existed, so on a single-service production deploy the static mount and
+  // the SPA fallback silently never registered and every non-API route 404'd.
+  // FRONTEND_DIST lets a deployment point at a build served from elsewhere;
+  // otherwise probe the two locations the repo/tooling actually produce.
+  const candidatePaths = [
+    process.env.FRONTEND_DIST,
+    path.join(__dirname, '..', '..', 'frontend', 'dist'),
+    path.join(__dirname, '..', '..', 'client', 'dist'),
+  ].filter(Boolean);
+
+  const clientDist = candidatePaths.find((p) => fs.existsSync(path.join(p, 'index.html')));
+
+  if (clientDist) {
     app.use(express.static(clientDist));
     // SPA fallback: serve index.html for non-API routes (must be before 404)
     app.get(/^\/(?!api).*/, (req, res) => {
@@ -606,8 +868,14 @@ if (process.env.NODE_ENV === 'production') {
         if (err) res.status(404).end();
       });
     });
+    logger.info(`🌐 Serving SPA from ${clientDist}`);
+  } else if (process.env.REQUIRE_SPA_BUILD === 'true') {
+    // Opt-in hard failure so a misconfigured single-service deploy cannot come up
+    // silently in API-only mode.
+    logger.error('REQUIRE_SPA_BUILD=true but no frontend build was found in: ' + candidatePaths.join(', '));
+    throw new Error('Frontend build missing in production (REQUIRE_SPA_BUILD=true)');
   } else {
-    logger.info('ℹ️ client/dist not found - running in API-only mode (expected for split deploy)');
+    logger.warn('⚠️ No frontend build found (' + candidatePaths.join(', ') + ') - running in API-only mode (expected for split deploy)');
   }
 }
  
@@ -637,6 +905,9 @@ logger.info('   URI: ' + redactMongoUri(MONGO_URI));
 
 if (process.env.NODE_ENV !== 'test') {
   const server = http.createServer(app);
+  // INF-M-02: nodejs_*/process_* gauges start only on a real boot, so tests
+  // that import this file never spawn the collection interval.
+  startProcessMetrics();
   initSocket(server).then((mainIo) => {
     // Phase 6 (merge): MindSupport realtime rooms on the shared server.
     try { attachMindRealtime(mainIo); } catch (err) { logger.error(`MindSupport realtime attach failed: ${err.message}`); }
@@ -740,12 +1011,46 @@ if (process.env.NODE_ENV !== 'test') {
       const { startKafkaConsumer } = await import('./services/kafkaConsumerService.js');
       startKafkaConsumer();
 
+      // Spec 18 — internal gRPC MatchingEngineService (fail-soft; REST stays primary)
+      try {
+        const { startGrpcServer } = await import('./lib/grpcServer.js');
+        await startGrpcServer();
+      } catch (e) {
+        logger.warn('gRPC server failed to start (non-fatal): ' + e.message);
+      }
+
       // Phase 3 — BullMQ workers (notifications; no-op without REDIS_URL)
       try {
         const { startWorkers } = await import('./workers/index.js');
         await startWorkers();
       } catch (e) {
         logger.warn('job workers failed to start (non-fatal): ' + e.message);
+      }
+
+      // MISS-PAY-003: wallet ledger reconciliation (daily, cron)
+      try {
+        const { startWalletReconcile } = await import('./jobs/walletReconcile.job.js');
+        startWalletReconcile();
+      } catch (e) {
+        logger.warn('wallet reconcile job failed to start (non-fatal): ' + e.message);
+      }
+
+      // NOTIF-M-03: appointment reminders (T-24h/T-2h), every 5 min. The state
+      // lives on the Appointment doc, so a missed tick is caught up by the next.
+      try {
+        const { startAppointmentReminders } = await import('./jobs/appointmentReminder.job.js');
+        startAppointmentReminders(process.env.APPT_REMINDER_CRON || '*/5 * * * *');
+      } catch (e) {
+        logger.warn('appointment reminder job failed to start (non-fatal): ' + e.message);
+      }
+
+      // PAY-M-03: payout-vs-settlement reconciliation (daily, 03:00 — offset
+      // from the 02:00 wallet job). Mismatch = audit + superadmin alert.
+      try {
+        const { startPayoutReconcile } = await import('./jobs/payoutReconcile.job.js');
+        startPayoutReconcile(process.env.PAYOUT_RECON_CRON || '0 3 * * *');
+      } catch (e) {
+        logger.warn('payout reconcile job failed to start (non-fatal): ' + e.message);
       }
     } catch (e) {
       logger.error('⚠️ Failed to sync indexes, seed demo users, or start outbox poller: ' + e.message);

@@ -37,28 +37,126 @@ const apiClient = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
-// Cross-origin (localhost:5173 → localhost:5001 or findmedi.online → onrender.com)
-// me httpOnly cookies third-party restrictions ki wajah se browser drop kar sakta hai.
-// Isliye accessToken aur refreshToken ko memory + localStorage me cache karte hain
-// aur Authorization header + body fallback se bhejte hain.
-let accessTokenCache = typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null;
-let refreshTokenCache = typeof localStorage !== 'undefined' ? localStorage.getItem('refreshToken') : null;
+// ─── FE-B-01: token storage ────────────────────────────────────────────────
+//
+// The server ALREADY sets both tokens as httpOnly cookies (`auth.js`:
+// `res.cookie('token', { httpOnly: true, secure, sameSite })`). Every byte of
+// JavaScript on the page — including any XSS payload and any compromised npm
+// dependency — is therefore already unable to read them.
+//
+// Writing them to `localStorage` as well actively UNDID that protection: it
+// created a second, script-readable copy of the refresh token, which is valid for
+// weeks and can be exchanged for a fresh access token at leisure. It converted a
+// contained XSS bug into permanent account takeover, and on a platform holding
+// PHI that is the whole ballgame.
+//
+// The access token now lives ONLY in a module-scoped variable. That is a real
+// trade-off and it is the right one: a page reload costs one silent
+// `/auth/refresh` round-trip, which the app already performs on boot, and in
+// exchange a token cannot be stolen by anything that can run script.
+//
+// The original comment claimed localStorage was needed because cross-origin
+// httpOnly cookies get dropped by the browser. That is true only when the
+// cookie lacks `SameSite=None; Secure` — which the server sets in production, and
+// which the deployed origin now shares. localStorage was a workaround for a
+// problem that is already solved at the correct layer.
+let accessTokenCache = null;
+
+// One-time migration: if a previous build left tokens in localStorage, delete
+// them. Leaving them would keep the vulnerability alive for every user who has
+// ever logged in, even though the new code never reads them.
+(() => {
+  try {
+    if (typeof localStorage === 'undefined') return;
+    for (const key of ['token', 'refreshToken']) {
+      if (localStorage.getItem(key) !== null) {
+        localStorage.removeItem(key);
+        console.warn(
+          `[security] removed legacy ${key} from localStorage — tokens are now httpOnly cookies.`
+        );
+      }
+    }
+  } catch { /* storage unavailable (private mode / SSR) */ }
+})();
+
+/** The in-memory access token, for socket handshakes and other non-axios reads. */
+export const getAccessToken = () => accessTokenCache;
+
+// ─── CSRF token bootstrap ──────────────────────────────────────────────────
+//
+// The server issues a double-submit cookie from `GET /api/auth/csrf-token` and
+// REQUIRES it on every state-changing request:
+//
+//   if (!tokenFromCookie || !tokenFromHeader || cookie !== header)
+//     return 403 'CSRF validation failed: missing token'
+//
+// Nothing in this app ever called that endpoint. The cookie was only ever set as
+// a side effect of some OTHER request, so a first-time visitor — who has exactly
+// the request that matters most, logging in — had no cookie, the interceptor
+// attached no header, and login / register / forgot-password all failed with
+// "CSRF validation failed: missing token".
+//
+// Fetched on demand rather than at app boot, because a boot-time fetch races
+// every other request the app fires on load. `ensureCsrfToken` is also
+// concurrency-safe: a burst of parallel writes shares ONE in-flight request
+// rather than racing to mint several tokens and leaving the cookie disagreeing
+// with the last header that was sent.
+let csrfFetch = null;
+
+async function ensureCsrfToken() {
+  const existing = getCookie('csrf-token');
+  if (existing) return existing;
+  if (!csrfFetch) {
+    csrfFetch = apiClient
+      .get('/auth/csrf-token', { withCredentials: true })
+      .then(() => getCookie('csrf-token'))
+      .finally(() => { csrfFetch = null; });
+  }
+  return csrfFetch;
+}
+
+/**
+ * Clear the CSRF cookie so the next `ensureCsrfToken()` actually refetches.
+ *
+ * It cannot set a past expiry with `document.cookie` on an httpOnly cookie —
+ * this one is deliberately NOT httpOnly (the double-submit pattern requires
+ * JavaScript to read it), so it CAN be deleted from script. Written for every
+ * path shape rather than just `path=/` because a cookie set without an
+ * explicit `Path` lands on the directory of the request that set it, and
+ * browsers keep both.
+ */
+function expireCsrfToken() {
+  if (typeof document === 'undefined') return;
+  for (const path of ['/', window.location.pathname]) {
+    document.cookie = `csrf-token=; Max-Age=0; path=${path}`;
+    document.cookie = `csrf-token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=${path}`;
+  }
+}
+
+// Warm the cookie so the first user action does not pay a round-trip. A failure
+// is swallowed on purpose: `ensureCsrfToken` above is the real guarantee, this is
+// only a latency optimisation, and a warm-up failure must not break the app.
+if (typeof document !== 'undefined') {
+  ensureCsrfToken().catch(() => {});
+}
 
 // ─── Request Interceptor: CSRF token + Authorization Header + FormData ──────
 apiClient.interceptors.request.use(
-  (config) => {
+  async (config) => {
     if (config.data instanceof FormData) {
       delete config.headers['Content-Type'];
     }
 
-    // Attach Authorization header if token is available
-    const token = accessTokenCache || (typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null);
-    if (token && !config.headers['Authorization']) {
-      config.headers['Authorization'] = `Bearer ${token}`;
+    // Attach Authorization header if token is available.
+    // FE-B-01: read from memory only. The `localStorage` fallback is gone — that
+    // was the vulnerability, and keeping it as a "just in case" would defeat the
+    // entire change.
+    if (accessTokenCache && !config.headers['Authorization']) {
+      config.headers['Authorization'] = `Bearer ${accessTokenCache}`;
     }
 
     if (['post', 'put', 'patch', 'delete'].includes(config.method?.toLowerCase())) {
-      const csrfToken = getCookie('csrf-token');
+      const csrfToken = await ensureCsrfToken();
       if (csrfToken) {
         config.headers['X-CSRF-Token'] = csrfToken;
       }
@@ -89,13 +187,14 @@ const refreshSession = async () => {
   let lastErr;
   for (let i = 0; i < 3; i++) {
     try {
-      const currentRefresh = refreshTokenCache || (typeof localStorage !== 'undefined' ? localStorage.getItem('refreshToken') : null);
-      const res = await apiClient.post('/auth/refresh', currentRefresh
-        ? { refreshToken: currentRefresh }
-        : undefined);
+      // FE-B-01: no token in the body. The refresh token is an httpOnly cookie
+      // and is sent automatically by `withCredentials: true`. Sending a copy in
+      // the request body would require having read it in JS — the exact thing
+      // this change exists to prevent.
+      const res = await apiClient.post('/auth/refresh');
       if (res.data?.token) {
+        // Memory only. The server has also rotated the cookie by now.
         accessTokenCache = res.data.token;
-        try { localStorage.setItem('token', res.data.token); } catch { /* ignore storage error */ }
       }
       return res.status === 200;
     } catch (err) {
@@ -106,6 +205,11 @@ const refreshSession = async () => {
   }
   throw lastErr;
 };
+
+// FE-B-04: exported so raw `fetch` call sites (file previews) can force a refresh
+// before retrying. A bare `fetch` does not pass through the axios interceptors, so
+// it has no other way to recover from an expired access token.
+export { refreshSession };
 
 // Endpoints jo session par depend nahi karte — in par kabhi auto-refresh nahi karna.
 // (/auth/me session-validated hai aur ISKO refresh karna zaroori hai, warna access
@@ -119,7 +223,8 @@ const NO_AUTO_REFRESH_PATHS = [
 const isNoAutoRefresh = (url = '') => NO_AUTO_REFRESH_PATHS.some(p => url.startsWith(p));
 
 // ─── Response Interceptor: Unified error handling + auto-refresh ───────────
-// Capture token and refreshToken from auth responses so they are always stored
+// FE-B-01: the access token is cached in memory only. The refresh token is never
+// touched here — it lives entirely in an httpOnly cookie the browser manages.
 apiClient.interceptors.response.use(
   (response) => {
     const url = response.config?.url || '';
@@ -127,11 +232,15 @@ apiClient.interceptors.response.use(
         url.startsWith('/auth/google') || url.startsWith('/auth/refresh')) {
       if (response.data?.token) {
         accessTokenCache = response.data.token;
-        try { localStorage.setItem('token', response.data.token); } catch { /* ignore storage error */ }
       }
+      // If `response.data.refreshToken` is still present on the wire, that is a
+      // backend regression — the token must not be script-readable. Warn loudly
+      // rather than silently persisting it.
       if (response.data?.refreshToken) {
-        refreshTokenCache = response.data.refreshToken;
-        try { localStorage.setItem('refreshToken', response.data.refreshToken); } catch { /* ignore storage error */ }
+        console.error(
+          '[security] the API returned a refreshToken in the response body. It must '
+          + 'be an httpOnly cookie only; please check backend/src/routes/auth.js.'
+        );
       }
     }
     return response;
@@ -151,6 +260,29 @@ apiClient.interceptors.response.use(
     if (isTransient && !original._skipRetry && (method === 'get' || method === 'head') && attempt < 5) {
       original._retryCount = attempt + 1;
       await delay(400 * (attempt + 1));
+      return apiClient(original);
+    }
+
+    // 1b) CSRF token rejected → mint a fresh one and replay the request ONCE.
+    //
+    // The request interceptor already fetches the token, so this should be
+    // unreachable. It is here for the case the interceptor cannot cover: the
+    // cookie is cleared or rotated between the header being read and the server
+    // comparing it. `ensureCsrfToken` returns the EXISTING cookie without
+    // refetching, so the token has to be expired explicitly before the retry.
+    //
+    // Retrying is safe because a CSRF rejection happens BEFORE the route
+    // handler runs — the server never acted on the request, so there is nothing
+    // to double-submit. Bounded to one replay, and never for the token endpoint
+    // itself, which would otherwise loop.
+    const isCsrfFailure = error.response?.status === 403 &&
+      typeof error.response?.data?.message === 'string' &&
+      error.response.data.message.startsWith('CSRF validation failed');
+
+    if (isCsrfFailure && !original._csrfRetried && !String(original.url || '').includes('/auth/csrf-token')) {
+      original._csrfRetried = true;
+      expireCsrfToken();
+      await ensureCsrfToken();
       return apiClient(original);
     }
 
@@ -177,10 +309,11 @@ apiClient.interceptors.response.use(
         // If session is truly dead, clear stored tokens
         if (refreshErr.response && (refreshErr.response.status === 401 || refreshErr.response.status === 400 || refreshErr.response.status === 403)) {
           accessTokenCache = null;
-          refreshTokenCache = null;
           try {
-            localStorage.removeItem('token');
-            localStorage.removeItem('refreshToken');
+            if (typeof localStorage !== 'undefined') {
+              localStorage.removeItem('token');
+              localStorage.removeItem('refreshToken');
+            }
           } catch { /* ignore */ }
 
           // Only redirect if user is actively on a protected / dashboard route.
@@ -232,23 +365,37 @@ apiClient.interceptors.response.use(
 
 export default apiClient;
 
-export function setAuthTokens(accessToken, refreshToken) {
-  accessTokenCache = accessToken;
-  refreshTokenCache = refreshToken;
-  try {
-    if (accessToken) localStorage.setItem('token', accessToken);
-    if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
-  } catch { /* ignore */ }
+// FE-B-01: there is NO refresh-token cache, and deliberately so.
+//
+// `setAuthTokens` used to keep a module-level `refreshTokenCache` AND mirror
+// both tokens into `localStorage`. Removing the `localStorage` copy (the actual
+// vulnerability) left the variable's DECLARATION behind while every other
+// reference to it survived — so assigning to it threw a `ReferenceError` in an
+// ES module, and `setAuthTokens` wrote the tokens straight back to the
+// script-readable store the change existed to eliminate. The security fix was
+// half-applied and the half that was left broke the app.
+//
+// The refresh token is an httpOnly cookie now. The browser attaches it to
+// `/auth/refresh` on its own; there is nothing for JavaScript to hold, and
+// nothing for XSS to steal.
+//
+// The two exported helpers keep their names and signatures because call sites
+// import them, but they now clear only what still exists in memory.
+
+export function setAuthTokens(accessToken) {
+  accessTokenCache = accessToken || null;
 }
 
-// Logout pe cached tokens clear kar do taaki stale token reuse na ho.
 export function clearRefreshTokenCache() {
   accessTokenCache = null;
-  refreshTokenCache = null;
+  // Belt-and-braces: an older build may have left copies behind. Removing them
+  // costs nothing and closes the door on the migration above missing a build.
   try {
-    localStorage.removeItem('token');
-    localStorage.removeItem('refreshToken');
-  } catch { /* ignore */ }
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+    }
+  } catch { /* storage unavailable (private mode / SSR) */ }
 }
 
 // ─── Proactive token refresh ───────────────────────────────────────────────
@@ -256,11 +403,14 @@ export function clearRefreshTokenCache() {
 // karte hain (reactive 401-trigger refresh nahi). Isse page reload / HMR reload
 // ke waqt access token hamesha fresh rehta hai → /auth/me turant 200 deta hai
 // → logout kabhi nahi hota code change par.
+//
+// No body: the refresh token rides as an httpOnly cookie, so `withCredentials`
+// is the whole mechanism. Sending a copy in the body would require reading it in
+// JS, which is exactly what FE-B-01 removed.
 export async function refreshAccessToken() {
   try {
-    const res = await apiClient.post('/auth/refresh', refreshTokenCache
-      ? { refreshToken: refreshTokenCache }
-      : undefined);
+    const res = await apiClient.post('/auth/refresh');
+    if (res?.data?.token) accessTokenCache = res.data.token;
     return res.status === 200;
   } catch (err) {
     // Network error / 5xx → transient, koi logout nahi

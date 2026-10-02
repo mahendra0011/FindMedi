@@ -1,10 +1,11 @@
 import express from 'express';
+import { sendServerError } from '../utils/safeError.js';
 import RideBooking from '../models/RideBooking.js';
 import RiderProfile from '../models/RiderProfile.js';
 import Vehicle from '../models/Vehicle.js';
 import User from '../models/User.js';
 import Notification from '../models/Notification.js';
-import { protect, optionalProtect } from '../middleware/auth.js';
+import { protect, optionalProtect, authorize } from '../middleware/auth.js';
 import { bookingLimiter } from '../middleware/rateLimit.js';
 import { idempotencyGuard } from '../middleware/idempotency.js';
 import { validate, estimateRideSchema, bookRideSchema, rateRideSchema } from '../utils/validate.js';
@@ -20,6 +21,7 @@ import {
 } from '../services/rideService.js';
 import { generateRideReceiptPdf } from '../services/rideReceiptService.js';
 import { getIO } from '../services/socketService.js';
+import TransactionLedger from '../models/TransactionLedger.js';
 import { recordServiceSettlement } from '../services/ledgerService.js';
 import { loyaltyService } from '../services/loyaltyService.js';
 import { executeWithOutbox } from '../lib/transactionalOutbox.js';
@@ -47,15 +49,70 @@ router.post('/estimate', validate(estimateRideSchema), async (req, res) => {
     });
   } catch (err) {
     logger.error(`Ride estimate error: ${err.message}`);
-    res.status(500).json({ message: 'Failed to calculate ride estimate', error: err.message });
+    sendServerError(res, err, 'Failed to calculate ride estimate');
   }
 });
 
+/**
+ * RIDE-B-07: is this booking entitled to emergency pricing?
+ *
+ * @returns {Promise<false | { isEmergency: true, sosId: string } | null>}
+ *          `null` means a response has already been written.
+ *
+ * The rules:
+ *   - no `sosId`  -> plain booking (`false`)
+ *   - `sosId`     -> the SOS record must exist, still be active, and name the
+ *                    caller as its subject. Anything else is refused, because the
+ *                    emergency tariff AND the dispatch priority must both be
+ *                    earned by a real incident.
+ */
+async function resolveVerifiedEmergency(req, sosId, res) {
+  if (!sosId) return false;
+  if (req.user.role === 'superadmin') return { isEmergency: true, sosId: String(sosId) };
+
+  const { default: EmergencyRequest } = await import('../models/EmergencyRequest.js');
+  const sos = await EmergencyRequest.findById(sosId).catch(() => null);
+  if (!sos) {
+    res.status(400).json({ message: 'Emergency booking requires a valid sosId' });
+    return null;
+  }
+
+  const ACTIVE_STATES = new Set(['pending', 'dispatching', 'dispatched', 'en_route', 'arrived', 'in_progress']);
+  if (!ACTIVE_STATES.has(String(sos.status).toLowerCase())) {
+    res.status(409).json({ message: `SOS is ${sos.status} and no longer eligible for emergency pricing` });
+    return null;
+  }
+
+  // The caller must be the person the SOS was raised for. Without this, one
+  // patient's SOS unlocked another patient's emergency dispatch.
+  const subjects = new Set(
+    [sos.userId, sos.patientId, sos.requesterId].filter(Boolean).map((v) => String(
+      typeof v === 'object' ? (v._id ?? v.id) : v
+    ))
+  );
+  const me = String(req.user._id ?? req.user.id ?? '');
+  if (subjects.size > 0 && !subjects.has(me)) {
+    res.status(403).json({ message: 'This SOS does not belong to you' });
+    return null;
+  }
+
+  return { isEmergency: true, sosId: String(sosId) };
+}
+
 // ─── POST /api/ride/book ────────────────────────────────────────────────────
 // Book a new vehicle
-router.post('/book', protect, validate(bookRideSchema), bookingLimiter, async (req, res) => {
+router.post('/book', protect, authorize('ride:write', 'ride:write:own'), validate(bookRideSchema), bookingLimiter, async (req, res) => {
   try {
-    const { pickup, drop, vehicleType, isEmergency = false } = req.body;
+    const { pickup, drop, vehicleType, sosId } = req.body;
+
+    // ── RIDE-B-07: `isEmergency` is NOT a client assertion ──
+    // It used to be read straight from the body and fed `calculateFare(...,
+    // isEmergency)` plus the dispatch priority, so anyone could buy the emergency
+    // tariff and jump the queue with no incident behind it. Emergency pricing is
+    // now granted only when the caller is the SUBJECT of a real, still-active SOS.
+    const emergency = await resolveVerifiedEmergency(req, sosId, res);
+    if (emergency === null) return undefined; // response already written
+    const isEmergency = emergency === false ? false : emergency.isEmergency;
 
     // Check if user has an active ride in progress/searching
     const existingActive = await RideBooking.findOne({
@@ -123,7 +180,7 @@ router.post('/book', protect, validate(bookRideSchema), bookingLimiter, async (r
     });
   } catch (err) {
     logger.error(`Ride booking error: ${err.message}`);
-    res.status(500).json({ message: 'Failed to create ride booking', error: err.message });
+    sendServerError(res, err, 'Failed to create ride booking');
   }
 });
 
@@ -178,7 +235,7 @@ router.get('/active', optionalProtect, async (req, res) => {
     });
   } catch (err) {
     logger.error(`Get active ride error: ${err.message}`);
-    res.status(500).json({ message: 'Failed to fetch active ride', error: err.message });
+    sendServerError(res, err, 'Failed to fetch active ride');
   }
 });
 
@@ -218,7 +275,7 @@ router.get('/my-rides', protect, async (req, res) => {
     });
   } catch (err) {
     logger.error(`Get user rides error: ${err.message}`);
-    res.status(500).json({ message: 'Failed to fetch ride history', error: err.message });
+    sendServerError(res, err, 'Failed to fetch ride history');
   }
 });
 
@@ -251,13 +308,13 @@ router.get('/rider-history', protect, async (req, res) => {
     });
   } catch (err) {
     logger.error(`Get rider history error: ${err.message}`);
-    res.status(500).json({ message: 'Failed to fetch rider history', error: err.message });
+    sendServerError(res, err, 'Failed to fetch rider history');
   }
 });
 
 // ─── GET /api/ride/:id ──────────────────────────────────────────────────────
 // Get ride details
-router.get('/:id', protect, async (req, res) => {
+router.get('/:id', protect, authorize('ride:read', 'ride:read:own'), async (req, res) => {
   try {
     const ride = await RideBooking.findById(req.params.id)
       .populate('userId', 'name phone avatar email')
@@ -267,6 +324,15 @@ router.get('/:id', protect, async (req, res) => {
 
     if (!ride) {
       return res.status(404).json({ message: 'Ride booking not found' });
+    }
+
+    const isOwner = ride.userId?.toString() === req.user._id.toString() || ride.riderId?.toString() === req.user._id.toString();
+    // RIDE-B-09: platform superadmin only. `hospital_admin` was treated as an
+    // admin for rides they have no relationship with, exposing another
+    // patient's pickup/drop address, phone numbers and fare.
+    const isAdmin = req.user.role === 'superadmin';
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ message: 'Not authorized to view this ride' });
     }
 
     let riderDetails = null;
@@ -292,13 +358,13 @@ router.get('/:id', protect, async (req, res) => {
     });
   } catch (err) {
     logger.error(`Get ride details error: ${err.message}`);
-    res.status(500).json({ message: 'Failed to fetch ride details', error: err.message });
+    sendServerError(res, err, 'Failed to fetch ride details');
   }
 });
 
 // ─── POST /api/ride/:id/accept ──────────────────────────────────────────────
 // Rider accepts a ride booking (Atomic update)
-router.post('/:id/accept', protect, idempotencyGuard(), async (req, res) => {
+router.post('/:id/accept', protect, authorize('ride:write'), idempotencyGuard(), async (req, res) => {
   try {
     if (req.user.role !== 'rider') {
       return res.status(403).json({ message: 'Only registered riders can accept rides' });
@@ -353,13 +419,13 @@ router.post('/:id/accept', protect, idempotencyGuard(), async (req, res) => {
     });
   } catch (err) {
     logger.error(`Ride accept error: ${err.message}`);
-    res.status(500).json({ message: 'Failed to accept ride', error: err.message });
+    sendServerError(res, err, 'Failed to accept ride');
   }
 });
 
 // ─── POST /api/ride/:id/arrived ─────────────────────────────────────────────
 // Rider marks arrived at pickup location (with geofence validation)
-router.post('/:id/arrived', protect, async (req, res) => {
+router.post('/:id/arrived', protect, authorize('ride:write'), idempotencyGuard({ prefix: 'ride-arrived', failClosed: true }), async (req, res) => {
   try {
     const { lat, lng } = req.body;
     const existingRide = await RideBooking.findOne({
@@ -403,13 +469,13 @@ router.post('/:id/arrived', protect, async (req, res) => {
 
     res.json({ success: true, ride });
   } catch (err) {
-    res.status(500).json({ message: 'Failed to update ride status', error: err.message });
+    sendServerError(res, err, 'Failed to update ride status');
   }
 });
 
 // ─── POST /api/ride/:id/start ───────────────────────────────────────────────
 // Rider starts the ride (requires 4-digit pickup OTP verification)
-router.post('/:id/start', protect, async (req, res) => {
+router.post('/:id/start', protect, authorize('ride:write'), idempotencyGuard({ prefix: 'ride-start', failClosed: true }), async (req, res) => {
   try {
     const { otp } = req.body;
     const existingRide = await RideBooking.findOne({
@@ -443,13 +509,18 @@ router.post('/:id/start', protect, async (req, res) => {
 
     res.json({ success: true, ride });
   } catch (err) {
-    res.status(500).json({ message: 'Failed to start ride', error: err.message });
+    sendServerError(res, err, 'Failed to start ride');
   }
 });
 
 // ─── POST /api/ride/:id/complete ────────────────────────────────────────────
 // Rider completes the ride
-router.post('/:id/complete', protect, async (req, res) => {
+// RIDE-B-03: completion moves MONEY (ledger settlement, provider wallet, loyalty
+// points, receipt). A retry, a socket re-emit or a double tap re-ran the whole
+// handler, so the settlement could be written twice. The replay guard makes the
+// call exactly-once, and the status predicate below is a compare-and-set: only
+// a ride still in_progress can complete, so a second call matches nothing.
+router.post('/:id/complete', protect, authorize('ride:write'), idempotencyGuard({ prefix: 'ride-complete', failClosed: true }), async (req, res) => {
   try {
     const ride = await RideBooking.findOneAndUpdate(
       { _id: req.params.id, riderId: req.user._id, status: 'in_progress' },
@@ -512,13 +583,13 @@ router.post('/:id/complete', protect, async (req, res) => {
 
     res.json({ success: true, ride });
   } catch (err) {
-    res.status(500).json({ message: 'Failed to complete ride', error: err.message });
+    sendServerError(res, err, 'Failed to complete ride');
   }
 });
 
 // ─── POST /api/ride/:id/cancel ──────────────────────────────────────────────
 // Cancel a ride (User or Rider)
-router.post('/:id/cancel', protect, idempotencyGuard(), async (req, res) => {
+router.post('/:id/cancel', protect, authorize('ride:write', 'ride:write:own'), idempotencyGuard(), async (req, res) => {
   try {
     const { reason = '' } = req.body;
     const isRider = req.user.role === 'rider';
@@ -532,11 +603,20 @@ router.post('/:id/cancel', protect, idempotencyGuard(), async (req, res) => {
       return res.status(400).json({ message: 'This ride has already finished or been cancelled' });
     }
 
+    // RIDE-B-10: ownership is mandatory. `authorize('ride:write')` is granted to
+    // riders, patients, ambulance staff and more, so without this check ANY
+    // holder of the permission could cancel somebody else's ride.
+    const isRideOwner = ride.userId?.toString() === req.user._id.toString();
+    const isAssignedRider = ride.riderId?.toString() === req.user._id.toString();
+    if (!isRideOwner && !isAssignedRider && req.user.role !== 'superadmin') {
+      return res.status(403).json({ message: 'Not authorized to cancel this ride' });
+    }
+
     if (ride.status === 'in_progress' && !isRider) {
       return res.status(400).json({ message: 'Cannot cancel a ride that is already in progress' });
     }
 
-    if (isRider && String(ride.riderId) === String(req.user._id)) {
+    if (isRider && isAssignedRider) {
       // If rider cancels before start, ride can return to searching once
       ride.status = 'searching';
       ride.riderId = null;
@@ -564,13 +644,23 @@ router.post('/:id/cancel', protect, idempotencyGuard(), async (req, res) => {
       ride.statusHistory.push({ status: 'cancelled_by_user', at: new Date(), note: reason });
       await ride.save();
 
+      // LOYAL-M-02: a cancelled booking gives its points back. Fail-soft,
+      // idempotent, and a no-op unless this ride actually earned (points are
+      // only awarded on completion, and completed rides cannot be cancelled
+      // here — this is the safety net for any other earn path).
+      const passengerId = ride.userId?._id || ride.userId;
+      if (passengerId) {
+        void loyaltyService.reversePoints(passengerId, 'ride_completed', ride._id)
+          .catch((revErr) => logger.warn(`Ride loyalty reversal warning: ${revErr.message}`));
+      }
+
       notifyRideUpdate(ride, 'ride_status_update');
 
       return res.json({ success: true, message: 'Ride cancelled successfully', ride });
     }
   } catch (err) {
     logger.error(`Ride cancellation error: ${err.message}`);
-    res.status(500).json({ message: 'Failed to cancel ride', error: err.message });
+    sendServerError(res, err, 'Failed to cancel ride');
   }
 });
 
@@ -583,6 +673,17 @@ router.post('/:id/rate', protect, validate(rateRideSchema), async (req, res) => 
 
     const ride = await RideBooking.findById(req.params.id);
     if (!ride) return res.status(404).json({ message: 'Ride not found' });
+
+    // RIDE-B-10 (rate): only the rider can rate the rider, only the passenger can
+    // rate the trip — otherwise anyone could poison a rider's average rating.
+    const isAssignedRider = ride.riderId?.toString() === req.user._id.toString();
+    const isPassenger = ride.userId?.toString() === req.user._id.toString();
+    if (isRider && !isAssignedRider) {
+      return res.status(403).json({ message: 'Not authorized to rate this ride' });
+    }
+    if (!isRider && !isPassenger && req.user.role !== 'superadmin') {
+      return res.status(403).json({ message: 'Not authorized to rate this ride' });
+    }
 
     if (isRider) {
       ride.ratingByRider = { stars, comment, createdAt: new Date() };
@@ -606,13 +707,13 @@ router.post('/:id/rate', protect, validate(rateRideSchema), async (req, res) => 
 
     res.json({ success: true, message: 'Rating submitted successfully', ride });
   } catch (err) {
-    res.status(500).json({ message: 'Failed to submit rating', error: err.message });
+    sendServerError(res, err, 'Failed to submit rating');
   }
 });
 
 // ─── GET /api/ride/:id/receipt ──────────────────────────────────────────────
 // Download PDF receipt
-router.get('/:id/receipt', protect, async (req, res) => {
+router.get('/:id/receipt', protect, authorize('ride:read', 'ride:read:own'), async (req, res) => {
   try {
     const ride = await RideBooking.findById(req.params.id)
       .populate('userId', 'name phone email')
@@ -621,6 +722,12 @@ router.get('/:id/receipt', protect, async (req, res) => {
 
     if (!ride) return res.status(404).json({ message: 'Ride not found' });
 
+    const isOwner = ride.userId?.toString() === req.user._id.toString() || ride.riderId?.toString() === req.user._id.toString();
+    const isAdmin = req.user.role === 'superadmin' || req.user.role === 'hospital_admin';
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ message: 'Not authorized to view this receipt' });
+    }
+
     const pdfBuffer = await generateRideReceiptPdf(ride, ride.userId, ride.riderId, ride.vehicleId);
 
     res.setHeader('Content-Type', 'application/pdf');
@@ -628,13 +735,13 @@ router.get('/:id/receipt', protect, async (req, res) => {
     res.send(pdfBuffer);
   } catch (err) {
     logger.error(`Receipt generation error: ${err.message}`);
-    res.status(500).json({ message: 'Failed to generate PDF receipt', error: err.message });
+    sendServerError(res, err, 'Failed to generate PDF receipt');
   }
 });
 
 // ─── GET /api/ride/:id/thermal-receipt ──────────────────────────────────────
 // Stream raw ESC/POS bytes for 80mm Bluetooth mobile thermal printers
-router.get('/:id/thermal-receipt', protect, async (req, res) => {
+router.get('/:id/thermal-receipt', protect, authorize('ride:read', 'ride:read:own'), async (req, res) => {
   try {
     const { generateEscPosReceiptBytes } = await import('../services/rideReceiptService.js');
     const ride = await RideBooking.findById(req.params.id)
@@ -644,6 +751,12 @@ router.get('/:id/thermal-receipt', protect, async (req, res) => {
 
     if (!ride) return res.status(404).json({ message: 'Ride not found' });
 
+    const isOwner = ride.userId?.toString() === req.user._id.toString() || ride.riderId?.toString() === req.user._id.toString();
+    const isAdmin = req.user.role === 'superadmin' || req.user.role === 'hospital_admin';
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ message: 'Not authorized to view this receipt' });
+    }
+
     const rawBytes = generateEscPosReceiptBytes(ride, ride.userId, ride.riderId, ride.vehicleId);
 
     res.setHeader('Content-Type', 'application/octet-stream');
@@ -651,7 +764,242 @@ router.get('/:id/thermal-receipt', protect, async (req, res) => {
     res.send(rawBytes);
   } catch (err) {
     logger.error(`Thermal receipt generation error: ${err.message}`);
-    res.status(500).json({ message: 'Failed to generate thermal receipt', error: err.message });
+    sendServerError(res, err, 'Failed to generate thermal receipt');
+  }
+});
+
+// ─── GET /api/ride/:id/payout-statement ──────────────────────────────────────
+// Driver earnings & payout statement (PAY-R-02)
+router.get('/:id/payout-statement', protect, authorize('ride:read', 'ride:read:own'), async (req, res) => {
+  try {
+    const ride = await RideBooking.findById(req.params.id)
+      .populate('userId', 'name phone email')
+      .populate('riderId', 'name phone')
+      .populate('vehicleId');
+
+    if (!ride) return res.status(404).json({ message: 'Ride not found' });
+
+    const isOwner = ride.userId?.toString() === req.user._id.toString() || ride.riderId?.toString() === req.user._id.toString();
+    const isAdmin = req.user.role === 'superadmin' || req.user.role === 'hospital_admin';
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ message: 'Not authorized to view this payout statement' });
+    }
+
+    const totalAmount = ride.fare?.total || 0;
+    const commissionPercent = 10; // platform commission % (configurable per source)
+    const commissionAmount = Math.round((totalAmount * commissionPercent) / 100);
+    const taxAmount = Math.round(totalAmount / 100); // 1% Section 194C/J TDS
+    const netAmount = Math.max(0, totalAmount - commissionAmount - taxAmount);
+
+    // Retrieve ledger entry for audit trail
+    const ledgerEntry = await TransactionLedger.findOne({ source: 'ride', sourceId: ride._id })
+      .lean();
+
+    // Driver profile earnings info
+    let driverEarnings = { totalEarnings: 0, walletBalance: 0, commissionEarned: 0 };
+    if (ride.riderId) {
+      const riderProfile = await RiderProfile.findOne({ userId: ride.riderId._id }).lean();
+      if (riderProfile) {
+        driverEarnings = {
+          totalEarnings: riderProfile.totalEarnings || 0,
+          walletBalance: riderProfile.walletBalance || 0,
+          commissionEarned: riderProfile.commissionEarned || 0,
+        };
+      }
+    }
+
+    const statement = {
+      rideId: ride._id,
+      bookingNumber: ride.bookingNumber,
+      passengerId: ride.userId?._id,
+      riderId: ride.riderId?._id,
+      vehicleType: ride.vehicleType,
+      isEmergency: ride.isEmergency,
+      pickup: ride.pickup,
+      drop: ride.drop,
+      distanceKm: ride.distanceKm,
+      fareBreakdown: ride.fare || {
+        base: 0,
+        distanceCharge: 0,
+        toll: 0,
+        parking: 0,
+        surge: 0,
+        total: totalAmount,
+      },
+      totalAmount,
+      commissionPercent,
+      commissionAmount,
+      taxAmount: taxAmount,
+      netAmount,
+      platformShare: commissionAmount,
+      driverNet: netAmount,
+      ledgerEntryId: ledgerEntry?._id,
+      generatedAt: new Date(),
+    };
+
+    res.json({
+      success: true,
+      payoutStatement: statement,
+      driverEarningsSummary: driverEarnings,
+    });
+  } catch (err) {
+    logger.error(`Ride payout statement error: ${err.message}`);
+    sendServerError(res, err, 'Failed to generate payout statement');
+  }
+});
+
+// ─── GET /api/ride/driver/earnings ──────────────────────────────────────────
+// Driver daily/weekly earnings summary with adjustments and deductions (PAY-R-04)
+router.get('/driver/earnings', protect, authorize('ride:read', 'ride:read:own'), async (req, res) => {
+  try {
+    const { period = 'week', startDate, endDate } = req.query;
+
+    // Determine date range
+    const end = new Date(endDate || Date.now());
+    const start = new Date(startDate || 0);
+    const commissionPercent = 10; // platform commission % (configurable per source)
+    if (isNaN(start.getTime())) start.setDate(end.getDate() - 7); // default: last 7 days
+
+    // Clamp period
+    let queryStart, queryEnd;
+    if (period === 'day') {
+      queryStart = start;
+      queryEnd = end;
+    } else if (period === 'week') {
+      queryStart = new Date(start.getTime() - start.getDay() * 86400000); // Monday
+      queryEnd = new Date(queryStart.getTime() + 6 * 86400000); // Sunday
+    } else if (period === 'month') {
+      queryStart = new Date(start.getFullYear(), start.getMonth(), 1);
+      queryEnd = new Date(queryStart.getTime() + 30 * 86400000);
+    } else {
+      queryStart = start;
+      queryEnd = end;
+    }
+
+    // Find rides completed in this period for this user
+    const rides = await RideBooking.find({
+      userId: req.user._id,
+      status: 'completed',
+      completedAt: { $gte: queryStart, $lte: queryEnd },
+    })
+      .populate('riderId')
+      .lean();
+
+    // Aggregate earnings
+    const dailyTotals = {};
+    let totalGross = 0;
+    let totalCommission = 0;
+    let totalTDS = 0;
+    let totalNet = 0;
+
+    rides.forEach(ride => {
+      const fare = ride.fare || { total: 0 };
+      const gross = fare.total || 0;
+      const commission = Math.round((gross * commissionPercent) / 100);
+      const tax = Math.round(gross / 100);
+      const net = Math.max(0, gross - commission - tax);
+
+      totalGross += gross;
+      totalCommission += commission;
+      totalTDS += tax;
+      totalNet += net;
+
+      // Daily bucket
+      const dayKey = ride.completedAt ? ride.completedAt.toISOString().split('T')[0] : 'unknown';
+      if (!dailyTotals[dayKey]) dailyTotals[dayKey] = { gross: 0, commission: 0, tax: 0, net: 0 };
+      dailyTotals[dayKey].gross += gross;
+      dailyTotals[dayKey].commission += commission;
+      dailyTotals[dayKey].tax += tax;
+      dailyTotals[dayKey].net += net;
+    });
+
+    // Sort daily totals by date
+    const sortedDaily = Object.entries(dailyTotals)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, values]) => ({
+        date,
+        gross: values.gross,
+        commission: values.commission,
+        tax: values.tax,
+        net: values.net,
+      }));
+
+    const summary = {
+      period,
+      startDate: queryStart,
+      endDate: queryEnd,
+      totalGross,
+      totalCommission,
+      totalTDS,
+      totalNet,
+      rideCount: rides.length,
+      dailyBreakdown: sortedDaily,
+      generatedAt: new Date(),
+    };
+
+    res.json({
+      success: true,
+      earningsSummary: summary,
+    });
+  } catch (err) {
+    logger.error(`Driver earnings summary error: ${err.message}`);
+    sendServerError(res, err, 'Failed to generate driver earnings summary');
+  }
+});
+
+// ─── GET /api/ride/:id/emergency-audit-trail ────────────────────────────────
+// Emergency post-incident audit trail (RIDE-M-05): records who was dispatched,
+// when accepted/rejected, ETA, and status timeline for compliance/insurance.
+router.get('/:id/emergency-audit-trail', protect, authorize('ride:read', 'ride:read:own'), async (req, res) => {
+  try {
+    const ride = await RideBooking.findById(req.params.id)
+      .populate('userId', 'name phone email')
+      .populate('riderId', 'name phone')
+      .populate('vehicleId');
+
+    if (!ride) return res.status(404).json({ message: 'Ride not found' });
+
+    const isOwner = ride.userId?.toString() === req.user._id.toString() || ride.riderId?.toString() === req.user._id.toString();
+    const isAdmin = req.user.role === 'superadmin' || req.user.role === 'hospital_admin';
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ message: 'Not authorized to view this emergency audit trail' });
+    }
+
+    const auditTrail = {
+      rideId: ride._id,
+      bookingNumber: ride.bookingNumber,
+      isEmergency: ride.isEmergency,
+      passenger: {
+        name: ride.userId?.name,
+        phone: ride.userId?.phone,
+      },
+      rider: ride.riderId
+        ? {
+            name: ride.riderId.name,
+            phone: ride.riderId.phone,
+            rating: ride.riderId.rating?.avg || 4.8,
+          }
+        : null,
+      vehicle: ride.vehicleId ? { code: ride.vehicleId.code, label: ride.vehicleId.label } : null,
+      pickup: ride.pickup,
+      drop: ride.drop,
+      distanceKm: ride.distanceKm,
+      status: ride.status,
+      startedAt: ride.startedAt,
+      completedAt: ride.completedAt,
+      cancellationReason: ride.cancellationReason,
+      dispatchAttempts: ride.dispatchAttempts?.length || 0,
+      statusHistory: ride.statusHistory || [],
+      generatedAt: new Date(),
+    };
+
+    res.json({
+      success: true,
+      emergencyAuditTrail: auditTrail,
+    });
+  } catch (err) {
+    logger.error(`Emergency audit trail error: ${err.message}`);
+    sendServerError(res, err, 'Failed to generate emergency audit trail');
   }
 });
 

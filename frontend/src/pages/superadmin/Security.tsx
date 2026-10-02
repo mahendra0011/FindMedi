@@ -5,8 +5,14 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
+import { userFacingError } from '@/lib/errorCopy';
 
-const serverMsg = (err, fallback) => err?.response?.data?.message || err.message || fallback;
+// FE-B-05: the superadmin console is the one place where a raw server string is
+// most tempting to keep — an operator debugging needs detail. But this page
+// renders into toasts that are also screenshot into tickets, and the console is
+// reachable by support staff on a shared screen. `userFacingError` still lets a
+// 4xx show the server's (human-written) message while never echoing a 5xx.
+const serverMsg = (err, fallback) => userFacingError(err, { fallback });
 
 // SA-M5: active sessions (kill switch) + payout four-eyes queue + 2FA enrolment readout.
 export default function Security() {

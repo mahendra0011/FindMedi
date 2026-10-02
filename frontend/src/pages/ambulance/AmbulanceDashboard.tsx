@@ -64,6 +64,7 @@ import { AmbulanceVehicleTab } from '@/components/ambulance/AmbulanceVehicleTab'
 import { AmbulanceSettingsTab } from '@/components/ambulance/AmbulanceSettingsTab';
 import { AmbulanceOverviewTab } from '@/components/ambulance/AmbulanceOverviewTab';
 import ProviderIncomingCall from '@/components/emergency/ProviderIncomingCall';
+import { userFacingError } from '@/lib/errorCopy';
 
 const mapsUrl = (lat: number, lng: number) =>
   `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`;
@@ -153,7 +154,7 @@ export default function AmbulanceDashboard() {
         setTotalJobsCount(jobsRes.total || 0);
       }
     } catch (e: any) {
-      toast.error(e.response?.data?.message || 'Failed to load ambulance dashboard');
+      toast.error(userFacingError(e, { fallback: 'Failed to load ambulance dashboard' }));
     } finally {
       setLoading(false);
     }
@@ -256,7 +257,7 @@ export default function AmbulanceDashboard() {
         toast.info('Ambulance is now Offline');
       }
     } catch (e: any) {
-      toast.error(e.response?.data?.message || e.message || 'GPS location permission required to go online');
+      toast.error(userFacingError(e, { fallback: 'GPS location permission required to go online' }));
       setGpsOk('GPS permission denied');
     }
   };
@@ -270,7 +271,7 @@ export default function AmbulanceDashboard() {
       setStep((s) => Math.min(3, s + 1));
       toast.success(`Milestone updated: ${nextStage.replace('_', ' ').toUpperCase()}`);
     } catch (e: any) {
-      toast.error(e.response?.data?.message || 'Update failed');
+      toast.error(userFacingError(e, { fallback: 'Update failed' }));
     } finally {
       setAdvancing(false);
     }
@@ -285,7 +286,7 @@ export default function AmbulanceDashboard() {
       setStep(3);
       load();
     } catch (e: any) {
-      toast.error(e.response?.data?.message || 'Complete failed');
+      toast.error(userFacingError(e, { fallback: 'Complete failed' }));
     }
   };
 
@@ -512,7 +513,7 @@ export default function AmbulanceDashboard() {
               setTab('active');
               load();
             } catch (err: any) {
-              toast.error(err?.response?.data?.message || 'Could not accept emergency');
+              toast.error(userFacingError(err, { fallback: 'Could not accept emergency' }));
             } finally {
               setActiveIncomingCall(null);
             }

@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
+import { userFacingError } from '@/lib/errorCopy';
 
 interface AmbulanceSettingsTabProps {
   amb: any;
@@ -155,7 +156,7 @@ function AmbSettingsCard({ amb, onSaved }: { amb: any; onSaved: (s: any) => void
       toast.success('Ambulance settings saved');
       onSaved(res.settings || res.ambulance?.settings);
     } catch (e: any) {
-      toast.error(e.response?.data?.message || e.message || 'Save failed');
+      toast.error(userFacingError(e, { fallback: 'Save failed' }));
     } finally {
       setSaving(false);
     }

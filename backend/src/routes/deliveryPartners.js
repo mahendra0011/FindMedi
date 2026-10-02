@@ -2,6 +2,7 @@ import express from 'express';
 import DeliveryPartner from '../models/DeliveryPartner.js';
 import PharmacyDelivery from '../models/PharmacyDelivery.js';
 import { protect, roleOnly } from '../middleware/auth.js';
+import { auditLog } from '../middleware/audit.js';
 import { getNearbyDeliveryBoys } from '../config/redis.js';
 import { getIO, emitDeliveryStatus } from '../services/socketService.js';
 
@@ -25,6 +26,15 @@ router.put('/:id/verify', protect, roleOnly(['hospital_admin', 'superadmin', 'ph
     rejectionReason: action === 'reject' ? reason : undefined,
   }, { new: true });
   if (!partner) return res.status(404).json({ message: 'Not found' });
+  // ADM-M-02: the PendingApprovals queue decides here too - same trail as the
+  // provider approvals (who verified this partner, when, and with what reason).
+  await auditLog(action === 'approve' ? 'approve_delivery_partner' : 'reject_delivery_partner', req.user._id, {
+    targetUserId: String(partner.userId),
+    profileId: String(partner._id),
+    reason,
+    ip: req.ip,
+    userAgent: req.get('user-agent'),
+  });
   getIO().to(`user:${partner.userId}`).emit('notification', {
     title: action === 'approve' ? 'You are approved!' : 'Registration rejected',
     message: action === 'approve' ? 'You can start accepting deliveries now.' : reason,
@@ -155,7 +165,9 @@ router.put('/profile/:id', protect, async (req, res) => {
   let partner = await DeliveryPartner.findById(req.params.id);
   if (!partner) partner = await DeliveryPartner.findOne({ userId: req.params.id });
   if (!partner) return res.status(404).json({ message: 'Delivery partner not found' });
-  Object.assign(partner, req.body);
+  // AUTH-030: allowlisted fields only — status/verification/counters immutable here.
+  const { pickBody } = await import('../utils/pick.js');
+  Object.assign(partner, pickBody(req.body, ['name', 'phone', 'email', 'photo', 'dob', 'gender', 'address', 'city', 'pincode', 'vehicleType', 'vehicleNumber', 'drivingLicenseDoc', 'vehicleRcDoc', 'insuranceDoc', 'aadharDoc', 'panDoc', 'bankDetails', 'workZone', 'availability', 'emergencyContact', 'currentLocation', 'settings']));
   await partner.save();
   res.json(partner);
 });

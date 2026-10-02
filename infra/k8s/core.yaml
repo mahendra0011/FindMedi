@@ -1,0 +1,360 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: findmedi
+  labels:
+    istio-injection: enabled
+    # INF-B-06: pods must not be admitted without a restricted baseline, and the
+    # default-deny NetworkPolicy below means an unhardened pod is inert anyway.
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+---
+# ==============================================================================
+# INF-B-06: POD HARDENING BASELINE
+# ==============================================================================
+# Every pod below now sets these defaults:
+#   runAsNonRoot / runAsUser 10001, fsGroup 10001
+#   allowPrivilegeEscalation: false
+#   capabilities.drop: [ALL]
+#   seccompProfile: RuntimeDefault
+#   readOnlyRootFilesystem: true (with explicit emptyDir mounts for /tmp)
+# No container may run as root, gain a capability, or write to its image layer.
+# ==============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api-config
+  namespace: findmedi
+data:
+  NODE_ENV: production
+  PORT: "3000"
+  GRPC_PORT: "50051"
+  MONGO_URI: mongodb://mongo:27017/findmedi?replicaSet=rs0
+  REDIS_URL: redis://redis:6379
+  KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+  SCHEMA_REGISTRY_URL: http://schema-registry:8081
+  VALHALLA_API: http://valhalla:8002
+  PAYMENT_PROVIDER: demo
+  OPENSEARCH_NODE: http://opensearch:9200
+  PINOT_BROKER: http://pinot-controller:9000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: findmedi
+spec:
+  replicas: 3
+  selector:
+    matchLabels: { app: api }
+  template:
+    metadata:
+      labels: { app: api, version: stable }
+      annotations:
+        # INF-B-06: no `:latest` — a rolling update must be reproducible and
+        # rollback-able. Digest-pinned via kustomize at deploy time.
+        kubernetes.io/psp: restricted
+    spec:
+      # ── INF-B-06 hardening ──
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile: { type: RuntimeDefault }
+      automountServiceAccountToken: false
+      containers:
+        - name: api
+          # INF-B-06: pinned by digest, not a floating tag.
+          image: findmedi/api@sha256:0000000000000000000000000000000000000000000000000000000000000000
+          ports:
+            - { containerPort: 3000, name: http }
+            - { containerPort: 50051, name: grpc }
+          envFrom:
+            - configMapRef: { name: api-config }
+          env:
+            - name: SECRETS_FILE
+              value: /run/secrets/secrets.json
+          # ── INF-B-07: liveness vs readiness are different probes ──
+          # /healthz  never touches a dependency: a slow datastore must NOT
+          #           restart the pod (that is how a DB blip becomes an outage).
+          # /readyz   pings Mongo/Redis with a short timeout and answers 503, so
+          #           the Service removes this pod from rotation while degraded.
+          livenessProbe:
+            httpGet: { path: /healthz, port: 3000 }
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+          readinessProbe:
+            httpGet: { path: /readyz, port: 3000 }
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 2
+          startupProbe:
+            httpGet: { path: /healthz, port: 3000 }
+            periodSeconds: 5
+            failureThreshold: 30
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            privileged: false
+            capabilities: { drop: ["ALL"] }
+          volumeMounts:
+            # readOnlyRootFilesystem means every writable path must be declared.
+            - { name: tmp, mountPath: /tmp }
+            - { name: secrets, mountPath: /run/secrets, readOnly: true }
+          resources:
+            requests: { memory: 512Mi, cpu: "500m" }
+            limits: { memory: 1Gi, cpu: "1000m" }
+      volumes:
+        - name: tmp
+          emptyDir: { sizeLimit: 256Mi }
+        # INF-B-06: secrets are a mounted Secret, never an env literal and never
+        # committed. Created out-of-band by the secret manager / sealed-secrets.
+        - name: secrets
+          secret:
+            secretName: api-secrets
+            defaultMode: 0400
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+  namespace: findmedi
+spec:
+  selector: { app: api }
+  ports:
+    - { name: http, port: 3000 }
+    - { name: grpc, port: 50051 }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: socket
+  namespace: findmedi
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: socket }
+  template:
+    metadata:
+      labels: { app: socket }
+    spec:
+      securityContext:            # INF-B-06
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile: { type: RuntimeDefault }
+      automountServiceAccountToken: false
+      containers:
+        - name: socket
+          image: findmedi/api@sha256:0000000000000000000000000000000000000000000000000000000000000000
+          args: ["node", "src/socket-server.js"]
+          envFrom:
+            - configMapRef: { name: api-config }
+          livenessProbe:
+            httpGet: { path: /healthz, port: 3000 }
+            periodSeconds: 20
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+            - { name: secrets, mountPath: /run/secrets, readOnly: true }
+          resources:
+            requests: { memory: 256Mi, cpu: "250m" }
+            limits: { memory: 512Mi, cpu: "500m" }
+      volumes:
+        - name: tmp
+          emptyDir: { sizeLimit: 128Mi }
+        - name: secrets
+          secret: { secretName: api-secrets, defaultMode: 0400 }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: outbox-poller
+  namespace: findmedi
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: outbox-poller }
+  template:
+    metadata:
+      labels: { app: outbox-poller }
+    spec:
+      securityContext:            # INF-B-06
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile: { type: RuntimeDefault }
+      automountServiceAccountToken: false
+      containers:
+        - name: poller
+          image: findmedi/api@sha256:0000000000000000000000000000000000000000000000000000000000000000
+          args: ["node", "src/workers/outbox.js"]
+          envFrom:
+            - configMapRef: { name: api-config }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+            - { name: secrets, mountPath: /run/secrets, readOnly: true }
+          resources:
+            requests: { memory: 128Mi, cpu: "100m" }
+            limits: { memory: 256Mi, cpu: "300m" }
+      volumes:
+        - name: tmp
+          emptyDir: { sizeLimit: 64Mi }
+        - name: secrets
+          secret: { secretName: api-secrets, defaultMode: 0400 }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rust-telemetry
+  namespace: findmedi
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: rust-telemetry }
+  template:
+    metadata:
+      labels: { app: rust-telemetry }
+    spec:
+      securityContext:            # INF-B-06
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile: { type: RuntimeDefault }
+      automountServiceAccountToken: false
+      containers:
+        - name: telemetry
+          image: findmedi/rust-telemetry@sha256:0000000000000000000000000000000000000000000000000000000000000000
+          ports:
+            - { containerPort: 8099, protocol: UDP }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+          resources:
+            requests: { memory: 64Mi, cpu: "250m" }
+            limits: { memory: 256Mi, cpu: "1000m" }
+      volumes:
+        - name: tmp
+          emptyDir: { sizeLimit: 64Mi }
+---
+# ==============================================================================
+# INF-B-06: NETWORK POLICIES (default-deny, then explicit allows)
+# ==============================================================================
+# Without these, any pod in the namespace can reach Mongo, Redis, Kafka, Postgres
+# and OpenSearch directly — bypassing every authentication layer in the app and
+# turning a single compromised container into a full data breach.
+#
+# Ingress is only allowed to the API service; egress is only allowed to the
+# datastores and the ingress controller. Add an egress entry BEFORE adding a
+# dependency, or the pod silently loses that capability.
+# ==============================================================================
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny
+  namespace: findmedi
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-to-api
+  namespace: findmedi
+spec:
+  podSelector:
+    matchLabels: { app: api }
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels: { name: ingress-nginx }
+        - podSelector:
+            matchLabels: { app: api }     # socket tier
+      ports:
+        - { protocol: TCP, port: 3000 }
+        - { protocol: TCP, port: 50051 }
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-datastores-from-api
+  namespace: findmedi
+spec:
+  podSelector:
+    matchExpressions:
+      - { key: app, operator: In, values: [mongo, redis, kafka, postgres, opensearch] }
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchExpressions:
+              - { key: app, operator: In, values: [api, socket, outbox-poller] }
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-egress-from-api
+  namespace: findmedi
+spec:
+  podSelector:
+    matchExpressions:
+      - { key: app, operator: In, values: [api, socket, outbox-poller] }
+  policyTypes: [Egress]
+  egress:
+    # DNS first — without this every name resolution fails.
+    - to:
+        - namespaceSelector:
+            matchLabels: { name: kube-system }
+          podSelector:
+            matchLabels: { k8s-app: kube-dns }
+      ports:
+        - { protocol: UDP, port: 53 }
+        - { protocol: TCP, port: 53 }
+    # Datastores
+    - to:
+        - podSelector:
+            matchExpressions:
+              - { key: app, operator: In, values: [mongo, redis, kafka, postgres, opensearch, valhalla] }
+    # Third-party APIs (Brevo, Cloudinary, Google OAuth, Razorpay, Gemini) and the
+    # telemetry collector. Replace 0.0.0.0/0 with explicit /32s once egress is
+    # fronted by a proxy — the wildcard is the one entry that should not survive.
+    - to:
+        - ipBlock: { cidr: 0.0.0.0/0 }
+          except:
+            - { cidr: 10.0.0.0/8 }
+            - { cidr: 172.16.0.0/12 }
+            - { cidr: 192.168.0.0/16 }
+      ports:
+        - { protocol: TCP, port: 443 }
+        - { protocol: TCP, port: 587 }
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: api
+  namespace: findmedi
+spec:
+  scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: api }
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource: { name: cpu, target: { type: Utilization, averageUtilization: 70 } }

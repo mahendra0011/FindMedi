@@ -3,7 +3,8 @@ import logger from '../config/logger.js';
 import { emitKafkaEvent } from '../lib/kafkaProducer.js';
 import { KAFKA_TOPICS } from '../config/kafka.js';
 import { redisClient, isRedisReady } from '../config/redis.js';
-import { handleIncomingEvent } from './kafkaConsumerService.js';
+import { forwardEvent } from './eventForwarder.js';
+import { recordPipelineEvent } from './dataPipelineHealth.js';
 
 let pollerInterval = null;
 let isProcessing = false;
@@ -72,15 +73,16 @@ export async function pollAndProcessOutbox() {
         // Single-processing rule: when the broker accepted the event, the
         // consumer group owns processing. Direct call only for in-memory mode.
         if (!delivery || delivery.deliveredTo !== 'kafka_broker') {
-          // In-process backbone delivery: poller → consumer handlers (real projections).
+          // In-process backbone delivery: poller → forwarder → consumer handlers.
           try {
-            await handleIncomingEvent(evt.destinationTopic, {
+            await forwardEvent(evt.destinationTopic, {
               eventType: evt.eventType,
               aggregateId: evt.aggregateId,
+              outboxId: String(evt._id),
               payload: evt.payload || {},
             });
           } catch (consumerErr) {
-            logger.warn(`Consumer handler failed for ${evt._id}: ${consumerErr.message}`);
+            logger.warn(`Forwarder buffered failed for ${evt._id}: ${consumerErr.message}`);
           }
         }
         await OutboxEvent.updateOne(
@@ -93,7 +95,15 @@ export async function pollAndProcessOutbox() {
             },
           }
         );
+        // DP-B-05: a successful publish resets the freshness clock. This is the
+        // only positive signal the poller can emit, so it must fire on the real
+        // publish path — not inside the update payload above.
+        recordPipelineEvent('outbox_poller', 'success');
       } catch (err) {
+        // DP-B-05: record the failure so a wedged outbox is visible on
+        // /healthz/pipelines. Previously this only logged, and a poller that
+        // kept failing looked identical to a platform with no activity.
+        recordPipelineEvent('outbox_poller', 'error', { error: err });
         logger.error(`Failed to publish OutboxEvent [${evt._id}]: ${err.message}`);
         const nextRetry = (evt.retryCount || 0) + 1;
         const exhausted = nextRetry >= MAX_RETRIES;

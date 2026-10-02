@@ -19,6 +19,7 @@ import SOSRadiusOptions from './SOSRadiusOptions';
 import SOSAcceptedList from './SOSAcceptedList';
 import { sosVehicleState } from '@/lib/emergencyState';
 import { installEmergencyAudioUnlock } from '@/utils/emergencyRing';
+import { userFacingError } from '@/lib/errorCopy';
 
 export default function EmergencyFlowController() {
   const { user } = useAuth();
@@ -293,7 +294,7 @@ export default function EmergencyFlowController() {
         }
       }
     } catch (err: any) {
-      toast.error(err.response?.data?.message || err.message || 'Failed to trigger Emergency SOS.');
+      toast.error(userFacingError(err, { fallback: 'Failed to trigger Emergency SOS.' }));
     } finally {
       setStartingSearch(false);
     }
@@ -309,7 +310,7 @@ export default function EmergencyFlowController() {
       setSearching(true);
       toast.info('Search Again — same radius me dobara dhoondh rahe hain…');
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Search failed');
+      toast.error(userFacingError(err, { fallback: 'Search failed' }));
     }
   };
 
@@ -323,7 +324,7 @@ export default function EmergencyFlowController() {
       setSearching(true);
       toast.info(`Search in ${km}km…`);
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Search failed');
+      toast.error(userFacingError(err, { fallback: 'Search failed' }));
     }
   };
 
@@ -335,7 +336,7 @@ export default function EmergencyFlowController() {
       setAcceptedList([]);
       toast.success('Booked! Responder aa raha hai.');
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Booking failed — race ho gayi, dobara try karein.');
+      toast.error(userFacingError(err, { fallback: 'Booking failed — race ho gayi, dobara try karein.' }));
     } finally {
       setBookingProvider(false);
     }
@@ -355,7 +356,7 @@ export default function EmergencyFlowController() {
       setAcceptedList([]);
       toast.info('Emergency request cancelled.');
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to cancel emergency.');
+      toast.error(userFacingError(err, { fallback: 'Failed to cancel emergency.' }));
     } finally {
       cancellingRef.current = false;
     }
@@ -382,7 +383,7 @@ export default function EmergencyFlowController() {
         toast.error(res.message || 'Could not accept emergency request.');
       }
     } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || '';
+      const msg = userFacingError(err, { fallback: '' });
       const status = err.response?.data?.status;
       if (status === 'too_late') {
         toast.warning(msg);

@@ -5,6 +5,8 @@ import User from '../models/User.js';
 import Referral from '../models/Referral.js';
 import RewardCatalogItem from '../models/RewardCatalogItem.js';
 import RewardRedemption from '../models/RewardRedemption.js';
+import logger from '../config/logger.js';
+import { randomInt } from 'node:crypto';
 
 export const loyaltyService = {
   /**
@@ -65,6 +67,94 @@ export const loyaltyService = {
     });
 
     return points;
+  },
+
+  /**
+   * Reverse a previous earn when the booking it belongs to is cancelled
+   * (LOYAL-M-02). Guarantees:
+   * - Idempotent: at most one `reverse` ledger row per (user, action, refId),
+   *   enforced by a partial unique index and a cheap pre-check, so a retried
+   *   cancel never deducts twice.
+   * - Exact: claws back the points the earn ACTUALLY credited (read from the
+   *   ledger), not the current rule amount — a rule edit between earn and
+   *   cancel must not change the refund.
+   * - No earn → no-op: cancelling a booking that never earned (rides only earn
+   *   on completion) must not move balances or create rows.
+   * - Reverses BOTH balances: pointsBalance (spendable) and lifetimePoints
+   *   (drives tier), then walks the tier down the same 500/1500/3000 ladder
+   *   earnPoints climbs. The spendable balance may go negative when the user
+   *   already redeemed the points — an honest visible debt; clamping to zero
+   *   would keep exactly the inflated points this removes (redeemReward
+   *   already refuses to spend a negative balance).
+   * Fail-soft by design: callers fire-and-forget with a .catch — a reversal
+   * failure must never fail the cancellation it accompanies.
+   */
+  async reversePoints(userId, actionType, refId = null) {
+    const reversalReason = `reversed:${actionType}`;
+
+    const existing = await LoyaltyLedger.findOne({
+      userId,
+      type: 'reverse',
+      reason: reversalReason,
+      ...(refId ? { refId } : {}),
+    }).lean();
+    if (existing) return { reversed: 0, alreadyReversed: true };
+
+    const earn = await LoyaltyLedger.findOne({
+      userId,
+      type: 'earn',
+      reason: actionType,
+      ...(refId ? { refId } : {}),
+    })
+      .sort({ createdAt: -1 })
+      .lean();
+    if (!earn || !(earn.points > 0)) return { reversed: 0 };
+
+    const points = earn.points;
+    const updated = await User.findOneAndUpdate(
+      { _id: userId },
+      { $inc: { 'loyalty.pointsBalance': -points, 'loyalty.lifetimePoints': -points } },
+      { new: true },
+    ).select('loyalty');
+    if (!updated) return { reversed: 0 };
+
+    try {
+      await LoyaltyLedger.create({
+        userId,
+        type: 'reverse',
+        points: -points,
+        reason: reversalReason,
+        refId,
+        balanceAfter: updated.loyalty.pointsBalance,
+      });
+    } catch (err) {
+      if (err?.code === 11000) {
+        // A concurrent reversal won the unique-index race — give the points
+        // back so the balance is decremented exactly once, then report the
+        // no-op.
+        try {
+          await User.updateOne(
+            { _id: userId },
+            { $inc: { 'loyalty.pointsBalance': points, 'loyalty.lifetimePoints': points } },
+          );
+        } catch (undoErr) {
+          logger.error(
+            `loyalty reversePoints: undo of double-decrement failed for user ${userId}: ${undoErr.message}`,
+          );
+        }
+        return { reversed: 0, alreadyReversed: true };
+      }
+      throw err;
+    }
+
+    const lifetime = updated.loyalty.lifetimePoints;
+    const tier =
+      lifetime >= 3000 ? 'Platinum' : lifetime >= 1500 ? 'Gold' : lifetime >= 500 ? 'Silver' : 'Bronze';
+    if (tier !== updated.loyalty.tier) {
+      await User.updateOne({ _id: userId }, { $set: { 'loyalty.tier': tier } });
+    }
+
+    return { reversed: points, newBalance: updated.loyalty.pointsBalance, tier };
   },
 
   /**
@@ -228,7 +318,7 @@ function generateUniqueCode(length = 8) {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   let code = '';
   for (let i = 0; i < length; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
+    code += chars.charAt(randomInt(0, chars.length));
   }
   return code;
 }

@@ -22,6 +22,7 @@ import DoctorIncomingEmergencyModal from '@/components/emergency/DoctorIncomingE
 import DoctorActiveEmergencyHUD from '@/components/emergency/DoctorActiveEmergencyHUD';
 import { useDoctorEmergencyGps } from '@/hooks/useDoctorEmergencyGps';
 import { getSocket } from '@/lib/socket';
+import { userFacingError } from '@/lib/errorCopy';
 
 function getAppointmentModeMeta(appt) {
   if (!appt) return { key: 'clinic', label: 'In Clinic', icon: Building2, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20' };
@@ -202,7 +203,7 @@ const [refunds, setRefunds] = useState([]);
       }
       toast.success('🩺 Emergency Dispatch Claimed! Proceed safely to patient location.');
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || err?.message || 'Dispatch was claimed by another doctor');
+      toast.error(userFacingError(err, { fallback: 'Dispatch was claimed by another doctor' }));
     }
   };
 

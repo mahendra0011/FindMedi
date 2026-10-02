@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
+import { userFacingError } from '@/lib/errorCopy';
 
 const inr = (n: number) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
 
@@ -30,7 +31,7 @@ export default function AmbulanceJobs() {
       setTotal(r.total || r.count || 0);
       setPage(r.page || p);
     } catch (e: any) {
-      toast.error(e.response?.data?.message || 'Failed to load jobs');
+      toast.error(userFacingError(e, { fallback: 'Failed to load jobs' }));
     } finally {
       setLoading(false);
     }

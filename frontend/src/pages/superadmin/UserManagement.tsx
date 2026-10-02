@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Search, Shield, Stethoscope, UserRound, CheckCircle, Ban, Trash2, Activity, Flag, Filter } from 'lucide-react';
+import { Search, Shield, Stethoscope, UserRound, CheckCircle, Ban, Trash2, Activity, Flag, Filter, History } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -7,6 +8,7 @@ import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
 
 export default function UserManagementTab() {
+  const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('All');
@@ -167,6 +169,15 @@ export default function UserManagementTab() {
                             <Flag className="w-3.5 h-3.5" /> Flag
                           </Button>
                         )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-1 text-xs h-8"
+                          title="Who blocked/flagged/deleted this user, and when"
+                          onClick={() => navigate(`/audit-logs?target=${u.id || u._id}`)}
+                        >
+                          <History className="w-3.5 h-3.5" /> History
+                        </Button>
                         <Button variant="outline" size="sm" className={`gap-1 text-xs h-8 ${u.status === 'blocked' ? 'text-success' : ''}`} onClick={() => handleBlock(u.id || u._id)}>
                           {u.status === 'blocked' ? <CheckCircle className="w-3.5 h-3.5" /> : <Ban className="w-3.5 h-3.5" />}
                           {u.status === 'blocked' ? 'Unblock' : 'Block'}

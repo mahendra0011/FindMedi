@@ -22,6 +22,9 @@ import RiderProfile from '../models/RiderProfile.js';
 import RideTracking from '../models/RideTracking.js';
 import AssistantProfile from '../models/AssistantProfile.js';
 import LawyerProfile from '../models/LawyerProfile.js';
+// CHAT-B-01/02/10: server-side room ACL. A socket room is a BROADCAST channel, so
+// membership must be proven before socket.join, never assumed from the payload.
+import { assertRoomAccess, isParticipant } from '../middleware/chatMembership.js';
 
 let io = null;
 
@@ -29,28 +32,96 @@ export function getIO() {
   return io;
 }
 
+// CHAT-002: the acting identity is ALWAYS the authenticated socket identity.
+//
+// These handlers used to read the actor from the payload with
+// `riderId || socket.userId`. The fallback looks like a convenience, but the
+// left-hand side always wins whenever a client supplies a value — and a client
+// always can. The result was message impersonation in a doctor/patient context
+// and forged GPS for live dispatch, which is a physical-safety problem in the
+// ambulance flow, not just an integrity one.
+//
+// A payload id is therefore only ever a *claim*, and it must match the token.
+export function selfOrReject(socket, claimed) {
+  const me = socket.userId ? String(socket.userId) : null;
+  if (!me) return null;
+  if (claimed === undefined || claimed === null || String(claimed) === me) return me;
+  logger.warn(`socket actor mismatch rejected: claimed=${claimed} socket=${me}`);
+  return null;
+}
+
+/**
+ * CHAT-B-03: is this socket's own identity allowed into `<room>:<id>`?
+ *
+ * Deliberately resolves from the DOCUMENT every time rather than from room
+ * membership: room membership is itself the thing being protected, so trusting
+ * it here would be circular. A membership cache is a permission cache.
+ */
+export async function isRoomMember(socket, room, id) {
+  if (!socket?.userId) return false;
+  const { ok } = await assertRoomAccess(socket.userId, socket.userRole, room, id);
+  return ok;
+}
+
+/**
+ * CHAT-B-04: ONE identity source.
+ *
+ * Handlers historically read `socket.data.userId` (set by the handshake) and the
+ * legacy `socket.userId`, which were written in two places and could diverge after
+ * a reconnect or a merge flow. A handler that read the unpopulated one silently
+ * fell back to payload data — which is exactly how impersonation returned.
+ *
+ * `verifySocketAuth` now sets both from a single value and every reader goes
+ * through this accessor, so there is no field left to read by mistake.
+ */
+export function socketIdentity(socket) {
+  const id = socket?.data?.userId ?? socket?.userId ?? null;
+  const role = socket?.data?.role ?? socket?.userRole ?? null;
+  return { userId: id ? String(id) : null, role };
+}
+
+/** Keep the legacy mirrors in step with the single source of truth. */
+export function setSocketIdentity(socket, userId, role) {
+  const id = userId ? String(userId) : null;
+  socket.data.userId = id;
+  socket.data.role = role;
+  // Legacy fields predate `socket.data`; handlers below still read them, so they
+  // are mirrors rather than an independent source.
+  socket.userId = id;
+  socket.userRole = role;
+  return id;
+}
+
 function attachRideSocketHandlers(socket, namespace) {
-  socket.on('join_ride_room', ({ rideId }) => {
-    if (rideId) socket.join(`ride:${rideId}`);
+  socket.on('join_ride_room', async ({ rideId }) => {
+    // CHAT-B-02/10: this joined on a client-supplied id alone, so any
+    // authenticated socket streamed a stranger's live GPS and could inject
+    // forged coordinates into their room.
+    const verdict = await assertRoomAccess(socket.userId, socket.userRole, 'ride', rideId);
+    if (!verdict.ok) {
+      logger.warn(`CHAT-B-02: ride room join denied user=${socket.userId} ride=${rideId} reason=${verdict.reason}`);
+      socket.emit('error:room', { room: 'ride', id: rideId, message: 'Not authorized' });
+      return;
+    }
+    socket.join(`ride:${rideId}`);
   });
   socket.on('leave_ride_room', ({ rideId }) => {
     if (rideId) socket.leave(`ride:${rideId}`);
   });
   socket.on('rider_location_update', async ({ rideId, lat, lng, riderId }) => {
     try {
-      const id = riderId || socket.userId;
-      if (id) {
-        await RiderProfile.findOneAndUpdate(
-          { userId: id },
-          {
-            isOnline: true,
-            'currentLocation.lat': lat,
-            'currentLocation.lng': lng,
-            'currentLocation.coordinates': [lng, lat],
-            'currentLocation.updatedAt': new Date(),
-          }
-        ).catch(() => {});
-      }
+      const id = selfOrReject(socket, riderId);
+      if (!id) return;
+      await RiderProfile.findOneAndUpdate(
+        { userId: id },
+        {
+          isOnline: true,
+          'currentLocation.lat': lat,
+          'currentLocation.lng': lng,
+          'currentLocation.coordinates': [lng, lat],
+          'currentLocation.updatedAt': new Date(),
+        }
+      ).catch(() => {});
       if (rideId) {
         await RideTracking.create({ rideId, riderId: id, lat, lng }).catch(() => {});
         namespace.to(`ride:${rideId}`).emit('ride_location_update', { rideId, lat, lng, timestamp: Date.now() });
@@ -64,7 +135,7 @@ function attachRideSocketHandlers(socket, namespace) {
   });
   socket.on('rider_go_online', async ({ riderId, lat, lng, accuracy }) => {
     try {
-      const id = riderId || socket.userId;
+      const id = selfOrReject(socket, riderId);
       if (id) {
         const update = { isOnline: true };
         if (lat != null && lng != null) {
@@ -82,7 +153,7 @@ function attachRideSocketHandlers(socket, namespace) {
   });
   socket.on('rider_go_offline', async ({ riderId }) => {
     try {
-      const id = riderId || socket.userId;
+      const id = selfOrReject(socket, riderId);
       if (id) {
         await RiderProfile.findOneAndUpdate({ userId: id }, { isOnline: false });
       }
@@ -93,15 +164,22 @@ function attachRideSocketHandlers(socket, namespace) {
 }
 
 function attachAssistantSocketHandlers(socket, namespace) {
-  socket.on('join_booking_room', ({ bookingId }) => {
-    if (bookingId) socket.join(`assistant-booking:${bookingId}`);
+  socket.on('join_booking_room', async ({ bookingId }) => {
+    // CHAT-B-02/10: assistant booking rooms carry case notes and chat.
+    const verdict = await assertRoomAccess(socket.userId, socket.userRole, 'assistant-booking', bookingId);
+    if (!verdict.ok) {
+      logger.warn(`CHAT-B-02: assistant room join denied user=${socket.userId} booking=${bookingId} reason=${verdict.reason}`);
+      socket.emit('error:room', { room: 'assistant-booking', id: bookingId, message: 'Not authorized' });
+      return;
+    }
+    socket.join(`assistant-booking:${bookingId}`);
   });
   socket.on('leave_booking_room', ({ bookingId }) => {
     if (bookingId) socket.leave(`assistant-booking:${bookingId}`);
   });
   socket.on('assistant_go_available', async ({ assistantId }) => {
     try {
-      const id = assistantId || socket.userId;
+      const id = selfOrReject(socket, assistantId);
       if (id) {
         await AssistantProfile.findOneAndUpdate(
           { userId: id, assistantStatus: 'active' },
@@ -114,7 +192,7 @@ function attachAssistantSocketHandlers(socket, namespace) {
   });
   socket.on('assistant_go_unavailable', async ({ assistantId }) => {
     try {
-      const id = assistantId || socket.userId;
+      const id = selfOrReject(socket, assistantId);
       if (id) {
         await AssistantProfile.findOneAndUpdate(
           { userId: id },
@@ -127,9 +205,12 @@ function attachAssistantSocketHandlers(socket, namespace) {
   });
   socket.on('send_chat_message', ({ bookingId, senderId, senderName, text }) => {
     if (!bookingId || !text) return;
+    // CHAT-002: sender identity comes from the token, never the payload.
+    const actor = selfOrReject(socket, senderId);
+    if (!actor) return;
     const msg = {
       bookingId,
-      senderId: senderId || socket.userId,
+      senderId: actor,
       senderName: senderName || 'User',
       text,
       at: new Date().toISOString(),
@@ -142,15 +223,21 @@ function attachAssistantSocketHandlers(socket, namespace) {
 }
 
 function attachLawyerSocketHandlers(socket, namespace) {
-  socket.on('join_booking_room', ({ bookingId }) => {
-    if (bookingId) socket.join(`lawyer-booking:${bookingId}`);
+  socket.on('join_booking_room', async ({ bookingId }) => {
+    const verdict = await assertRoomAccess(socket.userId, socket.userRole, 'lawyer-booking', bookingId);
+    if (!verdict.ok) {
+      logger.warn(`CHAT-B-02: lawyer room join denied user=${socket.userId} booking=${bookingId} reason=${verdict.reason}`);
+      socket.emit('error:room', { room: 'lawyer-booking', id: bookingId, message: 'Not authorized' });
+      return;
+    }
+    socket.join(`lawyer-booking:${bookingId}`);
   });
   socket.on('leave_booking_room', ({ bookingId }) => {
     if (bookingId) socket.leave(`lawyer-booking:${bookingId}`);
   });
   socket.on('lawyer_go_available', async ({ lawyerId }) => {
     try {
-      const id = lawyerId || socket.userId;
+      const id = selfOrReject(socket, lawyerId);
       if (id) {
         await LawyerProfile.findOneAndUpdate(
           { userId: id, lawyerStatus: 'active' },
@@ -163,7 +250,7 @@ function attachLawyerSocketHandlers(socket, namespace) {
   });
   socket.on('lawyer_go_unavailable', async ({ lawyerId }) => {
     try {
-      const id = lawyerId || socket.userId;
+      const id = selfOrReject(socket, lawyerId);
       if (id) {
         await LawyerProfile.findOneAndUpdate(
           { userId: id },
@@ -184,9 +271,12 @@ function attachLawyerSocketHandlers(socket, namespace) {
   });
   socket.on('send_chat_message', ({ bookingId, senderId, senderName, text }) => {
     if (!bookingId || !text) return;
+    // CHAT-002: sender identity comes from the token, never the payload.
+    const actor = selfOrReject(socket, senderId);
+    if (!actor) return;
     const msg = {
       bookingId,
-      senderId: senderId || socket.userId,
+      senderId: actor,
       senderName: senderName || 'User',
       text,
       at: new Date().toISOString(),
@@ -199,14 +289,27 @@ function attachLawyerSocketHandlers(socket, namespace) {
 }
 
 function attachEmergencySocketHandlers(socket, namespace) {
-  socket.on('join_emergency_room', ({ requestId }) => {
-    if (requestId) socket.join(`emergency:${requestId}`);
+  socket.on('join_emergency_room', async ({ requestId }) => {
+    // CHAT-B-02: an emergency room carries a live dispatch, so joining by id
+    // alone let any account watch another patient's emergency unfold.
+    const verdict = await assertRoomAccess(socket.userId, socket.userRole, 'emergency', requestId);
+    if (!verdict.ok) {
+      logger.warn(`CHAT-B-02: emergency room join denied user=${socket.userId} sos=${requestId} reason=${verdict.reason}`);
+      socket.emit('error:room', { room: 'emergency', id: requestId, message: 'Not authorized' });
+      return;
+    }
+    socket.join(`emergency:${requestId}`);
   });
   socket.on('leave_emergency_room', ({ requestId }) => {
     if (requestId) socket.leave(`emergency:${requestId}`);
   });
-  socket.on('join_ambulance_room', ({ ambulanceId }) => {
-    if (ambulanceId) socket.join(`ambulance:${ambulanceId}`);
+  socket.on('join_ambulance_room', async ({ ambulanceId }) => {
+    const verdict = await assertRoomAccess(socket.userId, socket.userRole, 'ambulance', ambulanceId);
+    if (!verdict.ok) {
+      socket.emit('error:room', { room: 'ambulance', id: ambulanceId, message: 'Not authorized' });
+      return;
+    }
+    socket.join(`ambulance:${ambulanceId}`);
   });
   socket.on('leave_ambulance_room', ({ ambulanceId }) => {
     if (ambulanceId) socket.leave(`ambulance:${ambulanceId}`);
@@ -254,9 +357,11 @@ const getAllowedSocketOrigins = () => {
   const defaults = [
     'https://findmedi.online',
     'https://www.findmedi.online',
-    'http://localhost:5173',
-    'http://localhost:3000',
-    'http://localhost:5001',
+    ...(process.env.NODE_ENV === 'production' ? [] : [
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'http://localhost:5001',
+    ]),
   ];
   return Array.from(new Set([...envOrigins, ...defaults]))
     .map(o => o.trim().replace(/\/+$/, ''))
@@ -311,11 +416,9 @@ async function verifySocketAuth(socket, next) {
     if (!user) return next(new Error('unauthorized: user not found'));
     if (user.status === 'blocked') return next(new Error('unauthorized: blocked'));
 
-    socket.data.userId = String(user._id);
-    socket.data.role = user.role;
-    // Handlers predate `socket.data` and read these directly.
-    socket.userId = String(user._id);
-    socket.userRole = user.role;
+    // CHAT-B-04: written once, through one accessor, so `socket.data.*` and the
+    // legacy mirrors can never diverge after a reconnect or a merge flow.
+    setSocketIdentity(socket, user._id, user.role);
     return next();
   } catch (err) {
     // A DB error must not silently become "authenticated".
@@ -329,12 +432,17 @@ export async function initSocket(server) {
     cors: {
       origin: (origin, callback) => {
         if (!origin) return callback(null, true);
-        if (process.env.NODE_ENV !== 'production') return callback(null, true);
+        // AUTH-B-07: the allowlist applies in EVERY environment. The old
+        // `if (process.env.NODE_ENV !== 'production') return callback(null, true)`
+        // accepted any origin on staging/preview, so a malicious page could open
+        // an authenticated socket from a browser that already holds a token.
         const allowed = getAllowedSocketOrigins();
         const normalized = origin.trim().replace(/\/+$/, '');
-        if (allowed.includes(normalized) || allowed.some(a => normalized.endsWith(a.replace(/^https?:\/\//, '')))) {
+        // AUTH-001/AUTH-020: exact match only — no endsWith suffix bypass.
+        if (allowed.includes(normalized)) {
           return callback(null, true);
         }
+        logger.warn(`Socket.IO CORS blocked for origin ${origin}`);
         return callback(new Error(`Socket.IO CORS blocked for origin ${origin}`));
       },
       methods: ['GET', 'POST'],
@@ -396,8 +504,13 @@ export async function initSocket(server) {
       }
     });
 
-    socket.on('order:join_tracking', (orderId) => {
-      if (orderId) socket.join(`order:${orderId}`);
+    socket.on('order:join_tracking', async (orderId) => {
+      const verdict = await assertRoomAccess(socket.userId, socket.userRole, 'order', orderId);
+      if (!verdict.ok) {
+        socket.emit('error:room', { room: 'order', id: orderId, message: 'Not authorized' });
+        return;
+      }
+      socket.join(`order:${orderId}`);
     });
     socket.on('order:leave_tracking', (orderId) => {
       if (orderId) socket.leave(`order:${orderId}`);
@@ -441,39 +554,78 @@ export async function initSocket(server) {
     attachEmergencySocketHandlers(socket, io);
 
     // Chat Events
-    socket.on('chat:join', (conversationId) => {
-      socket.join(`chat:${conversationId}`);
+    // CHAT-B-01: joining used to be `socket.join('chat:'+id)` on a client-supplied
+    // id with NO membership lookup, while the REST layer (chatMembership.js)
+    // correctly enforced participants-only. Once joined, the socket received
+    // typing, recording, delivered and read events for a doctor<->patient thread
+    // it was not part of — and would receive message content the moment any event
+    // carried it through the room.
+    socket.on('chat:join', async (conversationId) => {
+      const id = conversationId?.conversationId ?? conversationId;
+      const verdict = await assertRoomAccess(socket.userId, socket.userRole, 'chat', id);
+      if (!verdict.ok) {
+        logger.warn(`CHAT-B-01: chat join denied user=${socket.userId} conversation=${id} reason=${verdict.reason}`);
+        socket.emit('error:room', { room: 'chat', id, message: 'Not authorized' });
+        return;
+      }
+      socket.join(`chat:${id}`);
     });
 
     socket.on('chat:leave', (conversationId) => {
       socket.leave(`chat:${conversationId}`);
     });
 
-    socket.on('chat:typing', ({ conversationId, userId, isTyping }) => {
+    // CHAT-B-03/05: typing/recording are broadcasts into the room, so the SENDER
+    // must itself be a member. Without this an outsider could emit typing events
+    // into a thread they were never in, and `socket.to(room)` would faithfully
+    // deliver them to both participants.
+    socket.on('chat:typing', async ({ conversationId, userId, isTyping }) => {
+      if (!(await isRoomMember(socket, 'chat', conversationId))) return;
       socket.to(`chat:${conversationId}`).emit('chat:typing', { conversationId, userId, isTyping });
     });
 
     // Recording a voice message (mic button pressed)
-    socket.on('chat:recording', ({ conversationId, userId, isRecording }) => {
+    socket.on('chat:recording', async ({ conversationId, userId, isRecording }) => {
+      if (!(await isRoomMember(socket, 'chat', conversationId))) return;
       socket.to(`chat:${conversationId}`).emit('chat:recording', { conversationId, userId, isRecording });
     });
 
     // Delivery receipts — sender ko wapas broadcast karo
+    // CHAT-002: a receipt is an assertion about the RECIPIENT, so it may only be
+    // written for the authenticated socket identity. Previously the payload
+    // `userId` was used, letting any client mark another user's messages as
+    // delivered and corrupt the sender's tick state.
     socket.on('chat:delivered', async ({ conversationId, userId }) => {
-      if (!conversationId || !userId) return;
+      if (!conversationId) return;
+      const actor = selfOrReject(socket, userId);
+      if (!actor) return;
+      // CHAT-B-03: pinning the ACTOR to the token is necessary but not sufficient —
+      // the actor must also be a member of THAT conversation. Otherwise (while
+      // CHAT-B-01 was open) an outsider could clear a victim's unread badges.
+      if (!(await isRoomMember(socket, 'chat', conversationId))) {
+        logger.warn(`CHAT-B-03: chat:delivered rejected — user=${actor} conversation=${conversationId}`);
+        return;
+      }
       try {
         const ChatMessage = (await import('../models/ChatMessage.js')).default;
         await ChatMessage.updateMany(
-          { conversationId, sender: { $ne: userId }, 'deliveredTo.userId': { $ne: userId } },
-          { $push: { deliveredTo: { userId, at: new Date() } } }
+          { conversationId, sender: { $ne: actor }, 'deliveredTo.userId': { $ne: actor } },
+          { $push: { deliveredTo: { userId: actor, at: new Date() } } }
         );
       } catch (e) {}
-      socket.to(`chat:${conversationId}`).emit('chat:delivered', { conversationId, userId, at: new Date() });
+      socket.to(`chat:${conversationId}`).emit('chat:delivered', { conversationId, userId: actor, at: new Date() });
     });
 
     // Read receipts — sender ko wapas broadcast karo (participant sirf apne messages ke ticks update kare)
     socket.on('chat:read', async ({ conversationId, userId }) => {
-      if (!conversationId || !userId) return;
+      if (!conversationId) return;
+      const actor = selfOrReject(socket, userId);
+      if (!actor) return;
+      // CHAT-B-03: same membership gate as chat:delivered.
+      if (!(await isRoomMember(socket, 'chat', conversationId))) {
+        logger.warn(`CHAT-B-03: chat:read rejected — user=${actor} conversation=${conversationId}`);
+        return;
+      }
       let shareReceipt = true;
       try {
         const [{ default: ChatMessage }, { default: ChatPrivacy }] = await Promise.all([
@@ -481,28 +633,30 @@ export async function initSocket(server) {
           import('../models/ChatPrivacy.js'),
         ]);
         // Privacy: user ne read receipts OFF kiye hain to sender ko blue tick nahi milega
-        const privacy = await ChatPrivacy.findOne({ userId }).select('readReceipts').lean();
+        const privacy = await ChatPrivacy.findOne({ userId: actor }).select('readReceipts').lean();
         shareReceipt = privacy ? privacy.readReceipts !== false : true;
 
         if (shareReceipt) {
           const now = new Date();
           await ChatMessage.updateMany(
-            { conversationId, sender: { $ne: userId }, 'readBy.userId': { $ne: userId } },
-            { $push: { readBy: { userId, at: now }, deliveredTo: { userId, at: now } } }
+            { conversationId, sender: { $ne: actor }, 'readBy.userId': { $ne: actor } },
+            { $push: { readBy: { userId: actor, at: now }, deliveredTo: { userId: actor, at: now } } }
           );
         }
       } catch (e) {}
       if (shareReceipt) {
-        socket.to(`chat:${conversationId}`).emit('chat:read', { conversationId, userId, at: new Date() });
+        socket.to(`chat:${conversationId}`).emit('chat:read', { conversationId, userId: actor, at: new Date() });
       }
     });
 
     // Presence ping from chat page — last seen fresh rakhta hai
+    // CHAT-002: presence is a property of the caller, never of a payload id.
     socket.on('chat:presence', async ({ userId }) => {
-      if (userId) {
-        await setUserPresence(String(userId), socket.userRole);
+      const actor = selfOrReject(socket, userId);
+      if (actor) {
+        await setUserPresence(actor, socket.userRole);
         try {
-          await User.findByIdAndUpdate(userId, { isOnline: true, lastActive: new Date() });
+          await User.findByIdAndUpdate(actor, { isOnline: true, lastActive: new Date() });
         } catch (e) {}
       }
     });
@@ -527,8 +681,11 @@ export async function initSocket(server) {
     allCallEvents.forEach((event) => {
       socket.on(event, (payload = {}) => {
         const target = payload.to || payload.recipientId || payload.peerId || payload.targetUserId;
-        const from = payload.from || socket.userId;
-        if (!target) return;
+        // CHAT-002: `from` is the authenticated identity. A caller-supplied
+        // `from` would let anyone place a call invite or SDP offer in someone
+        // else's name.
+        const from = socket.userId;
+        if (!target || !from) return;
         const body = { ...payload, from };
         io.to(`user:${target}`).emit(event, body);
         if (payload.conversationId) {

@@ -1,11 +1,25 @@
+import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
 import express from 'express';
 import logger from '../config/logger.js';
 import Hospital from '../models/Hospital.js';
 import Facility from '../models/Facility.js';
 import AiSafetyEvent from '../models/AiSafetyEvent.js';
 import { getCachedAIReply, setCachedAIReply } from '../config/redis.js';
+import { protect } from '../middleware/auth.js';
+import { createGrlRateLimiter } from '../middleware/rateLimit.js';
 
 const router = express.Router();
+
+// DLB-30: the AI proxy was fully unauthenticated — an open Gemini relay that
+// (a) let anybody burn the platform's quota, (b) recorded red-flag/crisis events
+// with `userId: undefined` so nobody could be followed up with, and (c) keyed the
+// answer cache only on the question text, so one user's cached answer was served
+// to a different user. A session is now required and the cache is per user.
+const aiLimiter = createGrlRateLimiter({
+  windowMs: 60 * 1000,
+  max: 20,
+  keyPrefix: 'rl:aichat',
+});
 
 // SA-M4: crisis patterns that trigger a red-flag safety event (matched
 // keyword is stored — never the raw prompt text).
@@ -32,7 +46,7 @@ const SYSTEM_PROMPT = `You are FindMedi AI, a helpful health assistant. Your rol
   1. "reply": Your complete conversational response string.
   2. "specialty": A single string representing the primary medical specialty needed for this condition (e.g., "Cardiology", "Neurology", "Orthopedics", "Dermatology", "General Medicine", "Pediatrics"). If the user is just saying hello or asking a non-medical question, set this to null.`;
 
-router.post('/', async (req, res) => {
+router.post('/', protect, aiLimiter, async (req, res) => {
   const startedAt = Date.now();
   try {
     const { message, image, history = [] } = req.body;
@@ -73,9 +87,11 @@ router.post('/', async (req, res) => {
     }
 
     // Check Redis AI cache for single-turn text queries
+    // DLB-30: the cache key is namespaced per user — the question text alone let
+    // one account read another account's cached AI answer.
     const isSingleTurnText = !image && (!history || history.length === 0);
     const cacheKey = isSingleTurnText
-      ? Buffer.from(message.toLowerCase().trim().replace(/[^a-z0-9]/g, '')).toString('base64').slice(0, 64)
+      ? `u:${req.user._id}:${Buffer.from(message.toLowerCase().trim().replace(/[^a-z0-9]/g, '')).toString('base64').slice(0, 64)}`
       : null;
 
     if (cacheKey) {
@@ -166,7 +182,7 @@ router.post('/', async (req, res) => {
 
     let suggestions = null;
     if (specialty) {
-      const regex = new RegExp(specialty, 'i');
+      const regex = new RegExp(escapeRegex(capSearch(specialty)), 'i');
       const [hospitals, facilities] = await Promise.all([
         Hospital.find({ status: 'approved', specialties: regex }).select('name city address phone specialties').limit(3),
         Facility.find({ type: 'clinic', status: 'approved', specialties: regex }).select('name city address phone specialties').limit(3),

@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { randomDigits } from '../utils/secureRandom.js';
 
 const demoPaymentSchema = new mongoose.Schema({
   bookingType: {
@@ -59,7 +60,7 @@ const demoPaymentSchema = new mongoose.Schema({
   transactionRef: {
     type: String,
     unique: true,
-    default: () => `DEMO-TXN-${Math.floor(100000 + Math.random() * 900000)}`,
+    default: () => `DEMO-TXN-${randomDigits(6)}`,
   },
   paidAt: { type: Date },
   createdAt: { type: Date, default: Date.now },

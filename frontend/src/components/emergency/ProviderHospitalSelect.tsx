@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
+import { userFacingError } from '@/lib/errorCopy';
 
 interface NearbyHospital {
   _id: string;
@@ -82,7 +83,7 @@ export default function ProviderHospitalSelect({
         onDismiss();
       }
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to designate destination hospital.');
+      toast.error(userFacingError(err, { fallback: 'Failed to designate destination hospital.' }));
     } finally {
       setSubmitting(false);
     }

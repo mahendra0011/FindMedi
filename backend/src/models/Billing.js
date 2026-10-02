@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { moneyRounding } from '../utils/money.js';
 
 // Normalize any Date/string input to YYYY-MM-DD so stored strings stay
 // lexically sortable and range-queryable.
@@ -80,5 +81,28 @@ billingSchema.pre('findOneAndUpdate', function (next) {
     next();
   }
 });
+
+// PAY-M-06: an invoice is the figure a patient is asked to pay, so it is the
+// worst place for a float artifact to survive. `quantity` is deliberately NOT
+// in this list - it is a count, and rounding counts is a different bug.
+//
+// `price` is NOT top-level in this schema (it lives inside services[]), so
+// listing it here would have been a dead entry that silently did nothing; the
+// array form is what actually reaches the line items.
+billingSchema.plugin(
+  moneyRounding([
+    'amount',
+    'subTotal',
+    'discount',
+    'tax',
+    'taxRate',
+    'taxableAmount',
+    'paid',
+    'balance',
+    'insuranceApprovedAmount',
+    'services[].price',
+    'services[].discount',
+  ]),
+);
 
 export default mongoose.model('Billing', billingSchema);

@@ -1,0 +1,9 @@
+{
+  "eventType": "user.deleted",
+  "aggregateType": "User",
+  "aggregateId": "652f00000000000000000001",
+  "userId": "652f00000000000000000001",
+  "reason": "erasure",
+  "deletedBy": null,
+  "deletedAt": "2026-10-02T10:15:00.000Z"
+}

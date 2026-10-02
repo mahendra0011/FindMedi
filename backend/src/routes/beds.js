@@ -1,6 +1,6 @@
 import express from 'express';
 import Bed from '../models/Bed.js';
-import { protect, scopeToHospital } from '../middleware/auth.js';
+import { protect, scopeToHospital, clinicalStaffOnly } from '../middleware/auth.js';
 import { validate, createBedSchema, updateBedSchema } from '../utils/validate.js';
 
 const router = express.Router();
@@ -36,7 +36,18 @@ router.get('/stats', protect, scopeToHospital, async (req, res) => {
 // ─── GET /api/beds/heatmap?res=6 ────────────────────────────────────────────
 // Spec expansion-01B: live ICU/bed availability rolled up to H3 parent hexagons
 // so dispatchers see capacity heat without polygonal geo-queries.
-router.get('/heatmap', protect, async (req, res) => {
+// AUTHZ gap (was UNCLASSIFIED): the aggregate has NO tenant predicate — it sums
+// available beds across every hospital on the platform and returns a per-hospital
+// breakdown with names and locations. Any authenticated account, a patient's
+// included, could read the whole network's live capacity and where it is
+// weakest. This is dispatcher telemetry, not a self-service feature, so it is
+// gated to staff who can act on it.
+// authz: role
+// clinicalStaffOnly (already imported in this file) rather than a new constant:
+// superadmin/hospital_admin/doctor/nurse are exactly the accounts that can act on
+// bed capacity, and inventing a second list here would be a third spelling of a
+// question this file already answers elsewhere.
+router.get('/heatmap', protect, clinicalStaffOnly, async (req, res) => {
   try {
     const res8 = Math.min(8, Math.max(5, Number(req.query.res) || 6));
     const { latLngToCell } = await import('h3-js');
@@ -81,7 +92,10 @@ router.put('/:id', protect, scopeToHospital, validate(updateBedSchema), async (r
     }
     const bed = await Bed.findOne({ _id: req.params.id, hospitalId: req.hospitalId });
     if (!bed) return res.status(404).json({ message: 'Bed not found' });
-    const updated = await Bed.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    // AUTH-030: allowlisted fields only — bedNumber/hospitalId immutable here.
+    const { pickBody } = await import('../utils/pick.js');
+    const updated = await Bed.findByIdAndUpdate(req.params.id,
+      pickBody(req.body, ['ward', 'bedType', 'status', 'dailyRate', 'floor', 'isAC']), { new: true });
     res.json(updated);
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
@@ -100,8 +114,19 @@ router.delete('/:id', protect, scopeToHospital, async (req, res) => {
 
 // ─── Tech Exp 04: Redlock Atomic ICU/Ventilator Bed Holding Lock ───
 // Holds an ICU bed exclusively for an incoming ambulance for 5 minutes (300,000 ms)
-router.post('/:id/hold-lock', protect, async (req, res) => {
+router.post('/:id/hold-lock', protect, clinicalStaffOnly, async (req, res) => {
   try {
+    // RIDE-B-18: the bed must belong to the caller's hospital (superadmin may hold
+    // any) - otherwise any account could lock ANY ICU bed and starve real
+    // emergency trauma transfers with a false 'bed is currently locked'.
+    const targetBed = await Bed.findById(req.params.id).select('hospitalId').lean();
+    if (!targetBed) return res.status(404).json({ message: 'Bed not found' });
+    if (req.user.role !== 'superadmin') {
+      if (!req.user.hospitalId || !targetBed.hospitalId
+        || String(targetBed.hospitalId) !== String(req.user.hospitalId)) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+    }
     const { reservationId, ambulanceRequestId } = req.body;
     const lockKey = `lock:hospital:bed:${req.params.id}`;
     const token = reservationId || ambulanceRequestId || String(req.user._id);
@@ -109,7 +134,17 @@ router.post('/:id/hold-lock', protect, async (req, res) => {
     const { acquireLock, releaseLock } = await import('../lib/redlock.js');
     const lockAcquired = await acquireLock(lockKey, token, 300000); // 5 min hold
 
-    if (!lockAcquired) {
+    // Tech 04: canonical hid:bid key alongside the legacy id-only key.
+    let canonAcquired = true;
+    try {
+      const bed0 = await Bed.findById(req.params.id).select('hospitalId').lean();
+      const hid = String(bed0?.hospitalId || req.hospitalId || 'default');
+      const { holdBedLock } = await import('../lib/clinicalState.js');
+      const canon = await holdBedLock(hid, String(req.params.id), token, 300000);
+      canonAcquired = canon.ok || canon.reason === 'redis_unavailable';
+    } catch { canonAcquired = true; }
+    if (!lockAcquired || !canonAcquired) {
+      if (lockAcquired) await releaseLock(lockKey, token);
       return res.status(409).json({
         success: false,
         message: 'This bed is currently locked by another emergency trauma transfer.',
@@ -120,6 +155,10 @@ router.post('/:id/hold-lock', protect, async (req, res) => {
     const bed = await Bed.findById(req.params.id);
     if (!bed || bed.status !== 'Available') {
       await releaseLock(lockKey, token);
+      try {
+        const { bedLockKey } = await import('../lib/clinicalState.js');
+        await releaseLock(bedLockKey(String(bed?.hospitalId || req.hospitalId || 'default'), String(req.params.id)), token);
+      } catch {}
       return res.status(400).json({
         success: false,
         message: 'Bed is not in Available status',

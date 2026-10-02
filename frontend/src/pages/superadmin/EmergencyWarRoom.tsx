@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
+import ClinicalLockingAlert from '@/components/emergency/ClinicalLockingAlert';
 
 const ACTIVE = ['Pending', 'Assigned', 'Under Treatment'];
 const SLA_TARGET_MIN = 60;
@@ -24,6 +25,7 @@ export default function EmergencyWarRoom() {
   const [blastTitle, setBlastTitle] = useState('');
   const [blastMsg, setBlastMsg] = useState('');
   const [blasting, setBlasting] = useState(false);
+  const [lockingAlert, setLockingAlert] = useState(null);
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -45,39 +47,64 @@ export default function EmergencyWarRoom() {
 
   // Socket: new SOS pushes refresh the board instantly.
   // Spec expansion-09: clinical alerts (code blue / lab panic / MTP) raise
-  // matching tones + toasts on the war-room board.
+  // the fullscreen locking modal (ClinicalLockingAlert) + tones.
   useEffect(() => {
     let socket;
-    let ringStop = null;
     (async () => {
       try {
         const { getSocket } = await import('@/lib/socket');
-        const { startEmergencyRing, stopEmergencyRing } = await import('@/utils/emergencyRing');
         socket = getSocket();
         if (!socket) return;
         const bump = () => load(true);
         const clinical = (kind) => (payload) => {
-          try {
-            startEmergencyRing(payload?.toneType === 'lab_panic' ? 'lab_panic' : payload?.toneType === 'code_blue' ? 'code_blue' : 'siren');
-            if (ringStop) clearTimeout(ringStop);
-            ringStop = setTimeout(() => stopEmergencyRing(), 12000);
-          } catch { /* audio unavailable */ }
+          const tone = payload?.toneType === 'lab_panic' ? 'lab_panic' : payload?.toneType === 'code_blue' ? 'code_blue' : 'siren';
+          const titles = {
+            code_blue: payload?.patientName ? `Cardiac arrest — ${payload.patientName}` : 'Cardiac arrest',
+            lab_panic: payload?.testName ? `${payload.testName}: ${payload.value}` : 'Critical lab value',
+            mtp: payload?.bloodGroup ? `Pack ${payload?.units || 4} units ${payload.bloodGroup}` : 'MTP activated',
+          };
+          const details = {
+            code_blue: `Ward ${payload?.ward || '-'} · Bed ${payload?.bedId || '-'}${payload?.note ? ` · ${payload.note}` : ''}`,
+            lab_panic: `${payload?.patientName || ''}${payload?.countermeasure ? ` → ${payload.countermeasure}` : ''}`,
+            mtp: `Requested by ${payload?.requester || 'ER'} · Hospital ${payload?.hospitalId || ''}`,
+          };
+          const actions = {
+            code_blue: 'START RESUSCITATION TIMER',
+            lab_panic: 'OPEN ORDER + COUNTERMEASURE',
+            mtp: 'DISPATCH PACK 4U O-NEG',
+          };
+          setLockingAlert({
+            alertId: payload?.alertId || `${kind}-${Date.now()}`,
+            kind,
+            title: titles[kind] || kind,
+            detail: details[kind] || '',
+            toneType: tone,
+            actionLabel: actions[kind] || '',
+            room: payload?.hospitalId ? `hospital:${payload.hospitalId}` : '',
+          });
           toast.error(`Clinical alert: ${kind}`, {
             description: payload?.patientName || payload?.testName || payload?.bloodGroup || payload?.alertId || '',
           });
           load(true);
         };
+        const onAck = (ack) => {
+          if (!ack?.alertId) return;
+          setLockingAlert((cur) => (cur && cur.alertId === ack.alertId ? null : cur));
+          load(true);
+        };
         socket.on('emergency_alert_critical', bump);
         socket.on('emergency_created', bump);
-        socket.on('clinical:code_blue', clinical('CODE BLUE'));
-        socket.on('clinical:lab_panic', clinical('LAB PANIC'));
-        socket.on('clinical:mtp', clinical('MTP activated'));
+        socket.on('clinical:code_blue', clinical('code_blue'));
+        socket.on('clinical:lab_panic', clinical('lab_panic'));
+        socket.on('clinical:mtp', clinical('mtp'));
+        socket.on('clinical:ack', onAck);
         socket._clinicalCleanup = () => {
           socket.off('emergency_alert_critical');
           socket.off('emergency_created');
           socket.off('clinical:code_blue');
           socket.off('clinical:lab_panic');
           socket.off('clinical:mtp');
+          socket.off('clinical:ack', onAck);
         };
       } catch { /* manual refresh remains */ }
     })();
@@ -89,7 +116,6 @@ export default function EmergencyWarRoom() {
           socket?.off('emergency_created');
         }
       } catch { /* noop */ }
-      if (ringStop) clearTimeout(ringStop);
     };
   }, [load]);
 
@@ -125,6 +151,13 @@ export default function EmergencyWarRoom() {
 
   return (
     <div className="space-y-5">
+      {lockingAlert ? (
+        <ClinicalLockingAlert
+          alert={lockingAlert}
+          onAcked={() => { setLockingAlert(null); load(true); }}
+          onAction={(a) => { toast.success(`Action logged: ${a.actionLabel}`); }}
+        />
+      ) : null}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-heading font-bold text-foreground flex items-center gap-2">

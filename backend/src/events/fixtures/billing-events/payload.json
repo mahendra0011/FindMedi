@@ -1,0 +1,6 @@
+{
+  "eventType": "payment.captured",
+  "paymentId": "652f000000000000000000e1",
+  "status": "captured",
+  "amount": 184.5
+}

@@ -7,6 +7,7 @@ import { protect, adminOnly } from '../middleware/auth.js';
 import { validate, createPhysioReferralSchema } from '../utils/validate.js';
 import { generateOrderId, generateInvoiceId } from '../utils/idGenerator.js';
 import { getISTDateString } from '../utils/dateUtils.js';
+import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
 
 const physioAssessSchema = z.object({}).passthrough();
 const physioSessionSchema = z.object({}).passthrough();
@@ -35,7 +36,7 @@ router.get('/referrals', protect, async (req, res) => {
     const filter = {};
     if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
     if (status && status !== 'All') filter.status = status;
-    if (search) filter.$or = [{ referralId: new RegExp(search,'i') }, { patientName: new RegExp(search,'i') }];
+    if (search) filter.$or = [{ referralId: new RegExp(escapeRegex(capSearch(search)), 'i') }, { patientName: new RegExp(escapeRegex(capSearch(search)), 'i') }];
     const data = await Physiotherapy.find(filter).sort({ createdAt: -1 });
     res.json({ referrals: data });
   } catch (err) { res.status(500).json({ message: err.message }); }

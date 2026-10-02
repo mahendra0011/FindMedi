@@ -6,6 +6,7 @@
     }
   },
   "mappings": {
+    "dynamic": "strict",
     "properties": {
       "eventId": { "type": "keyword" },
       "eventType": { "type": "keyword" },
@@ -20,7 +21,14 @@
       "actorRole": { "type": "keyword" },
       "metadata": {
         "type": "object",
-        "dynamic": true
+        "dynamic": "strict",
+        "properties": {
+          "durationMs": { "type": "long" },
+          "resultCount": { "type": "integer" },
+          "httpStatus": { "type": "integer" },
+          "source": { "type": "keyword" },
+          "reason": { "type": "keyword" }
+        }
       }
     }
   }

@@ -25,7 +25,9 @@ router.post('/', protect, superadminOnly, async (req, res) => {
 
 router.put('/:id', protect, superadminOnly, async (req, res) => {
   try {
-    const listing = await FeaturedListing.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const { pickBody } = await import('../utils/pick.js');
+    const listing = await FeaturedListing.findByIdAndUpdate(req.params.id,
+      pickBody(req.body, ['facilityName', 'startDate', 'endDate', 'placement', 'isActive']), { new: true });
     if (!listing) return res.status(404).json({ message: 'Listing not found' });
     res.json(listing);
   } catch (err) { res.status(400).json({ message: err.message }); }

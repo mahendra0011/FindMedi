@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { getISTDateString, formatDisplayDate } from '@/lib/dateUtils';
 import IntakeFormStep from './IntakeFormStep';
+import { userFacingError } from '@/lib/errorCopy';
 
 export default function BookingModal({
   open,
@@ -27,6 +28,10 @@ export default function BookingModal({
   const [bookingDate, setBookingDate] = useState('');
   const [bookingTime, setBookingTime] = useState('');
   const [bookingNotes, setBookingNotes] = useState('');
+  // APPT-M-02: optional recurring pattern for the selected slot. Hidden for
+  // package bookings (a package IS the multi-session product).
+  const [repeatFreq, setRepeatFreq] = useState<'none' | 'weekly' | 'biweekly' | 'monthly'>('none');
+  const [repeatCount, setRepeatCount] = useState(4);
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookedSlots, setBookedSlots] = useState([]);
   const [lockedSlots, setLockedSlots] = useState([]);
@@ -38,6 +43,7 @@ export default function BookingModal({
   const [selectedHour, setSelectedHour] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState('card');
   const [paymentLoading, setPaymentLoading] = useState(false);
+  const [waitlistLoading, setWaitlistLoading] = useState(false);
   const [bookingDetails, setBookingDetails] = useState(null);
   const [appointmentMode, setAppointmentMode] = useState('offline');
   // Mind package selection (counsellor/psychiatrist booking me alag section)
@@ -78,6 +84,8 @@ export default function BookingModal({
       setLockedSlots([]);
       setBookingWindow(null);
       setBookingNotes('');
+      setRepeatFreq('none');
+      setRepeatCount(4);
       setPaymentMethod('card');
       setBookingDetails(null);
       // Mind providers (offline mode nahi dete) ke liye pehla available mode default
@@ -316,6 +324,23 @@ export default function BookingModal({
     setBookingTime(t);
   };
 
+  // APPT-M-01: a full slot can be queued instead of dead-ended. The server
+  // refuses if the slot is actually free, the patient already holds a seat, or
+  // they are already queued - all of which are self-explanatory 4xx copies.
+  const handleJoinWaitlist = async () => {
+    if (!currentDoc) { toast.error('No doctor selected'); return; }
+    if (!bookingDate || !bookingTime) { toast.error('Please select date and time'); return; }
+    setWaitlistLoading(true);
+    try {
+      await api.joinWaitlist({ doctorId: currentDoc._id, date: bookingDate, time: bookingTime });
+      toast.success("You're on the waitlist. We'll alert you the moment this slot opens (15 minutes to claim it).");
+    } catch (err) {
+      toast.error(userFacingError(err));
+    } finally {
+      setWaitlistLoading(false);
+    }
+  };
+
   const handleProceedToPayment = () => {
     if (processingRef.current) return;
     if (!currentDoc) { toast.error('No doctor selected'); return; }
@@ -344,6 +369,83 @@ export default function BookingModal({
     if (processingRef.current) return;
     if (!currentDoc) { toast.error('No doctor selected'); return; }
     if (!user) { toast.error('Please login to book an appointment'); navigate('/login'); return; }
+
+    // APPT-M-02: a recurring series is booked as N real appointments, each paid
+    // through the existing referenceId checkout so every occurrence gets its
+    // own payment/billing rows and auto-confirms. A package is already the
+    // multi-session product - never stack a repeat pattern on top of one.
+    if (repeatFreq !== 'none' && !selectedPackage) {
+      processingRef.current = true;
+      setPaymentLoading(true);
+      try {
+        const fees = effectiveFee;
+        if (!fees || fees <= 0) throw new Error('Doctor consultation fee is not set. Please contact support.');
+        const type = appointmentMode === 'chat'
+          ? 'Chat Consultation'
+          : appointmentMode === 'video'
+          ? 'Video Consultation'
+          : appointmentMode === 'audio' || appointmentMode === 'call' || appointmentMode === 'voice'
+          ? 'Audio Call Consultation'
+          : appointmentMode === 'home_visit' || appointmentMode === 'home'
+          ? 'Home Visit Consultation'
+          : offlineConsultationType;
+        const seriesRes = await api.createAppointmentSeries({
+          doctorId: currentDoc._id,
+          date: bookingDate,
+          time: bookingTime,
+          frequency: repeatFreq,
+          count: repeatCount,
+          feesPerOccurrence: fees,
+          appointmentMode,
+          type,
+          department: currentDoc.specialization || 'General',
+          notes: bookingNotes,
+        });
+        let lastPay: any = null;
+        let paidCount = 0;
+        try {
+          for (const occ of seriesRes.appointments) {
+            lastPay = await api.payTransaction({
+              serviceType: 'appointment',
+              amount: fees,
+              method: paymentMethod,
+              referenceId: occ._id,
+              description: `Consultation with ${currentDoc.name} (${occ.date})`,
+              provider: facility?.name || currentDoc.name,
+              lineItems: [{ name: `Consultation Fee ${occ.date}`, price: fees, qty: 1 }],
+            });
+            paidCount += 1;
+          }
+        } catch (payErr) {
+          // Partial: the series and the paid visits are real; unpaid children
+          // die via the existing 15-minute sweeps, exactly like an abandoned
+          // single checkout. Say so instead of pretending the booking failed.
+          toast.error(`Series saved - ${paidCount} of ${seriesRes.appointments.length} visits paid. ${userFacingError(payErr)} Unpaid visits expire in 15 minutes; cancel the rest from My Appointments.`);
+          if (onSuccess) onSuccess();
+          return;
+        }
+        toast.success(`Recurring series booked: ${paidCount} visits confirmed.`);
+        setBookingDetails({
+          ...seriesRes.appointments[0],
+          doctor: currentDoc.name,
+          specialization: currentDoc.specialization,
+          date: bookingDate,
+          time: bookingTime,
+          fees: fees * paidCount,
+          transactionId: lastPay?.transaction_id,
+          invoiceId: lastPay?.invoice_id,
+          appointmentStatus: 'Confirmed',
+        });
+        setBookingStep(5);
+        if (onSuccess) onSuccess();
+      } catch (e) {
+        toast.error(userFacingError(e));
+      } finally {
+        setPaymentLoading(false);
+        processingRef.current = false;
+      }
+      return;
+    }
 
     processingRef.current = true;
     setPaymentLoading(true);
@@ -453,7 +555,7 @@ export default function BookingModal({
       if (onSuccess) onSuccess();
 
     } catch (e) {
-      const msg = e.response?.data?.message || e.message || '';
+      const msg = userFacingError(e, { fallback: '' });
       const status = e.response?.status;
       // Already-paid idempotency case — treat as success
       if (status === 200 && msg.includes('already be completed')) {
@@ -864,6 +966,11 @@ export default function BookingModal({
                     <div className="px-2 py-1 rounded-md bg-primary/10 text-primary font-medium">
                       {fullRangeFor(bookingTime)}
                     </div>
+                    {isSlotFull(bookingTime) && (
+                      <Button size="sm" variant="outline" className="h-6 px-2 text-xs ml-auto" disabled={waitlistLoading} onClick={handleJoinWaitlist}>
+                        {waitlistLoading ? 'Joining…' : 'Join waitlist'}
+                      </Button>
+                    )}
                   </div>
                 )}
               </div>
@@ -872,6 +979,41 @@ export default function BookingModal({
                 <div className="space-y-1.5 order-5">
                   <label className="text-xs font-medium text-foreground">Notes (optional)</label>
                   <textarea value={bookingNotes} onChange={e => setBookingNotes(e.target.value)} placeholder="Any specific concerns…" className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm resize-none" rows={2} />
+                </div>
+              )}
+              {!hasPackages && (
+                <div className="space-y-1.5 order-6">
+                  <label className="text-xs font-medium text-foreground">Repeat booking</label>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <select
+                      aria-label="Repeat frequency"
+                      value={repeatFreq}
+                      onChange={(e) => setRepeatFreq(e.target.value as typeof repeatFreq)}
+                      className="h-9 px-2 rounded-xl border border-border bg-background text-sm"
+                    >
+                      <option value="none">Does not repeat</option>
+                      <option value="weekly">Every week</option>
+                      <option value="biweekly">Every 2 weeks</option>
+                      <option value="monthly">Every month</option>
+                    </select>
+                    {repeatFreq !== 'none' && (
+                      <>
+                        <select
+                          aria-label="Repeat count"
+                          value={repeatCount}
+                          onChange={(e) => setRepeatCount(Number(e.target.value))}
+                          className="h-9 px-2 rounded-xl border border-border bg-background text-sm"
+                        >
+                          {[2, 3, 4, 6, 8, 10, 12].map((n) => (
+                            <option key={n} value={n}>{n} visits</option>
+                          ))}
+                        </select>
+                        <span className="text-[11px] text-muted-foreground">
+                          ₹{(effectiveFee || 0) * repeatCount} total · every occurrence confirmed as you pay
+                        </span>
+                      </>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -999,12 +1141,50 @@ export default function BookingModal({
                         <div className="px-2 py-1 rounded-md bg-primary/10 text-primary font-medium">
                           {fullRangeFor(bookingTime)}
                         </div>
+                        {isSlotFull(bookingTime) && (
+                          <Button size="sm" variant="outline" className="h-6 px-2 text-xs ml-auto" disabled={waitlistLoading} onClick={handleJoinWaitlist}>
+                            {waitlistLoading ? 'Joining…' : 'Join waitlist'}
+                          </Button>
+                        )}
                       </div>
                     )}
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-xs font-medium text-foreground">Notes (optional)</label>
                     <textarea value={bookingNotes} onChange={e => setBookingNotes(e.target.value)} placeholder="Any specific concerns…" className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm resize-none" rows={2} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-foreground">Repeat booking</label>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <select
+                        aria-label="Repeat frequency"
+                        value={repeatFreq}
+                        onChange={(e) => setRepeatFreq(e.target.value as typeof repeatFreq)}
+                        className="h-9 px-2 rounded-xl border border-border bg-background text-sm"
+                      >
+                        <option value="none">Does not repeat</option>
+                        <option value="weekly">Every week</option>
+                        <option value="biweekly">Every 2 weeks</option>
+                        <option value="monthly">Every month</option>
+                      </select>
+                      {repeatFreq !== 'none' && (
+                        <>
+                          <select
+                            aria-label="Repeat count"
+                            value={repeatCount}
+                            onChange={(e) => setRepeatCount(Number(e.target.value))}
+                            className="h-9 px-2 rounded-xl border border-border bg-background text-sm"
+                          >
+                            {[2, 3, 4, 6, 8, 10, 12].map((n) => (
+                              <option key={n} value={n}>{n} visits</option>
+                            ))}
+                          </select>
+                          <span className="text-[11px] text-muted-foreground">
+                            ₹{(effectiveFee || 0) * repeatCount} total · every occurrence confirmed as you pay
+                          </span>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </>
               ) : (

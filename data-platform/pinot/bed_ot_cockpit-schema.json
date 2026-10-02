@@ -1,0 +1,25 @@
+{
+    "schemaName":  "bed_ot_cockpit",
+    "dimensionFieldSpecs":  [
+                                { "name":  "hospitalId", "dataType":  "STRING" },
+                                { "name":  "department", "dataType":  "STRING" },
+                                { "name":  "branch", "dataType":  "STRING" },
+                                { "name":  "bedType", "dataType":  "STRING" },
+                                { "name":  "status", "dataType":  "STRING" }
+                            ],
+    "metricFieldSpecs":  [
+                            { "name":  "occupied_beds", "dataType":  "INT" },
+                            { "name":  "total_beds", "dataType":  "INT" },
+                            { "name":  "ed_wait_minutes", "dataType":  "DOUBLE" },
+                            { "name":  "or_turnaround_minutes", "dataType":  "DOUBLE" },
+                            { "name":  "alos_days", "dataType":  "DOUBLE" }
+                        ],
+    "dateTimeFieldSpecs":  [
+                                {
+                                    "name":  "timestamp_epoch_ms",
+                                    "dataType":  "LONG",
+                                    "format":  "1:MILLISECONDS:EPOCH",
+                                    "granularity":  "1:MILLISECONDS"
+                                }
+                            ]
+}

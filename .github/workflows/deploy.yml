@@ -1,0 +1,140 @@
+name: Deploy
+
+# INF-M-01: deploy jobs with environment approvals. ci.yml proves the commit is
+# safe to ship; THIS workflow is the only thing that asks a human to ship it.
+#
+# One-time operator setup (repo Settings — nothing here can do it for you):
+#   1. Settings → Environments → create `staging` and `production`. Add
+#      Required reviewers to at least `production`. The `environment:` key
+#      below makes GitHub block the job until an approver clicks — approvals
+#      come from GitHub, not from this file, so they cannot be edited away in
+#      the same PR that changes the deploy.
+#   2. Per environment configure:
+#        secret   DEPLOY_WEBHOOK_URL - platform deploy hook (Render/Fly/Railway
+#                 style: a POST triggers a deploy of the service; keep it in
+#                 the ENVIRONMENT secret, not a repo secret, so the approval
+#                 gate also gates access to the hook)
+#        variable DEPLOY_HEALTH_URL  - the health endpoint to probe afterwards
+#                 (e.g. https://findmedi.onrender.com/health — the same URL
+#                 uptime.yml uses via UPTIME_HEALTH_URL)
+#   3. Branch protection on `main` with required status checks — see
+#      docs/qa-release.md §3 "One-time repository settings".
+#
+# Unconfigured environments degrade exactly like uptime.yml: a step prints
+# ::notice and exits 0. The workflow proves the pipeline exists without
+# pretending to reach a server it has never been given the keys to.
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Environment to deploy'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+      ref:
+        description: 'Git ref to deploy (annotated tag vX.Y.Z preferred; empty = the commit this run was dispatched on)'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+# Never cancel a deploy halfway through — queue behind any in-flight deploy of
+# the same environment instead (cancel-in-progress: false is the point).
+concurrency:
+  group: deploy-${{ inputs.target }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: deploy to ${{ inputs.target }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: ${{ inputs.target }}
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    # Deploying an un-tagged, off-main commit is how "it worked on my machine"
+    # reaches production. A release per docs/qa-release.md §3 is tagged vX.Y.Z;
+    # main-without-tag is allowed but loud, anything else is refused.
+    - name: Refuse to deploy an unreleasable ref
+      env:
+        DEPLOY_REF: ${{ inputs.ref }}
+      run: |
+        set -euo pipefail
+        REF="${DEPLOY_REF:-$GITHUB_SHA}"
+        if ! SHA=$(git rev-parse --verify "$REF^{commit}" 2>/dev/null); then
+          echo "::error::'${REF}' does not resolve to a commit"
+          exit 1
+        fi
+        TAGS=$(git tag -l 'v*' --points-at "$SHA")
+        if [ -n "$TAGS" ]; then
+          echo "Deploying release tag(s): $(echo "$TAGS" | tr '\n' ' ')"
+        elif git merge-base --is-ancestor "$SHA" origin/main; then
+          echo "::warning::${SHA} is on main but not tagged with vX.Y.Z — tag releases per docs/qa-release.md §3."
+        else
+          echo "::error::${SHA} is neither a vX.Y.Z tag nor reachable from main — refusing to deploy."
+          exit 1
+        fi
+
+    - name: CHANGELOG sanity
+      run: |
+        grep -q '^## \[Unreleased\]' CHANGELOG.md || {
+          echo "::error::CHANGELOG.md lost its '## [Unreleased]' section — see docs/qa-release.md §4."
+          exit 1
+        }
+
+    - name: Trigger platform deploy
+      id: trigger
+      env:
+        DEPLOY_WEBHOOK_URL: ${{ secrets.DEPLOY_WEBHOOK_URL }}
+        DEPLOY_REF: ${{ inputs.ref }}
+      run: |
+        set -euo pipefail
+        if [ -z "${DEPLOY_WEBHOOK_URL:-}" ]; then
+          echo "::notice::DEPLOY_WEBHOOK_URL not configured for '${{ inputs.target }}' — deploy skipped (pipeline verified, target not wired yet)."
+          echo "triggered=false" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+        echo "POST deploy hook (ref: ${DEPLOY_REF:-default branch}, target: ${{ inputs.target }})"
+        if curl -fsS -X POST -H 'Accept: application/json' --connect-timeout 10 --max-time 60 "$DEPLOY_WEBHOOK_URL"; then
+          echo "triggered=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "::error::deploy hook rejected the request"
+          echo "triggered=false" >> "$GITHUB_OUTPUT"
+          exit 1
+        fi
+
+    # The deploy is not done when the hook returns — it is done when the target
+    # answers. Poll like uptime.yml (curl, no third-party account) but with
+    # retries, because a fresh deploy takes a moment to come up.
+    - name: Post-deploy health probe
+      if: steps.trigger.outputs.triggered == 'true'
+      env:
+        DEPLOY_HEALTH_URL: ${{ vars.DEPLOY_HEALTH_URL }}
+      run: |
+        set -euo pipefail
+        if [ -z "${DEPLOY_HEALTH_URL:-}" ]; then
+          echo "::notice::DEPLOY_HEALTH_URL unset — smoke probe skipped (set it so deploys prove liveness, not just that a hook fired)."
+          exit 0
+        fi
+        echo "Probing $DEPLOY_HEALTH_URL for up to 5 minutes"
+        for i in $(seq 1 30); do
+          code=$(curl -sS -o /tmp/health-body.txt -w '%{http_code}' \
+            --connect-timeout 5 --max-time 15 "$DEPLOY_HEALTH_URL" || echo "000")
+          if [ "$code" = "200" ]; then
+            echo "HTTP 200 after ${i} attempt(s)"
+            exit 0
+          fi
+          echo "attempt ${i}: HTTP ${code:-000} — retrying in 10s"
+          sleep 10
+        done
+        echo "::error::health check never returned 200 within 5 minutes"
+        cat /tmp/health-body.txt || true
+        exit 1

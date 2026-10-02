@@ -18,6 +18,7 @@ import { getISTDateString, formatDisplayDate } from '@/lib/dateUtils';
 import { getSocket } from '@/lib/socket';
 import ProviderIncomingCall from '@/components/emergency/ProviderIncomingCall';
 import EmergencyVideoRoom from '@/components/emergency/EmergencyVideoRoom';
+import { userFacingError } from '@/lib/errorCopy';
 
 function isInPersonAppointment(appt) {
   if (!appt) return false;
@@ -1117,7 +1118,7 @@ export default function DoctorDashboard() {
               setActiveEmergencyConsultId(requestId);
               load(true);
             } catch (err: any) {
-              toast.error(err?.response?.data?.message || 'Could not accept emergency');
+              toast.error(userFacingError(err, { fallback: 'Could not accept emergency' }));
             } finally {
               setActiveIncomingCall(null);
             }
@@ -1153,7 +1154,7 @@ export default function DoctorDashboard() {
                   setActiveEmergencyConsultId(null);
                   load(true);
                 } catch (err: any) {
-                  toast.error(err?.response?.data?.message || err?.message || 'Escalation failed');
+                  toast.error(userFacingError(err, { fallback: 'Escalation failed' }));
                 }
               }}
               className="h-10 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold"

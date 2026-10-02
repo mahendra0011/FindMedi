@@ -1,5 +1,7 @@
+import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
 import express from 'express';
 import jwt from 'jsonwebtoken';
+import crypto from 'node:crypto';
 import multer from 'multer';
 import Doctor from '../models/Doctor.js';
 import ClinicProfile from '../models/ClinicProfile.js';
@@ -11,7 +13,9 @@ import { auditLog } from '../middleware/audit.js';
 import { uploadFileToCloudinary } from '../services/cloudinaryService.js';
 import { z } from 'zod';
 import { validate, createDoctorSchema, updateDoctorSchema } from '../utils/validate.js';
+import { sendServerError } from '../utils/safeError.js';
 import { paginatedResults } from '../utils/pagination.js';
+import { randomPassword } from '../utils/secureRandom.js';
 import {
   getCache,
   setCache,
@@ -75,7 +79,9 @@ router.get('/', async (req, res) => {
   try {
     const { page, limit, search, available, specialization, location, city, includeAll, hospitalId, facilityId, doctor_type } = req.query;
 
-    const cacheKey = `doctors_list_${JSON.stringify(req.query)}`;
+    // AUTH-027: role + user in the key — otherwise an admin-view response
+    // cached under bare query params is served to the next role.
+    const cacheKey = `doctors_list_${req.user?.role || 'anon'}:${req.user?._id || 'none'}:${JSON.stringify(req.query)}`;
     const cached = await getCache(cacheKey);
     if (cached) {
       res.setHeader('X-Cache', 'HIT');
@@ -94,12 +100,12 @@ router.get('/', async (req, res) => {
     }
     if (effectiveFacilityId) filter.facilityId = effectiveFacilityId;
     if (search) filter.$or = [
-      { name: new RegExp(search, 'i') },
-      { specialization: new RegExp(search, 'i') },
+      { name: new RegExp(escapeRegex(capSearch(search)), 'i') },
+      { specialization: new RegExp(escapeRegex(capSearch(search)), 'i') },
     ];
-    if (specialization && specialization !== 'All') filter.specialization = new RegExp(specialization, 'i');
+    if (specialization && specialization !== 'All') filter.specialization = new RegExp(escapeRegex(capSearch(specialization)), 'i');
     const locOrCity = city || location;
-    if (locOrCity && locOrCity !== 'All') filter.location = new RegExp(locOrCity, 'i');
+    if (locOrCity && locOrCity !== 'All') filter.location = new RegExp(escapeRegex(capSearch(locOrCity)), 'i');
     if (available !== undefined) filter.available = available === 'true';
     if (doctor_type) filter.doctor_type = doctor_type;
 
@@ -287,7 +293,14 @@ router.post('/', protect, validate(createDoctorSchema), async (req, res) => {
     
     if (!email) return res.status(400).json({ message: 'Doctor email is required' });
     if (!name) return res.status(400).json({ message: 'Doctor name is required' });
-    const targetHospitalId = bodyHospitalId || hospitalId || undefined;
+    // DOC-B-02: the tenant comes from the SESSION, never from the body.
+    // `bodyHospitalId || hospitalId` let a hospital_admin create a doctor (User +
+    // profile + a working setup-token email) inside ANOTHER hospital's tenant.
+    // Only superadmin may target one explicitly; a tenant admin always lands in
+    // its own hospital.
+    const targetHospitalId = req.user.role === 'superadmin'
+      ? (bodyHospitalId || hospitalId)
+      : (req.user.hospitalId || req.user.facilityId || hospitalId) || undefined;
 
     // Check if user already exists
     const existingUser = await User.findOne({ email: email.toLowerCase() });
@@ -296,13 +309,14 @@ router.post('/', protect, validate(createDoctorSchema), async (req, res) => {
     }
 
     // Create User with temporary status
-    const tempPassword = Math.random().toString(36).slice(-10);
-    const setupToken = jwt.sign({ email: email.toLowerCase(), type: 'doctor_setup' }, process.env.JWT_SECRET, { expiresIn: '48h' });
+    const tempPassword = randomPassword(12);
+    const setupToken = jwt.sign({ email: email.toLowerCase(), type: 'doctor_setup', jti: crypto.randomBytes(12).toString('hex') }, process.env.JWT_SECRET, { expiresIn: '48h' });
 
     const user = await User.create({
       name,
       email: email.toLowerCase(),
       password: tempPassword,
+      mustResetPassword: true,
       role: 'doctor',
       phone: phone || '',
       hospitalId: targetHospitalId,
@@ -385,9 +399,27 @@ router.put('/:id', protect, validate(updateDoctorSchema), async (req, res) => {
       }
       body.settings = merged;
     }
-    const updated = await Doctor.findByIdAndUpdate(req.params.id, body, { new: true, runValidators: true });
+    // DOC-B-01: the schema rejects server-owned fields, and this is the second
+    // layer — the write is an explicit allowlist, so a future schema relaxation
+    // cannot silently re-open the hole. `req.body` is no longer passed through.
+    const WRITABLE = [
+      'name', 'specialization', 'phone', 'experience', 'qualification',
+      'location', 'bio', 'available', 'emergencySupport',
+      'refundOnMissedOrCancelled', 'appointmentModes', 'appointmentFees',
+      'chat_fee', 'video_fee', 'offline_fee', 'home_visit_fee', 'emergency_fee',
+      'languages', 'image', 'photo', 'gender', 'degree', 'registrationNumber',
+      'settings',
+    ];
+    const writable = Object.create(null);
+    for (const key of WRITABLE) {
+      if (body[key] !== undefined) writable[key] = body[key];
+    }
+    // The legacy flat settings keys were folded into body.settings above.
+    writable.settings = body.settings;
+
+    const updated = await Doctor.findByIdAndUpdate(req.params.id, writable, { new: true, runValidators: true });
     res.json(updated);
-  } catch (err) { res.status(400).json({ message: err.message }); }
+  } catch (err) { sendServerError(res, err, 'Could not update doctor profile'); }
 });
 
 const clinicProfileSchema = z.object({ clinicProfile: z.object({}).passthrough() });
@@ -399,10 +431,24 @@ router.put('/:id/clinic-profile', protect, validate(clinicProfileSchema), async 
     const isSelf = req.user.doctorProfileId?.toString() === req.params.id ||
       doctor.user_id?.toString() === req.user._id?.toString() ||
       (doctor.email && doctor.email.toLowerCase() === req.user.email?.toLowerCase());
-    const isClinicAdmin = req.user.role === 'clinic_doctor';
+    // DOC-B-02: isClinicAdmin was just a bare role check with NO facility
+    // comparison, so any clinic doctor could upsert the ClinicProfile of ANY
+    // doctor id platform-wide. It is now the caller's OWN facility (fail closed
+    // when they have none), so a clinic admin can only write inside their clinic.
+    const callerFacility = req.user.facilityId || req.user.hospitalId || null;
+    const targetFacility = doctor.facilityId || doctor.hospitalId || null;
+    const isClinicAdmin = req.user.role === 'clinic_doctor'
+      && Boolean(callerFacility)
+      && Boolean(targetFacility)
+      && String(callerFacility) === String(targetFacility);
     const isSuperAdmin = req.user.role === 'superadmin';
 
     if (!isSelf && !isClinicAdmin && !isSuperAdmin) {
+      logger.warn(
+        'DOC-B-02: clinic-profile write denied user=' + req.user.id
+        + ' role=' + req.user.role
+        + ' doctor=' + req.params.id
+      );
       return res.status(403).json({ message: 'Not authorized to update clinic profile' });
     }
     const { clinicProfile } = req.body;

@@ -69,8 +69,41 @@ router.post('/', protect, validate(createEmergencySchema), async (req, res) => {
       hospitalId: req.user.hospitalId || undefined,
     });
     
-    // Notify all admins about new emergency
-    const admins = await User.find({ role: 'hospital_admin' });
+    // AUTHZ: this fanned out to EVERY hospital_admin on the platform.
+    //
+    // `User.find({ role: 'hospital_admin' })` has no tenant predicate, so an
+    // emergency raised at hospital A pushed a notification containing
+    // `condition` — free-text clinical detail — into the admin inboxes of every
+    // unrelated hospital B, C and D. That is a cross-tenant PHI leak, and the
+    // clinical text is the payload.
+    //
+    // Sibling read routes in this file (GET /, GET /stats) already scope on
+    // `req.user.hospitalId`; the write path did not, which is the tell.
+    //
+    // Fail CLOSED, and note that the two obvious shapes are BOTH wrong here:
+    //
+    //   if (req.user.hospitalId) adminFilter.hospitalId = ...;   // fail-open: a
+    //     tenant-less caller skips the scope and fans out cross-tenant anyway.
+    //   User.find({ role, hospitalId: req.user.hospitalId })     // ALSO fail-open:
+    //     Mongoose strips the undefined key, so the filter degrades to
+    //     `{ role }` and returns every admin on the platform.
+    //
+    // So the tenant-less case is decided explicitly, before the query, and is
+    // denied the fan-out outright rather than granted the widest one.
+    // check-tenant-guard-regression.mjs flags the first shape.
+    const isSuper = req.user.role === 'superadmin';
+    let admins = [];
+    if (isSuper) {
+      admins = await User.find({ role: 'hospital_admin' });
+    } else if (req.user.hospitalId) {
+      admins = await User.find({ role: 'hospital_admin', hospitalId: req.user.hospitalId });
+    } else {
+      logger.warn(
+        `Emergency ${emergency._id} raised by ${req.user._id} with no hospitalId: ` +
+        'admin notification fan-out skipped (fail closed)'
+      );
+    }
+
     for (const admin of admins) {
       await createNotification(admin._id, 'New Emergency Case', `${severity || 'Serious'} emergency: ${condition}`, 'system');
     }
@@ -140,7 +173,16 @@ router.put('/:id/status', protect, adminOnly, async (req, res) => {
     }
     
     emergency.status = status;
-    if (status === 'Assigned' && !emergency.assignedDoctor && req.user.role === 'doctor' || req.user.role === 'counsellor' || req.user.role === 'psychiatrist') {
+    // RIDE-B-19: the old condition was
+    //   status === 'Assigned' && !assignedDoctor && role === 'doctor' || role === 'counsellor' || role === 'psychiatrist'
+    // and JS binds && before ||, so a counsellor/psychiatrist self-assigned as
+    // the assigned doctor for ANY status (e.g. 'Discharged'). All three
+    // conditions now sit inside one role-list check.
+    if (
+      status === 'Assigned'
+      && !emergency.assignedDoctor
+      && ['doctor', 'counsellor', 'psychiatrist'].includes(req.user.role)
+    ) {
       emergency.assignedDoctor = req.user.doctorProfileId || req.user._id;
       emergency.assignedDoctorName = req.user.name;
     }
@@ -281,13 +323,30 @@ router.post('/beds/transfer/:id', protect, async (req, res) => {
     if (req.user.hospitalId && req.user.role !== 'superadmin' && (fromBed.hospitalId?.toString() !== req.user.hospitalId.toString() || toBed.hospitalId?.toString() !== req.user.hospitalId.toString())) {
       return res.status(403).json({ message: 'Access denied' });
     }
+    // RIDE-B-20: fail CLOSED for a tenant-less caller (the old `if (hospitalId && …)`
+    // let any account without a hospital move beds between unrelated hospitals).
+    if (req.user.role !== 'superadmin') {
+      if (!req.user.hospitalId
+        || !fromBed.hospitalId || !toBed.hospitalId
+        || fromBed.hospitalId.toString() !== req.user.hospitalId.toString()
+        || toBed.hospitalId.toString() !== req.user.hospitalId.toString()) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+    }
     if (toBed.status !== 'Available') return res.status(400).json({ message: 'Target bed not available' });
+
+    // RIDE-B-20: capture the admission link BEFORE it is cleared below — the old
+    // code set `fromBed.admissionId = null` and then read it, so the Admission
+    // record kept pointing at the old bed forever (silent IPD data corruption).
+    const admissionId = fromBed.admissionId || null;
+    const movedPatientId = fromBed.currentPatientId;
+    const movedPatientName = fromBed.currentPatientName;
 
     // Move patient from one bed to another
     toBed.status = 'Occupied';
-    toBed.currentPatientId = fromBed.currentPatientId;
-    toBed.currentPatientName = fromBed.currentPatientName;
-    toBed.admissionId = fromBed.admissionId;
+    toBed.currentPatientId = movedPatientId;
+    toBed.currentPatientName = movedPatientName;
+    toBed.admissionId = admissionId;
     toBed.occupiedSince = new Date();
     await toBed.save();
 
@@ -299,9 +358,9 @@ router.post('/beds/transfer/:id', protect, async (req, res) => {
     fromBed.occupiedSince = null;
     await fromBed.save();
 
-    // Update admission record
-    if (fromBed.admissionId) {
-      const admission = await Admission.findById(fromBed.admissionId);
+    // Update admission record (using the captured id, not the cleared field)
+    if (admissionId) {
+      const admission = await Admission.findById(admissionId);
       if (admission) {
         admission.bedId = toBed._id;
         admission.bedNumber = toBed.bedNumber;

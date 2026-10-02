@@ -2,6 +2,21 @@ import mongoose from 'mongoose';
 
 // LAB_SERVICES removed — use Test catalog / LabOrder model instead
 
+// NOTIF-M-03: durable per-milestone reminder state (T-24h / T-2h). Lives on the
+// document rather than in process memory so a missed cron tick is recovered by
+// the next scan and a crash mid-send is retried once the `sending` lease
+// expires. `attempts`/`nextAttemptAt` drive the bounded backoff; `lastReason`
+// records WHY a milestone ended up terminal (opted-out vs window-passed), so
+// "was this patient reminded" has one auditable answer.
+const reminderMilestoneSchema = new mongoose.Schema({
+  status: { type: String, enum: ['pending', 'sending', 'sent', 'failed', 'skipped'] },
+  claimedAt: { type: Date },
+  sentAt: { type: Date },
+  attempts: { type: Number, default: 0 },
+  nextAttemptAt: { type: Date },
+  lastReason: { type: String },
+}, { _id: false });
+
 const appointmentSchema = new mongoose.Schema({
   tokenNumber: { type: String, unique: true, sparse: true, index: true },
   uhid: { type: String, index: true },
@@ -13,6 +28,19 @@ const appointmentSchema = new mongoose.Schema({
   date: { type: String, required: true },
   time: { type: String, required: true },
   status: { type: String, enum: ['Pending', 'Confirmed', 'Cancelled', 'Completed', 'In Queue', 'Serving', 'Missed'], default: 'Pending' },
+  // APPT-B-08: `patientId` is canonically the USER id on every write path.
+  // `patientRecordId` is the linked Patient document, which for a genuine
+  // walk-in with no account is the ONLY identifier that exists — keeping it in a
+  // separately-named field stops a Patient._id from ever being compared against
+  // a User id (the bug that made walk-in appointments invisible to their own
+  // patient and un-cancellable by them).
+  patientRecordId: { type: mongoose.Schema.Types.ObjectId, ref: 'Patient', index: true },
+  // PAY-B-08: explicit checkout hold expiry. The stale-cleanup job used to infer
+  // "abandoned" from `createdAt` alone, which raced an in-flight payment webhook
+  // and could delete an appointment whose payment was about to settle.
+  checkoutExpiresAt: { type: Date, default: null, index: true },
+  cancellationReason: { type: String, default: '' },
+  cancelledAt: { type: Date },
   priority: { type: String, enum: ['Normal', 'Urgent', 'Emergency'], default: 'Normal' },
   type: { type: String, enum: ['Consultation', 'Follow-up', 'Check-up', 'Emergency', 'Chat Consultation', 'Video Consultation', 'Audio Call Consultation', 'Audio Consultation', 'Home Visit Consultation'], default: 'Consultation' },
   appointmentMode: { type: String, enum: ['chat', 'video', 'audio', 'voice', 'call', 'offline', 'in_person', 'home_visit', 'home'], default: 'offline' },
@@ -78,6 +106,17 @@ const appointmentSchema = new mongoose.Schema({
   consultationEndTime: { type: Date },
   followUpDate: { type: Date },
   reminderSent: { type: Boolean, default: false },
+  // NOTIF-M-03: T-24h/T-2h reminder state (see reminderMilestoneSchema above).
+  reminderState: {
+    t24: { type: reminderMilestoneSchema },
+    t2: { type: reminderMilestoneSchema },
+  },
+  // APPT-M-02: an occurrence of a recurring series. The series is a container
+  // for bookkeeping only - every occurrence is a real Appointment, so queueing,
+  // reminders, billing, cancellation and waitlist fan-out all keep working
+  // unchanged on each child.
+  seriesId: { type: mongoose.Schema.Types.ObjectId, ref: 'AppointmentSeries', index: true },
+  seriesIndex: { type: Number },
   hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
   createdAt: { type: Date, default: Date.now },
 }, { timestamps: true });

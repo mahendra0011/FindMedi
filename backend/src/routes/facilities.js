@@ -4,7 +4,7 @@ import Facility from '../models/Facility.js';
 import Hospital from '../models/Hospital.js';
 import User from '../models/User.js';
 import Doctor from '../models/Doctor.js';
-import { protect, superadminOnly } from '../middleware/auth.js';
+import { protect, superadminOnly, adminOnly } from '../middleware/auth.js';
 import { validate, registerFacilitySchema, updateFacilitySchema } from '../utils/validate.js';
 import { auditLog } from '../middleware/audit.js';
 import License from '../models/License.js';
@@ -13,6 +13,8 @@ import logger from '../config/logger.js';
 import { sendEmail } from '../services/notificationService.js';
 import { latLngToCell } from 'h3-js';
 import { calculateDistanceKm } from '../lib/geoUtils.js';
+import { randomPassword } from '../utils/secureRandom.js';
+import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
 
 const router = express.Router();
 
@@ -77,11 +79,11 @@ router.get('/', async (req, res) => {
     } else filter.status = 'approved';
 
     if (search) filter.$or = [
-      { name: new RegExp(search, 'i') },
-      { city: new RegExp(search, 'i') },
-      { description: new RegExp(search, 'i') },
+      { name: new RegExp(escapeRegex(capSearch(search)), 'i') },
+      { city: new RegExp(escapeRegex(capSearch(search)), 'i') },
+      { description: new RegExp(escapeRegex(capSearch(search)), 'i') },
     ];
-    if (city) filter.city = new RegExp(city, 'i');
+    if (city) filter.city = new RegExp(escapeRegex(capSearch(city)), 'i');
 
     const { page, limit } = req.query;
     const result = await paginatedResults(Facility, filter, { page, limit, sort: { createdAt: -1 } });
@@ -111,6 +113,7 @@ router.get('/mine', protect, async (req, res) => {
 });
 
 // GET /api/facilities/settings — get facility settings
+// authz: self
 router.get('/settings', protect, async (req, res) => {
   try {
     const facilityId = req.user.facilityId;
@@ -130,11 +133,23 @@ router.get('/settings', protect, async (req, res) => {
 });
 
 // PUT /api/facilities/settings — update facility settings
-router.put('/settings', protect, async (req, res) => {
+// authz: role
+//
+// AUTHZ gap (was UNCLASSIFIED, and it was a WRITE): this route had `protect` and
+// nothing else. Any authenticated account carrying a facilityId or hospitalId —
+// a patient, a rider, a lawyer — could flip `autoConfirmAppointment` for that
+// entire facility. The sibling GET is safe because it only ever reads the
+// caller's own facility; the write is what turns an unclosed gap into a
+// privilege one. `adminOnly` (hospital_admin + superadmin) matches how every
+// other tenant-configuration write in this codebase is gated.
+router.put('/settings', protect, adminOnly, async (req, res) => {
   try {
     const facilityId = req.user.facilityId;
     const hospitalId = req.user.hospitalId;
     const { autoConfirmAppointment } = req.body;
+    if (typeof autoConfirmAppointment !== 'boolean') {
+      return res.status(400).json({ message: 'autoConfirmAppointment must be a boolean' });
+    }
     if (facilityId) {
       const facility = await Facility.findByIdAndUpdate(
         facilityId,
@@ -201,10 +216,11 @@ router.post('/register', validate(registerFacilitySchema), async (req, res) => {
       status: 'pending', details: details || {},
     });
 
-    const finalPassword = adminPassword || Math.random().toString(36).slice(-10);
+    const finalPassword = adminPassword || randomPassword(12);
     const roleMap = { hospital: 'hospital_admin', clinic: 'clinic_doctor', lab: 'lab_receptionist', pharmacy: 'pharmacist' };
     const newUser = await User.create({
       name: adminName, email: adminEmail.toLowerCase(), password: finalPassword,
+      mustResetPassword: !adminPassword,
       role: roleMap[type] || 'hospital_admin', phone: adminPhone || '',
       facilityId: facility._id, facilityType: type,
       isVerified: false, status: 'active', approvalStatus: 'not_required',

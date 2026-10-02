@@ -1,13 +1,30 @@
 import { createClient } from 'redis';
 import logger from './logger.js';
+import { randomDigits } from '../utils/secureRandom.js';
 
 let isConnected = false;
 
-// REDIS_URL comes from Render's environment variables, e.g.
-// redis://red-da6s0s3bc2fs73enj87g:6379 (internal, no TLS)
+// INF-B-09: REDIS_URL is the single source of truth for the Redis endpoint —
+// never inline an internal host/port in source. A rediss:// URL (or an explicit
+// REDIS_TLS=true) enables TLS for the session/OTP/lockout store so a compromised
+// sibling container can neither sniff nor inject those keys.
+const REDIS_TLS_ENABLED = process.env.REDIS_TLS === 'true'
+  || String(process.env.REDIS_URL || '').startsWith('rediss://');
+
 export const redisClient = createClient({
   url: process.env.REDIS_URL || 'redis://localhost:6379',
   socket: {
+    // Never silently accept an unverifiable certificate: TLS without
+    // verification is just obfuscation. Point REDIS_TLS_CA_FILE at the CA
+    // (or leave REDIS_TLS_REJECT_UNAUTHORIZED=true for a managed provider).
+    ...(REDIS_TLS_ENABLED
+      ? {
+        tls: {
+          rejectUnauthorized: process.env.REDIS_TLS_REJECT_UNAUTHORIZED !== 'false',
+          ...(process.env.REDIS_TLS_CA_FILE ? { ca: [process.env.REDIS_TLS_CA_FILE] } : {}),
+        },
+      }
+      : {}),
     reconnectStrategy: (retries) => {
       if (retries > 10) return new Error('Redis max retries exceeded');
       return Math.min(retries * 500, 3000);
@@ -261,7 +278,7 @@ export async function getOnlineDoctorsList() {
 export async function getNextOPDTokenNumber(doctorId, date) {
   if (!isRedisReady()) {
     // Fallback: random numeric token
-    return `OPD-${Math.floor(100 + Math.random() * 900)}`;
+    return `OPD-${randomDigits(3)}`;
   }
   const key = `opd_token:${doctorId}:${date}`;
   try {
@@ -272,7 +289,7 @@ export async function getNextOPDTokenNumber(doctorId, date) {
     return `OPD-${String(nextNum).padStart(3, '0')}`;
   } catch (err) {
     logger.warn(`Redis getNextOPDTokenNumber error: ${err.message}`);
-    return `OPD-${Math.floor(100 + Math.random() * 900)}`;
+    return `OPD-${randomDigits(3)}`;
   }
 }
 
@@ -373,6 +390,122 @@ export async function resetOTPFailures(email, type = 'email') {
   try {
     await redisClient.del(`otp_fails:${email.toLowerCase()}:${type}`);
     await redisClient.del(`otp_lockout:${email.toLowerCase()}:${type}`);
+  } catch {
+    // ignore
+  }
+}
+
+// ── AUTH-M-03: per-account login lockout with exponential backoff ───────────
+//
+// WHAT REPLACED WHAT
+// The previous implementation was a flat counter: 10 failures -> a hard 15-minute
+// lock, with no delay in between. Two problems, and the second is the one that
+// matters on a healthcare platform.
+//
+// 1. A flat counter is 10 free guesses per 15 minutes - 960 a day against a
+//    single account, with no penalty for guessing faster. Exponential backoff
+//    makes the 10th guess cost 512s, so an online attack collapses to a handful
+//    of attempts an hour while an honest user who fat-fingers twice waits 2-4
+//    seconds and never notices.
+//
+// 2. ACCOUNT-LOCKOUT DoS. Because the lock is keyed on the email, anyone who
+//    knows a patient's email address can lock that patient out of their own
+//    account every 15 minutes, indefinitely, by failing the password 10 times.
+//    No password guess is required - only the address. On a platform where
+//    being locked out of your records has clinical consequences that is a
+//    denial-of-service primitive, and OWASP's position is that hard lockout is
+//    the wrong tool on its own.
+//
+//    Two things blunt it here: the backoff is applied BEFORE the hard lock, so
+//    an attacker has to sit through the growing delay to reach a lock at all;
+//    and a per-IP budget means one host cannot spray many accounts in a window.
+//    The hard lock still exists - removing it would abandon the surface and
+//    remove the incentive to stop guessing.
+//
+// FAIL-OPEN IS DELIBERATE and unchanged: without Redis there is no counter
+// store, and denying every login when the cache is down turns a dependency
+// outage into a total authentication outage. The honest consequence is that a
+// Redis outage removes brute-force protection, and that belongs on an alert
+// rather than being papered over.
+
+const LOGIN_FAILURE_TTL = 900;      // counters live 15 min
+const LOGIN_MAX_BACKOFF = 900;      // ceiling on a single backoff window
+const LOGIN_IP_FAILURE_BUDGET = 50; // per-IP failures across the window
+
+/** 2^failures, capped. 1 -> 2s, 2 -> 4s, ... 10 -> 900s. */
+export const loginBackoffSeconds = (failures) => {
+  const n = Math.max(0, Number(failures) || 0);
+  return Math.min(LOGIN_MAX_BACKOFF, 2 ** n);
+};
+
+/**
+ * @returns {Promise<{locked:boolean, retryAfterSeconds:number, scope:'account'|'ip'|null}>}
+ */
+export async function checkLoginLockout(email, ip = null) {
+  if (!isRedisReady()) return { locked: false, retryAfterSeconds: 0, scope: null };
+  const key = `login:backoff:${String(email).toLowerCase()}`;
+  try {
+    const accountTtl = await redisClient.ttl(key);
+    if (accountTtl > 0) return { locked: true, retryAfterSeconds: accountTtl, scope: 'account' };
+
+    if (ip) {
+      const ipBlockTtl = await redisClient.ttl(`login:ipblock:${ip}`);
+      if (ipBlockTtl > 0) return { locked: true, retryAfterSeconds: ipBlockTtl, scope: 'ip' };
+    }
+    return { locked: false, retryAfterSeconds: 0, scope: null };
+  } catch {
+    return { locked: false, retryAfterSeconds: 0, scope: null };
+  }
+}
+
+/**
+ * Record one failed attempt and say how long the caller must now wait.
+ *
+ * @returns {Promise<{failures:number, retryAfterSeconds:number, locked:boolean}>}
+ */
+export async function registerLoginFailure(email, ip = null) {
+  if (!isRedisReady()) return { failures: 0, retryAfterSeconds: 0, locked: false };
+  const mail = String(email).toLowerCase();
+  const failKey = `login:fail:${mail}`;
+  try {
+    const failures = await redisClient.incr(failKey);
+    if (failures === 1) await redisClient.expire(failKey, LOGIN_FAILURE_TTL);
+
+    if (ip) {
+      const ipKey = `login:ipfail:${ip}`;
+      const ipFails = await redisClient.incr(ipKey);
+      if (ipFails === 1) await redisClient.expire(ipKey, LOGIN_FAILURE_TTL);
+      if (ipFails >= LOGIN_IP_FAILURE_BUDGET) {
+        const ipTtl = await redisClient.ttl(ipKey);
+        await redisClient.set(`login:ipblock:${ip}`, '1', { EX: ipTtl > 0 ? ipTtl : LOGIN_FAILURE_TTL });
+      }
+    }
+
+    const retryAfterSeconds = loginBackoffSeconds(failures);
+    // The backoff marker is what `checkLoginLockout` reads, so the wait is
+    // enforced on the NEXT request rather than only in this response.
+    if (retryAfterSeconds > 0) {
+      await redisClient.set(`login:backoff:${mail}`, String(failures), { EX: retryAfterSeconds });
+    }
+    return { failures, retryAfterSeconds, locked: failures >= 10 };
+  } catch {
+    return { failures: 0, retryAfterSeconds: 0, locked: false };
+  }
+}
+
+/**
+ * Clear the account's counter on a successful login.
+ *
+ * The IP budget is deliberately NOT cleared: a run of correct logins from one
+ * host is not a signal that its failure budget should reset - only the passage
+ * of time does that.
+ */
+export async function resetLoginFailures(email) {
+  if (!isRedisReady()) return;
+  const mail = String(email).toLowerCase();
+  try {
+    await redisClient.del(`login:fail:${mail}`);
+    await redisClient.del(`login:backoff:${mail}`);
   } catch {
     // ignore
   }

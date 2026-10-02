@@ -9,6 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
+import { userFacingError } from '@/lib/errorCopy';
 
 export default function ClinicPlatformSettings() {
   const { user } = useAuth();
@@ -137,7 +138,7 @@ export default function ClinicPlatformSettings() {
       toast.success('Settings saved successfully');
       setTimeout(() => setSaved(false), 2000);
     } catch (err) {
-      toast.error(err.response?.data?.message || err.message || 'Failed to save settings');
+      toast.error(userFacingError(err, { fallback: 'Failed to save settings' }));
     } finally {
       setSaving(false);
     }

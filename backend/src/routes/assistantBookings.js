@@ -4,6 +4,8 @@ import AssistantProfile from '../models/AssistantProfile.js';
 import User from '../models/User.js';
 import Notification from '../models/Notification.js';
 import { protect, optionalProtect } from '../middleware/auth.js';
+import { assertAssistantBookingAccess, denyAssistantBooking } from '../middleware/assistantBookingAccess.js';
+import { sendServerError } from '../utils/safeError.js';
 import { bookingLimiter } from '../middleware/rateLimit.js';
 import {
   validate,
@@ -20,6 +22,7 @@ import {
 import { generateAssistantReceiptPdf } from '../services/assistantReceiptService.js';
 import { startAssistantDispatch, acceptAssistantRequest, rejectAssistantRequest } from '../services/assistantDispatchService.js';
 import logger from '../config/logger.js';
+import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
 
 const router = express.Router();
 
@@ -693,7 +696,7 @@ router.get('/my-bookings', protect, async (req, res) => {
       query.status = status;
     }
     if (hospital) {
-      query.hospital = new RegExp(hospital, 'i');
+      query.hospital = new RegExp(escapeRegex(capSearch(hospital)), 'i');
     }
     if (category) {
       query.serviceCategories = { $in: [category] };
@@ -807,6 +810,16 @@ router.get('/:id', protect, async (req, res) => {
 
     if (!booking) return res.status(404).json({ message: 'Booking not found' });
 
+    // AUTHZ: this route had NO access check at all. Any authenticated account —
+    // including an unrelated patient or a self-registered rider — could read any
+    // assistant booking by enumerating ids, and the response carries the patient's
+    // name, phone and email plus the assigned assistant's contact details.
+    //
+    // 404 rather than 403 on denial: a 403 confirms the id exists, which turns the
+    // endpoint into an oracle for harvesting live booking ids.
+    const access = await assertAssistantBookingAccess(req, booking, { action: 'read' });
+    if (!access.ok) return denyAssistantBooking(res, access);
+
     let assistantProfile = null;
     if (booking.assistantId) {
       assistantProfile = await AssistantProfile.findOne({
@@ -817,7 +830,7 @@ router.get('/:id', protect, async (req, res) => {
     res.json({ booking, assistantProfile });
   } catch (err) {
     logger.error(`Get booking error: ${err.message}`);
-    res.status(500).json({ message: 'Failed to fetch booking', error: err.message });
+    sendServerError(res, err, 'Failed to fetch booking');
   }
 });
 
@@ -877,6 +890,15 @@ router.get('/:id/receipt', protect, async (req, res) => {
 
     if (!booking) return res.status(404).json({ message: 'Booking not found' });
 
+    // AUTHZ: no check existed here. The receipt PDF embeds the patient's name,
+    // phone and email plus the fee breakdown, so any authenticated account could
+    // generate and download a financial document for ANY booking by id — and a
+    // generated file is harder to revoke than a row read.
+    //
+    // Same guard as GET /:id (middleware/assistantBookingAccess.js).
+    const access = await assertAssistantBookingAccess(req, booking, { action: 'read' });
+    if (!access.ok) return denyAssistantBooking(res, access);
+
     const profile = await AssistantProfile.findOne({
       userId: booking.assistantId?._id || booking.assistantId,
     }).lean();
@@ -888,7 +910,7 @@ router.get('/:id/receipt', protect, async (req, res) => {
     res.send(pdfBuffer);
   } catch (err) {
     logger.error(`Assistant receipt generation error: ${err.message}`);
-    res.status(500).json({ message: 'Failed to generate PDF receipt', error: err.message });
+    sendServerError(res, err, 'Failed to generate PDF receipt');
   }
 });
 
@@ -900,6 +922,18 @@ router.post('/:id/broadcast-fallback', protect, async (req, res) => {
     if (!booking) {
       return res.status(404).json({ message: 'Booking not found' });
     }
+
+    // AUTHZ: no check existed here. This route REWRITES the booking — clears the
+    // targeted assistant and rewinds status to 'requested' — and then broadcasts
+    // it to every available assistant at the hospital. So any authenticated
+    // account could strip another assistant off a job and fan it out to strangers.
+    //
+    // Only the client who owns the booking, or an admin for its hospital, may do
+    // this. The lawyerBookings equivalent of this route was one of the LAW-B-03
+    // findings for exactly the same reason.
+    const access = await assertAssistantBookingAccess(req, booking, { action: 'reschedule' });
+    if (!access.ok) return denyAssistantBooking(res, access);
+
     booking.targetAssistantOnly = false;
     booking.broadcastFallbackAt = new Date();
     booking.statusHistory.push({

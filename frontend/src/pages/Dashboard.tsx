@@ -18,6 +18,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useSettings } from '@/store/useSettingsStore';
 import { applyUserSettings } from '@/lib/settings';
 import { getISTDateString } from '@/lib/dateUtils';
+import { userFacingError } from '@/lib/errorCopy';
 
 const COLORS = ['hsl(174,62%,38%)','hsl(210,80%,55%)','hsl(38,92%,50%)','hsl(152,60%,42%)','hsl(210,12%,50%)'];
 
@@ -113,10 +114,23 @@ const tooltipStyle = { borderRadius:'0.75rem', border:'1px solid hsl(200,20%,90%
 /** Axios errors carry the server message under `response.data.message`. */
 type ApiError = Error & { response?: { data?: { message?: string } } };
 
-/** Best-effort human message from a react-query error (unknown by default). */
+/**
+ * FE-B-05: route every failure through `userFacingError`.
+ *
+ * This used to be `apiError?.response?.data?.message || apiError?.message || ''`,
+ * which put raw backend text — including 5xx internals like
+ * `Cast to ObjectId failed for value "..."` — straight into the operations strip
+ * on the home dashboard, i.e. the first thing every user sees after login.
+ *
+ * An empty string is returned for a cancelled request (react-query aborts) so the
+ * strip stays quiet during navigation.
+ */
 function apiErrorMessage(error: unknown): string {
-  const apiError = error as ApiError | null | undefined;
-  return apiError?.response?.data?.message || apiError?.message || '';
+  if (!error) return '';
+  const status = (error as ApiError)?.response?.status;
+  // Aborted/ignored queries must not produce a banner.
+  if (status === undefined && (error as Error)?.name === 'CanceledError') return '';
+  return userFacingError(error);
 }
 
 function OperationsStrip() {

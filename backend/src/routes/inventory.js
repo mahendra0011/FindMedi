@@ -8,6 +8,7 @@ import { protect, adminOnly } from '../middleware/auth.js';
 import { validate, createInventoryItemSchema, updateInventoryItemSchema, createSupplierSchema, createPurchaseOrderSchema } from '../utils/validate.js';
 import { auditLog } from '../middleware/audit.js';
 import { generateTimestampedId } from '../utils/idGenerator.js';
+import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
 
 const stockUpdateSchema = z.object({ quantity: z.number(), type: z.enum(['add', 'deduct', 'adjust']), reference: z.string().optional(), notes: z.string().optional() });
 const updateSupplierSchema = z.object({}).passthrough();
@@ -38,9 +39,9 @@ router.get('/items', protect, async (req, res) => {
     }
     if (search) {
       filter.$or = [
-        { itemName: new RegExp(search, 'i') },
-        { itemCode: new RegExp(search, 'i') },
-        { category: new RegExp(search, 'i') },
+        { itemName: new RegExp(escapeRegex(capSearch(search)), 'i') },
+        { itemCode: new RegExp(escapeRegex(capSearch(search)), 'i') },
+        { category: new RegExp(escapeRegex(capSearch(search)), 'i') },
       ];
     }
     const items = await Inventory.find(filter).sort({ itemName: 1 });
@@ -55,7 +56,9 @@ router.put('/items/:id', protect, validate(updateInventoryItemSchema), async (re
     if (req.user.hospitalId && req.user.role !== 'superadmin' && item.hospitalId?.toString() !== req.user.hospitalId.toString()) {
       return res.status(403).json({ message: 'Access denied' });
     }
-    Object.assign(item, req.body);
+    // AUTH-030: allowlisted fields only — stock/history via stock endpoint, tenant immutable.
+    const { pickBody } = await import('../utils/pick.js');
+    Object.assign(item, pickBody(req.body, ['itemName', 'category', 'itemCode', 'unit', 'currentStock', 'minStockLevel', 'maxStockLevel', 'unitPrice', 'supplier', 'location', 'expiryDate', 'batchNumber', 'isActive']));
     await item.save();
     await auditLog('update_inventory_item', req.user._id, { recordId: item._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json(item);
@@ -137,7 +140,7 @@ router.get('/suppliers', protect, async (req, res) => {
     if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
     if (active !== 'false') filter.isActive = true;
     if (category && category !== 'All') filter.category = category;
-    if (search) filter.$or = [{ name: new RegExp(search, 'i') }, { contactPerson: new RegExp(search, 'i') }];
+    if (search) filter.$or = [{ name: new RegExp(escapeRegex(capSearch(search)), 'i') }, { contactPerson: new RegExp(escapeRegex(capSearch(search)), 'i') }];
     const suppliers = await Supplier.find(filter).sort({ name: 1 });
     res.json({ suppliers });
   } catch (err) { res.status(500).json({ message: err.message }); }
@@ -150,7 +153,9 @@ router.put('/suppliers/:id', protect, validate(updateSupplierSchema), async (req
     if (req.user.hospitalId && req.user.role !== 'superadmin' && supplier.hospitalId?.toString() !== req.user.hospitalId.toString()) {
       return res.status(403).json({ message: 'Access denied' });
     }
-    Object.assign(supplier, req.body);
+    // AUTH-030: allowlisted fields only — supplierId/tenant linkage immutable.
+    const { pickBody } = await import('../utils/pick.js');
+    Object.assign(supplier, pickBody(req.body, ['name', 'contactPerson', 'email', 'phone', 'address', 'gstNumber', 'category', 'items', 'rating', 'leadTime', 'paymentTerms', 'isActive', 'notes']));
     await supplier.save();
     await auditLog('update_supplier', req.user._id, { recordId: supplier._id, ip: req.ip, userAgent: req.get('user-agent') });
     res.json(supplier);
@@ -212,8 +217,8 @@ router.get('/purchase-orders', protect, async (req, res) => {
     if (status && status !== 'All') filter.status = status;
     if (search) {
       filter.$or = [
-        { poNumber: new RegExp(search, 'i') },
-        { supplierName: new RegExp(search, 'i') }
+        { poNumber: new RegExp(escapeRegex(capSearch(search)), 'i') },
+        { supplierName: new RegExp(escapeRegex(capSearch(search)), 'i') }
       ];
     }
     const orders = await PurchaseOrder.find(filter)

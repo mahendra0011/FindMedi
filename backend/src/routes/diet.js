@@ -9,6 +9,7 @@ import { validate, createDietOrderSchema } from '../utils/validate.js';
 import { auditLog } from '../middleware/audit.js';
 import { generateOrderId, generateInvoiceId } from '../utils/idGenerator.js';
 import { getISTDateString } from '../utils/dateUtils.js';
+import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
 
 const dietDeliverMealSchema = z.object({ mealType: z.string().optional(), items: z.any().optional() });
 const dietConfirmMealSchema = z.object({ mealIndex: z.number().int().nonnegative(), feedback: z.string().optional(), feedbackNote: z.string().optional() });
@@ -48,8 +49,8 @@ router.get('/orders', protect, async (req, res) => {
     if (status && status !== 'All') filter.status = status;
     if (search) {
       filter.$or = [
-        { orderId: new RegExp(search, 'i') }, { patientName: new RegExp(search, 'i') },
-        { dietType: new RegExp(search, 'i') }, { ward: new RegExp(search, 'i') },
+        { orderId: new RegExp(escapeRegex(capSearch(search)), 'i') }, { patientName: new RegExp(escapeRegex(capSearch(search)), 'i') },
+        { dietType: new RegExp(escapeRegex(capSearch(search)), 'i') }, { ward: new RegExp(escapeRegex(capSearch(search)), 'i') },
       ];
     }
     const orders = await DietOrder.find(filter).populate('patientId', 'name').sort({ createdAt: -1 });

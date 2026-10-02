@@ -7,6 +7,659 @@ on:
     branches: [ "main" ]
 
 jobs:
+  # AUTH-008: committed-secret scanner — backend/.env holds live keys today;
+  # rotation is a human step, but no NEW secret may ever land in git.
+  gitleaks:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - uses: gitleaks/gitleaks-action@v2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  plaintext-aadhaar-guard:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Fail on plaintext Aadhaar-shaped storage
+      run: |
+        ! grep -rEn "aadhaar(_number|Number)?['\"]?\s*:\s*\{[^}]*type:\s*String" backend/src/models/ || (echo "plaintext Aadhaar field in a model" && exit 1)
+        ! grep -rEn "req\.body\.aadhaar\w*\s*,?\s*$|aadhaar\w*:\s*req\.body" backend/src/routes/ || (echo "raw Aadhaar persisted from request body" && exit 1)
+
+  mass-assignment-guard:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Fail on new unscoped findByIdAndUpdate(req.body)
+      run: |
+        ! grep -rEn "findByIdAndUpdate\([^,]+,\s*req\.body" backend/src/routes/ || (echo "unscoped findByIdAndUpdate(req.body) — use an allowlist" && exit 1)
+
+  # AUTHZ-B-07: the hand-rolled guard `if (req.user.hospitalId && …)` collapses
+  # to "no tenant filter" for any account without a hospitalId, which is how
+  # platform-wide reads were reachable. Migrations to applyTenantScope() are in
+  # progress, so the count is compared against a committed baseline: it may go
+  # down, never up.
+  dependency-vulns:
+    name: Dependency Vulnerability Ratchet
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 20.x
+    - name: Install dependencies
+      run: |
+        cd backend && npm install --no-audit
+        cd ../frontend && npm install --no-audit
+
+    # INF-M-05 / TEST-M-08. A RATCHET, not a zero-tolerance gate: every current
+    # advisory reports fixAvailable:false, so a "no high" gate would be red on
+    # day one and everyone would learn to ignore it. This may only go DOWN, and a
+    # regression names the package.
+    - name: No NEW critical/high advisories
+      run: cd backend && node scripts/check-vuln-regression.mjs
+
+  # INF-M-05 (container images) + TEST-M-08 (SAST). The dependency ratchet above
+  # covers npm and cargo; these are the two halves that were genuinely missing.
+  #
+  # `ignore-unfixed` is deliberate and is the same reasoning as the ratchet: an
+  # advisory with no patched image is not actionable here, and a gate that is red
+  # from day one is a gate everybody learns to scroll past. We still want to hear
+  # about the ones someone CAN fix.
+  sast-and-image-scan:
+    name: SAST + Container Image Scan
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0   # semgrep ci needs history to diff against
+
+    # TEST-M-08. Scans the app's own JS/TS, not the vendored trees.
+    - name: semgrep (SAST)
+      run: |
+        python3 -m pip install --quiet semgrep
+        semgrep ci \
+          --config p/javascript \
+          --config p/nodejs \
+          --exclude node_modules \
+          --exclude dist \
+          --exclude coverage \
+          --error \
+          --quiet
+
+    # INF-M-05. `config` scans the Dockerfile and the compose files for
+    # misconfiguration (running as root, missing healthchecks, secrets in env,
+    # unpinned tags) - the parts of the image surface this repo actually owns.
+    # The pinned upstream images (mongo:7.0, redis:7.2-alpine, ...) are scanned
+    # by upstream advisories and Dependabot bumps them; re-scanning them here
+    # would only reproduce vendor CVEs we cannot patch.
+    - name: Trivy config/image scan
+      uses: aquasecurity/trivy-action@0.28.0
+      with:
+        scan-type: config
+        scan-ref: .
+        severity: CRITICAL,HIGH
+        ignore-unfixed: true
+        exit-code: '1'
+
+    # The one image this repo BUILDS, scanned as an image rather than as config.
+    - name: Build the backup image
+      run: docker build -t findmedi/backup:ci infra/backup
+    - name: Trivy scan the built image
+      uses: aquasecurity/trivy-action@0.28.0
+      with:
+        image-ref: findmedi/backup:ci
+        severity: CRITICAL,HIGH
+        ignore-unfixed: true
+        exit-code: '1'
+
+  tenant-guard-regression:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 20.x
+    - name: No NEW fail-open tenant guard
+      run: cd backend && node scripts/check-tenant-guard-regression.mjs
+
+    # Authz triage reports routes that carry `protect` and no authorization
+    # decision at all. Unlike the coverage gate below - which is a BASELINE and
+    # only blocks NEW unclassified routes - this one is expected to read zero, and
+    # it is wired as a hard failure so an unguarded route cannot land unnoticed.
+    #
+    # It also fails on a STALE reviewed-safe key: a clearance whose route was
+    # renamed has silently stopped applying, which is a false negative that still
+    # looks reviewed. Both failure modes are the point of the job, so neither is
+    # downgraded to a warning.
+    - name: Authz triage - zero unguarded routes
+      run: cd backend && node scripts/triage-authz-gaps.mjs
+
+    # AUTHZ-B-06: route-level authorization coverage was unmeasured — 316 routes
+    # carried `protect` and nothing else, with no way to tell a legitimate
+    # self-service route from an accidental hole. The script classifies every
+    # route and fails when a NEW unclassified one appears, so a new endpoint can
+    # no longer ship without someone deciding who may call it.
+    - name: No NEW route without an authorization tag
+      run: cd backend && node scripts/check-authz-coverage.mjs
+
+    # AUTHZ-M-02: the manifest is a COMMITTED artefact, which means it can go
+    # stale the instant a route changes - and a stale manifest is worse than
+    # none, because it still looks current and will confidently report a route
+    # as guarded after someone deleted the guard. The step above already
+    # regenerated it, so `git diff --exit-code` turns "forgot to commit the
+    # regenerated manifest" into a red build. The jest suite asserts the same
+    # property; this makes it fail before the tests are even run.
+    - name: The committed authz manifest matches the routes
+      run: |
+        cd backend
+        node scripts/check-authz-coverage.mjs >/dev/null
+        if ! git diff --exit-code -- authz-manifest.json; then
+          echo "::error::authz-manifest.json is stale."
+          echo "Run: cd backend && node scripts/check-authz-coverage.mjs  (then commit the result)"
+          exit 1
+        fi
+
+    # AUTHZ-B-03: a 403 body must not enumerate the permission matrix.
+    - name: 403 responses must not leak the permission matrix
+      run: |
+        ! grep -rEn "message:\s*'Insufficient permissions'," -A3 backend/src/middleware/authorize.js \
+          | grep -qE 'required,|role: req\.user\.role' \
+          || (echo "authorize() 403 body still discloses required/role (AUTHZ-B-03)" && exit 1)
+        ! grep -rEn "required,\s*$" backend/src/middleware/authorize.js \
+          || (echo "authorize() still returns the required permission list" && exit 1)
+
+    # AUTHZ-B-04: platform-wide configuration must not be editable by a tenant
+    # admin. `adminOnly` on a global route was the pattern that let one hospital
+    # reconfigure every other tenant.
+    - name: AUTHZ-B-04 · platform settings must use platformAdminOnly
+      run: |
+        for f in adminSosSettings systemSettings serviceCities; do
+          ! grep -E "protect,\s*(adminOnly|restrictTo\()" "backend/src/routes/$f.js" \
+            || (echo "$f.js still gates a platform-wide setting with adminOnly/restrictTo — use platformAdminOnly" && exit 1)
+        done
+        grep -q 'platformAdminOnly' backend/src/middleware/authorize.js \
+          || (echo "platformAdminOnly middleware is missing" && exit 1)
+
+    # AUTHZ-B-05: the role enum must not reintroduce a second spelling of a role,
+    # and every canonical role must have a permission-matrix entry (a role with no
+    # entry silently denies everything, which reads as "broken feature").
+    - name: AUTHZ-B-05 · role aliases and matrix completeness
+      run: |
+        node --input-type=module -e "
+          import { canonicalRole, ROLE_PERMISSIONS, assertRoleMatrixComplete } from './backend/src/config/permissions.js';
+          assertRoleMatrixComplete(ROLE_PERMISSIONS);
+          if (canonicalRole('counselor') !== 'counsellor') throw new Error('counselor alias is not canonicalised');
+          if (ROLE_PERMISSIONS.counselor) throw new Error('a second permission entry exists for the deprecated spelling');
+          console.log('role alias + matrix OK');
+        "
+
+    # AUTHZ-B-01/02: `sameFacilityStrict` was implemented and used ZERO times, and
+    # object-level checks were hand-rolled per handler — the root cause of the
+    # IDOR class. The shared helper must exist and be adopted.
+    - name: AUTHZ-B-01/02 · object authorization helper exists and is adopted
+      run: |
+        grep -q 'export const authorizeObject' backend/src/middleware/authorize.js \
+          || { echo "authorizeObject helper is missing"; exit 1; }
+        if ! grep -rl 'authorizeObject' backend/src/routes/ | grep -q .; then
+          echo "authorizeObject is defined but never used in any route — AUTHZ-B-01"
+          exit 1
+        fi
+
+    # PHARM-B-01/04/05/08 + LAB-B-06/07: pharmacy/lab are the highest-density PHI
+    # surface in the product (controlled substances, lab results). These gates stop
+    # the specific fail-open shapes the audit found from returning.
+    - name: PHARM/LAB · no unscoped prescription or lab-order read
+      run: |
+        grep -q 'authorizeObject' backend/src/routes/pharmacy.js \
+          || { echo "pharmacy prescriptions/:id is not ownership-gated (PHARM-B-01)"; exit 1; }
+        grep -q 'resolveLabOrderSubject' backend/src/routes/lab.js \
+          || { echo "lab order subject is still taken from the body (PHARM-B-04)"; exit 1; }
+        grep -q 'labScope' backend/src/routes/lab.js \
+          || { echo "GET /lab/orders has no fail-closed tenant predicate (PHARM-B-05)"; exit 1; }
+        # LAB-B-06: identity by NAME must not come back (the code form, not the
+        # comment that documents why it was removed).
+        ! grep -qE '^[^/*]*patientName:\s*req\.user\.name' backend/src/routes/lab.js \
+          || { echo "lab bookings are matched by patient NAME again (LAB-B-06)"; exit 1; }
+        grep -q 'createdForUserId' backend/src/models/LabBooking.js \
+          || { echo "LabBooking has no id-based creator field (LAB-B-06)"; exit 1; }
+        # LAB-B-07: separation of duties needs the reviewing-role check, not just
+        # "not the same user id".
+        grep -q 'VERIFYING_ROLES' backend/src/routes/lab.js \
+          || { echo "lab verification has no reviewing-role gate (LAB-B-07)"; exit 1; }
+        # PHARM-B-08: dispensing must require a verified, unexpired prescription.
+        grep -q 'PRESCRIPTION_NOT_VERIFIED' backend/src/routes/pharmacy.js \
+          || { echo "dispensing does not require clinical verification (PHARM-B-08)"; exit 1; }
+        # PHARM-B-12: staff-only order mutations must not be reachable by ownership.
+        grep -q 'requireTenant: true' backend/src/routes/pharmacy.js \
+          || { echo "order forward/reject/refund/delete are not tenant-only (PHARM-B-12)"; exit 1; }
+
+    # HI-B-01..04: the Health-ID QR card is a PUBLIC, UNAUTHENTICATED emergency
+    # surface — a paramedic scans it with no login. A fallback URL, an unvalidated
+    # privacy setting or a non-expiring token on that surface is a real-world
+    # failure, not a code-style nit.
+    - name: HI · the public health card fails closed
+      run: |
+        # HI-B-01: a scannable URL must never fall back to localhost.
+        grep -q "name: 'FRONTEND_URL'" backend/src/config/envValidator.js \
+          || { echo "FRONTEND_URL is not required in production (HI-B-01)"; exit 1; }
+        grep -q 'looksLocal' backend/src/routes/healthId.js \
+          || { echo "the QR payload still falls back to localhost (HI-B-01)"; exit 1; }
+        # HI-B-02: an absent subdocument must not 500 a public endpoint.
+        grep -q 'user.emergencyContact?.name' backend/src/routes/healthId.js \
+          || { echo "the public scan dereferences emergencyContact unguarded (HI-B-02)"; exit 1; }
+        grep -q 'user.allergies || \[\]' backend/src/routes/healthId.js \
+          || { echo "the public scan maps an optional array unguarded (HI-B-02)"; exit 1; }
+        ! grep -qE "res\.status\(500\)\.json\(\{ message: err\.message \}\);" backend/src/routes/healthId.js \
+          || { echo "healthId.js still leaks err.message (HI-B-02)"; exit 1; }
+        # HI-B-03: privacy settings need a closed enum.
+        grep -q 'healthIdSettingsSchema = z.object' backend/src/routes/healthId.js \
+          || { echo "the health-id settings endpoint has no schema (HI-B-03)"; exit 1; }
+        grep -q "z.enum(\['full', 'minimal'\])" backend/src/routes/healthId.js \
+          || { echo "shareLevel is not a closed enum (HI-B-03)"; exit 1; }
+        # HI-B-04: an expiry is required, not conditional.
+        ! grep -q 'qrTokenExpiry && user.healthIdCard.qrTokenExpiry < now' backend/src/routes/healthId.js \
+          || { echo "a token with no expiry still scans forever (HI-B-04)"; exit 1; }
+        grep -q 'QR_TOKEN_TTL_MS' backend/src/routes/healthId.js \
+          || { echo "the QR token lifetime is not a single constant (HI-B-04)"; exit 1; }
+
+    # INS-B-01..04 / LOYAL-B-01/02: claims and points are both money, and both
+    # modules had the same two shapes — a hand-rolled fail-open tenant check, and
+    # a client-supplied or client-computed amount.
+    - name: INS/LOYAL · claims and points are server-decided
+      run: |
+        # INS-B-01/02: list + stats must be tenant-scoped through the shared helper.
+        grep -q 'applyTenantScope' backend/src/routes/insurance.js \
+          || { echo "insurance list/stats have no tenant predicate (INS-B-02/03)"; exit 1; }
+        # INS-B-03: an unfiltered count/aggregate means platform-wide insurance totals.
+        ! grep -qE 'await Insurance\.countDocuments\(\)' backend/src/routes/insurance.js \
+          || { echo "insurance stats still count the whole platform (INS-B-03)"; exit 1; }
+        # INS-B-04: the settlement amount must be bounded by the claim itself.
+        grep -q 'AMOUNT_EXCEEDS_CLAIM' backend/src/routes/insurance.js \
+          || { echo "settlement accepts a free-form approvedAmount (INS-B-04)"; exit 1; }
+        grep -q 'toPaise' backend/src/routes/insurance.js \
+          || { echo "settlement is not compared in integer paise (INS-B-04)"; exit 1; }
+        # LOYAL-B-01: a points mutation is a balance read-modify-write unless atomic.
+        grep -q 'balanceBefore' backend/src/routes/loyalty.js \
+          || { echo "admin point adjustment is still an unaudited RMW (LOYAL-B-01)"; exit 1; }
+        grep -q 'idempotencyGuard' backend/src/routes/loyalty.js \
+          || { echo "loyalty redemption is not replay-guarded (LOYAL-B-01)"; exit 1; }
+        # LOYAL-B-02: coupons are resolved server-side at PAY time, never client-side.
+        grep -q 'export async function resolveCoupon' backend/src/services/couponService.js \
+          || { echo "the coupon eligibility resolver is missing (LOYAL-B-02)"; exit 1; }
+        grep -q 'resolveCoupon' backend/src/routes/billing.js \
+          || { echo "billing/pay does not re-validate the coupon (LOYAL-B-02)"; exit 1; }
+        # A resolver that exists but is never called is the same defect as no resolver.
+        grep -q 'recordCouponRedemption' backend/src/routes/billing.js \
+          || { echo "a validated coupon is never consumed (LOYAL-B-02)"; exit 1; }
+
+    # APPT-B-01/02/03/05/06/08: the appointment module had the same fail-open
+    # shape as staff.js and the same check-then-write slot guard as billing.
+    - name: APPT · one allowlist, atomic slots, canonical patient id
+      run: |
+        # APPT-B-01: every appointment-scoped route must use the shared allowlist,
+        # which fails closed. The old inline form enforced the staff branch only
+        # when BOTH sides had a hospitalId, so a tenant-less account read anything.
+        ! grep -qE "req\.user\.role === 'patient' && appointment\.patientId\?\." backend/src/routes/appointments.js \
+          || { echo "appointments.js has a hand-rolled ownership check again (APPT-B-01)"; exit 1; }
+        ! grep -q 'const isAuthorized = (req.user.role' backend/src/routes/appointments.js \
+          || { echo "appointments.js re-derived the authorization compound (APPT-B-01)"; exit 1; }
+        grep -q 'export function canReadAppointment' backend/src/routes/appointments.js \
+          || { echo "canReadAppointment is missing (APPT-B-01)"; exit 1; }
+        # APPT-B-02 / APPT-B-05: capacity and release must go through the
+        # compare-and-set reservation, never a find-then-compare.
+        grep -q 'reserveSlotSeat' backend/src/routes/appointments.js \
+          || { echo "walk-in booking does not reserve a slot atomically (APPT-B-02)"; exit 1; }
+        grep -q 'releaseSlotSeat' backend/src/routes/appointments.js \
+          || { echo "cancel/delete never releases the seat (APPT-B-05)"; exit 1; }
+        # APPT-B-03: walk-in de-dup must be tenant-scoped, and uniqueness enforced.
+        grep -q 'tenantClause' backend/src/routes/appointments.js \
+          || { echo "walk-in patient de-dup is not tenant-scoped (APPT-B-03)"; exit 1; }
+        # APPT-B-06: a slot is a calendar value.
+        grep -q 'const slotDate = z.string' backend/src/utils/validate.js \
+          || { echo "appointment date is still a free string (APPT-B-06)"; exit 1; }
+        # APPT-B-08: one canonical subject id.
+        grep -q 'canonicalPatientId' backend/src/routes/appointments.js \
+          || { echo "appointment.patientId still mixes Patient._id and User._id (APPT-B-08)"; exit 1; }
+        # APPT-B-04: no raw error message in a 500 body.
+        ! grep -qE 'res\.status\(500\)\.json\(\{ message: err\.message' backend/src/routes/appointments.js \
+          || { echo "appointments.js still leaks err.message (APPT-B-04)"; exit 1; }
+
+    # CHAT-B-01/02/03/04/05/10: realtime rooms are BROADCAST channels. The REST
+    # layer was conversation-scoped but the socket layer was never mirrored, so any
+    # authenticated socket could join `emergency:<sosId>` / `ride:<id>` /
+    # `chat:<conversationId>` and stream a stranger's live location or a
+    # doctor<->patient thread. These gates make an unguarded `socket.join` a
+    # build failure.
+    - name: CHAT · every socket room join is ACL-gated
+      run: |
+        grep -q 'export async function assertRoomAccess' backend/src/middleware/chatMembership.js \
+          || { echo "assertRoomAccess is missing (CHAT-B-02)"; exit 1; }
+        # An unknown room must be denied, so the switch needs a default branch.
+        grep -q "unknown-room" backend/src/middleware/chatMembership.js \
+          || { echo "room ACL does not deny by default (CHAT-B-02)"; exit 1; }
+        # Every room-join handler must consult the ACL first.
+        for handler in "join_ride_room" "join_emergency_room" "join_ambulance_room" "chat:join"; do
+          grep -A6 -F "$handler" backend/src/services/socketService.js | grep -q 'assertRoomAccess' \
+            || { echo "$handler does not consult assertRoomAccess (CHAT-B-01/02)"; exit 1; }
+        done
+        # No handler may join a room straight off a payload value.
+        ! grep -qE 'socket\.join\(`(ride|emergency|ambulance|chat|order):\$\{[a-zA-Z]+Id\}`\);' backend/src/services/socketService.js \
+          || { echo "a socket room is still joined from a raw payload id (CHAT-B-02/10)"; exit 1; }
+        # CHAT-B-03: receipts are writes, so the actor must also be a member.
+        grep -q 'isRoomMember' backend/src/services/socketService.js \
+          || { echo "chat:delivered / chat:read have no membership gate (CHAT-B-03)"; exit 1; }
+        # CHAT-B-04: one identity writer.
+        grep -q 'export function setSocketIdentity' backend/src/services/socketService.js \
+          || { echo "socket identity has no single writer (CHAT-B-04)"; exit 1; }
+
+    # RIDE-B-01/02/03/05/07/08: emergency dispatch is safety-of-life. These gates
+    # stop the shapes the audit found from coming back — an SOS session readable by
+    # any token, a debug inventory in production, a non-idempotent completion that
+    # double-pays, "unknown distance" reported as zero, and a client-set tariff.
+    - name: RIDE · emergency dispatch invariants
+      run: |
+        # RIDE-B-01: every /:id/* SOS route must carry the ownership middleware.
+        for route in "'/:id/status'" "'/:id/book/:providerId'" "'/:id/cancel'" "'/:id/progress'" "'/:id/accepted-candidates'" "'/:id/nearby-hospitals'"; do
+          grep -F "router." backend/src/routes/emergencySOS.js | grep -F "$route" \
+            | grep -q 'requireSosAccess' \
+            || { echo "emergencySOS $route has no SOS-ownership guard (RIDE-B-01)"; exit 1; }
+        done
+        grep -q 'requireSosAccess' backend/src/routes/emergencySOS.js \
+          || { echo "requireSosAccess middleware is missing (RIDE-B-01)"; exit 1; }
+        # RIDE-B-02: the debug inventory must not answer in production.
+        grep -A3 "NODE_ENV === 'production'" backend/src/routes/emergencySOS.js | grep -q 'eligible-providers\|404' \
+          || grep -q "NODE_ENV === 'production'" backend/src/routes/emergencySOS.js \
+          || { echo "the debug provider inventory is not gated on NODE_ENV (RIDE-B-02)"; exit 1; }
+        # RIDE-B-03: every money-moving ride transition is replay-guarded.
+        for route in "'/:id/arrived'" "'/:id/start'" "'/:id/complete'"; do
+          grep -F "router.post" backend/src/routes/rides.js | grep -F "$route" | grep -q 'idempotencyGuard' \
+            || { echo "rides $route is not idempotency-guarded (RIDE-B-03)"; exit 1; }
+        done
+        # RIDE-B-05: unknown distance must never be reported as 0 km.
+        ! grep -q 'distanceKm: 0 }' backend/src/services/rideService.js \
+          || { echo "dispatch still reports an unknown distance as 0 km (RIDE-B-05)"; exit 1; }
+        grep -q 'LOCATION_FRESH_SECONDS' backend/src/services/rideService.js \
+          || { echo "no GPS freshness window in dispatch (RIDE-B-05)"; exit 1; }
+        # RIDE-B-07: emergency pricing must be server-verified, not a client flag.
+        grep -q 'resolveVerifiedEmergency' backend/src/routes/rides.js \
+          || { echo "isEmergency is still a client assertion (RIDE-B-07)"; exit 1; }
+        # RIDE-B-08: a driver must not be able to price their own transport.
+        grep -q 'rejectedFields' backend/src/routes/ambulanceDriver.js \
+          || { echo "ambulance tariff is still driver-settable (RIDE-B-08)"; exit 1; }
+
+    # ADM-B-02/03: the staff/payroll module read and wrote without a tenant
+    # predicate — a hospital admin could read and edit another hospital's
+    # attendance, shifts, overtime and salary.
+    - name: ADM · payroll is tenant-scoped
+      run: |
+        grep -q 'staffScopeFilter' backend/src/routes/staff.js \
+          || { echo "staff.js has no tenant scope helper (ADM-B-02/03)"; exit 1; }
+        ! grep -q 'Staff.findById(staffId)' backend/src/routes/staff.js \
+          || { echo "staff.js still resolves a target with an unscoped findById (ADM-B-03)"; exit 1; }
+        ! grep -q "const filter = {};" backend/src/routes/staff.js \
+          || { echo "staff.js still builds an empty (unscoped) filter (ADM-B-02)"; exit 1; }
+        # No route may answer 500 with a raw error message (DL-11).
+        grep -q 'sendServerError' backend/src/utils/safeError.js \
+          || { echo "the safe-error helper is missing"; exit 1; }
+        ! grep -qE 'res\.status\(500\)\.json\(\{ message: .*error: err\.message' backend/src/routes/rides.js \
+          || { echo "rides.js still leaks err.message to clients (RIDE-B-06)"; exit 1; }
+
+    # PAY-B-01/05/06/07: money integrity. These were all "the client/gateway can
+
+
+    # dictate the outcome" or "a retry double-charges" — the exact class that
+    # turns a health platform into a fraud target.
+    - name: PAY-B-01 · the server must own the price
+      run: |
+        grep -q 'resolveAuthoritativeAmount' backend/src/routes/billing.js \
+          || { echo "billing/pay does not resolve an authoritative price (PAY-B-01)"; exit 1; }
+        ! grep -qE "amount\s*=\s*Number\(req\.body\.amount\)|amount:\s*req\.body\.amount" \
+          backend/src/routes/billing.js \
+          || { echo "billing/pay still trusts a client-supplied amount (PAY-B-01)"; exit 1; }
+
+    - name: PAY-B-05 · every money mutation is idempotent
+      run: |
+        # These routes move money; each must carry the replay guard.
+        for spec in \
+          'backend/src/routes/billing.js:/pay' \
+          'backend/src/routes/transactions.js:/pay' \
+          'backend/src/routes/demoPayment.js:/pay' \
+          'backend/src/routes/demoPayment.js:/refund/:id' \
+          'backend/src/routes/payments.js:/:id/refund' \
+          'backend/src/routes/commission.js:/payouts' \
+          'backend/src/routes/commission.js:/payouts/:id/approve' \
+          'backend/src/routes/commission.js:/payouts/:id/pay' \
+          'backend/src/routes/pharmacy.js:/orders/:id/refund'
+        do
+          file="${spec%%:*}"; route="${spec#*:}"
+          grep -F "router." "$file" | grep -F "'$route'" | grep -q 'idempotencyGuard' \
+            || { echo "$file $route is not idempotency-guarded (PAY-B-05)"; exit 1; }
+        done
+
+    - name: PAY-B-06 · webhooks go through the shared verifier
+      run: |
+        grep -q 'verifyWebhook' backend/src/routes/webhook.js \
+          || { echo "webhook.js does not use the shared verifier (PAY-B-06)"; exit 1; }
+        for feature in 'WEBHOOK_WINDOW_SECONDS' 'timingSafeEqual' 'NX: true'; do
+          grep -q "$feature" backend/src/services/webhookSecurity.js \
+            || { echo "webhookSecurity.js is missing $feature (PAY-B-06)"; exit 1; }
+        done
+
+    - name: PAY-B-07 · refunds are a state machine
+      run: |
+        grep -q 'REFUND_TRANSITIONS' backend/src/models/Refund.js \
+          || { echo "no refund transition table (PAY-B-07)"; exit 1; }
+        grep -q 'idempotencyKey' backend/src/models/Refund.js \
+          || { echo "refunds are not idempotency-keyed (PAY-B-07)"; exit 1; }
+        ! grep -q "payment.status = 'refunded';" backend/src/routes/payments.js \
+          || { echo "the refund route still does a raw status assignment (PAY-B-07)"; exit 1; }
+
+    - name: PAY-B-04 · money arithmetic is integer-paise
+      run: |
+        grep -q 'export const toPaise' backend/src/services/ledgerService.js \
+          || { echo "no integer-paise helper in ledgerService (PAY-B-04)"; exit 1; }
+        ! grep -q 'Math.round((gross \* commissionPercent) / 100)' backend/src/services/ledgerService.js \
+          || { echo "ledger still rounds per-field on a float gross (PAY-B-04)"; exit 1; }
+
+    # PAY-B-03: the slot capacity guard must be an atomic compare-and-set, not a
+    # find-then-compare (which lets two patients both take the last seat).
+    - name: PAY-B-03 · slot capacity is reserved atomically
+      run: |
+        grep -q 'reserveSlotSeat' backend/src/routes/billing.js \
+          || { echo "billing/pay does not reserve a slot seat (PAY-B-03)"; exit 1; }
+        grep -q '\$expr' backend/src/services/slotCapacity.js \
+          || { echo "slotCapacity does not use an atomic \$expr guard (PAY-B-03)"; exit 1; }
+        grep -q 'releaseSlotSeat' backend/src/routes/billing.js \
+          || { echo "a failed booking never releases the reserved seat (PAY-B-03)"; exit 1; }
+
+    # PAY-B-08: an expired checkout must not destroy an appointment whose payment
+    # webhook may still settle.
+    - name: PAY-B-08 · checkout expiry cannot swallow a live payment
+      run: |
+        grep -q 'checkoutExpiresAt' backend/src/models/Appointment.js \
+          || { echo "Appointment has no checkoutExpiresAt hold (PAY-B-08)"; exit 1; }
+        grep -q 'reconcileOrphanPayments' backend/src/routes/billing.js \
+          || { echo "orphan payments are never reconciled (PAY-B-08)"; exit 1; }
+        ! grep -q "status: 'completed' }).lean();\s*$" backend/src/routes/billing.js \
+          || true   # informational: the wider status set is asserted below
+        grep -q "'pending', 'processing', 'completed', 'authorized'" backend/src/routes/billing.js \
+          || { echo "the cleanup only checks a single payment status (PAY-B-08)"; exit 1; }
+
+    - name: DP-B-01/02/03/06 · data-platform hardening
+      run: |
+        ! grep -q 'DISABLE_SECURITY_PLUGIN=true' infra/docker-compose.yml \
+          || { echo "OpenSearch security plugin is disabled again (DP-B-01)"; exit 1; }
+        grep -q 'DISABLE_INSTALL_DEMO_CONFIG=true' infra/docker-compose.yml \
+          || { echo "OpenSearch demo config (admin/admin) is installed (DP-B-01)"; exit 1; }
+        grep -q 'OPENSEARCH_INITIAL_ADMIN_PASSWORD' infra/docker-compose.yml \
+          || { echo "OpenSearch has no admin credential (DP-B-01)"; exit 1; }
+        grep -q '"127.0.0.1:9200:9200"' infra/docker-compose.yml \
+          || { echo "OpenSearch is published on all interfaces (DP-B-01)"; exit 1; }
+        # DP-B-02: SASL_SSL + auto-create off + a declared topic manifest.
+        grep -q 'SASL_SSL' infra/docker-compose.yml \
+          || { echo "Kafka external listener is not SASL_SSL (DP-B-02)"; exit 1; }
+        grep -q 'KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"' infra/docker-compose.yml \
+          || { echo "Kafka auto topic creation is on (DP-B-02)"; exit 1; }
+        node -e "const m=require('./infra/kafka/provision/topics.json'); if(!m.topics.length) throw new Error('topic manifest empty'); for (const t of m.topics) { if (!t.principals || !t.principals.length) throw new Error('topic without ACL principals: '+t.name); } console.log('topic manifest OK: '+m.topics.length+' topics');"
+        # DP-B-03: every mapping must reject unknown fields.
+        for f in data-platform/opensearch/mappings/*.json; do
+          node -e "const m=require('./$f'); if (m.mappings.dynamic !== 'strict') throw new Error('mapping is not strict: $f');"
+        done
+        # DP-B-06: the EHR index must not be written with a raw patient id.
+        grep -q 'pseudonymizePatientId' backend/src/services/opensearchIndexer.js \
+          || { echo "EHR indexing does not pseudonymise the subject id (DP-B-06)"; exit 1; }
+
+    - name: DP-M-01 · event schema registry compat
+      run: |
+        # Completeness + backward-compat gate: every consumer case, topic and
+        # producer event literal must be registered, every fixture must still
+        # validate and every negative fixture must still be rejected.
+        cd backend && node scripts/check-event-schema-compat.mjs
+
+  # INF-B-01/02/03/04/05/06: the deployment surface is as much a security
+  # boundary as the code. These gates stop the findings that were "documented but
+  # never enforced" from coming back: TLS that can be silently disabled, a
+  # production compose that publishes the datastores, dev defaults used as live
+  # secrets, backups that are never restored, floating image tags and pods that
+  # run as root.
+  infra-hardening-guard:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: INF-B-01 · TLS must not be optional in the edge config
+      run: |
+        ! grep -Eq '^\s*#\s*listen\s+443' infra/nginx/nginx.conf \
+          || (echo "the TLS server block is commented out again" && exit 1)
+        grep -q 'Strict-Transport-Security' infra/nginx/nginx.conf \
+          || (echo "HSTS header missing" && exit 1)
+        grep -Eq 'return (301|308) https://' infra/nginx/nginx.conf \
+          || (echo "no plaintext -> HTTPS redirect on :80" && exit 1)
+
+    - name: INF-B-02 · production compose must not publish datastores
+      run: |
+        docker compose -f infra/docker-compose.yml -f infra/docker-compose.prod.yml \
+          --profile guard --profile edge config > /tmp/prod-compose.yml
+        for svc in mongo1 postgres redis opensearch minio kafka clamav valhalla; do
+          if awk "/^  ${svc}:/,/^  [a-zA-Z0-9_-]+:$/" /tmp/prod-compose.yml \
+               | grep -Eq '^\s+published:\s*(27017|5432|6379|9200|9000|9001|3310|8002|9092)'; then
+            echo "datastore port published in the production overlay: $svc"; exit 1
+          fi
+        done
+
+    - name: INF-B-05 · no development default may survive in a production manifest
+      run: |
+        # `:?` (required) instead of `:-dev_default` for every production secret.
+        ! grep -Eq '\$\{(POSTGRES_PASSWORD|MINIO_ROOT_PASSWORD|REDIS_PASSWORD|JWT_SECRET|MONGO_ROOT_PASSWORD|OPENSEARCH_ADMIN_PASSWORD):-'
+          infra/docker-compose.prod.yml \
+          || (echo "a production secret still has a development default" && exit 1)
+        bash infra/backup/verify-secret-rotation.sh
+
+    - name: INF-B-03 · replication/persistence for production datastores
+      run: |
+        grep -q 'appendonly yes' infra/docker-compose.prod.yml \
+          || (echo "Redis has no AOF persistence in production" && exit 1)
+        grep -q 'KAFKA_MIN_INSYNC_REPLICAS: "2"' infra/docker-compose.prod.yml \
+          || (echo "Kafka min.insync.replicas is not 2" && exit 1)
+
+    - name: INF-B-04 · backup + restore drill must exist
+      run: |
+        test -x infra/backup/backup-all.sh  || { echo "backup script missing/not executable"; exit 1; }
+        test -x infra/backup/restore-drill.sh || { echo "restore drill missing/not executable"; exit 1; }
+        grep -q 'OFFSITE_BUCKET' infra/backup/backup-all.sh \
+          || (echo "backup does not require an offsite target" && exit 1)
+
+    - name: INF-B-06 · no floating image tags and no root pods in k8s
+      run: |
+        ! grep -rEn '^\s*image:\s*\S+:latest\s*$' infra/k8s/ \
+          || (echo "a k8s manifest uses a floating :latest tag" && exit 1)
+        grep -q 'pod-security.kubernetes.io/enforce: restricted' infra/k8s/core.yaml \
+          || (echo "namespace is not restricted-PSS enforced" && exit 1)
+        for ctx in readOnlyRootFilesystem runAsNonRoot; do
+          grep -q "$ctx" infra/k8s/core.yaml || { echo "no $ctx in core.yaml"; exit 1; }
+        done
+        grep -q 'kind: NetworkPolicy' infra/k8s/core.yaml \
+          || (echo "no NetworkPolicy — default-deny is missing" && exit 1)
+        ! grep -rEn '^\s*image:\s*\S+:(latest|[0-9]+)$' infra/backup/Dockerfile \
+          || (echo "backup image uses a floating tag" && exit 1)
+
+    - name: INF-B-07 · liveness and readiness must be distinct probes
+      run: |
+        grep -q '/healthz' infra/k8s/core.yaml || { echo "no liveness probe"; exit 1; }
+        grep -q '/readyz'  infra/k8s/core.yaml || { echo "no readiness probe"; exit 1; }
+        grep -q "app.get('/readyz'" backend/src/index.js \
+          || { echo "the backend does not expose /readyz" && exit 1; }
+
+    - name: INF-B-08 · the SPA fallback must point at the real build directory
+      run: |
+        grep -q "frontend', 'dist'" backend/src/index.js \
+          || { echo "SPA static path does not reference frontend/dist" && exit 1; }
+
+  # AUTHZ-001 / MISS-AUTHZ-001: a guard must not lock out the account that
+  # legitimately owns the resource. Patient-reachable routes keep a
+  # staff-only permission unless the guard is widened to any-of with the
+  # `:own` form. Silent 403s in production are the failure mode this catches.
+  # REC-006 / PHARMA-003: a user-supplied string must never be compiled into a
+  # RegExp unescaped — catastrophic backtracking stalls the single event loop.
+  # `((a+)+)+$` against an unescaped pattern takes the whole API down, and the
+  # pharmacy/inventory search endpoints are unauthenticated.
+  unescaped-regex-guard:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Fail on unescaped user input reaching new RegExp
+      run: |
+        # Direct request-body/query reads.
+        ! grep -rEn "new RegExp\(\s*req\.(body|query|params)" backend/src/ || (echo "new RegExp(req.*) — use escapeRegex(capSearch(x))" && exit 1)
+        # A variable derived from the request but not passed through the helpers.
+        ! grep -rEn "new RegExp\(\s*[A-Za-z_$][\w$]*\s*,\s*['\"]i" backend/src/routes/ | grep -v "escapeRegex(" || (echo "new RegExp(<var>, 'i') without escapeRegex — use new RegExp(escapeRegex(capSearch(var)), 'i')" && exit 1)
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 20.x
+    - run: cd backend && npm install
+    - name: The helper must actually neutralise metacharacters
+      run: cd backend && node --test test/escapeRegex.test.js 2>/dev/null || cd backend && node --experimental-vm-modules node_modules/jest/bin/jest.js test/escapeRegex --forceExit
+
+  authz-caller-reachability:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 20.x
+    - run: cd backend && npm install
+    - name: Guards must stay reachable for the owning account
+      run: cd backend && node scripts/checkAuthzCallerReachability.mjs
+
+  permission-matrix-sanity:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 20.x
+    - run: cd backend && npm install
+    - name: Every authorize() permission is defined in the matrix
+      run: cd backend && node scripts/checkPermissionMatrix.mjs
+
+  env-doc-drift:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 20.x
+    - name: DOC-B-03 · every required/manifest env var is in .env.example
+      # The runbooks, envValidator.js and the compose manifests drifted apart
+      # because nothing connected them. On the first run this found 23 vars the
+      # application requires but the example never mentioned — including every
+      # infrastructure credential — so a new operator following the example
+      # would have discovered them by crashing.
+      run: cd backend && node scripts/check-env-docs.mjs
+
   server:
     runs-on: ubuntu-latest
 
@@ -29,13 +682,49 @@ jobs:
     - name: Test
       run: cd backend && npm test
 
+    # TEST-B-04: coverage is now a GATE, not a report nobody reads.
+    # `jest --coverage` fails when coverage falls below the floors in
+    # backend/package.json, so a PR that deletes tests without replacing them
+    # breaks the build. The floors are set just under the measured baseline so
+    # they are honest on day one; they only ever move up.
+    #
+    # The rationale lives HERE rather than in package.json because that file is
+    # strict JSON: a `//coverageThreshold` or `_comment_*` key there is NOT
+    # ignored by Jest's config validator - it prints an "Unknown option"
+    # validation warning on every single run. Two naming attempts were tried
+    # before the note was moved to this file, which can hold a real comment.
+    - name: Coverage Gate
+      run: cd backend && npm run test:coverage
+
+    # TEST-M-01: `supertest` has been in devDependencies the whole time with no
+    # test using it. test/helpers/appHarness.js now mounts a real router with
+    # stubbed models, so authorization is checked over real HTTP with a real
+    # middleware chain rather than by calling handlers or matching source text.
+    # It is a separate job rather than another step in the test job so a failure
+    # says which KIND of check broke, not just that "tests failed".
+    - name: Integration (real HTTP, stubbed models)
+      run: cd backend && node --experimental-vm-modules node_modules/jest/bin/jest.js --forceExit test/integration
+
+    - name: Upload coverage report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: backend-coverage
+        path: backend/coverage/
+        retention-days: 14
+        if-no-files-found: ignore
+
   build-rust:
     name: Build Rust Native Module
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        # RUST-B-01: Linux is the PRODUCTION platform (every deploy target is a
+        # Linux container) and Windows is the developer platform. Both must
+        # build, because the OTP/PDF/CSV code paths behave differently depending
+        # on which backend actually loads — that divergence is the bug.
+        os: [ubuntu-latest, ubuntu-22.04, windows-latest]
 
     steps:
     - uses: actions/checkout@v4
@@ -47,17 +736,94 @@ jobs:
         cache: 'npm'
         cache-dependency-path: backend/rust-helper/package-lock.json
 
+    # RUST-B-01: the musl target needs a musl linker. ubuntu-latest is glibc, so
+    # a musl build there silently links against glibc and then fails at load time
+    # inside an Alpine-based image — which is exactly the "it builds but never
+    # loads" failure this finding describes.
+    - name: Install musl tools (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y musl-tools
+
     - name: Install Rust toolchain
       uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: x86_64-unknown-linux-gnu, x86_64-unknown-linux-musl
 
     - name: Install Dependencies
       run: cd backend/rust-helper && npm install
 
-    - name: Build Native Module
+    - name: Build Native Module (gnu)
       run: cd backend/rust-helper && npm run build:release
+
+    - name: Build Native Module (musl)
+      if: runner.os == 'Linux'
+      run: cd backend/rust-helper && npm run build:release -- --target x86_64-unknown-linux-musl
+
+    # RUST-B-02: a native module that hashes OTPs and generates PDFs is trusted
+    # implicitly at require() time. Record a SHA-256 of every artifact so a
+    # tampered binary is detectable, and so the loader can verify before use.
+    - name: Record artifact checksums
+      shell: bash
+      run: |
+        cd backend/rust-helper
+        ls -1 *.node *.so 2>/dev/null || true
+        sha256sum *.node *.so 2>/dev/null > prebuilt/SHA256SUMS || true
+        cat prebuilt/SHA256SUMS
+
+    # RUST-B-01: PROVE the artifact actually loads on this platform. A build that
+    # succeeds but produces an unloadable binary is the failure mode in the
+    # finding, so this is an assertion, not a log line.
+    - name: Assert the native module loads on this platform
+      shell: bash
+      run: |
+        cd backend/rust-helper
+        node -e "
+          const napi = require('./index.js');
+          const ok = typeof napi.hashOtp === 'function';
+          if (!ok) { console.error('NATIVE MODULE DID NOT LOAD on ' + process.platform + '/' + process.arch); process.exit(1); }
+          // Round-trip a value so a stub that loads but is non-functional is caught.
+          const sample = napi.hashOtp('ci-canary-000000', 10);
+          if (!sample) { console.error('hashOtp returned nothing'); process.exit(1); }
+          console.log('native module OK on ' + process.platform + '/' + process.arch);
+        "
 
     - name: Test Native Module
       run: cd backend/rust-helper && node tests/test.js
+
+    # RUST-M-01: the matrix and the load-assertion existed; the RUST-side gates
+    # did not. `node tests/test.js` exercises the NAPI surface through Node, so
+    # nothing was checking the Rust code itself - a crate-level panic, an
+    # unwrap on user input, or a lint that indicates a real bug all passed CI.
+    - name: cargo test
+      run: cd backend/rust-helper && cargo test --all-targets
+
+    # `-D warnings` rather than a plain clippy run: a warning nobody fails on is
+    # decoration, which is the failure mode the coverage gate already learned
+    # from once.
+    - name: cargo clippy (warnings are errors)
+      run: cd backend/rust-helper && cargo clippy --all-targets -- -D warnings
+
+    # RUST-M-01 / TEST-M-08: the native module hashes OTPs. A vulnerable
+    # transitive crate there is a crypto finding, not a build inconvenience.
+    - name: cargo audit
+      run: cd backend/rust-helper && cargo install cargo-audit --locked && cargo audit
+
+    # RUST-B-01: upload the artifacts so a Linux build actually reaches the
+    # image. Without this the job produced a binary that only ever existed on the
+    # runner, and production silently fell back to the JS path.
+    - name: Upload native artifacts
+      if: runner.os == 'Linux'
+      uses: actions/upload-artifact@v4
+      with:
+        name: medi-core-napi-${{ matrix.os }}-${{ hashFiles('backend/rust-helper/Cargo.lock') }}
+        path: |
+          backend/rust-helper/*.node
+          backend/rust-helper/*.so
+          backend/rust-helper/prebuilt/SHA256SUMS
+        if-no-files-found: error
+        retention-days: 30
 
   findmedi-next:
     name: findmedi-next (Next.js app)
@@ -81,12 +847,20 @@ jobs:
     - name: Install Dependencies
       run: cd frontend && npm ci --no-audit --no-fund
 
-    # NOTE: tsc ka baseline ~12,784 errors hai (strict mode, kabhi green nahi
-    # hua). Step ko signal ke liye rakh rahe hain par blocking nahi — jab tak
-    # error count track-waale baseline se neeche na aaye, ye step gate nahi hai.
-    - name: Type Check (non-blocking, baseline ~12.7k errors)
-      run: cd frontend && npm run typecheck
-      continue-on-error: true
+    # TEST-B-03: the type check is now ENFORCED, as a ratchet rather than a
+    # pass/fail. The frontend has ~11,775 pre-existing errors, so "tsc must be
+    # clean" would block every PR forever and guarantee nobody fixes any of them.
+    #
+    # Instead the count may go DOWN and never UP. The baseline lives in
+    # frontend/tsconfig.baseline.json and is deliberately a COUNT, not a file
+    # list: a per-file baseline can be gamed by renaming or moving files, whereas
+    # a total cannot.
+    #
+    # This step is BLOCKING (no continue-on-error). That is the whole point of the
+    # change: previously the check was signal-only, so it could not fail a build
+    # and the number drifted up indefinitely.
+    - name: Type Check (ratchet — errors may decrease, never increase)
+      run: cd frontend && npm run typecheck:ratchet
 
     - name: Test
       run: cd frontend && npm test

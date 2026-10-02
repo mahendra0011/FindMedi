@@ -78,6 +78,7 @@ import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { getSocket } from '@/lib/socket';
 import { toast } from 'sonner';
+import { userFacingError } from '@/lib/errorCopy';
 
 export default function RiderDashboard() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -114,7 +115,7 @@ export default function RiderDashboard() {
       setProfile((prev: any) => ({ ...prev, emergencySupport: res.emergencySupport }));
       toast.success(emergencyPending ? 'Emergency Support ON' : 'Emergency Support OFF');
     } catch (e: any) {
-      toast.error(e.response?.data?.message || e.message || 'Toggle failed');
+      toast.error(userFacingError(e, { fallback: 'Toggle failed' }));
     }
   };
 

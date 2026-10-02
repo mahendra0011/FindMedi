@@ -1,4 +1,25 @@
-import apiClient, { getApiBaseUrl, getServerOrigin } from './axios';
+import apiClient, { getApiBaseUrl, getServerOrigin, getAccessToken } from './axios';
+
+/**
+ * FE-B-01: Authorization headers for raw `fetch` calls that bypass axios.
+ *
+ * Three receipt downloads used `localStorage.getItem('token')`. That was both a
+ * vulnerability (a script-readable copy of the token) and a correctness bug: when
+ * localStorage was empty the header was sent literally as `Bearer ` — an empty
+ * token — so a genuine session expiry was indistinguishable from a missing header.
+ *
+ * These calls now read the same in-memory cache the interceptors use, and always
+ * send `credentials: 'include'` so the httpOnly cookie authenticates even when
+ * the in-memory token has expired but the refresh cookie is still valid.
+ */
+function authHeaders() {
+  const headers = {};
+  const token = typeof getAccessToken === 'function' ? getAccessToken() : null;
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  return headers;
+}
 
 export { apiClient, getApiBaseUrl, getServerOrigin };
 
@@ -73,18 +94,43 @@ export async function getFilePreviewUrl(url) {
     return { url: resolved, type, rawUrl: resolved };
   }
 
-  const token = typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null;
+  // FE-B-01: the token comes from the in-memory cache owned by lib/axios.js.
+  // Reading it from localStorage here would reintroduce the script-readable copy
+  // of the token that this whole change exists to remove.
+  const token = (() => {
+    try {
+      const { getAccessToken } = require('./axios');
+      return typeof getAccessToken === 'function' ? getAccessToken() : null;
+    } catch {
+      return null;
+    }
+  })();
   const headers = {};
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  // Fetch with Authorization header + credentials to handle auth-protected endpoints and cross-origin
+  // Fetch with Authorization header + credentials to handle auth-protected endpoints and cross-origin.
+  // FE-B-04: retry once on an auth failure. The access token can expire between
+  // page render and this fetch, and a raw `fetch` does not run the axios refresh
+  // interceptor — so the first attempt legitimately 401s even though the user has
+  // a perfectly valid session. One retry through the API client forces the refresh
+  // and succeeds, instead of showing a broken thumbnail.
+  const fetchBlob = async () => {
+    let response = await fetch(resolved, { credentials: 'include', headers });
+    if (response.status === 401) {
+      // Force a token refresh, then retry once.
+      const { refreshSession } = require('./axios');
+      if (typeof refreshSession === 'function' && await refreshSession()) {
+        headers['Authorization'] = `Bearer ${getAccessToken() || ''}`;
+        response = await fetch(resolved, { credentials: 'include', headers });
+      }
+    }
+    return response;
+  };
+
   try {
-    const response = await fetch(resolved, {
-      credentials: 'include',
-      headers,
-    });
+    const response = await fetchBlob();
     if (!response.ok) throw new Error(`Failed to load file (${response.status})`);
 
     const contentType = (response.headers.get('content-type') || '').toLowerCase();
@@ -98,7 +144,47 @@ export async function getFilePreviewUrl(url) {
     return { url: URL.createObjectURL(blob), type, rawUrl: resolved };
   } catch (err) {
     console.error('getFilePreviewUrl error:', err);
-    return { url: resolved, type, rawUrl: resolved };
+
+    // FE-B-04: DO NOT fall back to the raw URL.
+    //
+    // The old fallback returned `{ url: resolved }`, which handed the browser a
+    // bare storage/CDN URL for a file the server just refused to serve. For a
+    // PHI document that is both useless (it renders as a broken image) and a
+    // quiet information leak (the URL itself may be a guessable or shared link,
+    // and it ends up in the DOM, in screenshots and in any "copy image address").
+    //
+    // The caller gets an explicit error instead, and can distinguish the cases.
+    const status = err?.status || null;
+    const authFailed = status === 401 || status === 403;
+    return {
+      url: null,
+      type,
+      rawUrl: resolved,
+      error: true,
+      // 401/403 → the session cannot see this file (rightly).
+      // otherwise  → the network or the storage backend is at fault.
+      reason: authFailed ? 'forbidden' : 'unavailable',
+      status,
+    };
+  }
+}
+
+/**
+ * FE-B-04: release a preview object URL.
+ *
+ * `URL.createObjectURL` is not garbage collected — every preview holds its blob
+ * alive for the lifetime of the document. A record list that renders 200
+ * thumbnails therefore leaks 200 blobs, and re-renders make it worse. Call this
+ * from an effect cleanup (or when replacing a preview) so each blob is released
+ * exactly once.
+ */
+export function revokeFilePreview(preview) {
+  if (preview?.url && typeof preview.url === 'string' && preview.url.startsWith('blob:')) {
+    try {
+      URL.revokeObjectURL(preview.url);
+    } catch {
+      // Already revoked, or the document is unloading — nothing to do.
+    }
   }
 }
 
@@ -185,6 +271,33 @@ export async function downloadInvoicePdf(billId, filename = 'invoice.pdf') {
   }
 }
 
+/**
+ * ADM-M-02: the audit-trail CSV export. The filename comes from the server's
+ * Content-Disposition (it carries a timestamp), so two exports in one sitting
+ * do not silently overwrite each other in Downloads.
+ */
+export async function downloadAuditExport(params = {}) {
+  try {
+    const qs = new URLSearchParams(params).toString();
+    const response = await apiClient.get(`/audit-logs/export${qs ? `?${qs}` : ''}`, {
+      responseType: 'blob',
+    });
+    const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const disposition = response.headers?.['content-disposition'] || '';
+    const match = /filename="([^"]+)"/.exec(disposition);
+    a.download = match ? match[1] : 'audit-export.csv';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    throw new Error(error.message || 'Unable to export audit logs');
+  }
+}
+
 export async function downloadPaymentInvoice(txnId, filename = 'invoice.pdf') {
   try {
     const response = await apiClient.get(`/transactions/${txnId}/invoice`, {
@@ -258,6 +371,12 @@ export const api = {
   forgotPassword:     (body)    => request('/auth/forgot-password',  { method:'POST', body: JSON.stringify(body) }),
   resetPassword:      (body)    => request('/auth/reset-password',   { method:'POST', body: JSON.stringify(body) }),
   logout:             ()        => request('/auth/logout',           { method:'POST' }),
+  logoutAll:          ()        => request('/auth/logout-all',       { method:'POST' }),
+  // AUTH-M-02: session management. `logoutAll` existed on the server and
+  // `getAdminSessions`/`killAdminSession` existed for superadmin, but a patient
+  // had no way to see or end an individual device session.
+  getSessions:        ()        => request('/auth/sessions'),
+  revokeSession:      (jti)     => request(`/auth/sessions/${encodeURIComponent(jti)}`, { method:'DELETE' }),
   me:                 ()        => request('/auth/me'),
   updateProfile:      (body)    => request('/auth/profile',          { method:'PUT',  body: JSON.stringify(body) }),
   uploadAvatar:       (file)    => {
@@ -320,6 +439,21 @@ export const api = {
   submitIntakeForm:   (id,b)    => request(`/appointments/${id}/intake`, { method:'PUT', body: JSON.stringify(b) }),
   updateAppointmentTransit: (id,b) => request(`/appointments/${id}/transit`, { method:'PUT', body: JSON.stringify(b) }),
   deleteAppointment:  (id)      => request(`/appointments/${id}`,   { method:'DELETE' }),
+
+  // APPT-M-01: waitlist for a full slot - join, view own queue, accept a paid
+  // 15-minute offer, or leave/decline.
+  joinWaitlist:       (body)    => request('/appointments/waitlist', { method:'POST', body: JSON.stringify(body) }),
+  getMyWaitlist:      ()        => request('/appointments/waitlist/mine'),
+  acceptWaitlistOffer:(id)      => request(`/appointments/waitlist/${id}/accept`, { method:'POST' }),
+  leaveWaitlist:      (id)      => request(`/appointments/waitlist/${id}`, { method:'DELETE' }),
+
+  // APPT-M-02: recurring series - book N occurrences of one slot, list them
+  // with their occurrence appointments, or cancel every not-yet-terminal one.
+  // Occurrence-level cancel/reschedule stays on updateAppointment/deleteAppointment
+  // (each occurrence is a normal Appointment).
+  createAppointmentSeries:(body) => request('/appointments/series',          { method:'POST',   body: JSON.stringify(body) }),
+  getMyAppointmentSeries: ()     => request('/appointments/series/mine'),
+  cancelAppointmentSeries:(id)   => request(`/appointments/series/${id}`,    { method:'DELETE' }),
 
   getRecords:         (p={})    => request('/records?' + new URLSearchParams(p)),
   getPatientRecords:  (pid)     => request(`/records/patient/${pid}`),
@@ -509,6 +643,9 @@ export const api = {
   getAuditLogs:               (p={})    => request('/audit-logs?' + new URLSearchParams(p)),
   getAuditLogStats:           ()        => request('/audit-logs/stats'),
 
+  // ADM-M-05: superadmin ops freshness/health snapshot (backend reports, never gates).
+  getOpsHealth:               ()        => request('/ops-health'),
+
   replyToReview:              (id,b)    => request(`/reviews/${id}/reply`, { method:'PUT', body: JSON.stringify(b) }),
 
   getFlaggedReviews:          (p={})    => request('/reviews/moderation?' + new URLSearchParams(p)),
@@ -517,6 +654,11 @@ export const api = {
 
   getSystemSettings:          ()        => request('/system-settings'),
   updateSystemSetting:        (key,b)   => request(`/system-settings/${key}`, { method:'PUT', body: JSON.stringify(b) }),
+
+  // ADM-M-06: per-tenant API quota management (superadmin).
+  getTenantQuotas:            ()        => request('/tenant-quotas'),
+  setTenantQuota:             (id,b)    => request(`/tenant-quotas/${id}`, { method:'PUT', body: JSON.stringify(b) }),
+  deleteTenantQuota:          (id)      => request(`/tenant-quotas/${id}`, { method:'DELETE' }),
 
   getCommissionConfigs:       ()        => request('/commission/config'),
   updateCommissionConfig:     (id,b)    => request(`/commission/config/${id}`, { method:'PUT', body: JSON.stringify(b) }),
@@ -615,6 +757,8 @@ export const api = {
   setup2FA: () => request('/auth/2fa/setup', { method: 'POST' }),
   verify2FA: (body) => request('/auth/2fa/verify', { method: 'POST', body: JSON.stringify(body) }),
   disable2FA: (body) => request('/auth/2fa/disable', { method: 'POST', body: JSON.stringify(body) }),
+  // AUTH-B-03: exchange the pending-login ticket for a real session.
+  complete2FA: (body) => request('/auth/2fa/complete', { method: 'POST', body: JSON.stringify(body) }),
 
   getNursingCharts: (p={}) => request('/nursing?' + new URLSearchParams(p)),
   createVitalsChart: (b) => request('/nursing/vitals', { method: 'POST', body: JSON.stringify(b) }),
@@ -709,7 +853,11 @@ export const api = {
   getRideReceiptUrl:      (id)      => `${BASE}/ride/${id}/receipt`,
   downloadRideReceipt:    async (id, filename) => {
     const res = await fetch(`${BASE}/ride/${id}/receipt`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
+      // FE-B-01: in-memory token + the httpOnly cookie. Previously this
+      // sent an empty Bearer whenever localStorage was empty, which hid
+      // real session expiries as a bare 401.
+      headers: authHeaders(),
+      credentials: 'include',
     });
     if (!res.ok) throw new Error('Failed to download receipt');
     const blob = await res.blob();
@@ -784,7 +932,11 @@ export const api = {
   getFavoriteAssistants:     ()        => request('/assistant-booking/favorites'),
   downloadAssistantReceipt:  async (id, filename) => {
     const res = await fetch(`${BASE}/assistant-booking/${id}/receipt`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
+      // FE-B-01: in-memory token + the httpOnly cookie. Previously this
+      // sent an empty Bearer whenever localStorage was empty, which hid
+      // real session expiries as a bare 401.
+      headers: authHeaders(),
+      credentials: 'include',
     });
     if (!res.ok) throw new Error('Failed to download receipt');
     const blob = await res.blob();
@@ -844,7 +996,11 @@ export const api = {
   getFavoriteLawyers:        ()        => request('/lawyer-booking/favorites'),
   downloadLawyerReceipt:     async (id, filename) => {
     const res = await fetch(`${BASE}/lawyer-booking/${id}/receipt`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
+      // FE-B-01: in-memory token + the httpOnly cookie. Previously this
+      // sent an empty Bearer whenever localStorage was empty, which hid
+      // real session expiries as a bare 401.
+      headers: authHeaders(),
+      credentials: 'include',
     });
     if (!res.ok) throw new Error('Failed to download legal receipt');
     const blob = await res.blob();

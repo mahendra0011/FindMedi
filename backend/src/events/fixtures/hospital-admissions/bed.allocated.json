@@ -1,0 +1,7 @@
+{
+  "eventType": "bed.allocated",
+  "hospitalId": "652f000000000000000000b0",
+  "bedId": "652f000000000000000000b1",
+  "patientId": "652f000000000000000000b2",
+  "admissionId": "652f000000000000000000b3"
+}

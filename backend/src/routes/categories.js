@@ -2,6 +2,7 @@ import express from 'express';
 import Category from '../models/Category.js';
 import { protect, superadminOnly } from '../middleware/auth.js';
 import { validate, createCategorySchema, updateCategorySchema, mergeCategorySchema } from '../utils/validate.js';
+import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
 
 const router = express.Router();
 
@@ -10,7 +11,7 @@ router.get('/', protect, superadminOnly, async (req, res) => {
     const { type, search } = req.query;
     const filter = {};
     if (type) filter.type = type;
-    if (search) filter.name = new RegExp(search, 'i');
+    if (search) filter.name = new RegExp(escapeRegex(capSearch(search)), 'i');
     const categories = await Category.find(filter).sort({ type: 1, displayOrder: 1 });
     res.json({ categories });
   } catch (err) { res.status(500).json({ message: err.message }); }
@@ -25,7 +26,9 @@ router.post('/', protect, superadminOnly, validate(createCategorySchema), async 
 
 router.put('/:id', protect, superadminOnly, validate(updateCategorySchema), async (req, res) => {
   try {
-    const category = await Category.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const { pickBody } = await import('../utils/pick.js');
+    const category = await Category.findByIdAndUpdate(req.params.id,
+      pickBody(req.body, ['name', 'type', 'description', 'parent', 'icon', 'isActive', 'displayOrder']), { new: true });
     if (!category) return res.status(404).json({ message: 'Category not found' });
     res.json(category);
   } catch (err) { res.status(400).json({ message: err.message }); }

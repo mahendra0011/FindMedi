@@ -36,8 +36,10 @@ export default function MediaViewer({ items = [], index = 0, onClose, onForward,
 
   const next = () => setCurrent((c) => (c + 1) % items.length);
   const prev = () => setCurrent((c) => (c - 1 + items.length) % items.length);
-  const isImage = item.mimetype?.startsWith('image/');
-  const isVideo = item.mimetype?.startsWith('video/');
+  // CHAT-M-02: server stores `mimeType` (camelCase); tolerate legacy lowercase.
+  const mime = item.mimeType || item.mimetype;
+  const isImage = mime?.startsWith('image/');
+  const isVideo = mime?.startsWith('video/');
 
   /** Wheel zoom (desktop) */
   const onWheel = (e) => {
@@ -168,7 +170,7 @@ export default function MediaViewer({ items = [], index = 0, onClose, onForward,
               onClick={() => setCurrent(i)}
               className={`w-14 h-14 rounded-lg overflow-hidden flex-shrink-0 border-2 ${i === current ? 'border-[var(--chat-accent,#059669)]' : 'border-transparent opacity-60 hover:opacity-100'}`}
             >
-              {it.mimetype?.startsWith('image/') ? (
+              {(it.mimeType || it.mimetype)?.startsWith('image/') ? (
                 <img src={it.thumbnail || it.url} alt="" className="w-full h-full object-cover" />
               ) : (
                 <span className="w-full h-full bg-white/10 flex items-center justify-center text-white">

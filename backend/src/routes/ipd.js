@@ -6,6 +6,7 @@ import Notification from '../models/Notification.js';
 import { protect, adminOnly, clinicalStaffOnly } from '../middleware/auth.js';
 import { validate, createAdmissionSchema } from '../utils/validate.js';
 import { generateAdmissionId, generate16DigitId } from '../utils/idGenerator.js';
+import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
 
 const ipdBedSchema = z.object({}).passthrough();
 const ipdDischargeSchema = z.object({ dischargeSummary: z.string().optional(), isInfectionCase: z.boolean().optional() });
@@ -40,7 +41,9 @@ router.put('/beds/:id', protect, validate(ipdBedSchema), async (req, res) => {
     if (req.user.hospitalId && req.user.role !== 'superadmin' && bed.hospitalId?.toString() !== req.user.hospitalId.toString()) {
       return res.status(403).json({ message: 'Access denied' });
     }
-    Object.assign(bed, req.body);
+    // AUTH-030: allowlisted fields only — bedNumber/occupancy/tenant linkage immutable here.
+    const { pickBody } = await import('../utils/pick.js');
+    Object.assign(bed, pickBody(req.body, ['ward', 'bedType', 'dailyRate', 'floor', 'isAC']));
     await bed.save();
     res.json(bed);
   } catch (err) { res.status(400).json({ message: err.message }); }
@@ -49,6 +52,12 @@ router.put('/beds/:id', protect, validate(ipdBedSchema), async (req, res) => {
 // ─── Admission ─────────────────────────────────────────────────────────────
 router.post('/admissions', protect, adminOnly, validate(createAdmissionSchema), async (req, res) => {
   try {
+    // RIDE-B-17 (partial): the bed scope below was `{ hospitalId: undefined }`
+    // for a tenant-less caller, which Mongoose strips — degrading to a GLOBAL
+    // bed lookup. A non-superadmin with no linked hospital is refused outright.
+    if (req.user.role !== 'superadmin' && !req.user.hospitalId) {
+      return res.status(403).json({ message: 'No hospital linked to this account' });
+    }
     const { patientId, patientName, bedId: reqBedId, primaryDiagnosis, source, attendantName, attendantPhone, estimatedStay, admissionNotes, priority } = req.body;
     if (!patientId) return res.status(400).json({ message: 'Patient required' });
 
@@ -58,7 +67,12 @@ router.post('/admissions', protect, adminOnly, validate(createAdmissionSchema), 
 
     // Auto-assign bed based on priority/severity if not provided
     if (!bedId && priority) {
+      // RIDE-B-17: this auto-assign query was GLOBAL (first available bed anywhere),
+      // so a patient of hospital A could be admitted into - and block - a bed of
+      // hospital B. Bed lookup is scoped to the caller's hospital now.
+      const bedScope = req.user.role === 'superadmin' ? {} : { hospitalId: req.user.hospitalId };
       const priorityBed = await Bed.findOne({
+        ...bedScope,
         status: 'Available',
         ward: priority === 'Critical' || priority === 'Emergency' ? 'ICU' : 
               priority === 'Urgent' ? { $in: ['Private', 'Semi-Private'] } : 
@@ -71,7 +85,10 @@ router.post('/admissions', protect, adminOnly, validate(createAdmissionSchema), 
     }
 
     if (bedId && !bedData) {
-      bedData = await Bed.findById(bedId);
+      // RIDE-B-17: a client-supplied bedId must belong to the caller's hospital.
+      bedData = req.user.role === 'superadmin'
+        ? await Bed.findById(bedId)
+        : await Bed.findOne({ _id: bedId, hospitalId: req.user.hospitalId });
       if (!bedData || bedData.status !== 'Available') return res.status(400).json({ message: 'Bed not available' });
     }
 
@@ -112,9 +129,9 @@ router.get('/admissions', protect, async (req, res) => {
     }
     if (search) {
       filter.$or = [
-        { admissionId: new RegExp(search, 'i') },
-        { patientName: new RegExp(search, 'i') },
-        { admittingDoctor: new RegExp(search, 'i') },
+        { admissionId: new RegExp(escapeRegex(capSearch(search)), 'i') },
+        { patientName: new RegExp(escapeRegex(capSearch(search)), 'i') },
+        { admittingDoctor: new RegExp(escapeRegex(capSearch(search)), 'i') },
       ];
     }
     const admissions = await Admission.find(filter).populate('patientId', 'name email phone').sort({ createdAt: -1 });

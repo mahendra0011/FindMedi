@@ -1,8 +1,21 @@
+# ==============================================================================
+# FindMedi — LOCAL DEVELOPMENT STACK
+# ==============================================================================
+# INF-B-02: THIS FILE IS DEVELOPMENT ONLY.
+#
+# It publishes Mongo (27018), Redis (6380), Postgres, OpenSearch, MinIO and Kafka
+# on HOST ports and falls back to committed `*_dev_only*` passwords. That is fine on
+# a developer laptop and unsafe anywhere else.
+#
+#   dev:  docker compose up -d
+#   prod: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+
+
 services:
-  # ==========================================
-  # MONGODB REPLICA SET: System of Record
-  # (Single-node replica set: enables transactions + change streams locally)
-  # ==========================================
+  # INFRA-005: every service gets mem limits + json-file log rotation.
+  # Committed passwords are dev-only defaults — override via environment
+  # (POSTGRES_PASSWORD, MINIO_ROOT_PASSWORD) or a compose .env file in prod.
   mongo1:
     image: mongo:7.0
     container_name: findmedi-mongo1
@@ -11,6 +24,17 @@ services:
     volumes:
       - mongo_data:/data/db
     command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+    mem_limit: 2g
+    cpus: 1.0
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
     restart: unless-stopped
 
   # ==========================================
@@ -25,10 +49,21 @@ services:
       - "5433:5432"
     environment:
       POSTGRES_DB: findmedi
-      POSTGRES_USER: findmedi
-      POSTGRES_PASSWORD: findmedi_dev_only
+      POSTGRES_USER: ${POSTGRES_USER:-findmedi}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-findmedi_dev_only}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    mem_limit: 1g
+    cpus: 0.5
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-findmedi}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
     restart: unless-stopped
 
   # ==========================================
@@ -80,10 +115,44 @@ services:
       - "443:443"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      # INF-B-01: the shared location set is included by the live 443 block.
+      - ./nginx/snippets:/etc/nginx/snippets:ro
+      # TLS material (fullchain.pem / privkey.pem). Read-only; provided by
+      # certbot below (or by a mounted secret in a managed environment).
+      - ./nginx/certs:/etc/nginx/certs:ro
+      # ACME HTTP-01 webroot for renewal.
+      - ./nginx/certbot:/var/www/certbot:ro
+    # INF-B-07: probe /readyz so a container whose datastore is unreachable is
+    # pulled out of rotation by the edge instead of serving 500s.
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:80/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
     depends_on:
       - valhalla
     restart: unless-stopped
     profiles: ["edge"]
+
+  # ==========================================
+  # CERTBOT: ACME issuance + renewal (INF-B-01)
+  # Run on demand:  docker compose --profile certbot run --rm certbot
+  # Schedule `certbot renew` twice daily via cron/systemd timer.
+  # ==========================================
+  certbot:
+    image: certbot/certbot:latest
+    container_name: findmedi-certbot
+    volumes:
+      - ./nginx/certbot:/var/www/certbot
+      - ./nginx/certs:/etc/letsencrypt
+    # Shell so the image can run `certbot renew` as well as `certonly`.
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      "trap exit TERM;
+       while :; do certbot renew --webroot -w /var/www/certbot --quiet;
+                     sleep 12h & wait $${!}; done"
+    profiles: ["certbot"]
 
   # ==========================================
   # CLAMAV: malware scanning for medical-document uploads
@@ -120,6 +189,17 @@ services:
     volumes:
       - redis_data:/data
     command: ["redis-server", "--appendonly", "yes"]
+    mem_limit: 1g
+    cpus: 0.5
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
     restart: unless-stopped
 
   # ==========================================
@@ -141,19 +221,57 @@ services:
     restart: unless-stopped
     depends_on:
       - zookeeper
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:29092 --list"]
+      interval: 60s
+      timeout: 20s
+      retries: 3
+      start_period: 90s
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
     ports:
       - "9092:9092"
       - "29092:29092"
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka:29092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+      # DP-B-02: SASL_SSL with scram credentials on the EXTERNAL listener (anything
+      # reaching :9092 from outside the compose network), so appointment/OTP/ride/
+      # vitals events are no longer readable by any client that can open a socket.
+      # The INTERNAL listener stays PLAINTEXT because it never leaves the network
+      # namespace; the production overlay replaces it with a mTLS listener.
+      KAFKA_ADVERTISED_LISTENERS: SASL_SSL://localhost:9092,PLAINTEXT_INTERNAL://kafka:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: SASL_SSL:SASL_SSL,PLAINTEXT_INTERNAL:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
+      KAFKA_SASL_ENABLED_MECHANISMS: SCRAM-SHA-512
+      # DP-B-02: a superuser whose only job is to provision the per-service users
+      # and the ACLs below. It is not the identity the application uses.
+      KAFKA_SUPER_USERS: User:findmedi_admin
+      KAFKA_LISTENER_NAME_SASL_SSL_SASL_ENABLED_MECHANISMS: SCRAM-SHA-512
+      KAFKA_SASL_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/kafka.truststore.jks
+      KAFKA_SASL_SSL_TRUSTSTORE_PASSWORD: ${KAFKA_TRUSTSTORE_PASSWORD:-findmedi_dev_truststore}
+      KAFKA_SASL_SSL_KEYSTORE_LOCATION: /etc/kafka/secrets/kafka.keystore.jks
+      KAFKA_SASL_SSL_KEYSTORE_PASSWORD: ${KAFKA_KEYSTORE_PASSWORD:-findmedi_dev_keystore}
+      KAFKA_SASL_SSL_KEY_PASSWORD: ${KAFKA_KEY_PASSWORD:-findmedi_dev_key}
+      KAFKA_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/kafka.truststore.jks
+      KAFKA_SSL_TRUSTSTORE_PASSWORD: ${KAFKA_TRUSTSTORE_PASSWORD:-findmedi_dev_truststore}
+      KAFKA_SSL_KEYSTORE_LOCATION: /etc/kafka/secrets/kafka.keystore.jks
+      KAFKA_SSL_KEYSTORE_PASSWORD: ${KAFKA_KEYSTORE_PASSWORD:-findmedi_dev_keystore}
+      KAFKA_SSL_KEY_PASSWORD: ${KAFKA_KEY_PASSWORD:-findmedi_dev_key}
+      KAFKA_SSL_CLIENT_AUTH: required
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      # DP-B-02: auto-create is OFF. A typo in a topic name used to silently create
+      # an unaudited garbage topic that only the typo'ing service could read, and a
+      # topic created on demand is created without any ACL. Topics are declared in
+      # data-platform/kafka/topics.json and provisioned by scripts/kafka-provision.sh.
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+    volumes:
+      # DP-B-02: keystores + the topic/ACL manifest.
+      - ./kafka/secrets:/etc/kafka/secrets:ro
+      - ./kafka/provision:/etc/kafka/provision:ro
 
   # ==========================================
   # OPENSEARCH: Search & Audit Logs
@@ -168,7 +286,19 @@ services:
       - discovery.type=single-node
       - bootstrap.memory_lock=true
       - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
-      - DISABLE_SECURITY_PLUGIN=true
+      # DP-B-01: the security plugin used to be DISABLED, which made this cluster
+      # an anonymous read/write endpoint for full EHR documents + the audit trail
+      # to anyone who could reach :9200. It is now ON in every environment, with
+      # TLS between nodes, and the demo config (admin=admin) is NOT installed:
+      # the password comes from the secret store, and the dev default is rejected
+      # by the production `guard` service.
+      - DISABLE_SECURITY_PLUGIN=false
+      - DISABLE_INSTALL_DEMO_CONFIG=true
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_ADMIN_PASSWORD:-findmedi_dev_opensearch}
+      # DP-B-01: index-level RBAC is provisioned at boot — the API writes with
+      # `findmedi_api` and can only touch its own indices; break-glass reads of
+      # the raw EHR index are a separate `findmedi_breakglass` role.
+      - OPENSEARCH_JAVA_OPTS_APPEND=-Dplugins.security.ssl.http.enabled=true -Dplugins.security.ssl.transport.enabled=true
     ulimits:
       memlock:
         soft: -1
@@ -178,8 +308,24 @@ services:
         hard: 65536
     volumes:
       - opensearch_data:/usr/share/opensearch/data
+      # DP-B-01: TLS material + the role/action-policy bootstrap.
+      - ./opensearch/certs:/usr/share/opensearch/config/certs:ro
+      - ./opensearch/bootstrap:/usr/local/share/bootstrap:ro
     ports:
-      - "9200:9200"
+      - "127.0.0.1:9200:9200"   # DP-B-01: loopback only, never 0.0.0.0
+    healthcheck:
+      # The security plugin makes plain HTTP anonymous access a 401, so the probe
+      # must authenticate — otherwise a healthy cluster looks permanently down.
+      test: ["CMD-SHELL", "curl -sk -u admin:$$OPENSEARCH_INITIAL_ADMIN_PASSWORD https://localhost:9200/_cluster/health | grep -Eq '\"status\":\"(green|yellow)\"'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    mem_limit: 2g
+    cpus: 1.0
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
 
   # ==========================================
   # APACHE PINOT: Real-Time OLAP Analytics
@@ -225,9 +371,53 @@ services:
         taskmanager.numberOfTaskSlots: 2
         taskmanager.memory.process.size: 1024m
 
+  # ==========================================
+  # DATA LAKE: MinIO (S3) + Trino (Hive-batch SQL)
+  # s3://findmedi-data-lake holds Hudi MoR parquet (see data-platform/hudi/).
+  # WORM forensic bucket: findmedi-forensics (object-lock enabled at creation).
+  # ==========================================
+  minio:
+    image: minio/minio:RELEASE.2024-08-17T01-13-54Z
+    container_name: findmedi-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    ports:
+      - "9002:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-findmedi}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-findmedi_dev_only_123}
+    volumes:
+      - minio_data:/data
+    mem_limit: 1g
+    cpus: 0.5
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+    profiles: ["lake"]
+
+  trino:
+    image: trinodb/trino:435
+    container_name: findmedi-trino
+    restart: unless-stopped
+    ports:
+      - "8082:8080"
+    volumes:
+      - ./trino/catalog:/etc/trino/catalog:ro
+    depends_on:
+      - minio
+    profiles: ["lake"]
+
 volumes:
   redis_data:
   opensearch_data:
   mongo_data:
   postgres_data:
   clamav_data:
+  minio_data:

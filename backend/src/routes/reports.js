@@ -13,7 +13,7 @@ import OperationTheatre from '../models/OperationTheatre.js';
 import Staff from '../models/Staff.js';
 import Patient from '../models/Patient.js';
 import Doctor from '../models/Doctor.js';
-import { protect, adminOnly } from '../middleware/auth.js';
+import { protect, adminOnly, authorize } from '../middleware/auth.js';
 import { validate } from '../utils/validate.js';
 import { parseExcelFile, parseFile, exportToExcel, exportToCSV, validatePatientData, validateDoctorData, validateBillingData, formatPatientsForExport, formatDoctorsForExport, formatBillingForExport, formatAppointmentsForExport } from '../utils/excelUtils.js';
 import { getConfig } from '../utils/configLoader.js';
@@ -272,7 +272,20 @@ case 'OT Statistics':
   }
 };
 
-router.post('/generate', protect, validate(reportGenerateSchema), async (req, res) => {
+// RPT-B-01: report generation aggregates clinical + financial data. It used to
+// be `protect`-only and to scope by `req.user.hospitalId` — for every account
+// without a hospital (patients, doctors, riders, delivery partners) that filter
+// collapsed to `{}`, i.e. a PLATFORM-WIDE report. Tenant scope is now mandatory
+// and a user with no tenant is refused.
+const requireReportScope = (req, res, next) => {
+  if (req.user.role === 'superadmin') return next();
+  if (!req.user.hospitalId && !req.user.facilityId) {
+    return res.status(403).json({ message: 'Reports are limited to hospital/facility accounts' });
+  }
+  next();
+};
+
+router.post('/generate', protect, authorize('reports:read'), requireReportScope, validate(reportGenerateSchema), async (req, res) => {
   try {
     const { reportType, category, dateFrom, dateTo, department } = req.body;
     
@@ -281,7 +294,7 @@ router.post('/generate', protect, validate(reportGenerateSchema), async (req, re
     }
 
     const reportId = genId();
-    const { data, summary } = await generateReportData(reportType, dateFrom, dateTo, department, req.user.hospitalId);
+    const { data, summary } = await generateReportData(reportType, dateFrom, dateTo, department, req.user.hospitalId || req.user.facilityId);
     
     const report = await Report.create({
       reportId,
@@ -292,6 +305,8 @@ router.post('/generate', protect, validate(reportGenerateSchema), async (req, re
       department,
       data,
       summary,
+      // RPT-B-01: persist the tenant on the report so list/read can scope it.
+      hospitalId: req.user.hospitalId || req.user.facilityId,
       generatedBy: req.user._id,
       status: 'Generated'
     });
@@ -338,11 +353,13 @@ router.get('/jobs/:id', protect, adminOnly, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.get('/', protect, async (req, res) => {
+router.get('/', protect, authorize('reports:read'), requireReportScope, async (req, res) => {
   try {
     const { reportType, category, dateFrom, dateTo } = req.query;
     const filter = {};
-    if (req.user.hospitalId && req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId;
+    // RPT-B-02: fail CLOSED. `if (req.user.hospitalId && role !== superadmin)`
+    // listed every report on the platform for any account without a hospital.
+    if (req.user.role !== 'superadmin') filter.hospitalId = req.user.hospitalId || req.user.facilityId;
     if (reportType && reportType !== 'All') filter.reportType = reportType;
     if (category && category !== 'All') filter.category = category;
     if (dateFrom || dateTo) {
@@ -359,17 +376,23 @@ router.get('/', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-router.get('/:id', protect, async (req, res) => {
+router.get('/:id', protect, authorize('reports:read'), async (req, res) => {
   try {
     const report = await Report.findById(req.params.id).populate('generatedBy', 'name');
     if (!report) return res.status(404).json({ message: 'Report not found' });
-    if (req.user.role !== 'superadmin' && req.user.hospitalId && report.hospitalId && report.hospitalId.toString() !== req.user.hospitalId.toString()) {
-      return res.status(403).json({ message: 'Access denied' });
+    // RPT-B-02: fail closed — a report with no tenant (legacy rows) is
+    // superadmin-only, and a tenant user must match exactly.
+    if (req.user.role !== 'superadmin') {
+      const scope = req.user.hospitalId || req.user.facilityId;
+      if (!scope || !report.hospitalId || report.hospitalId.toString() !== String(scope)) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
     }
     res.json(report);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
+// authz: self
 router.get('/types/list', protect, async (req, res) => {
   try {
     const reportTypes = await getConfig('reportTypes');

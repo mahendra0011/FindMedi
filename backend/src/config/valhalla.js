@@ -8,6 +8,7 @@ export const COSTING_PROFILES = {
   RIDER_BIKE: 'bicycle',
   RIDER_MOTORCYCLE: 'motorcycle',
   AMBULANCE_EMERGENCY: 'emergency',
+  GREEN_CORRIDOR: 'emergency', // cardiac/organ transport (arterial-first options)
   PEDESTRIAN: 'pedestrian',
 };
 

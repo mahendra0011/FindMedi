@@ -7,6 +7,8 @@ import Facility from '../models/Facility.js';
 import Doctor from '../models/Doctor.js';
 import { validate } from '../utils/validate.js';
 import { createAndSendOTP } from '../services/otpService.js';
+import { createGrlRateLimiter } from '../middleware/rateLimit.js';
+import { randomPassword } from '../utils/secureRandom.js';
 
 const platformRegisterSchema = z.object({
   type: z.enum(['hospital', 'clinic', 'diagnostic', 'pharmacy']),
@@ -67,7 +69,16 @@ const platformRegisterSchema = z.object({
 
 const router = express.Router();
 
-router.post('/register', validate(platformRegisterSchema), async (req, res) => {
+// ADM-B-05: facility/doctor onboarding is an unauthenticated public form, so
+// it gets its own per-IP budget — otherwise a script can mass-create
+// institutions (and credential emails) from one IP.
+const platformRegisterLimiter = createGrlRateLimiter({
+  windowMs: 60 * 1000,
+  max: 5,
+  keyPrefix: 'rl:platformregister',
+});
+
+router.post('/register', platformRegisterLimiter, validate(platformRegisterSchema), async (req, res) => {
   try {
     const { type, account, facility, services, doctors, specialist, ambulances } = req.body;
 
@@ -261,7 +272,7 @@ router.post('/register', validate(platformRegisterSchema), async (req, res) => {
       for (const doc of doctors) {
         if (!doc.name || !doc.specialization) continue;
         const docEmail = doc.email || `${doc.name.toLowerCase().replace(/\s+/g, '.')}@${slug}.findmedi.app`;
-        const tempPassword = Math.random().toString(36).slice(-10);
+        const tempPassword = randomPassword(12);
         const docChatFee = doc.appointmentFees?.chat || doc.chatFee || 300;
         const docVideoFee = doc.appointmentFees?.video || doc.videoFee || 500;
         const docOfflineFee = doc.appointmentFees?.offline || doc.offlineFee || doc.consultationFee || 500;
@@ -271,6 +282,7 @@ router.post('/register', validate(platformRegisterSchema), async (req, res) => {
           name: doc.name,
           email: docEmail.toLowerCase(),
           password: tempPassword,
+          mustResetPassword: true,
           role: 'doctor',
           phone: doc.phone || account.phone,
           ...(type === 'hospital' ? { hospitalId: entity._id } : { facilityId: entity._id, facilityType: type }),
@@ -279,9 +291,15 @@ router.post('/register', validate(platformRegisterSchema), async (req, res) => {
           qualification: doc.qualifications || '',
           licenseNumber: doc.licenseNumber || '',
           consultationFee: docOfflineFee,
-          isVerified: true,
+          // ADM-B-05: this endpoint is unauthenticated, so a doctor created here
+          // used to come out PRE-APPROVED (isVerified + approvalStatus:approved +
+          // Doctor.approved:true) — an anonymous caller could mass-create approved
+          // clinicians (records:read/write, bookable profile) and mail credentials
+          // to arbitrary third-party addresses. Doctors now land in the normal
+          // approval queue; the credential mail still goes out so onboarding works.
+          isVerified: false,
           status: 'active',
-          approvalStatus: 'approved',
+          approvalStatus: 'pending',
         });
 
         await Doctor.create({
@@ -304,7 +322,9 @@ router.post('/register', validate(platformRegisterSchema), async (req, res) => {
           emergencySupport: doc.emergencySupport !== undefined ? Boolean(doc.emergencySupport) : Boolean(facility.emergencySupport),
           refundOnMissedOrCancelled: doc.refundOnMissedOrCancelled !== undefined ? Boolean(doc.refundOnMissedOrCancelled) : facility.refundOnMissedOrCancelled !== false,
           ...(type === 'hospital' ? { hospitalId: entity._id } : { facilityId: entity._id, facilityType: type }),
-          approved: true,
+          // ADM-B-05: the profile is created UNAPPROVED (see the user above) —
+          // a superadmin must verify the licence before the doctor is bookable.
+          approved: false,
         });
 
         void import('../lib/queues.js')

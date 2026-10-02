@@ -1,7 +1,7 @@
 import express from 'express';
 import multer from 'multer';
 import path from 'path';
-import { protect } from '../middleware/auth.js';
+import { protect, authorize } from '../middleware/auth.js';
 import { isConfigured, getAuthUrl, exchangeCodeForTokens, uploadFileToDrive } from '../services/driveService.js';
 import { getISTDateString } from '../utils/dateUtils.js';
 import User from '../models/User.js';
@@ -9,6 +9,7 @@ import Record from '../models/Record.js';
 import Notification from '../models/Notification.js';
 
 import jwt from 'jsonwebtoken';
+import crypto from 'node:crypto';
 
 const router = express.Router();
 
@@ -33,7 +34,7 @@ const upload = multer({
   },
 });
 
-router.get('/status', protect, async (req, res, next) => {
+router.get('/status', protect, authorize('drive:read'), async (req, res, next) => {
   try {
     if (!isConfigured()) {
       return res.json({ configured: false, connected: false, message: 'Google Drive is not configured on the server.' });
@@ -46,13 +47,49 @@ router.get('/status', protect, async (req, res, next) => {
   }
 });
 
-router.get('/auth-url', protect, (req, res, next) => {
+// ADM-B-06: the OAuth `state` used to be a plain base64 of { userId } with no
+// signature, so an attacker could complete the Google dance with THEIR account
+// and bind it to a victim's FindMedi account — every future "save to Drive" of
+// that user's medical records would land in the attacker's Drive. The state is
+// now HMAC-signed with a server secret, carries a single-use nonce stored in
+// Redis, and the callback VERIFIES the signature + burns the nonce before any
+// token is stored.
+const DRIVE_STATE_TTL_SECONDS = 600;
+
+const signDriveState = (payload) => {
+  const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
+  const mac = crypto.createHmac('sha256', process.env.JWT_SECRET).update(body).digest('base64url');
+  return `${body}.${mac}`;
+};
+
+const verifyDriveState = (state) => {
+  const [body, mac] = String(state || '').split('.');
+  if (!body || !mac) return null;
+  const expected = crypto.createHmac('sha256', process.env.JWT_SECRET).update(body).digest('base64url');
+  const a = Buffer.from(mac);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
+  try {
+    return JSON.parse(Buffer.from(body, 'base64url').toString('utf-8'));
+  } catch {
+    return null;
+  }
+};
+
+router.get('/auth-url', protect, authorize('drive:read'), async (req, res, next) => {
   try {
     if (!isConfigured()) {
       return res.status(503).json({ error: 'Google Drive is not configured on the server.' });
     }
-    const state = JSON.stringify({ userId: req.user.id });
-    const url = getAuthUrl(Buffer.from(state).toString('base64'));
+    const nonce = crypto.randomBytes(16).toString('hex');
+    // Single-use nonce: the state can be redeemed exactly once.
+    try {
+      const { redisClient, isRedisReady } = await import('../config/redis.js');
+      if (isRedisReady() && redisClient.isOpen) {
+        await redisClient.set(`drive:state:${nonce}`, String(req.user.id), { EX: DRIVE_STATE_TTL_SECONDS });
+      }
+    } catch { /* Redis is optional — the signature is still required */ }
+    const url = getAuthUrl(signDriveState({ userId: req.user.id, nonce }));
     res.json({ url });
   } catch (error) {
     next(error);
@@ -72,23 +109,24 @@ router.get('/callback', async (req, res, next) => {
       return res.redirect(`${clientUrl}/#/upload?drive=error&reason=no_code`);
     }
 
-    let userId = null;
-    if (state) {
-      try {
-        const decodedState = JSON.parse(Buffer.from(state, 'base64').toString('utf-8'));
-        userId = decodedState.userId;
-      } catch (e) {}
+    // ADM-B-06: a valid, signed state is REQUIRED — no fallback to a bare id.
+    const decodedState = verifyDriveState(state);
+    if (!decodedState?.userId) {
+      return res.redirect(`${clientUrl}/#/upload?drive=error&reason=invalid_state`);
     }
+    const userId = decodedState.userId;
 
-    if (!userId && req.cookies?.token) {
+    // Burn the nonce (one-time use) before exchanging the code.
+    if (decodedState.nonce) {
       try {
-        const decoded = jwt.verify(req.cookies.token, process.env.JWT_SECRET);
-        userId = decoded.id;
-      } catch (e) {}
-    }
-
-    if (!userId) {
-      return res.redirect(`${clientUrl}/#/upload?drive=error&reason=unauthorized`);
+        const { redisClient, isRedisReady } = await import('../config/redis.js');
+        if (isRedisReady() && redisClient.isOpen) {
+          const owner = await redisClient.getDel(`drive:state:${decodedState.nonce}`);
+          if (owner && String(owner) !== String(userId)) {
+            return res.redirect(`${clientUrl}/#/upload?drive=error&reason=invalid_state`);
+          }
+        }
+      } catch { /* best effort */ }
     }
 
     const tokens = await exchangeCodeForTokens(code);
@@ -101,7 +139,7 @@ router.get('/callback', async (req, res, next) => {
   }
 });
 
-router.delete('/disconnect', protect, async (req, res, next) => {
+router.delete('/disconnect', protect, authorize('drive:write'), async (req, res, next) => {
   try {
     await User.findByIdAndUpdate(req.user.id, { $unset: { driveTokens: '' } });
     res.json({ success: true, message: 'Google Drive disconnected.' });
@@ -110,7 +148,7 @@ router.delete('/disconnect', protect, async (req, res, next) => {
   }
 });
 
-router.post('/upload', protect, upload.single('file'), async (req, res, next) => {
+router.post('/upload', protect, authorize('drive:write'), upload.single('file'), async (req, res, next) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });

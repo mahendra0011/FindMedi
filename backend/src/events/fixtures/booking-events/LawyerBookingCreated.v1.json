@@ -1,0 +1,7 @@
+{
+  "eventType": "LawyerBookingCreated.v1",
+  "aggregateType": "LawyerBooking",
+  "aggregateId": "652f000000000000000000ff",
+  "userId": "652f000000000000000000fe",
+  "caseType": "property"
+}

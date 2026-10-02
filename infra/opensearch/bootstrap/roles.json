@@ -1,0 +1,89 @@
+{
+  "findmedi_api": {
+    "reserved": false,
+    "hidden": false,
+    "cluster_permissions": ["cluster_composite_ops_ro"],
+    "index_permissions": [
+      {
+        "index_patterns": [
+          "findmedi_providers_v1",
+          "findmedi_drugs_v1",
+          "findmedi_icd_v1",
+          "findmedi_ehr_docs_v1",
+          "findmedi_audit_logs_v1"
+        ],
+        "dls": "",
+        "fls": [],
+        "masked_fields": [],
+        "allowed_actions": [
+          "read",
+          "write",
+          "create_index",
+          "indices:admin/mappings/put",
+          "indices:admin/settings/update"
+        ]
+      }
+    ]
+  },
+
+  "findmedi_search": {
+    "reserved": false,
+    "hidden": false,
+    "cluster_permissions": [],
+    "index_permissions": [
+      {
+        "index_patterns": ["findmedi_providers_v1", "findmedi_drugs_v1", "findmedi_icd_v1"],
+        "dls": "",
+        "fls": [],
+        "masked_fields": [],
+        "allowed_actions": ["read"]
+      }
+    ]
+  },
+
+  "findmedi_analytics": {
+    "reserved": false,
+    "hidden": false,
+    "cluster_permissions": [],
+    "index_permissions": [
+      {
+        "index_patterns": ["findmedi_ehr_docs_v1"],
+        "dls": "",
+        "fls": ["recordId", "docType", "createdAt", "patientPseudonym", "allergies"],
+        "masked_fields": [],
+        "allowed_actions": ["read"]
+      }
+    ]
+  },
+
+  "findmedi_breakglass": {
+    "reserved": false,
+    "hidden": false,
+    "cluster_permissions": [],
+    "index_permissions": [
+      {
+        "index_patterns": ["findmedi_ehr_docs_v1"],
+        "dls": "",
+        "fls": [],
+        "masked_fields": [],
+        "allowed_actions": ["read"]
+      }
+    ]
+  },
+
+  "findmedi_audit": {
+    "reserved": false,
+    "hidden": false,
+    "cluster_permissions": [],
+    "index_permissions": [
+      {
+        "index_patterns": ["findmedi_audit_logs_v1"],
+        "dls": "",
+        "fls": [],
+        "masked_fields": [],
+        "allowed_actions": ["read"]
+      }
+    ]
+  }
+}
+

@@ -6,6 +6,7 @@ import User from '../models/User.js';
 import { protect, adminOnly } from '../middleware/auth.js';
 import { validate, createRadiologyOrderSchema } from '../utils/validate.js';
 import { generateOrderId } from '../utils/idGenerator.js';
+import { escapeRegex, capSearch } from '../utils/escapeRegex.js';
 
 const radScheduleSchema = z.object({ scheduledAt: z.string().optional() });
 const radCompleteSchema = z.object({ imageUrls: z.array(z.string()).optional() });
@@ -50,9 +51,9 @@ router.get('/orders', protect, async (req, res) => {
     if (modality && modality !== 'All') filter.modality = modality;
     if (search) {
       filter.$or = [
-        { orderId: new RegExp(search, 'i') },
-        { patientName: new RegExp(search, 'i') },
-        { bodyPart: new RegExp(search, 'i') },
+        { orderId: new RegExp(escapeRegex(capSearch(search)), 'i') },
+        { patientName: new RegExp(escapeRegex(capSearch(search)), 'i') },
+        { bodyPart: new RegExp(escapeRegex(capSearch(search)), 'i') },
       ];
     }
     const orders = await Radiology.find(filter).populate('patientId', 'name email phone').populate('doctorId', 'name email').sort({ createdAt: -1 });

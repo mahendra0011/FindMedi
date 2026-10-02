@@ -1,0 +1,18 @@
+{
+    "schemaName":  "provider_sla",
+    "dimensionFieldSpecs":  [
+                                { "name":  "providerId", "dataType":  "STRING" },
+                                { "name":  "vertical", "dataType":  "STRING" }
+                            ],
+    "metricFieldSpecs":  [
+                            { "name":  "accept_latency_seconds", "dataType":  "DOUBLE" }
+                        ],
+    "dateTimeFieldSpecs":  [
+                                {
+                                    "name":  "timestamp_epoch_ms",
+                                    "dataType":  "LONG",
+                                    "format":  "1:MILLISECONDS:EPOCH",
+                                    "granularity":  "1:MILLISECONDS"
+                                }
+                            ]
+}

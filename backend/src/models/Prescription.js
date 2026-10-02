@@ -30,6 +30,22 @@ const prescriptionSchema = new mongoose.Schema({
    isEmergency: { type: Boolean, default: false },
   prescriptionFile: { type: String, default: '' }, // Patient-uploaded prescription scan/photo
   hospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
+  // REC-M-05: tamper-evident seal over the clinical content.
+  integrity: {
+    version: String,
+    algorithm: String,
+    digest: String,
+    signature: String,
+    issuedAt: Date,
+    // Only a hash of the scan nonce is kept, so a database leak does not yield
+    // usable verification tokens for every live prescription.
+    nonceHash: String,
+  },
+  // Set when the prescription is cancelled or revoked. Verification consults
+  // this: a perfectly-signed prescription that was cancelled last week is not a
+  // valid prescription today, and integrity alone would say otherwise.
+  revokedAt: Date,
+  cancelledAt: Date,
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },

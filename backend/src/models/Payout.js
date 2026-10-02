@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { moneyRounding } from '../utils/money.js';
 
 const payoutSchema = new mongoose.Schema({
   facilityId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', required: true, index: true },
@@ -21,5 +22,9 @@ const payoutSchema = new mongoose.Schema({
     at: { type: Date, default: Date.now },
   }],
 }, { timestamps: true });
+
+// PAY-M-06: gross - commission - tax must equal net to the paisa, so all three
+// are normalised at the same boundary. `transactionCount` is a count, not money.
+payoutSchema.plugin(moneyRounding(['grossRevenue', 'commissionAmount', 'netPayout']));
 
 export default mongoose.model('Payout', payoutSchema);

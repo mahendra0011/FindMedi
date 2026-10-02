@@ -1,0 +1,9 @@
+{
+  "eventType": "ride.dispatch_started",
+  "aggregateType": "RideBooking",
+  "aggregateId": "652f00000000000000000001",
+  "status": "searching",
+  "retryCount": 1,
+  "outboxId": "652f000000000000000000e2",
+  "lastError": "handler-failed"
+}

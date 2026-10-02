@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { moneyRounding } from '../utils/money.js';
 
 const transactionLedgerSchema = new mongoose.Schema(
   {
@@ -45,5 +46,10 @@ const transactionLedgerSchema = new mongoose.Schema(
 transactionLedgerSchema.index({ createdAt: -1 });
 transactionLedgerSchema.index({ providerId: 1, createdAt: -1 });
 transactionLedgerSchema.index({ facilityId: 1, createdAt: -1 });
+
+// PAY-M-06: ledgerService already computes these in integer paise and converts
+// back with fromPaise, so this is a no-op for values written that way - it is
+// here to catch anything that reaches the ledger by a different path.
+transactionLedgerSchema.plugin(moneyRounding(['amount', 'commissionAmount', 'taxAmount', 'netAmount']));
 
 export default mongoose.model('TransactionLedger', transactionLedgerSchema);

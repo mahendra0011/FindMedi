@@ -17,8 +17,17 @@ let socket = null;
  * rejects it, and the app's connect_error handler surfaces that.
  */
 function getSocketAuthToken() {
+  // FE-B-01: read the in-memory token owned by `lib/axios.js`, not localStorage.
+  //
+  // This used to read `localStorage.getItem('token')`, which meant every socket
+  // connection required the token to be persisted — and persisting it is the
+  // vulnerability. Socket.IO cannot send an httpOnly cookie as a handshake header
+  // by itself, but it CAN be configured to send cookies, and the server already
+  // validates the same JWT the REST layer uses. Reading the module-scoped cache
+  // keeps a single owner for token state.
   try {
-    return typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null;
+    const { getAccessToken } = require('@/lib/axios');
+    return typeof getAccessToken === 'function' ? getAccessToken() : null;
   } catch {
     return null;
   }

@@ -6,6 +6,7 @@ import PointsHero from '@/components/loyalty/PointsHero';
 import RewardCard from '@/components/loyalty/RewardCard';
 import MyRedemptionsList from '@/components/loyalty/MyRedemptionsList';
 import LoyaltyLedgerList from '@/components/loyalty/LoyaltyLedgerList';
+import { userFacingError } from '@/lib/errorCopy';
 
 export default function PatientRewards() {
   const [summary, setSummary] = useState<any>({ pointsBalance: 0, lifetimePoints: 0, tier: 'Bronze' });
@@ -28,7 +29,7 @@ export default function PatientRewards() {
       setRedemptions(Array.isArray(r) ? r : r?.items || []);
       setLedger(Array.isArray(l) ? l : l?.items || []);
     } catch (e: any) {
-      toast.error(e.response?.data?.message || 'Rewards load failed');
+      toast.error(userFacingError(e, { fallback: 'Rewards load failed' }));
     }
   };
 
@@ -42,7 +43,7 @@ export default function PatientRewards() {
       toast.success(`Congratulations! Code: ${res.code}`);
       load();
     } catch (e: any) {
-      toast.error(e.response?.data?.message || 'Redeem failed');
+      toast.error(userFacingError(e, { fallback: 'Redeem failed' }));
     } finally {
       setRedeeming(null);
     }
